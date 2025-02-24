@@ -1,0 +1,1 @@
+# Zivoe eslint config

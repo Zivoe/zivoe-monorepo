@@ -1,0 +1,1 @@
+# Zivoe typescript config
