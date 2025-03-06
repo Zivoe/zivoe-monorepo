@@ -1,16 +1,15 @@
 import { NextRequest as Request, NextResponse as Response } from 'next/server';
 
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
-import { PublicClient, formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
-import { Contracts, NETWORKS, getContracts } from '@zivoe/contracts';
-import { zivoeGlobalsAbi, zivoeRewardsAbi, zivoeTrancheTokenAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
+import { NETWORKS, getContracts } from '@zivoe/contracts';
 
-import { DAYS_PER_YEAR, DAY_IN_SECONDS, handle } from '@/lib/utils';
+import { handle } from '@/lib/utils';
 
 import { getDb } from '@/app/server/clients/db';
 import { getWeb3Client } from '@/app/server/clients/web3';
+import { web3 } from '@/app/server/web3';
 
 import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
 
@@ -42,20 +41,20 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
   const blockNumber = BigInt(blockRes.data.block);
 
   //Get index price
-  const indexPriceRes = await handle(getIndexPrice({ client, contracts, blockNumber }));
+  const indexPriceRes = await handle(web3.getIndexPrice({ client, contracts, blockNumber }));
   if (indexPriceRes.err || !indexPriceRes.data)
     return Response.json({ error: 'Failed to get index price' }, { status: 500 });
 
   // Get APR
-  const aprRes = await handle(getAPY({ client, contracts, blockNumber }));
+  const aprRes = await handle(web3.getAPY({ client, contracts, blockNumber }));
   if (aprRes.err || !aprRes.data) return Response.json({ error: 'Failed to get APR' }, { status: 500 });
 
   // Get TVL
-  const tvlRes = await handle(getTVL({ client, contracts, blockNumber }));
+  const tvlRes = await handle(web3.getTVL({ client, contracts, blockNumber }));
   if (tvlRes.err || !tvlRes.data) return Response.json({ error: 'Failed to get TVL' }, { status: 500 });
 
   // Get ZSTT total supply
-  const zSTTTotalSupplyRes = await handle(getZSTTTotalSupply({ client, contracts, blockNumber }));
+  const zSTTTotalSupplyRes = await handle(web3.getZSTTTotalSupply({ client, contracts, blockNumber }));
   if (zSTTTotalSupplyRes.err || !zSTTTotalSupplyRes.data)
     return Response.json({ error: 'Failed to get ZSTT total supply' }, { status: 500 });
 
@@ -74,112 +73,6 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
   if (insertRes.err) return Response.json({ error: 'Failed to insert daily data' }, { status: 500 });
 
   return Response.json({ success: true });
-};
-
-const getIndexPrice = async ({
-  client,
-  contracts,
-  blockNumber
-}: {
-  client: PublicClient;
-  contracts: Contracts;
-  blockNumber: bigint;
-}) => {
-  const totalSupply = await client.readContract({
-    address: contracts.ZIVOE_VAULT,
-    abi: zivoeVaultAbi,
-    functionName: 'totalSupply'
-  });
-
-  const vaultTotalAssets = await client.readContract({
-    address: contracts.ZIVOE_VAULT,
-    abi: zivoeVaultAbi,
-    functionName: 'totalAssets',
-    blockNumber
-  });
-
-  const amount = parseUnits(vaultTotalAssets.toString(), 6);
-  const indexPrice = Number(formatUnits(amount / totalSupply, 6));
-
-  return { indexPrice, vaultTotalAssets };
-};
-
-const COMPOUNDING_PERIOD = 15;
-
-const getAPY = async ({
-  client,
-  contracts,
-  blockNumber
-}: {
-  client: PublicClient;
-  contracts: Contracts;
-  blockNumber: bigint;
-}) => {
-  const rewardRateRes = await client.readContract({
-    address: contracts.stSTT,
-    abi: zivoeRewardsAbi,
-    functionName: 'rewardData',
-    args: [contracts.USDC],
-    blockNumber
-  });
-
-  const totalSupplyRes = await client.readContract({
-    address: contracts.stSTT,
-    abi: zivoeRewardsAbi,
-    functionName: 'totalSupply',
-    blockNumber
-  });
-
-  const rewardRate = Number(rewardRateRes[2]);
-  const totalSupply = Number(totalSupplyRes);
-
-  const rewardRatePerDay = rewardRate * DAY_IN_SECONDS;
-  const rewardRatePerYear = rewardRatePerDay * DAYS_PER_YEAR;
-  const apr = rewardRatePerYear / totalSupply;
-
-  const dailyRate = apr / 100 / DAYS_PER_YEAR;
-  const periodRate = dailyRate * COMPOUNDING_PERIOD;
-  const apy = ((1 + periodRate) ** (DAYS_PER_YEAR / COMPOUNDING_PERIOD) - 1) * 100;
-
-  return Number(apy.toFixed(6));
-};
-
-const getTVL = async ({
-  client,
-  contracts,
-  blockNumber
-}: {
-  client: PublicClient;
-  contracts: Contracts;
-  blockNumber: bigint;
-}) => {
-  const totalSupply = await client.readContract({
-    address: contracts.GBL,
-    abi: zivoeGlobalsAbi,
-    functionName: 'adjustedSupplies',
-    blockNumber
-  });
-
-  return totalSupply[0] + totalSupply[1];
-};
-
-const getZSTTTotalSupply = async ({
-  client,
-  contracts,
-  blockNumber
-}: {
-  client: PublicClient;
-  contracts: Contracts;
-  blockNumber: bigint;
-}) => {
-  const totalSupply = await client.readContract({
-    address: contracts.zSTT,
-    abi: zivoeTrancheTokenAbi,
-    functionName: 'totalSupply',
-    blockNumber
-  });
-
-  return totalSupply;
 };
 
 export const POST = verifySignatureAppRouter(handler);
