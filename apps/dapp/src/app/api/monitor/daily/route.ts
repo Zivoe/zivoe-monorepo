@@ -8,7 +8,7 @@ import { Contracts, NETWORKS, getContracts } from '@zivoe/contracts';
 
 import { handle } from '@/lib/utils';
 
-import { Db, getDb } from '@/app/server/clients/db';
+import { getDb } from '@/app/server/clients/db';
 import { getWeb3Client } from '@/app/server/clients/web3';
 import { web3 } from '@/app/server/web3';
 
