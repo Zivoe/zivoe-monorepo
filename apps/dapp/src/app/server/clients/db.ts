@@ -26,3 +26,5 @@ export const getDb = ({ network }: { network: Network }) => {
     daily: zivoeDb.collection('Daily')
   };
 };
+
+export type Db = ReturnType<typeof getDb>;
