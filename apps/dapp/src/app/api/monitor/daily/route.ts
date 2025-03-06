@@ -62,64 +62,80 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
     end = new Date(today);
   }
 
-  while (start <= end) {
-    const { error } = await processDay({ date: start, client, contracts, db });
-    if (error) return Response.json({ error }, { status: 500 });
+  const datesToProcess: Date[] = [];
 
+  while (start <= end) {
+    datesToProcess.push(new Date(start));
     start.setDate(start.getDate() + 1);
   }
+
+  const BATCH_SIZE = 30;
+  const dailyDataToInsert: Array<DailyData> = [];
+
+  for (let i = 0; i < datesToProcess.length; i += BATCH_SIZE) {
+    const batch = datesToProcess.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map((date) => collectDailyData({ date, client, contracts })));
+
+    const failedResult = batchResults.find((result) => result.error || !result.data);
+    if (failedResult) return Response.json({ error: failedResult.error ?? 'Unknown error' }, { status: 500 });
+
+    const validResults = batchResults.filter((result): result is { data: DailyData } => result.data !== undefined);
+    dailyDataToInsert.push(...validResults.map((result) => result.data));
+  }
+
+  const insertAllResult = await handle(db.daily.insertMany(dailyDataToInsert));
+  if (insertAllResult.err) return Response.json({ error: 'Failed to insert daily data' }, { status: 500 });
 
   return Response.json({ success: true });
 };
 
-async function processDay({
+type DailyData = {
+  timestamp: Date;
+  blockNumber: string;
+  indexPrice: number;
+  apy: number;
+  tvl: string;
+  zSTTTotalSupply: string;
+  vaultTotalAssets: bigint;
+};
+
+async function collectDailyData({
   date,
   client,
-  contracts,
-  db
+  contracts
 }: {
   date: Date;
   client: PublicClient;
   contracts: Contracts;
-  db: Db;
 }) {
   // Get block of the start of the day
   const blockRes = await handle(getLastBlockByDate({ date, client }));
   if (blockRes.err || !blockRes.data) return { error: 'Failed to get block by date' };
   const blockNumber = BigInt(blockRes.data.block);
 
-  // Get index price
-  const indexPriceRes = await handle(web3.getIndexPrice({ client, contracts, blockNumber }));
+  const [indexPriceRes, aprRes, tvlRes, zSTTTotalSupplyRes] = await Promise.all([
+    handle(web3.getIndexPrice({ client, contracts, blockNumber })),
+    handle(web3.getAPY({ client, contracts, blockNumber })),
+    handle(web3.getTVL({ client, contracts, blockNumber })),
+    handle(web3.getZSTTTotalSupply({ client, contracts, blockNumber }))
+  ]);
+
   if (indexPriceRes.err || !indexPriceRes.data) return { error: 'Failed to get index price' };
-
-  // Get APR
-  const aprRes = await handle(web3.getAPY({ client, contracts, blockNumber }));
   if (aprRes.err || !aprRes.data) return { error: 'Failed to get APR' };
-
-  // Get TVL
-  const tvlRes = await handle(web3.getTVL({ client, contracts, blockNumber }));
   if (tvlRes.err || !tvlRes.data) return { error: 'Failed to get TVL' };
-
-  // Get ZSTT total supply
-  const zSTTTotalSupplyRes = await handle(web3.getZSTTTotalSupply({ client, contracts, blockNumber }));
   if (zSTTTotalSupplyRes.err || !zSTTTotalSupplyRes.data) return { error: 'Failed to get ZSTT total supply' };
 
-  // Insert daily data
-  const dbTimestamp = new Date(date.getTime() - 1);
-  const insertRes = await handle(
-    db.daily.insertOne({
-      timestamp: dbTimestamp,
-      blockNumber: blockNumber.toString(),
-      indexPrice: indexPriceRes.data.indexPrice,
-      apy: aprRes.data,
-      tvl: tvlRes.data.toString(),
-      zSTTTotalSupply: zSTTTotalSupplyRes.data.toString(),
-      vaultTotalAssets: indexPriceRes.data.vaultTotalAssets
-    })
-  );
-  if (insertRes.err) return { error: 'Failed to insert daily data' };
+  const data: DailyData = {
+    timestamp: new Date(date.getTime() - 1),
+    blockNumber: blockNumber.toString(),
+    indexPrice: indexPriceRes.data.indexPrice,
+    apy: aprRes.data,
+    tvl: tvlRes.data.toString(),
+    zSTTTotalSupply: zSTTTotalSupplyRes.data.toString(),
+    vaultTotalAssets: indexPriceRes.data.vaultTotalAssets
+  };
 
-  return { success: true };
+  return { data };
 }
 
 export const POST = handler;

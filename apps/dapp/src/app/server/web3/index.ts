@@ -13,7 +13,8 @@ const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) =>
   const totalSupply = await client.readContract({
     address: contracts.ZIVOE_VAULT,
     abi: zivoeVaultAbi,
-    functionName: 'totalSupply'
+    functionName: 'totalSupply',
+    blockNumber
   });
 
   const vaultTotalAssets = await client.readContract({
@@ -24,7 +25,7 @@ const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) =>
   });
 
   const amount = parseUnits(vaultTotalAssets.toString(), 6);
-  const indexPrice = Number(formatUnits(amount / totalSupply, 6));
+  const indexPrice = totalSupply !== 0n ? Number(formatUnits(amount / totalSupply, 6)) : 0;
 
   return { indexPrice, vaultTotalAssets };
 };
