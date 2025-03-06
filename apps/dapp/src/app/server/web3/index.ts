@@ -54,9 +54,10 @@ const getAPY = async ({ client, contracts, blockNumber }: Web3Request) => {
   const rewardRatePerYear = rewardRatePerDay * DAYS_PER_YEAR;
   const apr = rewardRatePerYear / totalSupply;
 
-  const dailyRate = apr / 100 / DAYS_PER_YEAR;
+  const dailyRate = apr / DAYS_PER_YEAR;
   const periodRate = dailyRate * COMPOUNDING_PERIOD;
-  const apy = ((1 + periodRate) ** (DAYS_PER_YEAR / COMPOUNDING_PERIOD) - 1) * 100;
+  const periodsPerYear = DAYS_PER_YEAR / COMPOUNDING_PERIOD;
+  const apy = ((1 + periodRate) ** periodsPerYear - 1) * 100;
 
   return Number(apy.toFixed(6));
 };
