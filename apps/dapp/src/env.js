@@ -6,7 +6,9 @@ export const env = createEnv({
     NODE_ENV: z.enum(['development', 'test', 'production']),
     DATABASE_URI: z.string(),
     MAINNET_ALCHEMY_API_KEY: z.string(),
-    SEPOLIA_ALCHEMY_API_KEY: z.string()
+    SEPOLIA_ALCHEMY_API_KEY: z.string(),
+    QSTASH_CURRENT_SIGNING_KEY: z.string(),
+    QSTASH_NEXT_SIGNING_KEY: z.string()
   },
 
   client: {},
@@ -15,7 +17,9 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     DATABASE_URI: process.env.DATABASE_URI,
     MAINNET_ALCHEMY_API_KEY: process.env.MAINNET_ALCHEMY_API_KEY,
-    SEPOLIA_ALCHEMY_API_KEY: process.env.SEPOLIA_ALCHEMY_API_KEY
+    SEPOLIA_ALCHEMY_API_KEY: process.env.SEPOLIA_ALCHEMY_API_KEY,
+    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

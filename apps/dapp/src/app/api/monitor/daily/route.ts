@@ -1,5 +1,6 @@
 import { NextRequest as Request, NextResponse as Response } from 'next/server';
 
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { PublicClient, formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
@@ -19,7 +20,7 @@ const bodySchema = z.object({
 
 type Body = z.infer<typeof bodySchema>;
 
-export async function POST(req: Request): Promise<Response<ApiResponse>> {
+const handler = async (req: Request): Promise<Response<ApiResponse>> => {
   // Request body should be a JSON object
   const body = await handle(req.json() as Promise<Body>);
   if (body.err || !body.data) return Response.json({ error: 'Request body not found' }, { status: 400 });
@@ -51,7 +52,7 @@ export async function POST(req: Request): Promise<Response<ApiResponse>> {
   if (insertRes.err) return Response.json({ error: 'Failed to insert daily data' }, { status: 500 });
 
   return Response.json({ success: true });
-}
+};
 
 const getIndexPrice = async ({
   client,
@@ -80,3 +81,5 @@ const getIndexPrice = async ({
 
   return indexPrice;
 };
+
+export const POST = verifySignatureAppRouter(handler);
