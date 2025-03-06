@@ -1,0 +1,27 @@
+{
+  "name": "@zivoe/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./abis": "./src/abis.ts"
+  },
+  "scripts": {
+    "lint": "eslint ./src/",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "@zivoe/eslint-config": "workspace:*",
+    "@zivoe/prettier-config": "workspace:*",
+    "@zivoe/ts-config": "workspace:*",
+    "viem": "^2.23.5"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/eslint": "^9.6.1",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.2",
+    "typescript": "5.7.3"
+  }
+}
