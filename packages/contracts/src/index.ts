@@ -8,6 +8,8 @@ export type Network = (typeof NETWORKS)[number];
 
 export type Contracts = {
   USDC: Address;
+  GBL: Address;
+  zSTT: Address;
   stSTT: Address;
   ZIVOE_VAULT: Address;
 };
