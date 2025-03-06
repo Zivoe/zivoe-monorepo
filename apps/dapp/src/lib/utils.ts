@@ -6,3 +6,6 @@ export const handle = <T>(promise: Promise<T>) => {
     }))
     .catch((err: unknown) => Promise.resolve({ data: undefined, err }));
 };
+
+export const DAY_IN_SECONDS = 86400;
+export const DAYS_PER_YEAR = 365;

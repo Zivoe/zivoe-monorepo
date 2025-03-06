@@ -7,6 +7,8 @@ export const NETWORKS = ['MAINNET', 'SEPOLIA'] as const;
 export type Network = (typeof NETWORKS)[number];
 
 export type Contracts = {
+  USDC: Address;
+  stSTT: Address;
   ZIVOE_VAULT: Address;
 };
 
