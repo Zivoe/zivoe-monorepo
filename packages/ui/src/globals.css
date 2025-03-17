@@ -91,7 +91,57 @@
 }
 
 @layer base {
+  body,
+  p {
+    @apply text-regular font-paragraph;
+  }
+
+  h1 {
+    @apply text-h1;
+  }
+
+  h2 {
+    @apply text-h2;
+  }
+
+  h3 {
+    @apply text-h3;
+  }
+
+  h4 {
+    @apply text-h4;
+  }
+
+  h5 {
+    @apply text-h5;
+  }
+
+  h6 {
+    @apply text-h6;
+  }
 }
 
 @layer components {
+  .text-tiny,
+  .text-extraSmall,
+  .text-small,
+  .text-regular,
+  .text-leading,
+  .text-smallSubheading,
+  .text-subheading {
+    @apply font-paragraph;
+  }
+
+  .text-h7,
+  .text-h6,
+  .text-h5,
+  .text-h4,
+  .text-h3,
+  .text-h2,
+  .text-h1,
+  .text-medium,
+  .text-large,
+  .text-extraLarge {
+    @apply font-heading;
+  }
 }

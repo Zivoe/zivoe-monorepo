@@ -5,6 +5,28 @@ const config: Config = {
   content: ['./src/core/**/*.{ts,tsx}'],
 
   theme: {
+    fontSize: {
+      tiny: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0' }],
+      extraSmall: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0' }],
+      small: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0' }],
+      regular: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+      leading: ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+      smallSubheading: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '0' }],
+      subheading: ['1.5rem', { lineHeight: '2rem', letterSpacing: '0' }],
+
+      h7: ['1.25rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+      h6: ['1.5rem', { lineHeight: '2rem', letterSpacing: '0' }],
+      h5: ['2rem', { lineHeight: '2.25rem', letterSpacing: '0' }],
+      h4: ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '0' }],
+      h3: ['2.5rem', { lineHeight: '3rem', letterSpacing: '0' }],
+      h2: ['3rem', { lineHeight: '3.5rem', letterSpacing: '0' }],
+      h1: ['3.75rem', { lineHeight: '4.25rem', letterSpacing: '0' }],
+
+      medium: ['4rem', { lineHeight: '4.5rem', letterSpacing: '0' }],
+      large: ['4.5rem', { lineHeight: '5rem', letterSpacing: '0' }],
+      extraLarge: ['6rem', { lineHeight: '6.5rem', letterSpacing: '0' }]
+    },
+
     fontFamily: {
       paragraph: ['var(--font-instrument-sans)', ...fontFamily.sans],
       heading: ['var(--font-libre-baskerville)', ...fontFamily.serif]
