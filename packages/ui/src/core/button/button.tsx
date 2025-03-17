@@ -37,7 +37,12 @@ const buttonVariants = tv({
       ghost:
         'bg-transparent text-primary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       'ghost-light':
-        'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light'
+        'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
+      'link-primary': 'text-brand-subtle',
+      'link-secondary': 'text-brand-secondary-subtle',
+      'link-neutral-dark': 'text-primary',
+      'link-neutral-light': 'text-secondary',
+      'link-alert': 'text-alert-subtle'
     },
 
     size: {
@@ -49,6 +54,19 @@ const buttonVariants = tv({
 
     fullWidth: { true: 'w-full' }
   },
+
+  compoundVariants: [
+    {
+      variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
+      className:
+        'h-auto p-0 hover:underline hover:underline-offset-4 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+    },
+    {
+      variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
+      size: 'l',
+      className: 'text-leading'
+    }
+  ],
 
   defaultVariants: {
     variant: 'primary',
