@@ -7,6 +7,7 @@ const config: Config = {
     colors: {
       neutral: {
         0: 'hsl(var(--neutral-0))',
+        25: 'hsl(var(--neutral-25))',
         50: 'hsl(var(--neutral-50))',
         100: 'hsl(var(--neutral-100))',
         200: 'hsl(var(--neutral-200))',
@@ -102,7 +103,109 @@ const config: Config = {
         800: 'hsl(var(--alert-800))',
         900: 'hsl(var(--alert-900))',
         950: 'hsl(var(--alert-950))'
+      },
+
+      icon: {
+        default: 'hsl(var(--neutral-500))',
+        subtle: 'hsl(var(--neutral-400))',
+        contrast: 'hsl(var(--neutral-950))',
+        base: 'hsl(var(--neutral-0))',
+        brand: 'hsl(var(--primary-900))',
+        'brand-subtle': 'hsl(var(--primary-600))'
       }
+    },
+
+    textColor: {
+      primary: 'hsl(var(--neutral-950))',
+      secondary: 'hsl(var(--neutral-600))',
+      tertiary: 'hsl(var(--neutral-500))',
+      disabled: 'hsl(var(--neutral-400))',
+      brand: 'hsl(var(--primary-950))',
+      'brand-subtle': 'hsl(var(--primary-700))',
+      'brand-light': 'hsl(var(--primary-400))',
+      'brand-secondary': 'hsl(var(--secondary-900))',
+      'brand-secondary-subtle': 'hsl(var(--secondary-600))',
+      success: 'hsl(var(--success-900))',
+      'success-subtle': 'hsl(var(--success-700))',
+      warning: 'hsl(var(--warning-900))',
+      'warning-subtle': 'hsl(var(--warning-700))',
+      alert: 'hsl(var(--alert-900))',
+      'alert-subtle': 'hsl(var(--alert-700))',
+      base: 'hsl(var(--neutral-0))'
+    },
+
+    backgroundColor: {
+      surface: {
+        base: 'hsl(var(--neutral-0))',
+        'base-soft': 'hsl(var(--neutral-25))',
+        elevated: 'hsl(var(--neutral-50))',
+        'elevated-low-emphasis': 'hsl(var(--neutral-100))',
+        'elevated-emphasis': 'hsl(var(--neutral-200))',
+        'elevated-contrast': 'hsl(var(--neutral-300))',
+        'elevated-high-contrast': 'hsl(var(--neutral-400))',
+        'contrast-subtle': 'hsl(var(--neutral-700))',
+        contrast: 'hsl(var(--neutral-950))'
+      },
+
+      element: {
+        base: 'hsl(var(--neutral-0))',
+        neutral: 'hsl(var(--neutral-100))',
+        'neutral-light': 'hsl(var(--neutral-50))',
+        'neutral-subtle': 'hsl(var(--neutral-200))',
+        'neutral-emphasis': 'hsl(var(--neutral-300))',
+        'neutral-contrast-subtle': 'hsl(var(--neutral-800))',
+        'neutral-contrast': 'hsl(var(--neutral-950))',
+        primary: 'hsl(var(--primary-900))',
+        'primary-light': 'hsl(var(--primary-50))',
+        'primary-gentle': 'hsl(var(--primary-100))',
+        'primary-soft': 'hsl(var(--primary-600))',
+        'primary-subtle': 'hsl(var(--primary-700))',
+        'primary-contrast': 'hsl(var(--primary-800))',
+        secondary: 'hsl(var(--secondary-600))',
+        'secondary-light': 'hsl(var(--secondary-50))',
+        'secondary-gentle': 'hsl(var(--secondary-100))',
+        'secondary-soft': 'hsl(var(--secondary-400))',
+        'secondary-subtle': 'hsl(var(--secondary-500))',
+        'secondary-contrast': 'hsl(var(--secondary-700))',
+        tertiary: 'hsl(var(--tertiary-400))',
+        'tertiary-light': 'hsl(var(--tertiary-50))',
+        'tertiary-gentle': 'hsl(var(--tertiary-100))',
+        'tertiary-soft': 'hsl(var(--tertiary-200))',
+        'tertiary-subtle': 'hsl(var(--tertiary-300))',
+        'tertiary-contrast': 'hsl(var(--tertiary-700))',
+        success: 'hsl(var(--success-500))',
+        'success-light': 'hsl(var(--success-50))',
+        'success-gentle': 'hsl(var(--success-100))',
+        'success-soft': 'hsl(var(--success-300))',
+        'success-subtle': 'hsl(var(--success-400))',
+        'success-contrast': 'hsl(var(--success-700))',
+        warning: 'hsl(var(--warning-600))',
+        'warning-light': 'hsl(var(--warning-50))',
+        'warning-gentle': 'hsl(var(--warning-100))',
+        'warning-soft': 'hsl(var(--warning-400))',
+        'warning-subtle': 'hsl(var(--warning-500))',
+        'warning-contrast': 'hsl(var(--warning-700))',
+        alert: 'hsl(var(--alert-500))',
+        'alert-light': 'hsl(var(--alert-50))',
+        'alert-gentle': 'hsl(var(--alert-100))',
+        'alert-soft': 'hsl(var(--alert-300))',
+        'alert-subtle': 'hsl(var(--alert-400))',
+        'alert-contrast': 'hsl(var(--alert-600))'
+      }
+    },
+
+    borderColor: {
+      default: 'hsl(var(--neutral-300))',
+      subtle: 'hsl(var(--neutral-200))',
+      contrast: 'hsl(var(--neutral-950))',
+      active: 'hsl(var(--primary-600))',
+      brand: 'hsl(var(--primary-900))',
+      alert: 'hsl(var(--alert-500))',
+      base: 'hsl(var(--neutral-0))'
+    },
+
+    ringColor: {
+      default: 'hsl(var(--primary-200))'
     }
   }
 };
