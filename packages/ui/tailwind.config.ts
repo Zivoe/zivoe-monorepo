@@ -1,10 +1,18 @@
 import type { Config } from 'tailwindcss';
+import { fontFamily } from 'tailwindcss/defaultTheme';
 
 const config: Config = {
   content: ['./src/core/**/*.{ts,tsx}'],
 
   theme: {
+    fontFamily: {
+      paragraph: ['var(--font-instrument-sans)', ...fontFamily.sans],
+      heading: ['var(--font-libre-baskerville)', ...fontFamily.serif]
+    },
+
     colors: {
+      transparent: 'transparent',
+
       neutral: {
         0: 'hsl(var(--neutral-0))',
         25: 'hsl(var(--neutral-25))',
@@ -135,6 +143,8 @@ const config: Config = {
     },
 
     backgroundColor: {
+      transparent: 'transparent',
+
       surface: {
         base: 'hsl(var(--neutral-0))',
         'base-soft': 'hsl(var(--neutral-25))',
@@ -204,10 +214,22 @@ const config: Config = {
       base: 'hsl(var(--neutral-0))'
     },
 
+    boxShadowColor: {
+      default: 'hsl(var(--neutral-300))',
+      subtle: 'hsl(var(--neutral-200))',
+      contrast: 'hsl(var(--neutral-950))',
+      active: 'hsl(var(--primary-600))',
+      brand: 'hsl(var(--primary-900))',
+      alert: 'hsl(var(--alert-500))',
+      base: 'hsl(var(--neutral-0))'
+    },
+
     ringColor: {
       default: 'hsl(var(--primary-200))'
     }
-  }
+  },
+
+  plugins: [require('tailwindcss-animate'), require('tailwindcss-react-aria-components')]
 };
 
 export default config;

@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@storybook/react": "^8.5.8",
+    "prettier-plugin-tailwindcss": "^0.6.11",
     "tailwind-merge": "^3.0.2",
-    "tailwind-variants": "^0.3.1"
+    "tailwind-variants": "^0.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
