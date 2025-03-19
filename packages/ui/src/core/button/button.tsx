@@ -46,8 +46,8 @@ const buttonVariants = tv({
     },
 
     size: {
-      l: 'h-12 gap-2 rounded-[4px] px-4 py-3 text-regular [&_svg]:size-5',
-      m: 'h-10 gap-2 rounded-[4px] px-3 py-2 text-regular [&_svg]:size-4',
+      l: 'h-12 gap-2 rounded-[4px] px-4 py-3 text-regular [&_svg]:size-4',
+      m: 'h-10 gap-2 rounded-[4px] px-3 py-2 text-regular [&_svg]:size-3',
       s: 'h-8 gap-1 rounded-[2px] px-3 py-2 text-small [&_svg]:size-3',
       xs: 'h-6 gap-1 rounded-[2px] px-2 py-[10px] text-extraSmall [&_svg]:size-2'
     },
