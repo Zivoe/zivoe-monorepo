@@ -161,7 +161,13 @@ const config: Config = {
       'warning-subtle': 'hsl(var(--warning-700))',
       alert: 'hsl(var(--alert-900))',
       'alert-subtle': 'hsl(var(--alert-700))',
-      base: 'hsl(var(--neutral-0))'
+      base: 'hsl(var(--neutral-0))',
+      neutral: {
+        '300': 'hsl(var(--neutral-300))'
+      },
+      icon: {
+        default: 'hsl(var(--neutral-500))'
+      }
     },
 
     backgroundColor: {
@@ -233,7 +239,8 @@ const config: Config = {
       active: 'hsl(var(--primary-600))',
       brand: 'hsl(var(--primary-900))',
       alert: 'hsl(var(--alert-500))',
-      base: 'hsl(var(--neutral-0))'
+      base: 'hsl(var(--neutral-0))',
+      'primary-subtle': 'hsl(var(--primary-700))'
     },
 
     boxShadowColor: {
