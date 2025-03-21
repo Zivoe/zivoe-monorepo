@@ -20,8 +20,14 @@ const MenuSection = Aria.ListBoxSection;
 
 const MenuCollection = Aria.Collection;
 
-const MenuPopover = ({ offset = 4, placement = 'bottom', ...props }: Aria.PopoverProps) => (
-  <BasePopover offset={offset} placement={placement} showOverlayArrow={false} {...props} />
+const MenuPopover = ({ offset = 4, placement = 'bottom', className, ...props }: Aria.PopoverProps) => (
+  <BasePopover
+    offset={offset}
+    placement={placement}
+    showOverlayArrow={false}
+    className={composeRenderProps(className, (className) => cn('p-2', className))}
+    {...props}
+  />
 );
 
 type MenuProps<T> = Aria.MenuProps<T> & {
