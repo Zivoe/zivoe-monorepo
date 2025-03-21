@@ -237,6 +237,7 @@ const config: Config = {
     },
 
     borderColor: {
+      transparent: 'transparent',
       default: 'hsl(var(--neutral-300))',
       subtle: 'hsl(var(--neutral-200))',
       contrast: 'hsl(var(--neutral-950))',
