@@ -42,14 +42,15 @@ const buttonVariants = tv({
       'link-secondary': 'text-brand-secondary-subtle',
       'link-neutral-dark': 'text-primary',
       'link-neutral-light': 'text-secondary',
-      'link-alert': 'text-alert-subtle'
+      'link-alert': 'text-alert-subtle',
+      chip: 'border border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light pressed:bg-element-neutral disabled:border-neutral-100'
     },
 
     size: {
       l: 'h-12 gap-2 rounded-[4px] px-4 py-3 text-regular [&_svg]:size-4',
-      m: 'h-10 gap-2 rounded-[4px] px-3 py-2 text-regular [&_svg]:size-3',
-      s: 'h-8 gap-1 rounded-[2px] px-3 py-2 text-small [&_svg]:size-3',
-      xs: 'h-6 gap-1 rounded-[2px] px-2 py-[10px] text-extraSmall [&_svg]:size-2'
+      m: 'h-10 gap-2 rounded-[4px] px-3 py-2 text-regular [&_svg]:size-4',
+      s: 'h-8 gap-1 rounded-[2px] px-3 py-2 text-small [&_svg]:size-4',
+      xs: 'h-6 gap-1 rounded-[2px] px-2 py-[10px] text-extraSmall [&_svg]:size-3'
     },
 
     fullWidth: { true: 'w-full' }
@@ -65,7 +66,10 @@ const buttonVariants = tv({
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
       size: 'l',
       className: 'text-leading'
-    }
+    },
+    { variant: 'chip', className: 'gap-1 rounded-full' },
+    { variant: 'chip', size: 's', className: 'h-9' },
+    { variant: 'chip', size: 'xs', className: 'h-7' }
   ],
 
   defaultVariants: {
