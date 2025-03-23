@@ -73,6 +73,7 @@ export const Variants: Story = {
       <Button variant="alert" {...props} />
       <Button variant="ghost" {...props} />
       <Button variant="ghost-light" {...props} />
+      <Button variant="chip" {...props} />
     </div>
   ),
   args: {
@@ -92,6 +93,7 @@ export const Pending: Story = {
       <Button variant="alert" {...props} />
       <Button variant="ghost" {...props} />
       <Button variant="ghost-light" {...props} />
+      <Button variant="chip" {...props} />
     </div>
   ),
   args: {
@@ -113,6 +115,7 @@ export const Disabled: Story = {
       <Button variant="alert" {...props} />
       <Button variant="ghost" {...props} />
       <Button variant="ghost-light" {...props} />
+      <Button variant="chip" {...props} />
     </div>
   ),
   args: {
