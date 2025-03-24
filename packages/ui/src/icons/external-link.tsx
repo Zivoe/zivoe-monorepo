@@ -17,8 +17,8 @@ export const ExternalLinkIcon = React.forwardRef<SVGSVGElement, IconProps>(
         <path
           d="M7.70833 3.55127H3.125V17.3013H16.875V12.7179M11.4583 3.55127H16.875M16.875 3.55127V8.96794M16.875 3.55127L9.16667 11.2596"
           stroke={color}
-          stroke-width="1.5"
-          stroke-linecap="square"
+          strokeWidth="1.5"
+          strokeLinecap="square"
         />
       </svg>
     );

@@ -233,6 +233,10 @@ const config: Config = {
 
       neutral: {
         '500': 'hsl(var(--neutral-500))'
+      },
+
+      tertiary: {
+        '500': 'hsl(var(--tertiary-500))'
       }
     },
 
