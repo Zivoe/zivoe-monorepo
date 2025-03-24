@@ -245,7 +245,10 @@ const config: Config = {
       brand: 'hsl(var(--primary-900))',
       alert: 'hsl(var(--alert-500))',
       base: 'hsl(var(--neutral-0))',
-      'primary-subtle': 'hsl(var(--primary-700))'
+      'primary-subtle': 'hsl(var(--primary-700))',
+      neutral: {
+        '100': 'hsl(var(--neutral-100))'
+      }
     },
 
     boxShadowColor: {
