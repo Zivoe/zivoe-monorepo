@@ -5,3 +5,6 @@ export * from './check';
 export * from './minus';
 export * from './chart';
 export * from './chevron-down';
+export * from './chevron-right';
+export * from './close';
+export * from './hamburger';

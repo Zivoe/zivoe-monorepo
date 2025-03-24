@@ -69,7 +69,8 @@ const buttonVariants = tv({
     },
     { variant: 'chip', className: 'gap-1 rounded-full' },
     { variant: 'chip', size: 's', className: 'h-9' },
-    { variant: 'chip', size: 'xs', className: 'h-7' }
+    { variant: 'chip', size: 'xs', className: 'h-7' },
+    { variant: 'ghost', className: 'current:bg-element-neutral' }
   ],
 
   defaultVariants: {
