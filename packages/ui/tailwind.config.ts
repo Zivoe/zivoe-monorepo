@@ -229,6 +229,10 @@ const config: Config = {
         'alert-soft': 'hsl(var(--alert-300))',
         'alert-subtle': 'hsl(var(--alert-400))',
         'alert-contrast': 'hsl(var(--alert-600))'
+      },
+
+      neutral: {
+        '500': 'hsl(var(--neutral-500))'
       }
     },
 
