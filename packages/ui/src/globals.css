@@ -93,7 +93,7 @@
 @layer base {
   body,
   p {
-    @apply text-regular font-paragraph;
+    @apply font-paragraph text-regular;
   }
 
   h1 {
