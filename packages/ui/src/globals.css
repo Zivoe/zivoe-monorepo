@@ -3,10 +3,145 @@
 @tailwind utilities;
 
 :root {
+  --neutral-0: 0 0% 100%;
+  --neutral-25: 240 33% 99%;
+  --neutral-50: 210 20% 98%;
+  --neutral-100: 220 14% 96%;
+  --neutral-200: 223 26% 95%;
+  --neutral-300: 220 13% 91%;
+  --neutral-400: 216 12% 84%;
+  --neutral-500: 218 11% 65%;
+  --neutral-600: 220 9% 46%;
+  --neutral-700: 215 14% 34%;
+  --neutral-800: 216 19% 30%;
+  --neutral-900: 216 28% 21%;
+  --neutral-950: 233 18% 9%;
+
+  --primary-50: 180 41% 97%;
+  --primary-100: 180 43% 95%;
+  --primary-200: 180 44% 83%;
+  --primary-300: 180 44% 72%;
+  --primary-400: 179 44% 58%;
+  --primary-500: 180 100% 30%;
+  --primary-600: 180 96% 27%;
+  --primary-700: 181 81% 21%;
+  --primary-800: 182 66% 22%;
+  --primary-900: 183 57% 15%;
+  --primary-950: 186 80% 10%;
+
+  --secondary-50: 26 88% 97%;
+  --secondary-100: 26 85% 92%;
+  --secondary-200: 25 85% 85%;
+  --secondary-300: 24 100% 80%;
+  --secondary-400: 25 100% 76%;
+  --secondary-500: 25 92% 69%;
+  --secondary-600: 25 85% 61%;
+  --secondary-700: 23 79% 56%;
+  --secondary-800: 19 66% 46%;
+  --secondary-900: 19 70% 35%;
+  --secondary-950: 19 71% 23%;
+
+  --tertiary-50: 210 100% 100%;
+  --tertiary-100: 210 100% 98%;
+  --tertiary-200: 209 100% 95%;
+  --tertiary-300: 210 100% 93%;
+  --tertiary-400: 209 100% 92%;
+  --tertiary-500: 208 100% 87%;
+  --tertiary-600: 208 79% 80%;
+  --tertiary-700: 208 56% 67%;
+  --tertiary-800: 208 45% 55%;
+  --tertiary-900: 209 51% 38%;
+  --tertiary-950: 209 63% 25%;
+
+  --success-50: 152 81% 96%;
+  --success-100: 149 80% 90%;
+  --success-200: 152 76% 80%;
+  --success-300: 156 72% 67%;
+  --success-400: 158 64% 52%;
+  --success-500: 160 84% 39%;
+  --success-600: 161 94% 30%;
+  --success-700: 163 94% 24%;
+  --success-800: 163 88% 20%;
+  --success-900: 164 86% 16%;
+  --success-950: 166 91% 9%;
+
+  --warning-50: 44 92% 95%;
+  --warning-100: 44 97% 88%;
+  --warning-200: 44 98% 77%;
+  --warning-300: 44 94% 68%;
+  --warning-400: 44 97% 58%;
+  --warning-500: 44 93% 47%;
+  --warning-600: 44 96% 40%;
+  --warning-700: 40 92% 33%;
+  --warning-800: 35 81% 29%;
+  --warning-900: 32 73% 26%;
+  --warning-950: 28 83% 14%;
+
+  --alert-50: 0 86% 97%;
+  --alert-100: 0 93% 94%;
+  --alert-200: 0 96% 89%;
+  --alert-300: 0 94% 82%;
+  --alert-400: 0 91% 71%;
+  --alert-500: 0 93% 65%;
+  --alert-600: 0 72% 51%;
+  --alert-700: 0 74% 42%;
+  --alert-800: 0 70% 35%;
+  --alert-900: 0 63% 31%;
+  --alert-950: 0 75% 15%;
 }
 
 @layer base {
+  body,
+  p {
+    @apply font-paragraph text-regular;
+  }
+
+  h1 {
+    @apply text-h1;
+  }
+
+  h2 {
+    @apply text-h2;
+  }
+
+  h3 {
+    @apply text-h3;
+  }
+
+  h4 {
+    @apply text-h4;
+  }
+
+  h5 {
+    @apply text-h5;
+  }
+
+  h6 {
+    @apply text-h6;
+  }
 }
 
 @layer components {
+  .text-tiny,
+  .text-extraSmall,
+  .text-small,
+  .text-regular,
+  .text-leading,
+  .text-smallSubheading,
+  .text-subheading {
+    @apply font-paragraph;
+  }
+
+  .text-h7,
+  .text-h6,
+  .text-h5,
+  .text-h4,
+  .text-h3,
+  .text-h2,
+  .text-h1,
+  .text-medium,
+  .text-large,
+  .text-extraLarge {
+    @apply font-heading;
+  }
 }
