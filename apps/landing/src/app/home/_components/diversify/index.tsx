@@ -8,9 +8,9 @@ import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './
 
 export default function Diversify() {
   return (
-    <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:pb-[7.5rem] xl:pt-[12.5rem] 2xl:px-[12rem]">
+    <Container className="w-fit justify-between gap-20 pb-10 pt-16 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:pb-[7.5rem] xl:pt-[12.5rem] 2xl:px-[12rem]">
       <div className="flex flex-col gap-6 sm:gap-8 xl:mt-16 xl:max-w-[30.5rem]">
-        <p className="font-heading text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
+        <p className="!font-heading text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
 
         <div className="flex flex-col gap-4">
           <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</p>
