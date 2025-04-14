@@ -17,10 +17,22 @@ const Modal = Aria.Modal;
 type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'children' | 'isDismissable'> & {
   children?: Aria.DialogProps['children'];
   role?: Aria.DialogProps['role'];
+  logoType?: 'dark' | 'light';
 } & ({ isDismissable: false; isFullScreen?: never } | { isDismissable?: true; isFullScreen?: boolean });
 
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ className, children, isDismissable = true, isFullScreen = false, role, ...props }: DialogContentProps, ref) => (
+  (
+    {
+      className,
+      children,
+      isDismissable = true,
+      isFullScreen = false,
+      role,
+      logoType = 'dark',
+      ...props
+    }: DialogContentProps,
+    ref
+  ) => (
     <Aria.ModalOverlay
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
@@ -57,7 +69,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
             <>
               {isFullScreen ? (
                 <div className="flex w-full items-center justify-between gap-6">
-                  <ZivoeLogo />
+                  <ZivoeLogo type={logoType} />
 
                   <Button size="m" variant="border-light" onPress={close}>
                     <CloseIcon />
