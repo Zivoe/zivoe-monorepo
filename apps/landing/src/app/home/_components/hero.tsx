@@ -17,13 +17,13 @@ import Navigation from '../../_components/navigation';
 export default function Hero() {
   return (
     <div className="h-[43.125rem] bg-element-tertiary lg:h-[62.75rem]">
-      <Container className="max-w-[108rem] flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
+      <Container className="flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
         <ZivoeLogo />
 
         <Navigation />
       </Container>
 
-      <Container className="mt-[3.125rem] max-w-[108rem] lg:my-[7.5rem] lg:px-[6.25rem]">
+      <Container className="mt-[3.125rem] lg:my-[7.5rem] lg:px-[6.25rem]">
         <div className="flex max-w-[25rem] flex-col gap-[12.5rem] lg:max-w-[41.25rem]">
           <div>
             <NextLink
