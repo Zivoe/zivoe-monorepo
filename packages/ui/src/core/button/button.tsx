@@ -7,7 +7,7 @@ import { composeRenderProps } from 'react-aria-components';
 import { type VariantProps } from 'tailwind-variants';
 
 import { Spinner } from '../../icons';
-import { cn, tv } from '../../lib/tw-utils';
+import { tv } from '../../lib/tw-utils';
 
 const buttonVariants = tv({
   base: [
@@ -66,7 +66,7 @@ const buttonVariants = tv({
     {
       variant: ['nav'],
       className:
-        'rounded-none p-0 current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] hover:shadow-active focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+        'rounded-none p-0 current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] hover:shadow-active focus-visible:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] focus-visible:shadow-active focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },
     {
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
