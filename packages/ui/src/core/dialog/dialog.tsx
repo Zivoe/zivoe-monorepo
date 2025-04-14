@@ -71,7 +71,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
                 <div className="flex w-full items-center justify-between gap-6">
                   <ZivoeLogo type={logoType} />
 
-                  <Button size="m" variant="border-light" onPress={close}>
+                  <Button size="m" variant="border-light" onPress={close} className="z-10">
                     <CloseIcon />
                   </Button>
                 </div>

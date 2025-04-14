@@ -16,7 +16,7 @@ import Navigation from '../../_components/navigation';
 
 export default function Hero() {
   return (
-    <div className="h-[43.125rem] bg-element-tertiary lg:h-[62.75rem]">
+    <div className="h-[55rem] bg-element-tertiary lg:h-[61.25rem]">
       <Container className="flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
         <ZivoeLogo />
 
@@ -24,11 +24,11 @@ export default function Hero() {
       </Container>
 
       <Container className="mt-[3.125rem] lg:my-[7.5rem] lg:px-[6.25rem]">
-        <div className="flex max-w-[25rem] flex-col gap-[12.5rem] lg:max-w-[41.25rem]">
+        <div className="flex max-w-[25rem] flex-col gap-10 lg:max-w-[41.25rem] lg:gap-[12.5rem]">
           <div>
             <NextLink
               href="/"
-              className="flex h-7 w-fit items-center gap-1 rounded-full bg-tertiary-500 px-3 text-extraSmall text-primary lg:h-9 lg:text-leading"
+              className="flex h-7 w-fit items-center gap-1 rounded-full bg-tertiary-500 px-3 text-extraSmall text-primary hover:bg-tertiary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-[1px] focus-visible:ring-offset-neutral-0 lg:h-9 lg:text-leading"
             >
               Zivoe Announces Series A Funding Round
               <ChevronRightIcon className="size-4" />
@@ -73,7 +73,7 @@ async function Statistics() {
   const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
 
   return (
-    <div className="hidden gap-16 lg:flex">
+    <div className="flex gap-6 lg:gap-16">
       <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
 
       {apy && <Statistic label="APY" value={`${apy.toFixed(2)}%`} />}
@@ -86,8 +86,8 @@ async function Statistics() {
 function Statistic({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-3 text-primary">
-      <p className="text-smallSubheading text-primary/80">{label}</p>
-      <h1>{value}</h1>
+      <p className="text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+      <p className="text-h6 lg:text-h1">{value}</p>
     </div>
   );
 }
