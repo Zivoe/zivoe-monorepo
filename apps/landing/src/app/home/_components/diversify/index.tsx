@@ -34,7 +34,7 @@ export default function Diversify() {
         </Card>
 
         <Card label="For maximum growth" title="Autocompounding">
-          <AutocompoundingIcon className="-ml-10 xl:absolute xl:bottom-0 xl:right-8 xl:-ml-0" />
+          <AutocompoundingIcon className="-ml-10 w-[99%] sm:w-auto xl:absolute xl:bottom-0 xl:right-8 xl:-ml-0" />
         </Card>
 
         <Card label="Via Secondary Markets" title="24/7 Liquidity">
