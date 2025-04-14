@@ -1,6 +1,7 @@
 import { Separator } from '@zivoe/ui/core/separator';
 
 import Diversify from './_components/diversify';
+import Footer from './_components/footer';
 import Hero from './_components/hero';
 import HowItWorks from './_components/how-it-works';
 import Infrastructure from './_components/infrastructure';
@@ -15,8 +16,7 @@ export default function Home() {
       <HowItWorks />
       <Portfolio />
       <Infrastructure />
-
-      <div className="h-20 bg-element-base" />
+      <Footer />
     </>
   );
 }

@@ -39,6 +39,7 @@ const buttonVariants = tv({
       'ghost-light':
         'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       nav: 'text-primary',
+      'link-base': 'text-base',
       'link-primary': 'text-brand-subtle',
       'link-secondary': 'text-brand-secondary-subtle',
       'link-neutral-dark': 'text-primary',
@@ -59,7 +60,7 @@ const buttonVariants = tv({
 
   compoundVariants: [
     {
-      variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
+      variant: ['link-base', 'link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
       className:
         'h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },

@@ -188,7 +188,8 @@ const config: Config = {
         'elevated-contrast': 'hsl(var(--neutral-300))',
         'elevated-high-contrast': 'hsl(var(--neutral-400))',
         'contrast-subtle': 'hsl(var(--neutral-700))',
-        contrast: 'hsl(var(--neutral-950))'
+        contrast: 'hsl(var(--neutral-950))',
+        brand: 'hsl(var(--primary-900))'
       },
 
       element: {
