@@ -8,16 +8,14 @@ import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './
 
 export default function Diversify() {
   return (
-    <Container className="w-fit items-center justify-between gap-16 pb-16 pt-10 xl:w-auto xl:flex-row xl:items-start xl:gap-0 xl:px-[6.25rem] xl:pb-[7.5rem] xl:pt-[12.5rem] 2xl:px-[12rem]">
-      <div className="flex flex-col gap-8 xl:mt-16">
-        <p className="font-heading text-small text-primary xl:text-leading">Diversify Your Portfolio</p>
+    <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:pb-[7.5rem] xl:pt-[12.5rem] 2xl:px-[12rem]">
+      <div className="flex flex-col gap-6 sm:gap-8 xl:mt-16 xl:max-w-[30.5rem]">
+        <p className="font-heading text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
 
         <div className="flex flex-col gap-4">
-          <p className="max-w-[21.45rem] text-h5 text-primary xl:max-w-[30rem] xl:text-h2">
-            Tap into an Institutional-Grade Asset Class
-          </p>
+          <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</p>
 
-          <p className="max-w-[21.45rem] text-leading text-secondary xl:max-w-[28rem]">
+          <p className="text-leading text-secondary">
             Zivoe gives you access to the consumer credit market, a proven asset class that has delivered strong returns
             to Wall Street investors for over 50 years.
           </p>
@@ -28,21 +26,21 @@ export default function Diversify() {
         </Link>
       </div>
 
-      <div className="flex w-full flex-col gap-6 xl:w-auto xl:gap-16">
+      <div className="flex w-full flex-col gap-6 sm:gap-8 xl:w-auto">
         <Card label="Target APY" title="14.00% - 17.00%">
-          <TargetIcon className="pt-5 xl:absolute xl:bottom-0 xl:right-16 xl:pt-0" />
+          <TargetIcon className="pt-5 sm:absolute sm:bottom-0 sm:right-16 sm:pt-0" />
         </Card>
 
         <Card label="For maximum growth" title="Autocompounding">
-          <AutocompoundingIcon className="-ml-10 w-[99%] sm:w-auto xl:absolute xl:bottom-0 xl:right-8 xl:-ml-0" />
+          <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:bottom-0 sm:right-8 sm:-ml-0 sm:w-auto" />
         </Card>
 
         <Card label="Via Secondary Markets" title="24/7 Liquidity">
-          <LiquidityIcon className="w-[7.1875rem] xl:absolute xl:bottom-0 xl:right-16 xl:w-auto" />
+          <LiquidityIcon className="w-[7.1875rem] sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
         </Card>
 
         <Card label="Live now" title="On Ethereum">
-          <EthereumIcon className="w-[7.1875rem] xl:absolute xl:bottom-[4.5rem] xl:right-16 xl:w-auto" />
+          <EthereumIcon className="w-[7.1875rem] sm:absolute sm:bottom-[4.5rem] sm:right-16 sm:w-auto" />
         </Card>
       </div>
     </Container>
@@ -51,7 +49,7 @@ export default function Diversify() {
 
 function Card({ label, title, children }: { label: string; title: string; children?: ReactNode }) {
   return (
-    <div className="h-[17.5rem] max-w-[21.5rem] overflow-clip rounded-xl bg-element-neutral p-5 xl:relative xl:h-80 xl:w-[32.5rem] xl:max-w-full xl:p-8">
+    <div className="h-[17.5rem] w-full overflow-clip rounded-xl bg-element-neutral p-5 sm:relative sm:p-8 xl:h-80 xl:w-[32.5rem] xl:max-w-full">
       <div className="flex flex-col gap-1 xl:gap-2">
         <p className="font-heading text-smallSubheading text-primary xl:text-subheading">{title}</p>
         <p className="text-regular text-secondary xl:text-leading">{label}</p>
