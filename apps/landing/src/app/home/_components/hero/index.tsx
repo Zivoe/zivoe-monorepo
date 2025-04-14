@@ -13,11 +13,12 @@ import { formatBigIntToReadable } from '@/lib/utils';
 import Container from '@/components/container';
 
 import Navigation from '../../../_components/navigation';
+import { HeroClouds } from './clouds';
 
 export default function Hero() {
   return (
-    <div className="h-[55rem] bg-element-tertiary lg:h-[61.25rem]">
-      <Container className="flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
+    <div className="relative z-0 h-[55rem] bg-element-tertiary lg:h-[61.25rem]">
+      <Container className="z-10 flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
         <ZivoeLogo />
 
         <Navigation />
@@ -56,6 +57,8 @@ export default function Hero() {
           </Suspense>
         </div>
       </Container>
+
+      <HeroClouds className="absolute -left-[150px] bottom-1/4 -z-10 w-[433px] rotate-[15deg] lg:-bottom-[100px] lg:w-[866px]" />
     </div>
   );
 }
