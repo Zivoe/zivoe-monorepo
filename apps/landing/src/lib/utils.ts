@@ -1,0 +1,14 @@
+import { formatEther } from 'viem';
+
+export const formatBigIntToReadable = (value: bigint) => {
+  const inEther = formatEther(value);
+  const numericValue = Number(inEther);
+
+  if (numericValue >= 1_000_000) {
+    return `${(numericValue / 1_000_000).toFixed(2)}M`;
+  } else if (numericValue >= 1_000) {
+    return `${(numericValue / 1_000).toFixed(2)}k`;
+  } else {
+    return numericValue.toFixed(2);
+  }
+};

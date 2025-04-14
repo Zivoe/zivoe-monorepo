@@ -1,8 +1,14 @@
+import { Suspense } from 'react';
+
 import NextLink from 'next/link';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, LinkProps } from '@zivoe/ui/core/link';
 import { ChevronRightIcon } from '@zivoe/ui/icons';
+
+import { web3 } from '@/server/web3';
+
+import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 
@@ -52,11 +58,9 @@ function Hero() {
             </div>
           </div>
 
-          <div className="hidden gap-16 lg:flex">
-            <HeroStatistic label="TVL" value="$6M" />
-            <HeroStatistic label="APY" value="17%" />
-            <HeroStatistic label="Revenue" value="$234.82K" />
-          </div>
+          <Suspense>
+            <Statistics />
+          </Suspense>
         </div>
       </Container>
     </div>
@@ -72,7 +76,19 @@ function HeroButton(props: LinkProps) {
   );
 }
 
-function HeroStatistic({ label, value }: { label: string; value: string }) {
+async function Statistics() {
+  const [tvl, apy] = await Promise.all([web3.getTVL(), web3.getAPY()]);
+
+  return (
+    <div className="hidden gap-16 lg:flex">
+      <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
+      {apy && <Statistic label="APY" value={`${apy.toFixed(2)}%`} />}
+      <Statistic label="Revenue" value="$234.82K" />
+    </div>
+  );
+}
+
+function Statistic({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-3 text-primary">
       <p className="text-smallSubheading text-primary/80">{label}</p>
