@@ -13,8 +13,10 @@
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.12.0",
     "@zivoe/ui": "workspace:*",
+    "drizzle-orm": "^0.41.0",
     "mongodb": "^6.13.1",
     "next": "15.3.0-canary.10",
+    "postgres": "^3.4.5",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react-aria-components": "^1.6.0",
     "server-only": "^0.0.1",
@@ -31,6 +33,7 @@
     "@zivoe/eslint-config": "workspace:*",
     "@zivoe/prettier-config": "workspace:*",
     "@zivoe/ts-config": "workspace:*",
+    "drizzle-kit": "^0.30.6",
     "eslint": "^9.21.0",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
