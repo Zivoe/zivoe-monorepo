@@ -12,7 +12,7 @@ import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 
-import Navigation from '../../_components/navigation';
+import Navigation from '../../../_components/navigation';
 
 export default function Hero() {
   return (
@@ -63,7 +63,7 @@ export default function Hero() {
 function HeroButton(props: LinkProps) {
   return (
     <Link href="/" variant="primary" {...props}>
-      Start earning
+      Start Earning
       <ChevronRightIcon />
     </Link>
   );

@@ -4,7 +4,7 @@ import { Link } from '@zivoe/ui/core/link';
 
 import Container from '@/components/container';
 
-import { AutocompoundingIcon, LiquidityIcon, TargetIcon } from './assets';
+import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './assets';
 
 export default function Diversify() {
   return (
@@ -24,7 +24,7 @@ export default function Diversify() {
         </div>
 
         <Link href="/" variant="primary">
-          Start earning
+          Start Earning
         </Link>
       </div>
 
@@ -40,6 +40,10 @@ export default function Diversify() {
         <Card label="Via Secondary Markets" title="24/7 Liquidity">
           <LiquidityIcon className="w-[7.1875rem] xl:absolute xl:bottom-0 xl:right-16 xl:w-auto" />
         </Card>
+
+        <Card label="Live now" title="On Ethereum">
+          <EthereumIcon className="w-[7.1875rem] xl:absolute xl:bottom-[4.5rem] xl:right-16 xl:w-auto" />
+        </Card>
       </div>
     </Container>
   );
@@ -49,8 +53,8 @@ function Card({ label, title, children }: { label: string; title: string; childr
   return (
     <div className="h-[17.5rem] max-w-[21.5rem] overflow-clip rounded-xl bg-element-neutral p-5 xl:relative xl:h-80 xl:w-[32.5rem] xl:max-w-full xl:p-8">
       <div className="flex flex-col gap-1 xl:gap-2">
-        <p className="text-regular text-secondary xl:text-leading">{label}</p>
         <p className="font-heading text-smallSubheading text-primary xl:text-subheading">{title}</p>
+        <p className="text-regular text-secondary xl:text-leading">{label}</p>
       </div>
 
       <div className="flex justify-center">{children}</div>
