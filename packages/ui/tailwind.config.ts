@@ -262,7 +262,8 @@ const config: Config = {
       active: 'hsl(var(--primary-600))',
       brand: 'hsl(var(--primary-900))',
       alert: 'hsl(var(--alert-500))',
-      base: 'hsl(var(--neutral-0))'
+      base: 'hsl(var(--neutral-0))',
+      secondary: 'hsl(var(--secondary-600))'
     },
 
     ringColor: {

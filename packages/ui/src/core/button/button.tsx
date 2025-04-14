@@ -7,7 +7,7 @@ import { composeRenderProps } from 'react-aria-components';
 import { type VariantProps } from 'tailwind-variants';
 
 import { Spinner } from '../../icons';
-import { tv } from '../../lib/tw-utils';
+import { cn, tv } from '../../lib/tw-utils';
 
 const buttonVariants = tv({
   base: [
@@ -38,6 +38,7 @@ const buttonVariants = tv({
         'bg-transparent text-primary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       'ghost-light':
         'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
+      nav: 'text-primary',
       'link-primary': 'text-brand-subtle',
       'link-secondary': 'text-brand-secondary-subtle',
       'link-neutral-dark': 'text-primary',
@@ -60,7 +61,12 @@ const buttonVariants = tv({
     {
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
       className:
-        'h-auto p-0 hover:underline hover:underline-offset-4 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+        'h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+    },
+    {
+      variant: ['nav'],
+      className:
+        'rounded-none p-0 current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] hover:shadow-active focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },
     {
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
