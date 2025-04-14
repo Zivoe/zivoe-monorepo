@@ -33,7 +33,7 @@ function Desktop() {
 function Mobile() {
   return (
     <Dialog>
-      <Button variant="border-light" size="m" className="lg:hidden">
+      <Button variant="border-light" size="m" className="shadow-none lg:hidden">
         <HamburgerIcon />
       </Button>
 
