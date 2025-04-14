@@ -11,6 +11,7 @@ export type Contracts = {
   GBL: Address;
   zSTT: Address;
   stSTT: Address;
+  OCC_USDC: Address;
   ZIVOE_VAULT: Address;
 };
 

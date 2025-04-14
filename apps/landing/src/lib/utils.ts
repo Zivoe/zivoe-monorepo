@@ -1,7 +1,7 @@
-import { formatEther } from 'viem';
+import { formatUnits } from 'viem';
 
-export const formatBigIntToReadable = (value: bigint) => {
-  const inEther = formatEther(value);
+export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
+  const inEther = formatUnits(value, decimals ?? 18);
   const numericValue = Number(inEther);
 
   if (numericValue >= 1_000_000) {

@@ -70,7 +70,7 @@ function HeroButton(props: LinkProps) {
 }
 
 async function Statistics() {
-  const [tvl, apy] = await Promise.all([web3.getTVL(), web3.getAPY()]);
+  const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
 
   return (
     <div className="hidden gap-16 lg:flex">
@@ -78,7 +78,7 @@ async function Statistics() {
 
       {apy && <Statistic label="APY" value={`${apy.toFixed(2)}%`} />}
 
-      <Statistic label="Revenue" value="$234.82K" />
+      <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
     </div>
   );
 }
