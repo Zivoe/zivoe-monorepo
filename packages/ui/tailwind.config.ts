@@ -5,6 +5,12 @@ const config: Config = {
   content: ['./src/core/**/*.{ts,tsx}'],
 
   theme: {
+    extend: {
+      screens: {
+        sm: '600px'
+      }
+    },
+
     fontSize: {
       tiny: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0' }],
       extraSmall: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0' }],
