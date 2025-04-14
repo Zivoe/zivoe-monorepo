@@ -24,7 +24,7 @@ function Desktop() {
       </div>
 
       <Link href="/" variant="primary" size="m" className="my-[10px] mr-[10px]">
-        Start earning
+        Start Earning
       </Link>
     </div>
   );
