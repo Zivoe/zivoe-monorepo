@@ -16,13 +16,12 @@ export default function Diversify() {
           <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</p>
 
           <p className="text-leading text-secondary">
-            Zivoe gives you access to the consumer credit market, a proven asset class that has delivered strong returns
-            to Wall Street investors for over 50 years.
+            The consumer credit market has delivered strong returns to Wall Street investors for over 50 years.
           </p>
         </div>
 
-        <Link href="/" variant="primary">
-          Start Earning
+        <Link href="https://app.zivoe.com" variant="primary">
+          Legacy App
         </Link>
       </div>
 
@@ -39,7 +38,7 @@ export default function Diversify() {
           <LiquidityIcon className="w-[7.1875rem] sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
         </Card>
 
-        <Card label="Live now" title="On Ethereum">
+        <Card label="On Ethereum" title="Live now">
           <EthereumIcon className="w-[7.1875rem] sm:absolute sm:bottom-[4.5rem] sm:right-16 sm:w-auto" />
         </Card>
       </div>

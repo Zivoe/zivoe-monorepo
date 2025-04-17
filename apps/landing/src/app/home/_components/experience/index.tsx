@@ -45,7 +45,7 @@ export default function Experience() {
               </div>
             </div>
 
-            <Link variant="primary" href="/" size="l">
+            <Link variant="primary" href="mailto:investors@zivoe.com" size="l">
               Let's Talk
             </Link>
           </div>
@@ -54,12 +54,13 @@ export default function Experience() {
             <Section
               title="Experienced Leadership"
               description="Our team combines expertise from leading financial institutions and DeFi protocols."
-              extra={
-                <Link href="/" variant="link-neutral-dark" size="m">
-                  Meet the Team
-                  <ArrowRightIcon />
-                </Link>
-              }
+              // TODO
+              // extra={
+              //   <Link href="/" variant="link-neutral-dark" size="m">
+              //     Meet the Team
+              //     <ArrowRightIcon />
+              //   </Link>
+              // }
             >
               <Partner>
                 <JPMorganIcon />
@@ -84,7 +85,7 @@ export default function Experience() {
               title="Audited by Top Security Firms"
               description="We work with industry-leading auditors to ensure our platform is secure and reliable."
               extra={
-                <Link href="/" variant="link-neutral-dark" size="m">
+                <Link href="https://docs.zivoe.com/official-links/audits" variant="link-neutral-dark" size="m">
                   Review Our Audits
                   <ArrowRightIcon />
                 </Link>
@@ -134,9 +135,9 @@ export default function Experience() {
         <div className="flex h-[45rem] w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-[35rem] xl:pt-[7.5rem]">
           <div className="flex w-full flex-col items-center gap-6 sm:w-fit sm:gap-14">
             <div className="flex flex-col items-center gap-2 sm:gap-4 xl:gap-6">
-              <p className="text-center !font-heading text-h5 text-primary sm:text-h2">Sign Up for Newsletter</p>
+              <p className="text-center !font-heading text-h5 text-primary sm:text-h2">Join Our Newsletter</p>
               <p className="text-center text-regular text-secondary sm:text-smallSubheading">
-                Subtle background with the new branding.
+                Receive news and opportunities straight to your inbox
               </p>
             </div>
 

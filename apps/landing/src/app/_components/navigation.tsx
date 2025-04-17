@@ -23,8 +23,8 @@ function Desktop() {
         <NavigationItems />
       </div>
 
-      <Link href="/" variant="primary" size="m" className="my-[10px] mr-[10px]">
-        Start Earning
+      <Link href="https://app.zivoe.com" variant="primary" size="m" className="my-[10px] mr-[10px]">
+        Legacy App
       </Link>
     </div>
   );
@@ -76,10 +76,11 @@ function NavigationItems() {
   );
 }
 
+// TODO
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: string }> = [
   { title: 'Home', href: '/' },
-  { title: 'About us', href: '/about-us' },
-  { title: 'FAQ', href: '/faq' },
-  { title: 'Newsletter', href: '/newsletter', target: '_blank' },
-  { title: 'Docs', href: '/docs', target: '_blank' }
+  // { title: 'About us', href: '/about-us' },
+  // { title: 'FAQ', href: '/faq' },
+  { title: 'Newsletter', href: 'https://blog.zivoe.com', target: '_blank' },
+  { title: 'Docs', href: 'https://docs.zivoe.com', target: '_blank' }
 ];

@@ -37,11 +37,11 @@ export default function Footer() {
           <p className="text-small text-base">©Zivoe 2025. All Right Reserved.</p>
 
           <div className="order-2 flex gap-8 lg:order-1">
-            <Link href="/" variant="link-base" size="s">
+            <Link href="https://docs.zivoe.com/terms/terms-of-use-privacy-policy" variant="link-base" size="s">
               Terms of Use
             </Link>
 
-            <Link href="/" variant="link-base" size="s">
+            <Link href="https://docs.zivoe.com/terms/reg-s-compliance" variant="link-base" size="s">
               Reg S Complicance
             </Link>
           </div>
@@ -78,53 +78,54 @@ function FooterSection({ title, links }: { title: string; links: Array<FooterSec
 
 type FooterSectionLink = { href: string; label: string };
 
+// TODO
 const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }> = [
   {
     title: 'Explore',
     links: [
-      { href: '/', label: 'Newsletter' },
-      { href: '/', label: 'Docs' },
-      { href: '/', label: 'GitHub' },
-      { href: '/', label: 'Audits' },
-      { href: '/', label: 'FAQ' }
+      { href: 'https://blog.zivoe.com', label: 'Newsletter' },
+      { href: 'https://docs.zivoe.com', label: 'Docs' },
+      { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub' },
+      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits' }
+      // { href: '/', label: 'FAQ' }
     ]
   },
   {
     title: 'Governance',
     links: [
-      { href: '/', label: 'Vote' },
-      { href: '/', label: 'Forum' }
+      { href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' },
+      { href: 'https://discord.com/invite/R8u4Y95S9p', label: 'Forum' }
     ]
   },
   {
     title: 'Company',
     links: [
-      { href: '/', label: 'About' },
-      { href: '/', label: 'Media Kit' },
-      { href: '/', label: 'Contact Us' }
+      // { href: '/', label: 'About' },
+      // { href: '/', label: 'Media Kit' },
+      { href: 'mailto:investors@zivoe.com', label: 'Contact Us' }
     ]
   }
 ];
 
 const SOCIALS: Array<{ href: string; icon: ReactNode }> = [
   {
-    href: 'https://x.com/zivoe',
+    href: 'https://x.com/zivoeprotocol',
     icon: <XIcon />
   },
   {
-    href: 'https://discord.gg/zivoe',
+    href: 'https://discord.com/invite/R8u4Y95S9p',
     icon: <DiscordIcon />
   },
   {
-    href: 'https://t.me/zivoe',
+    href: 'https://t.me/zivoeprotocol',
     icon: <TelegramIcon />
   },
   {
-    href: 'https://www.linkedin.com/company/zivoe',
+    href: 'https://www.linkedin.com/company/zivoe-finance/',
     icon: <LinkedInIcon />
   },
   {
-    href: 'https://www.youtube.com/@zivoe',
+    href: 'https://www.youtube.com/@Zivoe',
     icon: <YoutubeIcon />
   }
 ];
