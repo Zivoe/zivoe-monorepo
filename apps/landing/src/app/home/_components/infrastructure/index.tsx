@@ -10,9 +10,7 @@ export default function Infrastructure() {
   return (
     <Container className="w-fit flex-col justify-between gap-10 py-20 sm:gap-16 sm:px-10 md:w-[35rem] md:px-0 xl:w-auto xl:px-[6.5rem] xl:py-[10rem] 2xl:px-[16rem]">
       <div className="flex max-w-[40rem] flex-col gap-8">
-        <p className="!font-heading text-small text-primary sm:text-leading">
-          Built On Institutional-Grade Infrastructure
-        </p>
+        <p className="!font-heading text-small text-primary sm:text-leading">Wall Street-Grade Security</p>
 
         <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Rest Easy, Knowing Your Assets Are Protected</p>
       </div>

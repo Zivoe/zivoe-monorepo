@@ -12,14 +12,15 @@ export default function HowItWorks() {
     <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:py-[10rem] 2xl:px-[12rem]">
       <div className="flex w-full flex-col gap-10 sm:items-center sm:gap-16 xl:gap-20">
         <div className="flex flex-col gap-8 sm:items-center">
-          <p className="!font-heading text-small text-primary sm:text-leading">How It Works</p>
+          <p className="!font-heading text-small text-primary sm:text-leading">
+            Built For Institutions, Perfect For Retail
+          </p>
 
           <div className="flex flex-col gap-4 sm:items-center">
             <p className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">Earning Has Never Been Simpler</p>
 
-            <p className="max-w-[40rem] text-leading text-secondary sm:text-center sm:text-smallSubheading">
-              Just deposit USDC and watch the value grow.” OR “Start earning steady, risk-adjusted returns today — just
-              deposit USDC.
+            <p className="text-leading text-secondary sm:text-center sm:text-smallSubheading">
+              Start earning steady, risk-adjusted returns today — just deposit USDC.
             </p>
           </div>
         </div>
