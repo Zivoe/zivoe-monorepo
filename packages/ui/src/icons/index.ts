@@ -11,3 +11,4 @@ export * from './hamburger';
 export * from './globe';
 export * from './money-hand';
 export * from './chart-light';
+export * from './arrow-right';
