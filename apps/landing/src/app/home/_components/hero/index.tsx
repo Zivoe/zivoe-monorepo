@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 
-import NextLink from 'next/link';
-
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
+import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { Link, LinkProps } from '@zivoe/ui/core/link';
 import { ChevronRightIcon } from '@zivoe/ui/icons';
 
@@ -97,17 +96,31 @@ async function Statistics() {
     <div className="flex gap-6 lg:gap-16">
       <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
 
-      {apy && <Statistic label="APY" value={`${apy.toFixed(2)}%`} />}
+      {apy && (
+        <Statistic
+          label="APY"
+          value={`${apy.toFixed(2)}%`}
+          description="This is the approximate yield of Zivoe's new zveUSD product, which will be launching in May. Upon launch the real time yield of zveUSD will be displayed here."
+        />
+      )}
 
       <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
     </div>
   );
 }
 
-function Statistic({ label, value }: { label: string; value: string }) {
+function Statistic({ label, value, description }: { label: string; value: string; description?: string }) {
   return (
     <div className="flex flex-col gap-3 text-primary">
-      <p className="text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+      <div className="flex items-center">
+        <p className="text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+
+        {description && (
+          <ContextualHelp variant="info">
+            <ContextualHelpDescription>{description}</ContextualHelpDescription>
+          </ContextualHelp>
+        )}
+      </div>
       <p className="text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
     </div>
   );
