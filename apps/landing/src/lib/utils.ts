@@ -12,3 +12,9 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
     return numericValue.toFixed(2);
   }
 };
+
+export function handlePromise<T>(promise: Promise<T>) {
+  return promise
+    .then((res: T) => ({ res, err: undefined }))
+    .catch((err: unknown) => Promise.resolve({ res: undefined, err }));
+}

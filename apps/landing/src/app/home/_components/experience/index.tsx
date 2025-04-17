@@ -1,7 +1,5 @@
 import { ReactNode } from 'react';
 
-import { Button } from '@zivoe/ui/core/button';
-import { Input } from '@zivoe/ui/core/input';
 import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -21,6 +19,7 @@ import {
   SherlockIcon,
   WellsFargoIcon
 } from './assets';
+import Newsletter from './newsletter';
 
 export default function Experience() {
   return (
@@ -136,10 +135,7 @@ export default function Experience() {
               </p>
             </div>
 
-            <div className="flex gap-2">
-              <Input placeholder="Your email address" className="w-[17.5rem]" />
-              <Button>Sign up</Button>
-            </div>
+            <Newsletter />
           </div>
         </div>
       </Container>

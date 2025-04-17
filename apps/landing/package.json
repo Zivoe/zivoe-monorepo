@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@aarsteinmedia/dotlottie-player-light": "^5.1.0",
+    "@hookform/resolvers": "^5.0.1",
     "@t3-oss/env-nextjs": "^0.12.0",
+    "@tanstack/react-query": "^5.74.0",
     "@zivoe/ui": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "mongodb": "^6.13.1",
@@ -20,7 +22,9 @@
     "postgres": "^3.4.5",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react-aria-components": "^1.6.0",
+    "react-hook-form": "^7.53.0",
     "server-only": "^0.0.1",
+    "sonner": "^2.0.3",
     "viem": "^2.23.5",
     "zod": "^3.24.2"
   },
