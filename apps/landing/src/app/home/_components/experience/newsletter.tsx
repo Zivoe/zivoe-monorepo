@@ -45,7 +45,7 @@ export default function Newsletter() {
             placeholder="Your email address"
             errorMessage={error?.message}
             isInvalid={invalid}
-            className="w-[17.5rem]"
+            className="w-full sm:w-[17.5rem]"
             {...field}
           />
         )}

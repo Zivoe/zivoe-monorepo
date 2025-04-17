@@ -23,7 +23,7 @@ import Newsletter from './newsletter';
 
 export default function Experience() {
   return (
-    <div className="relative overflow-clip bg-surface-elevated-low-emphasis">
+    <div className="relative bg-surface-elevated-low-emphasis">
       <Container className="w-full pt-20 sm:px-10 sm:pt-[7rem] md:w-[35rem] md:px-0 xl:w-auto xl:px-[8.75rem] xl:pt-[10rem]">
         <div className="mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
           <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-[40rem]">
@@ -66,13 +66,15 @@ export default function Experience() {
                 <WellsFargoIcon />
               </Partner>
 
-              <Partner>
-                <MapleIcon />
-              </Partner>
+              <div className="flex gap-4">
+                <Partner>
+                  <MapleIcon />
+                </Partner>
 
-              <Partner>
-                <CapitalOneIcon />
-              </Partner>
+                <Partner>
+                  <CapitalOneIcon />
+                </Partner>
+              </div>
             </Section>
 
             <Section
@@ -129,8 +131,10 @@ export default function Experience() {
         <div className="mt-10 flex h-[45rem] w-full justify-center sm:mt-20 sm:h-[74.2rem] xl:mt-[7.5rem] xl:h-[35rem]">
           <div className="flex flex-col items-center gap-6 sm:gap-14">
             <div className="flex flex-col items-center gap-2 sm:gap-4 xl:gap-6">
-              <p className="!font-heading text-h5 text-primary sm:text-h4 xl:text-h2">Sign Up for Newsletter</p>
-              <p className="text-regular text-secondary sm:text-smallSubheading">
+              <p className="text-center !font-heading text-h5 text-primary sm:text-h4 xl:text-h2">
+                Sign Up for Newsletter
+              </p>
+              <p className="text-center text-regular text-secondary sm:text-smallSubheading">
                 Subtle background with the new branding.
               </p>
             </div>
@@ -147,12 +151,14 @@ function Section({
   title,
   description,
   extra,
-  children
+  children,
+  className
 }: {
   title: string;
   description: string;
   extra?: ReactNode;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -165,11 +171,13 @@ function Section({
         <div>{extra}</div>
       </div>
 
-      <div className="flex gap-4">{children}</div>
+      <div className={cn('flex flex-wrap gap-4', className)}>{children}</div>
     </div>
   );
 }
 
 function Partner({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('flex h-14 items-center rounded-lg bg-surface-base px-4', className)}>{children}</div>;
+  return (
+    <div className={cn('flex h-14 w-fit items-center rounded-lg bg-surface-base px-4', className)}>{children}</div>
+  );
 }
