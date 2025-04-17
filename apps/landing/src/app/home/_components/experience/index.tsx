@@ -86,7 +86,13 @@ export default function Experience() {
               title="Audited by Top Security Firms"
               description="We work with industry-leading auditors to ensure our platform is secure and reliable."
               extra={
-                <Link href="https://docs.zivoe.com/official-links/audits" variant="link-neutral-dark" size="m">
+                <Link
+                  href="https://docs.zivoe.com/official-links/audits"
+                  target="_blank"
+                  hideExternalLinkIcon
+                  variant="link-neutral-dark"
+                  size="m"
+                >
                   Review Our Audits
                   <ArrowRightIcon />
                 </Link>

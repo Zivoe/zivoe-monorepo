@@ -20,7 +20,7 @@ export default function Diversify() {
           </p>
         </div>
 
-        <Link href="https://app.zivoe.com" variant="primary">
+        <Link href="https://app.zivoe.com" target="_blank" variant="primary">
           Legacy App
         </Link>
       </div>

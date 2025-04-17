@@ -19,7 +19,7 @@ export default function Footer() {
 
             <div className="flex items-center gap-6">
               {SOCIALS.map(({ href, icon }) => (
-                <NextLink href={href} key={href} className="text-base/50 hover:text-base">
+                <NextLink key={href} href={href} target="_blank" className="text-base/50 hover:text-base">
                   {icon}
                 </NextLink>
               ))}
@@ -37,11 +37,23 @@ export default function Footer() {
           <p className="text-small text-base">©Zivoe 2025. All Right Reserved.</p>
 
           <div className="order-2 flex gap-8 lg:order-1">
-            <Link href="https://docs.zivoe.com/terms/terms-of-use-privacy-policy" variant="link-base" size="s">
+            <Link
+              href="https://docs.zivoe.com/terms/terms-of-use-privacy-policy"
+              target="_blank"
+              hideExternalLinkIcon
+              variant="link-base"
+              size="s"
+            >
               Terms of Use
             </Link>
 
-            <Link href="https://docs.zivoe.com/terms/reg-s-compliance" variant="link-base" size="s">
+            <Link
+              href="https://docs.zivoe.com/terms/reg-s-compliance"
+              target="_blank"
+              hideExternalLinkIcon
+              variant="link-base"
+              size="s"
+            >
               Reg S Complicance
             </Link>
           </div>

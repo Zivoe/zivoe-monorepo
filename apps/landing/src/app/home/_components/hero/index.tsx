@@ -82,9 +82,8 @@ export default function Hero() {
 
 function HeroButton(props: LinkProps) {
   return (
-    <Link href="https://app.zivoe.com" variant="primary" {...props}>
+    <Link href="https://app.zivoe.com" target="_blank" variant="primary" {...props}>
       Legacy App
-      <ChevronRightIcon />
     </Link>
   );
 }
