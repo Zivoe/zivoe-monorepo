@@ -17,7 +17,11 @@ function ContextualHelp({ variant = 'help', className, triggerClassName, childre
 
   return (
     <PopoverTrigger>
-      <Button variant="ghost" size="s" className={cn('ml-0.5 aspect-square w-fit px-0', triggerClassName)}>
+      <Button
+        variant="ghost"
+        size="xs"
+        className={cn('ml-1 aspect-square w-fit px-0 [&_svg]:size-4', triggerClassName)}
+      >
         <Icon />
       </Button>
 
