@@ -19,6 +19,7 @@ import {
   SherlockIcon,
   WellsFargoIcon
 } from './assets';
+import { TowerLeftIcon } from './assets/tower-left';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
 import { TowerRightMobileIcon } from './assets/tower-right-mobile';
 import { TowerRightTabletIcon } from './assets/tower-right-tablet';
@@ -132,7 +133,7 @@ export default function Experience() {
           </div>
         </div>
 
-        <div className="flex h-[45rem] w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-[35rem] xl:pt-[7.5rem]">
+        <div className="z-10 flex h-[45rem] w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-[35rem] xl:pt-[7.5rem]">
           <div className="flex w-full flex-col items-center gap-6 sm:w-fit sm:gap-14">
             <div className="flex flex-col items-center gap-2 sm:gap-4 xl:gap-6">
               <p className="text-center !font-heading text-h5 text-primary sm:text-h2">Join Our Newsletter</p>
@@ -145,6 +146,10 @@ export default function Experience() {
           </div>
         </div>
       </Container>
+
+      <div className="absolute bottom-0 left-0 w-[321px] sm:w-[640px] xl:w-[858px]">
+        <TowerLeftIcon />
+      </div>
 
       <TowerRightDesktopIcon className="absolute -right-16 bottom-0 hidden xl:block 2xl:right-0" />
       <TowerRightTabletIcon className="absolute bottom-0 right-0 hidden sm:block xl:hidden" />
