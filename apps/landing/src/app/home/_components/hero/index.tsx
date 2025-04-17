@@ -89,19 +89,21 @@ function HeroButton(props: LinkProps) {
 }
 
 async function Statistics() {
-  const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
+  // TODO: Update this once we have a mainnet vault and we don't need the hardcoded APY
+  // const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
+  const [tvl, revenue] = await Promise.all([web3.getTVL(), web3.getRevenue()]);
 
   return (
     <div className="flex gap-6 lg:gap-16">
       <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
 
-      {apy && (
-        <Statistic
-          label="APY"
-          value={`${apy.toFixed(2)}%`}
-          description="This is the approximate yield of Zivoe's new zveUSD product, which will be launching in May. Upon launch the real time yield of zveUSD will be displayed here."
-        />
-      )}
+      {/* <Statistic label="APY" value={`${apy.toFixed(2)}%`} /> */}
+
+      <Statistic
+        label="APY"
+        value="15.5%"
+        description="This is the approximate yield of Zivoe's new zveUSD product, which will be launching in May. Upon launch the real time yield of zveUSD will be displayed here."
+      />
 
       <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
     </div>
