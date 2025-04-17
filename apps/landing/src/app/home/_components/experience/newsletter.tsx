@@ -34,7 +34,10 @@ export default function Newsletter() {
   };
 
   return (
-    <form className="flex gap-2" onSubmit={form.handleSubmit(handleSubmit)}>
+    <form
+      className="flex w-full flex-col justify-center gap-4 sm:w-fit xl:flex-row xl:gap-2"
+      onSubmit={form.handleSubmit(handleSubmit)}
+    >
       <Controller
         control={form.control}
         name="email"
@@ -45,13 +48,13 @@ export default function Newsletter() {
             placeholder="Your email address"
             errorMessage={error?.message}
             isInvalid={invalid}
-            className="w-full sm:w-[17.5rem]"
+            className="w-full sm:w-[30rem] xl:w-[17.5rem]"
             {...field}
           />
         )}
       />
 
-      <Button type="submit" isPending={joinNewsletter.isPending}>
+      <Button type="submit" isPending={joinNewsletter.isPending} className="w-full sm:w-auto">
         Sign up
       </Button>
     </form>

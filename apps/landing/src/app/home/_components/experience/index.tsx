@@ -19,6 +19,9 @@ import {
   SherlockIcon,
   WellsFargoIcon
 } from './assets';
+import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
+import { TowerRightMobileIcon } from './assets/tower-right-mobile';
+import { TowerRightTabletIcon } from './assets/tower-right-tablet';
 import Newsletter from './newsletter';
 
 export default function Experience() {
@@ -128,12 +131,10 @@ export default function Experience() {
           </div>
         </div>
 
-        <div className="mt-10 flex h-[45rem] w-full justify-center sm:mt-20 sm:h-[74.2rem] xl:mt-[7.5rem] xl:h-[35rem]">
-          <div className="flex flex-col items-center gap-6 sm:gap-14">
+        <div className="flex h-[45rem] w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-[35rem] xl:pt-[7.5rem]">
+          <div className="flex w-full flex-col items-center gap-6 sm:w-fit sm:gap-14">
             <div className="flex flex-col items-center gap-2 sm:gap-4 xl:gap-6">
-              <p className="text-center !font-heading text-h5 text-primary sm:text-h4 xl:text-h2">
-                Sign Up for Newsletter
-              </p>
+              <p className="text-center !font-heading text-h5 text-primary sm:text-h2">Sign Up for Newsletter</p>
               <p className="text-center text-regular text-secondary sm:text-smallSubheading">
                 Subtle background with the new branding.
               </p>
@@ -143,6 +144,10 @@ export default function Experience() {
           </div>
         </div>
       </Container>
+
+      <TowerRightDesktopIcon className="absolute -right-16 bottom-0 hidden xl:block 2xl:right-0" />
+      <TowerRightTabletIcon className="absolute bottom-0 right-0 hidden sm:block xl:hidden" />
+      <TowerRightMobileIcon className="absolute bottom-0 right-0 block sm:hidden" />
     </div>
   );
 }
