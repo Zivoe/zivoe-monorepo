@@ -55,7 +55,7 @@ function Card({ children, title, description }: { children: ReactNode; title: st
 
       <div className="flex flex-col gap-1">
         <p className="text-small text-base/80">{title}</p>
-        <p className="text-smallSubheading text-base xl:text-subheading">{description}</p>
+        <p className="!font-heading text-smallSubheading text-base xl:text-subheading">{description}</p>
       </div>
     </div>
   );

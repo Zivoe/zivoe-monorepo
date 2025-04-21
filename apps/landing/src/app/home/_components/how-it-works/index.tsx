@@ -29,7 +29,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit your stablecoins into Zivoe and receive czUSD."
+            description="Deposit your stablecoins into Zivoe and receive zveUSD."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -38,7 +38,7 @@ export default function HowItWorks() {
           <Card
             label="Step 2"
             title="Earn"
-            description="czUSD automatically grows in value as interest is earned."
+            description="zveUSD automatically grows in value as interest is earned."
             image={<Step2Icon />}
             className="w-full min-w-full flex-1 items-end justify-start"
             imageClassName="items-end pt-3 max-w-[20rem] sm:w-full sm:max-w-max w-full flex-1 sm:[&>svg]:w-full"
@@ -47,7 +47,7 @@ export default function HowItWorks() {
           <Card
             label="Step 3"
             title="Cashout"
-            description="Swap your czUSD back for stablecoins at any time."
+            description="Swap your zveUSD back for stablecoins at any time."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"
@@ -77,7 +77,7 @@ function Card({
     <div className="shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] sm:max-w-full">
       <div
         className={cn(
-          'flex h-[12.5rem] items-center justify-center bg-element-neutral-subtle sm:h-[18.75rem]',
+          'flex h-[12.5rem] items-center justify-center rounded-t-xl bg-element-neutral-subtle sm:h-[18.75rem]',
           className
         )}
       >
@@ -85,7 +85,7 @@ function Card({
           {image}
         </div>
       </div>
-      <div className="flex flex-col gap-6 bg-element-neutral-light px-8 py-10 sm:gap-8">
+      <div className="flex flex-col gap-6 rounded-b-xl bg-element-neutral-light px-8 py-10 sm:gap-8">
         <p className="!font-heading text-small text-primary sm:text-regular">{label}</p>
 
         <div className="flex flex-col gap-3">

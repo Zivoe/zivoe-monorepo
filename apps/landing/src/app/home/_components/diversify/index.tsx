@@ -20,7 +20,7 @@ export default function Diversify() {
           </p>
         </div>
 
-        <Link href="https://app.zivoe.com" target="_blank" variant="primary">
+        <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary">
           Legacy App
         </Link>
       </div>
@@ -50,7 +50,7 @@ function Card({ label, title, children }: { label: string; title: string; childr
   return (
     <div className="h-[17.5rem] w-full overflow-clip rounded-xl bg-element-neutral p-5 sm:relative sm:p-8 xl:h-80 xl:w-[32.5rem] xl:max-w-full">
       <div className="flex flex-col gap-1 xl:gap-2">
-        <p className="font-heading text-smallSubheading text-primary xl:text-subheading">{title}</p>
+        <p className="!font-heading text-smallSubheading text-primary xl:text-subheading">{title}</p>
         <p className="text-regular text-secondary xl:text-leading">{label}</p>
       </div>
 
