@@ -23,7 +23,14 @@ function Desktop() {
         <NavigationItems />
       </div>
 
-      <Link href="https://app.zivoe.com" target="_blank" variant="primary" size="m" className="my-[10px] mr-[10px]">
+      <Link
+        href="https://app.zivoe.com"
+        target="_blank"
+        hideExternalLinkIcon
+        variant="primary"
+        size="m"
+        className="my-[10px] mr-[10px]"
+      >
         Legacy App
       </Link>
     </div>

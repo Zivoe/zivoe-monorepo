@@ -10,6 +10,7 @@ import {
   CapitalOneIcon,
   ChainalysisIcon,
   CowSwapIcon,
+  FraxIcon,
   JPMorganIcon,
   M0Icon,
   MapleIcon,
@@ -29,7 +30,7 @@ export default function Experience() {
   return (
     <div className="relative bg-surface-elevated-low-emphasis">
       <Container className="w-full pt-20 sm:px-10 sm:pt-[7rem] md:w-[35rem] md:px-0 xl:w-auto xl:px-[8.75rem] xl:pt-[10rem]">
-        <div className="mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
+        <div className="z-10 mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
           <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-[40rem]">
             <div className="flex flex-col gap-6">
               <p className="!font-heading text-subheading text-primary sm:text-h4 xl:text-h3">
@@ -125,16 +126,22 @@ export default function Experience() {
               description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
             >
               <Partner>
+                <FraxIcon />
+              </Partner>
+
+              <Partner>
                 <M0Icon />
               </Partner>
 
-              <Partner>
-                <CowSwapIcon />
-              </Partner>
+              <div className="flex gap-4">
+                <Partner>
+                  <CowSwapIcon />
+                </Partner>
 
-              <Partner>
-                <RwaWorldIcon />
-              </Partner>
+                <Partner>
+                  <RwaWorldIcon />
+                </Partner>
+              </div>
             </Section>
           </div>
         </div>

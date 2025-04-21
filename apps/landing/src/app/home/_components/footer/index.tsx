@@ -79,7 +79,7 @@ function FooterSection({ title, links }: { title: string; links: Array<FooterSec
 
       <div className="flex flex-col gap-3">
         {links.map(({ href, label }) => (
-          <Link key={label} href={href} variant="link-base" size="s">
+          <Link key={label} href={href} target="_blank" hideExternalLinkIcon variant="link-base" size="s">
             {label}
           </Link>
         ))}

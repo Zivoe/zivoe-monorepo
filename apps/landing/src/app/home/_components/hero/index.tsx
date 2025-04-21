@@ -39,7 +39,7 @@ export default function Hero() {
             </NextLink> */}
 
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
-              <p className="text-h4 text-primary sm:text-h2 lg:text-h1">Start Investing In Consumer Credit</p>
+              <p className="text-h4 text-primary sm:text-h2">Grow Your Wealth With Consumer Credit</p>
               <p className="text-smallSubheading text-primary sm:max-w-full">
                 Gain exposure to a professionally managed portfolio, backed by thousands of consumer loans, seeking
                 14-17% annual returns.{' '}
@@ -82,7 +82,7 @@ export default function Hero() {
 
 function HeroButton(props: LinkProps) {
   return (
-    <Link href="https://app.zivoe.com" target="_blank" variant="primary" {...props}>
+    <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary" {...props}>
       Legacy App
     </Link>
   );
