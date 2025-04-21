@@ -28,7 +28,7 @@ import Newsletter from './newsletter';
 
 export default function Experience() {
   return (
-    <div className="relative bg-surface-elevated-low-emphasis">
+    <div className="relative overflow-clip bg-surface-elevated-low-emphasis">
       <Container className="w-full pt-20 sm:px-10 sm:pt-[7rem] md:w-[35rem] md:px-0 xl:w-auto xl:px-[8.75rem] xl:pt-[10rem]">
         <div className="z-10 mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
           <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-[40rem]">
