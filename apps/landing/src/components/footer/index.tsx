@@ -90,7 +90,6 @@ function FooterSection({ title, links }: { title: string; links: Array<FooterSec
 
 type FooterSectionLink = { href: string; label: string };
 
-// TODO
 const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }> = [
   {
     title: 'Explore',
@@ -98,8 +97,8 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
       { href: 'https://blog.zivoe.com', label: 'Newsletter' },
       { href: 'https://docs.zivoe.com', label: 'Docs' },
       { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub' },
-      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits' }
-      // { href: '/', label: 'FAQ' }
+      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits' },
+      { href: '/faq', label: 'FAQ' }
     ]
   },
   {
@@ -112,7 +111,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   {
     title: 'Company',
     links: [
-      // { href: '/', label: 'About' },
+      { href: '/about-us', label: 'About Us' },
       // { href: '/', label: 'Media Kit' },
       { href: 'mailto:investors@zivoe.com', label: 'Contact Us' }
     ]

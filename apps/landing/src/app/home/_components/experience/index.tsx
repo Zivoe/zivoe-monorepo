@@ -57,13 +57,12 @@ export default function Experience() {
             <Section
               title="Experienced Leadership"
               description="Our team combines expertise from leading financial institutions and DeFi protocols."
-              // TODO
-              // extra={
-              //   <Link href="/" variant="link-neutral-dark" size="m">
-              //     Meet the Team
-              //     <ArrowRightIcon />
-              //   </Link>
-              // }
+              extra={
+                <Link href="/about-us" variant="link-neutral-dark" size="m">
+                  Meet the Team
+                  <ArrowRightIcon />
+                </Link>
+              }
             >
               <Partner>
                 <JPMorganIcon />
