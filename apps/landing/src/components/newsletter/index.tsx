@@ -7,7 +7,7 @@ import { NewsletterPatternMobileIcon } from './assets/pattern-mobile';
 
 export default function Newsletter() {
   return (
-    <div className="relative overflow-clip bg-element-primary-subtle">
+    <div className="relative overflow-clip bg-element-primary-contrast">
       <Container className="flex-col items-start gap-8 py-16 sm:items-center sm:gap-14 sm:py-28">
         <NewsletterHeader className="z-10" type="light" />
 
