@@ -1,9 +1,9 @@
 import Container from '@/components/container';
-import NewsletterForm from '@/components/newsletter/newsletter-form';
-import NewsletterHeader from '@/components/newsletter/newsletter-header';
+import NewsletterForm from '@/components/newsletter/common/newsletter-form';
+import NewsletterHeader from '@/components/newsletter/common/newsletter-header';
 
-import { NewsletterPatternIcon } from './pattern';
-import { NewsletterPatternMobileIcon } from './pattern-mobile';
+import { NewsletterPatternIcon } from './assets/pattern';
+import { NewsletterPatternMobileIcon } from './assets/pattern-mobile';
 
 export default function Newsletter() {
   return (

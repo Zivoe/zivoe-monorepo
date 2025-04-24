@@ -5,9 +5,9 @@ import { ArrowRightIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import Container from '@/components/container';
-import NewsletterHeader from '@/components/newsletter/newsletter-header';
+import NewsletterHeader from '@/components/newsletter/common/newsletter-header';
 
-import NewsletterForm from '../../../../components/newsletter/newsletter-form';
+import NewsletterForm from '../../../../components/newsletter/common/newsletter-form';
 import {
   CapitalOneIcon,
   ChainalysisIcon,
