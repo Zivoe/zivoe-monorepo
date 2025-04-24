@@ -15,7 +15,9 @@ export default function Footer() {
       <Container className="py-10 sm:px-10 xl:pt-20">
         <div className="flex w-full flex-col gap-20 lg:flex-row lg:justify-between lg:gap-14 xl:gap-20">
           <div className="flex flex-col gap-8">
-            <ZivoeLogo type="light" />
+            <NextLink href="/">
+              <ZivoeLogo type="light" />
+            </NextLink>
 
             <div className="flex items-center gap-6">
               {SOCIALS.map(({ href, icon }) => (

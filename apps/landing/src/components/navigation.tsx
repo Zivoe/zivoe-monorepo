@@ -1,5 +1,6 @@
 'use client';
 
+import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
@@ -13,7 +14,9 @@ import Container from './container';
 export default function NavigationSection() {
   return (
     <Container className="z-10 flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
-      <ZivoeLogo />
+      <NextLink href="/">
+        <ZivoeLogo />
+      </NextLink>
       <Navigation />
     </Container>
   );

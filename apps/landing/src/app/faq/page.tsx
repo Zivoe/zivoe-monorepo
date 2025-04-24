@@ -28,7 +28,7 @@ function Faq() {
         <div className="flex w-full flex-col gap-4 lg:max-w-[27.5rem]">
           <p className="text-h4 text-primary lg:text-h2">Your Questions, Answered</p>
           <p className="text-regular text-primary lg:text-leading">
-            Here you can find answers to common questions about our Zivoe, our features, and services.
+            Here you can find answers to common questions about Zivoe, our features, and services.
           </p>
         </div>
 

@@ -56,6 +56,16 @@ const TEAM_MEMBERS: Array<{ name: string; title: string; image: string }> = [
     image: '/team/dennis.png'
   },
   {
+    name: 'Walt Ramsey',
+    title: 'Head of Risk',
+    image: '/team/walt.png'
+  },
+  {
+    name: 'Stephanie Puzzo',
+    title: 'Head of Marketing',
+    image: '/team/stephanie.png'
+  },
+  {
     name: 'Alex Serban',
     title: 'Web3 Full-Stack Engineer',
     image: '/team/alex.png'
@@ -66,13 +76,8 @@ const TEAM_MEMBERS: Array<{ name: string; title: string; image: string }> = [
     image: '/team/chad.png'
   },
   {
-    name: 'Walt Ramsey',
-    title: 'Risk Advisor',
-    image: '/team/walt.png'
-  },
-  {
-    name: 'Stephanie',
-    title: 'Head of Product & Founding Member',
-    image: '/team/stephanie.png'
+    name: 'Shannon Wright',
+    title: 'Controller',
+    image: '/team/shannon.png'
   }
 ];
