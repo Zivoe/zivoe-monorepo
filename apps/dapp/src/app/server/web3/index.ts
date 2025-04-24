@@ -10,6 +10,11 @@ import { DAY_IN_SECONDS } from '@/lib/utils';
 import { Web3Request } from '@/types';
 
 const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) => {
+  // TODO: Remove this once we have a mainnet vault
+  if (contracts.ZIVOE_VAULT === '0x0000000000000000000000000000000000000000') {
+    return { indexPrice: 0, vaultTotalAssets: 0n };
+  }
+
   const totalSupply = await client.readContract({
     address: contracts.ZIVOE_VAULT,
     abi: zivoeVaultAbi,

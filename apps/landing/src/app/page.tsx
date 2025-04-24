@@ -1,3 +1,5 @@
-export default async function Home() {
-  return <div>Zivoe Landing Page</div>;
+import Home from './home';
+
+export default async function HomePage() {
+  return <Home />;
 }

@@ -5,6 +5,12 @@ const config: Config = {
   content: ['./src/core/**/*.{ts,tsx}'],
 
   theme: {
+    extend: {
+      screens: {
+        sm: '600px'
+      }
+    },
+
     fontSize: {
       tiny: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0' }],
       extraSmall: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0' }],
@@ -182,7 +188,8 @@ const config: Config = {
         'elevated-contrast': 'hsl(var(--neutral-300))',
         'elevated-high-contrast': 'hsl(var(--neutral-400))',
         'contrast-subtle': 'hsl(var(--neutral-700))',
-        contrast: 'hsl(var(--neutral-950))'
+        contrast: 'hsl(var(--neutral-950))',
+        brand: 'hsl(var(--primary-900))'
       },
 
       element: {
@@ -233,6 +240,15 @@ const config: Config = {
 
       neutral: {
         '500': 'hsl(var(--neutral-500))'
+      },
+
+      tertiary: {
+        '500': 'hsl(var(--tertiary-500))',
+        '600': 'hsl(var(--tertiary-600))'
+      },
+
+      primary: {
+        '400': 'hsl(var(--primary-400))'
       }
     },
 
@@ -258,7 +274,8 @@ const config: Config = {
       active: 'hsl(var(--primary-600))',
       brand: 'hsl(var(--primary-900))',
       alert: 'hsl(var(--alert-500))',
-      base: 'hsl(var(--neutral-0))'
+      base: 'hsl(var(--neutral-0))',
+      secondary: 'hsl(var(--secondary-600))'
     },
 
     ringColor: {

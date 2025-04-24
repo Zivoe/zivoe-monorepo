@@ -3,7 +3,18 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "env": ["DATABASE_URI", "MAINNET_ALCHEMY_API_KEY", "SEPOLIA_ALCHEMY_API_KEY", "QSTASH_CURRENT_SIGNING_KEY", "QSTASH_NEXT_SIGNING_KEY"],
+      "env": [
+        "DATABASE_URI",
+        "MAINNET_ALCHEMY_API_KEY",
+        "SEPOLIA_ALCHEMY_API_KEY",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+        "PONDER_MAINNET_DATABASE_URL",
+        "PONDER_SEPOLIA_DATABASE_URL",
+        "BEEHIIV_PUBLICATION_ID",
+        "BEEHIIV_API_KEY",
+        "NETWORK"
+      ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]

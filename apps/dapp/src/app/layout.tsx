@@ -4,10 +4,14 @@ import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
 import '@zivoe/ui/globals.css';
 
+import Providers from './_components/providers';
+
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} antialiased`}>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
@@ -19,7 +23,7 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 const instrumentSans = Instrument_Sans({
-  weight: ['400'],
+  weight: ['400', '500'],
   subsets: ['latin'],
   variable: '--font-instrument-sans'
 });

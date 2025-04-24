@@ -38,6 +38,8 @@ const buttonVariants = tv({
         'bg-transparent text-primary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       'ghost-light':
         'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
+      nav: 'text-primary',
+      'link-base': 'text-base',
       'link-primary': 'text-brand-subtle',
       'link-secondary': 'text-brand-secondary-subtle',
       'link-neutral-dark': 'text-primary',
@@ -58,9 +60,14 @@ const buttonVariants = tv({
 
   compoundVariants: [
     {
-      variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
+      variant: ['link-base', 'link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
       className:
-        'h-auto p-0 hover:underline hover:underline-offset-4 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+        'h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
+    },
+    {
+      variant: ['nav'],
+      className:
+        'rounded-none p-0 current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] hover:shadow-active focus-visible:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] focus-visible:shadow-active focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },
     {
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
@@ -69,7 +76,8 @@ const buttonVariants = tv({
     },
     { variant: 'chip', className: 'gap-1 rounded-full' },
     { variant: 'chip', size: 's', className: 'h-9' },
-    { variant: 'chip', size: 'xs', className: 'h-7' }
+    { variant: 'chip', size: 'xs', className: 'h-7' },
+    { variant: 'ghost', className: 'current:bg-element-neutral' }
   ],
 
   defaultVariants: {

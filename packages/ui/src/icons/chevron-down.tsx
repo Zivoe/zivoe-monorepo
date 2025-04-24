@@ -17,8 +17,8 @@ export const ChevronDownIcon = React.forwardRef<SVGSVGElement, IconProps>(
         <path
           d="M5.33331 6.66699L7.99998 9.33366L10.6666 6.66699"
           stroke={color}
-          stroke-width="1.5"
-          stroke-linecap="square"
+          strokeWidth="1.5"
+          strokeLinecap="square"
         />
       </svg>
     );
