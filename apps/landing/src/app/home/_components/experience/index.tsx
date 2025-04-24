@@ -6,6 +6,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import Container from '@/components/container';
 import NewsletterHeader from '@/components/newsletter/common/newsletter-header';
+import { TowerLeftIcon } from '@/components/tower-left-icon';
 
 import NewsletterForm from '../../../../components/newsletter/common/newsletter-form';
 import {
@@ -22,7 +23,6 @@ import {
   SherlockIcon,
   WellsFargoIcon
 } from './assets';
-import { TowerLeftIcon } from './assets/tower-left';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
 import { TowerRightMobileIcon } from './assets/tower-right-mobile';
 import { TowerRightTabletIcon } from './assets/tower-right-tablet';
@@ -155,7 +155,7 @@ export default function Experience() {
         </div>
       </Container>
 
-      <div className="absolute bottom-0 left-0 w-[321px] sm:w-[640px] xl:w-[858px]">
+      <div className={'absolute bottom-0 left-0 w-[321px] sm:w-[640px] xl:w-[858px]'}>
         <TowerLeftIcon />
       </div>
 

@@ -54,7 +54,7 @@ function DisclosureHeader({ children, className }: DisclosureHeaderProps) {
         slot="trigger"
         className={composeRenderProps(className, (className) => {
           return cn(
-            'group flex flex-1 items-center justify-between rounded-md !font-heading text-smallSubheading ring-offset-neutral-0 transition-all hover:underline',
+            'group flex flex-1 items-center justify-between rounded-md text-left !font-heading text-smallSubheading ring-offset-neutral-0 transition-all hover:underline',
             'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
             'data-[focus-visible]:outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-default data-[focus-visible]:ring-offset-2',
             'outline-none',
@@ -86,7 +86,7 @@ function DisclosurePanel({ children, className, ...props }: DisclosurePanelProps
     <AriaDisclosurePanel
       {...props}
       className={composeRenderProps(className, (className) =>
-        cn('overflow-hidden text-leading transition-all', className)
+        cn('overflow-hidden text-regular transition-all', className)
       )}
     >
       {children}
