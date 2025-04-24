@@ -23,7 +23,7 @@ export default function FAQPage() {
 
 function Faq() {
   return (
-    <>
+    <div className="relative">
       <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-[7rem] lg:pt-[10rem] xl:gap-[7.5rem] xl:px-[10.75rem]">
         <div className="flex w-full flex-col gap-4 lg:max-w-[27.5rem]">
           <p className="text-h4 text-primary lg:text-h2">Your Questions, Answered</p>
@@ -42,10 +42,10 @@ function Faq() {
         </DisclosureGroup>
       </Container>
 
-      <div className="absolute -bottom-[5rem] left-0 hidden w-[600px] lg:block">
+      <div className="absolute -bottom-[5.5rem] left-0 hidden w-[600px] lg:block">
         <TowerLeftIcon />
       </div>
-    </>
+    </div>
   );
 }
 
