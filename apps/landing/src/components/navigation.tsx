@@ -2,12 +2,24 @@
 
 import { usePathname } from 'next/navigation';
 
+import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
-export default function Navigation() {
+import Container from './container';
+
+export default function NavigationSection() {
+  return (
+    <Container className="z-10 flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
+      <ZivoeLogo />
+      <Navigation />
+    </Container>
+  );
+}
+
+function Navigation() {
   return (
     <>
       <Desktop />
@@ -86,7 +98,7 @@ function NavigationItems() {
 // TODO
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: string }> = [
   { title: 'Home', href: '/' },
-  // { title: 'About us', href: '/about-us' },
+  { title: 'About us', href: '/about-us' },
   // { title: 'FAQ', href: '/faq' },
   { title: 'Newsletter', href: 'https://blog.zivoe.com', target: '_blank' },
   { title: 'Docs', href: 'https://docs.zivoe.com', target: '_blank' }

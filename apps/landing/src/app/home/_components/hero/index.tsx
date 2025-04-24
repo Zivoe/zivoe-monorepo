@@ -1,31 +1,27 @@
 import { Suspense } from 'react';
 
-import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { Link, LinkProps } from '@zivoe/ui/core/link';
-import { ChevronRightIcon } from '@zivoe/ui/icons';
 
 import { web3 } from '@/server/web3';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
+import {
+  HeroElement2MobileComponent,
+  HeroElement2TabletComponent,
+  HeroElemet1Component,
+  HeroElemet2Component
+} from '@/components/hero';
+import NavigationSection from '@/components/navigation';
 
-import Navigation from '../../../_components/navigation';
 import { HeroClouds } from './clouds';
-import { HeroElement1 } from './element-01';
-import { HeroElement2 } from './element-02';
-import { HeroElement2Mobile } from './element-02-mobile';
-import { HeroElement2Tablet } from './elemet-02-tablet';
 
 export default function Hero() {
   return (
     <div className="relative z-0 h-[55rem] overflow-clip bg-element-tertiary sm:h-[75rem] lg:h-[61.25rem]">
-      <Container className="z-10 flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
-        <ZivoeLogo />
-
-        <Navigation />
-      </Container>
+      <NavigationSection />
 
       <Container className="mt-[3.125rem] sm:px-10 md:px-[6.25rem] lg:my-[7.5rem]">
         <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-[33rem] sm:gap-16 lg:max-w-[41.25rem] lg:gap-[12.5rem]">
@@ -42,7 +38,7 @@ export default function Hero() {
               <p className="text-h4 text-primary sm:text-h2">Grow Your Wealth With Consumer Credit</p>
               <p className="text-smallSubheading text-primary sm:max-w-full">
                 Gain exposure to a professionally managed portfolio, backed by thousands of consumer loans, seeking
-                14-17% annual returns.{' '}
+                14-17% annual returns.
               </p>
             </div>
 
@@ -58,22 +54,10 @@ export default function Hero() {
         </div>
       </Container>
 
-      <div className="absolute -right-[12%] -top-[18%] -z-20 hidden h-full w-full grid-cols-2 items-end gap-4 lg:grid xl:-right-[10%] 2xl:-right-[8%]">
-        <div></div>
-        <div className="flex w-full justify-end">
-          <HeroElement1 className="-z-20" />
-        </div>
-      </div>
-
-      <div className="absolute bottom-0 left-0 -z-10 hidden h-full w-full grid-cols-3 items-end gap-4 lg:grid">
-        <div></div>
-        <div className="col-span-2 flex w-full justify-end">
-          <HeroElement2 className="mt-[20px] xl:mt-[0px]" />
-        </div>
-      </div>
-
-      <HeroElement2Tablet className="absolute bottom-0 right-0 -z-10 hidden w-[95%] sm:block lg:hidden" />
-      <HeroElement2Mobile className="absolute bottom-0 right-0 -z-10 sm:hidden" />
+      <HeroElemet1Component />
+      <HeroElemet2Component />
+      <HeroElement2TabletComponent />
+      <HeroElement2MobileComponent />
 
       <HeroClouds className="absolute -left-[150px] bottom-1/4 -z-20 w-[433px] rotate-[15deg] sm:bottom-1/3 lg:-bottom-[100px] lg:w-[866px]" />
     </div>

@@ -20,7 +20,7 @@ const newsletterFormSchema = z.object({
 
 type NewsletterFormSchema = z.infer<typeof newsletterFormSchema>;
 
-export default function Newsletter() {
+export default function NewsletterForm() {
   const joinNewsletter = useJoinNewsletter();
 
   const form = useForm<NewsletterFormSchema>({
