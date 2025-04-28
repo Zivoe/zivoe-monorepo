@@ -34,7 +34,7 @@ export default function Portfolio() {
               </CardIcon>
             </Card>
 
-            <Card title="Geogragphy" description="Americas">
+            <Card title="Geography" description="Americas">
               <CardIcon className="bg-[#84DAC0]">
                 <GlobeIcon />
               </CardIcon>
