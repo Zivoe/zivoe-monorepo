@@ -11,10 +11,13 @@ export const env = createEnv({
     PONDER_MAINNET_DATABASE_URL: z.string(),
     PONDER_SEPOLIA_DATABASE_URL: z.string(),
     BEEHIIV_PUBLICATION_ID: z.string(),
-    BEEHIIV_API_KEY: z.string()
+    BEEHIIV_API_KEY: z.string(),
+    TURNSTILE_SECRET_KEY: z.string()
   },
 
-  client: {},
+  client: {
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
+  },
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
@@ -25,7 +28,9 @@ export const env = createEnv({
     PONDER_MAINNET_DATABASE_URL: process.env.PONDER_MAINNET_DATABASE_URL,
     PONDER_SEPOLIA_DATABASE_URL: process.env.PONDER_SEPOLIA_DATABASE_URL,
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
-    BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY
+    BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
+    TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

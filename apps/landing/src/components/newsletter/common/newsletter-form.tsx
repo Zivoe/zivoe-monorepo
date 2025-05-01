@@ -1,6 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
+
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { Controller } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
@@ -9,8 +12,11 @@ import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
+import { Portal } from '@zivoe/ui/core/portal';
 
 import { handlePromise } from '@/lib/utils';
+
+import { env } from '@/env';
 
 import { joinNewsletter } from './join-newsletter';
 
@@ -21,6 +27,7 @@ const newsletterFormSchema = z.object({
 type NewsletterFormSchema = z.infer<typeof newsletterFormSchema>;
 
 export default function NewsletterForm() {
+  const { turnstileRef, turnstilePromiseRef, executeTurnstile } = useTurnstile();
   const joinNewsletter = useJoinNewsletter();
 
   const form = useForm<NewsletterFormSchema>({
@@ -29,42 +36,62 @@ export default function NewsletterForm() {
     mode: 'onBlur'
   });
 
-  const handleSubmit = (data: NewsletterFormSchema) => {
-    joinNewsletter.mutate(data);
+  const handleSubmit = async (data: NewsletterFormSchema) => {
+    const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
+
+    if (!token || tokenErr) {
+      toast.error('Error verifying user');
+      return;
+    }
+
+    await joinNewsletter.mutate({ ...data, turnstileToken: token });
   };
 
   return (
-    <form
-      className="flex w-full flex-col justify-center gap-4 sm:w-fit xl:flex-row xl:gap-2"
-      onSubmit={form.handleSubmit(handleSubmit)}
-    >
-      <Controller
-        control={form.control}
-        name="email"
-        render={({ field, fieldState: { invalid, error } }) => (
-          <Input
-            type="email"
-            isRequired
-            placeholder="Your email address"
-            errorMessage={error?.message}
-            isInvalid={invalid}
-            className="w-full sm:w-[30rem] xl:w-[17.5rem]"
-            {...field}
-          />
-        )}
-      />
+    <>
+      <form
+        className="flex w-full flex-col justify-center gap-4 sm:w-fit xl:flex-row xl:gap-2"
+        onSubmit={form.handleSubmit(handleSubmit)}
+      >
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState: { invalid, error } }) => (
+            <Input
+              type="email"
+              isRequired
+              placeholder="Your email address"
+              errorMessage={error?.message}
+              isInvalid={invalid}
+              className="w-full sm:w-[30rem] xl:w-[17.5rem]"
+              {...field}
+            />
+          )}
+        />
 
-      <Button type="submit" isPending={joinNewsletter.isPending} className="w-full sm:w-auto">
-        Sign up
-      </Button>
-    </form>
+        <Button type="submit" isPending={joinNewsletter.isPending} className="w-full sm:w-auto">
+          Sign up
+        </Button>
+      </form>
+
+      <Portal className="fixed bottom-4 right-4">
+        <Turnstile
+          options={{ execution: 'execute', appearance: 'execute' }}
+          siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
+          onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
+          onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
+          ref={turnstileRef}
+        />
+      </Portal>
+    </>
   );
 }
 
 const useJoinNewsletter = () => {
   return useMutation({
-    mutationFn: async ({ email }: { email: string }) => {
-      const { res, err } = await handlePromise(joinNewsletter({ email }));
+    mutationFn: async ({ email, turnstileToken }: { email: string; turnstileToken: string }) => {
+      const { res, err } = await handlePromise(joinNewsletter({ email, turnstileToken }));
 
       if (err || !res) throw new Error('Error joining newsletter, please try again');
       if (res.error || !res.message) throw new Error(res.error);
@@ -75,4 +102,30 @@ const useJoinNewsletter = () => {
     onSuccess: ({ message }) => toast.success(message),
     onError: (error) => toast.error(error.message)
   });
+};
+
+type TurnstilePromiseRef = {
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+};
+
+const useTurnstile = () => {
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const turnstilePromiseRef = useRef<TurnstilePromiseRef>(null);
+
+  async function executeTurnstile(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      turnstilePromiseRef.current = { resolve, reject };
+
+      try {
+        // Turnstile token is valid only once so in the case of an error with the sign-up process, we need to reset before executing again
+        turnstileRef.current?.reset();
+        turnstileRef.current?.execute();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  return { turnstileRef, turnstilePromiseRef, executeTurnstile };
 };
