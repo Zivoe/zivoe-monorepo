@@ -83,16 +83,14 @@ export default function NewsletterForm() {
       </form>
 
       {WITH_TURNSTILE && (
-        <Portal className="fixed bottom-4 right-4">
-          <Turnstile
-            options={{ execution: 'execute', appearance: 'execute' }}
-            siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
-            onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-            onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
-            ref={turnstileRef}
-          />
-        </Portal>
+        <Turnstile
+          options={{ execution: 'execute', appearance: 'execute' }}
+          siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
+          onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
+          onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
+          ref={turnstileRef}
+        />
       )}
     </>
   );
