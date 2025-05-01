@@ -22,18 +22,20 @@ export async function joinNewsletter(data: { email: string; turnstileToken: stri
   const { email, turnstileToken } = parsedBody.data;
 
   // Verify the turnstile token
-  const formData = new FormData();
-  formData.append('secret', env.TURNSTILE_SECRET_KEY);
-  formData.append('response', turnstileToken);
+  if (env.NEXT_PUBLIC_ENV === 'production') {
+    const formData = new FormData();
+    formData.append('secret', env.TURNSTILE_SECRET_KEY);
+    formData.append('response', turnstileToken);
 
-  const { res: turnstile, err: turnstileError } = await handlePromise(
-    fetch(TURNSTILE_URL, { method: 'POST', body: formData })
-  );
+    const { res: turnstile, err: turnstileError } = await handlePromise(
+      fetch(TURNSTILE_URL, { method: 'POST', body: formData })
+    );
 
-  if (turnstileError || !turnstile) return { error: TURNSTILE_ERROR_MESSAGE };
+    if (turnstileError || !turnstile) return { error: TURNSTILE_ERROR_MESSAGE };
 
-  const { res: turnstileData, err: turnstileDataError } = await handlePromise(turnstile.json());
-  if (turnstileDataError || !turnstileData.success) return { error: TURNSTILE_ERROR_MESSAGE };
+    const { res: turnstileData, err: turnstileDataError } = await handlePromise(turnstile.json());
+    if (turnstileDataError || !turnstileData.success) return { error: TURNSTILE_ERROR_MESSAGE };
+  }
 
   // Join the newsletter
   const beehiivResponse = await handlePromise(

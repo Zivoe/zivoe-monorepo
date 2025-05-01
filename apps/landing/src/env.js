@@ -16,6 +16,7 @@ export const env = createEnv({
   },
 
   client: {
+    NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
   },
 
@@ -30,7 +31,8 @@ export const env = createEnv({
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

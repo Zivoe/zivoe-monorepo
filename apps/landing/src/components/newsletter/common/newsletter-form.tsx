@@ -20,6 +20,8 @@ import { env } from '@/env';
 
 import { joinNewsletter } from './join-newsletter';
 
+const WITH_TURNSTILE = env.NEXT_PUBLIC_ENV === 'production';
+
 const newsletterFormSchema = z.object({
   email: z.string().min(1, 'Email is required').email({ message: 'Invalid email address' })
 });
@@ -37,14 +39,20 @@ export default function NewsletterForm() {
   });
 
   const handleSubmit = async (data: NewsletterFormSchema) => {
-    const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
+    let turnstileToken = '';
 
-    if (!token || tokenErr) {
-      toast.error('Error verifying user');
-      return;
+    if (WITH_TURNSTILE) {
+      const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
+
+      if (!token || tokenErr) {
+        toast.error('Error verifying user');
+        return;
+      }
+
+      turnstileToken = token;
     }
 
-    await joinNewsletter.mutate({ ...data, turnstileToken: token });
+    await joinNewsletter.mutate({ ...data, turnstileToken });
   };
 
   return (
@@ -74,16 +82,18 @@ export default function NewsletterForm() {
         </Button>
       </form>
 
-      <Portal className="fixed bottom-4 right-4">
-        <Turnstile
-          options={{ execution: 'execute', appearance: 'execute' }}
-          siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-          onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
-          onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-          onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
-          ref={turnstileRef}
-        />
-      </Portal>
+      {WITH_TURNSTILE && (
+        <Portal className="fixed bottom-4 right-4">
+          <Turnstile
+            options={{ execution: 'execute', appearance: 'execute' }}
+            siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
+            onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
+            onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
+            ref={turnstileRef}
+          />
+        </Portal>
+      )}
     </>
   );
 }
