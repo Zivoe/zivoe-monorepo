@@ -55,5 +55,15 @@ export async function joinNewsletter(data: { email: string; turnstileToken: stri
   );
 
   if (beehiivResponse.err || !beehiivResponse.res?.ok) return { error: 'Error joining newsletter' };
+
+  const res = (await beehiivResponse.res?.json()) as BeehiivResponse;
+  if (res.data.status === 'active') return { message: 'Already subscribed to the newsletter' };
+
   return { message: 'Successfully joined newsletter' };
 }
+
+type BeehiivResponse = {
+  data: {
+    status: 'validating' | 'invalid' | 'pending' | 'active' | 'inactive' | 'needs_attention';
+  };
+};
