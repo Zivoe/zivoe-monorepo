@@ -17,12 +17,12 @@ import {
   JPMorganIcon,
   M0Icon,
   MapleIcon,
+  PlumeIcon,
   RuntimeIcon,
+  RwaioIcon,
   SecuritizeIcon,
   SherlockIcon,
-  WellsFargoIcon,
-  PlumeIcon,
-  RwaioIcon
+  WellsFargoIcon
 } from './assets';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
 import { TowerRightMobileIcon } from './assets/tower-right-mobile';
@@ -126,27 +126,27 @@ export default function Experience() {
               title="Collaborating with Industry Leaders"
               description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
             >
-              <div className="flex gap-4">
-                <Partner>
-                  <CowSwapIcon />
-                </Partner>
+              <Partner>
+                <CowSwapIcon />
+              </Partner>
 
-                <Partner>
-                  <PlumeIcon />
-                </Partner>
+              <Partner>
+                <PlumeIcon />
+              </Partner>
 
+              <div className="flex flex-wrap gap-4">
                 <Partner>
                   <RwaioIcon />
                 </Partner>
+
+                <Partner>
+                  <FraxIcon />
+                </Partner>
+
+                <Partner>
+                  <M0Icon />
+                </Partner>
               </div>
-
-              <Partner>
-                <FraxIcon />
-              </Partner>
-
-              <Partner>
-                <M0Icon />
-              </Partner>
             </Section>
           </div>
         </div>
