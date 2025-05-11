@@ -29,7 +29,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit your stablecoins into Zivoe and receive zveUSD."
+            description="Deposit your stablecoins into Zivoe and receive zVLT."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -38,7 +38,7 @@ export default function HowItWorks() {
           <Card
             label="Step 2"
             title="Earn"
-            description="zveUSD automatically grows in value as interest is earned."
+            description="zVLT automatically grows in value as interest is earned."
             image={<Step2Icon />}
             className="w-full min-w-full flex-1 items-end justify-start"
             imageClassName="items-end pt-3 max-w-[20rem] sm:w-full sm:max-w-max w-full flex-1 sm:[&>svg]:w-full"
@@ -47,7 +47,7 @@ export default function HowItWorks() {
           <Card
             label="Step 3"
             title="Cashout"
-            description="Swap your zveUSD back for stablecoins at any time."
+            description="Swap your zVLT back for stablecoins at any time."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"

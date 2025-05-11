@@ -86,7 +86,7 @@ async function Statistics() {
       <Statistic
         label="APY"
         value="15.5%"
-        description="This is the approximate yield of Zivoe's new zveUSD product, which will be launching in May. Upon launch the real time yield of zveUSD will be displayed here."
+        description="This is the approximate yield of Zivoe's new zVLT product, which will be launching in May. Upon launch the real time yield of zVLT will be displayed here."
       />
 
       <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />

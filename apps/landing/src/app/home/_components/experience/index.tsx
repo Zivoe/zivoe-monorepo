@@ -17,8 +17,9 @@ import {
   JPMorganIcon,
   M0Icon,
   MapleIcon,
+  PlumeIcon,
   RuntimeIcon,
-  RwaWorldIcon,
+  RwaioIcon,
   SecuritizeIcon,
   SherlockIcon,
   WellsFargoIcon
@@ -126,20 +127,24 @@ export default function Experience() {
               description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
             >
               <Partner>
-                <FraxIcon />
+                <CowSwapIcon />
               </Partner>
 
               <Partner>
-                <M0Icon />
+                <PlumeIcon />
               </Partner>
 
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 <Partner>
-                  <CowSwapIcon />
+                  <RwaioIcon />
                 </Partner>
 
                 <Partner>
-                  <RwaWorldIcon />
+                  <FraxIcon />
+                </Partner>
+
+                <Partner>
+                  <M0Icon />
                 </Partner>
               </div>
             </Section>

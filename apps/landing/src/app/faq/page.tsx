@@ -71,22 +71,22 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      "Depositors mint zveUSD, Zivo\'s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are used off-chain to help fund consumer loans. As borrowers repay those loans with interest, capital flows back into the protocol and is automatically compounded into zveUSD, allowing depositors to passively earn real, on-chain yield backed by off-chain repayments."
+      "Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are used off-chain to help fund consumer loans. As borrowers repay those loans with interest, capital flows back into the protocol and is automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by off-chain repayments."
   },
   {
     question: 'What are the fees?',
     answer:
-      'Zivoe currently takes a 15% protocol fee on the net interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zveUSD holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
+      'Zivoe currently takes a 15% protocol fee on the net interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
   },
   {
     question: 'What is the lockup period and liquidity policy?',
     answer:
-      'Withdrawals from the protocol are subject to available cash flows from underlying loan repayments. While Zivoe may open select windows for direct redemptions once critical scale is reached, the primary path for liquidity will be through secondary markets. Zivoe has established a liquidity partnership with Frax, one of the leading stablecoin projects in the space, including a joint pool to support trading of zveUSD. This provides users with flexible access to exit their positions without waiting on scheduled redemption events.'
+      'Withdrawals from the protocol are subject to available cash flows from underlying loan repayments. While Zivoe may open select windows for direct redemptions once critical scale is reached, the primary path for liquidity will be through secondary markets. Zivoe has established a liquidity partnership with Frax, one of the leading stablecoin projects in the space, including a joint pool to support trading of zVLT. This provides users with flexible access to exit their positions without waiting on scheduled redemption events.'
   },
   {
-    question: 'How does the migration to zveUSD work?',
+    question: 'How does the migration to zVLT work?',
     answer:
-      'Zivoe is transitioning from its original tranche-based system to a unified auto-compounding vault token called zveUSD, which will launch alongside a new dApp. While the Legacy App will remain live and continue to accept senior tranche deposits, all new protocol activity will move to zveUSD going forward. The full transition will occur with the launch of the new dApp, and a migration process will be shared for existing users. More details will be available soon through the dApp and Zivoe’s community channels.'
+      'Zivoe is transitioning from its original tranche-based system to a unified auto-compounding vault token called zVLT, which will launch alongside a new dApp. While the Legacy App will remain live and continue to accept senior tranche deposits, all new protocol activity will move to zVLT going forward. The full transition will occur with the launch of the new dApp, and a migration process will be shared for existing users. More details will be available soon through the dApp and Zivoe’s community channels.'
   },
   {
     question: 'Has Zivoe been audited?',
