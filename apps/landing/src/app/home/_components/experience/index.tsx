@@ -18,10 +18,11 @@ import {
   M0Icon,
   MapleIcon,
   RuntimeIcon,
-  RwaWorldIcon,
   SecuritizeIcon,
   SherlockIcon,
-  WellsFargoIcon
+  WellsFargoIcon,
+  PlumeIcon,
+  RwaioIcon
 } from './assets';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
 import { TowerRightMobileIcon } from './assets/tower-right-mobile';
@@ -139,7 +140,11 @@ export default function Experience() {
                 </Partner>
 
                 <Partner>
-                  <RwaWorldIcon />
+                  <PlumeIcon />
+                </Partner>
+
+                <Partner>
+                  <RwaioIcon />
                 </Partner>
               </div>
             </Section>
