@@ -126,14 +126,6 @@ export default function Experience() {
               title="Collaborating with Industry Leaders"
               description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
             >
-              <Partner>
-                <FraxIcon />
-              </Partner>
-
-              <Partner>
-                <M0Icon />
-              </Partner>
-
               <div className="flex gap-4">
                 <Partner>
                   <CowSwapIcon />
@@ -147,6 +139,14 @@ export default function Experience() {
                   <RwaioIcon />
                 </Partner>
               </div>
+
+              <Partner>
+                <FraxIcon />
+              </Partner>
+
+              <Partner>
+                <M0Icon />
+              </Partner>
             </Section>
           </div>
         </div>
