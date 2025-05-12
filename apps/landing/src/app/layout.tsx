@@ -7,7 +7,7 @@ import '@zivoe/ui/globals.css';
 
 import Providers from './_components/providers';
 
-const title = 'Zivoe | RWA protocol';
+const title = 'Zivoe | RWA Credit Protocol';
 const description =
   'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to the consumer credit market.';
 
