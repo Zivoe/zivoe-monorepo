@@ -244,6 +244,7 @@ const config: Config = {
       },
 
       tertiary: {
+        '100': 'hsl(var(--tertiary-100))',
         '500': 'hsl(var(--tertiary-500))',
         '600': 'hsl(var(--tertiary-600))'
       },
