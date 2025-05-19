@@ -21,3 +21,4 @@ export * from './bank';
 export * from './star-icon';
 export * from './document';
 export * from './email';
+export * from './pie-chart';

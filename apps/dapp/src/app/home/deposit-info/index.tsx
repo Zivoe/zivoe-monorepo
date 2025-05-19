@@ -4,6 +4,7 @@ import { DiamondIcon } from '@zivoe/ui/icons';
 import { data } from '@/server/data';
 
 import DepositAbout from './deposit-about';
+import DepositAllocation from './deposit-allocation';
 import DepositCharts from './deposit-charts';
 import DepositContact from './deposit-contact';
 import DepositDetails from './deposit-details';
@@ -32,6 +33,9 @@ export default async function DepositInfo() {
 
       <DiamondSeparator />
       <DepositDetails />
+
+      <DiamondSeparator />
+      <DepositAllocation />
 
       <DiamondSeparator />
       <Documents />
