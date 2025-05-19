@@ -4,8 +4,9 @@ import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
+import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
+import { Dialog } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
@@ -59,15 +60,9 @@ function Mobile() {
         <HamburgerIcon />
       </Button>
 
-      <DialogContent isFullScreen className="bg-element-primary" logoType="light">
-        <div className="flex h-full flex-1 -translate-y-10 flex-col items-center gap-6">
-          <div className="bg-secondary rounded-4 bg-accent/10 flex h-full flex-col items-center justify-center gap-3">
-            <NavigationItems />
-          </div>
-
-          <div className="text-base">©Zivoe 2025. All Right Reserved.</div>
-        </div>
-      </DialogContent>
+      <NavigationMobileDialog>
+        <NavigationItems />
+      </NavigationMobileDialog>
     </Dialog>
   );
 }

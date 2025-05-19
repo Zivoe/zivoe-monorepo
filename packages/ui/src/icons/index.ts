@@ -14,3 +14,4 @@ export * from './chart-light';
 export * from './arrow-right';
 export * from './info';
 export * from './question';
+export * from './zivoe-icon';
