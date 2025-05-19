@@ -18,12 +18,14 @@ export default async function DepositInfo() {
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
+  const revenue = await data.getRevenue();
+
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
       <DepositCharts dailyData={dailyData} />
 
       <DiamondSeparator />
-      <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} />
+      <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />
 
       <DiamondSeparator />
       <DepositAbout />
