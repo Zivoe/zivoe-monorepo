@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "lint": "next lint",
     "start": "next start",
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\""
@@ -20,7 +20,7 @@
     "drizzle-orm": "^0.41.0",
     "ethereum-block-by-date": "^1.5.0",
     "mongodb": "^6.13.1",
-    "next": "15.3.0-canary.10",
+    "next": "^15.4.0-canary.38",
     "postgres": "^3.4.5",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react-aria-components": "^1.6.0",
