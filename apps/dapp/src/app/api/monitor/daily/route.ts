@@ -6,11 +6,11 @@ import { z } from 'zod';
 
 import { Contracts, NETWORKS, getContracts } from '@zivoe/contracts';
 
-import { handle } from '@/lib/utils';
+import { getDb } from '@/server/clients/db';
+import { getWeb3Client } from '@/server/clients/web3';
+import { web3 } from '@/server/web3';
 
-import { getDb } from '@/app/server/clients/db';
-import { getWeb3Client } from '@/app/server/clients/web3';
-import { web3 } from '@/app/server/web3';
+import { handle } from '@/lib/utils';
 
 import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
 
