@@ -19,7 +19,7 @@ import { truncateAddress } from '@/lib/utils';
 export default function Header() {
   return (
     <>
-      <div className="flex h-[6.25rem] w-full items-center justify-between bg-surface-base px-4 lg:px-10">
+      <div className="flex min-h-[6.25rem] w-full items-center justify-between bg-surface-base px-4 lg:px-10">
         <div className="flex items-center gap-10">
           <NextLink href="/">
             <ZivoeLogo className="-ml-3 h-6" />
