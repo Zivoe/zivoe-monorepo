@@ -9,3 +9,7 @@ export const handle = <T>(promise: Promise<T>) => {
 
 export const DAY_IN_SECONDS = 86400;
 export const DAYS_PER_YEAR = 365;
+
+export const truncateAddress = (address: string) => {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};

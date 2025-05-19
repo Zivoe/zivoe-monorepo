@@ -11,7 +11,9 @@ export const env = createEnv({
     QSTASH_NEXT_SIGNING_KEY: z.string()
   },
 
-  client: {},
+  client: {
+    NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string()
+  },
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
@@ -19,7 +21,8 @@ export const env = createEnv({
     MAINNET_ALCHEMY_API_KEY: process.env.MAINNET_ALCHEMY_API_KEY,
     SEPOLIA_ALCHEMY_API_KEY: process.env.SEPOLIA_ALCHEMY_API_KEY,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
-    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
+    NEXT_PUBLIC_DYNAMIC_ENV_ID: process.env.NEXT_PUBLIC_DYNAMIC_ENV_ID
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
