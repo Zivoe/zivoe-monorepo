@@ -1,10 +1,11 @@
 import 'server-only';
 
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { Collection, MongoClient, ServerApiVersion } from 'mongodb';
 
 import type { Network } from '@zivoe/contracts';
 
 import { env } from '@/env.js';
+import { DailyData } from '@/types';
 
 const globalForDb = globalThis as unknown as {
   mongoClient: MongoClient | undefined;
@@ -23,7 +24,7 @@ export const getDb = ({ network }: { network: Network }) => {
   if (network === 'SEPOLIA') zivoeDb = mongoClient.db('ZivoeSepolia');
 
   return {
-    daily: zivoeDb.collection('Daily')
+    daily: zivoeDb.collection('Daily') as Collection<DailyData>
   };
 };
 
