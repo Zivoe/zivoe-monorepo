@@ -1,4 +1,4 @@
-import { ChartIcon, InfoIcon } from '@zivoe/ui/icons';
+import { InfoIcon } from '@zivoe/ui/icons';
 
 import { DepositInfoSection } from './common';
 
