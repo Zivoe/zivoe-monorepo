@@ -7,7 +7,8 @@ const config = {
     staleTimes: {
       dynamic: 30,
       static: 180
-    }
+    },
+    useCache: true
   }
 };
 

@@ -3,40 +3,56 @@
 import { PieChartIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { formatBigIntToReadable } from '@/lib/utils';
+
 import { DepositInfoSection } from './common';
 
-const a = 80;
-const b = 15;
-const c = 5;
+export default function DepositAllocation({
+  outstandingPrincipal,
+  treasuryBills,
+  usdcBalance
+}: {
+  outstandingPrincipal: bigint;
+  usdcBalance: bigint;
+  treasuryBills: bigint;
+}) {
+  const total = Number(outstandingPrincipal + treasuryBills + usdcBalance);
+  const outstandingPrincipalPercentage = (Number(outstandingPrincipal) / total) * 100;
+  const treasuryBillsPercentage = (Number(treasuryBills) / total) * 100;
+  const usdcBalancePercentage = (Number(usdcBalance) / total) * 100;
 
-export default function DepositAllocation() {
   return (
     <DepositInfoSection title="Asset Allocation" icon={<PieChartIcon />}>
       <div className="flex flex-col gap-3">
         <div className="flex h-4 gap-1 px-3">
-          <Block width={a} className="bg-element-primary-soft" />
-          <Block width={b} className="bg-element-secondary" />
-          <Block width={c} className="bg-element-tertiary-contrast" />
+          <Block width={outstandingPrincipalPercentage} className="bg-element-primary-soft" />
+          <Block width={treasuryBillsPercentage} className="bg-element-secondary" />
+          <Block width={usdcBalancePercentage} className="bg-element-tertiary-contrast" />
         </div>
 
         <div>
           <Allocation
             label="Loans"
-            percentage={a}
-            value="$6,0023,121.12"
+            percentage={outstandingPrincipalPercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(outstandingPrincipal, 6)}
             className="border-b border-default"
             bulletClassName="bg-element-primary-soft"
           />
 
           <Allocation
             label="Treasury Bills (M0)"
-            percentage={b}
-            value="$1,203.12"
+            percentage={treasuryBillsPercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(treasuryBills, 6)}
             className="border-b border-default"
             bulletClassName="bg-element-secondary"
           />
 
-          <Allocation label="USDC" percentage={c} value="$1,203.12" bulletClassName="bg-element-tertiary-contrast" />
+          <Allocation
+            label="USDC"
+            percentage={usdcBalancePercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(usdcBalance, 6)}
+            bulletClassName="bg-element-tertiary-contrast"
+          />
         </div>
       </div>
     </DepositInfoSection>
@@ -55,7 +71,7 @@ function Allocation({
   bulletClassName
 }: {
   label: string;
-  percentage: number;
+  percentage: string;
   value: string;
   className?: string;
   bulletClassName?: string;

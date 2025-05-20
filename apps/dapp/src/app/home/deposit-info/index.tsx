@@ -1,3 +1,5 @@
+import { connection } from 'next/server';
+
 import { Separator } from '@zivoe/ui/core/separator';
 import { DiamondIcon } from '@zivoe/ui/icons';
 
@@ -19,6 +21,9 @@ export default async function DepositInfo() {
   if (!currentDailyData) return null;
 
   const revenue = await data.getRevenue();
+  const outstandingPrincipal = await data.getOutstandingPrincipal();
+
+  const { usdcBalance } = await data.getAssetAllocation();
 
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
@@ -37,7 +42,11 @@ export default async function DepositInfo() {
       <DepositDetails />
 
       <DiamondSeparator />
-      <DepositAllocation />
+      <DepositAllocation
+        outstandingPrincipal={outstandingPrincipal}
+        treasuryBills={usdcBalance}
+        usdcBalance={usdcBalance}
+      />
 
       <DiamondSeparator />
       <Documents />
