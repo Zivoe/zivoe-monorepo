@@ -3,7 +3,11 @@ import { type ReactNode } from 'react';
 import { Metadata } from 'next';
 import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
+import { Analytics } from '@vercel/analytics/next';
+
 import '@zivoe/ui/globals.css';
+
+import { env } from '@/env';
 
 import Providers from './_components/providers';
 
@@ -46,6 +50,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} antialiased`}>
       <body>
         <Providers>{children}</Providers>
+        <Analytics mode={env.NEXT_PUBLIC_ENV} />
       </body>
     </html>
   );
