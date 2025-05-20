@@ -27,6 +27,7 @@
     "postgres": "^3.4.5",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react-aria-components": "^1.6.0",
+    "react-responsive": "^10.0.1",
     "recharts": "^2.15.1",
     "server-only": "^0.0.1",
     "viem": "^2.23.14",

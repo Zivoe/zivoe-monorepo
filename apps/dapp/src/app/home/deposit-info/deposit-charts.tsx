@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { Key } from 'react-aria-components';
+import { useMediaQuery } from 'react-responsive';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 import { formatEther } from 'viem';
 
@@ -24,6 +25,8 @@ type ChartType = (typeof CHART_TYPES)[number];
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
 export default function DepositCharts({ dailyData }: { dailyData: Array<DepositDailyData> }) {
+  const isMobile = useMediaQuery({ query: '(max-width: 599px)' });
+
   const [selectedChartType, setSelectedChartType] = useState<Key>(0);
 
   const chart = parseChartData({ dailyData, typeIndex: selectedChartType });
@@ -69,11 +72,13 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               tickLine={false}
               axisLine={false}
               tickMargin={20}
+              interval={Math.floor(chart.data.length / (isMobile ? 5 : 10))}
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 
             <YAxis
               tickLine={false}
+              hide={isMobile}
               axisLine={false}
               tickMargin={16}
               scale="linear"
