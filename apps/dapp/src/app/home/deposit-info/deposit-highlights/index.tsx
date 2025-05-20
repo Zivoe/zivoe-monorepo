@@ -34,7 +34,7 @@ export default function DepositHighlights() {
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"
-          description="zVLT is a yield-bearing token, meaning it delivers returns through price appreciation. As borrowers make interest payments, the proceeds are automatically reinvested into new loans to maximize returns. "
+          description="Investors can access 24/7 liquidity for zVLT via secondary markets. Trading is facilitated through a Curve pool, in which the market price closely tracks the underlying value of zVLT. This enables seamless, low-slippage swaps between zVLT and stablecoins."
           className="bg-element-secondary-light"
         />
 
