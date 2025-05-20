@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-import { BankIcon, ChartIcon, HandIcon, TrendingIcon } from '@zivoe/ui/icons';
+import { BankIcon, ChartIcon, MoneyIcon, TrendingIcon } from '@zivoe/ui/icons';
 
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
@@ -12,7 +12,7 @@ export default function DepositStats({ apy, tvl, revenue }: { apy: number; tvl: 
       <div className="flex justify-between gap-4">
         <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(BigInt(tvl))} />
         <Box title="APY" icon={<TrendingIcon />} value={customNumber(apy) + '%'} />
-        <Box title="Revenue" icon={<HandIcon />} value={'$' + formatBigIntToReadable(revenue, 6)} />
+        <Box title="Revenue" icon={<MoneyIcon />} value={'$' + formatBigIntToReadable(revenue, 6)} />
       </div>
     </DepositInfoSection>
   );

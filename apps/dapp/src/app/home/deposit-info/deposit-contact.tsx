@@ -11,9 +11,9 @@ export default function DepositContact() {
         <Link
           variant="link-neutral-dark"
           className="underline underline-offset-8 hover:no-underline"
-          href="mailto:invest@zivoe.com"
+          href="mailto:investors@zivoe.com"
         >
-          invest@zivoe.com
+          investors@zivoe.com
         </Link>
         .
       </p>

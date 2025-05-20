@@ -34,17 +34,17 @@ export default function DepositHighlights() {
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"
-          description="zVLT is a yield-bearing token, meaning it automatically increases in value as interest is generated. Interest is automatically compounded to maximize growth."
+          description="zVLT is a yield-bearing token, meaning it delivers returns through price appreciation. As borrowers make interest payments, the proceeds are automatically reinvested into new loans to maximize returns. "
           className="bg-element-secondary-light"
         />
 
         <Card
           icon={<ExperienceIcon />}
           title="Decades of Experience"
-          description="Our team has over 40 years of combined experience managing loan portfolios at leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, and Maple Finance."
+          description="Our team has over 40 years of combined experience managing loan portfolios at leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
           className="bg-tertiary-100"
         >
-          <Link variant="border" size="m" href="https://www.zivoe.com/about-us">
+          <Link variant="border" size="m" href="https://www.zivoe.com/about-us" target="_blank">
             Meet the Team
           </Link>
         </Card>

@@ -1,5 +1,8 @@
 'use client';
 
+import { ReactElement } from 'react';
+
+import { Link } from '@zivoe/ui/core/link';
 import { PieChartIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -40,7 +43,20 @@ export default function DepositAllocation({
           />
 
           <Allocation
-            label="Treasury Bills (M0)"
+            label={
+              <>
+                Treasury Bills (
+                <Link
+                  href="https://dashboard.m0.org/"
+                  target="_blank"
+                  hideExternalLinkIcon
+                  className="text-regular sm:text-leading"
+                >
+                  $wM by M0
+                </Link>
+                )
+              </>
+            }
             percentage={treasuryBillsPercentage.toFixed(2)}
             value={'$' + formatBigIntToReadable(treasuryBills, 6)}
             className="border-b border-default"
@@ -70,7 +86,7 @@ function Allocation({
   className,
   bulletClassName
 }: {
-  label: string;
+  label: string | ReactElement;
   percentage: string;
   value: string;
   className?: string;

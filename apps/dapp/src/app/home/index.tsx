@@ -7,7 +7,7 @@ import DepositInfo from './deposit-info';
 export default function Home() {
   return (
     <>
-      <Hero title="zVLT" description="A nonprime consumer credit fund." />
+      <Hero title="zVLT" description="Gain exposure to non-prime consumer credit" />
 
       <Page className="flex gap-10 lg:flex-row">
         <DepositInfo />

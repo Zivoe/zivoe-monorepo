@@ -38,7 +38,6 @@ function DocumentLink({ title, href, className }: { title: string; href: string;
 }
 
 const LINKS: Record<string, string> = {
-  Prospectus: 'https://zivoe.com',
-  'Reg S Compliance': 'https://zivoe.com',
-  'Token Subscription Agreement': 'https://zivoe.com'
+  Prospectus: 'https://docs.zivoe.com/user-docs/introduction',
+  'Reg S Compliance': 'https://docs.zivoe.com/terms/reg-s-compliance'
 };
