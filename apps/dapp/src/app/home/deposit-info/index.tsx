@@ -1,10 +1,12 @@
-import { connection } from 'next/server';
+import { Suspense } from 'react';
 
 import { Separator } from '@zivoe/ui/core/separator';
-import { DiamondIcon } from '@zivoe/ui/icons';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { ChartIcon, DiamondIcon, PieChartIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
+import { DepositInfoSection } from './common';
 import DepositAbout from './deposit-about';
 import DepositAllocation from './deposit-allocation';
 import DepositCharts from './deposit-charts';
@@ -15,22 +17,16 @@ import DepositHighlights from './deposit-highlights';
 import DepositStats from './deposit-stats';
 
 export default async function DepositInfo() {
-  const dailyData = await data.getDepositDailyData();
-
-  const currentDailyData = dailyData[dailyData.length - 1];
-  if (!currentDailyData) return null;
-
-  const revenue = await data.getRevenue();
-  const outstandingPrincipal = await data.getOutstandingPrincipal();
-
-  const { usdcBalance } = await data.getAssetAllocation();
-
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
-      <DepositCharts dailyData={dailyData} />
+      <Suspense fallback={<DepositChartsSkeleton />}>
+        <DepositChartsComponent />
+      </Suspense>
 
       <DiamondSeparator />
-      <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />
+      <Suspense fallback={<DepositStatsSkeleton />}>
+        <DepositStatsComponent />
+      </Suspense>
 
       <DiamondSeparator />
       <DepositAbout />
@@ -42,11 +38,9 @@ export default async function DepositInfo() {
       <DepositDetails />
 
       <DiamondSeparator />
-      <DepositAllocation
-        outstandingPrincipal={outstandingPrincipal}
-        treasuryBills={usdcBalance}
-        usdcBalance={usdcBalance}
-      />
+      <Suspense fallback={<DepositAllocationSkeleton />}>
+        <DepositAllocationComponent />
+      </Suspense>
 
       <DiamondSeparator />
       <Documents />
@@ -54,6 +48,67 @@ export default async function DepositInfo() {
       <DiamondSeparator />
       <DepositContact />
     </div>
+  );
+}
+
+async function DepositChartsComponent() {
+  const dailyData = await data.getDepositDailyData();
+  return <DepositCharts dailyData={dailyData} />;
+}
+
+function DepositChartsSkeleton() {
+  return (
+    <div className="flex w-full flex-col gap-4">
+      <div className="flex justify-between gap-2">
+        <Skeleton className="h-10 w-[6.25rem] rounded-md" />
+        <Skeleton className="h-9 w-[8.625rem] rounded-md" />
+      </div>
+
+      <Skeleton className="aspect-[16/9] w-full rounded-md" />
+    </div>
+  );
+}
+
+async function DepositStatsComponent() {
+  const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
+
+  const currentDailyData = dailyData[dailyData.length - 1];
+  if (!currentDailyData) return null;
+
+  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />;
+}
+
+function DepositStatsSkeleton() {
+  return (
+    <DepositInfoSection title="Stats" icon={<ChartIcon />}>
+      <Skeleton className="h-[4.5rem] w-full rounded-md" />
+    </DepositInfoSection>
+  );
+}
+
+async function DepositAllocationComponent() {
+  const { outstandingPrincipal, usdcBalance } = await data.getAssetAllocation();
+
+  return (
+    <DepositAllocation
+      outstandingPrincipal={outstandingPrincipal}
+      treasuryBills={usdcBalance}
+      usdcBalance={usdcBalance}
+    />
+  );
+}
+
+function DepositAllocationSkeleton() {
+  return (
+    <DepositInfoSection title="Asset Allocation" icon={<PieChartIcon />}>
+      <div className="flex flex-col gap-3">
+        <div className="px-3">
+          <Skeleton className="h-4 w-full rounded-md" />
+        </div>
+
+        <Skeleton className="h-[10.625rem] w-full rounded-md" />
+      </div>
+    </DepositInfoSection>
   );
 }
 
