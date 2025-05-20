@@ -34,7 +34,7 @@ export default function DepositHighlights() {
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"
-          description="zveUSD is a yield-bearing token, meaning it automatically increases in value as interest is generated. Interest is automatically compounded to maximize growth."
+          description="zVLT is a yield-bearing token, meaning it automatically increases in value as interest is generated. Interest is automatically compounded to maximize growth."
           className="bg-element-secondary-light"
         />
 
