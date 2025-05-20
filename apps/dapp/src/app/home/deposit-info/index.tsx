@@ -1,14 +1,10 @@
-import { Suspense } from 'react';
-
 import { connection } from 'next/server';
 
 import { Separator } from '@zivoe/ui/core/separator';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { ChartIcon, DiamondIcon, PieChartIcon } from '@zivoe/ui/icons';
+import { DiamondIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
-import { DepositInfoSection } from './common';
 import DepositAbout from './deposit-about';
 import DepositAllocation from './deposit-allocation';
 import DepositCharts from './deposit-charts';
@@ -21,14 +17,10 @@ import DepositStats from './deposit-stats';
 export default async function DepositInfo() {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
-      <Suspense fallback={<DepositChartsSkeleton />}>
-        <DepositChartsComponent />
-      </Suspense>
+      <DepositChartsComponent />
 
       <DiamondSeparator />
-      <Suspense fallback={<DepositStatsSkeleton />}>
-        <DepositStatsComponent />
-      </Suspense>
+      <DepositStatsComponent />
 
       <DiamondSeparator />
       <DepositAbout />
@@ -40,9 +32,7 @@ export default async function DepositInfo() {
       <DepositDetails />
 
       <DiamondSeparator />
-      <Suspense fallback={<DepositAllocationSkeleton />}>
-        <DepositAllocationComponent />
-      </Suspense>
+      <DepositAllocationComponent />
 
       <DiamondSeparator />
       <Documents />
@@ -59,19 +49,6 @@ async function DepositChartsComponent() {
   return <DepositCharts dailyData={dailyData} />;
 }
 
-function DepositChartsSkeleton() {
-  return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex justify-between gap-2">
-        <Skeleton className="h-10 w-[6.25rem] rounded-md" />
-        <Skeleton className="h-9 w-[8.625rem] rounded-md" />
-      </div>
-
-      <Skeleton className="aspect-[16/9] w-full rounded-md" />
-    </div>
-  );
-}
-
 async function DepositStatsComponent() {
   await connection();
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
@@ -80,14 +57,6 @@ async function DepositStatsComponent() {
   if (!currentDailyData) return null;
 
   return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />;
-}
-
-function DepositStatsSkeleton() {
-  return (
-    <DepositInfoSection title="Stats" icon={<ChartIcon />}>
-      <Skeleton className="h-[4.25rem] w-full rounded-md" />
-    </DepositInfoSection>
-  );
 }
 
 async function DepositAllocationComponent() {
@@ -100,20 +69,6 @@ async function DepositAllocationComponent() {
       treasuryBills={usdcBalance}
       usdcBalance={usdcBalance}
     />
-  );
-}
-
-function DepositAllocationSkeleton() {
-  return (
-    <DepositInfoSection title="Asset Allocation" icon={<PieChartIcon />}>
-      <div className="flex flex-col gap-3">
-        <div className="px-3">
-          <Skeleton className="h-4 w-full rounded-md" />
-        </div>
-
-        <Skeleton className="h-[9.125rem] w-full rounded-md sm:h-[10.625rem]" />
-      </div>
-    </DepositInfoSection>
   );
 }
 
