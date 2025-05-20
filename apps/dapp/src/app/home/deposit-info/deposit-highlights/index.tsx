@@ -17,7 +17,7 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="24/7 Liquidity"
-          description="The Zivoe Credit Fund (zVLT) offers qualified purchasers exposure to a diversified portfolio of nonprime consumer loans with 24/7 liquidity via secondary markets."
+          description="Instantly buy and sell zVLT, 24/7/365, even on weekends and holidays."
           className="bg-element-primary-gentle"
         >
           {/* <div className="flex gap-2">
@@ -34,7 +34,7 @@ export default function DepositHighlights() {
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"
-          description="Investors can access 24/7 liquidity for zVLT via secondary markets. Trading is facilitated through a Curve pool, in which the market price closely tracks the underlying value of zVLT. This enables seamless, low-slippage swaps between zVLT and stablecoins."
+          description="As borrowers make interest payments, the proceeds are automatically reinvested into new loans, maximizing returns. "
           className="bg-element-secondary-light"
         />
 

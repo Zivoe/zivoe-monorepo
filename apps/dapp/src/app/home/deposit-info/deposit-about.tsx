@@ -14,7 +14,7 @@ export default function DepositAbout() {
   return (
     <DepositInfoSection title="About" icon={<InfoIcon />}>
       <div className="flex flex-col gap-2">
-        <div className={cn('line-clamp-2 space-y-2', showFullText && 'line-clamp-none')}>
+        <div className={cn('line-clamp-2 space-y-6', showFullText && 'line-clamp-none')}>
           <p className="text-leading text-primary">
             zVLT offers qualified purchasers exposure to a professionally managed portfolio of non-prime consumer
             loans—an asset class that has delivered strong, risk-adjusted returns to Wall Street investors for over 50
