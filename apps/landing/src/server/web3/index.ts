@@ -1,3 +1,5 @@
+import { unstable_cacheLife as cacheLife } from 'next/cache';
+
 import { eq } from 'drizzle-orm';
 
 import { getContracts } from '@zivoe/contracts';
@@ -13,6 +15,9 @@ import { getWeb3Client } from '../clients/web3';
 const network = env.NETWORK;
 
 const getTVL = async () => {
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
   const client = getWeb3Client(network);
   const contracts = getContracts(network);
 
@@ -26,6 +31,9 @@ const getTVL = async () => {
 };
 
 const getAPY = async () => {
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
   const client = getDb(network);
   const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
 
@@ -33,6 +41,9 @@ const getAPY = async () => {
 };
 
 const getRevenue = async () => {
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
   const contracts = getContracts(network);
   const ponder = getPonder(network);
 
