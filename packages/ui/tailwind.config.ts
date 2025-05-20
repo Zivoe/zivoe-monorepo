@@ -171,6 +171,7 @@ const config: Config = {
       neutral: {
         '300': 'hsl(var(--neutral-300))'
       },
+      'secondary-contrast': 'hsl(var(--secondary-700))',
       icon: {
         default: 'hsl(var(--neutral-500))'
       }

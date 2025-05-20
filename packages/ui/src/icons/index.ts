@@ -15,3 +15,6 @@ export * from './arrow-right';
 export * from './info';
 export * from './question';
 export * from './zivoe-icon';
+export * from './diamond';
+export * from './trending';
+export * from './bank';

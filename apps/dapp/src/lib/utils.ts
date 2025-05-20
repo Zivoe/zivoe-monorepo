@@ -1,3 +1,5 @@
+import { formatUnits } from 'viem';
+
 export const handle = <T>(promise: Promise<T>) => {
   return promise
     .then((data: T) => ({
@@ -24,3 +26,16 @@ export function customNumber(number: number) {
     }).format(number);
   }
 }
+
+export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
+  const inEther = formatUnits(value, decimals ?? 18);
+  const numericValue = Number(inEther);
+
+  if (numericValue >= 1_000_000) {
+    return `${(numericValue / 1_000_000).toFixed(2)}M`;
+  } else if (numericValue >= 1_000) {
+    return `${(numericValue / 1_000).toFixed(2)}k`;
+  } else {
+    return numericValue.toFixed(2);
+  }
+};
