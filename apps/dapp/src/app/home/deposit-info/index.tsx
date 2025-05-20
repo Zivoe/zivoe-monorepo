@@ -6,6 +6,7 @@ import { data } from '@/server/data';
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
 import DepositDetails from './deposit-details';
+import Documents from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
 import DepositStats from './deposit-stats';
 
@@ -30,6 +31,9 @@ export default async function DepositInfo() {
 
       <DiamondSeparator />
       <DepositDetails />
+
+      <DiamondSeparator />
+      <Documents />
     </div>
   );
 }
