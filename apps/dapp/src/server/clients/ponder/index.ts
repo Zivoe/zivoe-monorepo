@@ -15,10 +15,10 @@ const globalForPonder = globalThis as unknown as {
 };
 
 export const getPonder = cache((network: Network) => {
-  let url = env.PONDER_MAINNET_DATABASE_URL;
-  if (network === 'SEPOLIA') url = env.PONDER_SEPOLIA_DATABASE_URL;
+  let connectionString = env.PONDER_MAINNET_DATABASE_URL;
+  if (network === 'SEPOLIA') connectionString = env.PONDER_SEPOLIA_DATABASE_URL;
 
-  const pool = globalForPonder.pool ?? new Pool({ connectionString: env.PONDER_SEPOLIA_DATABASE_URL });
+  const pool = globalForPonder.pool ?? new Pool({ connectionString });
   if (env.NODE_ENV !== 'production') globalForPonder.pool = pool;
 
   return drizzle({ client: pool });
