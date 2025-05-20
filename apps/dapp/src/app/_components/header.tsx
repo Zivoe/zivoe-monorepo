@@ -103,13 +103,19 @@ function Wallet() {
 
   if (!isLoggedIn || !address)
     return (
-      <Button size="m" onPress={() => setShowAuthFlow(true)}>
+      <Button key="connect-wallet-button" size="m" onPress={() => setShowAuthFlow(true)}>
         Connect Wallet
       </Button>
     );
 
   return (
-    <Button variant="border-light" size="m" onPress={() => setShowDynamicUserProfile(true)} className="text-small">
+    <Button
+      key="connected-wallet-button"
+      variant="border-light"
+      size="m"
+      onPress={() => setShowDynamicUserProfile(true)}
+      className="text-small"
+    >
       <div className="size-5">
         <WalletIcon walletKey={primaryWallet?.connector?.key} />
       </div>
