@@ -3,8 +3,9 @@ import { DiamondIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
+import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
-import DepositAbout from './deposit-stats';
+import DepositStats from './deposit-stats';
 
 export default async function DepositInfo() {
   const dailyData = await data.getDepositDailyData();
@@ -15,8 +16,12 @@ export default async function DepositInfo() {
   return (
     <div className="flex w-full flex-col gap-10">
       <DepositCharts dailyData={dailyData} />
+
       <DiamondSeparator />
-      <DepositAbout apy={currentDailyData.apy} tvl={currentDailyData.tvl} />
+      <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} />
+
+      <DiamondSeparator />
+      <DepositAbout />
     </div>
   );
 }

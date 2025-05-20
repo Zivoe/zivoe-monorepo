@@ -9,7 +9,7 @@ import { DepositInfoSection } from './common';
 export default function DepositStats({ apy, tvl }: { apy: number; tvl: string }) {
   return (
     <DepositInfoSection title="Stats" icon={<ChartIcon />}>
-      <div className="flex max-w-[450px] justify-between gap-4 lg:max-w-[770px]">
+      <div className="flex justify-between gap-4">
         <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(BigInt(tvl))} />
         <Box title="APY" icon={<TrendingIcon />} value={customNumber(apy) + '%'} />
         <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(BigInt(tvl))} />
