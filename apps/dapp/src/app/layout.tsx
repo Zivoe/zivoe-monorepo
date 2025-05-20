@@ -4,16 +4,21 @@ import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
 import '@zivoe/ui/globals.css';
 
+import Footer from './_components/footer';
 import Header from './_components/header';
 import Providers from './_components/providers';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} antialiased`}>
-      <body>
+    <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} h-full antialiased`}>
+      <body className="flex h-full flex-col">
         <Providers>
           <Header />
-          {children}
+
+          <div className="flex h-full flex-col justify-between">
+            <div>{children}</div>
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>
