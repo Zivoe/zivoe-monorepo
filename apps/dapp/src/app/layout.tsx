@@ -1,6 +1,7 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
 import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
+import { connection } from 'next/server';
 
 import '@zivoe/ui/globals.css';
 
@@ -12,17 +13,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} h-full antialiased`}>
       <body className="flex h-full flex-col">
-        <Providers>
-          <Header />
+        <Suspense>
+          <ProvidersWrapper>
+            <Header />
 
-          <div className="flex h-full flex-col justify-between">
-            <div>{children}</div>
-            <Footer />
-          </div>
-        </Providers>
+            <div className="flex h-full flex-col justify-between">
+              <div>{children}</div>
+              <Footer />
+            </div>
+          </ProvidersWrapper>
+        </Suspense>
       </body>
     </html>
   );
+}
+
+async function ProvidersWrapper({ children }: { children: ReactNode }) {
+  await connection();
+  return <Providers>{children}</Providers>;
 }
 
 const libreBaskerville = Libre_Baskerville({

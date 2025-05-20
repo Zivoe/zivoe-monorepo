@@ -8,7 +8,7 @@ const config = {
       dynamic: 30,
       static: 180
     },
-    useCache: true
+    dynamicIO: true
   }
 };
 

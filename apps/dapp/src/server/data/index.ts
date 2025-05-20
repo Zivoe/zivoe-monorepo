@@ -16,6 +16,9 @@ import { getPonder } from '../clients/ponder';
 import { occTable } from '../clients/ponder/schema';
 
 const getDepositDailyData = cache(async () => {
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
   const db = getDb({ network: env.NEXT_PUBLIC_NETWORK });
   const data = await db.daily.find().toArray();
 
@@ -29,6 +32,9 @@ const getDepositDailyData = cache(async () => {
 export type DepositDailyData = Awaited<ReturnType<typeof getDepositDailyData>>[number];
 
 const getRevenue = async () => {
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
   const network = env.NEXT_PUBLIC_NETWORK;
   const contracts = getContracts({ network });
   const ponder = getPonder({ network });
@@ -44,7 +50,7 @@ const getRevenue = async () => {
 
 const getAssetAllocation = async () => {
   'use cache';
-  cacheLife({ stale: 3600, revalidate: 3600, expire: 3600 });
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
 
   const network = env.NEXT_PUBLIC_NETWORK;
   const client = getWeb3Client({ network });
