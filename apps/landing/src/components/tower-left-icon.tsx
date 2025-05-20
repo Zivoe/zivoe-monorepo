@@ -36,7 +36,7 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-27 {
-              clip-path: url(#clippath);
+              clipPath: url(#clippath);
             }
       
             .cls-3, .cls-28 {
@@ -68,11 +68,11 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-29 {
-              clip-path: url(#clippath-1);
+              clipPath: url(#clippath-1);
             }
       
             .cls-30 {
-              clip-path: url(#clippath-2);
+              clipPath: url(#clippath-2);
             }
       
             .cls-10 {
