@@ -16,7 +16,11 @@
         "NETWORK",
         "TURNSTILE_SECRET_KEY",
         "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
-        "NEXT_PUBLIC_ENV"
+        "NEXT_PUBLIC_ENV",
+        "PONDER_MAINNET_DATABASE_URL",
+        "PONDER_SEPOLIA_DATABASE_URL",
+        "NEXT_PUBLIC_DYNAMIC_ENV_ID",
+        "NEXT_PUBLIC_NETWORK"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

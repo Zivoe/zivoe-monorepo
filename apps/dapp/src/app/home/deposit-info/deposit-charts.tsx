@@ -17,7 +17,8 @@ import { customNumber } from '@/lib/utils';
 
 import { env } from '@/env';
 
-const CHART_TYPES = ['Index price', 'Market price', 'TVL', 'APY'] as const;
+// TODO: Add Market Price when we have the data
+const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
 type ChartType = (typeof CHART_TYPES)[number];
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
@@ -125,13 +126,11 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
   MAINNET: {
     'Index price': [0, 1.2],
-    'Market price': [0, 1.2],
     TVL: [4_000_000, 6_000_000],
     APY: [12, 20]
   },
   SEPOLIA: {
     'Index price': [0, 1.2],
-    'Market price': [0, 1.2],
     TVL: [70_000_000, 100_000_000],
     APY: [16, 24]
   }
@@ -149,7 +148,6 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
 
     let data: number | undefined;
     if (type === 'Index price') data = item.indexPrice;
-    else if (type === 'Market price') data = item.indexPrice;
     else if (type === 'TVL') data = Number(formatEther(BigInt(item.tvl)));
     else data = item.apy;
 
@@ -164,7 +162,6 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
 
   let currentValue: number | undefined;
   if (type === 'Index price') currentValue = currentDailyData.indexPrice;
-  else if (type === 'Market price') currentValue = currentDailyData.indexPrice;
   else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl)));
   else currentValue = currentDailyData.apy;
 
