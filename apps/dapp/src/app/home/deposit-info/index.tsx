@@ -85,7 +85,7 @@ async function DepositStatsComponent() {
 function DepositStatsSkeleton() {
   return (
     <DepositInfoSection title="Stats" icon={<ChartIcon />}>
-      <Skeleton className="h-[4.5rem] w-full rounded-md" />
+      <Skeleton className="h-[4.25rem] w-full rounded-md" />
     </DepositInfoSection>
   );
 }
@@ -111,7 +111,7 @@ function DepositAllocationSkeleton() {
           <Skeleton className="h-4 w-full rounded-md" />
         </div>
 
-        <Skeleton className="h-[10.625rem] w-full rounded-md" />
+        <Skeleton className="h-[9.125rem] w-full rounded-md sm:h-[10.625rem]" />
       </div>
     </DepositInfoSection>
   );
