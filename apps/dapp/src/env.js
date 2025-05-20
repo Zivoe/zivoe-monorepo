@@ -12,7 +12,8 @@ export const env = createEnv({
   },
 
   client: {
-    NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string()
+    NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
+    NEXT_PUBLIC_NETWORK: z.enum(['MAINNET', 'SEPOLIA'])
   },
 
   runtimeEnv: {
@@ -22,7 +23,8 @@ export const env = createEnv({
     SEPOLIA_ALCHEMY_API_KEY: process.env.SEPOLIA_ALCHEMY_API_KEY,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
     QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
-    NEXT_PUBLIC_DYNAMIC_ENV_ID: process.env.NEXT_PUBLIC_DYNAMIC_ENV_ID
+    NEXT_PUBLIC_DYNAMIC_ENV_ID: process.env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
+    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
