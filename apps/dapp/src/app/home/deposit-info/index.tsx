@@ -5,6 +5,7 @@ import { data } from '@/server/data';
 
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
+import DepositContact from './deposit-contact';
 import DepositDetails from './deposit-details';
 import Documents from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
@@ -17,7 +18,7 @@ export default async function DepositInfo() {
   if (!currentDailyData) return null;
 
   return (
-    <div className="flex w-full flex-col gap-10">
+    <div className="flex w-full flex-col gap-8 lg:gap-10">
       <DepositCharts dailyData={dailyData} />
 
       <DiamondSeparator />
@@ -34,6 +35,9 @@ export default async function DepositInfo() {
 
       <DiamondSeparator />
       <Documents />
+
+      <DiamondSeparator />
+      <DepositContact />
     </div>
   );
 }
