@@ -33,9 +33,9 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
 
   // Get context
   const { network, startDate, endDate } = parsedBody.data;
-  const client = getWeb3Client({ network });
-  const contracts = getContracts({ network });
-  const db = getDb({ network });
+  const client = getWeb3Client(network);
+  const contracts = getContracts(network);
+  const db = getDb(network);
 
   // Determine date range to process
   let start: Date, end: Date;
@@ -138,4 +138,4 @@ async function collectDailyData({
   return { data };
 }
 
-export const POST = verifySignatureAppRouter(handler);
+export const POST = handler;

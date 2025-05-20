@@ -13,8 +13,8 @@ import { getWeb3Client } from '../clients/web3';
 const network = env.NETWORK;
 
 const getTVL = async () => {
-  const client = getWeb3Client({ network });
-  const contracts = getContracts({ network });
+  const client = getWeb3Client(network);
+  const contracts = getContracts(network);
 
   const totalSupply = await client.readContract({
     address: contracts.GBL,
@@ -26,15 +26,15 @@ const getTVL = async () => {
 };
 
 const getAPY = async () => {
-  const client = getDb({ network });
+  const client = getDb(network);
   const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
 
   return latest?.apy;
 };
 
 const getRevenue = async () => {
-  const contracts = getContracts({ network });
-  const ponder = getPonder({ network });
+  const contracts = getContracts(network);
+  const ponder = getPonder(network);
 
   const data = await ponder
     .select({ totalRevenue: occTable.totalRevenue })

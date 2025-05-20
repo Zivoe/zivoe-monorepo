@@ -19,7 +19,7 @@ const getDepositDailyData = cache(async () => {
   'use cache';
   cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
 
-  const db = getDb({ network: env.NEXT_PUBLIC_NETWORK });
+  const db = getDb(env.NEXT_PUBLIC_NETWORK);
   const data = await db.daily.find().toArray();
 
   return data.map((item) => ({
@@ -36,8 +36,8 @@ const getRevenue = async () => {
   cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
 
   const network = env.NEXT_PUBLIC_NETWORK;
-  const contracts = getContracts({ network });
-  const ponder = getPonder({ network });
+  const contracts = getContracts(network);
+  const ponder = getPonder(network);
 
   const data = await ponder
     .select({ totalRevenue: occTable.totalRevenue })
@@ -53,9 +53,9 @@ const getAssetAllocation = async () => {
   cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
 
   const network = env.NEXT_PUBLIC_NETWORK;
-  const client = getWeb3Client({ network });
-  const contracts = getContracts({ network });
-  const ponder = getPonder({ network });
+  const client = getWeb3Client(network);
+  const contracts = getContracts(network);
+  const ponder = getPonder(network);
 
   const outstandingPrincipalReq = ponder
     .select({ outstandingPrincipal: occTable.outstandingPrincipal })

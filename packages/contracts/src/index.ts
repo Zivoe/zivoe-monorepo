@@ -17,6 +17,6 @@ export type Contracts = {
   OCT_CONVERT: Address;
 };
 
-export const getContracts = ({ network }: { network: Network }) => {
+export const getContracts = (network: Network) => {
   return network === 'SEPOLIA' ? (sepoliaContracts as Contracts) : (mainnetContracts as Contracts);
 };
