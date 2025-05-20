@@ -44,7 +44,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
           placeholder="Select"
           aria-label="Select a chart view"
           selectedKey={selectedChartType}
-          onSelectionChange={(key) => setSelectedChartType(key)}
+          onSelectionChange={(key) => setSelectedChartType(key ?? 0)}
         >
           <SelectTrigger>
             <ChartIcon className="size-4 text-icon-default" />
