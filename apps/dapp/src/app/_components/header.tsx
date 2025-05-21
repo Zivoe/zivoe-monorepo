@@ -1,0 +1,126 @@
+'use client';
+
+import NextLink from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { DynamicUserProfile, useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
+import { WalletIcon } from '@dynamic-labs/wallet-book';
+
+import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
+import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
+import { Button } from '@zivoe/ui/core/button';
+import { Dialog } from '@zivoe/ui/core/dialog';
+import { Link } from '@zivoe/ui/core/link';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { HamburgerIcon } from '@zivoe/ui/icons';
+
+import { truncateAddress } from '@/lib/utils';
+
+export default function Header() {
+  return (
+    <>
+      <div className="flex min-h-[6.25rem] w-full items-center justify-between bg-surface-base px-4 lg:px-10">
+        <div className="flex items-center gap-10">
+          <NextLink href="/">
+            <ZivoeLogo className="-ml-3 h-6" />
+          </NextLink>
+
+          <DesktopNavigation />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Wallet />
+          <MobileNavigation />
+        </div>
+      </div>
+
+      <DynamicUserProfile />
+    </>
+  );
+}
+
+function DesktopNavigation() {
+  return (
+    <div className="hidden gap-6 lg:flex">
+      <NavigationItems />
+    </div>
+  );
+}
+
+function MobileNavigation() {
+  return (
+    <Dialog>
+      <Button variant="border-light" size="m" className="lg:hidden">
+        <HamburgerIcon />
+      </Button>
+
+      <NavigationMobileDialog>
+        <NavigationItems />
+      </NavigationMobileDialog>
+    </Dialog>
+  );
+}
+
+function NavigationItems() {
+  const pathName = usePathname() ?? '';
+
+  return (
+    <>
+      {NAVIGATION_ITEMS.map(({ href, title, isDisabled }) => {
+        const isCurrent = pathName === href;
+
+        return (
+          <Link
+            key={title}
+            variant="nav"
+            size="l"
+            className="h-[3.5rem] text-base current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active"
+            href={href}
+            aria-current={isCurrent}
+            isDisabled={isDisabled}
+          >
+            {title}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+// TODO
+const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
+  { title: 'Deposit', href: '/' },
+  { title: 'Portfolio', href: '/portfolio', isDisabled: true },
+  { title: 'Swap', href: '/swap', isDisabled: true }
+];
+
+function Wallet() {
+  const { sdkHasLoaded, primaryWallet, setShowAuthFlow, setShowDynamicUserProfile } = useDynamicContext();
+  const isLoggedIn = useIsLoggedIn();
+  const address = primaryWallet?.address;
+
+  if (!sdkHasLoaded) return <Skeleton className="h-10 w-[9.0625rem] rounded-[4px]" />;
+
+  if (!isLoggedIn || !address)
+    return (
+      <Button key="connect-wallet-button" size="m" onPress={() => setShowAuthFlow(true)}>
+        Connect Wallet
+      </Button>
+    );
+
+  return (
+    <Button
+      key="connected-wallet-button"
+      variant="border-light"
+      size="m"
+      onPress={() => setShowDynamicUserProfile(true)}
+      className="text-small"
+    >
+      <div className="size-5">
+        <WalletIcon walletKey={primaryWallet?.connector?.key} />
+      </div>
+
+      {truncateAddress(address)}
+    </Button>
+  );
+}

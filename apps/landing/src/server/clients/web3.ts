@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import { type Chain, createPublicClient, http } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 
@@ -7,7 +9,7 @@ import type { Network } from '@zivoe/contracts';
 
 import { env } from '@/env.js';
 
-export const getWeb3Client = ({ network }: { network: Network }) => {
+export const getWeb3Client = cache((network: Network) => {
   let chain: Chain = mainnet;
   let url = 'https://eth-mainnet.g.alchemy.com/v2/';
   let apiKey = env.MAINNET_ALCHEMY_API_KEY;
@@ -30,4 +32,4 @@ export const getWeb3Client = ({ network }: { network: Network }) => {
       }
     })
   });
-};
+});

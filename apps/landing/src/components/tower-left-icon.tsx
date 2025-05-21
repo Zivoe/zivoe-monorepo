@@ -20,7 +20,7 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8, .cls-9, .cls-10, .cls-11, .cls-12, .cls-13, .cls-14, .cls-15, .cls-16, .cls-17, .cls-18, .cls-19, .cls-20, .cls-21, .cls-22, .cls-23 {
-              stroke-width: 0px;
+              strokeWidth: 0px;
             }
       
             .cls-24, .cls-25, .cls-26 {
@@ -36,7 +36,7 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-27 {
-              clip-path: url(#clippath);
+              clipPath: url(#clippath);
             }
       
             .cls-3, .cls-28 {
@@ -68,11 +68,11 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-29 {
-              clip-path: url(#clippath-1);
+              clipPath: url(#clippath-1);
             }
       
             .cls-30 {
-              clip-path: url(#clippath-2);
+              clipPath: url(#clippath-2);
             }
       
             .cls-10 {
@@ -84,7 +84,7 @@ export const TowerLeftIcon = React.forwardRef<SVGSVGElement, IconProps>(
             }
       
             .cls-11, .cls-18 {
-              fill-rule: evenodd;
+              fillRule: evenodd;
             }
       
             .cls-12 {

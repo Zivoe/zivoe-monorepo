@@ -1,3 +1,5 @@
+import { unstable_cacheLife as cacheLife } from 'next/cache';
+
 import { eq } from 'drizzle-orm';
 
 import { getContracts } from '@zivoe/contracts';
@@ -13,8 +15,11 @@ import { getWeb3Client } from '../clients/web3';
 const network = env.NETWORK;
 
 const getTVL = async () => {
-  const client = getWeb3Client({ network });
-  const contracts = getContracts({ network });
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
+  const client = getWeb3Client(network);
+  const contracts = getContracts(network);
 
   const totalSupply = await client.readContract({
     address: contracts.GBL,
@@ -26,15 +31,21 @@ const getTVL = async () => {
 };
 
 const getAPY = async () => {
-  const client = getDb({ network });
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
+  const client = getDb(network);
   const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
 
   return latest?.apy;
 };
 
 const getRevenue = async () => {
-  const contracts = getContracts({ network });
-  const ponder = getPonder({ network });
+  'use cache';
+  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+
+  const contracts = getContracts(network);
+  const ponder = getPonder(network);
 
   const data = await ponder
     .select({ totalRevenue: occTable.totalRevenue })
