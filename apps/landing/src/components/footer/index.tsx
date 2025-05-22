@@ -7,7 +7,7 @@ import { Link } from '@zivoe/ui/core/link';
 
 import Container from '@/components/container';
 
-import { DiscordIcon, LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
+import { LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
 
 export default function Footer() {
   return (
@@ -65,7 +65,7 @@ export default function Footer() {
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on
-          an “as is” and “as available” basis, at your own risk. We explicitly disclaim any representation or warranties
+          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representation or warranties
           of any kind relating to the Protocol, and no developer or entity will be liable for claims or damages of any
           kind associated with use or inability to use the Protocol.
         </p>
@@ -106,8 +106,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   {
     title: 'Governance',
     links: [
-      { href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' },
-      { href: 'https://discord.com/invite/R8u4Y95S9p', label: 'Forum' }
+      { href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' }
     ]
   },
   {
@@ -124,10 +123,6 @@ const SOCIALS: Array<{ href: string; icon: ReactNode }> = [
   {
     href: 'https://x.com/zivoeprotocol',
     icon: <XIcon />
-  },
-  {
-    href: 'https://discord.com/invite/R8u4Y95S9p',
-    icon: <DiscordIcon />
   },
   {
     href: 'https://t.me/zivoeprotocol',

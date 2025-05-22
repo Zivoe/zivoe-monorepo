@@ -1,4 +1,3 @@
-export * from './discord';
 export * from './x';
 export * from './telegram';
 export * from './linkedIn';
