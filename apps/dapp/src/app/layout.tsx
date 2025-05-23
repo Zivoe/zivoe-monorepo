@@ -48,24 +48,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} h-full antialiased`}>
       <body className="flex h-full flex-col">
-        <Suspense>
-          <ProvidersWrapper>
-            <Header />
+        <Header />
 
-            <div className="flex h-full flex-col justify-between">
-              <div>{children}</div>
-              <Footer />
-            </div>
-          </ProvidersWrapper>
-        </Suspense>
+        <div className="flex h-full flex-col justify-between">
+          <div>{children}</div>
+          <Footer />
+        </div>
       </body>
     </html>
   );
-}
-
-async function ProvidersWrapper({ children }: { children: ReactNode }) {
-  await connection();
-  return <Providers>{children}</Providers>;
 }
 
 const libreBaskerville = Libre_Baskerville({
