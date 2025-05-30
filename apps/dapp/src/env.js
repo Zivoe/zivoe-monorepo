@@ -8,7 +8,9 @@ export const env = createEnv({
     PONDER_MAINNET_DATABASE_URL: z.string(),
     PONDER_SEPOLIA_DATABASE_URL: z.string(),
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
-    QSTASH_NEXT_SIGNING_KEY: z.string()
+    QSTASH_NEXT_SIGNING_KEY: z.string(),
+    UPSTASH_REDIS_REST_URL: z.string(),
+    UPSTASH_REDIS_REST_TOKEN: z.string()
   },
 
   client: {
@@ -28,7 +30,9 @@ export const env = createEnv({
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
     QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
     NEXT_PUBLIC_DYNAMIC_ENV_ID: process.env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
-    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK
+    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

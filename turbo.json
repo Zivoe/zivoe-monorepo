@@ -22,7 +22,9 @@
         "PONDER_MAINNET_DATABASE_URL",
         "PONDER_SEPOLIA_DATABASE_URL",
         "NEXT_PUBLIC_DYNAMIC_ENV_ID",
-        "NEXT_PUBLIC_NETWORK"
+        "NEXT_PUBLIC_NETWORK",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
