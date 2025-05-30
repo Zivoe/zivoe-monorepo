@@ -11,9 +11,11 @@ import { FraxIcon } from '@zivoe/ui/icons/frax';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
+import { CONTRACTS } from '@/lib/constants';
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import ConnectedAccount from '@/components/connected-account';
@@ -23,11 +25,14 @@ export default function Deposit() {
   const [deposit, setDeposit] = useState('');
   const [receive, setReceive] = useState('');
 
-  const { isPending: isPendingAccount } = useAccount();
+  const account = useAccount();
+
   const depositBalances = useDepositBalances();
   const hasDepositBalance = !!depositBalances.data && depositBalances.data[depositToken] > 0n;
 
-  const isFetching = isPendingAccount || depositBalances.isFetching;
+  const zvltBalance = useAccountBalance({ address: CONTRACTS.ZVLT });
+
+  const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching;
 
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
@@ -63,7 +68,8 @@ export default function Deposit() {
         <Input
           variant="amount"
           label="Receive"
-          labelContent={<p className="text-small text-primary">Balance: 1234.56</p>}
+          labelContent={<ZvltBalance />}
+          labelClassName="h-5"
           value={receive}
           onChange={(value) => setReceive(value)}
           isDisabled={isFetching}
@@ -82,7 +88,7 @@ export default function Deposit() {
 
 function DepositTokenBalance({ token }: { token: DepositToken }) {
   const depositBalances = useDepositBalances();
-  if (depositBalances.isPending || !depositBalances.data) return null;
+  if (depositBalances.isPending || depositBalances.data === undefined) return null;
 
   return (
     <p className="text-small text-primary">
@@ -147,4 +153,11 @@ function DepositTokenSelect({
       </SelectPopover>
     </Select>
   );
+}
+
+function ZvltBalance() {
+  const zvltBalance = useAccountBalance({ address: CONTRACTS.ZVLT });
+  if (zvltBalance.isPending || zvltBalance.data === undefined) return null;
+
+  return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;
 }
