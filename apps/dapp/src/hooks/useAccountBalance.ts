@@ -14,7 +14,7 @@ export const useAccountBalance = ({ address }: { address: Address }) => {
 
   return useQuery({
     queryKey: queryKeys.account.balanceOf({ accountAddress, id: address }),
-    meta: { toastErrorMessage: 'Error Fetching Balance' },
+    meta: { toastErrorMessage: 'Error fetching balance' },
     queryFn: skip
       ? skipToken
       : () => {

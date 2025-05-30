@@ -7,7 +7,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
-import { Button, ButtonProps } from '@zivoe/ui/core/button';
+import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
@@ -22,18 +22,20 @@ import { formatBigIntToReadable } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
+import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
 
 export default function Deposit() {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
-  const [receive, setReceive] = useState('');
+  const [receive, setReceive] = useState<string | undefined>(undefined);
 
   const account = useAccount();
 
   const depositBalances = useDepositBalances();
 
   const zvltBalance = useAccountBalance({ address: CONTRACTS.ZVLT });
+  const vault = useVault();
 
   const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching;
 
@@ -45,8 +47,22 @@ export default function Deposit() {
       })
     ),
     defaultValues: { deposit: undefined },
-    mode: 'onChange'
+    mode: 'onSubmit'
   });
+
+  const handleDepositChange = (value: string) => {
+    const receiveAmount = getReceiveAmount({
+      deposit: value,
+      totalSupply: vault.data?.totalSupply ?? 0n,
+      totalAssets: vault.data?.totalAssets ?? 0n
+    });
+
+    setReceive(receiveAmount);
+  };
+
+  const handleSubmit = (data: DepositForm) => {
+    console.log('SUBMIT: ', data);
+  };
 
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
@@ -54,31 +70,51 @@ export default function Deposit() {
         <p className="text-h6 text-primary">Deposit & Earn</p>
       </div>
 
-      <form className="flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]"
+      >
         <Controller
           control={form.control}
           name="deposit"
           render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
             <Input
+              {...field}
               variant="amount"
               label="Deposit"
               labelContent={<DepositTokenBalance token={depositToken} />}
               labelClassName="h-5"
-              {...field}
               value={value ?? ''}
-              onChange={(value) => onChangeAmount({ value, onChange })}
+              onChange={(value) => {
+                const parsedValue = parseInput(value);
+                onChange(parsedValue || undefined);
+                handleDepositChange(parsedValue);
+              }}
               errorMessage={error?.message}
               isInvalid={invalid}
               isDisabled={isFetching}
               decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
               endContent={
                 <div className="flex items-center">
-                  <DepositMaxButton token={depositToken} setDepositAmount={onChange} isDisabled={isFetching} />
+                  <DepositMaxButton
+                    token={depositToken}
+                    setDepositAmount={(value) => {
+                      onChange(value);
+                      handleDepositChange(value);
+                    }}
+                    isDisabled={isFetching}
+                  />
 
                   <DepositTokenSelect
                     isDisabled={isFetching}
                     selected={depositToken}
-                    onSelectionChange={setDepositToken}
+                    onSelectionChange={(value: DepositToken) => {
+                      setDepositToken(value);
+                      setReceive(undefined);
+                      form.setValue('deposit', undefined as any);
+                      form.clearErrors('deposit');
+                      form.setFocus('deposit');
+                    }}
                   />
                 </div>
               }
@@ -91,14 +127,17 @@ export default function Deposit() {
           label="Receive"
           labelContent={<ZvltBalance />}
           labelClassName="h-5"
-          value={receive}
-          onChange={(value) => setReceive(value)}
+          value={receive ?? ''}
+          onChange={(value) => {
+            const parsedValue = parseInput(value);
+            setReceive(parsedValue || undefined);
+          }}
           isDisabled={isFetching}
           decimalPlaces={18}
         />
 
         <ConnectedAccount>
-          <Button fullWidth isPending={isFetching} pendingContent="Loading...">
+          <Button type="submit" fullWidth isPending={isFetching} pendingContent="Loading...">
             Deposit
           </Button>
         </ConnectedAccount>
@@ -130,13 +169,34 @@ const getDepositFormSchema = ({ balance, decimals }: { balance: bigint; decimals
 
 type DepositForm = z.infer<ReturnType<typeof getDepositFormSchema>>;
 
-const onChangeAmount = ({ value, onChange }: { value: string; onChange: (...event: any[]) => void }) => {
+const parseInput = (value: string) => {
   if (value.startsWith('.')) value = '0' + value;
 
   // Remove leading zeros
-  value = value.replace(/^0+(?=\d)/, '');
+  return value.replace(/^0+(?=\d)/, '');
+};
 
-  onChange(value || undefined);
+const DECIMALS_OFFSET = 0n;
+const getReceiveAmount = ({
+  deposit,
+  totalSupply,
+  totalAssets
+}: {
+  deposit: string;
+  totalSupply: bigint;
+  totalAssets: bigint;
+}) => {
+  let receive: string | undefined;
+  if (!deposit) receive = undefined;
+  else {
+    const assets = parseUnits(deposit ?? '0', 18);
+    const numerator = assets * (totalSupply + 10n ** DECIMALS_OFFSET);
+    const denominator = totalAssets + 1n;
+    const receiveAmount = numerator / denominator;
+    receive = formatUnits(receiveAmount, 18);
+  }
+
+  return receive;
 };
 
 function DepositTokenBalance({ token }: { token: DepositToken }) {
@@ -186,7 +246,7 @@ function DepositMaxButton({
   };
 
   return (
-    <div className="border-r border-default px-3">
+    <div className="flex items-center border-r border-default px-3">
       <Button variant="border-light" size="s" isDisabled={isDisabled} onPress={handleMaxDeposit}>
         Max
       </Button>
@@ -219,7 +279,12 @@ function DepositTokenSelect({
       <SelectPopover>
         <SelectListBox items={DEPOSIT_TOKENS_SELECT_ITEMS}>
           {(item) => (
-            <SelectItem key={item.id} value={item} className="flex items-center gap-2 [&_svg]:size-5">
+            <SelectItem
+              key={item.id}
+              value={item}
+              textValue={item.label}
+              className="flex items-center gap-2 [&_svg]:size-5"
+            >
               {item.icon}
               {item.label}
             </SelectItem>

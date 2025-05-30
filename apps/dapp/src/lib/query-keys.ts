@@ -14,6 +14,11 @@ const account = {
   ]
 };
 
+const app = {
+  vault: ['VAULT']
+};
+
 export const queryKeys = {
-  account
+  account,
+  app
 };
