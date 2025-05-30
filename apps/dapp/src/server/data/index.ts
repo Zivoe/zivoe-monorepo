@@ -3,9 +3,9 @@ import { cache } from 'react';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 import { eq } from 'drizzle-orm';
+import { erc20Abi } from 'viem';
 
 import { getContracts } from '@zivoe/contracts';
-import { mockStablecoinAbi } from '@zivoe/contracts/abis';
 
 import { getWeb3Client } from '@/server/clients/web3';
 
@@ -63,12 +63,12 @@ const getAssetAllocation = async () => {
     .where(eq(occTable.id, contracts.OCC_USDC))
     .limit(1);
 
-  const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.ZVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
+  const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.zVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
   const usdcBalancesReq = usdcHolders.map((address) =>
     client.readContract({
       address: contracts.USDC,
-      abi: mockStablecoinAbi,
+      abi: erc20Abi,
       functionName: 'balanceOf',
       args: [address]
     })
@@ -79,7 +79,7 @@ const getAssetAllocation = async () => {
   const m0BalancesReq = m0Holders.map((address) =>
     client.readContract({
       address: contracts.M0,
-      abi: mockStablecoinAbi,
+      abi: erc20Abi,
       functionName: 'balanceOf',
       args: [address]
     })

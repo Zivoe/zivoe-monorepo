@@ -21,13 +21,13 @@ export const useVault = () => {
       : async () => {
           const totalSupplyReq = web3.readContract({
             abi: zivoeVaultAbi,
-            address: CONTRACTS.ZVLT,
+            address: CONTRACTS.zVLT,
             functionName: 'totalSupply'
           });
 
           const totalAssetsReq = web3.readContract({
             abi: zivoeVaultAbi,
-            address: CONTRACTS.ZVLT,
+            address: CONTRACTS.zVLT,
             functionName: 'totalAssets'
           });
 

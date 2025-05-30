@@ -4,6 +4,7 @@ import { ReactNode, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
@@ -21,10 +22,14 @@ import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
+import { checkHasEnoughAllowance } from '@/hooks/useAllowance';
+import { useApproveSpending } from '@/hooks/useApproveSpending';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
+
+import { useDepositAllowances } from './_hooks/useDepositAllowances';
 
 export default function Deposit() {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
@@ -34,10 +39,9 @@ export default function Deposit() {
 
   const depositBalances = useDepositBalances();
 
-  const zvltBalance = useAccountBalance({ address: CONTRACTS.ZVLT });
   const vault = useVault();
-
-  const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching;
+  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
+  const allowances = useDepositAllowances();
 
   const form = useForm<DepositForm>({
     resolver: zodResolver(
@@ -47,8 +51,21 @@ export default function Deposit() {
       })
     ),
     defaultValues: { deposit: undefined },
-    mode: 'onSubmit'
+    mode: 'onChange'
   });
+
+  const deposit = form.watch('deposit');
+  const depositRaw = deposit ? parseUnits(deposit, DEPOSIT_TOKEN_DECIMALS[depositToken]) : undefined;
+  const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
+  const hasEnoughAllowance = checkHasEnoughAllowance({
+    allowance: allowances.data?.[depositToken],
+    amount: depositRaw
+  });
+
+  const approveSpending = useApproveSpending();
+
+  const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
+  const isDisabled = account.isDisconnected || isFetching || approveSpending.isPending;
 
   const handleDepositChange = (value: string) => {
     const receiveAmount = getReceiveAmount({
@@ -60,8 +77,26 @@ export default function Deposit() {
     setReceive(receiveAmount);
   };
 
-  const handleSubmit = (data: DepositForm) => {
-    console.log('SUBMIT: ', data);
+  const validateForm = () => form.trigger('deposit', { shouldFocus: true });
+
+  const handleApprove = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
+
+    approveSpending.mutate({
+      contract: CONTRACTS[depositToken],
+      spender: CONTRACTS.zVLT,
+      amount: depositRaw,
+      name: depositToken
+    });
+  };
+
+  const handleDeposit = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
+
+    const data = form.getValues();
+    console.log('DEPOSIT: ', data);
   };
 
   return (
@@ -70,10 +105,7 @@ export default function Deposit() {
         <p className="text-h6 text-primary">Deposit & Earn</p>
       </div>
 
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]"
-      >
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
         <Controller
           control={form.control}
           name="deposit"
@@ -92,7 +124,7 @@ export default function Deposit() {
               }}
               errorMessage={error?.message}
               isInvalid={invalid}
-              isDisabled={isFetching}
+              isDisabled={isDisabled}
               decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
               endContent={
                 <div className="flex items-center">
@@ -102,11 +134,11 @@ export default function Deposit() {
                       onChange(value);
                       handleDepositChange(value);
                     }}
-                    isDisabled={isFetching}
+                    isDisabled={isDisabled}
                   />
 
                   <DepositTokenSelect
-                    isDisabled={isFetching}
+                    isDisabled={isDisabled}
                     selected={depositToken}
                     onSelectionChange={(value: DepositToken) => {
                       setDepositToken(value);
@@ -123,6 +155,7 @@ export default function Deposit() {
         />
 
         <Input
+          isDisabled
           variant="amount"
           label="Receive"
           labelContent={<ZvltBalance />}
@@ -132,16 +165,38 @@ export default function Deposit() {
             const parsedValue = parseInput(value);
             setReceive(parsedValue || undefined);
           }}
-          isDisabled={isFetching}
           decimalPlaces={18}
         />
 
         <ConnectedAccount>
-          <Button type="submit" fullWidth isPending={isFetching} pendingContent="Loading...">
-            Deposit
-          </Button>
+          {isFetching ? (
+            <Button fullWidth isPending={true} pendingContent="Loading..." />
+          ) : !hasDepositRaw ? (
+            <Button fullWidth onPress={handleDeposit}>
+              Deposit
+            </Button>
+          ) : !hasEnoughAllowance ? (
+            <Button
+              fullWidth
+              onPress={handleApprove}
+              isPending={approveSpending.isPending}
+              pendingContent={
+                approveSpending.isTxPending
+                  ? `Approving ${depositToken}...`
+                  : approveSpending.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
+              }
+            >
+              Approve
+            </Button>
+          ) : (
+            <Button fullWidth onPress={handleDeposit}>
+              Deposit
+            </Button>
+          )}
         </ConnectedAccount>
-      </form>
+      </div>
     </div>
   );
 }
@@ -233,7 +288,7 @@ function DepositMaxButton({
   setDepositAmount: (value: string) => void;
 }) {
   const depositBalances = useDepositBalances();
-  const hasDepositBalance = !!depositBalances.data && depositBalances.data[token] > 0n;
+  const hasDepositBalance = depositBalances.data !== undefined && depositBalances.data[token] > 0n;
 
   if (!hasDepositBalance) return null;
 
@@ -296,7 +351,7 @@ function DepositTokenSelect({
 }
 
 function ZvltBalance() {
-  const zvltBalance = useAccountBalance({ address: CONTRACTS.ZVLT });
+  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
   if (zvltBalance.isPending || zvltBalance.data === undefined) return null;
 
   return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;

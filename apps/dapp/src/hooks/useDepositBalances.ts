@@ -1,7 +1,6 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
+import { erc20Abi } from 'viem';
 import { useAccount, usePublicClient } from 'wagmi';
-
-import { mockStablecoinAbi } from '@zivoe/contracts/abis';
 
 import { DEPOSIT_TOKENS, DepositToken } from '@/types/constants';
 
@@ -24,7 +23,7 @@ export const useDepositBalances = () => {
           const balances = await Promise.all(
             DEPOSIT_TOKENS.map((token) => {
               return web3.readContract({
-                abi: mockStablecoinAbi,
+                abi: erc20Abi,
                 address: CONTRACTS[token],
                 functionName: 'balanceOf',
                 args: [accountAddress]

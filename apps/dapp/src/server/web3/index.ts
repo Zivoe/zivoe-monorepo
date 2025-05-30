@@ -11,14 +11,14 @@ import { Web3Request } from '@/types';
 
 const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) => {
   const totalSupply = await client.readContract({
-    address: contracts.ZVLT,
+    address: contracts.zVLT,
     abi: zivoeVaultAbi,
     functionName: 'totalSupply',
     blockNumber
   });
 
   const vaultTotalAssets = await client.readContract({
-    address: contracts.ZVLT,
+    address: contracts.zVLT,
     abi: zivoeVaultAbi,
     functionName: 'totalAssets',
     blockNumber

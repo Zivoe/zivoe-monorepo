@@ -1,8 +1,6 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { Address } from 'viem';
+import { Address, erc20Abi } from 'viem';
 import { useAccount, usePublicClient } from 'wagmi';
-
-import { mockStablecoinAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
 
@@ -19,7 +17,7 @@ export const useAccountBalance = ({ address }: { address: Address }) => {
       ? skipToken
       : () => {
           return web3.readContract({
-            abi: mockStablecoinAbi,
+            abi: erc20Abi,
             address,
             functionName: 'balanceOf',
             args: [accountAddress]

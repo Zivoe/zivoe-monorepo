@@ -154,7 +154,7 @@ const inputGroupStyles = tv({
     /* Disabled */
     'disabled:cursor-not-allowed disabled:opacity-60',
     /* Invalid */
-    'invalid:border-alert invalid:shadow-[0px_0px_4px_0px_theme(colors.alert.600)]',
+    'invalid:!border-alert invalid:!shadow-[0px_0px_4px_0px_theme(colors.alert.600)]',
     /* SVG */
     '[&_svg]:size-4 [&_svg]:text-icon-default'
   ],

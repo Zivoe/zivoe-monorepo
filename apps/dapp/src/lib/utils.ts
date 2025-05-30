@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { formatUnits } from 'viem';
 
 export const handle = <T>(promise: Promise<T>) => {
@@ -39,4 +40,45 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   } else {
     return numericValue.toFixed(2);
   }
+};
+
+export function handlePromise<T>(promise: Promise<T>) {
+  return promise
+    .then((res: T) => ({ res, err: undefined }))
+    .catch((err: unknown) => Promise.resolve({ res: undefined, err }));
+}
+
+export class AppError extends Error {
+  public readonly refetch: boolean;
+
+  constructor({ message, refetch = true }: { message: string; refetch?: boolean }) {
+    super(message);
+    this.name = 'AppError';
+    this.refetch = refetch;
+  }
+}
+
+export const onTxError = ({
+  err,
+  defaultToastMsg,
+  onRefetch
+}: {
+  err: unknown;
+  defaultToastMsg: string;
+  onRefetch?: () => Promise<void>;
+}) => {
+  let refetch = true;
+  let toastMsg = defaultToastMsg;
+
+  if (err instanceof AppError) {
+    refetch = err.refetch;
+    toastMsg = err.message;
+  }
+
+  toast.error(toastMsg);
+  if (refetch && onRefetch) onRefetch();
+};
+
+export const skipTxSettled = (err: unknown) => {
+  return !!err && err instanceof AppError && err.refetch === false;
 };
