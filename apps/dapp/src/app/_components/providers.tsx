@@ -49,7 +49,6 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   appName: 'Zivoe'
 };
 
-// TODO: Add RPC providers
 const config = createConfig({
   chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
   multiInjectedProviderDiscovery: false,
