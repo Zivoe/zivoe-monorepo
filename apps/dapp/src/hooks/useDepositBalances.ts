@@ -1,7 +1,6 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useAccount, usePublicClient } from 'wagmi';
 
-import { getContracts } from '@zivoe/contracts';
 import { mockStablecoinAbi } from '@zivoe/contracts/abis';
 
 import { DEPOSIT_TOKENS, DepositToken } from '@/types/constants';

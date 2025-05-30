@@ -63,13 +63,7 @@ const getAssetAllocation = async () => {
     .where(eq(occTable.id, contracts.OCC_USDC))
     .limit(1);
 
-  const usdcHolders = [
-    contracts.DAO,
-    contracts.OCC_USDC,
-    contracts.ZIVOE_VAULT,
-    contracts.OCT_CONVERT,
-    contracts.OCT_DAO
-  ];
+  const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.ZVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
   const usdcBalancesReq = usdcHolders.map((address) =>
     client.readContract({

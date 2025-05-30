@@ -16,7 +16,7 @@ export type Contracts = {
   zSTT: Address;
   stSTT: Address;
   OCC_USDC: Address;
-  ZIVOE_VAULT: Address;
+  ZVLT: Address;
   OCT_CONVERT: Address;
   OCT_DAO: Address;
 };
