@@ -146,7 +146,7 @@ const InputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ classNam
 
 const inputGroupStyles = tv({
   base: [
-    'flex w-full cursor-text items-center gap-3 overflow-hidden rounded border border-default bg-surface-base-soft',
+    'flex w-full cursor-text items-center gap-3 overflow-hidden rounded border border-default',
     /* Hover */
     'hover:border-contrast',
     /* Focus Within */
@@ -161,8 +161,8 @@ const inputGroupStyles = tv({
 
   variants: {
     variant: {
-      default: 'h-12 px-4 text-small',
-      amount: 'h-20 pl-6 pr-1 text-h6'
+      default: 'h-12 bg-surface-base-soft px-4 text-small',
+      amount: 'h-20 bg-surface-base pl-6 pr-1 text-h6'
     }
   },
 
@@ -190,13 +190,13 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
 
 const inputElementStyles = tv({
   base: [
-    'min-w-0 flex-1 bg-surface-base-soft text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:text-tertiary disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:hidden'
+    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:text-tertiary disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:hidden'
   ],
 
   variants: {
     variant: {
-      default: 'placeholder:text-small',
-      amount: 'placeholder:text-h6'
+      default: 'bg-surface-base-soft placeholder:text-small',
+      amount: 'bg-surface-base placeholder:text-h6'
     }
   },
 

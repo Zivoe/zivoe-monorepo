@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from 'react';
 
-import { Button } from '@zivoe/ui/core/button';
+import { Button, ButtonProps } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger } from '@zivoe/ui/core/select';
 import { UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
@@ -20,12 +20,14 @@ import ConnectedAccount from '@/components/connected-account';
 import { SelectValue } from '../../../../../packages/ui/src/core/select/select';
 
 export default function Deposit() {
-  const depositBalances = useDepositBalances();
-  const isFetching = depositBalances.isPending;
-
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [deposit, setDeposit] = useState('');
   const [receive, setReceive] = useState('');
+
+  const depositBalances = useDepositBalances();
+  const hasDepositBalance = !!depositBalances.data && depositBalances.data[depositToken] > 0n;
+
+  const isFetching = depositBalances.isFetching;
 
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
@@ -41,8 +43,21 @@ export default function Deposit() {
           labelClassName="h-5"
           value={deposit}
           onChange={(value) => setDeposit(value)}
+          isDisabled={isFetching}
           decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
-          endContent={<DepositTokenSelect selected={depositToken} onSelectionChange={setDepositToken} />}
+          endContent={
+            <div className="flex items-center">
+              {hasDepositBalance && <DepositMaxButton isDisabled={isFetching} />}
+
+              <div className="ml-3">
+                <DepositTokenSelect
+                  isDisabled={isFetching}
+                  selected={depositToken}
+                  onSelectionChange={setDepositToken}
+                />
+              </div>
+            </div>
+          }
         />
 
         <Input
@@ -51,6 +66,7 @@ export default function Deposit() {
           labelContent={<p className="text-small text-primary">Balance: 1234.56</p>}
           value={receive}
           onChange={(value) => setReceive(value)}
+          isDisabled={isFetching}
           decimalPlaces={18}
         />
 
@@ -88,11 +104,23 @@ const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token, index) => ({
   icon: DEPOSIT_TOKEN_ICON[token]
 }));
 
+function DepositMaxButton(props: ButtonProps) {
+  return (
+    <div className="border-r border-default px-3">
+      <Button variant="border-light" size="s" {...props}>
+        Max
+      </Button>
+    </div>
+  );
+}
+
 function DepositTokenSelect({
   selected,
-  onSelectionChange
+  onSelectionChange,
+  isDisabled
 }: {
   selected: DepositToken;
+  isDisabled: boolean;
   onSelectionChange: (value: DepositToken) => void;
 }) {
   return (
@@ -101,6 +129,7 @@ function DepositTokenSelect({
       aria-label="Select a chart view"
       selectedKey={selected}
       onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
+      isDisabled={isDisabled}
     >
       <SelectTrigger>
         <SelectValue className="flex items-center gap-2 [&_svg]:size-6" />
