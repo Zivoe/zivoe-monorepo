@@ -101,11 +101,10 @@ function Wallet() {
   const { address } = useAccount();
 
   return (
-    <ConnectedAccount fullWidth={false}>
+    <ConnectedAccount fullWidth={false} type="skeleton">
       <Button
         key="connected-wallet-button"
         variant="border-light"
-        size="m"
         onPress={() => setShowDynamicUserProfile(true)}
         className="text-small"
       >
