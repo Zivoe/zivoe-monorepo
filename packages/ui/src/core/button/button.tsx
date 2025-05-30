@@ -13,7 +13,7 @@ const buttonVariants = tv({
   base: [
     'inline-flex w-fit items-center justify-center whitespace-nowrap font-paragraph font-medium transition-colors',
     'disabled:cursor-not-allowed disabled:bg-element-neutral disabled:text-tertiary',
-    'pending:cursor-not-allowed pending:bg-element-neutral pending:text-tertiary',
+    'pending:cursor-not-allowed',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-[1px] focus-visible:ring-offset-neutral-0',
     'focus:outline-none'
   ],
