@@ -7,6 +7,7 @@ export const NETWORKS = ['MAINNET', 'SEPOLIA'] as const;
 export type Network = (typeof NETWORKS)[number];
 
 export type Contracts = {
+  M0: Address;
   USDC: Address;
   GBL: Address;
   DAO: Address;
@@ -15,6 +16,7 @@ export type Contracts = {
   OCC_USDC: Address;
   ZIVOE_VAULT: Address;
   OCT_CONVERT: Address;
+  OCT_DAO: Address;
 };
 
 export const getContracts = (network: Network) => {

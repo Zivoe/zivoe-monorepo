@@ -63,45 +63,47 @@ const getAssetAllocation = async () => {
     .where(eq(occTable.id, contracts.OCC_USDC))
     .limit(1);
 
-  const daoBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.DAO]
-  });
+  const usdcHolders = [
+    contracts.DAO,
+    contracts.OCC_USDC,
+    contracts.ZIVOE_VAULT,
+    contracts.OCT_CONVERT,
+    contracts.OCT_DAO
+  ];
 
-  const occUsdcBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.OCC_USDC]
-  });
+  const usdcBalancesReq = usdcHolders.map((address) =>
+    client.readContract({
+      address: contracts.USDC,
+      abi: mockStablecoinAbi,
+      functionName: 'balanceOf',
+      args: [address]
+    })
+  );
 
-  const vaultBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.ZIVOE_VAULT]
-  });
+  const m0Holders = [contracts.DAO, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
-  const octConvertBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.OCT_CONVERT]
-  });
+  const m0BalancesReq = m0Holders.map((address) =>
+    client.readContract({
+      address: contracts.M0,
+      abi: mockStablecoinAbi,
+      functionName: 'balanceOf',
+      args: [address]
+    })
+  );
 
-  const [outstandingPrincipalData, ...usdcBalances] = await Promise.all([
+  const [outstandingPrincipal, ...balances] = await Promise.all([
     outstandingPrincipalReq,
-    daoBalance,
-    occUsdcBalance,
-    vaultBalance,
-    octConvertBalance
+    ...usdcBalancesReq,
+    ...m0BalancesReq
   ]);
 
+  const usdcBalances = balances.slice(0, usdcHolders.length);
+  const m0Balances = balances.slice(usdcHolders.length);
+
   return {
-    outstandingPrincipal: outstandingPrincipalData[0]?.outstandingPrincipal ?? 0n,
-    usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n)
+    outstandingPrincipal: outstandingPrincipal[0]?.outstandingPrincipal ?? 0n,
+    usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n),
+    m0Balance: m0Balances.reduce((acc, curr) => acc + curr, 0n)
   };
 };
 

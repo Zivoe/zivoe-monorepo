@@ -61,12 +61,12 @@ async function DepositStatsComponent() {
 
 async function DepositAllocationComponent() {
   await connection();
-  const { outstandingPrincipal, usdcBalance } = await data.getAssetAllocation();
+  const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
   return (
     <DepositAllocation
       outstandingPrincipal={outstandingPrincipal}
-      treasuryBills={usdcBalance}
+      treasuryBills={m0Balance}
       usdcBalance={usdcBalance}
     />
   );
