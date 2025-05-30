@@ -4,7 +4,7 @@ import { ReactNode, useState } from 'react';
 
 import { Button, ButtonProps } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
-import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger } from '@zivoe/ui/core/select';
+import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
 import { UsdcIcon } from '@zivoe/ui/icons';
 import { FraxIcon } from '@zivoe/ui/icons/frax';
@@ -13,21 +13,21 @@ import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/co
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
+import { useAccount } from '@/hooks/useAccount';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import ConnectedAccount from '@/components/connected-account';
-
-import { SelectValue } from '../../../../../packages/ui/src/core/select/select';
 
 export default function Deposit() {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [deposit, setDeposit] = useState('');
   const [receive, setReceive] = useState('');
 
+  const { isPending: isPendingAccount } = useAccount();
   const depositBalances = useDepositBalances();
   const hasDepositBalance = !!depositBalances.data && depositBalances.data[depositToken] > 0n;
 
-  const isFetching = depositBalances.isFetching;
+  const isFetching = isPendingAccount || depositBalances.isFetching;
 
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
@@ -131,7 +131,7 @@ function DepositTokenSelect({
       onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
-      <SelectTrigger>
+      <SelectTrigger className="w-[7.375rem] justify-between">
         <SelectValue className="flex items-center gap-2 [&_svg]:size-6" />
       </SelectTrigger>
 
