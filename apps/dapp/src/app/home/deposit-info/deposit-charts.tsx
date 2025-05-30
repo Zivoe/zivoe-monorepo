@@ -170,8 +170,6 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
   else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl)));
   else currentValue = currentDailyData.apy;
 
-  if (!currentValue) return undefined;
-
   return {
     data,
     currentValue,
