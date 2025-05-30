@@ -1647,3 +1647,83 @@ export const zivoeVaultAbi = [
     name: 'SafeERC20FailedOperation'
   }
 ] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ZivoeRouter
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const zivoeRouterAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_zSTT', internalType: 'contract IERC20', type: 'address' },
+      { name: '_ZVE', internalType: 'contract IERC20', type: 'address' },
+      {
+        name: '_ZVT',
+        internalType: 'contract IZivoeTranches',
+        type: 'address'
+      },
+      { name: '_VLT', internalType: 'contract IZivoeVault', type: 'address' }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'VLT',
+    outputs: [{ name: '', internalType: 'contract IZivoeVault', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ZVE',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ZVT',
+    outputs: [{ name: '', internalType: 'contract IZivoeTranches', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'stablecoin', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' }
+    ],
+    name: 'depositVault',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'stablecoin', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'v', internalType: 'uint8', type: 'uint8' },
+      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
+      { name: 's', internalType: 'bytes32', type: 'bytes32' }
+    ],
+    name: 'depositWithPermit',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'zSTT',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view'
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation'
+  }
+] as const;

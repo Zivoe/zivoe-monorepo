@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { queryKeys } from '@/lib/query-keys';
-import { onTxError, skipTxSettled } from '@/lib/utils';
+import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import useTx from './useTx';
 
@@ -28,7 +28,7 @@ export const useApproveSpending = () => {
       amount?: bigint;
       name: string;
     }) => {
-      if (!amount || amount === 0n) throw new Error('No deposit amount provided');
+      if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
 
       const params: ApproveTokenParams & SimulateContractParameters = {
         abi: erc20Abi,

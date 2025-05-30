@@ -22,6 +22,10 @@ import { ArrowRightIcon } from '@zivoe/ui/icons';
 import { NETWORK } from '@/lib/constants';
 import { AppError, handlePromise } from '@/lib/utils';
 
+import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
+
+import { ApproveTokenParams } from './useApproveSpending';
+
 export const EXPLORER_URL =
   NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
 
@@ -36,19 +40,21 @@ export default function useTx() {
     if (!publicClient) throw new Error('Public client not found');
 
     const { err } = await handlePromise(publicClient.simulateContract({ ...params, account: address }));
+    if (!err) return;
 
     if (err instanceof BaseError) {
       const revertError = err.walk((err) => err instanceof ContractFunctionRevertedError);
 
       if (revertError instanceof ContractFunctionRevertedError) {
-        const revertReason = revertError.data?.errorName;
-        throw new AppError({ message: 'Simulation error' + revertReason && `- ${revertReason}` });
+        const revertReason = revertError.reason;
+        if (revertReason) throw new AppError({ message: `Simulation error: ${revertReason}` });
       }
     }
+
+    throw new AppError({ message: 'Simulation error' });
   };
 
-  // TODO: add params type
-  const sendTx = async (params: any) => {
+  const sendTx = async (params: ApproveTokenParams | RouterDepositParams) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 
     if (err || !hash) {

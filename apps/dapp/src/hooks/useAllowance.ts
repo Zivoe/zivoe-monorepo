@@ -24,8 +24,7 @@ export const useAllowance = ({ contract, spender }: { contract: Address; spender
             functionName: 'allowance',
             args: [address, spender]
           });
-        },
-    placeholderData: 0n
+        }
   });
 };
 

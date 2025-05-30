@@ -3,10 +3,10 @@ import { CONTRACTS } from '@/lib/constants';
 import { useAllowance } from '@/hooks/useAllowance';
 
 export const useDepositAllowances = () => {
-  const usdcAllowance = useAllowance({ contract: CONTRACTS.USDC, spender: CONTRACTS.zVLT });
-  const usdtAllowance = useAllowance({ contract: CONTRACTS.USDT, spender: CONTRACTS.zVLT });
-  const frxAllowance = useAllowance({ contract: CONTRACTS.FRX, spender: CONTRACTS.zVLT });
-  const zsttAllowance = useAllowance({ contract: CONTRACTS.zSTT, spender: CONTRACTS.zRTR });
+  const usdcAllowance = useAllowance({ contract: CONTRACTS.USDC, spender: CONTRACTS.zRTR });
+  const usdtAllowance = useAllowance({ contract: CONTRACTS.USDT, spender: CONTRACTS.zRTR });
+  const frxAllowance = useAllowance({ contract: CONTRACTS.FRX, spender: CONTRACTS.zRTR });
+  const zsttAllowance = useAllowance({ contract: CONTRACTS.zSTT, spender: CONTRACTS.zVLT });
 
   const isFetching =
     usdcAllowance.isFetching || usdtAllowance.isFetching || frxAllowance.isFetching || zsttAllowance.isFetching;

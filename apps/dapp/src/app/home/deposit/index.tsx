@@ -30,6 +30,7 @@ import { useVault } from '@/hooks/useVault';
 import ConnectedAccount from '@/components/connected-account';
 
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
+import { useRouterDeposit } from './_hooks/useRouterDeposit';
 
 export default function Deposit() {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
@@ -63,9 +64,10 @@ export default function Deposit() {
   });
 
   const approveSpending = useApproveSpending();
+  const routerDeposit = useRouterDeposit();
 
   const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
-  const isDisabled = account.isDisconnected || isFetching || approveSpending.isPending;
+  const isDisabled = account.isDisconnected || isFetching || approveSpending.isPending || routerDeposit.isPending;
 
   const handleDepositChange = (value: string) => {
     const receiveAmount = getReceiveAmount({
@@ -85,7 +87,7 @@ export default function Deposit() {
 
     approveSpending.mutate({
       contract: CONTRACTS[depositToken],
-      spender: CONTRACTS.zVLT,
+      spender: CONTRACTS.zRTR,
       amount: depositRaw,
       name: depositToken
     });
@@ -95,8 +97,18 @@ export default function Deposit() {
     const isValid = await validateForm();
     if (!isValid) return;
 
-    const data = form.getValues();
-    console.log('DEPOSIT: ', data);
+    routerDeposit.mutate(
+      {
+        stableCoinName: depositToken,
+        amount: depositRaw
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          setReceive(undefined);
+        }
+      }
+    );
   };
 
   return (
@@ -191,7 +203,18 @@ export default function Deposit() {
               Approve
             </Button>
           ) : (
-            <Button fullWidth onPress={handleDeposit}>
+            <Button
+              fullWidth
+              onPress={handleDeposit}
+              isPending={routerDeposit.isPending}
+              pendingContent={
+                routerDeposit.isTxPending
+                  ? `Depositing ${depositToken}...`
+                  : routerDeposit.isPending
+                    ? `Signing Transaction...`
+                    : undefined
+              }
+            >
               Deposit
             </Button>
           )}

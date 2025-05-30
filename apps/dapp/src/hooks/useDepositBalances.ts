@@ -15,7 +15,7 @@ export const useDepositBalances = () => {
   const skip = !web3 || !accountAddress;
 
   return useQuery({
-    queryKey: queryKeys.account.balancesOf({ accountAddress, ids: [...DEPOSIT_TOKENS] }),
+    queryKey: queryKeys.account.depositBalances({ accountAddress }),
     meta: { toastErrorMessage: 'Error getting deposit balances' },
     queryFn: skip
       ? skipToken
