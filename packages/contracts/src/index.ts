@@ -9,6 +9,8 @@ export type Network = (typeof NETWORKS)[number];
 export type Contracts = {
   M0: Address;
   USDC: Address;
+  USDT: Address;
+  FRX: Address;
   GBL: Address;
   DAO: Address;
   zSTT: Address;

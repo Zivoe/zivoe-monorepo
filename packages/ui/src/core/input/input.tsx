@@ -20,6 +20,7 @@ interface InputProps extends Aria.SearchFieldProps, VariantProps<typeof inputGro
   isClearable?: boolean;
   groupClassName?: string;
   labelContent?: ReactNode;
+  labelClassName?: string;
   decimalPlaces?: number;
 }
 
@@ -27,6 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
       label,
+      labelClassName,
       placeholder,
       value,
       errorMessage,
@@ -70,7 +72,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {({ state }) => (
           <>
             {label && (
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className={cn('flex flex-wrap items-center justify-between gap-x-4 gap-y-2', labelClassName)}>
                 <Label>{label}</Label>
                 {labelContent}
               </div>

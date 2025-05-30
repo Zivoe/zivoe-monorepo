@@ -16,6 +16,8 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 
 import { Toaster } from '@zivoe/ui/core/sonner';
 
+import { NETWORK } from '@/lib/constants';
+
 import { env } from '@/env';
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -49,7 +51,7 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
 
 // TODO: Add RPC providers
 const config = createConfig({
-  chains: env.NEXT_PUBLIC_NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
+  chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
   multiInjectedProviderDiscovery: false,
   transports: {
     [mainnet.id]: http(),
