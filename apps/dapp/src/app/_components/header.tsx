@@ -3,18 +3,20 @@
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { DynamicUserProfile, useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
+import { DynamicUserProfile, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
+import { useAccount } from 'wagmi';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
 import { truncateAddress } from '@/lib/utils';
+
+import ConnectedAccount from '@/components/connected-account';
 
 export default function Header() {
   return (
@@ -95,32 +97,24 @@ const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolea
 ];
 
 function Wallet() {
-  const { sdkHasLoaded, primaryWallet, setShowAuthFlow, setShowDynamicUserProfile } = useDynamicContext();
-  const isLoggedIn = useIsLoggedIn();
-  const address = primaryWallet?.address;
-
-  if (!sdkHasLoaded) return <Skeleton className="h-10 w-[9.0625rem] rounded-[4px]" />;
-
-  if (!isLoggedIn || !address)
-    return (
-      <Button key="connect-wallet-button" size="m" onPress={() => setShowAuthFlow(true)}>
-        Connect Wallet
-      </Button>
-    );
+  const { setShowDynamicUserProfile, primaryWallet } = useDynamicContext();
+  const { address } = useAccount();
 
   return (
-    <Button
-      key="connected-wallet-button"
-      variant="border-light"
-      size="m"
-      onPress={() => setShowDynamicUserProfile(true)}
-      className="text-small"
-    >
-      <div className="size-5">
-        <WalletIcon walletKey={primaryWallet?.connector?.key} />
-      </div>
+    <ConnectedAccount fullWidth={false}>
+      <Button
+        key="connected-wallet-button"
+        variant="border-light"
+        size="m"
+        onPress={() => setShowDynamicUserProfile(true)}
+        className="text-small"
+      >
+        <div className="size-5">
+          <WalletIcon walletKey={primaryWallet?.connector?.key} />
+        </div>
 
-      {truncateAddress(address)}
-    </Button>
+        {truncateAddress(address)}
+      </Button>
+    </ConnectedAccount>
   );
 }
