@@ -55,7 +55,7 @@ export default async function DepositInfo() {
 
 async function DepositChartsComponent() {
   'use cache';
-  cacheLife('hourly');
+  cacheLife('minutes');
 
   const dailyData = await data.getDepositDailyData();
   return <DepositCharts dailyData={dailyData} />;
@@ -76,7 +76,7 @@ function DepositChartsSkeleton() {
 
 async function DepositStatsComponent() {
   'use cache';
-  cacheLife('hourly');
+  cacheLife('minutes');
 
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
 
@@ -96,7 +96,7 @@ function DepositStatsSkeleton() {
 
 async function DepositAllocationComponent() {
   'use cache';
-  cacheLife('hourly');
+  cacheLife('minutes');
 
   const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
