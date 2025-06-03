@@ -15,7 +15,13 @@ import { occTable } from '../clients/ponder/schema';
 
 const getDepositDailyData = cache(async () => {
   const db = getDb(env.NEXT_PUBLIC_NETWORK);
+
+  const start = Date.now();
+
   const data = await db.daily.find().toArray();
+
+  const end = Date.now();
+  console.log('getDepositDailyData: ', end - start);
 
   return data.map((item) => ({
     ...item,
@@ -31,11 +37,16 @@ const getRevenue = async () => {
   const contracts = getContracts(network);
   const ponder = getPonder(network);
 
+  const start = Date.now();
+
   const data = await ponder
     .select({ totalRevenue: occTable.totalRevenue })
     .from(occTable)
     .where(eq(occTable.id, contracts.OCC_USDC))
     .limit(1);
+
+  const end = Date.now();
+  console.log('getRevenue: ', end - start);
 
   return data[0]?.totalRevenue ?? 0n;
 };
@@ -74,11 +85,16 @@ const getAssetAllocation = async () => {
     })
   );
 
+  const start = Date.now();
+
   const [outstandingPrincipal, ...balances] = await Promise.all([
     outstandingPrincipalReq,
     ...usdcBalancesReq,
     ...m0BalancesReq
   ]);
+
+  const end = Date.now();
+  console.log('getAssetAllocation: ', end - start);
 
   const usdcBalances = balances.slice(0, usdcHolders.length);
   const m0Balances = balances.slice(usdcHolders.length);
