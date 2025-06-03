@@ -54,7 +54,6 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  await headers();
   const dailyData = await data.getDepositDailyData();
   return <DepositCharts dailyData={dailyData} />;
 }
@@ -73,7 +72,6 @@ function DepositChartsSkeleton() {
 }
 
 async function DepositStatsComponent() {
-  await headers();
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
 
   const currentDailyData = dailyData[dailyData.length - 1];
@@ -91,7 +89,6 @@ function DepositStatsSkeleton() {
 }
 
 async function DepositAllocationComponent() {
-  await headers();
   const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
   return (
