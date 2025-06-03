@@ -1,7 +1,5 @@
 import { Suspense } from 'react';
 
-import { headers } from 'next/headers';
-
 import { Separator } from '@zivoe/ui/core/separator';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { ChartIcon, DiamondIcon, PieChartIcon } from '@zivoe/ui/icons';
@@ -54,7 +52,6 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  await headers();
   const dailyData = await data.getDepositDailyData();
   return <DepositCharts dailyData={dailyData} />;
 }
@@ -73,7 +70,6 @@ function DepositChartsSkeleton() {
 }
 
 async function DepositStatsComponent() {
-  await headers();
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
 
   const currentDailyData = dailyData[dailyData.length - 1];
@@ -91,7 +87,6 @@ function DepositStatsSkeleton() {
 }
 
 async function DepositAllocationComponent() {
-  await headers();
   const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
   return (

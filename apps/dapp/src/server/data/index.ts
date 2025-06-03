@@ -33,7 +33,7 @@ const getDepositDailyData = unstable_cache(
     }));
   },
   ['deposit-daily-data'],
-  { revalidate: 3600 }
+  { revalidate: 60 }
 );
 
 export type DepositDailyData = Awaited<ReturnType<typeof getDepositDailyData>>[number];
@@ -58,7 +58,7 @@ const getRevenue = unstable_cache(
     return data[0]?.totalRevenue ? data[0]?.totalRevenue.toString() : '0';
   },
   ['revenue'],
-  { revalidate: 3600 }
+  { revalidate: 60 }
 );
 
 const getAssetAllocation = unstable_cache(
@@ -119,7 +119,7 @@ const getAssetAllocation = unstable_cache(
     };
   },
   ['asset-allocation'],
-  { revalidate: 3600 }
+  { revalidate: 60 }
 );
 
 export const data = {
