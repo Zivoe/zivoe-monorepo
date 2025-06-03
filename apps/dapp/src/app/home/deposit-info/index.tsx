@@ -77,7 +77,7 @@ async function DepositStatsComponent() {
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />;
+  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={BigInt(revenue)} />;
 }
 
 function DepositStatsSkeleton() {
@@ -93,9 +93,9 @@ async function DepositAllocationComponent() {
 
   return (
     <DepositAllocation
-      outstandingPrincipal={outstandingPrincipal}
-      treasuryBills={m0Balance}
-      usdcBalance={usdcBalance}
+      outstandingPrincipal={BigInt(outstandingPrincipal)}
+      treasuryBills={BigInt(m0Balance)}
+      usdcBalance={BigInt(usdcBalance)}
     />
   );
 }

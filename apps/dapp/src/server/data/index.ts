@@ -55,7 +55,7 @@ const getRevenue = unstable_cache(
     const end = Date.now();
     console.log('getRevenue: ', end - start);
 
-    return data[0]?.totalRevenue ?? 0n;
+    return data[0]?.totalRevenue ? data[0]?.totalRevenue.toString() : '0';
   },
   ['revenue'],
   { revalidate: 3600 }
@@ -111,9 +111,11 @@ const getAssetAllocation = unstable_cache(
     const m0Balances = balances.slice(usdcHolders.length);
 
     return {
-      outstandingPrincipal: outstandingPrincipal[0]?.outstandingPrincipal ?? 0n,
-      usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n),
-      m0Balance: m0Balances.reduce((acc, curr) => acc + curr, 0n)
+      outstandingPrincipal: outstandingPrincipal[0]?.outstandingPrincipal
+        ? outstandingPrincipal[0]?.outstandingPrincipal.toString()
+        : '0',
+      usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n).toString(),
+      m0Balance: m0Balances.reduce((acc, curr) => acc + curr, 0n).toString()
     };
   },
   ['asset-allocation'],
