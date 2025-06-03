@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { headers } from 'next/headers';
 
 import { Separator } from '@zivoe/ui/core/separator';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
@@ -54,9 +54,7 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  'use cache';
-  cacheLife('minutes');
-
+  headers();
   const dailyData = await data.getDepositDailyData();
   return <DepositCharts dailyData={dailyData} />;
 }
@@ -75,9 +73,7 @@ function DepositChartsSkeleton() {
 }
 
 async function DepositStatsComponent() {
-  'use cache';
-  cacheLife('minutes');
-
+  headers();
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
 
   const currentDailyData = dailyData[dailyData.length - 1];
@@ -95,9 +91,7 @@ function DepositStatsSkeleton() {
 }
 
 async function DepositAllocationComponent() {
-  'use cache';
-  cacheLife('minutes');
-
+  headers();
   const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
   return (
