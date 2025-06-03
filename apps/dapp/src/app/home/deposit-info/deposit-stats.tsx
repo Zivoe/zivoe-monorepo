@@ -23,6 +23,7 @@ function Box({ title, icon, value }: { title: string; icon: ReactNode; value: st
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 [&_svg]:size-5 [&_svg]:text-secondary-contrast">
         {icon}
+        aa
         <p className="text-regular text-secondary">{title}</p>
       </div>
 
