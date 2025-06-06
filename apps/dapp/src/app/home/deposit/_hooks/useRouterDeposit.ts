@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, hexToBigInt } from 'viem';
+import { type SimulateContractParameters, parseEventLogs } from 'viem';
 import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
-import { zivoeRouterAbi } from '@zivoe/contracts/abis';
+import { zivoeRouterAbi, zivoeTranchesAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { DepositToken } from '@/types/constants';
 
@@ -57,11 +57,23 @@ export const useRouterDeposit = () => {
       let receiveAmount: bigint | undefined;
 
       try {
-        const depositLog = receipt.logs[1];
-        if (depositLog) depositAmount = hexToBigInt(depositLog.data);
+        const seniorDepositLogs = parseEventLogs({
+          abi: zivoeTranchesAbi,
+          eventName: 'SeniorDeposit',
+          logs: receipt.logs
+        });
 
-        const receiveLog = receipt.logs.find((log) => log.address === CONTRACTS.zVLT.toLowerCase());
-        if (receiveLog) receiveAmount = hexToBigInt(receiveLog.data);
+        const seniorDepositLog = seniorDepositLogs[0];
+        if (seniorDepositLog) depositAmount = seniorDepositLog.args.amount;
+
+        const vaultDepositLogs = parseEventLogs({
+          abi: zivoeVaultAbi,
+          eventName: 'Deposit',
+          logs: receipt.logs
+        });
+
+        const vaultDepositLog = vaultDepositLogs[0];
+        if (vaultDepositLog) receiveAmount = vaultDepositLog.args.shares;
       } catch (error) {
         console.error('Error parsing deposit receipt', error);
       }

@@ -606,12 +606,14 @@ function TransactionDialogToken({
   decimals: number;
   icon: ReactNode;
 }) {
+  const amountFormatted = formatBigIntToReadable(amount, decimals);
+
   return (
     <div className="flex items-center gap-2 [&_svg]:size-6">
       {icon}
 
       <p className="text-leading text-primary">
-        {formatBigIntToReadable(amount, decimals)} {token}
+        {amountFormatted === '0.00' ? '>0.00' : amountFormatted} {token}
       </p>
     </div>
   );
