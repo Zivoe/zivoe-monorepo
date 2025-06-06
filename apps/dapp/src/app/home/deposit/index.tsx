@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import Decimal from 'decimal.js';
 import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
@@ -96,8 +97,15 @@ export default function Deposit() {
   };
 
   const handleReceiveChange = (value: string) => {
+    if (!value) {
+      form.setValue('deposit', undefined as any);
+      form.setFocus('deposit');
+      return;
+    }
+
     const depositAmount = getDepositAmount({
       deposit: value,
+      decimals: DEPOSIT_TOKEN_DECIMALS[depositToken],
       totalSupply: vault.data?.totalSupply ?? 0n,
       totalAssets: vault.data?.totalAssets ?? 0n
     });
@@ -324,26 +332,27 @@ const getReceiveAmount = ({
   return receive;
 };
 
+const BASE_DEPOSIT = '1';
 const getDepositAmount = ({
   deposit,
+  decimals,
   totalSupply,
   totalAssets
 }: {
   deposit: string;
+  decimals: number;
   totalSupply: bigint;
   totalAssets: bigint;
 }) => {
-  let depositAmount: string | undefined;
-  if (!deposit) depositAmount = undefined;
-  else {
-    const shares = parseUnits(deposit ?? '0', 18);
-    const numerator = shares * (totalAssets + 1n);
-    const denominator = totalSupply + 10n ** DECIMALS_OFFSET;
-    const assetAmount = numerator / denominator;
-    depositAmount = formatUnits(assetAmount, 18);
-  }
+  const baseReceiveAmount = getReceiveAmount({ deposit: BASE_DEPOSIT, totalSupply, totalAssets });
+  const baseRatio = Decimal(BASE_DEPOSIT).div(Decimal(baseReceiveAmount ?? 1));
 
-  return depositAmount;
+  const oneWei = new Decimal(1 / 10 ** 18);
+  const adjustedDeposit = new Decimal(deposit).minus(oneWei);
+
+  const receive = baseRatio.mul(adjustedDeposit);
+  const receiveFormatted = receive.toDecimalPlaces(decimals, Decimal.ROUND_DOWN);
+  return receiveFormatted.toString();
 };
 
 function DepositTokenBalance({ token }: { token: DepositToken }) {

@@ -24,6 +24,7 @@
     "@upstash/redis": "^1.34.9",
     "@vercel/functions": "^2.1.0",
     "@zivoe/ui": "workspace:*",
+    "decimal.js": "^10.5.0",
     "drizzle-orm": "^0.41.0",
     "ethereum-block-by-date": "^1.5.0",
     "jotai": "^2.12.5",
