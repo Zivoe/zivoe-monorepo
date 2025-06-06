@@ -148,7 +148,7 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
   const data = dailyData.map((item) => {
     const date = new Date(item.timestamp);
     const day = date.getUTCDate();
-    const month = date.toLocaleString('en-US', { month: 'short' });
+    const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
     const year = date.getUTCFullYear();
 
     let data: number | undefined;
