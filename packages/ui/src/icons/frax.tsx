@@ -2,7 +2,7 @@ import React from 'react';
 
 import { IconProps } from './types';
 
-export const FraxIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
+export const FrxUsdIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
   return (
     <svg
       width="32"

@@ -4,16 +4,13 @@ import { ReactNode, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
-import { UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
-import { UsdcIcon } from '@zivoe/ui/icons';
-import { FraxIcon } from '@zivoe/ui/icons/frax';
+import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
@@ -291,7 +288,7 @@ function DepositTokenBalance({ token }: { token: DepositToken }) {
 const DEPOSIT_TOKEN_ICON: Record<DepositToken, ReactNode> = {
   USDC: <UsdcIcon />,
   USDT: <UsdtIcon />,
-  FRX: <FraxIcon />,
+  frxUSD: <FrxUsdIcon />,
   zSTT: <ZsttIcon />
 };
 

@@ -34,7 +34,7 @@ export const useDepositBalances = () => {
           const response: Record<DepositToken, bigint> = {
             USDC: balances[0] ?? 0n,
             USDT: balances[1] ?? 0n,
-            FRX: balances[2] ?? 0n,
+            frxUSD: balances[2] ?? 0n,
             zSTT: balances[3] ?? 0n
           };
 
