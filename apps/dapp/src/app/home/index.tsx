@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import Hero from '@/components/hero';
 import Page from '@/components/page';
 
@@ -10,7 +12,10 @@ export default function Home() {
       <Hero title="zVLT" description="Gain exposure to non-prime consumer credit" />
 
       <Page className="flex gap-10 lg:flex-row">
-        <DepositInfo />
+        <Suspense>
+          <DepositInfo />
+        </Suspense>
+
         <Deposit />
       </Page>
     </>
