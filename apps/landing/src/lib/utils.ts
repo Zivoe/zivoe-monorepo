@@ -5,12 +5,16 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   const numericValue = Number(inEther);
 
   if (numericValue >= 1_000_000) {
-    return `${(numericValue / 1_000_000).toFixed(2)}M`;
+    return `${floorToDecimals(numericValue / 1_000_000)}M`;
   } else if (numericValue >= 1_000) {
-    return `${(numericValue / 1_000).toFixed(2)}k`;
+    return `${floorToDecimals(numericValue / 1_000)}k`;
   } else {
-    return numericValue.toFixed(2);
+    return floorToDecimals(numericValue);
   }
+};
+
+const floorToDecimals = (num: number) => {
+  return (Math.floor(num * 100) / 100).toFixed(2);
 };
 
 export function handlePromise<T>(promise: Promise<T>) {
