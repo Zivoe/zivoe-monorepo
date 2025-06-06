@@ -19,6 +19,7 @@ type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'childre
   role?: Aria.DialogProps['role'];
   logoType?: 'dark' | 'light';
   dialogClassName?: string;
+  showCloseButton?: boolean;
 } & ({ isDismissable: false; isFullScreen?: never } | { isDismissable?: true; isFullScreen?: boolean });
 
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
@@ -28,6 +29,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       dialogClassName,
       children,
       isDismissable = true,
+      showCloseButton = true,
       isFullScreen = false,
       role,
       logoType = 'dark',
@@ -78,7 +80,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
                   </Button>
                 </div>
               ) : (
-                isDismissable && (
+                isDismissable &&
+                showCloseButton && (
                   <Button size="m" variant="border-light" onPress={close} className="absolute right-4 top-4">
                     <CloseIcon />
                   </Button>

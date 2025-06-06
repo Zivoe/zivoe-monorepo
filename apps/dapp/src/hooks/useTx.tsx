@@ -2,32 +2,17 @@
 
 import { useState } from 'react';
 
-import Link from 'next/link';
-
 import { toast } from 'sonner';
-import {
-  BaseError,
-  ContractFunctionRevertedError,
-  type Hash,
-  type SimulateContractParameters,
-  UserRejectedRequestError
-} from 'viem';
+import { BaseError, ContractFunctionRevertedError, type Hash, type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useWriteContract } from 'wagmi';
 
-import { ArrowRightIcon } from '@zivoe/ui/icons';
-
-import { NETWORK } from '@/lib/constants';
 import { AppError, handlePromise } from '@/lib/utils';
 
 import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
 
 import { ApproveTokenParams } from './useApproveSpending';
-
-export const EXPLORER_URL =
-  NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
 
 export default function useTx() {
   const publicClient = usePublicClient();
@@ -66,13 +51,7 @@ export default function useTx() {
     return { hash, sendTx };
   };
 
-  const waitForTxReceipt = async ({
-    hash,
-    messages
-  }: {
-    hash: Hash;
-    messages: { pending: string; success: string };
-  }) => {
+  const waitForTxReceipt = async ({ hash, messages }: { hash: Hash; messages: { pending: string } }) => {
     if (!publicClient) throw new Error('Public client not found');
 
     setIsTxPending(true);
@@ -86,9 +65,10 @@ export default function useTx() {
     if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt' });
     if (receipt.status === 'reverted') throw new AppError({ message: 'Transaction reverted' });
 
-    toast.success(messages.success, {
-      description: <ToastLink href={`${EXPLORER_URL}/tx/${hash}`}>View on Etherscan</ToastLink>
-    });
+    // TODO: Remove if not needed for mobile transactions
+    // toast.success(messages.success, {
+    //   description: <ToastLink href={`${EXPLORER_URL}/tx/${hash}`}>View on Etherscan</ToastLink>
+    // });
 
     return receipt;
   };
@@ -96,11 +76,12 @@ export default function useTx() {
   return { simulateTx, sendTx, waitForTxReceipt, isTxPending };
 }
 
-const ToastLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-  return (
-    <Link className="flex items-center gap-1 text-small" href={href} target="_blank">
-      {children}
-      <ArrowRightIcon className="size-4" />
-    </Link>
-  );
-};
+// TODO: Remove if not needed for mobile transactions
+// const ToastLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
+//   return (
+//     <Link className="flex items-center gap-1 text-small" href={href} target="_blank">
+//       {children}
+//       <ArrowRightIcon className="size-4" />
+//     </Link>
+//   );
+// };

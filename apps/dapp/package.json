@@ -26,6 +26,7 @@
     "@zivoe/ui": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "ethereum-block-by-date": "^1.5.0",
+    "jotai": "^2.12.5",
     "mongodb": "^6.13.1",
     "next": "^15.4.0-canary.59",
     "pg": "^8.16.0",

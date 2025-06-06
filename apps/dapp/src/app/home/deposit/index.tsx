@@ -1,23 +1,37 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { useMediaQuery } from 'react-responsive';
 import { formatUnits, parseUnits } from 'viem';
+import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
+import { Link } from '@zivoe/ui/core/link';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
-import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
+import { ZVltLogo } from '@zivoe/ui/icons';
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  CloseCircleIcon,
+  FrxUsdIcon,
+  UsdcIcon,
+  UsdtIcon,
+  ZsttIcon
+} from '@zivoe/ui/icons';
+import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
-import { CONTRACTS } from '@/lib/constants';
+import { CONTRACTS, NETWORK } from '@/lib/constants';
+import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -203,6 +217,12 @@ export default function Deposit() {
           }}
           isDisabled={isDisabled}
           decimalPlaces={18}
+          endContent={
+            <div className="flex items-center gap-2">
+              <ZVltLogo className="!size-6" />
+              <p className="text-small !font-medium text-primary">zVLT</p>
+            </div>
+          }
         />
 
         <ConnectedAccount>
@@ -245,6 +265,8 @@ export default function Deposit() {
           )}
         </ConnectedAccount>
       </div>
+
+      <TransactionDialog />
     </div>
   );
 }
@@ -411,7 +433,7 @@ function DepositTokenDialog({
         </div>
       </SelectTrigger>
 
-      <DialogContent dialogClassName="gap-0">
+      <DialogContent dialogClassName="gap-0" showCloseButton={false}>
         {({ close }) => (
           <>
             <DialogHeader>
@@ -498,4 +520,91 @@ function ZvltBalance() {
   if (zvltBalance.isPending || zvltBalance.data === undefined) return null;
 
   return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;
+}
+
+const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
+
+function TransactionDialog() {
+  const [isOpen, setIsOpen] = useState(false);
+  const transaction = useAtomValue(transactionAtom);
+
+  useEffect(() => {
+    if (transaction) setIsOpen(true);
+  }, [transaction]);
+
+  if (!transaction) return null;
+
+  return (
+    <Dialog isOpen={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent showCloseButton={false}>
+        {({ close }) => (
+          <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+            <div className="flex flex-col items-center gap-6 py-3">
+              <div
+                className={cn(
+                  'flex size-12 items-center justify-center rounded-md',
+                  transaction.type === 'SUCCESS' ? 'bg-element-primary-gentle' : 'bg-element-alert-light'
+                )}
+              >
+                {transaction.type === 'SUCCESS' ? (
+                  <CheckCircleIcon className="size-8 text-primary" />
+                ) : (
+                  <CloseCircleIcon className="size-8 text-alert-contrast" />
+                )}
+              </div>
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-h5 text-primary">{transaction.title}</p>
+                  <p className="text-regular text-secondary">{transaction.description}</p>
+                </div>
+
+                <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
+                  See transaction details
+                </Link>
+              </div>
+            </div>
+
+            {transaction.meta?.deposit && (
+              <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
+                <TransactionDialogToken
+                  token={transaction.meta.deposit.token}
+                  amount={transaction.meta.deposit.amount}
+                  icon={DEPOSIT_TOKEN_ICON[transaction.meta.deposit.token]}
+                />
+
+                <ArrowRightIcon className="size-4 text-icon-default" />
+
+                <TransactionDialogToken token="zVLT" amount={transaction.meta.deposit.amount} icon={<ZVltLogo />} />
+              </div>
+            )}
+
+            <Button variant="border-light" fullWidth onPress={close}>
+              Close
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TransactionDialogToken({
+  token,
+  amount,
+  icon
+}: {
+  token: DepositToken | 'zVLT';
+  amount: bigint;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 [&_svg]:size-6">
+      {icon}
+
+      <p className="text-leading text-primary">
+        {amount.toString()} {token}
+      </p>
+    </div>
+  );
 }

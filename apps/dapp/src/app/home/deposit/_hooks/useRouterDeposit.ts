@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters } from 'viem';
 import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
@@ -9,6 +10,7 @@ import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
+import { transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import useTx from '@/hooks/useTx';
@@ -19,6 +21,7 @@ export const useRouterDeposit = () => {
   const { address } = useAccount();
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
+  const setTransaction = useSetAtom(transactionAtom);
 
   const mutationInfo = useMutation({
     mutationFn: async ({ stableCoinName, amount }: { stableCoinName: DepositToken; amount?: bigint }) => {
@@ -37,7 +40,7 @@ export const useRouterDeposit = () => {
 
       const receipt = await waitForTxReceipt({
         hash,
-        messages: { pending: `Depositing ${stableCoinName}...`, success: `${stableCoinName} Deposited` }
+        messages: { pending: `Depositing ${stableCoinName}...` }
       });
 
       return { receipt };
@@ -48,6 +51,32 @@ export const useRouterDeposit = () => {
         err,
         defaultToastMsg: `Error Depositing ${stableCoinName}`
       }),
+
+    onSuccess: ({ receipt }, { stableCoinName }) => {
+      setTransaction(
+        receipt.status === 'success'
+          ? {
+              type: 'SUCCESS',
+              title: `Deposit Successful`,
+              description: 'Your deposit has been completed.',
+              hash: receipt.transactionHash,
+              meta: {
+                deposit: {
+                  token: stableCoinName,
+                  // TODO: parse receipt logs for actual transaction amounts
+                  amount: 10n,
+                  receive: 10n
+                }
+              }
+            }
+          : {
+              type: 'ERROR',
+              title: `Error Depositing ${stableCoinName}`,
+              description: `There was an error depositing ${stableCoinName}`,
+              hash: receipt.transactionHash
+            }
+      );
+    },
 
     onSettled: (_, err, { stableCoinName }) => {
       if (skipTxSettled(err)) return;

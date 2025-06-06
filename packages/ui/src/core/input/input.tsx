@@ -162,7 +162,7 @@ const inputGroupStyles = tv({
   variants: {
     variant: {
       default: 'h-12 bg-surface-base-soft px-4 text-small',
-      amount: 'h-20 bg-surface-base pl-6 pr-1 text-h6'
+      amount: 'h-20 bg-surface-base pl-6 pr-4 text-h6'
     }
   },
 

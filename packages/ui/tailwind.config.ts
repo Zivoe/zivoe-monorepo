@@ -167,6 +167,7 @@ const config: Config = {
       'warning-subtle': 'hsl(var(--warning-700))',
       alert: 'hsl(var(--alert-900))',
       'alert-subtle': 'hsl(var(--alert-700))',
+      'alert-contrast': 'hsl(var(--alert-600))',
       base: 'hsl(var(--neutral-0))',
       neutral: {
         '300': 'hsl(var(--neutral-300))'
