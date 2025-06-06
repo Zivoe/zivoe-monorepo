@@ -1,7 +1,5 @@
 import { cache } from 'react';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
-
 import { eq } from 'drizzle-orm';
 import { erc20Abi } from 'viem';
 

@@ -76,7 +76,7 @@ function HeroButton(props: LinkProps) {
 
 async function Statistics() {
   'use cache';
-  cacheLife('hourly');
+  cacheLife('minutes');
 
   // TODO: Update this once we have a mainnet vault and we don't need the hardcoded APY
   // const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
