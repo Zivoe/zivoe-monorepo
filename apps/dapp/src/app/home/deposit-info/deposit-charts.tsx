@@ -135,7 +135,7 @@ const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
     APY: [12, 20]
   },
   SEPOLIA: {
-    'Index price': [0, 1.2],
+    'Index price': [0, 2_000],
     TVL: [70_000_000, 100_000_000],
     APY: [16, 24]
   }
