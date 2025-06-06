@@ -24,10 +24,10 @@ const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) =>
     blockNumber
   });
 
-  const amount = parseUnits(vaultTotalAssets.toString(), 6);
-  const indexPrice = totalSupply !== 0n ? Number(formatUnits(amount / totalSupply, 6)) : 0;
+  const amount = parseUnits(vaultTotalAssets.toString(), 18);
+  const indexPrice = totalSupply !== 0n ? Number(formatUnits(amount / totalSupply, 18)) : 0;
 
-  return { indexPrice, vaultTotalAssets };
+  return { indexPrice, vaultTotalAssets: vaultTotalAssets.toString() };
 };
 
 const COMPOUNDING_PERIOD = 15;

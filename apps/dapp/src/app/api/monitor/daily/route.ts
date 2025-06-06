@@ -96,7 +96,7 @@ type DailyData = {
   apy: number;
   tvl: string;
   zSTTTotalSupply: string;
-  vaultTotalAssets: bigint;
+  vaultTotalAssets: string;
 };
 
 async function collectDailyData({
