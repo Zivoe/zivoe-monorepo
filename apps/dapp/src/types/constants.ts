@@ -3,7 +3,7 @@ export type DepositToken = (typeof DEPOSIT_TOKENS)[number];
 
 export const DEPOSIT_TOKEN_DECIMALS: Record<DepositToken, number> = {
   USDC: 6,
-  USDT: 18,
+  USDT: 6,
   FRX: 18,
   zSTT: 18
 };
