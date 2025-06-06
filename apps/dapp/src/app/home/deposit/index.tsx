@@ -81,6 +81,16 @@ export default function Deposit() {
     setReceive(receiveAmount);
   };
 
+  const handleReceiveChange = (value: string) => {
+    const depositAmount = getDepositAmount({
+      deposit: value,
+      totalSupply: vault.data?.totalSupply ?? 0n,
+      totalAssets: vault.data?.totalAssets ?? 0n
+    });
+
+    form.setValue('deposit', (depositAmount ?? undefined) as DepositForm['deposit'], { shouldValidate: true });
+  };
+
   const handleDepositTokenChange = (value: DepositToken) => {
     setDepositToken(value);
     setReceive(undefined);
@@ -181,7 +191,6 @@ export default function Deposit() {
         />
 
         <Input
-          isDisabled
           variant="amount"
           label="Receive"
           labelContent={<ZvltBalance />}
@@ -190,7 +199,9 @@ export default function Deposit() {
           onChange={(value) => {
             const parsedValue = parseInput(value);
             setReceive(parsedValue || undefined);
+            handleReceiveChange(parsedValue);
           }}
+          isDisabled={isDisabled}
           decimalPlaces={18}
         />
 
@@ -289,6 +300,29 @@ const getReceiveAmount = ({
   }
 
   return receive;
+};
+
+const getDepositAmount = ({
+  deposit,
+  totalSupply,
+  totalAssets
+}: {
+  deposit: string;
+  totalSupply: bigint;
+  totalAssets: bigint;
+}) => {
+  let depositAmount: string | undefined;
+  if (!deposit) depositAmount = undefined;
+  else {
+    const shares = parseUnits(deposit ?? '0', 18);
+    const numerator = shares * (totalAssets + 1n);
+    const denominator = totalSupply + 10n ** DECIMALS_OFFSET;
+    const assetAmount = numerator / denominator;
+    const formattedAmount = formatUnits(assetAmount, 18);
+    depositAmount = Math.ceil(Number(formattedAmount)).toString();
+  }
+
+  return depositAmount;
 };
 
 function DepositTokenBalance({ token }: { token: DepositToken }) {
