@@ -570,12 +570,18 @@ function TransactionDialog() {
                 <TransactionDialogToken
                   token={transaction.meta.deposit.token}
                   amount={transaction.meta.deposit.amount}
+                  decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.deposit.token]}
                   icon={DEPOSIT_TOKEN_ICON[transaction.meta.deposit.token]}
                 />
 
                 <ArrowRightIcon className="size-4 text-icon-default" />
 
-                <TransactionDialogToken token="zVLT" amount={transaction.meta.deposit.amount} icon={<ZVltLogo />} />
+                <TransactionDialogToken
+                  token="zVLT"
+                  amount={transaction.meta.deposit.receive}
+                  decimals={18}
+                  icon={<ZVltLogo />}
+                />
               </div>
             )}
 
@@ -592,10 +598,12 @@ function TransactionDialog() {
 function TransactionDialogToken({
   token,
   amount,
+  decimals,
   icon
 }: {
   token: DepositToken | 'zVLT';
   amount: bigint;
+  decimals: number;
   icon: ReactNode;
 }) {
   return (
@@ -603,7 +611,7 @@ function TransactionDialogToken({
       {icon}
 
       <p className="text-leading text-primary">
-        {amount.toString()} {token}
+        {formatBigIntToReadable(amount, decimals)} {token}
       </p>
     </div>
   );

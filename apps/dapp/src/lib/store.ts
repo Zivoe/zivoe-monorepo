@@ -2,7 +2,7 @@ import { atom } from 'jotai';
 
 import { DepositToken } from '@/types/constants';
 
-type TransactionData = {
+export type TransactionData = {
   type: 'SUCCESS' | 'ERROR';
   title: string;
   description: string;

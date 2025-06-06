@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters } from 'viem';
+import { type SimulateContractParameters, hexToBigInt } from 'viem';
 import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
@@ -10,7 +10,7 @@ import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
-import { transactionAtom } from '@/lib/store';
+import { TransactionData, transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import useTx from '@/hooks/useTx';
@@ -53,6 +53,30 @@ export const useRouterDeposit = () => {
       }),
 
     onSuccess: ({ receipt }, { stableCoinName }) => {
+      let depositAmount: bigint | undefined;
+      let receiveAmount: bigint | undefined;
+
+      try {
+        const depositLog = receipt.logs[1];
+        if (depositLog) depositAmount = hexToBigInt(depositLog.data);
+
+        const receiveLog = receipt.logs.find((log) => log.address === CONTRACTS.zVLT.toLowerCase());
+        if (receiveLog) receiveAmount = hexToBigInt(receiveLog.data);
+      } catch (error) {
+        console.error('Error parsing deposit receipt', error);
+      }
+
+      let meta: TransactionData['meta'] = undefined;
+      if (depositAmount && receiveAmount) {
+        meta = {
+          deposit: {
+            token: stableCoinName,
+            amount: depositAmount,
+            receive: receiveAmount
+          }
+        };
+      }
+
       setTransaction(
         receipt.status === 'success'
           ? {
@@ -60,14 +84,7 @@ export const useRouterDeposit = () => {
               title: `Deposit Successful`,
               description: 'Your deposit has been completed.',
               hash: receipt.transactionHash,
-              meta: {
-                deposit: {
-                  token: stableCoinName,
-                  // TODO: parse receipt logs for actual transaction amounts
-                  amount: 10n,
-                  receive: 10n
-                }
-              }
+              meta
             }
           : {
               type: 'ERROR',
