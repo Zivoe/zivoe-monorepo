@@ -1,3 +1,4 @@
+import { revalidateTag } from 'next/cache';
 import { NextRequest as Request, NextResponse as Response } from 'next/server';
 
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -8,6 +9,7 @@ import { Contracts, NETWORKS, getContracts } from '@zivoe/contracts';
 
 import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
+import { DEPOSIT_DAILY_DATA_TAG } from '@/server/data';
 import { web3 } from '@/server/web3';
 
 import { handle } from '@/lib/utils';
@@ -85,6 +87,8 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
 
   const insertAllResult = await handle(db.daily.insertMany(dailyDataToInsert));
   if (insertAllResult.err) return Response.json({ error: 'Failed to insert daily data' }, { status: 500 });
+
+  revalidateTag(DEPOSIT_DAILY_DATA_TAG);
 
   return Response.json({ success: true });
 };

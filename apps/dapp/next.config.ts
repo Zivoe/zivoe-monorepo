@@ -6,8 +6,7 @@ const nextConfig: NextConfig = {
     staleTimes: {
       dynamic: 30,
       static: 300
-    },
-    dynamicIO: true
+    }
   }
 };
 

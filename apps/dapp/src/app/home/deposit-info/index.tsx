@@ -1,7 +1,5 @@
 import { Suspense } from 'react';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
-
 import { Separator } from '@zivoe/ui/core/separator';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { ChartIcon, DiamondIcon, PieChartIcon } from '@zivoe/ui/icons';
@@ -54,9 +52,6 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  'use cache';
-  cacheLife('minutes');
-
   const dailyData = await data.getDepositDailyData();
   return <DepositCharts dailyData={dailyData} />;
 }
@@ -75,15 +70,12 @@ function DepositChartsSkeleton() {
 }
 
 async function DepositStatsComponent() {
-  'use cache';
-  cacheLife('minutes');
-
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
 
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={revenue} />;
+  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={BigInt(revenue)} />;
 }
 
 function DepositStatsSkeleton() {
@@ -95,16 +87,13 @@ function DepositStatsSkeleton() {
 }
 
 async function DepositAllocationComponent() {
-  'use cache';
-  cacheLife('minutes');
-
   const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
 
   return (
     <DepositAllocation
-      outstandingPrincipal={outstandingPrincipal}
-      treasuryBills={m0Balance}
-      usdcBalance={usdcBalance}
+      outstandingPrincipal={BigInt(outstandingPrincipal)}
+      treasuryBills={BigInt(m0Balance)}
+      usdcBalance={BigInt(usdcBalance)}
     />
   );
 }

@@ -1,4 +1,8 @@
-import { cache } from 'react';
+import 'server-only';
+
+import { cache as reactCache } from 'react';
+
+import { unstable_cache as nextCache } from 'next/cache';
 
 import { eq } from 'drizzle-orm';
 import { erc20Abi } from 'viem';
@@ -13,82 +17,103 @@ import { getDb } from '../clients/db';
 import { getPonder } from '../clients/ponder';
 import { occTable } from '../clients/ponder/schema';
 
-const getDepositDailyData = cache(async () => {
-  const db = getDb(env.NEXT_PUBLIC_NETWORK);
-  const data = await db.daily.find().toArray();
+export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
-  return data.map((item) => ({
-    ...item,
-    _id: item._id.toString(),
-    timestamp: item.timestamp.toUTCString()
-  }));
-});
+const getDepositDailyData = reactCache(
+  nextCache(
+    async () => {
+      const db = getDb(env.NEXT_PUBLIC_NETWORK);
+      const data = await db.daily.find().toArray();
+
+      return data.map((item) => ({
+        ...item,
+        _id: item._id.toString(),
+        timestamp: item.timestamp.toUTCString()
+      }));
+    },
+    undefined,
+    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  )
+);
 
 export type DepositDailyData = Awaited<ReturnType<typeof getDepositDailyData>>[number];
 
-const getRevenue = async () => {
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const contracts = getContracts(network);
-  const ponder = getPonder(network);
+const getRevenue = nextCache(
+  async () => {
+    const network = env.NEXT_PUBLIC_NETWORK;
+    const contracts = getContracts(network);
+    const ponder = getPonder(network);
 
-  const data = await ponder
-    .select({ totalRevenue: occTable.totalRevenue })
-    .from(occTable)
-    .where(eq(occTable.id, contracts.OCC_USDC))
-    .limit(1);
+    const data = await ponder
+      .select({ totalRevenue: occTable.totalRevenue })
+      .from(occTable)
+      .where(eq(occTable.id, contracts.OCC_USDC))
+      .limit(1);
 
-  return data[0]?.totalRevenue ?? 0n;
-};
+    const totalRevenue = data[0]?.totalRevenue;
+    return totalRevenue ? totalRevenue.toString() : '0';
+  },
+  undefined,
+  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+);
 
-const getAssetAllocation = async () => {
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const client = getWeb3Client(network);
-  const contracts = getContracts(network);
-  const ponder = getPonder(network);
+const getAssetAllocation = nextCache(
+  async () => {
+    const network = env.NEXT_PUBLIC_NETWORK;
+    const client = getWeb3Client(network);
+    const contracts = getContracts(network);
+    const ponder = getPonder(network);
 
-  const outstandingPrincipalReq = ponder
-    .select({ outstandingPrincipal: occTable.outstandingPrincipal })
-    .from(occTable)
-    .where(eq(occTable.id, contracts.OCC_USDC))
-    .limit(1);
+    const outstandingPrincipalReq = ponder
+      .select({ outstandingPrincipal: occTable.outstandingPrincipal })
+      .from(occTable)
+      .where(eq(occTable.id, contracts.OCC_USDC))
+      .limit(1);
 
-  const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.zVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
+    const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.zVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
-  const usdcBalancesReq = usdcHolders.map((address) =>
-    client.readContract({
-      address: contracts.USDC,
-      abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: [address]
-    })
-  );
+    const usdcBalancesReq = usdcHolders.map((address) =>
+      client.readContract({
+        address: contracts.USDC,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address]
+      })
+    );
 
-  const m0Holders = [contracts.DAO, contracts.OCT_CONVERT, contracts.OCT_DAO];
+    const m0Holders = [contracts.DAO, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
-  const m0BalancesReq = m0Holders.map((address) =>
-    client.readContract({
-      address: contracts.M0,
-      abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: [address]
-    })
-  );
+    const m0BalancesReq = m0Holders.map((address) =>
+      client.readContract({
+        address: contracts.M0,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address]
+      })
+    );
 
-  const [outstandingPrincipal, ...balances] = await Promise.all([
-    outstandingPrincipalReq,
-    ...usdcBalancesReq,
-    ...m0BalancesReq
-  ]);
+    const [outstandingPrincipalRes, ...balancesRes] = await Promise.all([
+      outstandingPrincipalReq,
+      ...usdcBalancesReq,
+      ...m0BalancesReq
+    ]);
 
-  const usdcBalances = balances.slice(0, usdcHolders.length);
-  const m0Balances = balances.slice(usdcHolders.length);
+    const usdcBalances = balancesRes.slice(0, usdcHolders.length);
+    const m0Balances = balancesRes.slice(usdcHolders.length);
 
-  return {
-    outstandingPrincipal: outstandingPrincipal[0]?.outstandingPrincipal ?? 0n,
-    usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n),
-    m0Balance: m0Balances.reduce((acc, curr) => acc + curr, 0n)
-  };
-};
+    const outstandingPrincipal = outstandingPrincipalRes[0]?.outstandingPrincipal;
+    const usdtBalance = usdcBalances.reduce((acc, curr) => acc + curr, 0n);
+    const m0Balance = m0Balances.reduce((acc, curr) => acc + curr, 0n);
+
+    return {
+      outstandingPrincipal: outstandingPrincipal ? outstandingPrincipal.toString() : '0',
+      usdcBalance: usdtBalance.toString(),
+      m0Balance: m0Balance.toString()
+    };
+  },
+  undefined,
+  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+);
 
 export const data = {
   getDepositDailyData,
