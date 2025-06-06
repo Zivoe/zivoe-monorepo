@@ -613,7 +613,7 @@ function TransactionDialogToken({
       {icon}
 
       <p className="text-leading text-primary">
-        {amountFormatted === '0.00' ? '>0.00' : amountFormatted} {token}
+        {amountFormatted === '0.00' ? '<0.01' : amountFormatted} {token}
       </p>
     </div>
   );
