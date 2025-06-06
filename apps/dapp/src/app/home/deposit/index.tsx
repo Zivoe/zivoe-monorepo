@@ -340,8 +340,7 @@ const getDepositAmount = ({
     const numerator = shares * (totalAssets + 1n);
     const denominator = totalSupply + 10n ** DECIMALS_OFFSET;
     const assetAmount = numerator / denominator;
-    const formattedAmount = formatUnits(assetAmount, 18);
-    depositAmount = Math.ceil(Number(formattedAmount)).toString();
+    depositAmount = formatUnits(assetAmount, 18);
   }
 
   return depositAmount;
