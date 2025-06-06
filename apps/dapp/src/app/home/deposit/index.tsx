@@ -3,11 +3,14 @@
 import { ReactNode, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
+import { useMediaQuery } from 'react-responsive';
 import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
@@ -30,6 +33,8 @@ import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 
 export default function Deposit() {
+  const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
+
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
@@ -74,6 +79,14 @@ export default function Deposit() {
     });
 
     setReceive(receiveAmount);
+  };
+
+  const handleDepositTokenChange = (value: DepositToken) => {
+    setDepositToken(value);
+    setReceive(undefined);
+    form.setValue('deposit', undefined as any);
+    form.clearErrors('deposit');
+    form.setFocus('deposit');
   };
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
@@ -146,17 +159,21 @@ export default function Deposit() {
                     isDisabled={isDisabled}
                   />
 
-                  <DepositTokenSelect
-                    isDisabled={isDisabled}
-                    selected={depositToken}
-                    onSelectionChange={(value: DepositToken) => {
-                      setDepositToken(value);
-                      setReceive(undefined);
-                      form.setValue('deposit', undefined as any);
-                      form.clearErrors('deposit');
-                      form.setFocus('deposit');
-                    }}
-                  />
+                  <div className="ml-3">
+                    {isDesktop ? (
+                      <DepositTokenDialog
+                        isDisabled={isDisabled}
+                        selected={depositToken}
+                        onSelectionChange={handleDepositTokenChange}
+                      />
+                    ) : (
+                      <DepositTokenSelect
+                        isDisabled={isDisabled}
+                        selected={depositToken}
+                        onSelectionChange={handleDepositTokenChange}
+                      />
+                    )}
+                  </div>
                 </div>
               }
             />
@@ -292,9 +309,17 @@ const DEPOSIT_TOKEN_ICON: Record<DepositToken, ReactNode> = {
   zSTT: <ZsttIcon />
 };
 
-const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token, index) => ({
+const DEPOSIT_TOKEN_NAME: Record<DepositToken, string> = {
+  USDC: 'USD Coin',
+  USDT: 'Tether USD',
+  frxUSD: 'Frax USD',
+  zSTT: 'Legacy token by Zivoe'
+};
+
+const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => ({
   id: token,
   label: token,
+  name: DEPOSIT_TOKEN_NAME[token],
   icon: DEPOSIT_TOKEN_ICON[token]
 }));
 
@@ -329,6 +354,71 @@ function DepositMaxButton({
   );
 }
 
+function DepositTokenDialog({
+  selected,
+  onSelectionChange,
+  isDisabled
+}: {
+  selected: DepositToken;
+  onSelectionChange: (value: DepositToken) => void;
+  isDisabled: boolean;
+}) {
+  const depositBalances = useDepositBalances();
+  const icon = DEPOSIT_TOKEN_ICON[selected];
+
+  if (!icon) return null;
+
+  return (
+    <Dialog>
+      <SelectTrigger className="w-[7.82rem] justify-between" isDisabled={isDisabled}>
+        <div className="flex items-center gap-2 [&_svg]:size-6">
+          {icon}
+          {selected}
+        </div>
+      </SelectTrigger>
+
+      <DialogContent dialogClassName="gap-0">
+        {({ close }) => (
+          <>
+            <DialogHeader>
+              <DialogTitle>Select Asset</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-2 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+              {DEPOSIT_TOKENS_SELECT_ITEMS.map((item) => (
+                <Aria.Button
+                  key={item.id}
+                  onPress={() => {
+                    onSelectionChange(item.id);
+                    close();
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-none hover:bg-surface-elevated focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-[1px] focus-visible:ring-offset-neutral-0"
+                >
+                  <div className="flex items-center gap-2 [&_svg]:size-8">
+                    {item.icon}
+
+                    <div className="flex flex-col items-start">
+                      <p className="text-regular font-medium text-primary">{item.label}</p>
+                      <p className="text-extraSmall text-tertiary">{item.name}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-small text-tertiary">
+                    Balance:{' '}
+                    <span className="font-medium text-primary">
+                      {formatBigIntToReadable(depositBalances.data?.[item.id] ?? 0n, DEPOSIT_TOKEN_DECIMALS[item.id])}
+                    </span>
+                  </p>
+                </Aria.Button>
+              ))}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DepositTokenSelect({
   selected,
   onSelectionChange,
@@ -345,9 +435,8 @@ function DepositTokenSelect({
       selectedKey={selected}
       onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
-      className="ml-3"
     >
-      <SelectTrigger className="w-[7.375rem] justify-between">
+      <SelectTrigger className="w-[7.82rem] justify-between">
         <SelectValue className="flex items-center gap-2 [&_svg]:size-6" />
       </SelectTrigger>
 

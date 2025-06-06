@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '.';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '.';
 import { cn } from '../../lib/tw-utils';
 import { Button } from '../button';
 
@@ -24,11 +24,6 @@ export const Default: Story = {
           <>
             <DialogHeader>
               <DialogTitle>Lorem ipsum</DialogTitle>
-
-              <DialogDescription>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
-              </DialogDescription>
             </DialogHeader>
 
             <Content />
@@ -57,11 +52,6 @@ export const AlertDialog: Story = {
           <>
             <DialogHeader>
               <DialogTitle>Lorem ipsum</DialogTitle>
-
-              <DialogDescription>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
-              </DialogDescription>
             </DialogHeader>
 
             <DialogFooter>
@@ -84,11 +74,6 @@ export const CustomWidth: Story = {
           <>
             <DialogHeader>
               <DialogTitle>Lorem ipsum</DialogTitle>
-
-              <DialogDescription>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
-              </DialogDescription>
             </DialogHeader>
 
             <DialogFooter>
@@ -111,11 +96,6 @@ export const LongContent: Story = {
           <>
             <DialogHeader>
               <DialogTitle>Lorem ipsum</DialogTitle>
-
-              <DialogDescription>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
-              </DialogDescription>
             </DialogHeader>
 
             <Content className="h-[1000px]" />
@@ -140,10 +120,6 @@ export const FullScreen: Story = {
           <>
             <DialogHeader>
               <DialogTitle>Describe your project</DialogTitle>
-
-              <DialogDescription>
-                Enter your project's link, include a description, and upload a logo.
-              </DialogDescription>
             </DialogHeader>
 
             <Content />
