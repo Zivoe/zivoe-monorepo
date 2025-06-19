@@ -7,7 +7,7 @@ import { Link } from '@zivoe/ui/core/link';
 
 import Container from '@/components/container';
 
-import { LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
+import { GithubIcon, LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
 
 export default function Footer() {
   return (
@@ -21,7 +21,7 @@ export default function Footer() {
 
             <div className="flex items-center gap-6">
               {SOCIALS.map(({ href, icon }) => (
-                <NextLink key={href} href={href} target="_blank" className="text-base/50 hover:text-base">
+                <NextLink key={href} href={href} target="_blank" className="text-base opacity-50 hover:opacity-100">
                   {icon}
                 </NextLink>
               ))}
@@ -105,9 +105,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   },
   {
     title: 'Governance',
-    links: [
-      { href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' }
-    ]
+    links: [{ href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' }]
   },
   {
     title: 'Company',
@@ -135,5 +133,9 @@ const SOCIALS: Array<{ href: string; icon: ReactNode }> = [
   {
     href: 'https://www.youtube.com/@Zivoe',
     icon: <YoutubeIcon />
+  },
+  {
+    href: 'https://github.com/Zivoe',
+    icon: <GithubIcon />
   }
 ];
