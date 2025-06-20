@@ -93,14 +93,14 @@ export const useRouterDeposit = () => {
         receipt.status === 'success'
           ? {
               type: 'SUCCESS',
-              title: `Deposit Successful`,
+              title: 'Deposit Successful',
               description: 'Your deposit has been completed.',
               hash: receipt.transactionHash,
               meta
             }
           : {
               type: 'ERROR',
-              title: `Error Depositing ${stableCoinName}`,
+              title: 'Deposit Failed',
               description: `There was an error depositing ${stableCoinName}`,
               hash: receipt.transactionHash
             }

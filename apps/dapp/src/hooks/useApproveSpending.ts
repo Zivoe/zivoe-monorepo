@@ -63,13 +63,13 @@ export const useApproveSpending = () => {
         receipt.status === 'success'
           ? {
               type: 'SUCCESS',
-              title: `${name} Approved`,
+              title: 'Approval Successful',
               description: `You can now deposit ${name}`,
               hash: receipt.transactionHash
             }
           : {
               type: 'ERROR',
-              title: `Error Approving ${name}`,
+              title: 'Approval Failed',
               description: `There was an error approving ${name}`,
               hash: receipt.transactionHash
             }

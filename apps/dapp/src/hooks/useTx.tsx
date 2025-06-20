@@ -63,7 +63,7 @@ export default function useTx() {
     toast.dismiss(toastId);
 
     if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt' });
-    if (receipt.status === 'reverted') throw new AppError({ message: 'Transaction reverted' });
+    // if (receipt.status === 'reverted') throw new AppError({ message: 'Transaction reverted' });
 
     // TODO: Remove if not needed for mobile transactions
     // toast.success(messages.success, {
