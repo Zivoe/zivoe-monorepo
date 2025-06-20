@@ -8,6 +8,7 @@ import '@zivoe/ui/globals.css';
 import Footer from './_components/footer';
 import Header from './_components/header';
 import Providers from './_components/providers';
+import { WelcomeDialog } from './_components/welcome-dialog';
 
 const title = 'Zivoe | RWA Credit Protocol';
 const description =
@@ -55,6 +56,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Footer />
           </div>
         </Providers>
+
+        <WelcomeDialog />
       </body>
     </html>
   );
