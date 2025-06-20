@@ -20,7 +20,7 @@ export default function Home() {
 
         <Suspense
           fallback={
-            <Skeleton className="sticky top-14 hidden h-[35.375rem] rounded-2xl p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]" />
+            <Skeleton className="sticky top-14 hidden h-[27rem] rounded-2xl p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]" />
           }
         >
           <DepositWrapper />
