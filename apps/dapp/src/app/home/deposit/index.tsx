@@ -7,7 +7,6 @@ import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { useMediaQuery } from 'react-responsive';
-import { toast } from 'sonner';
 import { formatUnits, parseUnits } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';

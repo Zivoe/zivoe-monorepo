@@ -30,3 +30,4 @@ export * from './frax';
 export * from './zstt';
 export * from './check-circle';
 export * from './close-circle';
+export * from './warning';

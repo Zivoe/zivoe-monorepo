@@ -170,7 +170,8 @@ const config: Config = {
       'alert-contrast': 'hsl(var(--alert-600))',
       base: 'hsl(var(--neutral-0))',
       neutral: {
-        '300': 'hsl(var(--neutral-300))'
+        '300': 'hsl(var(--neutral-300))',
+        '600': 'hsl(var(--neutral-600))'
       },
       'secondary-contrast': 'hsl(var(--secondary-700))',
       icon: {

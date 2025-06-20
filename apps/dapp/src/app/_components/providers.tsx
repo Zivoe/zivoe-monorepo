@@ -10,11 +10,10 @@ import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
-import { toast } from 'sonner';
 import { mainnet, sepolia } from 'viem/chains';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 
-import { Toaster } from '@zivoe/ui/core/sonner';
+import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
 import { NETWORK } from '@/lib/constants';
 
@@ -71,8 +70,8 @@ const queryClient = new QueryClient({
     onError: (error, query) => {
       if (query.meta?.skipErrorToast) return;
 
-      const message = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
-      toast.error(message);
+      const title = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
+      toast({ type: 'error', title });
     }
   })
 });

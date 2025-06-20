@@ -1,5 +1,6 @@
-import { toast } from 'sonner';
 import { formatUnits } from 'viem';
+
+import { toast } from '@zivoe/ui/core/sonner';
 
 export const handle = <T>(promise: Promise<T>) => {
   return promise
@@ -76,7 +77,7 @@ export const onTxError = ({
     toastMsg = err.message;
   }
 
-  toast.error(toastMsg);
+  toast({ type: 'error', title: toastMsg });
   if (refetch && onRefetch) onRefetch();
 };
 

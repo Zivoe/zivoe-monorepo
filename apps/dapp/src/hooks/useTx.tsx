@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 
-import { toast } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 import { BaseError, ContractFunctionRevertedError, type Hash, type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'viem';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useWriteContract } from 'wagmi';
+
+import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
@@ -61,12 +63,12 @@ export default function useTx() {
     if (!publicClient) throw new Error('Public client not found');
 
     setIsTxPending(true);
-    const toastId = toast.loading(messages.pending);
+    const toastId = toast({ type: 'pending', title: messages.pending });
 
     const { err, res: receipt } = await handlePromise(publicClient.waitForTransactionReceipt({ hash }));
 
     setIsTxPending(false);
-    toast.dismiss(toastId);
+    sonnerToast.dismiss(toastId);
 
     if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt' });
     // if (receipt.status === 'reverted') throw new AppError({ message: 'Transaction reverted' });
