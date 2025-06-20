@@ -300,7 +300,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           ) : null}
         </ConnectedAccount>
 
-        {account.address && <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />}
+        {account.address && receive && <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />}
       </div>
 
       <TransactionDialog />
