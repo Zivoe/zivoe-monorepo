@@ -157,6 +157,10 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     if (zSttBalance === 0n && depositToken === 'zSTT') handleDepositTokenChange('USDC');
   }, [depositBalances.data, depositToken]);
 
+  useEffect(() => {
+    if (!account.address) handleDepositTokenChange('USDC');
+  }, [account.address]);
+
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
       <div className="p-4">
