@@ -19,7 +19,6 @@ export default function ChainalysisAssessmentDialog() {
   const router = useRouter();
 
   const { handleLogOut } = useDynamicContext();
-  const { address } = useAccount();
 
   const assessment = useChainalysis();
 
@@ -37,12 +36,10 @@ export default function ChainalysisAssessmentDialog() {
   };
 
   useEffect(() => {
-    const { isSuccess, data } = assessment;
-
-    if (address && isSuccess && (!data || data.risk === 'High' || data.risk === 'Severe')) {
+    if (assessment.isRiskyAddress) {
       setIsDialogOpen(true);
     }
-  }, [assessment, router]);
+  }, [assessment.isRiskyAddress, router]);
 
   return (
     <Dialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen}>

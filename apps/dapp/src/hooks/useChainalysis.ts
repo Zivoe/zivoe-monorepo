@@ -24,7 +24,7 @@ export const useChainalysis = () => {
   const { chainId } = useAccountWagmi();
   const network = chainId ? (chainId === sepolia.id ? 'SEPOLIA' : 'MAINNET') : undefined;
 
-  return useQuery({
+  const { isFetching, isSuccess, data } = useQuery({
     queryKey: queryKeys.account.chainalysis({ accountAddress: address, network }),
 
     queryFn: async () => {
@@ -43,4 +43,10 @@ export const useChainalysis = () => {
     retry: false,
     meta: { toastErrorMessage: 'Error Assessing Account Risk!' }
   });
+
+  return {
+    data,
+    isFetching,
+    isRiskyAddress: address && isSuccess && data && (data.risk === 'High' || data.risk === 'Severe')
+  };
 };
