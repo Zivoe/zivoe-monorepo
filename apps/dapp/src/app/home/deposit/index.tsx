@@ -32,7 +32,7 @@ import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/co
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
-import { formatBigIntToReadable } from '@/lib/utils';
+import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
@@ -46,7 +46,7 @@ import ConnectedAccount from '@/components/connected-account';
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 
-export default function Deposit() {
+export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
   const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
 
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
@@ -248,6 +248,8 @@ export default function Deposit() {
             </Button>
           )}
         </ConnectedAccount>
+
+        <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />
       </div>
 
       <TransactionDialog />
@@ -481,6 +483,32 @@ function ZvltBalance() {
   if (zvltBalance.isPending || zvltBalance.data === undefined) return null;
 
   return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;
+}
+
+function EstimatedAnnualReturn({
+  zVltAmount,
+  indexPrice,
+  apy
+}: {
+  zVltAmount: string | undefined;
+  indexPrice: number;
+  apy: number;
+}) {
+  let valueFormatted = '-';
+
+  if (zVltAmount) {
+    const value = (apy / 100) * indexPrice * Number(zVltAmount ?? '0');
+    valueFormatted = customNumber(value);
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
+      <p className="text-regular text-secondary">Estimated Annual Return</p>
+      <p className="text-h6 text-primary">
+        {valueFormatted === '-' ? '-' : `$${valueFormatted === '0.00' ? '<0.01' : valueFormatted}`}
+      </p>
+    </div>
+  );
 }
 
 const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
