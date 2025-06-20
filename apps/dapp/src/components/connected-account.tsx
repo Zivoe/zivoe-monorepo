@@ -35,7 +35,7 @@ export default function ConnectedAccount({
     }
   };
 
-  if (isPending || assessment.isFetching) {
+  if (isPending || assessment.isFetching || assessment.isPending) {
     return type === 'skeleton' ? (
       <Skeleton className={cn('h-10 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
     ) : (

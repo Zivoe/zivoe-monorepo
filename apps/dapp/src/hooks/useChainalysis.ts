@@ -24,7 +24,7 @@ export const useChainalysis = () => {
   const { chainId } = useAccountWagmi();
   const network = chainId ? (chainId === sepolia.id ? 'SEPOLIA' : 'MAINNET') : undefined;
 
-  const { isFetching, isSuccess, data } = useQuery({
+  const { data, isPending, isFetching, isSuccess } = useQuery({
     queryKey: queryKeys.account.chainalysis({ accountAddress: address, network }),
 
     queryFn: async () => {
@@ -46,6 +46,7 @@ export const useChainalysis = () => {
 
   return {
     data,
+    isPending,
     isFetching,
     isRiskyAddress: address && isSuccess && data && (data.risk === 'High' || data.risk === 'Severe')
   };
