@@ -37,9 +37,9 @@ export default function ChainalysisAssessmentDialog() {
   };
 
   useEffect(() => {
-    const { isError, isSuccess, data } = assessment;
+    const { isSuccess, data } = assessment;
 
-    if (address && (isError || (isSuccess && (!data || data.risk === 'High' || data.risk === 'Severe')))) {
+    if (address && isSuccess && (!data || data.risk === 'High' || data.risk === 'Severe')) {
       setIsDialogOpen(true);
     }
   }, [assessment, router]);
