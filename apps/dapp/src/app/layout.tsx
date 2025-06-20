@@ -5,6 +5,7 @@ import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
 import '@zivoe/ui/globals.css';
 
+import ChainalysisAssessmentDialog from './_components/chainalysis-assessment-dialog';
 import Footer from './_components/footer';
 import Header from './_components/header';
 import Providers from './_components/providers';
@@ -55,6 +56,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div>{children}</div>
             <Footer />
           </div>
+
+          <ChainalysisAssessmentDialog />
         </Providers>
 
         <WelcomeDialog />

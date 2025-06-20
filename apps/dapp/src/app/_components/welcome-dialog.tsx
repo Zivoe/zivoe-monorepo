@@ -26,7 +26,7 @@ export const WelcomeDialog = () => {
           <div className="flex flex-col items-center gap-6 py-3">
             <ZivoeLogoIcon />
 
-            <div className="flex max-w-[27rem] flex-col items-center gap-2 text-center">
+            <div className="flex max-w-[27rem] flex-col items-center gap-3 text-center">
               <p className="text-h5 text-primary">Welcome to Zivoe</p>
 
               <p className="text-regular text-secondary">

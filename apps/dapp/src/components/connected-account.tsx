@@ -9,6 +9,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useChainalysis } from '@/hooks/useChainalysis';
 
 export default function ConnectedAccount({
   children,
@@ -22,7 +23,9 @@ export default function ConnectedAccount({
   const { setShowAuthFlow } = useDynamicContext();
   const { isPending, isDisconnected } = useAccount();
 
-  if (isPending) {
+  const assessment = useChainalysis();
+
+  if (isPending || assessment.isFetching) {
     return type === 'skeleton' ? (
       <Skeleton className={cn('h-10 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
     ) : (

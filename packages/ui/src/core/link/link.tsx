@@ -9,13 +9,22 @@ import { VariantProps } from 'tailwind-variants';
 import { ExternalLinkIcon } from '../../icons';
 import { buttonVariants } from '../button';
 
-interface LinkProps extends Aria.LinkProps, Omit<VariantProps<typeof buttonVariants>, 'fullWidth'> {
+interface LinkProps extends Aria.LinkProps, VariantProps<typeof buttonVariants> {
   hideExternalLinkIcon?: boolean;
 }
 
 const Link = forwardRef<HTMLAnchorElement, LinkProps>(
   (
-    { className, variant = 'link-primary', hideExternalLinkIcon = false, size, target = '_self', children, ...props },
+    {
+      className,
+      fullWidth,
+      variant = 'link-primary',
+      hideExternalLinkIcon = false,
+      size,
+      target = '_self',
+      children,
+      ...props
+    },
     ref
   ) => {
     return (
@@ -24,6 +33,7 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
           buttonVariants({
             variant,
             size,
+            fullWidth,
             className
           })
         )}

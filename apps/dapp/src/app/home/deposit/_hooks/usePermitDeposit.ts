@@ -21,7 +21,7 @@ export type RouterPermitDepositParams = WriteContractParameters<typeof zivoeRout
 
 export const usePermitDeposit = () => {
   const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
 
   const { address } = useAccount();
 

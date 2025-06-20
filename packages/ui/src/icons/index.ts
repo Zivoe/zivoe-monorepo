@@ -32,3 +32,4 @@ export * from './check-circle';
 export * from './close-circle';
 export * from './warning';
 export * from './zivoe-logo-icon';
+export * from './lock';

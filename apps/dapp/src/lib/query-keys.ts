@@ -1,5 +1,7 @@
 import { Address } from 'viem';
 
+import { Network } from '@zivoe/contracts';
+
 type AccountProps = {
   accountAddress?: Address;
 };
@@ -14,6 +16,11 @@ const account = {
     'ALLOWANCE',
     contract,
     spender
+  ],
+  chainalysis: ({ accountAddress, network }: AccountProps & { network: Network | undefined }) => [
+    ...account.by({ accountAddress }),
+    network,
+    'CHAINALYSIS'
   ]
 };
 
