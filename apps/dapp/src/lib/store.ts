@@ -8,6 +8,11 @@ export type TransactionData = {
   description: string;
   hash: string;
   meta?: {
+    approve?: {
+      token: DepositToken;
+      amount: bigint;
+    };
+
     deposit?: {
       token: DepositToken;
       amount: bigint;

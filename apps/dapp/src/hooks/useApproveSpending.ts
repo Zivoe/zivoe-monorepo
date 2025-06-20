@@ -1,11 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, erc20Abi } from 'viem';
+import { type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
 import { type Address } from 'viem/accounts';
 import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
+import { DepositToken } from '@/types/constants';
+
 import { queryKeys } from '@/lib/query-keys';
+import { TransactionData } from '@/lib/store';
 import { transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
@@ -59,13 +62,42 @@ export const useApproveSpending = () => {
       }),
 
     onSuccess: ({ receipt }, { name }) => {
+      let meta: TransactionData['meta'] = undefined;
+
+      if (receipt.status === 'success') {
+        try {
+          const approvalLogs = parseEventLogs({
+            abi: erc20Abi,
+            eventName: 'Approval',
+            logs: receipt.logs
+          });
+
+          const approvalLog = approvalLogs[0];
+          if (approvalLog) {
+            const amount = approvalLog.args.value;
+
+            if (amount) {
+              meta = {
+                approve: {
+                  token: name as DepositToken,
+                  amount
+                }
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing approval receipt', error);
+        }
+      }
+
       setTransaction(
         receipt.status === 'success'
           ? {
               type: 'SUCCESS',
               title: 'Approval Successful',
               description: `You can now deposit ${name}`,
-              hash: receipt.transactionHash
+              hash: receipt.transactionHash,
+              meta
             }
           : {
               type: 'ERROR',

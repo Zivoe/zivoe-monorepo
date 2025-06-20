@@ -622,8 +622,19 @@ function TransactionDialog() {
               </div>
             </div>
 
+            {transaction.meta?.approve && (
+              <TransactionDialogTokensSection>
+                <TransactionDialogToken
+                  token={transaction.meta.approve.token}
+                  amount={transaction.meta.approve.amount}
+                  decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.approve.token]}
+                  icon={DEPOSIT_TOKEN_ICON[transaction.meta.approve.token]}
+                />
+              </TransactionDialogTokensSection>
+            )}
+
             {transaction.meta?.deposit && (
-              <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
+              <TransactionDialogTokensSection>
                 <TransactionDialogToken
                   token={transaction.meta.deposit.token}
                   amount={transaction.meta.deposit.amount}
@@ -639,7 +650,7 @@ function TransactionDialog() {
                   decimals={18}
                   icon={<ZVltLogo />}
                 />
-              </div>
+              </TransactionDialogTokensSection>
             )}
 
             <Button variant="border-light" fullWidth onPress={close}>
@@ -649,6 +660,14 @@ function TransactionDialog() {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TransactionDialogTokensSection({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
+      {children}
+    </div>
   );
 }
 
