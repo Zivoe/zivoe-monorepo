@@ -38,6 +38,7 @@ import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { checkHasEnoughAllowance } from '@/hooks/useAllowance';
 import { useApproveSpending } from '@/hooks/useApproveSpending';
+import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
 
@@ -55,6 +56,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
   const account = useAccount();
+  const chainalysis = useChainalysis();
 
   const depositBalances = useDepositBalances();
 
@@ -91,7 +93,13 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   const permitDeposit = useRouterDepositPermit();
   const vaultDeposit = useVaultDeposit();
 
-  const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
+  const isFetching =
+    account.isPending ||
+    depositBalances.isFetching ||
+    zvltBalance.isFetching ||
+    allowances.isFetching ||
+    chainalysis.isFetching;
+
   const isDisabled =
     account.isDisconnected ||
     isFetching ||
