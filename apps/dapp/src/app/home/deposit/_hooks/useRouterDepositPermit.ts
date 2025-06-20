@@ -16,10 +16,10 @@ import { AppError, onTxError } from '@/lib/utils';
 
 import useTx from '@/hooks/useTx';
 
-export type PermitDepositToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;
-export type RouterPermitDepositParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositWithPermit'>;
+export type RouterDepositPermitToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;
+export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositWithPermit'>;
 
-export const usePermitDeposit = () => {
+export const useRouterDepositPermit = () => {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
 
@@ -29,7 +29,7 @@ export const usePermitDeposit = () => {
   const [isPermitPending, setIsPermitPending] = useState(false);
 
   const mutationInfo = useMutation({
-    mutationFn: async ({ stableCoinName, amount }: { stableCoinName: PermitDepositToken; amount?: bigint }) => {
+    mutationFn: async ({ stableCoinName, amount }: { stableCoinName: RouterDepositPermitToken; amount?: bigint }) => {
       if (!walletClient || !publicClient || !address) throw new AppError({ message: 'Client or address not found' });
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
@@ -67,7 +67,7 @@ export const usePermitDeposit = () => {
       const r = slice(signature, 0, 32);
       const s = slice(signature, 32, 64);
 
-      const params: RouterPermitDepositParams & SimulateContractParameters = {
+      const params: RouterDepositPermitParams & SimulateContractParameters = {
         abi: zivoeRouterAbi,
         address: CONTRACTS.zRTR,
         functionName: 'depositWithPermit',
@@ -102,7 +102,7 @@ export const usePermitDeposit = () => {
   };
 };
 
-const DOMAIN: Record<Network, Record<PermitDepositToken, { name: string; version: string; chainId: number }>> = {
+const DOMAIN: Record<Network, Record<RouterDepositPermitToken, { name: string; version: string; chainId: number }>> = {
   MAINNET: {
     USDC: {
       name: 'USD Coin',

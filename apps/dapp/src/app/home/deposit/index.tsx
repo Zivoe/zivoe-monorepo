@@ -44,9 +44,9 @@ import { useVault } from '@/hooks/useVault';
 import ConnectedAccount from '@/components/connected-account';
 
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
-import { PermitDepositToken, usePermitDeposit } from './_hooks/usePermitDeposit';
-import { RouterDepositToken, useRouterDeposit } from './_hooks/useRouterDeposit';
-import { VaultDepositToken, useVaultDeposit } from './_hooks/useVaultDeposit';
+import { useRouterDeposit } from './_hooks/useRouterDeposit';
+import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
+import { useVaultDeposit } from './_hooks/useVaultDeposit';
 
 export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
   const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
@@ -88,7 +88,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   const approveSpending = useApproveSpending();
 
   const routerDeposit = useRouterDeposit();
-  const permitDeposit = usePermitDeposit();
+  const permitDeposit = useRouterDepositPermit();
   const vaultDeposit = useVaultDeposit();
 
   const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
