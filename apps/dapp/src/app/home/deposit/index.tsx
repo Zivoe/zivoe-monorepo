@@ -138,39 +138,18 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     setReceive(undefined);
   };
 
-  const handleDeposit = async ({ type }: { type: 'router' | 'permit' | 'vault' }) => {
+  const handleDeposit = async ({ token }: { token: DepositToken }) => {
     const isValid = await validateForm();
     if (!isValid) return;
 
-    if (type === 'router') {
-      routerDeposit.mutate(
-        {
-          stableCoinName: depositToken as RouterDepositToken,
-          amount: depositRaw
-        },
-        { onSuccess: handleDepositSuccess }
-      );
-    }
+    if (token === 'USDT')
+      routerDeposit.mutate({ stableCoinName: token, amount: depositRaw }, { onSuccess: handleDepositSuccess });
 
-    if (type === 'permit') {
-      permitDeposit.mutate(
-        {
-          stableCoinName: depositToken as PermitDepositToken,
-          amount: depositRaw
-        },
-        { onSuccess: handleDepositSuccess }
-      );
-    }
+    if (token === 'USDC' || token === 'frxUSD')
+      permitDeposit.mutate({ stableCoinName: token, amount: depositRaw }, { onSuccess: handleDepositSuccess });
 
-    if (type === 'vault') {
-      vaultDeposit.mutate(
-        {
-          stableCoinName: depositToken as VaultDepositToken,
-          amount: depositRaw
-        },
-        { onSuccess: handleDepositSuccess }
-      );
-    }
+    if (token === 'zSTT')
+      vaultDeposit.mutate({ stableCoinName: token, amount: depositRaw }, { onSuccess: handleDepositSuccess });
   };
 
   useEffect(() => {
@@ -256,7 +235,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           {isFetching ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
           ) : !hasDepositRaw ? (
-            <Button fullWidth onPress={() => handleDeposit({ type: 'router' })}>
+            <Button fullWidth onPress={() => handleDeposit({ token: depositToken })}>
               Deposit
             </Button>
           ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
@@ -278,7 +257,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             ) : depositToken === 'USDT' ? (
               <Button
                 fullWidth
-                onPress={() => handleDeposit({ type: 'router' })}
+                onPress={() => handleDeposit({ token: depositToken })}
                 isPending={routerDeposit.isPending}
                 pendingContent={
                   routerDeposit.isTxPending
@@ -293,7 +272,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             ) : depositToken === 'zSTT' ? (
               <Button
                 fullWidth
-                onPress={() => handleDeposit({ type: 'vault' })}
+                onPress={() => handleDeposit({ token: depositToken })}
                 isPending={vaultDeposit.isPending}
                 pendingContent={
                   vaultDeposit.isTxPending
@@ -309,7 +288,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
             <Button
               fullWidth
-              onPress={() => handleDeposit({ type: 'permit' })}
+              onPress={() => handleDeposit({ token: depositToken })}
               isPending={permitDeposit.isPending}
               pendingContent={
                 permitDeposit.isPermitPending
