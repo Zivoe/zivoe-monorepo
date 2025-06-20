@@ -12,8 +12,8 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
-import { RouterPermitDepositParams } from '@/app/home/deposit/_hooks/usePermitDeposit';
 import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
+import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
 import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
 
 import { ApproveTokenParams } from './useApproveSpending';
@@ -46,7 +46,7 @@ export default function useTx() {
   };
 
   const sendTx = async (
-    params: ApproveTokenParams | RouterDepositParams | RouterPermitDepositParams | VaultDepositParams
+    params: ApproveTokenParams | RouterDepositParams | RouterDepositPermitParams | VaultDepositParams
   ) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 

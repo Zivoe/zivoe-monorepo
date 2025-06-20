@@ -1,18 +1,20 @@
 import { useState } from 'react';
 
-import { useMutation } from '@tanstack/react-query';
-import { SimulateContractParameters, hexToNumber, slice } from 'viem';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSetAtom } from 'jotai';
+import { SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { WriteContractParameters } from 'wagmi/actions';
 
 import { Network } from '@zivoe/contracts';
-import { erc20PermitAbi, zivoeRouterAbi } from '@zivoe/contracts/abis';
+import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
 import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
-import { AppError, onTxError } from '@/lib/utils';
+import { transactionAtom } from '@/lib/store';
+import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
 import useTx from '@/hooks/useTx';
 
@@ -22,6 +24,8 @@ export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRout
 export const useRouterDepositPermit = () => {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
+  const queryClient = useQueryClient();
+  const setTransaction = useSetAtom(transactionAtom);
 
   const { address } = useAccount();
 
@@ -90,10 +94,36 @@ export const useRouterDepositPermit = () => {
       onTxError({
         err,
         defaultToastMsg: `Error Depositing ${stableCoinName}`
-      })
-  });
+      }),
 
-  // TODO: add onSuccess, onSettled
+    onSuccess: ({ receipt }, { stableCoinName }) => {
+      const transactionData = getDepositTransactionData({
+        stableCoinName,
+        receipt,
+        getDepositAmount: () => {
+          let depositAmount: bigint | undefined;
+
+          const seniorDepositLogs = parseEventLogs({
+            abi: zivoeTranchesAbi,
+            eventName: 'SeniorDeposit',
+            logs: receipt.logs
+          });
+
+          const seniorDepositLog = seniorDepositLogs[0];
+          if (seniorDepositLog) depositAmount = seniorDepositLog.args.amount;
+
+          return depositAmount;
+        }
+      });
+
+      setTransaction(transactionData);
+    },
+
+    onSettled: (_, err, { stableCoinName }) => {
+      if (skipTxSettled(err)) return;
+      handleDepositRefetches({ queryClient, address, stableCoinName, allowanceSpender: undefined });
+    }
+  });
 
   return {
     isTxPending,
