@@ -12,6 +12,7 @@ import { AppError, handlePromise } from '@/lib/utils';
 
 import { RouterPermitDepositParams } from '@/app/home/deposit/_hooks/usePermitDeposit';
 import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
+import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
 
 import { ApproveTokenParams } from './useApproveSpending';
 
@@ -42,7 +43,9 @@ export default function useTx() {
     throw new AppError({ message: 'Simulation error' });
   };
 
-  const sendTx = async (params: ApproveTokenParams | RouterDepositParams | RouterPermitDepositParams) => {
+  const sendTx = async (
+    params: ApproveTokenParams | RouterDepositParams | RouterPermitDepositParams | VaultDepositParams
+  ) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 
     if (err || !hash) {

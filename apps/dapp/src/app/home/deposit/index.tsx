@@ -7,6 +7,7 @@ import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'sonner';
 import { formatUnits, parseUnits } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
@@ -45,7 +46,8 @@ import ConnectedAccount from '@/components/connected-account';
 
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { PermitDepositToken, usePermitDeposit } from './_hooks/usePermitDeposit';
-import { useRouterDeposit } from './_hooks/useRouterDeposit';
+import { RouterDepositToken, useRouterDeposit } from './_hooks/useRouterDeposit';
+import { VaultDepositToken, useVaultDeposit } from './_hooks/useVaultDeposit';
 
 export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
   const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
@@ -81,8 +83,10 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   });
 
   const approveSpending = useApproveSpending();
+
   const routerDeposit = useRouterDeposit();
   const permitDeposit = usePermitDeposit();
+  const vaultDeposit = useVaultDeposit();
 
   const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
   const isDisabled =
@@ -90,7 +94,8 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     isFetching ||
     approveSpending.isPending ||
     routerDeposit.isPending ||
-    permitDeposit.isPending;
+    permitDeposit.isPending ||
+    vaultDeposit.isPending;
 
   const handleDepositChange = (value: string) => {
     const receiveAmount = getReceiveAmount({
@@ -112,15 +117,15 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 
-  const handleApprove = async () => {
+  const handleApprove = async ({ approveToken }: { approveToken: Extract<DepositToken, 'USDT' | 'zSTT'> }) => {
     const isValid = await validateForm();
     if (!isValid) return;
 
     approveSpending.mutate({
-      contract: CONTRACTS[depositToken],
-      spender: CONTRACTS.zRTR,
+      contract: CONTRACTS[approveToken],
+      spender: approveToken === 'USDT' ? CONTRACTS.zRTR : CONTRACTS.zVLT,
       amount: depositRaw,
-      name: depositToken
+      name: approveToken
     });
   };
 
@@ -129,14 +134,14 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     setReceive(undefined);
   };
 
-  const handleDeposit = async ({ type }: { type: 'router' | 'permit' }) => {
+  const handleDeposit = async ({ type }: { type: 'router' | 'permit' | 'vault' }) => {
     const isValid = await validateForm();
     if (!isValid) return;
 
     if (type === 'router') {
       routerDeposit.mutate(
         {
-          stableCoinName: depositToken,
+          stableCoinName: depositToken as RouterDepositToken,
           amount: depositRaw
         },
         { onSuccess: handleDepositSuccess }
@@ -147,6 +152,16 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
       permitDeposit.mutate(
         {
           stableCoinName: depositToken as PermitDepositToken,
+          amount: depositRaw
+        },
+        { onSuccess: handleDepositSuccess }
+      );
+    }
+
+    if (type === 'vault') {
+      vaultDeposit.mutate(
+        {
+          stableCoinName: depositToken as VaultDepositToken,
           amount: depositRaw
         },
         { onSuccess: handleDepositSuccess }
@@ -240,11 +255,11 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             <Button fullWidth onPress={() => handleDeposit({ type: 'router' })}>
               Deposit
             </Button>
-          ) : depositToken === 'USDT' ? (
+          ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
             !hasEnoughAllowance ? (
               <Button
                 fullWidth
-                onPress={handleApprove}
+                onPress={() => handleApprove({ approveToken: depositToken })}
                 isPending={approveSpending.isPending}
                 pendingContent={
                   approveSpending.isTxPending
@@ -256,7 +271,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
               >
                 Approve
               </Button>
-            ) : (
+            ) : depositToken === 'USDT' ? (
               <Button
                 fullWidth
                 onPress={() => handleDeposit({ type: 'router' })}
@@ -271,7 +286,22 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
               >
                 Deposit
               </Button>
-            )
+            ) : depositToken === 'zSTT' ? (
+              <Button
+                fullWidth
+                onPress={() => handleDeposit({ type: 'vault' })}
+                isPending={vaultDeposit.isPending}
+                pendingContent={
+                  vaultDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : vaultDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
+                }
+              >
+                Deposit
+              </Button>
+            ) : null
           ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
             <Button
               fullWidth
@@ -289,9 +319,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             >
               Deposit
             </Button>
-          ) : (
-            <div>TODO</div>
-          )}
+          ) : null}
         </ConnectedAccount>
 
         <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />

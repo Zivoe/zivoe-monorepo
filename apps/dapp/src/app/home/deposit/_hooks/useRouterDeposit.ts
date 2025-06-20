@@ -15,6 +15,7 @@ import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import useTx from '@/hooks/useTx';
 
+export type RouterDepositToken = Extract<DepositToken, 'USDT'>;
 export type RouterDepositParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositVault'>;
 
 export const useRouterDeposit = () => {
@@ -24,7 +25,7 @@ export const useRouterDeposit = () => {
   const setTransaction = useSetAtom(transactionAtom);
 
   const mutationInfo = useMutation({
-    mutationFn: async ({ stableCoinName, amount }: { stableCoinName: DepositToken; amount?: bigint }) => {
+    mutationFn: async ({ stableCoinName, amount }: { stableCoinName: RouterDepositToken; amount?: bigint }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
       const params: RouterDepositParams & SimulateContractParameters = {
