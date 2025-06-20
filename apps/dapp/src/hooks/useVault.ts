@@ -1,10 +1,12 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { useAccount, usePublicClient } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
+
+import { useAccount } from './useAccount';
 
 export const useVault = () => {
   const { address: accountAddress } = useAccount();

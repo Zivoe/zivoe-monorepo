@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { BaseError, ContractFunctionRevertedError, type Hash, type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'viem';
-import { useAccount, usePublicClient } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 import { useWriteContract } from 'wagmi';
 
 import { toast } from '@zivoe/ui/core/sonner';
@@ -16,6 +16,7 @@ import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit'
 import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
 import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
 
+import { useAccount } from './useAccount';
 import { ApproveTokenParams } from './useApproveSpending';
 
 export default function useTx() {

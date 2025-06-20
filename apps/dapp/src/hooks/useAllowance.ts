@@ -2,9 +2,11 @@ import { skipToken } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { Address } from 'viem';
-import { useAccount, usePublicClient } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
+
+import { useAccount } from './useAccount';
 
 export const useAllowance = ({ contract, spender }: { contract: Address; spender: Address }) => {
   const { address } = useAccount();

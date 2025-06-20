@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters, parseEventLogs } from 'viem';
-import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
@@ -12,6 +11,7 @@ import { CONTRACTS } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
+import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
 
 export type RouterDepositToken = Extract<DepositToken, 'USDT'>;

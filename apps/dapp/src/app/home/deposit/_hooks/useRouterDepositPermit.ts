@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { usePublicClient, useWalletClient } from 'wagmi';
 import { WriteContractParameters } from 'wagmi/actions';
 
 import { Network } from '@zivoe/contracts';
@@ -16,6 +16,7 @@ import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
+import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
 
 export type RouterDepositPermitToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;

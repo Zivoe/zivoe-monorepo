@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { useAccount } from 'wagmi';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
@@ -13,6 +12,7 @@ import { Link } from '@zivoe/ui/core/link';
 import { toast } from '@zivoe/ui/core/sonner';
 import { LockIcon } from '@zivoe/ui/icons';
 
+import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
 
 export default function ChainalysisAssessmentDialog() {

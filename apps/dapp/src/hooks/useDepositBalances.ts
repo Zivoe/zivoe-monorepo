@@ -1,12 +1,13 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
-import { useAccount, usePublicClient } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 
 import { DEPOSIT_TOKENS, DepositToken } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
 
 import { CONTRACTS } from '../lib/constants';
+import { useAccount } from './useAccount';
 
 export const useDepositBalances = () => {
   const { address: accountAddress } = useAccount();

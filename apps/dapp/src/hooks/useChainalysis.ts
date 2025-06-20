@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { sepolia } from 'viem/chains';
-import { useAccount } from 'wagmi';
+import { useAccount as useAccountWagmi } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
 
 import { env } from '@/env';
+
+import { useAccount } from './useAccount';
 
 type Assessment = {
   address: string;
@@ -17,7 +19,9 @@ type ErrorResponse = {
 };
 
 export const useChainalysis = () => {
-  const { address, chainId } = useAccount();
+  const { address } = useAccount();
+
+  const { chainId } = useAccountWagmi();
   const network = chainId ? (chainId === sepolia.id ? 'SEPOLIA' : 'MAINNET') : undefined;
 
   return useQuery({

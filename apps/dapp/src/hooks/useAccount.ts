@@ -1,17 +1,16 @@
 import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
-import { useAccount as useAccountWagmi } from 'wagmi';
+import { Address } from 'viem';
 
 export const useAccount = () => {
-  const { sdkHasLoaded } = useDynamicContext();
+  const { sdkHasLoaded, primaryWallet } = useDynamicContext();
   const isLoggedIn = useIsLoggedIn();
-  const { address } = useAccountWagmi();
 
-  const isPending = !sdkHasLoaded || (isLoggedIn && !address);
-  const isDisconnected = !isPending && (!isLoggedIn || !address);
+  const isPending = !sdkHasLoaded;
+  const isDisconnected = !isPending && !isLoggedIn;
 
   return {
     isPending,
     isDisconnected,
-    address
+    address: !isPending && !isDisconnected ? (primaryWallet?.address as Address) : undefined
   };
 };

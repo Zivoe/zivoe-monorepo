@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
 import { type Address } from 'viem/accounts';
-import { useAccount } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { DepositToken } from '@/types/constants';
@@ -12,6 +11,7 @@ import { TransactionData } from '@/lib/store';
 import { transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
+import { useAccount } from './useAccount';
 import useTx from './useTx';
 
 export type ApproveTokenParams = WriteContractParameters<typeof erc20Abi, 'approve'>;
