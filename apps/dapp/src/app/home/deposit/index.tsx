@@ -154,6 +154,11 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     }
   };
 
+  useEffect(() => {
+    const zSttBalance = depositBalances.data?.[depositToken];
+    if (zSttBalance === 0n && depositToken === 'zSTT') handleDepositTokenChange('USDC');
+  }, [depositBalances.data, depositToken]);
+
   return (
     <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
       <div className="p-4">
@@ -423,9 +428,11 @@ function DepositTokenDialog({
   isDisabled: boolean;
 }) {
   const depositBalances = useDepositBalances();
-  const icon = DEPOSIT_TOKEN_ICON[selected];
 
+  const icon = DEPOSIT_TOKEN_ICON[selected];
   if (!icon) return null;
+
+  const selectItems = getFilteredSelectItems(depositBalances.data);
 
   return (
     <Dialog>
@@ -444,7 +451,7 @@ function DepositTokenDialog({
             </DialogHeader>
 
             <div className="flex flex-col gap-2 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
-              {DEPOSIT_TOKENS_SELECT_ITEMS.map((item) => (
+              {selectItems.map((item) => (
                 <Aria.Button
                   key={item.id}
                   onPress={() => {
@@ -487,6 +494,9 @@ function DepositTokenSelect({
   isDisabled: boolean;
   onSelectionChange: (value: DepositToken) => void;
 }) {
+  const depositBalances = useDepositBalances();
+  const selectItems = getFilteredSelectItems(depositBalances.data);
+
   return (
     <Select
       placeholder="Select"
@@ -500,7 +510,7 @@ function DepositTokenSelect({
       </SelectTrigger>
 
       <SelectPopover>
-        <SelectListBox items={DEPOSIT_TOKENS_SELECT_ITEMS}>
+        <SelectListBox items={selectItems}>
           {(item) => (
             <SelectItem
               key={item.id}
@@ -517,6 +527,10 @@ function DepositTokenSelect({
     </Select>
   );
 }
+
+const getFilteredSelectItems = (depositBalances: Record<DepositToken, bigint> | undefined) => {
+  return DEPOSIT_TOKENS_SELECT_ITEMS.filter((item) => item.id !== 'zSTT' || (depositBalances?.[item.id] ?? 0n) > 0n);
+};
 
 function ZvltBalance() {
   const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
