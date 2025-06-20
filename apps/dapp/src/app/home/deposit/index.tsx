@@ -161,7 +161,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   }, [account.address]);
 
   return (
-    <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[24.75rem] xl:min-w-[39.375rem]">
+    <div className="sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]">
       <div className="p-4">
         <p className="text-h6 text-primary">Deposit & Earn</p>
       </div>
@@ -199,19 +199,11 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
                   />
 
                   <div className="ml-3">
-                    {isDesktop ? (
-                      <DepositTokenDialog
-                        isDisabled={isDisabled}
-                        selected={depositToken}
-                        onSelectionChange={handleDepositTokenChange}
-                      />
-                    ) : (
-                      <DepositTokenSelect
-                        isDisabled={isDisabled}
-                        selected={depositToken}
-                        onSelectionChange={handleDepositTokenChange}
-                      />
-                    )}
+                    <DepositTokenDialog
+                      isDisabled={isDisabled}
+                      selected={depositToken}
+                      onSelectionChange={handleDepositTokenChange}
+                    />
                   </div>
                 </div>
               }
