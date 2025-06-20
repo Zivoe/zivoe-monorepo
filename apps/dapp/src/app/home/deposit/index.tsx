@@ -44,6 +44,7 @@ import { useVault } from '@/hooks/useVault';
 import ConnectedAccount from '@/components/connected-account';
 
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
+import { PermitDepositToken, usePermitDeposit } from './_hooks/usePermitDeposit';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 
 export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
@@ -81,9 +82,15 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
 
   const approveSpending = useApproveSpending();
   const routerDeposit = useRouterDeposit();
+  const permitDeposit = usePermitDeposit();
 
   const isFetching = account.isPending || depositBalances.isFetching || zvltBalance.isFetching || allowances.isFetching;
-  const isDisabled = account.isDisconnected || isFetching || approveSpending.isPending || routerDeposit.isPending;
+  const isDisabled =
+    account.isDisconnected ||
+    isFetching ||
+    approveSpending.isPending ||
+    routerDeposit.isPending ||
+    permitDeposit.isPending;
 
   const handleDepositChange = (value: string) => {
     const receiveAmount = getReceiveAmount({
@@ -117,22 +124,34 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
     });
   };
 
-  const handleDeposit = async () => {
+  const handleDepositSuccess = () => {
+    form.reset();
+    setReceive(undefined);
+  };
+
+  const handleDeposit = async ({ type }: { type: 'router' | 'permit' }) => {
     const isValid = await validateForm();
     if (!isValid) return;
 
-    routerDeposit.mutate(
-      {
-        stableCoinName: depositToken,
-        amount: depositRaw
-      },
-      {
-        onSuccess: () => {
-          form.reset();
-          setReceive(undefined);
-        }
-      }
-    );
+    if (type === 'router') {
+      routerDeposit.mutate(
+        {
+          stableCoinName: depositToken,
+          amount: depositRaw
+        },
+        { onSuccess: handleDepositSuccess }
+      );
+    }
+
+    if (type === 'permit') {
+      permitDeposit.mutate(
+        {
+          stableCoinName: depositToken as PermitDepositToken,
+          amount: depositRaw
+        },
+        { onSuccess: handleDepositSuccess }
+      );
+    }
   };
 
   return (
@@ -213,39 +232,60 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           {isFetching ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
           ) : !hasDepositRaw ? (
-            <Button fullWidth onPress={handleDeposit}>
+            <Button fullWidth onPress={() => handleDeposit({ type: 'router' })}>
               Deposit
             </Button>
-          ) : !hasEnoughAllowance ? (
+          ) : depositToken === 'USDT' ? (
+            !hasEnoughAllowance ? (
+              <Button
+                fullWidth
+                onPress={handleApprove}
+                isPending={approveSpending.isPending}
+                pendingContent={
+                  approveSpending.isTxPending
+                    ? `Approving ${depositToken}...`
+                    : approveSpending.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+                }
+              >
+                Approve
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                onPress={() => handleDeposit({ type: 'router' })}
+                isPending={routerDeposit.isPending}
+                pendingContent={
+                  routerDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : routerDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
+                }
+              >
+                Deposit
+              </Button>
+            )
+          ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
             <Button
               fullWidth
-              onPress={handleApprove}
-              isPending={approveSpending.isPending}
+              onPress={() => handleDeposit({ type: 'permit' })}
+              isPending={permitDeposit.isPending}
               pendingContent={
-                approveSpending.isTxPending
-                  ? `Approving ${depositToken}...`
-                  : approveSpending.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
+                permitDeposit.isPermitPending
+                  ? `Signing Permit...`
+                  : permitDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : permitDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
               }
             >
-              Approve
+              Deposit
             </Button>
           ) : (
-            <Button
-              fullWidth
-              onPress={handleDeposit}
-              isPending={routerDeposit.isPending}
-              pendingContent={
-                routerDeposit.isTxPending
-                  ? `Depositing ${depositToken}...`
-                  : routerDeposit.isPending
-                    ? `Signing Transaction...`
-                    : undefined
-              }
-            >
-              Deposit
-            </Button>
+            <div>TODO</div>
           )}
         </ConnectedAccount>
 

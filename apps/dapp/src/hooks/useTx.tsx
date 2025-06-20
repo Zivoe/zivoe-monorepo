@@ -10,6 +10,7 @@ import { useWriteContract } from 'wagmi';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
+import { RouterPermitDepositParams } from '@/app/home/deposit/_hooks/usePermitDeposit';
 import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
 
 import { ApproveTokenParams } from './useApproveSpending';
@@ -27,6 +28,8 @@ export default function useTx() {
     const { err } = await handlePromise(publicClient.simulateContract({ ...params, account: address }));
     if (!err) return;
 
+    console.error('Simulation error: ', err);
+
     if (err instanceof BaseError) {
       const revertError = err.walk((err) => err instanceof ContractFunctionRevertedError);
 
@@ -39,7 +42,7 @@ export default function useTx() {
     throw new AppError({ message: 'Simulation error' });
   };
 
-  const sendTx = async (params: ApproveTokenParams | RouterDepositParams) => {
+  const sendTx = async (params: ApproveTokenParams | RouterDepositParams | RouterPermitDepositParams) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 
     if (err || !hash) {
