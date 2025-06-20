@@ -22,7 +22,7 @@ export default function ConnectedAccount({
   type?: 'loading' | 'skeleton';
 }) {
   const { setShowAuthFlow, handleLogOut } = useDynamicContext();
-  const { isPending, isDisconnected } = useAccount();
+  const { isPending, isDisconnected, address } = useAccount();
 
   const assessment = useChainalysis();
 
@@ -35,7 +35,7 @@ export default function ConnectedAccount({
     }
   };
 
-  if (isPending || assessment.isFetching || assessment.isPending) {
+  if (isPending || (address && (assessment.isFetching || assessment.isPending))) {
     return type === 'skeleton' ? (
       <Skeleton className={cn('h-10 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
     ) : (
