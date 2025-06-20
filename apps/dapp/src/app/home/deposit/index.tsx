@@ -77,10 +77,14 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
   const deposit = form.watch('deposit');
   const depositRaw = deposit ? parseUnits(deposit, DEPOSIT_TOKEN_DECIMALS[depositToken]) : undefined;
   const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
-  const hasEnoughAllowance = checkHasEnoughAllowance({
-    allowance: allowances.data?.[depositToken],
-    amount: depositRaw
-  });
+
+  const hasEnoughAllowance =
+    depositToken === 'USDT' || depositToken === 'zSTT'
+      ? checkHasEnoughAllowance({
+          allowance: allowances.data?.[depositToken],
+          amount: depositRaw
+        })
+      : true;
 
   const approveSpending = useApproveSpending();
 
