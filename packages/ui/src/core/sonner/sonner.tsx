@@ -16,12 +16,19 @@ export type ToastProps = {
   type?: IconVariant['variant'];
   title: string;
   description?: string;
+  duration?: number;
+  dismissible?: boolean;
 };
 
 function toast(toast: Omit<ToastProps, 'id'>) {
-  return sonnerToast.custom((id) => (
-    <Toast id={id} type={toast.type} title={toast.title} description={toast.description} />
-  ));
+  const isPendingToast = toast.type === 'pending';
+  const duration = toast.duration ?? (isPendingToast ? Infinity : 5000);
+  const dismissible = toast.dismissible ?? !isPendingToast;
+
+  return sonnerToast.custom(
+    (id) => <Toast id={id} type={toast.type} title={toast.title} description={toast.description} />,
+    { duration, dismissible }
+  );
 }
 
 const iconVariants = tv({
