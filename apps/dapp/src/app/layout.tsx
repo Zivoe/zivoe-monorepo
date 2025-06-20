@@ -9,7 +9,6 @@ import ChainalysisAssessmentDialog from './_components/chainalysis-assessment-di
 import Footer from './_components/footer';
 import Header from './_components/header';
 import Providers from './_components/providers';
-import { WelcomeDialog } from './_components/welcome-dialog';
 
 const title = 'Zivoe | RWA Credit Protocol';
 const description =
@@ -59,8 +58,6 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           <ChainalysisAssessmentDialog />
         </Providers>
-
-        <WelcomeDialog />
       </body>
     </html>
   );

@@ -7,7 +7,7 @@ import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { ZivoeLogoIcon } from '@zivoe/ui/icons';
 
-export const WelcomeDialog = () => {
+export default function WelcomeDialog() {
   const alreadyVisited = localStorage.getItem('zivoe-terms-accepted') === 'true';
 
   const [isOpen, setIsOpen] = useState(true);
@@ -45,7 +45,7 @@ export const WelcomeDialog = () => {
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 function TermsLink({ href, children }: { href: string; children: string }) {
   return (

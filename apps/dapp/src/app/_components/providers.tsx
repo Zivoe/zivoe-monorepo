@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
@@ -18,6 +19,10 @@ import { Toaster, toast } from '@zivoe/ui/core/sonner';
 import { NETWORK } from '@/lib/constants';
 
 import { env } from '@/env';
+
+const WelcomeDialog = dynamic(() => import('./welcome-dialog'), {
+  ssr: false
+});
 
 export default function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -36,6 +41,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       </RouterProvider>
 
       <Toaster />
+      <WelcomeDialog />
     </>
   );
 }
