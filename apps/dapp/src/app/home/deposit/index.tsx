@@ -3,7 +3,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import Decimal from 'decimal.js';
 import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
@@ -94,23 +93,6 @@ export default function Deposit() {
     });
 
     setReceive(receiveAmount);
-  };
-
-  const handleReceiveChange = (value: string) => {
-    if (!value) {
-      form.setValue('deposit', undefined as any);
-      form.setFocus('deposit');
-      return;
-    }
-
-    const depositAmount = getDepositAmount({
-      deposit: value,
-      decimals: DEPOSIT_TOKEN_DECIMALS[depositToken],
-      totalSupply: vault.data?.totalSupply ?? 0n,
-      totalAssets: vault.data?.totalAssets ?? 0n
-    });
-
-    form.setValue('deposit', (depositAmount ?? undefined) as DepositForm['deposit'], { shouldValidate: true });
   };
 
   const handleDepositTokenChange = (value: DepositToken) => {
@@ -218,13 +200,7 @@ export default function Deposit() {
           labelContent={<ZvltBalance />}
           labelClassName="h-5"
           value={receive ?? ''}
-          onChange={(value) => {
-            const parsedValue = parseInput(value);
-            setReceive(parsedValue || undefined);
-            handleReceiveChange(parsedValue);
-          }}
-          isDisabled={isDisabled}
-          decimalPlaces={18}
+          isDisabled={true}
           endContent={
             <div className="flex items-center gap-2">
               <ZVltLogo className="!size-6" />
@@ -330,29 +306,6 @@ const getReceiveAmount = ({
   }
 
   return receive;
-};
-
-const BASE_DEPOSIT = '1';
-const getDepositAmount = ({
-  deposit,
-  decimals,
-  totalSupply,
-  totalAssets
-}: {
-  deposit: string;
-  decimals: number;
-  totalSupply: bigint;
-  totalAssets: bigint;
-}) => {
-  const baseReceiveAmount = getReceiveAmount({ deposit: BASE_DEPOSIT, totalSupply, totalAssets });
-  const baseRatio = Decimal(BASE_DEPOSIT).div(Decimal(baseReceiveAmount ?? 1));
-
-  const oneWei = new Decimal(1 / 10 ** 18);
-  const adjustedDeposit = new Decimal(deposit).minus(oneWei);
-
-  const receive = baseRatio.mul(adjustedDeposit);
-  const receiveFormatted = receive.toDecimalPlaces(decimals, Decimal.ROUND_DOWN);
-  return receiveFormatted.toString();
 };
 
 function DepositTokenBalance({ token }: { token: DepositToken }) {

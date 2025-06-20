@@ -62,9 +62,6 @@ importers:
       '@zivoe/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      decimal.js:
-        specifier: ^10.5.0
-        version: 10.5.0
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(@types/pg@8.15.2)(gel@2.1.0)(pg@8.16.0)(postgres@3.4.7)
