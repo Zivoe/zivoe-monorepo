@@ -564,7 +564,7 @@ function EstimatedAnnualReturn({
 }) {
   let valueFormatted = '-';
 
-  if (zVltAmount) {
+  if (zVltAmount && zVltAmount !== '0') {
     const value = (apy / 100) * indexPrice * Number(zVltAmount ?? '0');
     valueFormatted = customNumber(value);
   }
