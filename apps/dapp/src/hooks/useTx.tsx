@@ -72,25 +72,9 @@ export default function useTx() {
     sonnerToast.dismiss(toastId);
 
     if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt' });
-    // if (receipt.status === 'reverted') throw new AppError({ message: 'Transaction reverted' });
-
-    // TODO: Remove if not needed for mobile transactions
-    // toast.success(messages.success, {
-    //   description: <ToastLink href={`${EXPLORER_URL}/tx/${hash}`}>View on Etherscan</ToastLink>
-    // });
 
     return receipt;
   };
 
   return { simulateTx, sendTx, waitForTxReceipt, isTxPending };
 }
-
-// TODO: Remove if not needed for mobile transactions
-// const ToastLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-//   return (
-//     <Link className="flex items-center gap-1 text-small" href={href} target="_blank">
-//       {children}
-//       <ArrowRightIcon className="size-4" />
-//     </Link>
-//   );
-// };
