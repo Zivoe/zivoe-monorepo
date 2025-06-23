@@ -14,13 +14,13 @@ export default function DepositHighlights() {
   return (
     <DepositInfoSection title="Highlights" icon={<StarIcon />}>
       <div className="flex flex-col gap-3">
-        <Card
+        {/*<Card
           icon={<LiquidityIcon />}
           title="24/7 Liquidity"
           description="Instantly buy and sell zVLT, 24/7/365, even on weekends and holidays."
           className="bg-element-primary-gentle"
         >
-          {/* <div className="flex gap-2">
+         <div className="flex gap-2">
             <Link variant="primary" size="m" href="/swap" hideExternalLinkIcon>
               Swap
             </Link>
@@ -28,8 +28,8 @@ export default function DepositHighlights() {
             <Link variant="border" size="m" href="https://google.com">
               View Pool on Curve
             </Link>
-          </div> */}
-        </Card>
+          </div> 
+        </Card>*/}
 
         <Card
           icon={<AutocompoundingIcon />}
