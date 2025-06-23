@@ -38,7 +38,6 @@ const ELEMENTS: Record<string, ReactElement | string> = {
   Geography: 'United States',
   'Legal Structure': 'Bankruptcy Remote SPV',
   'Regulatory Compliance': 'Reg S Compliant Offering',
-  'Minimum Deposit': '$0',
   'Management Fee': '2.5% APR',
   Liquidity: 'Instant Via Secondary Markets',
   Audits: (
