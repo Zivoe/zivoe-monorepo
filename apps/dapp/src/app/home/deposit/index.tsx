@@ -225,7 +225,8 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           labelContent={<ZvltBalance />}
           labelClassName="h-5"
           value={receive ?? ''}
-          isDisabled={true}
+          isDisabled={isDisabled}
+          isReadOnly={true}
           endContent={
             <div className="flex items-center gap-2">
               <ZVltLogo className="!size-6" />

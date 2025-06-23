@@ -131,7 +131,7 @@ const parseFields = ({
 };
 
 const inputFieldStyles = tv({
-  base: 'group flex flex-col gap-3 disabled:cursor-not-allowed'
+  base: 'group flex flex-col gap-3 group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed'
 });
 
 const InputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ className, ...props }, ref) => {
@@ -152,7 +152,7 @@ const inputGroupStyles = tv({
     /* Focus Within */
     'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_theme(colors.primary.400)] focus-within:outline-none',
     /* Disabled */
-    'disabled:cursor-not-allowed disabled:opacity-60',
+    'group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
     /* Invalid */
     'invalid:!border-alert invalid:!shadow-[0px_0px_4px_0px_theme(colors.alert.600)]',
     /* SVG */
@@ -190,7 +190,7 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
 
 const inputElementStyles = tv({
   base: [
-    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:text-tertiary disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:hidden'
+    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:hidden'
   ],
 
   variants: {
@@ -227,7 +227,7 @@ const InputButton = forwardRef<HTMLButtonElement, Aria.ButtonProps>(({ className
           /* Hover */
           'hover:opacity-100',
           /* Disabled */
-          'disabled:pointer-events-none',
+          'group-data-[readonly]:pointer-events-none disabled:pointer-events-none',
           /* Empty */
           'group-data-[empty]:invisible',
           className
