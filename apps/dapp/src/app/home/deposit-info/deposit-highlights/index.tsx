@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 
-import { Button } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { StarIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -8,29 +7,11 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 import { DepositInfoSection } from '../common';
 import { AutocompoundingIcon } from './autocompounding-icon';
 import { ExperienceIcon } from './experience-icon';
-import { LiquidityIcon } from './liquidity-icon';
 
 export default function DepositHighlights() {
   return (
     <DepositInfoSection title="Highlights" icon={<StarIcon />}>
       <div className="flex flex-col gap-3">
-        <Card
-          icon={<LiquidityIcon />}
-          title="24/7 Liquidity"
-          description="Instantly buy and sell zVLT, 24/7/365, even on weekends and holidays."
-          className="bg-element-primary-gentle"
-        >
-          {/* <div className="flex gap-2">
-            <Link variant="primary" size="m" href="/swap" hideExternalLinkIcon>
-              Swap
-            </Link>
-
-            <Link variant="border" size="m" href="https://google.com">
-              View Pool on Curve
-            </Link>
-          </div> */}
-        </Card>
-
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"

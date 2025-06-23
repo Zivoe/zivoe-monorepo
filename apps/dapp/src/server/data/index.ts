@@ -1,11 +1,13 @@
-import { cache } from 'react';
+import 'server-only';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cache as reactCache } from 'react';
+
+import { unstable_cache as nextCache } from 'next/cache';
 
 import { eq } from 'drizzle-orm';
+import { erc20Abi } from 'viem';
 
 import { getContracts } from '@zivoe/contracts';
-import { mockStablecoinAbi } from '@zivoe/contracts/abis';
 
 import { getWeb3Client } from '@/server/clients/web3';
 
@@ -15,95 +17,103 @@ import { getDb } from '../clients/db';
 import { getPonder } from '../clients/ponder';
 import { occTable } from '../clients/ponder/schema';
 
-const getDepositDailyData = cache(async () => {
-  'use cache';
-  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
-  const db = getDb(env.NEXT_PUBLIC_NETWORK);
-  const data = await db.daily.find().toArray();
+const getDepositDailyData = reactCache(
+  nextCache(
+    async () => {
+      const db = getDb(env.NEXT_PUBLIC_NETWORK);
+      const data = await db.daily.find().toArray();
 
-  return data.map((item) => ({
-    ...item,
-    _id: item._id.toString(),
-    timestamp: item.timestamp.toUTCString()
-  }));
-});
+      return data.map((item) => ({
+        ...item,
+        _id: item._id.toString(),
+        timestamp: item.timestamp.toUTCString()
+      }));
+    },
+    undefined,
+    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  )
+);
 
 export type DepositDailyData = Awaited<ReturnType<typeof getDepositDailyData>>[number];
 
-const getRevenue = async () => {
-  'use cache';
-  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+const getRevenue = nextCache(
+  async () => {
+    const network = env.NEXT_PUBLIC_NETWORK;
+    const contracts = getContracts(network);
+    const ponder = getPonder(network);
 
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const contracts = getContracts(network);
-  const ponder = getPonder(network);
+    const data = await ponder
+      .select({ totalRevenue: occTable.totalRevenue })
+      .from(occTable)
+      .where(eq(occTable.id, contracts.OCC_USDC))
+      .limit(1);
 
-  const data = await ponder
-    .select({ totalRevenue: occTable.totalRevenue })
-    .from(occTable)
-    .where(eq(occTable.id, contracts.OCC_USDC))
-    .limit(1);
+    const totalRevenue = data[0]?.totalRevenue;
+    return totalRevenue ? totalRevenue.toString() : '0';
+  },
+  undefined,
+  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+);
 
-  return data[0]?.totalRevenue ?? 0n;
-};
+const getAssetAllocation = nextCache(
+  async () => {
+    const network = env.NEXT_PUBLIC_NETWORK;
+    const client = getWeb3Client(network);
+    const contracts = getContracts(network);
+    const ponder = getPonder(network);
 
-const getAssetAllocation = async () => {
-  'use cache';
-  cacheLife({ stale: 600, revalidate: 1800, expire: 3600 });
+    const outstandingPrincipalReq = ponder
+      .select({ outstandingPrincipal: occTable.outstandingPrincipal })
+      .from(occTable)
+      .where(eq(occTable.id, contracts.OCC_USDC))
+      .limit(1);
 
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const client = getWeb3Client(network);
-  const contracts = getContracts(network);
-  const ponder = getPonder(network);
+    const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.zVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
-  const outstandingPrincipalReq = ponder
-    .select({ outstandingPrincipal: occTable.outstandingPrincipal })
-    .from(occTable)
-    .where(eq(occTable.id, contracts.OCC_USDC))
-    .limit(1);
+    const usdcBalancesReq = usdcHolders.map((address) =>
+      client.readContract({
+        address: contracts.USDC,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address]
+      })
+    );
 
-  const daoBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.DAO]
-  });
+    const m0Holders = [contracts.DAO, contracts.OCT_CONVERT, contracts.OCT_DAO];
 
-  const occUsdcBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.OCC_USDC]
-  });
+    const m0BalancesReq = m0Holders.map((address) =>
+      client.readContract({
+        address: contracts.M0,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address]
+      })
+    );
 
-  const vaultBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.ZIVOE_VAULT]
-  });
+    const [outstandingPrincipalRes, ...balancesRes] = await Promise.all([
+      outstandingPrincipalReq,
+      ...usdcBalancesReq,
+      ...m0BalancesReq
+    ]);
 
-  const octConvertBalance = client.readContract({
-    address: contracts.USDC,
-    abi: mockStablecoinAbi,
-    functionName: 'balanceOf',
-    args: [contracts.OCT_CONVERT]
-  });
+    const usdcBalances = balancesRes.slice(0, usdcHolders.length);
+    const m0Balances = balancesRes.slice(usdcHolders.length);
 
-  const [outstandingPrincipalData, ...usdcBalances] = await Promise.all([
-    outstandingPrincipalReq,
-    daoBalance,
-    occUsdcBalance,
-    vaultBalance,
-    octConvertBalance
-  ]);
+    const outstandingPrincipal = outstandingPrincipalRes[0]?.outstandingPrincipal;
+    const usdtBalance = usdcBalances.reduce((acc, curr) => acc + curr, 0n);
+    const m0Balance = m0Balances.reduce((acc, curr) => acc + curr, 0n);
 
-  return {
-    outstandingPrincipal: outstandingPrincipalData[0]?.outstandingPrincipal ?? 0n,
-    usdcBalance: usdcBalances.reduce((acc, curr) => acc + curr, 0n)
-  };
-};
+    return {
+      outstandingPrincipal: outstandingPrincipal ? outstandingPrincipal.toString() : '0',
+      usdcBalance: usdtBalance.toString(),
+      m0Balance: m0Balance.toString()
+    };
+  },
+  undefined,
+  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+);
 
 export const data = {
   getDepositDailyData,

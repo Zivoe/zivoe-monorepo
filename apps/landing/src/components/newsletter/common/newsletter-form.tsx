@@ -7,12 +7,11 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { Controller } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
-import { Portal } from '@zivoe/ui/core/portal';
+import { toast } from '@zivoe/ui/core/sonner';
 
 import { handlePromise } from '@/lib/utils';
 
@@ -45,7 +44,7 @@ export default function NewsletterForm() {
       const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
 
       if (!token || tokenErr) {
-        toast.error('Error verifying user');
+        toast({ type: 'error', title: 'Error verifying user' });
         return;
       }
 
@@ -88,7 +87,7 @@ export default function NewsletterForm() {
           siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
           onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-          onBeforeInteractive={() => toast.warning('Verify you are human to continue')}
+          onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify you are human to continue' })}
           ref={turnstileRef}
         />
       )}
@@ -107,8 +106,8 @@ const useJoinNewsletter = () => {
       return { message: res.message };
     },
 
-    onSuccess: ({ message }) => toast.success(message),
-    onError: (error) => toast.error(error.message)
+    onSuccess: ({ message }) => toast({ type: 'success', title: message }),
+    onError: (error) => toast({ type: 'error', title: error.message })
   });
 };
 

@@ -10,29 +10,24 @@ import { DAY_IN_SECONDS } from '@/lib/utils';
 import { Web3Request } from '@/types';
 
 const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) => {
-  // TODO: Remove this once we have a mainnet vault
-  if (contracts.ZIVOE_VAULT === '0x0000000000000000000000000000000000000000') {
-    return { indexPrice: 0, vaultTotalAssets: 0n };
-  }
-
   const totalSupply = await client.readContract({
-    address: contracts.ZIVOE_VAULT,
+    address: contracts.zVLT,
     abi: zivoeVaultAbi,
     functionName: 'totalSupply',
     blockNumber
   });
 
   const vaultTotalAssets = await client.readContract({
-    address: contracts.ZIVOE_VAULT,
+    address: contracts.zVLT,
     abi: zivoeVaultAbi,
     functionName: 'totalAssets',
     blockNumber
   });
 
-  const amount = parseUnits(vaultTotalAssets.toString(), 6);
-  const indexPrice = totalSupply !== 0n ? Number(formatUnits(amount / totalSupply, 6)) : 0;
+  const amount = parseUnits(vaultTotalAssets.toString(), 18);
+  const indexPrice = totalSupply !== 0n ? Number(formatUnits(amount / totalSupply, 18)) : 0;
 
-  return { indexPrice, vaultTotalAssets };
+  return { indexPrice, vaultTotalAssets: vaultTotalAssets.toString() };
 };
 
 const COMPOUNDING_PERIOD = 15;

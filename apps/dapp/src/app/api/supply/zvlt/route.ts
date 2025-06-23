@@ -43,7 +43,7 @@ export const GET = async (req: Request) => {
   const contracts = getContracts(network);
 
   const supply = await client.readContract({
-    address: contracts.ZIVOE_VAULT,
+    address: contracts.zVLT,
     abi: zivoeVaultAbi,
     functionName: 'totalSupply'
   });

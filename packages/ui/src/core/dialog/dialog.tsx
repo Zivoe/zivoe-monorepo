@@ -18,14 +18,18 @@ type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'childre
   children?: Aria.DialogProps['children'];
   role?: Aria.DialogProps['role'];
   logoType?: 'dark' | 'light';
+  dialogClassName?: string;
+  showCloseButton?: boolean;
 } & ({ isDismissable: false; isFullScreen?: never } | { isDismissable?: true; isFullScreen?: boolean });
 
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   (
     {
       className,
+      dialogClassName,
       children,
       isDismissable = true,
+      showCloseButton = true,
       isFullScreen = false,
       role,
       logoType = 'dark',
@@ -48,7 +52,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       <Aria.Modal
         className={composeRenderProps(className, (className) =>
           cn(
-            'relative z-50 w-full bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+            'relative z-50 w-full bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
             isFullScreen
               ? 'h-full overflow-y-auto'
               : 'rounded-tl-2xl rounded-tr-2xl sm:max-w-[33.75rem] sm:rounded-2xl',
@@ -76,7 +80,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
                   </Button>
                 </div>
               ) : (
-                isDismissable && (
+                isDismissable &&
+                showCloseButton && (
                   <Button size="m" variant="border-light" onPress={close} className="absolute right-4 top-4">
                     <CloseIcon />
                   </Button>
@@ -86,7 +91,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
               <div
                 className={cn(
                   'flex h-full w-full flex-col',
-                  isFullScreen ? 'w-[min(100%,30.75rem)] gap-11' : 'w-full gap-4'
+                  isFullScreen ? 'w-[min(100%,30.75rem)] gap-11' : 'w-full gap-4',
+                  dialogClassName
                 )}
               >
                 {children}
@@ -100,15 +106,11 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 );
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col gap-2 p-3', className)} {...props} />
+  <div className={cn('flex flex-col gap-2 p-4', className)} {...props} />
 );
 
 const DialogTitle = ({ className, ...props }: Aria.HeadingProps) => (
   <Aria.Heading slot="title" className={cn('text-h6 text-primary', className)} {...props} />
-);
-
-const DialogDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn('text-regular text-secondary', className)} {...props} />
 );
 
 const DialogFooter = ({ className, ...props }: { className?: string; children: React.ReactNode }) => {
@@ -118,9 +120,8 @@ const DialogFooter = ({ className, ...props }: { className?: string; children: R
 DialogContent.displayName = 'ZivoeUI.DialogContent';
 DialogHeader.displayName = 'ZivoeUI.DialogHeader';
 DialogTitle.displayName = 'ZivoeUI.DialogTitle';
-DialogDescription.displayName = 'ZivoeUI.DialogDescription';
 DialogFooter.displayName = 'ZivoeUI.DialogFooter';
 
-export { Dialog, Modal, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter };
+export { Dialog, Modal, DialogContent, DialogHeader, DialogTitle, DialogFooter };
 
 export type { DialogProps, DialogContentProps };

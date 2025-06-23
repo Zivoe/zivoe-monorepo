@@ -1,7 +1,6 @@
-import './src/env.js';
+import type { NextConfig } from 'next';
 
-/** @type {import("next").NextConfig} */
-const config = {
+const nextConfig: NextConfig = {
   experimental: {
     ppr: true,
     staleTimes: {
@@ -12,4 +11,4 @@ const config = {
   }
 };
 
-export default config;
+module.exports = nextConfig;
