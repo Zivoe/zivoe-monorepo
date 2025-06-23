@@ -137,7 +137,7 @@ export const getDepositTransactionData = ({
       ? {
           type: 'SUCCESS',
           title: 'Deposit Successful',
-          description: 'Your deposit has been completed.',
+          description: 'zVLT tokens have been transferred to your wallet.',
           hash: receipt.transactionHash,
           meta
         }
