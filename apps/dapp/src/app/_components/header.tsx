@@ -90,11 +90,8 @@ function NavigationItems() {
   );
 }
 
-// TODO
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Deposit', href: '/' },
-  { title: 'Portfolio', href: '/portfolio', isDisabled: true },
-  { title: 'Swap', href: '/swap', isDisabled: true }
+  { title: 'Deposit', href: '/' }
 ];
 
 function Wallet() {

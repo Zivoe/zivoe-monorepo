@@ -18,7 +18,6 @@ import { customNumber } from '@/lib/utils';
 
 import { env } from '@/env';
 
-// TODO: Add Market Price when we have the data
 const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
 type ChartType = (typeof CHART_TYPES)[number];
 

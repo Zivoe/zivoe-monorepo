@@ -225,7 +225,8 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
           labelContent={<ZvltBalance />}
           labelClassName="h-5"
           value={receive ?? ''}
-          isDisabled={true}
+          isDisabled={isDisabled}
+          isReadOnly={true}
           endContent={
             <div className="flex items-center gap-2">
               <ZVltLogo className="!size-6" />
@@ -391,7 +392,7 @@ const DEPOSIT_TOKEN_NAME: Record<DepositToken, string> = {
   USDC: 'USD Coin',
   USDT: 'Tether USD',
   frxUSD: 'Frax USD',
-  zSTT: 'Legacy token by Zivoe'
+  zSTT: 'Senior Tranche Token (Legacy)'
 };
 
 const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => ({
@@ -564,7 +565,7 @@ function EstimatedAnnualReturn({
 }) {
   let valueFormatted = '-';
 
-  if (zVltAmount) {
+  if (zVltAmount && zVltAmount !== '0') {
     const value = (apy / 100) * indexPrice * Number(zVltAmount ?? '0');
     valueFormatted = customNumber(value);
   }
