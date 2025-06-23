@@ -7,7 +7,7 @@ import { Link, LinkProps } from '@zivoe/ui/core/link';
 
 import { web3 } from '@/server/web3';
 
-import { formatBigIntToReadable } from '@/lib/utils';
+import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -78,21 +78,13 @@ async function Statistics() {
   'use cache';
   cacheLife('minutes');
 
-  // TODO: Update this once we have a mainnet vault and we don't need the hardcoded APY
-  // const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
-  const [tvl, revenue] = await Promise.all([web3.getTVL(), web3.getRevenue()]);
+  const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
 
   return (
     <div className="flex gap-6 lg:gap-16">
       <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
 
-      {/* <Statistic label="APY" value={`${apy.toFixed(2)}%`} /> */}
-
-      <Statistic
-        label="APY"
-        value="15.5%"
-        description="This is the approximate yield of Zivoe's new zVLT product, which will be launching in May. Upon launch the real time yield of zVLT will be displayed here."
-      />
+      {apy && <Statistic label="APY" value={customNumber(apy) + '%'} />}
 
       <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
     </div>
