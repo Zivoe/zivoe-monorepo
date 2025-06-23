@@ -391,7 +391,7 @@ const DEPOSIT_TOKEN_NAME: Record<DepositToken, string> = {
   USDC: 'USD Coin',
   USDT: 'Tether USD',
   frxUSD: 'Frax USD',
-  zSTT: 'Legacy token by Zivoe'
+  zSTT: 'Senior Tranche Token (Legacy)'
 };
 
 const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => ({
