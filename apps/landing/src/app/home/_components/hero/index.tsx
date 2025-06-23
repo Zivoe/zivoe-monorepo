@@ -28,14 +28,6 @@ export default function Hero() {
       <Container className="mt-[3.125rem] sm:px-10 md:px-[6.25rem] lg:my-[7.5rem]">
         <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-[33rem] sm:gap-16 lg:max-w-[41.25rem] lg:gap-[12.5rem]">
           <div>
-            {/* <NextLink
-              href="/"
-              className="flex h-7 w-fit items-center gap-1 rounded-full bg-tertiary-500 px-3 text-extraSmall text-primary hover:bg-tertiary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-[1px] focus-visible:ring-offset-neutral-0 sm:h-9 sm:text-leading"
-            >
-              Zivoe Announces Series A Funding Round
-              <ChevronRightIcon className="size-4" />
-            </NextLink> */}
-
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
               <p className="text-h4 text-primary sm:text-h2">Grow Your Wealth With Consumer Credit</p>
               <p className="text-smallSubheading text-primary sm:max-w-full">
