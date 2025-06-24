@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
+import { Abi, type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
 import { type Address } from 'viem/accounts';
 import { type WriteContractParameters } from 'wagmi/actions';
+
+import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 
 import { DepositToken } from '@/types/constants';
 
@@ -14,7 +16,8 @@ import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 import { useAccount } from './useAccount';
 import useTx from './useTx';
 
-export type ApproveTokenParams = WriteContractParameters<typeof erc20Abi, 'approve'>;
+export type ApproveTokenAbi = typeof tetherTokenAbi | typeof zivoeTrancheTokenAbi | typeof erc20Abi;
+export type ApproveTokenParams = WriteContractParameters<ApproveTokenAbi, 'approve'>;
 
 export const useApproveSpending = () => {
   const { address } = useAccount();
@@ -27,17 +30,19 @@ export const useApproveSpending = () => {
       contract,
       spender,
       amount,
-      name
+      name,
+      abi
     }: {
       contract: Address;
       spender: Address;
       amount?: bigint;
       name: string;
+      abi: ApproveTokenAbi;
     }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
 
       const params: ApproveTokenParams & SimulateContractParameters = {
-        abi: erc20Abi,
+        abi,
         address: contract,
         functionName: 'approve',
         args: [spender, amount]
@@ -61,13 +66,13 @@ export const useApproveSpending = () => {
         defaultToastMsg: `Error Approving ${name}`
       }),
 
-    onSuccess: ({ receipt }, { name }) => {
+    onSuccess: ({ receipt }, { name, abi }) => {
       let meta: TransactionData['meta'] = undefined;
 
       if (receipt.status === 'success') {
         try {
           const approvalLogs = parseEventLogs({
-            abi: erc20Abi,
+            abi,
             eventName: 'Approval',
             logs: receipt.logs
           });
