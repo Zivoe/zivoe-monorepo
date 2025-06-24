@@ -7,10 +7,12 @@ import { useAtomValue } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { useMediaQuery } from 'react-responsive';
-import { formatUnits, parseUnits } from 'viem';
+import { Abi, erc20Abi, formatUnits, parseUnits } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
 
+import { Network } from '@zivoe/contracts';
+import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
@@ -37,7 +39,7 @@ import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { checkHasEnoughAllowance } from '@/hooks/useAllowance';
-import { useApproveSpending } from '@/hooks/useApproveSpending';
+import { ApproveTokenAbi, useApproveSpending } from '@/hooks/useApproveSpending';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
@@ -136,7 +138,8 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
       contract: CONTRACTS[approveToken],
       spender: approveToken === 'USDT' ? CONTRACTS.zRTR : CONTRACTS.zVLT,
       amount: depositRaw,
-      name: approveToken
+      name: approveToken,
+      abi: APPROVE_TOKEN_ABI[NETWORK][approveToken]
     });
   };
 
@@ -695,3 +698,14 @@ function TransactionDialogToken({
     </div>
   );
 }
+
+const APPROVE_TOKEN_ABI: Record<Network, Record<Extract<DepositToken, 'USDT' | 'zSTT'>, ApproveTokenAbi>> = {
+  MAINNET: {
+    USDT: tetherTokenAbi,
+    zSTT: zivoeTrancheTokenAbi
+  },
+  SEPOLIA: {
+    USDT: erc20Abi,
+    zSTT: zivoeTrancheTokenAbi
+  }
+};

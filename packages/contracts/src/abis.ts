@@ -1,166 +1,4 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MockStablecoin
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const mockStablecoinAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: 'name', internalType: 'string', type: 'string' },
-      { name: 'symbol', internalType: 'string', type: 'string' },
-      { name: '_dec', internalType: 'uint8', type: 'uint8' }
-    ],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' }
-    ],
-    name: 'allowance',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'approve',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'subtractedValue', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'decreaseAllowance',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'addedValue', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'increaseAllowance',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'mint',
-    outputs: [],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'transfer',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' }
-    ],
-    name: 'transferFrom',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable'
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true
-      },
-      {
-        name: 'spender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true
-      },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      }
-    ],
-    name: 'Approval'
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      }
-    ],
-    name: 'Transfer'
-  }
-] as const;
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ZivoeGlobals
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2639,4 +2477,399 @@ export const erc20PermitAbi = [
     inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
     name: 'StringTooLong'
   }
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Tether Token
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const tetherTokenAbi = [
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '_upgradedAddress', type: 'address' }],
+    name: 'deprecate',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: '_spender', type: 'address' },
+      { name: '_value', type: 'uint256' }
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'deprecated',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '_evilUser', type: 'address' }],
+    name: 'addBlackList',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: '_from', type: 'address' },
+      { name: '_to', type: 'address' },
+      { name: '_value', type: 'uint256' }
+    ],
+    name: 'transferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'upgradedAddress',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '', type: 'address' }],
+    name: 'balances',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'decimals',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'maximumFee',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: '_totalSupply',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '_maker', type: 'address' }],
+    name: 'getBlackListStatus',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: '', type: 'address' },
+      { name: '', type: 'address' }
+    ],
+    name: 'allowed',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: 'who', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'pause',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'getOwner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: '_to', type: 'address' },
+      { name: '_value', type: 'uint256' }
+    ],
+    name: 'transfer',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: 'newBasisPoints', type: 'uint256' },
+      { name: 'newMaxFee', type: 'uint256' }
+    ],
+    name: 'setParams',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    name: 'issue',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    name: 'redeem',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [
+      { name: '_owner', type: 'address' },
+      { name: '_spender', type: 'address' }
+    ],
+    name: 'allowance',
+    outputs: [{ name: 'remaining', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'basisPointsRate',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '', type: 'address' }],
+    name: 'isBlackListed',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '_clearedUser', type: 'address' }],
+    name: 'removeBlackList',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: true,
+    payable: false,
+    type: 'function',
+    inputs: [],
+    name: 'MAX_UINT',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: 'newOwner', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    constant: false,
+    payable: false,
+    type: 'function',
+    inputs: [{ name: '_blackListedUser', type: 'address' }],
+    name: 'destroyBlackFunds',
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    payable: false,
+    type: 'constructor',
+    inputs: [
+      { name: '_initialSupply', type: 'uint256' },
+      { name: '_name', type: 'string' },
+      { name: '_symbol', type: 'string' },
+      { name: '_decimals', type: 'uint256' }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: 'amount', type: 'uint256', indexed: false }],
+    name: 'Issue'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: 'amount', type: 'uint256', indexed: false }],
+    name: 'Redeem'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: 'newAddress', type: 'address', indexed: false }],
+    name: 'Deprecate'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'feeBasisPoints', type: 'uint256', indexed: false },
+      { name: 'maxFee', type: 'uint256', indexed: false }
+    ],
+    name: 'Params'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: '_blackListedUser', type: 'address', indexed: false },
+      { name: '_balance', type: 'uint256', indexed: false }
+    ],
+    name: 'DestroyedBlackFunds'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: '_user', type: 'address', indexed: false }],
+    name: 'AddedBlackList'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: '_user', type: 'address', indexed: false }],
+    name: 'RemovedBlackList'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'spender', type: 'address', indexed: true },
+      { name: 'value', type: 'uint256', indexed: false }
+    ],
+    name: 'Approval'
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'from', type: 'address', indexed: true },
+      { name: 'to', type: 'address', indexed: true },
+      { name: 'value', type: 'uint256', indexed: false }
+    ],
+    name: 'Transfer'
+  },
+  { type: 'event', anonymous: false, inputs: [], name: 'Pause' },
+  { type: 'event', anonymous: false, inputs: [], name: 'Unpause' }
 ] as const;
