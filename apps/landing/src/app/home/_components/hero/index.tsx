@@ -61,7 +61,7 @@ export default function Hero() {
 function HeroButton(props: LinkProps) {
   return (
     <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary" {...props}>
-      Legacy App
+      Start Earning
     </Link>
   );
 }

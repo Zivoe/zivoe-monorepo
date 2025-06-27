@@ -47,7 +47,7 @@ function Desktop() {
         size="m"
         className="my-[10px] mr-[10px]"
       >
-        Legacy App
+        Start Earning
       </Link>
     </div>
   );
