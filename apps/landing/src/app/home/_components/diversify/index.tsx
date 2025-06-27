@@ -21,7 +21,7 @@ export default function Diversify() {
         </div>
 
         <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary">
-          Legacy App
+          Start Earning
         </Link>
       </div>
 
