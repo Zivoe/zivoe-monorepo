@@ -18,6 +18,7 @@ This is the monorepo for the Zivoe websites [zivoe.com](https://zivoe.com) and [
 │   ├── eslint           # Shared linting config
 │   ├── prettier         # Shared prettier config
 │   └── typescript       # Shared TS config
+│   └── ui               # Shared UI component library
 │
 ├── .vscode/             # Editor settings
 ├── .gitignore
