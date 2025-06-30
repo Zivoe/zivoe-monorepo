@@ -25,7 +25,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
       </div>
 
       <Dialog isOpen={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
-        <DialogContent dialogClassName="gap-0" className="max-w-[100vw]">
+        <DialogContent dialogClassName="gap-0">
           <DialogHeader>
             <DialogTitle>Deposit & Earn</DialogTitle>
           </DialogHeader>
