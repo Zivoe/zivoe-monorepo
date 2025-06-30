@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { Network } from '@zivoe/contracts';
 import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
+import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Link } from '@zivoe/ui/core/link';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
@@ -55,12 +55,14 @@ export default function DepositBox({
   indexPrice,
   apy,
   className,
-  withTitle = true
+  withTitle = true,
+  boxClassName
 }: {
   indexPrice: number;
   apy: number;
   className?: string;
   withTitle?: boolean;
+  boxClassName?: string;
 }) {
   const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
 
@@ -194,7 +196,7 @@ export default function DepositBox({
         </div>
       )}
 
-      <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+      <DialogContentBox className={boxClassName}>
         <Controller
           control={form.control}
           name="deposit"
@@ -341,7 +343,7 @@ export default function DepositBox({
         </ConnectedAccount>
 
         {account.address && receive && <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />}
-      </div>
+      </DialogContentBox>
 
       <TransactionDialog />
     </div>
@@ -456,7 +458,7 @@ function DepositMaxButton({
   };
 
   return (
-    <div className="flex items-center border-r border-default px-3">
+    <div className="hidden items-center border-r border-default px-3 sm:flex">
       <Button variant="border-light" size="s" isDisabled={isDisabled} onPress={handleMaxDeposit}>
         Max
       </Button>
@@ -496,7 +498,7 @@ function DepositTokenDialog({
               <DialogTitle>Select Asset</DialogTitle>
             </DialogHeader>
 
-            <div className="flex flex-col gap-2 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+            <DialogContentBox className="gap-2 p-4">
               {selectItems.map((item) => (
                 <Aria.Button
                   key={item.id}
@@ -523,7 +525,7 @@ function DepositTokenDialog({
                   </p>
                 </Aria.Button>
               ))}
-            </div>
+            </DialogContentBox>
           </>
         )}
       </DialogContent>
@@ -627,7 +629,7 @@ function TransactionDialog() {
     <Dialog isOpen={isOpen} onOpenChange={setIsOpen}>
       <DialogContent showCloseButton={false}>
         {({ close }) => (
-          <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+          <DialogContentBox className="p-4">
             <div className="flex flex-col items-center gap-6 py-3">
               <div
                 className={cn(
@@ -688,7 +690,7 @@ function TransactionDialog() {
             <Button variant="border-light" fullWidth onPress={close}>
               Close
             </Button>
-          </div>
+          </DialogContentBox>
         )}
       </DialogContent>
     </Dialog>

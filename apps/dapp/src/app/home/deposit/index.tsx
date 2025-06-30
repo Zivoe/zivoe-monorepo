@@ -30,7 +30,13 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             <DialogTitle>Deposit & Earn</DialogTitle>
           </DialogHeader>
 
-          <DepositBox indexPrice={indexPrice} apy={apy} className="block p-0 lg:hidden" withTitle={false} />
+          <DepositBox
+            indexPrice={indexPrice}
+            apy={apy}
+            className="block p-0 lg:hidden"
+            withTitle={false}
+            boxClassName="p-4"
+          />
         </DialogContent>
       </Dialog>
     </>

@@ -105,6 +105,20 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   )
 );
 
+const DialogContentBox = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn('flex flex-col gap-2 p-4', className)} {...props} />
 );
@@ -122,6 +136,6 @@ DialogHeader.displayName = 'ZivoeUI.DialogHeader';
 DialogTitle.displayName = 'ZivoeUI.DialogTitle';
 DialogFooter.displayName = 'ZivoeUI.DialogFooter';
 
-export { Dialog, Modal, DialogContent, DialogHeader, DialogTitle, DialogFooter };
+export { Dialog, Modal, DialogContent, DialogContentBox, DialogHeader, DialogTitle, DialogFooter };
 
 export type { DialogProps, DialogContentProps };
