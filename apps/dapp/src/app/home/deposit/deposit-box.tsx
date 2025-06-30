@@ -647,7 +647,7 @@ function TransactionDialog() {
               <div className="flex flex-col items-center gap-4">
                 <div className="flex flex-col items-center gap-2">
                   <p className="text-h5 text-primary">{transaction.title}</p>
-                  <p className="text-regular text-secondary">{transaction.description}</p>
+                  <p className="text-center text-regular text-secondary">{transaction.description}</p>
                 </div>
 
                 <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
