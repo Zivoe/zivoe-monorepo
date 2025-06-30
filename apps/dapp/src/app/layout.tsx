@@ -3,7 +3,11 @@ import { type ReactNode } from 'react';
 import { Metadata } from 'next';
 import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
+import { Analytics } from '@vercel/analytics/next';
+
 import '@zivoe/ui/globals.css';
+
+import { env } from '@/env';
 
 import ChainalysisAssessmentDialog from './_components/chainalysis-assessment-dialog';
 import Footer from './_components/footer';
@@ -58,6 +62,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           <ChainalysisAssessmentDialog />
         </Providers>
+
+        <Analytics mode={env.NEXT_PUBLIC_ENV} />
       </body>
     </html>
   );

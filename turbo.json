@@ -25,7 +25,8 @@
         "NEXT_PUBLIC_NETWORK",
         "UPSTASH_REDIS_REST_URL",
         "UPSTASH_REDIS_REST_TOKEN",
-        "NEXT_PUBLIC_ZIVOE_ANALYTICS_URL"
+        "NEXT_PUBLIC_ZIVOE_ANALYTICS_URL",
+        "NEXT_PUBLIC_ENV"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

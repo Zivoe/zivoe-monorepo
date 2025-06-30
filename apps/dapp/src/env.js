@@ -14,6 +14,7 @@ export const env = createEnv({
   },
 
   client: {
+    NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_NETWORK: z.enum(['MAINNET', 'SEPOLIA']),
     NEXT_PUBLIC_MAINNET_ALCHEMY_API_KEY: z.string(),
@@ -34,7 +35,8 @@ export const env = createEnv({
     NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: process.env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL
+    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: process.env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL,
+    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
