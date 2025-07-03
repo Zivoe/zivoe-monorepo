@@ -47,7 +47,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         /* Entering */
         'data-[entering]:animate-in data-[entering]:fade-in-0',
         /* Exiting */
-        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0'
+        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0',
+        'h-[var(--visual-viewport-height)]'
       )}
     >
       <Aria.Modal
@@ -55,7 +56,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
           cn(
             nativeScrollAreaStyles(),
             'relative z-50 w-full overflow-auto bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
-            isFullScreen ? 'h-full' : 'max-h-[90dvh] max-w-[33.75rem] rounded-2xl',
+            isFullScreen ? 'h-full' : 'max-h-full max-w-[33.75rem] rounded-2xl',
             /* Entering */
             'data-[entering]:animate-in data-[entering]:fade-in-0 data-[entering]:zoom-in-75',
             /* Exiting */
