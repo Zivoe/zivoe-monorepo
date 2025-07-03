@@ -203,6 +203,7 @@ export default function DepositBox({
           render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
             <Input
               {...field}
+              inputMode="numeric"
               variant="amount"
               label="Deposit"
               labelContent={<DepositTokenBalance token={depositToken} />}
@@ -230,7 +231,6 @@ export default function DepositBox({
 
                   <div className="ml-3">
                     <>
-                      {' '}
                       {isDesktop ? (
                         <DepositTokenDialog
                           isDisabled={isDisabled}
