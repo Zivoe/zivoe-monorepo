@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useAtom } from 'jotai';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
+
+import { depositDialogAtom } from '@/lib/store';
 
 import ConnectedAccount from '@/components/connected-account';
 
 import DepositBox from './deposit-box';
 
 export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
-  const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
+  const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>

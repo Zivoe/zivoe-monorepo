@@ -8,7 +8,7 @@ import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS } from '@/lib/constants';
-import { transactionAtom } from '@/lib/store';
+import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -22,6 +22,7 @@ export const useVaultDeposit = () => {
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const setTransaction = useSetAtom(transactionAtom);
+  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
   const mutationInfo = useMutation({
     mutationFn: async ({ stableCoinName, amount }: { stableCoinName: VaultDepositToken; amount?: bigint }) => {
@@ -74,6 +75,7 @@ export const useVaultDeposit = () => {
       });
 
       setTransaction(transactionData);
+      if (transactionData.type === 'SUCCESS') setIsDepositDialogOpen(false);
     },
 
     onSettled: (_, err, { stableCoinName }) => {
