@@ -12,7 +12,7 @@ import DepositInfo from './deposit-info';
 
 export default function Home() {
   return (
-    <>
+    <div>
       <Hero title="zVLT" description="Gain exposure to consumer credit" />
 
       <Page className="flex gap-10 lg:flex-row">
@@ -26,7 +26,7 @@ export default function Home() {
           <DepositWrapper />
         </Suspense>
       </Page>
-    </>
+    </div>
   );
 }
 

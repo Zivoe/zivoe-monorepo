@@ -9,6 +9,7 @@ export * from './chevron-right';
 export * from './close';
 export * from './hamburger';
 export * from './globe';
+export * from './globe-secondary';
 export * from './money-hand';
 export * from './chart-light';
 export * from './arrow-right';
