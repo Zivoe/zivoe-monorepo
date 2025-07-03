@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
+import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { ZivoeLogoIcon } from '@zivoe/ui/icons';
 
@@ -22,7 +22,7 @@ export default function WelcomeDialog() {
   return (
     <Dialog isOpen={isOpen} onOpenChange={setIsOpen}>
       <DialogContent isDismissable={false}>
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+        <DialogContentBox className="p-4">
           <div className="flex flex-col items-center gap-6 py-3">
             <ZivoeLogoIcon />
 
@@ -41,7 +41,7 @@ export default function WelcomeDialog() {
           <Button fullWidth onPress={handleAccept}>
             Continue
           </Button>
-        </div>
+        </DialogContentBox>
       </DialogContent>
     </Dialog>
   );

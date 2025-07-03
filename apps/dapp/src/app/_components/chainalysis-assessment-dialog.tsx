@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent } from '@zivoe/ui/core/dialog';
+import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { toast } from '@zivoe/ui/core/sonner';
 import { LockIcon } from '@zivoe/ui/icons';
@@ -44,7 +44,7 @@ export default function ChainalysisAssessmentDialog() {
   return (
     <Dialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent isDismissable={false}>
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+        <DialogContentBox className="p-4">
           <div className="flex flex-col items-center gap-6 py-3">
             <div className="flex size-12 items-center justify-center rounded-md bg-element-alert-light">
               <LockIcon className="size-8 text-alert-contrast" />
@@ -69,25 +69,25 @@ export default function ChainalysisAssessmentDialog() {
                 for further assistance.
               </p>
             </div>
-
-            {assessment.data?.riskReason && (
-              <div className="flex w-full flex-col gap-1 rounded-md bg-surface-elevated px-4 py-3">
-                <p className="text-regular font-medium text-primary">Denial reason</p>
-                <p className="text-small text-secondary">{assessment.data?.riskReason}</p>
-              </div>
-            )}
-
-            <div className="flex w-full gap-4">
-              <Link fullWidth variant="border-light" href="https://zivoe.com" target="_blank">
-                Back to Homepage
-              </Link>
-
-              <Button fullWidth onPress={handleDisconnect}>
-                Disconnect
-              </Button>
-            </div>
           </div>
-        </div>
+
+          {assessment.data?.riskReason && (
+            <div className="flex w-full flex-col gap-1 rounded-md bg-surface-elevated px-4 py-3">
+              <p className="text-regular font-medium text-primary">Denial reason</p>
+              <p className="text-small text-secondary">{assessment.data?.riskReason}</p>
+            </div>
+          )}
+
+          <div className="flex w-full flex-wrap gap-4 sm:flex-nowrap">
+            <Link fullWidth variant="border-light" href="https://zivoe.com" target="_blank">
+              Back to Homepage
+            </Link>
+
+            <Button fullWidth onPress={handleDisconnect}>
+              Disconnect
+            </Button>
+          </div>
+        </DialogContentBox>
       </DialogContent>
     </Dialog>
   );

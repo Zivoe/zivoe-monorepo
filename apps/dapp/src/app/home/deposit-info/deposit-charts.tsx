@@ -71,7 +71,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               tickLine={false}
               axisLine={false}
               tickMargin={20}
-              interval={Math.floor(chart.data.length / (isMobile ? 5 : 10))}
+              interval="preserveStartEnd"
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 

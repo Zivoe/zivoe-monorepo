@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Header />
 
           <div className="flex h-full flex-col justify-between">
-            <div>{children}</div>
+            {children}
             <Footer />
           </div>
 
