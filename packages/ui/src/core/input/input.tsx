@@ -22,6 +22,7 @@ interface InputProps extends Aria.SearchFieldProps, VariantProps<typeof inputGro
   labelContent?: ReactNode;
   labelClassName?: string;
   decimalPlaces?: number;
+  hasNormalStyleIfDisabled?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -43,6 +44,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       autoComplete,
       onChange,
       decimalPlaces = 18,
+      hasNormalStyleIfDisabled = false,
       ...props
     },
     ref
@@ -78,10 +80,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               </div>
             )}
 
-            <InputGroup variant={variant} className={groupClassName}>
+            <InputGroup
+              variant={variant}
+              hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
+              className={groupClassName}
+            >
               {startContent}
 
-              <InputElement variant={variant} placeholder={parsedPlaceholder} type={parsedType} ref={ref} />
+              <InputElement
+                variant={variant}
+                hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
+                placeholder={parsedPlaceholder}
+                type={parsedType}
+                ref={ref}
+              />
 
               {endContent}
 
@@ -163,23 +175,30 @@ const inputGroupStyles = tv({
     variant: {
       default: 'h-12 bg-surface-base-soft px-4 text-small',
       amount: 'h-20 bg-surface-base pl-6 pr-4 text-h6'
+    },
+
+    hasNormalStyleIfDisabled: {
+      true: 'disabled:opacity-100'
     }
   },
 
   defaultVariants: {
-    variant: 'default'
+    variant: 'default',
+    hasNormalStyleIfDisabled: false
   }
 });
 
 const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typeof inputGroupStyles>>(
-  ({ className, variant, ...props }, ref) => {
+  ({ className, variant, hasNormalStyleIfDisabled, ...props }, ref) => {
     const buttonContext = useContext(Aria.ButtonContext);
 
     return (
       <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => {}, excludeFromTabOrder: false }}>
         <Aria.Group
           onClick={(e) => e.currentTarget.querySelector('input')?.focus()}
-          className={composeRenderProps(className, (className) => inputGroupStyles({ className, variant }))}
+          className={composeRenderProps(className, (className) =>
+            inputGroupStyles({ className, variant, hasNormalStyleIfDisabled })
+          )}
           {...props}
           ref={ref}
         />
@@ -190,26 +209,33 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
 
 const inputElementStyles = tv({
   base: [
-    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:hidden'
+    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-search-cancel-button]:hidden'
   ],
 
   variants: {
     variant: {
       default: 'bg-surface-base-soft placeholder:text-small',
       amount: 'bg-surface-base placeholder:text-h6'
+    },
+
+    hasNormalStyleIfDisabled: {
+      true: 'disabled:opacity-100'
     }
   },
 
   defaultVariants: {
-    variant: 'default'
+    variant: 'default',
+    hasNormalStyleIfDisabled: false
   }
 });
 
 const InputElement = forwardRef<HTMLInputElement, Aria.InputProps & VariantProps<typeof inputElementStyles>>(
-  ({ className, variant, ...props }, ref) => {
+  ({ className, variant, hasNormalStyleIfDisabled, ...props }, ref) => {
     return (
       <Aria.Input
-        className={composeRenderProps(className, (className) => inputElementStyles({ className, variant }))}
+        className={composeRenderProps(className, (className) =>
+          inputElementStyles({ className, variant, hasNormalStyleIfDisabled })
+        )}
         {...props}
         ref={ref}
       />

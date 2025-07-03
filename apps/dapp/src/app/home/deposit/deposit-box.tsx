@@ -256,8 +256,8 @@ export default function DepositBox({
           labelContent={<ZvltBalance />}
           labelClassName="h-5"
           value={receive ?? ''}
-          isDisabled={isDisabled}
-          isReadOnly={true}
+          isDisabled
+          hasNormalStyleIfDisabled={!isDisabled}
           endContent={
             <div className="flex items-center gap-2">
               <ZVltLogo className="!size-6" />
