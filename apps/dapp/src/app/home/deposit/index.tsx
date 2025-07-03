@@ -11,12 +11,12 @@ import ConnectedAccount from '@/components/connected-account';
 
 import DepositBox from './deposit-box';
 
-export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: number }) {
+export default function Deposit({ apy }: { apy: number }) {
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>
-      <DepositBox indexPrice={indexPrice} apy={apy} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
+      <DepositBox apy={apy} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -32,13 +32,7 @@ export default function Deposit({ indexPrice, apy }: { indexPrice: number; apy: 
             <DialogTitle>Deposit & Earn</DialogTitle>
           </DialogHeader>
 
-          <DepositBox
-            indexPrice={indexPrice}
-            apy={apy}
-            className="block p-0 lg:hidden"
-            withTitle={false}
-            boxClassName="p-4"
-          />
+          <DepositBox apy={apy} className="block p-0 lg:hidden" withTitle={false} boxClassName="p-4" />
         </DialogContent>
       </Dialog>
     </>

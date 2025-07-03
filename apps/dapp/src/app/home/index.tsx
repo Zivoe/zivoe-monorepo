@@ -36,8 +36,5 @@ async function DepositWrapper() {
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  const indexPrice = currentDailyData.indexPrice;
-  const apy = currentDailyData.apy;
-
-  return <Deposit indexPrice={indexPrice} apy={apy} />;
+  return <Deposit apy={currentDailyData.apy} />;
 }

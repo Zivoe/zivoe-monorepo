@@ -52,13 +52,11 @@ import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
 import { useVaultDeposit } from './_hooks/useVaultDeposit';
 
 export default function DepositBox({
-  indexPrice,
   apy,
   className,
   withTitle = true,
   boxClassName
 }: {
-  indexPrice: number;
   apy: number;
   className?: string;
   withTitle?: boolean;
@@ -342,7 +340,7 @@ export default function DepositBox({
           ) : null}
         </ConnectedAccount>
 
-        {account.address && receive && <EstimatedAnnualReturn zVltAmount={receive} indexPrice={indexPrice} apy={apy} />}
+        {account.address && receive && <EstimatedAnnualReturn depositAmount={deposit} apy={apy} />}
       </DialogContentBox>
 
       <TransactionDialog />
@@ -587,19 +585,12 @@ function ZvltBalance() {
   return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;
 }
 
-function EstimatedAnnualReturn({
-  zVltAmount,
-  indexPrice,
-  apy
-}: {
-  zVltAmount: string | undefined;
-  indexPrice: number;
-  apy: number;
-}) {
+function EstimatedAnnualReturn({ depositAmount, apy }: { depositAmount: string; apy: number }) {
   let valueFormatted = '-';
+  const depositAmountNumber = Number(depositAmount);
 
-  if (zVltAmount && zVltAmount !== '0') {
-    const value = (apy / 100) * indexPrice * Number(zVltAmount ?? '0');
+  if (depositAmountNumber !== 0) {
+    const value = (apy / 100) * depositAmountNumber;
     valueFormatted = customNumber(value);
   }
 
