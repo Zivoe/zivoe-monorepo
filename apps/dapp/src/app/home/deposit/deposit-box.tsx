@@ -201,7 +201,7 @@ export default function DepositBox({
           render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
             <Input
               {...field}
-              inputMode="numeric"
+              inputMode="decimal"
               variant="amount"
               label="Deposit"
               labelContent={<DepositTokenBalance token={depositToken} />}
