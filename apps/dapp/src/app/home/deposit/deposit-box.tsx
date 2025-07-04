@@ -7,7 +7,7 @@ import { useAtom } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { useMediaQuery } from 'react-responsive';
-import { Abi, erc20Abi, formatUnits, parseUnits } from 'viem';
+import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
 
@@ -113,7 +113,6 @@ export default function DepositBox({
     chainalysis.isFetching;
 
   const isDisabled =
-    account.isDisconnected ||
     isFetching ||
     approveSpending.isPending ||
     routerDeposit.isPending ||
@@ -179,6 +178,7 @@ export default function DepositBox({
 
   useEffect(() => {
     if (!account.address) handleDepositTokenChange('USDC');
+    else form.clearErrors();
   }, [account.address]);
 
   return (
@@ -473,6 +473,7 @@ function DepositTokenDialog({
   onSelectionChange: (value: DepositToken) => void;
   isDisabled: boolean;
 }) {
+  const account = useAccount();
   const depositBalances = useDepositBalances();
 
   const icon = DEPOSIT_TOKEN_ICON[selected];
@@ -515,12 +516,14 @@ function DepositTokenDialog({
                     </div>
                   </div>
 
-                  <p className="text-small text-tertiary">
-                    Balance:{' '}
-                    <span className="font-medium text-primary">
-                      {formatBigIntToReadable(depositBalances.data?.[item.id] ?? 0n, DEPOSIT_TOKEN_DECIMALS[item.id])}
-                    </span>
-                  </p>
+                  {account.address && (
+                    <p className="text-small text-tertiary">
+                      Balance:{' '}
+                      <span className="font-medium text-primary">
+                        {formatBigIntToReadable(depositBalances.data?.[item.id] ?? 0n, DEPOSIT_TOKEN_DECIMALS[item.id])}
+                      </span>
+                    </p>
+                  )}
                 </Aria.Button>
               ))}
             </DialogContentBox>
