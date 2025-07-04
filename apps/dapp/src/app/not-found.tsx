@@ -23,7 +23,7 @@ export default function NotFoundPage() {
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <p className="text-h5 text-primary">Not Found</p>
+                <p className="text-h5 text-primary">404 Error</p>
                 <p className="text-regular text-secondary">Page not found</p>
               </div>
             </div>
