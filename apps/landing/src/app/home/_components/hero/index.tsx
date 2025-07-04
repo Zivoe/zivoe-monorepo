@@ -70,13 +70,15 @@ async function Statistics() {
   'use cache';
   cacheLife('minutes');
 
-  const [tvl, apy, revenue] = await Promise.all([web3.getTVL(), web3.getAPY(), web3.getRevenue()]);
+  const [currentDailyData, revenue] = await Promise.all([web3.getCurrentDailyData(), web3.getRevenue()]);
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      <Statistic label="TVL" value={'$' + formatBigIntToReadable(tvl)} />
+      {currentDailyData?.tvl && (
+        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl))} />
+      )}
 
-      {apy && <Statistic label="APY" value={customNumber(apy) + '%'} />}
+      {currentDailyData?.apy && <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} />}
 
       <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
     </div>
