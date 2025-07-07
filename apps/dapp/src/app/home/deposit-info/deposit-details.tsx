@@ -39,7 +39,6 @@ const ELEMENTS: Record<string, ReactElement | string> = {
   'Legal Structure': 'Bankruptcy Remote SPV',
   'Regulatory Compliance': 'Reg S Compliant Offering',
   'Management Fee': '2.5% APR',
-  Liquidity: 'Instant Via Secondary Markets',
   Audits: (
     <Link
       href="https://docs.zivoe.com/official-links/audits"
