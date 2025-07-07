@@ -81,7 +81,7 @@ const FAQs: Array<{
   {
     question: 'What is the lockup period and liquidity policy?',
     answer:
-      'Withdrawals from the protocol are subject to available cash flows from underlying loan repayments. While Zivoe may open select windows for direct redemptions once critical scale is reached, the primary path for liquidity will be through secondary markets. Zivoe has established a liquidity partnership with Frax, one of the leading stablecoin projects in the space, including a joint pool to support trading of zVLT. This provides users with flexible access to exit their positions without waiting on scheduled redemption events.'
+      'Withdrawals from the protocol are subject to available cash flows from underlying loan repayments. While Zivoe may open select windows for direct redemptions once critical scale is reached, the primary path for liquidity will be through secondary markets. Zivoe has established a liquidity partnership with Frax, one of the leading stablecoin projects in the space, including a joint pool to support trading of zVLT. This will provide users with flexible access to exit their positions without waiting on scheduled redemption events.'
   },
   {
     question: 'How does the migration to zVLT work?',
