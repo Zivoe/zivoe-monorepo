@@ -28,11 +28,11 @@ export const truncateAddress = (address: string | undefined) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export function customNumber(number: number) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
+export function customNumber(number: number, decimals: number = 2) {
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
   else {
-    return floorToDecimals(number);
+    return floorToDecimals(number, decimals);
   }
 }
 
@@ -49,8 +49,9 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   }
 };
 
-const floorToDecimals = (num: number) => {
-  return (Math.floor(num * 100) / 100).toFixed(2);
+const floorToDecimals = (num: number, decimals: number = 2) => {
+  const multiplier = Math.pow(10, decimals);
+  return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
 };
 
 export function handlePromise<T>(promise: Promise<T>) {

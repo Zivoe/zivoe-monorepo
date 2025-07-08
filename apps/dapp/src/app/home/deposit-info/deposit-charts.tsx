@@ -37,7 +37,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
         {chart.currentValue && (
           <p className="text-h4 text-primary">
             {chart.type !== 'APY' && '$'}
-            {customNumber(chart.currentValue)}
+            {customNumber(chart.currentValue, chart.type === 'Index price' ? 3 : 2)}
             {chart.type === 'APY' && '%'}
           </p>
         )}
