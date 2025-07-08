@@ -51,7 +51,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Providers>
           <Header />
 
-          <div className="flex h-full flex-col justify-between">
+          <div className="flex h-full flex-col justify-between bg-surface-base">
             {children}
             <Footer />
           </div>
