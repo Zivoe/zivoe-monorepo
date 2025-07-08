@@ -98,9 +98,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
                       <div className="flex flex-col gap-1">
                         <span className="font-heading text-regular tabular-nums text-primary">
                           {chart.type !== 'APY' && '$'}
-                          {chart.type === 'TVL' || chart.type === 'APY'
-                            ? customNumber(Number(data))
-                            : data.toLocaleString()}
+                          {customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
                           {chart.type === 'APY' && '%'}
                         </span>
                         <span className="text-small text-secondary">{date}</span>
