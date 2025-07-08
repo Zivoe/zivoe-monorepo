@@ -63,15 +63,14 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
       <div className="w-full">
         <ChartContainer config={{}}>
-          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 20 }}>
+          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
 
             <XAxis
               dataKey="day"
               tickLine={false}
               axisLine={false}
-              tickMargin={20}
-              interval="preserveStartEnd"
+              minTickGap={32}
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 
