@@ -39,9 +39,15 @@ export default function ConnectedAccount({
     return type === 'skeleton' ? (
       <Skeleton className={cn('h-12 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
     ) : (
-      <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
-        Pending
-      </Button>
+      <>
+        {isPending ? 'is pending' : 'is not pending'}
+        {address ? 'has address' : 'no address'}
+        {assessment.isFetching ? 'is fetching' : 'is not fetching'}
+        {assessment.isPending ? 'is pending' : 'is not pending'}
+        <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
+          Pending
+        </Button>
+      </>
     );
   }
 
