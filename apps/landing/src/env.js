@@ -12,7 +12,8 @@ export const env = createEnv({
     PONDER_SEPOLIA_DATABASE_URL: z.string(),
     BEEHIIV_PUBLICATION_ID: z.string(),
     BEEHIIV_API_KEY: z.string(),
-    TURNSTILE_SECRET_KEY: z.string()
+    TURNSTILE_SECRET_KEY: z.string(),
+    REVALIDATE_API_KEY: z.string()
   },
 
   client: {
@@ -32,7 +33,8 @@ export const env = createEnv({
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV
+    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
+    REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

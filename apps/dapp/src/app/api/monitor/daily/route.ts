@@ -14,6 +14,8 @@ import { web3 } from '@/server/web3';
 
 import { handle } from '@/lib/utils';
 
+import { env } from '@/env';
+
 import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
 
 const bodySchema = z.object({
@@ -89,6 +91,19 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
   if (insertAllResult.err) return Response.json({ error: 'Failed to insert daily data' }, { status: 500 });
 
   revalidateTag(DEPOSIT_DAILY_DATA_TAG);
+
+  if (env.LANDING_PAGE_URL && env.LANDING_PAGE_REVALIDATE_API_KEY) {
+    const { data, err } = await handle(
+      fetch(`${env.LANDING_PAGE_URL}/api/revalidate/stats`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': env.LANDING_PAGE_REVALIDATE_API_KEY
+        }
+      })
+    );
+
+    if (err || !data?.ok) return Response.json({ error: 'Failed to revalidate landing page' }, { status: 500 });
+  }
 
   return Response.json({ success: true });
 };

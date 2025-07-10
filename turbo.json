@@ -26,7 +26,10 @@
         "UPSTASH_REDIS_REST_URL",
         "UPSTASH_REDIS_REST_TOKEN",
         "NEXT_PUBLIC_ZIVOE_ANALYTICS_URL",
-        "NEXT_PUBLIC_ENV"
+        "NEXT_PUBLIC_ENV",
+        "LANDING_PAGE_URL",
+        "LANDING_PAGE_REVALIDATE_API_KEY",
+        "REVALIDATE_API_KEY"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

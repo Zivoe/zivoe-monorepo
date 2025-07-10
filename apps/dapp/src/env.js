@@ -10,7 +10,9 @@ export const env = createEnv({
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
     QSTASH_NEXT_SIGNING_KEY: z.string(),
     UPSTASH_REDIS_REST_URL: z.string(),
-    UPSTASH_REDIS_REST_TOKEN: z.string()
+    UPSTASH_REDIS_REST_TOKEN: z.string(),
+    LANDING_PAGE_URL: z.string().optional(),
+    LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional()
   },
 
   client: {
@@ -36,7 +38,9 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: process.env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL,
-    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV
+    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
+    LANDING_PAGE_URL: process.env.LANDING_PAGE_URL,
+    LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
