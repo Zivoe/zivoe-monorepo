@@ -67,9 +67,6 @@ function HeroButton(props: LinkProps) {
 }
 
 async function Statistics() {
-  'use cache';
-  cacheLife('minutes');
-
   const [currentDailyData, revenue] = await Promise.all([web3.getCurrentDailyData(), web3.getRevenue()]);
 
   return (
@@ -80,7 +77,7 @@ async function Statistics() {
 
       {currentDailyData?.apy && <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} />}
 
-      <Statistic label="Revenue" value={'$' + formatBigIntToReadable(revenue, 6)} />
+      <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} />
     </div>
   );
 }
