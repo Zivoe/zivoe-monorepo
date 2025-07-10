@@ -229,19 +229,11 @@ export default function DepositBox({
 
                   <div className="ml-3">
                     <>
-                      {isDesktop ? (
-                        <DepositTokenDialog
-                          isDisabled={isDisabled}
-                          selected={depositToken}
-                          onSelectionChange={handleDepositTokenChange}
-                        />
-                      ) : (
-                        <DepositTokenSelect
-                          selected={depositToken}
-                          onSelectionChange={handleDepositTokenChange}
-                          isDisabled={isDisabled}
-                        />
-                      )}
+                      <DepositTokenSelect
+                        selected={depositToken}
+                        onSelectionChange={handleDepositTokenChange}
+                        isDisabled={isDisabled}
+                      />
                     </>
                   </div>
                 </div>
