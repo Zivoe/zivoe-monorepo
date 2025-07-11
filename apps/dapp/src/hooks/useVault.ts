@@ -9,16 +9,13 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from './useAccount';
 
 export const useVault = () => {
-  const { address: accountAddress } = useAccount();
   const web3 = usePublicClient();
-
-  const skip = !web3 || !accountAddress;
 
   return useQuery({
     queryKey: queryKeys.app.vault,
     meta: { toastErrorMessage: 'Error fetching vault data' },
     refetchInterval: 60 * 1000, // 1 minute
-    queryFn: skip
+    queryFn: !web3
       ? skipToken
       : async () => {
           const totalSupplyReq = web3.readContract({

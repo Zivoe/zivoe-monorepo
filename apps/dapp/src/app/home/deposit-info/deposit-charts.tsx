@@ -37,7 +37,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
         {chart.currentValue && (
           <p className="text-h4 text-primary">
             {chart.type !== 'APY' && '$'}
-            {customNumber(chart.currentValue)}
+            {customNumber(chart.currentValue, chart.type === 'Index price' ? 3 : 2)}
             {chart.type === 'APY' && '%'}
           </p>
         )}
@@ -63,15 +63,14 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
       <div className="w-full">
         <ChartContainer config={{}}>
-          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 20 }}>
+          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
 
             <XAxis
               dataKey="day"
               tickLine={false}
               axisLine={false}
-              tickMargin={20}
-              interval={Math.floor(chart.data.length / (isMobile ? 5 : 10))}
+              minTickGap={32}
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 
@@ -99,9 +98,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
                       <div className="flex flex-col gap-1">
                         <span className="font-heading text-regular tabular-nums text-primary">
                           {chart.type !== 'APY' && '$'}
-                          {chart.type === 'TVL' || chart.type === 'APY'
-                            ? customNumber(Number(data))
-                            : data.toLocaleString()}
+                          {customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
                           {chart.type === 'APY' && '%'}
                         </span>
                         <span className="text-small text-secondary">{date}</span>

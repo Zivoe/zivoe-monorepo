@@ -10,6 +10,7 @@ import { ZivoeLogo } from '../../assets/zivoe-logo';
 import { CloseIcon } from '../../icons';
 import { cn } from '../../lib/tw-utils';
 import { Button } from '../button';
+import { nativeScrollAreaStyles } from '../native-scroll-area';
 
 interface DialogProps extends React.ComponentProps<typeof Aria.DialogTrigger> {}
 const Dialog = Aria.DialogTrigger;
@@ -41,21 +42,21 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
       className={cn(
-        'fixed inset-0 z-50 grid place-items-center items-end overflow-y-auto bg-surface-contrast/40 backdrop-blur-[4px] sm:items-center',
-        !isFullScreen && 'pt-28 sm:py-6',
+        'fixed inset-0 z-50 grid w-screen place-items-center items-center bg-surface-contrast/40 backdrop-blur-[4px]',
+        !isFullScreen && 'px-2 py-6',
         /* Entering */
         'data-[entering]:animate-in data-[entering]:fade-in-0',
         /* Exiting */
-        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0'
+        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0',
+        'h-[var(--visual-viewport-height)]'
       )}
     >
       <Aria.Modal
         className={composeRenderProps(className, (className) =>
           cn(
-            'relative z-50 w-full bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
-            isFullScreen
-              ? 'h-full overflow-y-auto'
-              : 'rounded-tl-2xl rounded-tr-2xl sm:max-w-[33.75rem] sm:rounded-2xl',
+            nativeScrollAreaStyles(),
+            'relative z-50 w-full overflow-auto bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+            isFullScreen ? 'h-full' : 'max-h-full max-w-[33.75rem] rounded-2xl',
             /* Entering */
             'data-[entering]:animate-in data-[entering]:fade-in-0 data-[entering]:zoom-in-75',
             /* Exiting */
@@ -105,6 +106,20 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   )
 );
 
+const DialogContentBox = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn('flex flex-col gap-2 p-4', className)} {...props} />
 );
@@ -122,6 +137,6 @@ DialogHeader.displayName = 'ZivoeUI.DialogHeader';
 DialogTitle.displayName = 'ZivoeUI.DialogTitle';
 DialogFooter.displayName = 'ZivoeUI.DialogFooter';
 
-export { Dialog, Modal, DialogContent, DialogHeader, DialogTitle, DialogFooter };
+export { Dialog, Modal, DialogContent, DialogContentBox, DialogHeader, DialogTitle, DialogFooter };
 
 export type { DialogProps, DialogContentProps };

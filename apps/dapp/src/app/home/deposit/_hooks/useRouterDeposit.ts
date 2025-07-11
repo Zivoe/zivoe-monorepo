@@ -8,7 +8,7 @@ import { zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS } from '@/lib/constants';
-import { transactionAtom } from '@/lib/store';
+import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -22,6 +22,7 @@ export const useRouterDeposit = () => {
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const setTransaction = useSetAtom(transactionAtom);
+  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
   const mutationInfo = useMutation({
     mutationFn: async ({ stableCoinName, amount }: { stableCoinName: RouterDepositToken; amount?: bigint }) => {
@@ -73,6 +74,7 @@ export const useRouterDeposit = () => {
       });
 
       setTransaction(transactionData);
+      if (transactionData.type === 'SUCCESS') setIsDepositDialogOpen(false);
     },
 
     onSettled: (_, err, { stableCoinName }) => {

@@ -104,8 +104,11 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     ]
   },
   {
-    title: 'Governance',
-    links: [{ href: 'https://app.zivoe.com/governance?country=US', label: 'Vote' }]
+    title: 'Legacy',
+    links: [
+      { href: 'https://legacy.zivoe.com', label: 'App' },
+      { href: 'https://legacy.zivoe.com/governance', label: 'Governance' }
+    ]
   },
   {
     title: 'Company',

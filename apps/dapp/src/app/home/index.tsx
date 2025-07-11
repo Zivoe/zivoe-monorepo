@@ -12,7 +12,7 @@ import DepositInfo from './deposit-info';
 
 export default function Home() {
   return (
-    <>
+    <div className="bg-surface-base">
       <Hero title="zVLT" description="Gain exposure to consumer credit" />
 
       <Page className="flex gap-10 lg:flex-row">
@@ -26,7 +26,7 @@ export default function Home() {
           <DepositWrapper />
         </Suspense>
       </Page>
-    </>
+    </div>
   );
 }
 
@@ -36,8 +36,5 @@ async function DepositWrapper() {
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  const indexPrice = currentDailyData.indexPrice;
-  const apy = currentDailyData.apy;
-
-  return <Deposit indexPrice={indexPrice} apy={apy} />;
+  return <Deposit apy={currentDailyData.apy} />;
 }
