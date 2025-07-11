@@ -193,7 +193,7 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
     const buttonContext = useContext(Aria.ButtonContext);
 
     return (
-      <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => {}, excludeFromTabOrder: false }}>
+      <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => {} }}>
         <Aria.Group
           onClick={(e) => e.currentTarget.querySelector('input')?.focus()}
           className={composeRenderProps(className, (className) =>
