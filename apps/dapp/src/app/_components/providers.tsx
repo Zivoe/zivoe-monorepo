@@ -20,6 +20,8 @@ import { NETWORK } from '@/lib/constants';
 
 import { env } from '@/env';
 
+import { PostHogProvider } from './posthog';
+
 const WelcomeDialog = dynamic(() => import('./welcome-dialog'), {
   ssr: false
 });
@@ -30,14 +32,16 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <>
       <RouterProvider navigate={router.push}>
-        <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
-          <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-              <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
-              <ReactQueryDevtools initialIsOpen={false} />
-            </QueryClientProvider>
-          </WagmiProvider>
-        </DynamicContextProvider>
+        <PostHogProvider>
+          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
+            <WagmiProvider config={config}>
+              <QueryClientProvider client={queryClient}>
+                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+            </WagmiProvider>
+          </DynamicContextProvider>
+        </PostHogProvider>
       </RouterProvider>
 
       <Toaster />

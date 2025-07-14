@@ -21,7 +21,8 @@ export const env = createEnv({
     NEXT_PUBLIC_NETWORK: z.enum(['MAINNET', 'SEPOLIA']),
     NEXT_PUBLIC_MAINNET_ALCHEMY_API_KEY: z.string(),
     NEXT_PUBLIC_SEPOLIA_ALCHEMY_API_KEY: z.string(),
-    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: z.string()
+    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: z.string(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string()
   },
 
   runtimeEnv: {
@@ -40,7 +41,8 @@ export const env = createEnv({
     NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: process.env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     LANDING_PAGE_URL: process.env.LANDING_PAGE_URL,
-    LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY
+    LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

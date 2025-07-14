@@ -18,7 +18,8 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string()
   },
 
   runtimeEnv: {
@@ -34,7 +35,8 @@ export const env = createEnv({
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
-    REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY
+    REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
