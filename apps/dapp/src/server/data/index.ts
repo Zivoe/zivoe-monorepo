@@ -23,7 +23,7 @@ const getDepositDailyData = reactCache(
   nextCache(
     async () => {
       const db = getDb(env.NEXT_PUBLIC_NETWORK);
-      const data = await db.daily.find().toArray();
+      const data = await db.daily.find().sort({ timestamp: 1 }).toArray();
 
       return data.map((item) => ({
         ...item,
