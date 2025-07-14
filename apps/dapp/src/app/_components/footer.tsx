@@ -2,7 +2,7 @@ import { Link } from '@zivoe/ui/core/link';
 
 export default function Footer() {
   return (
-    <div className="bg-surface-base p-4">
+    <div className="bg-surface-base p-4 pb-[6.125rem] lg:pb-4">
       <div className="flex flex-col justify-between gap-6 rounded-[4px] bg-surface-elevated p-6 md:flex-row">
         <p className="order-2 text-regular text-primary md:order-1">©Zivoe 2025. All Right Reserved.</p>
 
