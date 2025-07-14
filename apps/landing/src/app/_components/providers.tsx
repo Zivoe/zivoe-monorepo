@@ -9,6 +9,8 @@ import { RouterProvider } from 'react-aria-components';
 
 import { Toaster } from '@zivoe/ui/core/sonner';
 
+import { PostHogProvider } from './posthog';
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -35,7 +37,9 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider navigate={router.push}>{children}</RouterProvider>
+      <PostHogProvider>
+        <RouterProvider navigate={router.push}>{children}</RouterProvider>
+      </PostHogProvider>
       <Toaster />
     </QueryClientProvider>
   );
