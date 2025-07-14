@@ -47,7 +47,7 @@ const TEAM_MEMBERS: Array<{ name: string; title: string; image: string }> = [
   },
   {
     name: 'Thor Abbasi',
-    title: 'Head of Operations & Co-Founder',
+    title: 'Head of Investor Relations',
     image: '/team/thor.png'
   },
   {
