@@ -53,7 +53,7 @@ function DesktopNavigation() {
 function MobileNavigation() {
   return (
     <Dialog>
-      <Button variant="border-light" size="m" className="lg:hidden">
+      <Button variant="border-light" className="lg:hidden">
         <HamburgerIcon />
       </Button>
 

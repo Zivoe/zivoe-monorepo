@@ -45,7 +45,8 @@ const buttonVariants = tv({
       'link-neutral-dark': 'text-primary',
       'link-neutral-light': 'text-secondary',
       'link-alert': 'text-alert-subtle',
-      chip: 'border border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light pressed:bg-element-neutral disabled:border-neutral-100'
+      chip: 'border border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light pressed:bg-element-neutral disabled:border-neutral-100',
+      select: 'bg-transparent hover:opacity-80 pressed:opacity-50 disabled:opacity-50'
     },
 
     size: {

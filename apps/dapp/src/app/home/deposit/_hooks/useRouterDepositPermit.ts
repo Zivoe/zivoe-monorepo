@@ -13,7 +13,7 @@ import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contrac
 import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
-import { transactionAtom } from '@/lib/store';
+import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -27,6 +27,7 @@ export const useRouterDepositPermit = () => {
   const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
   const queryClient = useQueryClient();
   const setTransaction = useSetAtom(transactionAtom);
+  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
   const { address } = useAccount();
 
@@ -118,6 +119,7 @@ export const useRouterDepositPermit = () => {
       });
 
       setTransaction(transactionData);
+      if (transactionData.type === 'SUCCESS') setIsDepositDialogOpen(false);
     },
 
     onSettled: (_, err, { stableCoinName }) => {

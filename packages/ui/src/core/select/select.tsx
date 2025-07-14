@@ -1,6 +1,5 @@
 'use client';
 
-import { ScrollArea } from '@radix-ui/react-scroll-area';
 import {
   ButtonProps as AriaButtonProps,
   ListBox as AriaListBox,
@@ -14,7 +13,7 @@ import {
 
 import { ChevronDownIcon } from '../../icons';
 import { cn } from '../../lib/tw-utils';
-import { Button } from '../button';
+import { Button, ButtonProps } from '../button';
 import { ListBoxItem } from '../list-box';
 import { BasePopover } from '../popover';
 
@@ -31,8 +30,13 @@ const SelectValue = <T extends object>({ className, ...props }: AriaSelectValueP
   />
 );
 
-const SelectTrigger = ({ className, children, ...props }: AriaButtonProps) => (
-  <Button variant="chip" size="s" className={composeRenderProps(className, (className) => cn(className))} {...props}>
+const SelectTrigger = ({ variant = 'chip', size = 's', className, children, ...props }: ButtonProps) => (
+  <Button
+    variant={variant}
+    size={size}
+    className={composeRenderProps(className, (className) => cn(className))}
+    {...props}
+  >
     {composeRenderProps(children, (children) => (
       <>
         {children}

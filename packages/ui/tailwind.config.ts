@@ -287,7 +287,7 @@ const config: Config = {
     }
   },
 
-  plugins: [require('tailwindcss-animate'), require('tailwindcss-react-aria-components')]
+  plugins: [require('tailwindcss-animate'), require('tailwindcss-react-aria-components'), require('tailwind-scrollbar')]
 };
 
 export default config;

@@ -37,7 +37,7 @@ export default function ConnectedAccount({
 
   if (isPending || (address && (assessment.isFetching || assessment.isPending))) {
     return type === 'skeleton' ? (
-      <Skeleton className={cn('h-10 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
+      <Skeleton className={cn('h-12 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
     ) : (
       <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
         Pending
