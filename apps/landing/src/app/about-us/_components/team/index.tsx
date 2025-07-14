@@ -42,17 +42,17 @@ const TEAM_MEMBERS: Array<{ name: string; title: string; image: string }> = [
   },
   {
     name: 'John Quarnstrom',
-    title: 'CTO & Co-Founder',
+    title: 'Head of Technology',
     image: '/team/john.png'
   },
   {
     name: 'Thor Abbasi',
-    title: 'Head of Operations & Co-Founder',
+    title: 'Head of Investor Relations',
     image: '/team/thor.png'
   },
   {
     name: 'Dennis Baca',
-    title: 'Head of Product & Founding Member',
+    title: 'Head of Product',
     image: '/team/dennis.png'
   },
   {
@@ -67,7 +67,7 @@ const TEAM_MEMBERS: Array<{ name: string; title: string; image: string }> = [
   },
   {
     name: 'Alex Serban',
-    title: 'Web3 Full-Stack Engineer',
+    title: 'Lead Engineer',
     image: '/team/alex.png'
   },
   {
