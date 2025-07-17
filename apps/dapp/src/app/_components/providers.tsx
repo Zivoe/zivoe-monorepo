@@ -31,7 +31,8 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   walletConnectors: [EthereumWalletConnectors],
   initialAuthenticationMode: 'connect-only',
   networkValidationMode: 'always',
-  appName: 'Zivoe'
+  appName: 'Zivoe',
+  mobileExperience: 'redirect'
 };
 
 export const wagmiConfig = createConfig({
