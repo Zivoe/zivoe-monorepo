@@ -11,10 +11,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\""
   },
   "dependencies": {
-    "@dynamic-labs/ethereum": "3.9.13",
-    "@dynamic-labs/sdk-react-core": "3.9.13",
-    "@dynamic-labs/wagmi-connector": "3.9.13",
-    "@dynamic-labs/wallet-book": "3.9.13",
+    "@dynamic-labs/ethereum": "4.25.0",
+    "@dynamic-labs/sdk-react-core": "4.25.0",
+    "@dynamic-labs/wagmi-connector": "4.25.0",
+    "@dynamic-labs/wallet-book": "4.25.0",
     "@hookform/resolvers": "^5.0.1",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.74.0",
