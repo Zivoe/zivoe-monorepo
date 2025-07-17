@@ -12,7 +12,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
 import { mainnet, sepolia } from 'viem/chains';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { State, WagmiProvider, cookieStorage, createConfig, createStorage, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
@@ -26,30 +26,6 @@ const WelcomeDialog = dynamic(() => import('./welcome-dialog'), {
   ssr: false
 });
 
-export default function Providers({ children }: { children: ReactNode }) {
-  const router = useRouter();
-
-  return (
-    <>
-      <RouterProvider navigate={router.push}>
-        <PostHogProvider>
-          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
-            <WagmiProvider config={config}>
-              <QueryClientProvider client={queryClient}>
-                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
-                <ReactQueryDevtools initialIsOpen={false} />
-              </QueryClientProvider>
-            </WagmiProvider>
-          </DynamicContextProvider>
-        </PostHogProvider>
-      </RouterProvider>
-
-      <Toaster />
-      <WelcomeDialog />
-    </>
-  );
-}
-
 const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   environmentId: env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
   walletConnectors: [EthereumWalletConnectors],
@@ -58,9 +34,13 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   appName: 'Zivoe'
 };
 
-const config = createConfig({
+export const wagmiConfig = createConfig({
   chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
   multiInjectedProviderDiscovery: false,
+  ssr: true,
+  storage: createStorage({
+    storage: cookieStorage
+  }),
   transports: {
     [mainnet.id]: http(`https://eth-mainnet.g.alchemy.com/v2/${env.NEXT_PUBLIC_MAINNET_ALCHEMY_API_KEY}`),
     [sepolia.id]: http(`https://eth-sepolia.g.alchemy.com/v2/${env.NEXT_PUBLIC_SEPOLIA_ALCHEMY_API_KEY}`)
@@ -85,3 +65,33 @@ const queryClient = new QueryClient({
     }
   })
 });
+
+export default function Providers({
+  children,
+  initialState
+}: {
+  children: ReactNode;
+  initialState: State | undefined;
+}) {
+  const router = useRouter();
+
+  return (
+    <>
+      <RouterProvider navigate={router.push}>
+        <PostHogProvider>
+          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
+            <WagmiProvider config={wagmiConfig} initialState={initialState}>
+              <QueryClientProvider client={queryClient}>
+                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+            </WagmiProvider>
+          </DynamicContextProvider>
+        </PostHogProvider>
+      </RouterProvider>
+
+      <Toaster />
+      <WelcomeDialog />
+    </>
+  );
+}
