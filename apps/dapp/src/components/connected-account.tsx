@@ -12,17 +12,9 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
 
-export default function ConnectedAccount({
-  children,
-  fullWidth = true,
-  type = 'loading'
-}: {
-  children: ReactNode;
-  fullWidth?: boolean;
-  type?: 'loading' | 'skeleton';
-}) {
+export default function ConnectedAccount({ children, fullWidth = true }: { children: ReactNode; fullWidth?: boolean }) {
   const { setShowAuthFlow, handleLogOut } = useDynamicContext();
-  const { isPending, isDisconnected, address } = useAccount();
+  const { isLoading, isDisconnected, address } = useAccount();
 
   const assessment = useChainalysis();
 
@@ -35,14 +27,10 @@ export default function ConnectedAccount({
     }
   };
 
-  if (isPending || (address && (assessment.isFetching || assessment.isPending))) {
-    return type === 'skeleton' ? (
-      <Skeleton className={cn('h-12 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
-    ) : (
-      <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
-        Pending
-      </Button>
-    );
+  if (isLoading || (address && (assessment.isFetching || assessment.isPending))) {
+    <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
+      Pending
+    </Button>;
   }
 
   if (isDisconnected)

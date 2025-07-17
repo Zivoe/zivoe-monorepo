@@ -106,7 +106,7 @@ export default function DepositBox({
   const vaultDeposit = useVaultDeposit();
 
   const isFetching =
-    account.isPending ||
+    account.isLoading ||
     depositBalances.isFetching ||
     zvltBalance.isFetching ||
     allowances.isFetching ||

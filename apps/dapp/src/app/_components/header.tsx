@@ -99,7 +99,7 @@ function Wallet() {
   const { address } = useAccount();
 
   return (
-    <ConnectedAccount fullWidth={false} type="skeleton">
+    <ConnectedAccount fullWidth={false}>
       <Button
         key="connected-wallet-button"
         variant="border-light"
