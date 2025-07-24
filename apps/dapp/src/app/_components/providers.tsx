@@ -12,7 +12,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
 import { mainnet, sepolia } from 'viem/chains';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { WagmiProvider, createConfig, fallback, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
@@ -62,8 +62,14 @@ const config = createConfig({
   chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
   multiInjectedProviderDiscovery: false,
   transports: {
-    [mainnet.id]: http(`https://eth-mainnet.g.alchemy.com/v2/${env.NEXT_PUBLIC_MAINNET_ALCHEMY_API_KEY}`),
-    [sepolia.id]: http(`https://eth-sepolia.g.alchemy.com/v2/${env.NEXT_PUBLIC_SEPOLIA_ALCHEMY_API_KEY}`)
+    [mainnet.id]: fallback([
+      http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
+      http(env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY)
+    ]),
+    [sepolia.id]: fallback([
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY),
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY)
+    ])
   }
 });
 
