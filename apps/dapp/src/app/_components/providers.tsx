@@ -12,7 +12,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
 import { mainnet, sepolia } from 'viem/chains';
-import { WagmiProvider, createConfig, fallback, http } from 'wagmi';
+import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
@@ -26,41 +26,22 @@ const WelcomeDialog = dynamic(() => import('./welcome-dialog'), {
   ssr: false
 });
 
-export default function Providers({ children }: { children: ReactNode }) {
-  const router = useRouter();
-
-  return (
-    <>
-      <RouterProvider navigate={router.push}>
-        <PostHogProvider>
-          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
-            <WagmiProvider config={config}>
-              <QueryClientProvider client={queryClient}>
-                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
-                <ReactQueryDevtools initialIsOpen={false} />
-              </QueryClientProvider>
-            </WagmiProvider>
-          </DynamicContextProvider>
-        </PostHogProvider>
-      </RouterProvider>
-
-      <Toaster />
-      <WelcomeDialog />
-    </>
-  );
-}
-
 const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   environmentId: env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
   walletConnectors: [EthereumWalletConnectors],
   initialAuthenticationMode: 'connect-only',
   networkValidationMode: 'always',
-  appName: 'Zivoe'
+  appName: 'Zivoe',
+  mobileExperience: 'in-app-browser'
 };
 
-const config = createConfig({
+export const wagmiConfig = createConfig({
   chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
   multiInjectedProviderDiscovery: false,
+  ssr: true,
+  storage: createStorage({
+    storage: cookieStorage
+  }),
   transports: {
     [mainnet.id]: fallback([
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
@@ -91,3 +72,33 @@ const queryClient = new QueryClient({
     }
   })
 });
+
+export default function Providers({
+  children,
+  initialState
+}: {
+  children: ReactNode;
+  initialState: State | undefined;
+}) {
+  const router = useRouter();
+
+  return (
+    <>
+      <RouterProvider navigate={router.push}>
+        <PostHogProvider>
+          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
+            <WagmiProvider config={wagmiConfig} initialState={initialState}>
+              <QueryClientProvider client={queryClient}>
+                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+            </WagmiProvider>
+          </DynamicContextProvider>
+        </PostHogProvider>
+      </RouterProvider>
+
+      <Toaster />
+      <WelcomeDialog />
+    </>
+  );
+}
