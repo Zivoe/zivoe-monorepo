@@ -57,7 +57,7 @@ export default function DepositBox({
   withTitle = true,
   boxClassName
 }: {
-  apy: number;
+  apy: number | null;
   className?: string;
   withTitle?: boolean;
   boxClassName?: string;
@@ -340,7 +340,7 @@ export default function DepositBox({
           ) : null}
         </ConnectedAccount>
 
-        {account.address && receive && <EstimatedAnnualReturn depositAmount={deposit} apy={apy} />}
+        {receive && apy !== null ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
       </DialogContentBox>
 
       <TransactionDialog />

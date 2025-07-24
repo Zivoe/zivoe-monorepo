@@ -16,10 +16,16 @@ const network = env.NETWORK;
 
 const getCurrentDailyData = nextCache(
   async () => {
-    const client = getDb(network);
-    const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
+    try {
+      const client = getDb(network);
 
-    return latest;
+      const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
+      if (!latest) throw new Error('Error getting daily data');
+
+      return latest;
+    } catch (error) {
+      return null;
+    }
   },
   undefined,
   { tags: [DEPOSIT_DAILY_DATA_TAG] }
@@ -27,15 +33,22 @@ const getCurrentDailyData = nextCache(
 
 const getRevenue = nextCache(
   async () => {
-    const contracts = getContracts(network);
-    const ponder = getPonder(network);
+    try {
+      const contracts = getContracts(network);
+      const ponder = getPonder(network);
 
-    const data = await ponder
-      .select({ totalRevenue: occTable.totalRevenue })
-      .from(occTable)
-      .where(eq(occTable.id, contracts.OCC_USDC));
+      const data = await ponder
+        .select({ totalRevenue: occTable.totalRevenue })
+        .from(occTable)
+        .where(eq(occTable.id, contracts.OCC_USDC));
 
-    return data[0]?.totalRevenue?.toString() ?? '0';
+      const totalRevenue = data[0]?.totalRevenue;
+      if (!totalRevenue) throw new Error('Error getting revenue');
+
+      return totalRevenue.toString();
+    } catch (error) {
+      return null;
+    }
   },
   undefined,
   { tags: [DEPOSIT_DAILY_DATA_TAG] }

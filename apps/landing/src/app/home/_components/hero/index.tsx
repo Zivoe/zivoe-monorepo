@@ -77,7 +77,7 @@ async function Statistics() {
 
       {currentDailyData?.apy && <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} />}
 
-      <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} />
+      {revenue && <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} />}
     </div>
   );
 }

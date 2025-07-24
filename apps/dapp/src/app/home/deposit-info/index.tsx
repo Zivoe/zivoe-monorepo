@@ -23,29 +23,26 @@ export default async function DepositInfo() {
         <DepositChartsComponent />
       </Suspense>
 
-      <DiamondSeparator />
       <Suspense fallback={<DepositStatsSkeleton />}>
         <DepositStatsComponent />
       </Suspense>
 
-      <DiamondSeparator />
       <DepositAbout />
-
       <DiamondSeparator />
+
       <DepositHighlights />
-
       <DiamondSeparator />
+
       <DepositDetails />
-
       <DiamondSeparator />
+
       <Suspense fallback={<DepositAllocationSkeleton />}>
         <DepositAllocationComponent />
       </Suspense>
 
-      <DiamondSeparator />
       <Documents />
-
       <DiamondSeparator />
+
       <DepositContact />
     </div>
   );
@@ -53,7 +50,14 @@ export default async function DepositInfo() {
 
 async function DepositChartsComponent() {
   const dailyData = await data.getDepositDailyData();
-  return <DepositCharts dailyData={dailyData} />;
+  if (!dailyData) return null;
+
+  return (
+    <>
+      <DepositCharts dailyData={dailyData} />
+      <DiamondSeparator />
+    </>
+  );
 }
 
 function DepositChartsSkeleton() {
@@ -71,11 +75,17 @@ function DepositChartsSkeleton() {
 
 async function DepositStatsComponent() {
   const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
+  if (!dailyData || !revenue) return null;
 
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={BigInt(revenue)} />;
+  return (
+    <>
+      <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={BigInt(revenue)} />
+      <DiamondSeparator />
+    </>
+  );
 }
 
 function DepositStatsSkeleton() {
@@ -87,14 +97,21 @@ function DepositStatsSkeleton() {
 }
 
 async function DepositAllocationComponent() {
-  const { outstandingPrincipal, usdcBalance, m0Balance } = await data.getAssetAllocation();
+  const allocations = await data.getAssetAllocation();
+  if (!allocations) return null;
+
+  const { outstandingPrincipal, usdcBalance, m0Balance } = allocations;
 
   return (
-    <DepositAllocation
-      outstandingPrincipal={BigInt(outstandingPrincipal)}
-      treasuryBills={BigInt(m0Balance)}
-      usdcBalance={BigInt(usdcBalance)}
-    />
+    <>
+      <DepositAllocation
+        outstandingPrincipal={BigInt(outstandingPrincipal)}
+        treasuryBills={BigInt(m0Balance)}
+        usdcBalance={BigInt(usdcBalance)}
+      />
+
+      <DiamondSeparator />
+    </>
   );
 }
 
