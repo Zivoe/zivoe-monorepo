@@ -11,7 +11,7 @@ import ConnectedAccount from '@/components/connected-account';
 
 import DepositBox from './deposit-box';
 
-export default function Deposit({ apy }: { apy: number }) {
+export default function Deposit({ apy }: { apy: number | null }) {
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (

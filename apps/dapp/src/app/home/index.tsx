@@ -31,10 +31,14 @@ export default function Home() {
 }
 
 async function DepositWrapper() {
+  let apy: number | null = null;
+
   const dailyData = await data.getDepositDailyData();
 
-  const currentDailyData = dailyData[dailyData.length - 1];
-  if (!currentDailyData) return null;
+  if (dailyData) {
+    const currentDailyData = dailyData[dailyData.length - 1];
+    if (currentDailyData) apy = currentDailyData.apy;
+  }
 
-  return <Deposit apy={currentDailyData.apy} />;
+  return <Deposit apy={apy} />;
 }
