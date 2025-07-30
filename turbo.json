@@ -32,7 +32,7 @@
         "REVALIDATE_API_KEY",
         "NEXT_PUBLIC_SENTRY_DSN",
         "SENTRY_AUTH_TOKEN",
-        "NEXT_PUBLIC_ENV=development"
+        "NEXT_PUBLIC_ENV"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
