@@ -4,6 +4,7 @@ import { cache as reactCache } from 'react';
 
 import { unstable_cache as nextCache } from 'next/cache';
 
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 import { erc20Abi } from 'viem';
 
@@ -34,7 +35,7 @@ const getDepositDailyData = reactCache(
           timestamp: item.timestamp.toUTCString()
         }));
       } catch (error) {
-        return null;
+        Sentry.captureException(error, { tags: { source: 'SERVER' } });
       }
     },
     undefined,
@@ -60,7 +61,7 @@ const getRevenue = nextCache(
       const totalRevenue = data[0]?.totalRevenue;
       return totalRevenue && totalRevenue !== 0n ? totalRevenue.toString() : null;
     } catch (error) {
-      return null;
+      Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
   },
   undefined,
@@ -122,7 +123,7 @@ const getAssetAllocation = nextCache(
         m0Balance: m0Balance.toString()
       };
     } catch (error) {
-      return null;
+      Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
   },
   undefined,

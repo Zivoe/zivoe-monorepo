@@ -47,11 +47,13 @@ export const useRouterDeposit = () => {
       return { receipt };
     },
 
-    onError: (err, { stableCoinName }) =>
+    onError: (err, variables) => {
       onTxError({
         err,
-        defaultToastMsg: `Error Depositing ${stableCoinName}`
-      }),
+        defaultToastMsg: `Error Depositing ${variables.stableCoinName}`,
+        sentry: { flow: 'router-deposit', extras: variables }
+      });
+    },
 
     onSuccess: ({ receipt }, { stableCoinName }) => {
       const transactionData = getDepositTransactionData({

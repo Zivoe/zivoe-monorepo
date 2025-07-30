@@ -1,13 +1,14 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
-import { DynamicContextProps, DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
+import { DynamicContextProps, DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
+import * as Sentry from '@sentry/nextjs';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
@@ -17,6 +18,8 @@ import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallb
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
 import { NETWORK } from '@/lib/constants';
+
+import { useAccount } from '@/hooks/useAccount';
 
 import { env } from '@/env';
 
@@ -69,6 +72,8 @@ const queryClient = new QueryClient({
 
       const title = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
       toast({ type: 'error', title });
+
+      Sentry.captureException(error, { tags: { source: 'QUERY' } });
     }
   })
 });
@@ -89,7 +94,9 @@ export default function Providers({
           <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
             <WagmiProvider config={wagmiConfig} initialState={initialState}>
               <QueryClientProvider client={queryClient}>
-                <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
+                <DynamicWagmiConnector>
+                  <SentryContext>{children}</SentryContext>
+                </DynamicWagmiConnector>
                 <ReactQueryDevtools initialIsOpen={false} />
               </QueryClientProvider>
             </WagmiProvider>
@@ -101,4 +108,18 @@ export default function Providers({
       <WelcomeDialog />
     </>
   );
+}
+
+function SentryContext({ children }: { children: ReactNode }) {
+  const { address } = useAccount();
+  const { primaryWallet } = useDynamicContext();
+
+  useEffect(() => {
+    Sentry.setUser(address ? { id: address } : null);
+
+    const wallet = address && primaryWallet?.key ? primaryWallet.key : null;
+    Sentry.setTag('wallet', wallet);
+  }, [address, primaryWallet]);
+
+  return <>{children}</>;
 }

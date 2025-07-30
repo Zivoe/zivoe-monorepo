@@ -14,7 +14,14 @@ import { DepositToken } from '@/types/constants';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
-import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
+import {
+  AppError,
+  getDepositTransactionData,
+  handleDepositRefetches,
+  handlePromise,
+  onTxError,
+  skipTxSettled
+} from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
@@ -50,22 +57,37 @@ export const useRouterDepositPermit = () => {
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 minutes from now
 
-      const signature = await walletClient.signTypedData({
-        account: address,
-        primaryType: 'Permit',
-        types: TYPES,
-        message: {
-          owner: address,
-          spender: CONTRACTS.zRTR,
-          value: amount,
-          nonce,
-          deadline
-        },
-        domain: {
-          ...DOMAIN[NETWORK][stableCoinName],
-          verifyingContract: CONTRACTS[stableCoinName]
-        }
-      });
+      const { err, res: signature } = await handlePromise(
+        walletClient.signTypedData({
+          account: address,
+          primaryType: 'Permit',
+          types: TYPES,
+          message: {
+            owner: address,
+            spender: CONTRACTS.zRTR,
+            value: amount,
+            nonce,
+            deadline
+          },
+          domain: {
+            ...DOMAIN[NETWORK][stableCoinName],
+            verifyingContract: CONTRACTS[stableCoinName]
+          }
+        })
+      );
+
+      if (err || !signature) {
+        const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
+        if (isUserRejection) {
+          throw new AppError({
+            message: 'Transaction rejected',
+            exception: err,
+            refetch: false,
+            type: 'warning',
+            capture: false
+          });
+        } else throw err || new AppError({ message: 'Error signing data' });
+      }
 
       setIsPermitPending(false);
 
@@ -92,10 +114,11 @@ export const useRouterDepositPermit = () => {
       return { receipt };
     },
 
-    onError: (err, { stableCoinName }) =>
+    onError: (err, variables) =>
       onTxError({
         err,
-        defaultToastMsg: `Error Depositing ${stableCoinName}`
+        defaultToastMsg: `Error Depositing ${variables.stableCoinName}`,
+        sentry: { flow: 'router-deposit-permit', extras: variables }
       }),
 
     onSuccess: ({ receipt }, { stableCoinName }) => {

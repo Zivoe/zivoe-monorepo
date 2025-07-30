@@ -3,6 +3,7 @@ import { sepolia } from 'viem/chains';
 import { useAccount as useAccountWagmi } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
+import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
 
@@ -28,12 +29,17 @@ export const useChainalysis = () => {
     queryKey: queryKeys.account.chainalysis({ accountAddress: address, network }),
 
     queryFn: async () => {
-      const response = await fetch(
-        env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL + '/api/chainalysis/assessment?address=' + address + '&network=' + network
+      const { res, err } = await handlePromise(
+        fetch(
+          env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL + '/api/chainalysis/assessment?address=' + address + '&network=' + network
+        )
       );
 
-      const parsedResponse = await response.json();
-      if (!response.ok) throw new Error((parsedResponse as ErrorResponse).error);
+      if (err) throw err;
+      if (!res) throw new Error('No response from Chainalysis');
+
+      const parsedResponse = await res.json();
+      if (!res.ok) throw new Error((parsedResponse as ErrorResponse).error);
 
       return parsedResponse.data as Assessment;
     },

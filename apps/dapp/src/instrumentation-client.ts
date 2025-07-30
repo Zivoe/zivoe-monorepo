@@ -5,10 +5,10 @@ Sentry.init({
   enabled: process.env.NEXT_PUBLIC_ENV === 'production',
 
   sampleRate: 1,
-  tracesSampleRate: 1,
+  tracesSampleRate: 0.5,
   replaysOnErrorSampleRate: 1,
 
-  integrations: [Sentry.replayIntegration({ blockAllMedia: true })],
+  integrations: [Sentry.replayIntegration({ blockAllMedia: true, maskAllText: false })],
   debug: false
 });
 

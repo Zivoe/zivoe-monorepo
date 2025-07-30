@@ -1,3 +1,5 @@
+import type { Instrumentation } from 'next';
+
 import * as Sentry from '@sentry/nextjs';
 
 export async function register() {
@@ -10,4 +12,10 @@ export async function register() {
   }
 }
 
-export const onRequestError = Sentry.captureRequestError;
+export const onRequestError: Instrumentation.onRequestError = (...args) => {
+  Sentry.withScope((scope) => {
+    scope.setTag('source', 'SERVER');
+    scope.setTag('route_type', args[2]?.routeType || 'unknown');
+    Sentry.captureRequestError(...args);
+  });
+};

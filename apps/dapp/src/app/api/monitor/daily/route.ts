@@ -157,4 +157,4 @@ async function collectDailyData({
   return { data };
 }
 
-export const POST = handler;
+export const POST = verifySignatureAppRouter(handler);

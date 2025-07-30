@@ -340,7 +340,7 @@ export default function DepositBox({
           ) : null}
         </ConnectedAccount>
 
-        {receive && apy !== null ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
+        {receive && apy !== null && deposit ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
       </DialogContentBox>
 
       <TransactionDialog />

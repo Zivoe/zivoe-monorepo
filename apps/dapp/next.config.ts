@@ -33,6 +33,7 @@ module.exports = withSentryConfig(nextConfig, {
   org: 'TODO',
   project: 'TODO',
   widenClientFileUpload: true,
-  tunnelRoute: '/ng93dn',
-  disableLogger: true
+  tunnelRoute: true,
+  disableLogger: true,
+  reactComponentAnnotation: { enabled: true }
 });

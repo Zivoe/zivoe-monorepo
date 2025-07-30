@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { QueryClient } from '@tanstack/react-query';
 import { Address, TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
 
@@ -60,35 +61,73 @@ export function handlePromise<T>(promise: Promise<T>) {
     .catch((err: unknown) => Promise.resolve({ res: undefined, err }));
 }
 
+type AppErrorType = 'warning' | 'error';
 export class AppError extends Error {
   public readonly refetch: boolean;
+  public readonly capture: boolean;
+  public readonly exception?: unknown;
+  public readonly type: AppErrorType;
 
-  constructor({ message, refetch = true }: { message: string; refetch?: boolean }) {
+  constructor({
+    message,
+    refetch = true,
+    capture = true,
+    exception,
+    type = 'error'
+  }: {
+    message: string;
+    refetch?: boolean;
+    capture?: boolean;
+    exception?: unknown;
+    type?: AppErrorType;
+  }) {
     super(message);
     this.name = 'AppError';
     this.refetch = refetch;
+    this.capture = capture;
+    this.exception = exception;
+    this.type = type;
   }
 }
 
 export const onTxError = ({
   err,
   defaultToastMsg,
-  onRefetch
+  onRefetch,
+  sentry
 }: {
   err: unknown;
   defaultToastMsg: string;
   onRefetch?: () => Promise<void>;
+  sentry: { flow: string; extras: Record<string, unknown> };
 }) => {
   let refetch = true;
+  let capture = true;
   let toastMsg = defaultToastMsg;
+  let exception: unknown = err;
+  let type: AppErrorType = 'error';
 
   if (err instanceof AppError) {
     refetch = err.refetch;
+    capture = err.capture;
     toastMsg = err.message;
+    exception = err.exception ?? err.message;
+    type = err.type;
   }
 
-  toast({ type: 'error', title: toastMsg });
+  if (type === 'warning') toast({ type: 'warning', title: toastMsg });
+  else toast({ type: 'error', title: toastMsg });
+
   if (refetch && onRefetch) onRefetch();
+
+  if (capture)
+    Sentry.captureException(exception, {
+      tags: { source: 'MUTATION', flow: sentry.flow },
+      extra: {
+        ...sentry.extras,
+        toastMsg
+      }
+    });
 };
 
 export const skipTxSettled = (err: unknown) => {
@@ -119,7 +158,7 @@ export const getDepositTransactionData = ({
     const vaultDepositLog = vaultDepositLogs[0];
     if (vaultDepositLog) receiveAmount = vaultDepositLog.args.shares;
   } catch (error) {
-    console.error('Error parsing deposit receipt', error);
+    Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'deposit' } });
   }
 
   let meta: TransactionData['meta'] = undefined;

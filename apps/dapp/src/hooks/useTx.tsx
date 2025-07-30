@@ -39,11 +39,11 @@ export default function useTx() {
 
       if (revertError instanceof ContractFunctionRevertedError) {
         const revertReason = revertError.reason;
-        if (revertReason) throw new AppError({ message: `Simulation error: ${revertReason}` });
+        if (revertReason) throw new AppError({ message: `Simulation error: ${revertReason}`, exception: err });
       }
     }
 
-    throw new AppError({ message: 'Simulation error' });
+    throw new AppError({ message: 'Simulation error', exception: err });
   };
 
   const sendTx = async (
@@ -53,7 +53,14 @@ export default function useTx() {
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
-      if (isUserRejection) throw new AppError({ message: 'Transaction rejected', refetch: false });
+      if (isUserRejection)
+        throw new AppError({
+          message: 'Transaction rejected',
+          exception: err,
+          refetch: false,
+          type: 'warning',
+          capture: false
+        });
       else throw err;
     }
 
@@ -71,7 +78,7 @@ export default function useTx() {
     setIsTxPending(false);
     sonnerToast.dismiss(toastId);
 
-    if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt' });
+    if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt', exception: err });
 
     return receipt;
   };
