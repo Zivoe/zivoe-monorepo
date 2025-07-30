@@ -30,8 +30,8 @@ const nextConfig: NextConfig = {
 };
 
 module.exports = withSentryConfig(nextConfig, {
-  org: 'TODO',
-  project: 'TODO',
+  org: 'zivoe',
+  project: 'dapp',
   widenClientFileUpload: true,
   tunnelRoute: true,
   disableLogger: true,
