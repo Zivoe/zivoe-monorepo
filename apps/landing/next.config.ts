@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 import { withSentryConfig } from '@sentry/nextjs';
 
+import './src/env';
+
 const nextConfig: NextConfig = {
   experimental: {
     ppr: true,

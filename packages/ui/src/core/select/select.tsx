@@ -64,7 +64,7 @@ const SelectListBox = <T extends object>({
   <AriaListBox
     className={composeRenderProps(className, (className) =>
       cn(
-        'max-h-[inherit] space-y-1 overflow-auto p-2 outline-none [clip-path:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
+        'max-h-[inherit] space-y-1 overflow-auto p-2 outline-none [clipPath:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
         className
       )
     )}
