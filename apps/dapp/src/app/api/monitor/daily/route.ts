@@ -1,6 +1,7 @@
 import { revalidateTag } from 'next/cache';
 import { NextRequest as Request, NextResponse as Response } from 'next/server';
 
+import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { PublicClient } from 'viem';
 import { z } from 'zod';
@@ -17,6 +18,8 @@ import { handle } from '@/lib/utils';
 import { env } from '@/env';
 
 import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
+
+const MONITOR_SLUG = 'deposit-daily-cron';
 
 const bodySchema = z.object({
   network: z.enum(NETWORKS),
@@ -37,6 +40,15 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
 
   // Get context
   const { network, startDate, endDate } = parsedBody.data;
+
+  let sentryCheckInId: string | null = null;
+  if (network === 'MAINNET') {
+    sentryCheckInId = Sentry.captureCheckIn({
+      monitorSlug: MONITOR_SLUG,
+      status: 'in_progress'
+    });
+  }
+
   const client = getWeb3Client(network);
   const contracts = getContracts(network);
   const db = getDb(network);
@@ -103,6 +115,14 @@ const handler = async (req: Request): Promise<Response<ApiResponse>> => {
     );
 
     if (err || !data?.ok) return Response.json({ error: 'Failed to revalidate landing page' }, { status: 500 });
+  }
+
+  if (sentryCheckInId) {
+    Sentry.captureCheckIn({
+      checkInId: sentryCheckInId,
+      monitorSlug: MONITOR_SLUG,
+      status: 'ok'
+    });
   }
 
   return Response.json({ success: true });
