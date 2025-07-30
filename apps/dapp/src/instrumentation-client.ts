@@ -8,7 +8,7 @@ Sentry.init({
   tracesSampleRate: 0.5,
   replaysOnErrorSampleRate: 1,
 
-  integrations: [Sentry.replayIntegration({ blockAllMedia: true, maskAllText: false })],
+  integrations: [Sentry.replayIntegration({ blockAllMedia: true, maskAllText: true })],
   debug: false
 });
 
