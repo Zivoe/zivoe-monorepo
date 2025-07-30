@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+import { withSentryConfig } from '@sentry/nextjs';
+
 const nextConfig: NextConfig = {
   experimental: {
     ppr: true,
@@ -27,4 +29,10 @@ const nextConfig: NextConfig = {
   }
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: 'TODO',
+  project: 'TODO',
+  widenClientFileUpload: true,
+  tunnelRoute: '/ng93dn',
+  disableLogger: true
+});
