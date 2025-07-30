@@ -71,13 +71,13 @@ async function Statistics() {
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      {currentDailyData?.tvl && (
+      {currentDailyData?.tvl ? (
         <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl))} />
-      )}
+      ) : null}
 
-      {currentDailyData?.apy && <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} />}
+      {currentDailyData?.apy ? <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} /> : null}
 
-      {revenue && <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} />}
+      {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
     </div>
   );
 }

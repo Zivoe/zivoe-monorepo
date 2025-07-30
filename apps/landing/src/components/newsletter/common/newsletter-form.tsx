@@ -4,6 +4,7 @@ import { useRef } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import * as Sentry from '@sentry/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { Controller } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
@@ -107,7 +108,14 @@ const useJoinNewsletter = () => {
     },
 
     onSuccess: ({ message }) => toast({ type: 'success', title: message }),
-    onError: (error) => toast({ type: 'error', title: error.message })
+    onError: (error) => {
+      toast({ type: 'error', title: error.message });
+
+      Sentry.captureException(error, {
+        tags: { source: 'MUTATION', flow: 'newsletter' },
+        extra: { toastMsg: error.message }
+      });
+    }
   });
 };
 
