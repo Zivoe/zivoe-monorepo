@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtom } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
-import { useMediaQuery } from 'react-responsive';
 import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
@@ -62,8 +61,6 @@ export default function DepositBox({
   withTitle?: boolean;
   boxClassName?: string;
 }) {
-  const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
-
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
@@ -229,19 +226,17 @@ export default function DepositBox({
 
                   <div className="ml-3">
                     <>
-                      {isDesktop ? (
-                        <DepositTokenDialog
-                          isDisabled={isDisabled}
-                          selected={depositToken}
-                          onSelectionChange={handleDepositTokenChange}
-                        />
-                      ) : (
-                        <DepositTokenSelect
-                          selected={depositToken}
-                          onSelectionChange={handleDepositTokenChange}
-                          isDisabled={isDisabled}
-                        />
-                      )}
+                      <DepositTokenDialog
+                        isDisabled={isDisabled}
+                        selected={depositToken}
+                        onSelectionChange={handleDepositTokenChange}
+                      />
+
+                      <DepositTokenSelect
+                        selected={depositToken}
+                        onSelectionChange={handleDepositTokenChange}
+                        isDisabled={isDisabled}
+                      />
                     </>
                   </div>
                 </div>
@@ -483,7 +478,7 @@ function DepositTokenDialog({
 
   return (
     <Dialog>
-      <SelectTrigger variant="select" className="w-[7.82rem] justify-between" isDisabled={isDisabled}>
+      <SelectTrigger variant="select" className="hidden w-[7.82rem] justify-between lg:flex" isDisabled={isDisabled}>
         <div className="flex items-center gap-2 [&_svg]:size-6">
           {icon}
           {selected}
@@ -554,7 +549,7 @@ function DepositTokenSelect({
       onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
-      <SelectTrigger variant="select" className="w-[7.82rem] justify-between">
+      <SelectTrigger variant="select" className="w-[7.82rem] justify-between lg:hidden">
         <SelectValue className="flex items-center gap-2 [&_svg]:size-6" />
       </SelectTrigger>
 
