@@ -12,7 +12,8 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: z.string(),
     UPSTASH_REDIS_REST_TOKEN: z.string(),
     LANDING_PAGE_URL: z.string().optional(),
-    LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional()
+    LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
+    SENTRY_AUTH_TOKEN: z.string()
   },
 
   client: {
@@ -24,7 +25,8 @@ export const env = createEnv({
     NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: z.string(),
     NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: z.string(),
     NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: z.string(),
-    NEXT_PUBLIC_POSTHOG_KEY: z.string()
+    NEXT_PUBLIC_POSTHOG_KEY: z.string(),
+    NEXT_PUBLIC_SENTRY_DSN: z.string()
   },
 
   runtimeEnv: {
@@ -46,7 +48,9 @@ export const env = createEnv({
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     LANDING_PAGE_URL: process.env.LANDING_PAGE_URL,
     LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY,
-    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

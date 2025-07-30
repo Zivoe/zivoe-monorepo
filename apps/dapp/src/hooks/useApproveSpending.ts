@@ -1,6 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { Abi, type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
+import { type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
 import { type Address } from 'viem/accounts';
 import { type WriteContractParameters } from 'wagmi/actions';
 
@@ -60,10 +61,11 @@ export const useApproveSpending = () => {
       return { receipt };
     },
 
-    onError: (err, { name }) =>
+    onError: (err, { abi, ...variables }) =>
       onTxError({
         err,
-        defaultToastMsg: `Error Approving ${name}`
+        defaultToastMsg: `Error Approving ${variables.name}`,
+        sentry: { flow: 'approve', extras: variables }
       }),
 
     onSuccess: ({ receipt }, { name, abi }) => {
@@ -91,7 +93,7 @@ export const useApproveSpending = () => {
             }
           }
         } catch (error) {
-          console.error('Error parsing approval receipt', error);
+          Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'approve' } });
         }
       }
 

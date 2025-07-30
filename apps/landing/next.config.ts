@@ -1,5 +1,9 @@
 import type { NextConfig } from 'next';
 
+import { withSentryConfig } from '@sentry/nextjs';
+
+import './src/env';
+
 const nextConfig: NextConfig = {
   experimental: {
     ppr: true,
@@ -27,4 +31,11 @@ const nextConfig: NextConfig = {
   }
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: 'zivoe',
+  project: 'landing',
+  widenClientFileUpload: true,
+  tunnelRoute: true,
+  disableLogger: true,
+  reactComponentAnnotation: { enabled: true }
+});

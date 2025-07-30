@@ -1,5 +1,8 @@
+import 'server-only';
+
 import { unstable_cache as nextCache } from 'next/cache';
 
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 
 import { getContracts } from '@zivoe/contracts';
@@ -24,7 +27,7 @@ const getCurrentDailyData = nextCache(
 
       return latest;
     } catch (error) {
-      return null;
+      Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
   },
   undefined,
@@ -47,7 +50,7 @@ const getRevenue = nextCache(
 
       return totalRevenue.toString();
     } catch (error) {
-      return null;
+      Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
   },
   undefined,

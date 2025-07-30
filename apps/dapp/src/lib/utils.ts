@@ -1,3 +1,6 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+import * as Sentry from '@sentry/nextjs';
 import { QueryClient } from '@tanstack/react-query';
 import { Address, TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
 
@@ -10,15 +13,6 @@ import { TransactionData } from '@/lib/store';
 
 import { CONTRACTS } from './constants';
 import { queryKeys } from './query-keys';
-
-export const handle = <T>(promise: Promise<T>) => {
-  return promise
-    .then((data: T) => ({
-      data,
-      err: undefined
-    }))
-    .catch((err: unknown) => Promise.resolve({ data: undefined, err }));
-};
 
 export const DAY_IN_SECONDS = 86400;
 export const DAYS_PER_YEAR = 365;
@@ -60,35 +54,101 @@ export function handlePromise<T>(promise: Promise<T>) {
     .catch((err: unknown) => Promise.resolve({ res: undefined, err }));
 }
 
+export class ApiError extends Error {
+  public readonly capture: boolean;
+  public readonly exception?: unknown;
+  public readonly status: number;
+  public readonly headers?: HeadersInit;
+
+  constructor({
+    message,
+    capture = true,
+    exception,
+    status,
+    headers
+  }: {
+    message: string;
+    capture?: boolean;
+    exception?: unknown;
+    status?: number;
+    headers?: HeadersInit;
+  }) {
+    super(message);
+    this.name = 'ApiError';
+    this.capture = capture;
+    this.exception = exception;
+    this.status = status ?? 500;
+    this.headers = headers;
+  }
+}
+
+type AppErrorType = 'warning' | 'error';
 export class AppError extends Error {
   public readonly refetch: boolean;
+  public readonly capture: boolean;
+  public readonly exception?: unknown;
+  public readonly type: AppErrorType;
 
-  constructor({ message, refetch = true }: { message: string; refetch?: boolean }) {
+  constructor({
+    message,
+    refetch = true,
+    capture = true,
+    exception,
+    type = 'error'
+  }: {
+    message: string;
+    refetch?: boolean;
+    capture?: boolean;
+    exception?: unknown;
+    type?: AppErrorType;
+  }) {
     super(message);
     this.name = 'AppError';
     this.refetch = refetch;
+    this.capture = capture;
+    this.exception = exception;
+    this.type = type;
   }
 }
 
 export const onTxError = ({
   err,
   defaultToastMsg,
-  onRefetch
+  onRefetch,
+  sentry
 }: {
   err: unknown;
   defaultToastMsg: string;
   onRefetch?: () => Promise<void>;
+  sentry: { flow: string; extras: Record<string, unknown> };
 }) => {
   let refetch = true;
+  let capture = true;
   let toastMsg = defaultToastMsg;
+  let exception: unknown = err;
+  let type: AppErrorType = 'error';
 
   if (err instanceof AppError) {
     refetch = err.refetch;
+    capture = err.capture;
     toastMsg = err.message;
+    exception = err.exception ?? err.message;
+    type = err.type;
   }
 
-  toast({ type: 'error', title: toastMsg });
+  if (type === 'warning') toast({ type: 'warning', title: toastMsg });
+  else toast({ type: 'error', title: toastMsg });
+
   if (refetch && onRefetch) onRefetch();
+
+  if (capture)
+    Sentry.captureException(exception, {
+      tags: { source: 'MUTATION', flow: sentry.flow },
+      extra: {
+        ...sentry.extras,
+        toastMsg
+      }
+    });
 };
 
 export const skipTxSettled = (err: unknown) => {
@@ -119,7 +179,7 @@ export const getDepositTransactionData = ({
     const vaultDepositLog = vaultDepositLogs[0];
     if (vaultDepositLog) receiveAmount = vaultDepositLog.args.shares;
   } catch (error) {
-    console.error('Error parsing deposit receipt', error);
+    Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'deposit' } });
   }
 
   let meta: TransactionData['meta'] = undefined;
@@ -184,3 +244,33 @@ export const handleDepositRefetches = ({
     queryKey: queryKeys.account.balanceOf({ accountAddress: address, id: CONTRACTS.zVLT })
   });
 };
+
+export function withErrorHandler(defaultErrorMessage: string, handler: (req: NextRequest) => Promise<NextResponse>) {
+  return async (req: NextRequest) => {
+    const { res, err } = await handlePromise(handler(req));
+    if (!err) return res;
+
+    let status: number = 500;
+    let capture = true;
+    let errorMessage = defaultErrorMessage;
+    let exception: unknown = err;
+    let headers: HeadersInit | undefined = undefined;
+
+    if (err instanceof ApiError) {
+      capture = err.capture;
+      errorMessage = err.message;
+      exception = err.exception ?? err.message;
+      status = err.status;
+      headers = err.headers;
+    }
+
+    if (capture) {
+      Sentry.captureException(exception, {
+        tags: { source: 'API' },
+        extra: { errorMessage, status }
+      });
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status, headers });
+  };
+}

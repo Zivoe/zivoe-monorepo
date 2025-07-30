@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { SimulateContractParameters, parseEventLogs } from 'viem';
@@ -48,11 +49,13 @@ export const useVaultDeposit = () => {
       return { receipt };
     },
 
-    onError: (err, { stableCoinName }) =>
+    onError: (err, variables) => {
       onTxError({
         err,
-        defaultToastMsg: `Error Depositing ${stableCoinName}`
-      }),
+        defaultToastMsg: `Error Depositing ${variables.stableCoinName}`,
+        sentry: { flow: 'vault-deposit', extras: variables }
+      });
+    },
 
     onSuccess: ({ receipt }, { stableCoinName }) => {
       const transactionData = getDepositTransactionData({
