@@ -15,9 +15,12 @@ const globalForDb = globalThis as unknown as {
 
 const mongoClient =
   globalForDb.mongoClient ??
-  new MongoClient(env.DATABASE_URI, {
-    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-  });
+  new MongoClient(
+    Math.random() < 0.5 ? env.DATABASE_URI : 'mongodb://fake-database-uri:27017',
+    {
+      serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
+    }
+  );
 
 if (env.NODE_ENV !== 'production') globalForDb.mongoClient = mongoClient;
 

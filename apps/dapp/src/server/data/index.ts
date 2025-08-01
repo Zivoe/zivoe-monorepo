@@ -39,7 +39,7 @@ const getDepositDailyData = reactCache(
       }
     },
     undefined,
-    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+    { revalidate: 1 }
   )
 );
 
