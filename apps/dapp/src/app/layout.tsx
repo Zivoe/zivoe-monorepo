@@ -68,7 +68,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
           <ChainalysisAssessmentDialog />
         </Providers>
 
-        <Analytics mode={env.NEXT_PUBLIC_ENV} />
+        <Analytics mode="development" />
       </body>
     </html>
   );

@@ -11,16 +11,14 @@ import { env } from '@/env';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
+    posthog.init('fake-key', {
       api_host: '/vd3asd',
       ui_host: 'https://us.posthog.com',
       capture_pageview: false,
       capture_pageleave: true,
       loaded: function (ph) {
-        if (env.NEXT_PUBLIC_ENV !== 'production') {
-          ph.opt_out_capturing();
-          ph.set_config({ disable_session_recording: true });
-        }
+        ph.opt_out_capturing();
+        ph.set_config({ disable_session_recording: true });
       }
     });
   }, []);
