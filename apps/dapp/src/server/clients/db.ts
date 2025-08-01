@@ -15,18 +15,21 @@ const globalForDb = globalThis as unknown as {
 
 const mongoClient =
   globalForDb.mongoClient ??
-  new MongoClient(
-    Math.random() < 0.5 ? env.DATABASE_URI : 'mongodb://fake-database-uri:27017',
-    {
-      serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-    }
-  );
+  new MongoClient(Math.random() < 0.5 ? env.DATABASE_URI : 'mongodb://fake-database-uri:27017', {
+    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
+  });
 
 if (env.NODE_ENV !== 'production') globalForDb.mongoClient = mongoClient;
 
 export const getDb = cache((network: Network) => {
   let zivoeDb = mongoClient.db('ZivoeMainnet');
-  if (network === 'SEPOLIA') zivoeDb = mongoClient.db('ZivoeSepolia');
+  if (network === 'SEPOLIA') {
+    if (Math.random() < 0.5) {
+      zivoeDb = mongoClient.db('ZivoeSepolia');
+    } else {
+      zivoeDb = mongoClient.db('ZivoeFake');
+    }
+  }
 
   return {
     daily: zivoeDb.collection('Daily') as Collection<DailyData>
