@@ -212,13 +212,12 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     x: 'https://x.com/ZivoeJohn'
   },
   {
-    name: 'Thor Abbasi',
-    title: 'Head of Investor Relations',
-    image: '/team/thor.png',
+    name: 'Walt Ramsey',
+    title: 'Head of Risk',
+    image: '/team/walt.png',
     bio:
-      'Leads investor relations, community management, and operations at Zivoe. Active in crypto since 2017, with a background in finance and data science.',
-    linkedIn: 'https://www.linkedin.com/in/thor-abbasi/',
-    x: 'https://x.com/thorabbasi'
+      'Credit risk leader with 20+ years of experience managing consumer credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
+    linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
   },
   {
     name: 'Dennis Baca',
@@ -229,12 +228,13 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     x: 'https://x.com/TheDennisBaca'
   },
   {
-    name: 'Walt Ramsey',
-    title: 'Head of Risk',
-    image: '/team/walt.png',
+    name: 'Thor Abbasi',
+    title: 'Head of Investor Relations',
+    image: '/team/thor.png',
     bio:
-      'Credit risk leader with 20+ years of experience managing consumer credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
-    linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
+      'Leads investor relations, community management, and operations at Zivoe. Active in crypto since 2017, with a background in finance and data science.',
+    linkedIn: 'https://www.linkedin.com/in/thor-abbasi/',
+    x: 'https://x.com/thorabbasi'
   },
   {
     name: 'Stephanie Puzzo',
@@ -267,14 +267,13 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     bio:
       'Certified Public Accountant with corporate finance experience at USA Rare Earth, CONMED Corporation, and FIS.',
     linkedIn: 'https://www.linkedin.com/in/shannonwright9339/'
+  },
+  {
+    name: 'Bo Zhang',
+    title: 'Advisor',
+    image: '/team/bo.png',
+    bio:
+      "Former Multi-Strategy Portfolio Manager at JP Morgan’s Chief Investment Office. Currently Head of Investments at Fyde, advising on $800M+ in capital.",
+    linkedIn: 'https://www.linkedin.com/in/bozhang7940'
   }
-  // Bo Zhang can be added here when asset is available
-  // {
-  //   name: 'Bo Zhang',
-  //   title: 'Advisor',
-  //   image: '/team/bo.png',
-  //   bio:
-  //     "Former Multi-Strategy Portfolio Manager at JP Morgan’s Chief Investment Office. Currently Head of Investments at Fyde, advising on $800M+ in capital.",
-  //   linkedIn: 'https://www.linkedin.com/in/bo-zhang-6097a739/'
-  // }
 ];
