@@ -113,7 +113,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   {
     title: 'Company',
     links: [
-      { href: '/about-us', label: 'About Us' },
+      { href: '/team', label: 'Team' },
       // { href: '/', label: 'Media Kit' },
       { href: 'mailto:investors@zivoe.com', label: 'Contact Us' }
     ]
