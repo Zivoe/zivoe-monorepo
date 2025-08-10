@@ -194,6 +194,14 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     x: 'https://x.com/jayabbasi'
   },
   {
+    name: 'Chad Deal',
+    title: 'Head of Compliance',
+    image: '/team/chad.png',
+    bio:
+      'Lending industry veteran with over 20 years of experience. Former Chief Operating Officer at Plain Green.',
+    linkedIn: 'https://www.linkedin.com/in/chad-deal-6b24135b/'
+  },
+  {
     name: 'Kristal Gruevski',
     title: 'Founder & General Counsel',
     image: '/team/kristal.png',
@@ -220,6 +228,22 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
   },
   {
+    name: 'Shannon Wright',
+    title: 'Controller',
+    image: '/team/shannon.png',
+    bio:
+      'Certified Public Accountant with corporate finance experience at USA Rare Earth, CONMED Corporation, and FIS.',
+    linkedIn: 'https://www.linkedin.com/in/shannonwright9339/'
+  },
+  {
+    name: 'Stephanie Puzzo',
+    title: 'Head of Marketing',
+    image: '/team/stephanie.png',
+    bio:
+      'Marketing strategist with 10+ years in B2B and B2C marketing. Former marketing leader at Mercantile and Capital One.',
+    linkedIn: 'https://www.linkedin.com/in/stephaniepuzzo/'
+  },
+  {
     name: 'Dennis Baca',
     title: 'Head of Product',
     image: '/team/dennis.png',
@@ -237,14 +261,6 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     x: 'https://x.com/thorabbasi'
   },
   {
-    name: 'Stephanie Puzzo',
-    title: 'Head of Marketing',
-    image: '/team/stephanie.png',
-    bio:
-      'Marketing strategist with 10+ years in B2B and B2C marketing. Former marketing leader at Mercantile and Capital One.',
-    linkedIn: 'https://www.linkedin.com/in/stephaniepuzzo/'
-  },
-  {
     name: 'Alex Serban',
     title: 'Lead Engineer',
     image: '/team/alex.png',
@@ -253,27 +269,11 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     linkedIn: 'https://www.linkedin.com/in/alexsserban/'
   },
   {
-    name: 'Chad Deal',
-    title: 'Head of Compliance',
-    image: '/team/chad.png',
-    bio:
-      'Lending industry veteran with over 20 years of experience. Former Chief Operating Officer at Plain Green.',
-    linkedIn: 'https://www.linkedin.com/in/chad-deal-6b24135b/'
-  },
-  {
-    name: 'Shannon Wright',
-    title: 'Controller',
-    image: '/team/shannon.png',
-    bio:
-      'Certified Public Accountant with corporate finance experience at USA Rare Earth, CONMED Corporation, and FIS.',
-    linkedIn: 'https://www.linkedin.com/in/shannonwright9339/'
-  },
-  {
     name: 'Bo Zhang',
     title: 'Advisor',
     image: '/team/bo.png',
     bio:
-      "Former Multi-Strategy Portfolio Manager at JP Morgan’s Chief Investment Office. Currently Head of Investments at Fyde, advising on $800M+ in capital.",
+      "Former Multi-Strategy Portfolio Manager at JP Morgan's Chief Investment Office. Currently Head of Investments at Fyde, advising on $800M+ in capital.",
     linkedIn: 'https://www.linkedin.com/in/bozhang7940'
   }
 ];
