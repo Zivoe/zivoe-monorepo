@@ -194,14 +194,6 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     x: 'https://x.com/jayabbasi'
   },
   {
-    name: 'Chad Deal',
-    title: 'Head of Compliance',
-    image: '/team/chad.png',
-    bio:
-      'Lending industry veteran with over 20 years of experience. Former Chief Operating Officer at Plain Green.',
-    linkedIn: 'https://www.linkedin.com/in/chad-deal-6b24135b/'
-  },
-  {
     name: 'Kristal Gruevski',
     title: 'Founder & General Counsel',
     image: '/team/kristal.png',
@@ -226,6 +218,14 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     bio:
       'Credit risk leader with 20+ years of experience managing consumer credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
     linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
+  },
+  {
+    name: 'Chad Deal',
+    title: 'Head of Compliance',
+    image: '/team/chad.png',
+    bio:
+      'Lending industry veteran with over 20 years of experience. Former Chief Operating Officer at Plain Green.',
+    linkedIn: 'https://www.linkedin.com/in/chad-deal-6b24135b/'
   },
   {
     name: 'Shannon Wright',
