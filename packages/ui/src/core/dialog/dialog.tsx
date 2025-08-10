@@ -21,7 +21,10 @@ type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'childre
   logoType?: 'dark' | 'light';
   dialogClassName?: string;
   showCloseButton?: boolean;
-} & ({ isDismissable: false; isFullScreen?: never } | { isDismissable?: true; isFullScreen?: boolean });
+  showFullScreenHeader?: boolean;
+  isDismissable?: boolean;
+  isFullScreen?: boolean;
+};
 
 const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   (
@@ -32,6 +35,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       isDismissable = true,
       showCloseButton = true,
       isFullScreen = false,
+      showFullScreenHeader = true,
       role,
       logoType = 'dark',
       ...props
@@ -72,7 +76,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         >
           {composeRenderProps(children, (children, { close }) => (
             <>
-              {isFullScreen ? (
+              {isFullScreen && showFullScreenHeader ? (
                 <div className="flex w-full items-center justify-between gap-6">
                   <ZivoeLogo type={logoType} />
 
