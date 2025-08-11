@@ -25,7 +25,10 @@ const getDepositDailyData = reactCache(
     async () => {
       try {
         const db = getDb(env.NEXT_PUBLIC_NETWORK);
-        const data = await db.daily.find().sort({ timestamp: 1 }).toArray();
+        const data = await db.daily
+          .find({ timestamp: { $gte: new Date('2025-06-20') } })
+          .sort({ timestamp: 1 })
+          .toArray();
 
         if (data.length === 0) throw new Error('No daily data found');
 
