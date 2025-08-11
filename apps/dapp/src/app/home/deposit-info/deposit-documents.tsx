@@ -3,17 +3,17 @@ import Link from 'next/link';
 import { DocumentIcon, ExternalLinkIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
 
 export default function Documents() {
   return (
-    <DepositInfoSection title="Documents" icon={<DocumentIcon />}>
+    <InfoSection title="Documents" icon={<DocumentIcon />}>
       <div>
         {Object.entries(LINKS).map(([title, href]) => (
           <DocumentLink key={title} title={title} href={href} className="border-b border-default last:border-b-0" />
         ))}
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 

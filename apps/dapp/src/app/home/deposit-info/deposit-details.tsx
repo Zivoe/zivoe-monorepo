@@ -4,17 +4,17 @@ import { Link } from '@zivoe/ui/core/link';
 import { DocumentIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
 
 export default function DepositDetails() {
   return (
-    <DepositInfoSection title="Details" icon={<DocumentIcon />}>
+    <InfoSection title="Details" icon={<DocumentIcon />}>
       <div>
         {Object.entries(ELEMENTS).map(([title, value]) => (
           <Element key={title} title={title} value={value} className="border-b border-default last:border-b-0" />
         ))}
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 

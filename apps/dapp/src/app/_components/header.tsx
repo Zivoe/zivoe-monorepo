@@ -91,7 +91,8 @@ function NavigationItems() {
 }
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Deposit', href: '/' }
+  { title: 'Deposit', href: '/' },
+  { title: 'Portfolio', href: '/portfolio' }
 ];
 
 function Wallet() {

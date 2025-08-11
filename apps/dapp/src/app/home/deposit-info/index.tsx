@@ -6,7 +6,8 @@ import { ChartIcon, DiamondIcon, PieChartIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
+
 import DepositAbout from './deposit-about';
 import DepositAllocation from './deposit-allocation';
 import DepositCharts from './deposit-charts';
@@ -90,9 +91,9 @@ async function DepositStatsComponent() {
 
 function DepositStatsSkeleton() {
   return (
-    <DepositInfoSection title="Stats" icon={<ChartIcon />}>
+    <InfoSection title="Stats" icon={<ChartIcon />}>
       <Skeleton className="h-[4.5rem] w-full rounded-md" />
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 
@@ -117,7 +118,7 @@ async function DepositAllocationComponent() {
 
 function DepositAllocationSkeleton() {
   return (
-    <DepositInfoSection title="Asset Allocation" icon={<PieChartIcon />}>
+    <InfoSection title="Asset Allocation" icon={<PieChartIcon />}>
       <div className="flex flex-col gap-3">
         <div className="px-3">
           <Skeleton className="h-4 w-full rounded-md" />
@@ -125,7 +126,7 @@ function DepositAllocationSkeleton() {
 
         <Skeleton className="h-[10.625rem] w-full rounded-md" />
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 

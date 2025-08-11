@@ -4,13 +4,14 @@ import { Link } from '@zivoe/ui/core/link';
 import { StarIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DepositInfoSection } from '../common';
+import InfoSection from '@/components/info-section';
+
 import { AutocompoundingIcon } from './autocompounding-icon';
 import { ExperienceIcon } from './experience-icon';
 
 export default function DepositHighlights() {
   return (
-    <DepositInfoSection title="Highlights" icon={<StarIcon />}>
+    <InfoSection title="Highlights" icon={<StarIcon />}>
       <div className="flex flex-col gap-3">
         <Card
           icon={<AutocompoundingIcon />}
@@ -30,7 +31,7 @@ export default function DepositHighlights() {
           </Link>
         </Card>
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 

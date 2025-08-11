@@ -8,7 +8,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
 
 export default function DepositAllocation({
   outstandingPrincipal,
@@ -25,7 +25,7 @@ export default function DepositAllocation({
   const usdcBalancePercentage = (Number(usdcBalance) / total) * 100;
 
   return (
-    <DepositInfoSection title="Asset Allocation" icon={<PieChartIcon />}>
+    <InfoSection title="Asset Allocation" icon={<PieChartIcon />}>
       <div className="flex flex-col gap-3">
         <div className="flex h-4 gap-1 px-3">
           <Block width={outstandingPrincipalPercentage} className="bg-element-primary-soft" />
@@ -71,7 +71,7 @@ export default function DepositAllocation({
           />
         </div>
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 
