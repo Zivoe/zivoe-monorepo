@@ -21,7 +21,7 @@
     "@zivoe/ui": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "mongodb": "^6.13.1",
-    "next": "15.4.0-canary.59",
+    "next": "15.4.2-canary.35",
     "pg": "^8.16.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",
