@@ -9,7 +9,11 @@ import { DAY_IN_SECONDS } from '@/lib/utils';
 
 import { Web3Request } from '@/types';
 
-const getIndexPrice = async ({ client, contracts, blockNumber }: Web3Request) => {
+const getIndexPrice = async ({
+  client,
+  contracts,
+  blockNumber
+}: Omit<Web3Request, 'blockNumber'> & { blockNumber: bigint | undefined }) => {
   const totalSupply = await client.readContract({
     address: contracts.zVLT,
     abi: zivoeVaultAbi,

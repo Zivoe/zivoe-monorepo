@@ -21,7 +21,8 @@ const account = {
     ...account.by({ accountAddress }),
     network,
     'CHAINALYSIS'
-  ]
+  ],
+  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO']
 };
 
 const app = {

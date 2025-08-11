@@ -16,6 +16,8 @@ import { DepositDailyData } from '@/server/data';
 
 import { customNumber } from '@/lib/utils';
 
+import { useIsMobile } from '@/hooks/useIsMobile';
+
 import { env } from '@/env';
 
 const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
@@ -24,7 +26,7 @@ type ChartType = (typeof CHART_TYPES)[number];
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
 export default function DepositCharts({ dailyData }: { dailyData: Array<DepositDailyData> }) {
-  const isMobile = useMediaQuery({ query: '(max-width: 599px)' });
+  const isMobile = useIsMobile();
 
   const [selectedChartType, setSelectedChartType] = useState<Key>(0);
 

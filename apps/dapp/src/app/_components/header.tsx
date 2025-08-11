@@ -1,10 +1,12 @@
 'use client';
 
+import * as React from 'react';
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { DynamicUserProfile, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
+import { OverlayTriggerStateContext } from 'react-aria-components';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
@@ -66,6 +68,7 @@ function MobileNavigation() {
 
 function NavigationItems() {
   const pathName = usePathname() ?? '';
+  const state = React.useContext(OverlayTriggerStateContext);
 
   return (
     <>
@@ -81,6 +84,7 @@ function NavigationItems() {
             href={href}
             aria-current={isCurrent}
             isDisabled={isDisabled}
+            onPress={() => state?.close()}
           >
             {title}
           </Link>
