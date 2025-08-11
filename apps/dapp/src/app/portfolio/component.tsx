@@ -99,7 +99,8 @@ function Chart() {
   if (account.isDisconnected) return <ChartSkeleton type="disconnected" />;
   if (!portfolio || portfolio.snapshots.length === 0) return <ChartSkeleton type="empty" />;
 
-  const strokeColor = portfolio.change?.isPositive ? 'hsl(var(--primary-600))' : 'hsl(var(--alert-700))';
+  const strokeColor =
+    !portfolio.change || portfolio.change.isPositive ? 'hsl(var(--primary-600))' : 'hsl(var(--alert-700))';
 
   return (
     <div className="h-[288px] w-full [&>div]:!aspect-auto [&>div]:h-full">
@@ -466,6 +467,8 @@ const usePortfolio = () => {
           if (filledSnapshots.length > 1) {
             const firstBalance = filledSnapshots[0]?.balance;
             const lastBalance = filledSnapshots[filledSnapshots.length - 1]?.balance;
+
+            console.log(firstBalance, lastBalance);
 
             if (firstBalance && firstBalance !== 0n && lastBalance) {
               const changeValue = ((lastBalance - firstBalance) * 10n ** 4n) / firstBalance;
