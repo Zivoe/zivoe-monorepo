@@ -5,6 +5,7 @@ import React from 'react';
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
 
+import { usePrefetch } from '../../hooks/usePrefetch';
 import { CaretRightIcon } from '../../icons';
 import { fixedForwardRef } from '../../lib';
 import { VariantProps, cn, tv } from '../../lib/tw-utils';
@@ -67,24 +68,30 @@ const menuItemVariants = tv({
   }
 });
 
-type MenuItemProps = Aria.MenuItemProps & Omit<VariantProps<typeof menuItemVariants>, 'isSelected'>;
+type MenuItemProps = Aria.MenuItemProps &
+  Omit<VariantProps<typeof menuItemVariants>, 'isSelected'> & { prefetch?: boolean };
 
-const MenuItem = ({ children, className, ...props }: MenuItemProps) => (
-  <Aria.MenuItem
-    textValue={props.textValue || (typeof children === 'string' ? children : undefined)}
-    className={composeRenderProps(className, (className, { isSelected }) =>
-      menuItemVariants({ className, isSelected })
-    )}
-    {...props}
-  >
-    {composeRenderProps(children, (children, { hasSubmenu }) => (
-      <>
-        {children}
-        {hasSubmenu && <CaretRightIcon className="ml-auto size-4" />}
-      </>
-    ))}
-  </Aria.MenuItem>
-);
+const MenuItem = ({ children, className, target = '_self', prefetch = true, ...props }: MenuItemProps) => {
+  usePrefetch({ href: props.href, target, enabled: prefetch });
+
+  return (
+    <Aria.MenuItem
+      target={target}
+      textValue={props.textValue || (typeof children === 'string' ? children : undefined)}
+      className={composeRenderProps(className, (className, { isSelected }) =>
+        menuItemVariants({ className, isSelected })
+      )}
+      {...props}
+    >
+      {composeRenderProps(children, (children, { hasSubmenu }) => (
+        <>
+          {children}
+          {hasSubmenu && <CaretRightIcon className="ml-auto size-4" />}
+        </>
+      ))}
+    </Aria.MenuItem>
+  );
+};
 
 const MenuSeparator = ({ className, ...props }: Aria.SeparatorProps) => (
   <Aria.Separator className={cn('my-1 h-px bg-element-neutral-light', className)} {...props} />

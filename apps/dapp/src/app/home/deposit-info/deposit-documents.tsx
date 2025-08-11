@@ -1,5 +1,4 @@
-import Link from 'next/link';
-
+import { NextLink } from '@zivoe/ui/core/link';
 import { DocumentIcon, ExternalLinkIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -19,7 +18,7 @@ export default function Documents() {
 
 function DocumentLink({ title, href, className }: { title: string; href: string; className?: string }) {
   return (
-    <Link
+    <NextLink
       href={href}
       target="_blank"
       className={cn(
@@ -33,7 +32,7 @@ function DocumentLink({ title, href, className }: { title: string; href: string;
       </div>
 
       <ExternalLinkIcon className="size-5 text-tertiary group-hover:text-primary group-focus-visible:text-primary" />
-    </Link>
+    </NextLink>
   );
 }
 

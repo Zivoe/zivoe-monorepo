@@ -1,12 +1,12 @@
 'use client';
 
-import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
+import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
