@@ -16,7 +16,7 @@ import { env } from '@/env';
 
 import { getDb } from '../clients/db';
 import { getPonder } from '../clients/ponder';
-import { occTable } from '../clients/ponder/schema';
+import { occ } from '../clients/ponder/schema';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
@@ -53,9 +53,9 @@ const getRevenue = nextCache(
       const ponder = getPonder(network);
 
       const data = await ponder
-        .select({ totalRevenue: occTable.totalRevenue })
-        .from(occTable)
-        .where(eq(occTable.id, contracts.OCC_USDC))
+        .select({ totalRevenue: occ.totalRevenue })
+        .from(occ)
+        .where(eq(occ.id, contracts.OCC_USDC))
         .limit(1);
 
       const totalRevenue = data[0]?.totalRevenue;
@@ -77,9 +77,9 @@ const getAssetAllocation = nextCache(
       const ponder = getPonder(network);
 
       const outstandingPrincipalReq = ponder
-        .select({ outstandingPrincipal: occTable.outstandingPrincipal })
-        .from(occTable)
-        .where(eq(occTable.id, contracts.OCC_USDC))
+        .select({ outstandingPrincipal: occ.outstandingPrincipal })
+        .from(occ)
+        .where(eq(occ.id, contracts.OCC_USDC))
         .limit(1);
 
       const usdcHolders = [contracts.DAO, contracts.OCC_USDC, contracts.zVLT, contracts.OCT_CONVERT, contracts.OCT_DAO];
