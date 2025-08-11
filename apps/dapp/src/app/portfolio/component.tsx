@@ -185,13 +185,15 @@ function Chart() {
 function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' }) {
   const { setShowAuthFlow } = useDynamicContext();
 
+  const color = type === 'loading' ? 'hsl(var(--neutral-300))' : 'hsl(var(--neutral-200))';
+
   return (
     <div className="relative h-[288px] w-full overflow-hidden">
       <svg className="h-full w-full" viewBox="0 0 800 288" preserveAspectRatio="none">
         <defs>
           <linearGradient id="skeleton-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--neutral-200))" stopOpacity="0.3" />
-            <stop offset="95%" stopColor="hsl(var(--neutral-200))" stopOpacity="0" />
+            <stop offset="5%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="95%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -213,7 +215,7 @@ function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' })
         <path
           d="M 0 170 C 100 120, 200 120, 300 170 C 400 220, 500 220, 600 170 C 700 120, 750 120, 800 170"
           fill="none"
-          stroke="hsl(var(--neutral-200))"
+          stroke={color}
           strokeWidth="2"
           strokeOpacity="0.6"
           className={cn('lg:hidden', type === 'loading' ? 'animate-[pulse_1.5s_ease-in-out_infinite]' : '')}
@@ -223,7 +225,7 @@ function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' })
         <path
           d="M 0 170 C 33 120, 66 120, 100 170 C 133 220, 166 220, 200 170 C 233 120, 266 120, 300 170 C 333 220, 366 220, 400 170 C 433 120, 466 120, 500 170 C 533 220, 566 220, 600 170 C 633 120, 666 120, 700 170 C 733 220, 766 220, 800 170"
           fill="none"
-          stroke="hsl(var(--neutral-200))"
+          stroke={color}
           strokeWidth="2"
           strokeOpacity="0.6"
           className={cn('hidden lg:block', type === 'loading' ? 'animate-[pulse_1.5s_ease-in-out_infinite]' : '')}
