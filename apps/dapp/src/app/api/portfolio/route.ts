@@ -20,8 +20,9 @@ const querySchema = z.object({
 });
 
 export type PortfolioData = {
-  value: string | null;
   timestamp: string | null;
+  value: string | null;
+  zVLTBalance: string | null;
   snapshots: Array<{ timestamp: string; balance: string }>;
 };
 
@@ -111,9 +112,11 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
   const portfolioValue = lastSnapshot ? lastSnapshot.balance : null;
   const portfolioTimestamp = lastSnapshot ? currentEndOfDayUTCInSeconds : null;
 
+  const zVLTBalance = snapshotsRes.res[snapshotsRes.res.length - 1]?.balance?.toString() ?? null;
+
   return NextResponse.json({
     success: true,
-    data: { value: portfolioValue, timestamp: portfolioTimestamp, snapshots }
+    data: { timestamp: portfolioTimestamp, value: portfolioValue, zVLTBalance, snapshots }
   });
 };
 
