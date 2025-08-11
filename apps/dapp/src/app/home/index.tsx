@@ -1,7 +1,3 @@
-import { Suspense } from 'react';
-
-import { Skeleton } from '@zivoe/ui/core/skeleton';
-
 import { data } from '@/server/data';
 
 import Hero from '@/components/hero';
@@ -17,10 +13,7 @@ export default function Home() {
 
       <Page className="flex gap-10 lg:flex-row">
         <DepositInfo />
-
-        <Suspense fallback={<Deposit apy={null} />}>
-          <DepositWrapper />
-        </Suspense>
+        <DepositWrapper />
       </Page>
     </div>
   );
