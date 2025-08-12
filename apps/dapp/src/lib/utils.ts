@@ -266,6 +266,11 @@ export const handleDepositRefetches = ({
   queryClient.invalidateQueries({
     queryKey: queryKeys.account.balanceOf({ accountAddress: address, id: CONTRACTS.zVLT })
   });
+
+  // Refetch portfolio
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.account.portfolio({ accountAddress: address })
+  });
 };
 
 export function withErrorHandler(defaultErrorMessage: string, handler: (req: NextRequest) => Promise<NextResponse>) {
