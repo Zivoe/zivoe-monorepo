@@ -24,9 +24,6 @@ export function PortfolioChart() {
   if (account.isDisconnected) return <ChartSkeleton type="disconnected" />;
   if (!portfolio || portfolio.snapshots.length === 0) return <ChartSkeleton type="empty" />;
 
-  const strokeColor =
-    !portfolio.change || portfolio.change.isPositive ? 'hsl(var(--primary-600))' : 'hsl(var(--alert-700))';
-
   return (
     <div className="h-[288px] w-full [&>div]:!aspect-auto [&>div]:h-full">
       <ChartContainer config={{}}>
@@ -89,8 +86,8 @@ export function PortfolioChart() {
 
           <defs>
             <linearGradient id="fillBalance" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
+              <stop offset="5%" stopColor="hsl(var(--primary-600))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(var(--primary-600))" stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -98,7 +95,7 @@ export function PortfolioChart() {
             dataKey="balanceNumeric"
             type="monotone"
             fill="url(#fillBalance)"
-            stroke={strokeColor}
+            stroke="hsl(var(--primary-600))"
             strokeWidth={2}
           />
         </AreaChart>

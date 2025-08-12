@@ -39,19 +39,6 @@ export const usePortfolio = () => {
             return { timestamp, balance, balanceNumeric };
           });
 
-          // Calculate portfolio change
-          let change: { value: bigint; isPositive: boolean } | null = null;
-
-          if (filledSnapshots.length > 1) {
-            const firstBalance = filledSnapshots[0]?.balance;
-            const lastBalance = filledSnapshots[filledSnapshots.length - 1]?.balance;
-
-            if (firstBalance && firstBalance !== 0n && lastBalance) {
-              const changeValue = ((lastBalance - firstBalance) * 10n ** 4n) / firstBalance;
-              change = { value: changeValue, isPositive: changeValue >= 0n };
-            }
-          }
-
           // Add synthetic zero-balance snapshot when there is only one data point
           if (filledSnapshots.length === 1) {
             const firstSnapshot = filledSnapshots[0];
@@ -71,8 +58,7 @@ export const usePortfolio = () => {
             zVLTBalance: portfolio.data.zVLTBalance ? BigInt(portfolio.data.zVLTBalance) : null,
             value: portfolio.data.value ? BigInt(portfolio.data.value) : null,
             timestamp: portfolio.data.timestamp ? new Date(Number(portfolio.data.timestamp) * 1000) : null,
-            snapshots: filledSnapshots,
-            change
+            snapshots: filledSnapshots
           };
         }
   });

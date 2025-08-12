@@ -36,18 +36,7 @@ export function PortfolioHeader() {
             : '$0.00'}
       </p>
 
-      <div className="flex items-center gap-1 text-regular">
-        {portfolio?.change && (
-          <span className={cn('font-medium', portfolio.change.isPositive ? 'text-brand-subtle' : 'text-alert-subtle')}>
-            {portfolio.change.isPositive ? '+' : ''}
-            {formatBigIntWithCommas({ value: portfolio.change.value, tokenDecimals: 2, displayDecimals: 2 })}%
-          </span>
-        )}
-
-        <span className="text-secondary">
-          {portfolio?.change ? 'on' : null} {currentEndOfDayUTCString} (UTC)
-        </span>
-      </div>
+      <p className="text-regular text-secondary">{currentEndOfDayUTCString} (UTC)</p>
     </HeaderContainer>
   );
 }
@@ -56,7 +45,7 @@ function HeaderSkeleton() {
   return (
     <HeaderContainer>
       <Skeleton className="h-10 w-44 rounded-md" />
-      <Skeleton className="h-6 w-52 rounded-md" />
+      <Skeleton className="h-6 w-[8.75rem] rounded-md" />
     </HeaderContainer>
   );
 }
