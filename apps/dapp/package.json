@@ -16,6 +16,7 @@
     "@dynamic-labs/wagmi-connector": "3.9.13",
     "@dynamic-labs/wallet-book": "3.9.13",
     "@hookform/resolvers": "^5.0.1",
+    "@ponder/client": "^0.12.0",
     "@sentry/nextjs": "^9.40.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.74.0",
@@ -30,7 +31,7 @@
     "ethereum-block-by-date": "^1.5.0",
     "jotai": "^2.12.5",
     "mongodb": "^6.13.1",
-    "next": "^15.4.0-canary.59",
+    "next": "15.4.2-canary.35",
     "pg": "^8.16.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",
@@ -46,6 +47,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "ponder": "^0.12.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.13.5",
@@ -58,14 +60,14 @@
     "@zivoe/ts-config": "workspace:*",
     "drizzle-kit": "^0.30.6",
     "eslint": "^9.21.0",
+    "import-in-the-middle": "^1.14.2",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "require-in-the-middle": "^7.5.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.7.3",
-    "require-in-the-middle": "^7.5.2",
-    "import-in-the-middle": "^1.14.2"
+    "typescript": "5.7.3"
   },
   "overrides": {
     "react-is": "^19.0.0"

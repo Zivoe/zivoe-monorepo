@@ -11,6 +11,8 @@ import { DepositToken } from '@/types/constants';
 
 import { TransactionData } from '@/lib/store';
 
+import { env } from '@/env';
+
 import { CONTRACTS } from './constants';
 import { queryKeys } from './query-keys';
 
@@ -41,6 +43,27 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   } else {
     return floorToDecimals(numericValue);
   }
+};
+
+export const formatBigIntWithCommas = ({
+  value,
+  tokenDecimals = 18,
+  displayDecimals = 2
+}: {
+  value: bigint;
+  tokenDecimals?: number;
+  displayDecimals?: number;
+}) => {
+  const inEther = formatUnits(value, tokenDecimals);
+  const numericValue = Number(inEther);
+
+  const multiplier = Math.pow(10, displayDecimals);
+  const rounded = Math.floor(numericValue * multiplier) / multiplier;
+
+  return rounded.toLocaleString('en-US', {
+    minimumFractionDigits: displayDecimals,
+    maximumFractionDigits: displayDecimals
+  });
 };
 
 const floorToDecimals = (num: number, decimals: number = 2) => {
@@ -243,6 +266,11 @@ export const handleDepositRefetches = ({
   queryClient.invalidateQueries({
     queryKey: queryKeys.account.balanceOf({ accountAddress: address, id: CONTRACTS.zVLT })
   });
+
+  // Refetch portfolio
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.account.portfolio({ accountAddress: address })
+  });
 };
 
 export function withErrorHandler(defaultErrorMessage: string, handler: (req: NextRequest) => Promise<NextResponse>) {
@@ -265,6 +293,7 @@ export function withErrorHandler(defaultErrorMessage: string, handler: (req: Nex
     }
 
     if (capture) {
+      if (env.NEXT_PUBLIC_ENV === 'development') console.log('Capturing exception: ', exception);
       Sentry.captureException(exception, {
         tags: { source: 'API' },
         extra: { errorMessage, status }
@@ -274,3 +303,9 @@ export function withErrorHandler(defaultErrorMessage: string, handler: (req: Nex
     return NextResponse.json({ error: errorMessage }, { status, headers });
   };
 }
+
+export const getEndOfDayUTC = (date: Date) => {
+  const d = new Date(date);
+  d.setUTCHours(23, 59, 59, 999);
+  return d;
+};

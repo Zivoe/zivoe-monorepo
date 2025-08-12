@@ -1,25 +1,24 @@
-import Link from 'next/link';
-
+import { NextLink } from '@zivoe/ui/core/link';
 import { DocumentIcon, ExternalLinkIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
 
 export default function Documents() {
   return (
-    <DepositInfoSection title="Documents" icon={<DocumentIcon />}>
+    <InfoSection title="Documents" icon={<DocumentIcon />}>
       <div>
         {Object.entries(LINKS).map(([title, href]) => (
           <DocumentLink key={title} title={title} href={href} className="border-b border-default last:border-b-0" />
         ))}
       </div>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
 
 function DocumentLink({ title, href, className }: { title: string; href: string; className?: string }) {
   return (
-    <Link
+    <NextLink
       href={href}
       target="_blank"
       className={cn(
@@ -33,7 +32,7 @@ function DocumentLink({ title, href, className }: { title: string; href: string;
       </div>
 
       <ExternalLinkIcon className="size-5 text-tertiary group-hover:text-primary group-focus-visible:text-primary" />
-    </Link>
+    </NextLink>
   );
 }
 

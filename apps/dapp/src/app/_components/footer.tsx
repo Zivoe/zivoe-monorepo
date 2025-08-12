@@ -1,8 +1,16 @@
+'use client';
+
+import { useSelectedLayoutSegment, useSelectedLayoutSegments } from 'next/navigation';
+
 import { Link } from '@zivoe/ui/core/link';
+import { cn } from '@zivoe/ui/lib/tw-utils';
 
 export default function Footer() {
+  const segment = useSelectedLayoutSegment();
+  const isDepositPage = segment === null;
+
   return (
-    <div className="bg-surface-base p-4 pb-[6.125rem] lg:pb-4">
+    <div className={cn('bg-surface-base p-4 lg:pb-4', isDepositPage && 'pb-[6.125rem]')}>
       <div className="flex flex-col justify-between gap-6 rounded-[4px] bg-surface-elevated p-6 md:flex-row">
         <p className="order-2 text-regular text-primary md:order-1">©Zivoe 2025. All Right Reserved.</p>
 

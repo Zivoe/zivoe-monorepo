@@ -1,8 +1,20 @@
 import { ReactNode } from 'react';
 
-export function DepositInfoSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+import { cn } from '@zivoe/ui/lib/tw-utils';
+
+export default function InfoSection({
+  title,
+  icon,
+  children,
+  className
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className={cn('flex flex-col gap-6', className)}>
       <div className="flex items-center gap-2">
         <div className="flex w-fit items-center justify-center rounded-[4px] bg-element-primary-gentle p-[5px] [&_svg]:size-4 [&_svg]:text-brand">
           {icon}

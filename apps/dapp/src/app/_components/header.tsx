@@ -1,15 +1,18 @@
 'use client';
 
-import NextLink from 'next/link';
+import * as React from 'react';
+
 import { usePathname } from 'next/navigation';
 
 import { DynamicUserProfile, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
+import { OverlayTriggerStateContext } from 'react-aria-components';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
+import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
@@ -66,6 +69,7 @@ function MobileNavigation() {
 
 function NavigationItems() {
   const pathName = usePathname() ?? '';
+  const state = React.useContext(OverlayTriggerStateContext);
 
   return (
     <>
@@ -81,6 +85,7 @@ function NavigationItems() {
             href={href}
             aria-current={isCurrent}
             isDisabled={isDisabled}
+            onPress={() => state?.close()}
           >
             {title}
           </Link>
@@ -91,7 +96,8 @@ function NavigationItems() {
 }
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Deposit', href: '/' }
+  { title: 'Deposit', href: '/' },
+  { title: 'Portfolio', href: '/portfolio' }
 ];
 
 function Wallet() {

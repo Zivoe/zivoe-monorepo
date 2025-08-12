@@ -16,6 +16,8 @@ import { DepositDailyData } from '@/server/data';
 
 import { customNumber } from '@/lib/utils';
 
+import { useIsMobile } from '@/hooks/useIsMobile';
+
 import { env } from '@/env';
 
 const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
@@ -24,7 +26,7 @@ type ChartType = (typeof CHART_TYPES)[number];
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
 export default function DepositCharts({ dailyData }: { dailyData: Array<DepositDailyData> }) {
-  const isMobile = useMediaQuery({ query: '(max-width: 599px)' });
+  const isMobile = useIsMobile();
 
   const [selectedChartType, setSelectedChartType] = useState<Key>(0);
 
@@ -63,7 +65,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
       <div className="w-full">
         <ChartContainer config={{}}>
-          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 0 }}>
+          <AreaChart accessibilityLayer data={chart.data} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} />
 
             <XAxis
@@ -78,7 +80,8 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               tickLine={false}
               hide={isMobile}
               axisLine={false}
-              tickMargin={16}
+              minTickGap={20}
+              width={60}
               scale="linear"
               domain={DOMAINS[env.NEXT_PUBLIC_NETWORK][chart.type]}
               tickFormatter={(value) => (chart.type === 'TVL' || chart.type === 'APY' ? customNumber(value) : value)}
@@ -126,7 +129,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
 const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
   MAINNET: {
-    'Index price': [0.99, 1.02],
+    'Index price': [0.99, 1.03],
     TVL: [5_000_000, 10_000_000],
     APY: [10, 35]
   },

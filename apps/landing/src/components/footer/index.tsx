@@ -1,9 +1,7 @@
 import { ReactNode } from 'react';
 
-import NextLink from 'next/link';
-
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
-import { Link } from '@zivoe/ui/core/link';
+import { Link, NextLink } from '@zivoe/ui/core/link';
 
 import Container from '@/components/container';
 

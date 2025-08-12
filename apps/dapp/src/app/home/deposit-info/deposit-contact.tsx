@@ -1,11 +1,11 @@
 import { Link } from '@zivoe/ui/core/link';
 import { EmailIcon } from '@zivoe/ui/icons';
 
-import { DepositInfoSection } from './common';
+import InfoSection from '@/components/info-section';
 
 export default function DepositContact() {
   return (
-    <DepositInfoSection title="Contact Us" icon={<EmailIcon />}>
+    <InfoSection title="Contact Us" icon={<EmailIcon />}>
       <p className="text-leading text-primary">
         If you have any questions, contact us at{' '}
         <Link
@@ -17,6 +17,6 @@ export default function DepositContact() {
         </Link>
         .
       </p>
-    </DepositInfoSection>
+    </InfoSection>
   );
 }
