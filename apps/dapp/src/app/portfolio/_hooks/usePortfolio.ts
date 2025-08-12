@@ -31,16 +31,13 @@ export const usePortfolio = () => {
           const portfolio = (await res.json()) as ApiResponseSuccess<PortfolioData>;
           if (!portfolio.data) throw new Error(DEFAULT_ERROR_MESSAGE);
 
-          const apiSnapshots = portfolio.data.snapshots.map((snapshot) => {
+          const filledSnapshots = portfolio.data.snapshots.map((snapshot) => {
             const timestamp = new Date(Number(snapshot.timestamp) * 1000);
             const balance = BigInt(snapshot.balance);
             const balanceNumeric = Number(balance) / 1e18; // Convert to decimal for charting
 
             return { timestamp, balance, balanceNumeric };
           });
-
-          const portfolioEndDate = portfolio.data.timestamp ? new Date(Number(portfolio.data.timestamp) * 1000) : null;
-          const filledSnapshots = fillMissingDays(apiSnapshots, portfolioEndDate);
 
           // Calculate portfolio change
           let change: { value: bigint; isPositive: boolean } | null = null;
@@ -67,43 +64,3 @@ export const usePortfolio = () => {
         }
   });
 };
-
-type Snapshot = {
-  timestamp: Date;
-  balance: bigint;
-  balanceNumeric: number;
-};
-
-function fillMissingDays(snapshots: Array<Snapshot>, portfolioTimestamp: Date | null) {
-  const firstSnapshot = snapshots[0];
-  if (!firstSnapshot || !portfolioTimestamp) return [];
-
-  const result: Array<Snapshot> = [];
-
-  let currentDay = firstSnapshot.timestamp;
-  let lastBalance = firstSnapshot.balance;
-  let lastBalanceNumeric = firstSnapshot.balanceNumeric;
-  let apiIndex = 0;
-
-  while (currentDay <= portfolioTimestamp) {
-    const apiSnapshot = snapshots[apiIndex];
-
-    const isMatchingDay = apiSnapshot && apiSnapshot.timestamp.getTime() === currentDay.getTime();
-
-    if (isMatchingDay) {
-      lastBalance = apiSnapshot.balance;
-      lastBalanceNumeric = apiSnapshot.balanceNumeric;
-      apiIndex++;
-    }
-
-    result.push({
-      timestamp: new Date(currentDay), // Create new Date to avoid mutation
-      balance: lastBalance,
-      balanceNumeric: lastBalanceNumeric
-    });
-
-    currentDay = new Date(currentDay.getTime() + 24 * 60 * 60 * 1000);
-  }
-
-  return result;
-}

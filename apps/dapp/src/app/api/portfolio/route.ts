@@ -19,11 +19,16 @@ const querySchema = z.object({
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
 });
 
+type Snapshot = {
+  timestamp: string;
+  balance: string;
+};
+
 export type PortfolioData = {
   timestamp: string | null;
   value: string | null;
   zVLTBalance: string | null;
-  snapshots: Array<{ timestamp: string; balance: string }>;
+  snapshots: Array<Snapshot>;
 };
 
 const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
@@ -108,7 +113,9 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     };
   });
 
-  const lastSnapshot = snapshots[snapshots.length - 1];
+  const filledSnapshots = fillMissingDays(snapshots, currentEndOfDayUTCInSeconds);
+
+  const lastSnapshot = filledSnapshots[filledSnapshots.length - 1];
   const portfolioValue = lastSnapshot ? lastSnapshot.balance : null;
   const portfolioTimestamp = lastSnapshot ? currentEndOfDayUTCInSeconds : null;
 
@@ -116,8 +123,41 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
 
   return NextResponse.json({
     success: true,
-    data: { timestamp: portfolioTimestamp, value: portfolioValue, zVLTBalance, snapshots }
+    data: { timestamp: portfolioTimestamp, value: portfolioValue, zVLTBalance, snapshots: filledSnapshots }
   });
 };
+
+function fillMissingDays(snapshots: Array<Snapshot>, endTimestamp: string) {
+  if (snapshots.length === 0) return [];
+
+  const result: Array<Snapshot> = [];
+  const firstSnapshot = snapshots[0];
+  if (!firstSnapshot) return [];
+
+  const firstTimestamp = Number(firstSnapshot.timestamp);
+  const endTs = Number(endTimestamp);
+
+  let currentTimestamp = firstTimestamp;
+  let lastBalance = firstSnapshot.balance;
+  let snapshotIndex = 0;
+
+  while (currentTimestamp <= endTs) {
+    const snapshot = snapshots[snapshotIndex];
+
+    if (snapshot && Number(snapshot.timestamp) === currentTimestamp) {
+      lastBalance = snapshot.balance;
+      snapshotIndex++;
+    }
+
+    result.push({
+      timestamp: currentTimestamp.toString(),
+      balance: lastBalance
+    });
+
+    currentTimestamp += 86400;
+  }
+
+  return result;
+}
 
 export const GET = withErrorHandler('Error fetching portfolio data', handler);
