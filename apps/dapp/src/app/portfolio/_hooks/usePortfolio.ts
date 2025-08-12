@@ -1,7 +1,7 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '@/lib/query-keys';
-import { handlePromise } from '@/lib/utils';
+import { DAY_IN_SECONDS, handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 
@@ -49,6 +49,21 @@ export const usePortfolio = () => {
             if (firstBalance && firstBalance !== 0n && lastBalance) {
               const changeValue = ((lastBalance - firstBalance) * 10n ** 4n) / firstBalance;
               change = { value: changeValue, isPositive: changeValue >= 0n };
+            }
+          }
+
+          // Add synthetic zero-balance snapshot when there is only one data point
+          if (filledSnapshots.length === 1) {
+            const firstSnapshot = filledSnapshots[0];
+
+            if (firstSnapshot) {
+              const syntheticTimestamp = new Date(firstSnapshot.timestamp.getTime() - DAY_IN_SECONDS * 1000); // 1 day before
+              const syntheticSnapshot = {
+                timestamp: syntheticTimestamp,
+                balance: 0n,
+                balanceNumeric: 0
+              };
+              filledSnapshots.unshift(syntheticSnapshot);
             }
           }
 

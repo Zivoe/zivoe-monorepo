@@ -163,7 +163,7 @@ type HoldingAsset = 'zVLT';
 const HOLDING_INFO: Record<HoldingAsset, { title: string; description: string; icon: React.ReactNode }> = {
   zVLT: {
     title: 'zVLT',
-    description: 'A nonprime consumer credit fund',
+    description: 'Zivoe Vault',
     icon: <ZVltLogo className="size-8 flex-shrink-0" />
   }
 };

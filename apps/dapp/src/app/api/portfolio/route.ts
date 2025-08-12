@@ -11,7 +11,7 @@ import { getWeb3Client } from '@/server/clients/web3';
 import { web3 } from '@/server/web3';
 
 import { NETWORK } from '@/lib/constants';
-import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
+import { ApiError, DAY_IN_SECONDS, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../utils';
 
@@ -162,7 +162,7 @@ function processAndFillSnapshots(
       balance: adjustedBalance.toString()
     });
 
-    currentTimestamp += 86400; // Move to next day
+    currentTimestamp += DAY_IN_SECONDS; // Move to next day
   }
 
   return result;
