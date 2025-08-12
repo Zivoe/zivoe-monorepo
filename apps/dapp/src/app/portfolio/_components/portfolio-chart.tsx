@@ -27,7 +27,7 @@ export function PortfolioChart() {
   return (
     <div className="h-[288px] w-full [&>div]:!aspect-auto [&>div]:h-full">
       <ChartContainer config={{}}>
-        <AreaChart accessibilityLayer data={portfolio.snapshots} margin={{ left: 10, right: 0, top: 0, bottom: 0 }}>
+        <AreaChart accessibilityLayer data={portfolio.snapshots} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} />
 
           <XAxis
@@ -48,7 +48,8 @@ export function PortfolioChart() {
             tickLine={false}
             hide={isMobile}
             axisLine={false}
-            tickMargin={16}
+            minTickGap={20}
+            width={60}
             domain={[(dataMin: number) => dataMin * 0.95, (dataMax: number) => dataMax * 1.05]}
             tickFormatter={(value) => `$${customNumber(value)}`}
           />

@@ -65,7 +65,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
       <div className="w-full">
         <ChartContainer config={{}}>
-          <AreaChart accessibilityLayer data={chart.data} margin={{ left: 10, right: 0, top: 0, bottom: 0 }}>
+          <AreaChart accessibilityLayer data={chart.data} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} />
 
             <XAxis
@@ -80,7 +80,8 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               tickLine={false}
               hide={isMobile}
               axisLine={false}
-              tickMargin={16}
+              minTickGap={20}
+              width={60}
               scale="linear"
               domain={DOMAINS[env.NEXT_PUBLIC_NETWORK][chart.type]}
               tickFormatter={(value) => (chart.type === 'TVL' || chart.type === 'APY' ? customNumber(value) : value)}
@@ -128,7 +129,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
 const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
   MAINNET: {
-    'Index price': [0.99, 1.02],
+    'Index price': [0.99, 1.03],
     TVL: [5_000_000, 10_000_000],
     APY: [10, 35]
   },
