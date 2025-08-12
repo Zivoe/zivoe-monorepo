@@ -94,26 +94,12 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
   const currentEndOfDayUTC = getEndOfDayUTC(currentDate);
   const currentEndOfDayUTCInSeconds = Math.floor(currentEndOfDayUTC.getTime() / 1000).toString();
 
-  const snapshots = snapshotsRes.res.map((snapshot) => {
-    const snapshotTimestamp = snapshot.timestamp.toString();
-
-    const indexPrice =
-      snapshotTimestamp === currentEndOfDayUTCInSeconds
-        ? currentIndexPriceRes.res.indexPrice
-        : indexPriceMap.get(snapshotTimestamp);
-
-    if (!indexPrice) throw new ApiError({ message: 'Error calculating portfolio value', status: 500 });
-
-    const indexPriceWei = parseUnits(indexPrice.toFixed(6), 18);
-    const adjustedBalance = (snapshot.balance * indexPriceWei) / BigInt(1e18);
-
-    return {
-      timestamp: snapshotTimestamp,
-      balance: adjustedBalance.toString()
-    };
-  });
-
-  const filledSnapshots = fillMissingDays(snapshots, currentEndOfDayUTCInSeconds);
+  const filledSnapshots = processAndFillSnapshots(
+    snapshotsRes.res,
+    indexPriceMap,
+    currentIndexPriceRes.res.indexPrice,
+    currentEndOfDayUTCInSeconds
+  );
 
   const lastSnapshot = filledSnapshots[filledSnapshots.length - 1];
   const portfolioValue = lastSnapshot ? lastSnapshot.balance : null;
@@ -127,34 +113,56 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
   });
 };
 
-function fillMissingDays(snapshots: Array<Snapshot>, endTimestamp: string) {
-  if (snapshots.length === 0) return [];
+function processAndFillSnapshots(
+  rawSnapshots: Array<{ timestamp: bigint; balance: bigint }>,
+  indexPriceMap: Map<string, number>,
+  currentIndexPrice: number,
+  currentEndOfDayUTCInSeconds: string
+) {
+  if (rawSnapshots.length === 0) return [];
 
   const result: Array<Snapshot> = [];
-  const firstSnapshot = snapshots[0];
+  const snapshotMap = new Map(rawSnapshots.map((s) => [s.timestamp.toString(), s.balance]));
+
+  const firstSnapshot = rawSnapshots[0];
   if (!firstSnapshot) return [];
 
-  const firstTimestamp = Number(firstSnapshot.timestamp);
-  const endTs = Number(endTimestamp);
+  const firstTimestamp = Number(firstSnapshot.timestamp.toString());
+  const endTimestamp = Number(currentEndOfDayUTCInSeconds);
 
   let currentTimestamp = firstTimestamp;
-  let lastBalance = firstSnapshot.balance;
-  let snapshotIndex = 0;
+  let lastRawBalance = firstSnapshot.balance;
 
-  while (currentTimestamp <= endTs) {
-    const snapshot = snapshots[snapshotIndex];
+  while (currentTimestamp <= endTimestamp) {
+    const timestampStr = currentTimestamp.toString();
 
-    if (snapshot && Number(snapshot.timestamp) === currentTimestamp) {
-      lastBalance = snapshot.balance;
-      snapshotIndex++;
+    // Update raw balance if we have a snapshot for this day
+    const snapshotBalance = snapshotMap.get(timestampStr);
+    if (snapshotBalance !== undefined) {
+      lastRawBalance = snapshotBalance;
     }
 
+    // Get index price for this specific day
+    const indexPrice =
+      timestampStr === currentEndOfDayUTCInSeconds ? currentIndexPrice : indexPriceMap.get(timestampStr);
+
+    if (!indexPrice) {
+      throw new ApiError({
+        message: `Error calculating portfolio value: missing index price for ${timestampStr}`,
+        status: 500
+      });
+    }
+
+    // Calculate adjusted balance for this day
+    const indexPriceWei = parseUnits(indexPrice.toFixed(6), 18);
+    const adjustedBalance = (lastRawBalance * indexPriceWei) / BigInt(1e18);
+
     result.push({
-      timestamp: currentTimestamp.toString(),
-      balance: lastBalance
+      timestamp: timestampStr,
+      balance: adjustedBalance.toString()
     });
 
-    currentTimestamp += 86400;
+    currentTimestamp += 86400; // Move to next day
   }
 
   return result;

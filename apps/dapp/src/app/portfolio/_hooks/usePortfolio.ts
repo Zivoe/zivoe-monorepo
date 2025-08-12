@@ -46,8 +46,6 @@ export const usePortfolio = () => {
             const firstBalance = filledSnapshots[0]?.balance;
             const lastBalance = filledSnapshots[filledSnapshots.length - 1]?.balance;
 
-            console.log(firstBalance, lastBalance);
-
             if (firstBalance && firstBalance !== 0n && lastBalance) {
               const changeValue = ((lastBalance - firstBalance) * 10n ** 4n) / firstBalance;
               change = { value: changeValue, isPositive: changeValue >= 0n };
