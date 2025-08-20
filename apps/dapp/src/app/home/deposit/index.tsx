@@ -23,26 +23,13 @@ import { DepositPageView, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
-export default function Deposit({
-  apy,
-  indexPrice,
-  initialView
-}: {
-  apy: number | null;
-  indexPrice: number | null;
-  initialView: DepositPageView;
-}) {
+export default function Deposit({ apy, initialView }: { apy: number | null; initialView: DepositPageView }) {
   const { navigateToTab } = useTabNavigation();
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>
-      <EarnBox
-        apy={apy}
-        indexPrice={indexPrice}
-        initialView={initialView}
-        className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]"
-      />
+      <EarnBox apy={apy} initialView={initialView} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -67,7 +54,6 @@ export default function Deposit({
 
           <EarnBox
             apy={apy}
-            indexPrice={indexPrice}
             initialView={initialView}
             className="block p-0 lg:hidden"
             withTitle={false}
@@ -81,14 +67,12 @@ export default function Deposit({
 
 function EarnBox({
   apy,
-  indexPrice,
   initialView,
   className,
   withTitle = true,
   boxClassName
 }: {
   apy: number | null;
-  indexPrice: number | null;
   initialView: DepositPageView;
   className?: string;
   withTitle?: boolean;
@@ -132,11 +116,11 @@ function EarnBox({
             </TabList>
 
             <TabPanel id="deposit">
-              <DepositFlow apy={apy} indexPrice={indexPrice} />
+              <DepositFlow apy={apy} />
             </TabPanel>
 
             <TabPanel id="redeem">
-              <RedeemFlow indexPrice={indexPrice} />
+              <RedeemFlow />
             </TabPanel>
           </Tabs>
         </DialogContentBox>

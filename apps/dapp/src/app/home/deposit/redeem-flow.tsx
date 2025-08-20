@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 
-import { CONTRACTS } from '@/lib/constants';
+import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -39,7 +39,7 @@ type Receive = {
   fee: bigint | undefined;
 };
 
-export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }) {
+export default function RedeemFlow() {
   const [receive, setReceive] = useState<Receive>({ value: undefined, fee: undefined });
 
   const account = useAccount();
@@ -72,7 +72,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
             });
 
             if (usdcAmount) {
-              const receiveAmount = parseUnits(usdcAmount, 18);
+              const receiveAmount = parseUnits(usdcAmount, NETWORK === 'SEPOLIA' ? 18 : 6);
 
               if (receiveAmount > liquidity.data) {
                 ctx.addIssue({
@@ -93,7 +93,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
   const redeemRaw = redeem ? parseUnits(redeem, 18) : undefined;
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
 
-  const zVLTDollarValue = calculateZVLTDollarValue({ amount: redeem, indexPrice });
+  const zVLTDollarValue = calculateZVLTDollarValue({ amount: redeem, indexPrice: vault.data?.indexPrice ?? null });
 
   const hasEnoughAllowance = checkHasEnoughAllowance({
     allowance: zvltAllowance.data,
@@ -231,7 +231,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
           </p>
 
           <p className="text-regular text-primary">
-            ${formatBigIntWithCommas({ value: receive.fee, tokenDecimals: 18 })}
+            ${formatBigIntWithCommas({ value: receive.fee, tokenDecimals: 6, displayDecimals: 3 })}
           </p>
         </div>
       ) : null}
@@ -297,11 +297,10 @@ const getRedeemAmount = ({
   // zVLT convertToAssets function
   const zSTTReceived = (shares * (totalAssets + 1n)) / (totalSupply + 10n ** DECIMALS_OFFSET);
 
-  const fee = (zSTTReceived * redemptionFeeBIPS) / BIPS;
-  const usdcAmountRaw = zSTTReceived - fee;
+  const fee = (zSTTReceived * redemptionFeeBIPS) / BIPS / 10n ** 12n;
+  const usdcAmountRaw = zSTTReceived / 10n ** 12n - fee;
 
-  let usdcAmount = formatUnits(usdcAmountRaw, 18);
-  usdcAmount = usdcAmount.replace(/(\.\d{6}).*/, '$1');
+  let usdcAmount = formatUnits(usdcAmountRaw, 6);
 
   return { usdcAmount, fee };
 };

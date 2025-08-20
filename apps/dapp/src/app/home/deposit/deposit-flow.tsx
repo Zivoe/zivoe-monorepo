@@ -42,7 +42,7 @@ import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_
 
 type DepositForm = z.infer<z.ZodObject<{ deposit: ReturnType<typeof createAmountValidator> }>>;
 
-export function DepositFlow({ apy, indexPrice }: { apy: number | null; indexPrice: number | null }) {
+export function DepositFlow({ apy }: { apy: number | null }) {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
@@ -75,7 +75,7 @@ export function DepositFlow({ apy, indexPrice }: { apy: number | null; indexPric
   const depositRaw = deposit ? parseUnits(deposit, DEPOSIT_TOKEN_DECIMALS[depositToken]) : undefined;
   const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
 
-  const zVLTDollarValue = calculateZVLTDollarValue({ amount: receive, indexPrice });
+  const zVLTDollarValue = calculateZVLTDollarValue({ amount: receive, indexPrice: vault.data?.indexPrice ?? null });
 
   const hasEnoughAllowance =
     depositToken === 'USDT' || depositToken === 'zSTT'

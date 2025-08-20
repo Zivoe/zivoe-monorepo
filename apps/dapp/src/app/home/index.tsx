@@ -1,5 +1,3 @@
-import { Suspense } from 'react';
-
 import { data } from '@/server/data';
 
 import Hero from '@/components/hero';
@@ -24,7 +22,6 @@ export default function Home({ initialView }: { initialView: DepositPageView }) 
 
 async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
   let apy: number | null = null;
-  let indexPrice: number | null = null;
 
   const dailyData = await data.getDepositDailyData();
 
@@ -32,9 +29,8 @@ async function DepositWrapper({ initialView }: { initialView: DepositPageView })
     const currentDailyData = dailyData[dailyData.length - 1];
     if (currentDailyData) {
       apy = currentDailyData.apy;
-      indexPrice = currentDailyData.indexPrice;
     }
   }
 
-  return <Deposit apy={apy} indexPrice={indexPrice} initialView={initialView} />;
+  return <Deposit apy={apy} initialView={initialView} />;
 }

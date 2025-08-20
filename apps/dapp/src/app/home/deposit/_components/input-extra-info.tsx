@@ -17,7 +17,9 @@ export function InputExtraInfo({
   return (
     <div className="flex w-full items-center justify-between">
       <div className="text-extraSmall font-medium text-tertiary">
-        {dollarValue !== null ? `≈ $${formatBigIntWithCommas({ value: dollarValue, tokenDecimals: decimals })}` : null}
+        {dollarValue !== null
+          ? `≈ $${formatBigIntWithCommas({ value: dollarValue, tokenDecimals: decimals, displayDecimals: 3 })}`
+          : null}
       </div>
 
       <BalanceDisplay decimals={decimals} {...balance} />
