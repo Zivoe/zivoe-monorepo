@@ -11,6 +11,7 @@ import { depositDialogAtom } from '@/lib/store';
 
 import ConnectedAccount from '@/components/connected-account';
 
+import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
@@ -63,36 +64,35 @@ function EarnBox({
   boxClassName?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]',
-        className
-      )}
-    >
-      {withTitle && (
-        <div className="p-4">
-          <p className="text-h6 text-primary">Deposit & Earn</p>
-        </div>
-      )}
+    <div className={cn('sticky top-14 hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]', className)}>
+      <div className="rounded-2xl bg-surface-elevated p-2">
+        {withTitle && (
+          <div className="p-4">
+            <p className="text-h6 text-primary">Deposit & Earn</p>
+          </div>
+        )}
 
-      <DialogContentBox className={boxClassName}>
-        <Tabs defaultSelectedKey="deposit">
-          <TabList aria-label="Deposit and Redeem tabs">
-            <Tab id="deposit">Deposit</Tab>
-            <Tab id="redeem">Redeem</Tab>
-          </TabList>
+        <DialogContentBox className={boxClassName}>
+          <Tabs defaultSelectedKey="deposit">
+            <TabList aria-label="Deposit and Redeem tabs">
+              <Tab id="deposit">Deposit</Tab>
+              <Tab id="redeem">Redeem</Tab>
+            </TabList>
 
-          <TabPanel id="deposit">
-            <DepositFlow apy={apy} indexPrice={indexPrice} />
-          </TabPanel>
+            <TabPanel id="deposit">
+              <DepositFlow apy={apy} indexPrice={indexPrice} />
+            </TabPanel>
 
-          <TabPanel id="redeem">
-            <RedeemFlow indexPrice={indexPrice} />
-          </TabPanel>
-        </Tabs>
-      </DialogContentBox>
+            <TabPanel id="redeem">
+              <RedeemFlow indexPrice={indexPrice} />
+            </TabPanel>
+          </Tabs>
+        </DialogContentBox>
 
-      <TransactionDialog />
+        <TransactionDialog />
+      </div>
+
+      <AvailableLiquidity />
     </div>
   );
 }

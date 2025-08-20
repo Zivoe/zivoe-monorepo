@@ -21,6 +21,7 @@ export type Contracts = {
   OCT_CONVERT: Address;
   OCT_DAO: Address;
   OCR: Address;
+  aUSDC: Address;
 };
 
 export const getContracts = (network: Network) => {

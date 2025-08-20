@@ -128,6 +128,11 @@ export const useRedeemUSDC = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.account.depositBalances({ accountAddress: address })
       });
+
+      // Refetch available liquidity
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.account.balanceOf({ accountAddress: CONTRACTS.OCR, id: CONTRACTS.aUSDC })
+      });
     }
   });
 
