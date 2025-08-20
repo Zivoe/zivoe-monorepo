@@ -12,6 +12,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 
 import { CONTRACTS } from '@/lib/constants';
+import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
@@ -32,8 +33,13 @@ import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_
 
 type RedeemForm = z.infer<z.ZodObject<{ redeem: ReturnType<typeof createAmountValidator> }>>;
 
+type Receive = {
+  value: string | undefined;
+  fee: bigint | undefined;
+};
+
 export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }) {
-  const [receive, setReceive] = useState<string | undefined>(undefined);
+  const [receive, setReceive] = useState<Receive>({ value: undefined, fee: undefined });
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -92,10 +98,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
       redemptionFeeBIPS: redemption.data?.redemptionFeeBIPS ?? 0n
     });
 
-    console.log('usdcAmount', usdcAmount);
-    console.log('fee', fee);
-
-    setReceive(usdcAmount);
+    setReceive({ value: usdcAmount, fee });
   };
 
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
@@ -115,7 +118,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
 
   const handleRedeemSuccess = () => {
     form.reset();
-    setReceive(undefined);
+    setReceive({ value: undefined, fee: undefined });
   };
 
   const handleRedeem = async () => {
@@ -183,18 +186,30 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
         variant="amount"
         label="Receive"
         labelClassName="h-5"
-        value={receive ?? ''}
+        value={receive.value ?? ''}
         isDisabled
         hasNormalStyleIfDisabled={!isDisabled}
         subContent={
           <InputExtraInfo
             decimals={6}
-            dollarValue={receive ? parseUnits(receive, 6) : 0n}
+            dollarValue={receive.value ? parseUnits(receive.value, 6) : 0n}
             balance={{ value: depositBalances.data?.USDC ?? 0n, isPending: depositBalances.isPending }}
           />
         }
         endContent={<TokenDisplay symbol="USDC" />}
       />
+
+      {redemption.data && receive.fee && redeem ? (
+        <div className="flex flex-wrap justify-between gap-2 rounded-[4px] border border-default bg-surface-elevated p-4">
+          <p className="text-regular text-secondary">
+            Redemption Fee ({formatBigIntWithCommas({ value: redemption.data?.redemptionFeeBIPS, tokenDecimals: 2 })}%)
+          </p>
+
+          <p className="text-regular text-primary">
+            ${formatBigIntWithCommas({ value: receive.fee, tokenDecimals: 18 })}
+          </p>
+        </div>
+      ) : null}
 
       <ConnectedAccount>
         {isFetching ? (
@@ -263,7 +278,5 @@ const getRedeemAmount = ({
   let usdcAmount = formatUnits(usdcAmountRaw, 18);
   usdcAmount = usdcAmount.replace(/(\.\d{6}).*/, '$1');
 
-  const feeFormatted = formatUnits(fee, 18);
-
-  return { usdcAmount, fee: feeFormatted };
+  return { usdcAmount, fee };
 };
