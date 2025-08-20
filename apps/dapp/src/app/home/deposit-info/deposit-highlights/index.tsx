@@ -20,9 +20,7 @@ export default function DepositHighlights() {
           title="24/7 Liquidity"
           description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions."
           className="bg-element-primary-gentle"
-        >
-          <RedeemButton />
-        </Card>
+        />
 
         <Card
           icon={<AutocompoundingIcon />}
