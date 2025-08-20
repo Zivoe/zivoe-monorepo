@@ -14,7 +14,7 @@ export const useVault = () => {
   return useQuery({
     queryKey: queryKeys.app.vault,
     meta: { toastErrorMessage: 'Error fetching vault data' },
-    refetchInterval: 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
     queryFn: !web3
       ? skipToken
       : async () => {

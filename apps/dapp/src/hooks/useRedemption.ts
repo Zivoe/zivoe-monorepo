@@ -12,7 +12,7 @@ export const useRedemption = () => {
   return useQuery({
     queryKey: queryKeys.app.redemption,
     meta: { toastErrorMessage: 'Error fetching redemption info' },
-    refetchInterval: 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
     queryFn: !web3
       ? skipToken
       : async () => {
