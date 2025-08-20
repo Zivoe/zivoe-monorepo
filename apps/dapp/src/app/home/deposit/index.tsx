@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { Key } from 'react-aria-components';
+import { useMediaQuery } from 'react-responsive';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
@@ -18,7 +19,7 @@ import ConnectedAccount from '@/components/connected-account';
 
 import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
-import { DepositPageView } from './_utils';
+import { DepositPageView, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
@@ -31,7 +32,13 @@ export default function Deposit({
   indexPrice: number | null;
   initialView: DepositPageView;
 }) {
+  const router = useRouter();
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
+
+  const handleViewDepositBox = (view: NonNullable<DepositPageView>) => {
+    router.replace(`/?view=${view}`, { scroll: false });
+    setIsDepositDialogOpen(true);
+  };
 
   return (
     <>
@@ -44,9 +51,15 @@ export default function Deposit({
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
-          <Button fullWidth onPress={() => setIsDepositDialogOpen(true)}>
-            Deposit
-          </Button>
+          <div className="flex gap-2">
+            <Button fullWidth onPress={() => handleViewDepositBox('deposit')}>
+              Deposit
+            </Button>
+
+            <Button fullWidth variant="primary-light" onPress={() => handleViewDepositBox('redeem')}>
+              Redeem
+            </Button>
+          </div>
         </ConnectedAccount>
       </div>
 
@@ -89,11 +102,18 @@ function EarnBox({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [selectedTab, setSelectedTab] = useState<DepositPageView>(initialView);
+  const isMobile = useMediaQuery({ query: '(max-width: 1023px)' });
+  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
+
+  const [selectedTab, setSelectedTab] = useState<DepositPageView>(initialView ?? 'deposit');
 
   useEffect(() => {
     const view = searchParams.get('view');
-    if (view === 'redeem' || view === 'deposit') setSelectedTab(view);
+    const viewParsed = depositPageViewSchema.safeParse(view);
+    if (viewParsed.success) {
+      setSelectedTab(viewParsed.data);
+      if (isMobile) setIsDepositDialogOpen(true);
+    }
   }, [searchParams]);
 
   const handleTabChange = (key: Key) => {
