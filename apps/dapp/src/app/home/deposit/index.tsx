@@ -34,7 +34,7 @@ export default function Deposit({ apy, indexPrice }: { apy: number | null; index
       <Dialog isOpen={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
         <DialogContent dialogClassName="gap-0">
           <DialogHeader>
-            <DialogTitle>Deposit & Earn</DialogTitle>
+            <DialogTitle>Earn</DialogTitle>
           </DialogHeader>
 
           <EarnBox
@@ -68,7 +68,7 @@ function EarnBox({
       <div className="rounded-2xl bg-surface-elevated p-2">
         {withTitle && (
           <div className="p-4">
-            <p className="text-h6 text-primary">Deposit & Earn</p>
+            <p className="text-h6 text-primary">Earn</p>
           </div>
         )}
 
