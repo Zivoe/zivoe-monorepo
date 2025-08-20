@@ -94,15 +94,15 @@ export const useRedeemUSDC = () => {
         receipt.status === 'success'
           ? {
               type: 'SUCCESS',
-              title: 'USDC Redeemed',
+              title: 'zVLT Redeemed',
               description: 'Your zVLT has been redeemed for USDC',
               hash: receipt.transactionHash,
               meta
             }
           : {
               type: 'ERROR',
-              title: 'USDC Redeem Failed',
-              description: 'There was an error redeeming your USDC',
+              title: 'Redemption Failed',
+              description: 'There was an error redeeming your zVLT',
               hash: receipt.transactionHash
             };
 
