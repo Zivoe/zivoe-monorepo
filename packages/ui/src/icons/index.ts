@@ -36,3 +36,4 @@ export * from './zivoe-logo-icon';
 export * from './lock';
 export * from './piggy-bank';
 export * from './wallet';
+export * from './zap';

@@ -8,11 +8,19 @@ import InfoSection from '@/components/info-section';
 
 import { AutocompoundingIcon } from './autocompounding-icon';
 import { ExperienceIcon } from './experience-icon';
+import { LiquidityIcon } from './liquidity-icon';
 
 export default function DepositHighlights() {
   return (
     <InfoSection title="Highlights" icon={<StarIcon />}>
       <div className="flex flex-col gap-3">
+        <Card
+          icon={<LiquidityIcon />}
+          title="24/7 Liquidity"
+          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions."
+          className="bg-element-primary-gentle"
+        />
+
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"

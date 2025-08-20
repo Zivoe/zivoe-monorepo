@@ -26,7 +26,8 @@ const account = {
 };
 
 const app = {
-  vault: ['VAULT']
+  vault: ['VAULT'],
+  redemption: ['REDEMPTION']
 };
 
 export const queryKeys = {

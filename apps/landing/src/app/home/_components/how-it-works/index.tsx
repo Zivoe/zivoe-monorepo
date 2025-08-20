@@ -46,8 +46,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 3"
-            title="Cashout"
-            description="Swap your zVLT back for stablecoins."
+            title="Redeem"
+            description="Redeem your zVLT back for USDC instantly"
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"

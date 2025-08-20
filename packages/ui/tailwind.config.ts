@@ -153,6 +153,7 @@ const config: Config = {
 
     textColor: {
       primary: 'hsl(var(--neutral-950))',
+      'primary-subtle': 'hsl(var(--primary-800))',
       secondary: 'hsl(var(--neutral-600))',
       tertiary: 'hsl(var(--neutral-500))',
       disabled: 'hsl(var(--neutral-400))',

@@ -1,4 +1,5 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
+import { formatUnits, parseUnits } from 'viem';
 import { usePublicClient } from 'wagmi';
 
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
@@ -6,15 +7,13 @@ import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
 
-import { useAccount } from './useAccount';
-
 export const useVault = () => {
   const web3 = usePublicClient();
 
   return useQuery({
     queryKey: queryKeys.app.vault,
     meta: { toastErrorMessage: 'Error fetching vault data' },
-    refetchInterval: 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
     queryFn: !web3
       ? skipToken
       : async () => {
@@ -32,9 +31,13 @@ export const useVault = () => {
 
           const [totalSupply, totalAssets] = await Promise.all([totalSupplyReq, totalAssetsReq]);
 
+          const totalAssetsWei = parseUnits(totalAssets.toString(), 18);
+          const indexPrice = totalSupply !== 0n ? Number(formatUnits(totalAssetsWei / totalSupply, 18)) : 0;
+
           return {
             totalSupply,
-            totalAssets
+            totalAssets,
+            indexPrice
           };
         }
   });

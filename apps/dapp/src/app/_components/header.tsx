@@ -96,7 +96,7 @@ function NavigationItems() {
 }
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Deposit', href: '/' },
+  { title: 'Earn', href: '/' },
   { title: 'Portfolio', href: '/portfolio' }
 ];
 
