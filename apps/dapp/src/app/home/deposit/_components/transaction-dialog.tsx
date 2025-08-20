@@ -20,7 +20,7 @@ import {
 } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
+import { DEPOSIT_TOKEN_DECIMALS, DepositToken, TOKEN_DECIMALS, Token } from '@/types/constants';
 
 import { NETWORK } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
@@ -28,11 +28,12 @@ import { formatBigIntToReadable } from '@/lib/utils';
 
 const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
 
-const DEPOSIT_TOKEN_ICON: Record<DepositToken, ReactNode> = {
+const TOKEN_ICON: Record<Token, ReactNode> = {
   USDC: <UsdcIcon />,
   USDT: <UsdtIcon />,
   frxUSD: <FrxUsdIcon />,
-  zSTT: <ZsttIcon />
+  zSTT: <ZsttIcon />,
+  zVLT: <ZVltLogo />
 };
 
 export function TransactionDialog() {
@@ -85,8 +86,8 @@ export function TransactionDialog() {
               <TransactionDialogToken
                 token={transaction.meta.approve.token}
                 amount={transaction.meta.approve.amount}
-                decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.approve.token]}
-                icon={DEPOSIT_TOKEN_ICON[transaction.meta.approve.token]}
+                decimals={TOKEN_DECIMALS[transaction.meta.approve.token]}
+                icon={TOKEN_ICON[transaction.meta.approve.token]}
               />
             </TransactionDialogTokensSection>
           )}
@@ -97,7 +98,7 @@ export function TransactionDialog() {
                 token={transaction.meta.deposit.token}
                 amount={transaction.meta.deposit.amount}
                 decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.deposit.token]}
-                icon={DEPOSIT_TOKEN_ICON[transaction.meta.deposit.token]}
+                icon={TOKEN_ICON[transaction.meta.deposit.token]}
               />
 
               <ArrowRightIcon className="size-4 text-icon-default" />
