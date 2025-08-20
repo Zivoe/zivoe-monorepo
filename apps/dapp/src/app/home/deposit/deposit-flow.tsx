@@ -388,8 +388,12 @@ function DepositTokenDialog({
 
   return (
     <Dialog>
-      <SelectTrigger variant="select" className="hidden w-[7.82rem] justify-between lg:flex" isDisabled={isDisabled}>
-        <div className="flex items-center gap-2 [&_svg]:size-6">
+      <SelectTrigger
+        variant="border-light"
+        className="hidden w-[7.4375rem] justify-between gap-2 lg:flex"
+        isDisabled={isDisabled}
+      >
+        <div className="flex items-center gap-2 [&_svg]:size-4">
           {icon}
           {selected}
         </div>
@@ -459,8 +463,8 @@ function DepositTokenSelect({
       onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
-      <SelectTrigger variant="select" className="w-[7.82rem] justify-between lg:hidden">
-        <SelectValue className="flex items-center gap-2 [&_svg]:size-6" />
+      <SelectTrigger variant="border-light" className="w-[7.4375rem] justify-between gap-2 lg:hidden">
+        <SelectValue className="flex items-center gap-2 [&_svg]:size-4" />
       </SelectTrigger>
 
       <SelectPopover>
