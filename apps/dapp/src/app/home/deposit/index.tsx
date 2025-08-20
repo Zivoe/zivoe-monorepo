@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 import { useAtom, useSetAtom } from 'jotai';
 import { Key } from 'react-aria-components';
-import { useMediaQuery } from 'react-responsive';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
@@ -19,6 +18,7 @@ import ConnectedAccount from '@/components/connected-account';
 
 import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
+import { useTabNavigation } from './_hooks/useTabNavigation';
 import { DepositPageView, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
@@ -32,13 +32,8 @@ export default function Deposit({
   indexPrice: number | null;
   initialView: DepositPageView;
 }) {
-  const router = useRouter();
+  const { navigateToTab } = useTabNavigation();
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
-
-  const handleViewDepositBox = (view: NonNullable<DepositPageView>) => {
-    router.replace(`/?view=${view}`, { scroll: false });
-    setIsDepositDialogOpen(true);
-  };
 
   return (
     <>
@@ -52,11 +47,11 @@ export default function Deposit({
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
           <div className="flex gap-2">
-            <Button fullWidth onPress={() => handleViewDepositBox('deposit')}>
+            <Button fullWidth onPress={() => navigateToTab('deposit')}>
               Deposit
             </Button>
 
-            <Button fullWidth variant="primary-light" onPress={() => handleViewDepositBox('redeem')}>
+            <Button fullWidth variant="primary-light" onPress={() => navigateToTab('redeem')}>
               Redeem
             </Button>
           </div>
@@ -99,10 +94,8 @@ function EarnBox({
   withTitle?: boolean;
   boxClassName?: string;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isMobile = useMediaQuery({ query: '(max-width: 1023px)' });
+  const { updateTab, isMobile } = useTabNavigation();
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
   const [selectedTab, setSelectedTab] = useState<DepositPageView>(initialView ?? 'deposit');
@@ -111,15 +104,15 @@ function EarnBox({
     const view = searchParams.get('view');
     const viewParsed = depositPageViewSchema.safeParse(view);
     if (viewParsed.success) {
-      setSelectedTab(viewParsed.data);
-      if (isMobile) setIsDepositDialogOpen(true);
+      setSelectedTab(viewParsed.data ?? 'deposit');
+      if (isMobile && viewParsed.data) setIsDepositDialogOpen(true);
     }
-  }, [searchParams]);
+  }, [searchParams, isMobile, setIsDepositDialogOpen]);
 
   const handleTabChange = (key: Key) => {
-    const tabKey = String(key) as DepositPageView;
+    const tabKey = String(key) as NonNullable<DepositPageView>;
     setSelectedTab(tabKey);
-    router.replace(`${pathname}?view=${tabKey}`, { scroll: false });
+    updateTab(tabKey);
   };
 
   return (
