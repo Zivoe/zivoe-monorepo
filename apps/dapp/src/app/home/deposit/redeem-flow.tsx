@@ -28,6 +28,7 @@ import ConnectedAccount from '@/components/connected-account';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
+import { useAvailableLiquidity } from './_hooks/useAvailableLiquidity';
 import { useRedeemUSDC } from './_hooks/useRedeemUSDC';
 import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
 
@@ -44,6 +45,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
   const account = useAccount();
   const chainalysis = useChainalysis();
 
+  const liquidity = useAvailableLiquidity();
   const zvltAllowance = useAllowance({ contract: CONTRACTS.zVLT, spender: CONTRACTS.OCR });
   const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
 
@@ -60,6 +62,26 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
           decimals: 18,
           requiredMessage: 'Redeem amount is required',
           exceedsMessage: 'Redeem amount exceeds balance'
+        }).superRefine((amount, ctx) => {
+          if (amount && liquidity.data !== undefined) {
+            const { usdcAmount } = getRedeemAmount({
+              zVLTAmount: amount,
+              totalSupply: vault.data?.totalSupply ?? 0n,
+              totalAssets: vault.data?.totalAssets ?? 0n,
+              redemptionFeeBIPS: redemption.data?.redemptionFeeBIPS ?? 0n
+            });
+
+            if (usdcAmount) {
+              const receiveAmount = parseUnits(usdcAmount, 18);
+
+              if (receiveAmount > liquidity.data) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: 'Redemption amount exceeds available liquidity'
+                });
+              }
+            }
+          }
         })
       })
     ),
@@ -83,6 +105,7 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
 
   const isFetching =
     account.isPending ||
+    liquidity.isFetching ||
     zvltBalance.isFetching ||
     depositBalances.isFetching ||
     zvltAllowance.isFetching ||

@@ -14,6 +14,8 @@ import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
 
+import { availableLiquidityQueryKey } from './useAvailableLiquidity';
+
 export type RedeemUSDCParams = WriteContractParameters<typeof ocrInstantAbi, 'redeemUSDC'>;
 
 export const useRedeemUSDC = () => {
@@ -135,7 +137,7 @@ export const useRedeemUSDC = () => {
 
       // Refetch available liquidity
       queryClient.invalidateQueries({
-        queryKey: queryKeys.account.balanceOf({ accountAddress: CONTRACTS.OCR, id: CONTRACTS.aUSDC })
+        queryKey: availableLiquidityQueryKey
       });
     }
   });

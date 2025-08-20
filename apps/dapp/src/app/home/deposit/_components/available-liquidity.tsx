@@ -2,22 +2,18 @@
 
 import { ZapIcon } from '@zivoe/ui/icons';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
+import { NETWORK } from '@/lib/constants';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
-import { useAccountBalance } from '@/hooks/useAccountBalance';
-import { useBalance } from '@/hooks/useBalance';
+import { useAvailableLiquidity } from '../_hooks/useAvailableLiquidity';
 
 export default function AvailableLiquidity() {
-  const balance = useBalance({
-    tokenAddress: CONTRACTS.aUSDC,
-    accountAddress: CONTRACTS.OCR
-  });
+  const liquidity = useAvailableLiquidity();
 
-  if (balance.isPending || balance.data === undefined) return null;
+  if (liquidity.isPending || liquidity.data === undefined) return null;
 
-  const balanceFormatted = formatBigIntWithCommas({
-    value: balance.data,
+  const formatted = formatBigIntWithCommas({
+    value: liquidity.data,
     tokenDecimals: NETWORK === 'MAINNET' ? 6 : 18
   });
 
@@ -27,7 +23,7 @@ export default function AvailableLiquidity() {
 
       <div className="flex flex-col gap-1">
         <p className="text-leading font-medium text-primary-subtle">Instant Liquidity Is Now Available</p>
-        <p className="text-regular text-primary-subtle">Redeem up to ${balanceFormatted}</p>
+        <p className="text-regular text-primary-subtle">Redeem up to ${formatted}</p>
       </div>
     </div>
   );
