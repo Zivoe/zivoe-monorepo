@@ -1,6 +1,9 @@
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
+export const depositPageViewSchema = z.enum(['deposit', 'redeem']).catch('deposit');
+export type DepositPageView = z.infer<typeof depositPageViewSchema>;
+
 export const createAmountValidator = ({
   balance,
   decimals,

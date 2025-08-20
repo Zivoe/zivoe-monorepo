@@ -1,6 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+
 import { useAtom } from 'jotai';
+import { Key } from 'react-aria-components';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
@@ -13,15 +18,29 @@ import ConnectedAccount from '@/components/connected-account';
 
 import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
+import { DepositPageView } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
-export default function Deposit({ apy, indexPrice }: { apy: number | null; indexPrice: number | null }) {
+export default function Deposit({
+  apy,
+  indexPrice,
+  initialView
+}: {
+  apy: number | null;
+  indexPrice: number | null;
+  initialView: DepositPageView;
+}) {
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>
-      <EarnBox apy={apy} indexPrice={indexPrice} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
+      <EarnBox
+        apy={apy}
+        indexPrice={indexPrice}
+        initialView={initialView}
+        className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]"
+      />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -41,6 +60,7 @@ export default function Deposit({ apy, indexPrice }: { apy: number | null; index
           <EarnBox
             apy={apy}
             indexPrice={indexPrice}
+            initialView={initialView}
             className="block p-0 lg:hidden"
             withTitle={false}
             boxClassName="p-4"
@@ -54,16 +74,34 @@ export default function Deposit({ apy, indexPrice }: { apy: number | null; index
 function EarnBox({
   apy,
   indexPrice,
+  initialView,
   className,
   withTitle = true,
   boxClassName
 }: {
   apy: number | null;
   indexPrice: number | null;
+  initialView: DepositPageView;
   className?: string;
   withTitle?: boolean;
   boxClassName?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [selectedTab, setSelectedTab] = useState<DepositPageView>(initialView);
+
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'redeem' || view === 'deposit') setSelectedTab(view);
+  }, [searchParams]);
+
+  const handleTabChange = (key: Key) => {
+    const tabKey = String(key) as DepositPageView;
+    setSelectedTab(tabKey);
+    router.replace(`${pathname}?view=${tabKey}`, { scroll: false });
+  };
+
   return (
     <div className={cn('sticky top-14 hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]', className)}>
       <div className="rounded-2xl bg-surface-elevated p-2">
@@ -74,7 +112,7 @@ function EarnBox({
         )}
 
         <DialogContentBox className={boxClassName}>
-          <Tabs defaultSelectedKey="deposit">
+          <Tabs selectedKey={selectedTab} onSelectionChange={handleTabChange}>
             <TabList aria-label="Deposit and Redeem tabs">
               <Tab id="deposit">Deposit</Tab>
               <Tab id="redeem">Redeem</Tab>
