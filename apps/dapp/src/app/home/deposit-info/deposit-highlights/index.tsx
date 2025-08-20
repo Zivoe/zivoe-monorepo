@@ -9,7 +9,6 @@ import InfoSection from '@/components/info-section';
 import { AutocompoundingIcon } from './autocompounding-icon';
 import { ExperienceIcon } from './experience-icon';
 import { LiquidityIcon } from './liquidity-icon';
-import RedeemButton from './redeem-button';
 
 export default function DepositHighlights() {
   return (
