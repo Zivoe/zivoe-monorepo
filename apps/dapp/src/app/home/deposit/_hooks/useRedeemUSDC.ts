@@ -42,7 +42,7 @@ export const useRedeemUSDC = () => {
 
       const receipt = await waitForTxReceipt({
         hash,
-        messages: { pending: 'Redeeming USDC...' }
+        messages: { pending: 'Redeeming zVLT...' }
       });
 
       return { receipt, amount };
@@ -51,7 +51,7 @@ export const useRedeemUSDC = () => {
     onError: (err, variables) => {
       onTxError({
         err,
-        defaultToastMsg: 'Error Redeeming USDC',
+        defaultToastMsg: 'Error Redeeming zVLT',
         sentry: { flow: 'redeem', extras: variables }
       });
     },
