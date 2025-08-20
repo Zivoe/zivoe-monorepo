@@ -37,3 +37,16 @@ export const parseInput = (value: string) => {
   // Remove leading zeros
   return value.replace(/^0+(?=\d)/, '');
 };
+
+export const calculateZVLTDollarValue = ({
+  amount,
+  indexPrice
+}: {
+  amount: string | undefined;
+  indexPrice: number | null;
+}): bigint | null => {
+  if (!indexPrice) return null;
+  if (!amount) return 0n;
+
+  return (parseUnits(amount, 18) * parseUnits(indexPrice.toFixed(6), 18)) / 10n ** 18n;
+};

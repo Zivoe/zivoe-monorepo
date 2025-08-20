@@ -19,10 +19,10 @@ interface InputProps extends Aria.SearchFieldProps, VariantProps<typeof inputGro
   endContent?: ReactNode;
   isClearable?: boolean;
   groupClassName?: string;
-  labelContent?: ReactNode;
   labelClassName?: string;
   decimalPlaces?: number;
   hasNormalStyleIfDisabled?: boolean;
+  subContent?: ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -40,11 +40,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       type,
       groupClassName,
       variant,
-      labelContent,
       autoComplete,
       onChange,
       decimalPlaces = 18,
       hasNormalStyleIfDisabled = false,
+      subContent,
       ...props
     },
     ref
@@ -73,35 +73,34 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       >
         {({ state }) => (
           <>
-            {label && (
-              <div className={cn('flex flex-wrap items-center justify-between gap-x-4 gap-y-2', labelClassName)}>
-                <Label>{label}</Label>
-                {labelContent}
-              </div>
-            )}
+            {label && <Label>{label}</Label>}
 
             <InputGroup
               variant={variant}
               hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
               className={groupClassName}
             >
-              {startContent}
+              <div className="flex w-full items-center gap-3">
+                {startContent}
 
-              <InputElement
-                variant={variant}
-                hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-                placeholder={parsedPlaceholder}
-                type={parsedType}
-                ref={ref}
-              />
+                <InputElement
+                  variant={variant}
+                  hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
+                  placeholder={parsedPlaceholder}
+                  type={parsedType}
+                  ref={ref}
+                />
 
-              {endContent}
+                {endContent}
 
-              {isClearable && !isReadOnly && (
-                <InputButton onPress={() => state.setValue('')} aria-label="Clear input">
-                  <CloseIcon />
-                </InputButton>
-              )}
+                {isClearable && !isReadOnly && (
+                  <InputButton onPress={() => state.setValue('')} aria-label="Clear input">
+                    <CloseIcon />
+                  </InputButton>
+                )}
+              </div>
+
+              {variant === 'amount' && subContent}
             </InputGroup>
 
             {errorMessage && <FieldError>{errorMessage}</FieldError>}
@@ -158,7 +157,7 @@ const InputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ classNam
 
 const inputGroupStyles = tv({
   base: [
-    'flex w-full cursor-text items-center gap-3 overflow-hidden rounded border border-default',
+    'flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded border border-default',
     /* Hover */
     'hover:border-contrast',
     /* Focus Within */
@@ -174,7 +173,7 @@ const inputGroupStyles = tv({
   variants: {
     variant: {
       default: 'h-12 bg-surface-base-soft px-4 text-small',
-      amount: 'h-20 bg-surface-base pl-6 pr-4 text-h6'
+      amount: 'h-24 bg-surface-base pl-6 pr-4 text-h6'
     },
 
     hasNormalStyleIfDisabled: {

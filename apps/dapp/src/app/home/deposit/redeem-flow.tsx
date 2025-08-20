@@ -24,15 +24,15 @@ import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
 
-import { BalanceDisplay } from './_components/balance-display';
+import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
 import { useRedeemUSDC } from './_hooks/useRedeemUSDC';
-import { createAmountValidator, parseInput } from './_utils';
+import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
 
 type RedeemForm = z.infer<z.ZodObject<{ redeem: ReturnType<typeof createAmountValidator> }>>;
 
-export default function RedeemFlow() {
+export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }) {
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
   const account = useAccount();
@@ -64,6 +64,8 @@ export default function RedeemFlow() {
   const redeem = form.watch('redeem');
   const redeemRaw = redeem ? parseUnits(redeem, 18) : undefined;
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
+
+  const zVLTDollarValue = calculateZVLTDollarValue({ amount: redeem, indexPrice });
 
   const hasEnoughAllowance = checkHasEnoughAllowance({
     allowance: zvltAllowance.data,
@@ -138,7 +140,6 @@ export default function RedeemFlow() {
             inputMode="decimal"
             variant="amount"
             label="Redeem"
-            labelContent={<BalanceDisplay balance={zvltBalance.data} decimals={18} isPending={zvltBalance.isPending} />}
             labelClassName="h-5"
             value={value ?? ''}
             onChange={(value) => {
@@ -150,6 +151,13 @@ export default function RedeemFlow() {
             isInvalid={invalid}
             isDisabled={isDisabled}
             decimalPlaces={18}
+            subContent={
+              <InputExtraInfo
+                decimals={18}
+                dollarValue={zVLTDollarValue}
+                balance={{ value: zvltBalance.data, isPending: zvltBalance.isPending }}
+              />
+            }
             endContent={
               <div className="flex items-center">
                 <MaxButton
@@ -174,17 +182,17 @@ export default function RedeemFlow() {
       <Input
         variant="amount"
         label="Receive"
-        labelContent={
-          <BalanceDisplay
-            balance={depositBalances.data?.USDC ?? 0n}
-            decimals={6}
-            isPending={depositBalances.isPending}
-          />
-        }
         labelClassName="h-5"
         value={receive ?? ''}
         isDisabled
         hasNormalStyleIfDisabled={!isDisabled}
+        subContent={
+          <InputExtraInfo
+            decimals={6}
+            dollarValue={receive ? parseUnits(receive, 6) : 0n}
+            balance={{ value: depositBalances.data?.USDC ?? 0n, isPending: depositBalances.isPending }}
+          />
+        }
         endContent={<TokenDisplay symbol="USDC" />}
       />
 

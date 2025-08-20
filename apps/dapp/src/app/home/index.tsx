@@ -21,13 +21,17 @@ export default function Home() {
 
 async function DepositWrapper() {
   let apy: number | null = null;
+  let indexPrice: number | null = null;
 
   const dailyData = await data.getDepositDailyData();
 
   if (dailyData) {
     const currentDailyData = dailyData[dailyData.length - 1];
-    if (currentDailyData) apy = currentDailyData.apy;
+    if (currentDailyData) {
+      apy = currentDailyData.apy;
+      indexPrice = currentDailyData.indexPrice;
+    }
   }
 
-  return <Deposit apy={apy} />;
+  return <Deposit apy={apy} indexPrice={indexPrice} />;
 }

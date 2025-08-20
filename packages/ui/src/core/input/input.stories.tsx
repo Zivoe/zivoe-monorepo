@@ -76,12 +76,7 @@ export const States: Story = {
       <Input placeholder="Left Content" startContent={<Icon />} id="aaaa1" />
       <Input placeholder="Right Content" endContent={<Icon />} />
       <Input placeholder="Right Content Clearable" endContent={<Button size="s">Button</Button>} isClearable />
-      <Input
-        variant="amount"
-        placeholder="0.0"
-        label="Deposit"
-        labelContent={<p className="text-small text-primary">Balance: 1234.56</p>}
-      />
+      <Input variant="amount" placeholder="0.0" label="Deposit" />
     </div>
   )
 };

@@ -15,12 +15,12 @@ import { TransactionDialog } from './_components/transaction-dialog';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
-export default function Deposit({ apy }: { apy: number | null }) {
+export default function Deposit({ apy, indexPrice }: { apy: number | null; indexPrice: number | null }) {
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>
-      <EarnBox apy={apy} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
+      <EarnBox apy={apy} indexPrice={indexPrice} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -36,7 +36,13 @@ export default function Deposit({ apy }: { apy: number | null }) {
             <DialogTitle>Deposit & Earn</DialogTitle>
           </DialogHeader>
 
-          <EarnBox apy={apy} className="block p-0 lg:hidden" withTitle={false} boxClassName="p-4" />
+          <EarnBox
+            apy={apy}
+            indexPrice={indexPrice}
+            className="block p-0 lg:hidden"
+            withTitle={false}
+            boxClassName="p-4"
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -45,11 +51,13 @@ export default function Deposit({ apy }: { apy: number | null }) {
 
 function EarnBox({
   apy,
+  indexPrice,
   className,
   withTitle = true,
   boxClassName
 }: {
   apy: number | null;
+  indexPrice: number | null;
   className?: string;
   withTitle?: boolean;
   boxClassName?: string;
@@ -75,11 +83,11 @@ function EarnBox({
           </TabList>
 
           <TabPanel id="deposit">
-            <DepositFlow apy={apy} />
+            <DepositFlow apy={apy} indexPrice={indexPrice} />
           </TabPanel>
 
           <TabPanel id="redeem">
-            <RedeemFlow />
+            <RedeemFlow indexPrice={indexPrice} />
           </TabPanel>
         </Tabs>
       </DialogContentBox>

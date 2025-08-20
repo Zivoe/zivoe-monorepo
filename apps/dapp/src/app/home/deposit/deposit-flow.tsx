@@ -31,18 +31,18 @@ import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
 
-import { BalanceDisplay } from './_components/balance-display';
+import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
 import { useVaultDeposit } from './_hooks/useVaultDeposit';
-import { createAmountValidator, parseInput } from './_utils';
+import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
 
 type DepositForm = z.infer<z.ZodObject<{ deposit: ReturnType<typeof createAmountValidator> }>>;
 
-export function DepositFlow({ apy }: { apy: number | null }) {
+export function DepositFlow({ apy, indexPrice }: { apy: number | null; indexPrice: number | null }) {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
@@ -74,6 +74,8 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   const deposit = form.watch('deposit');
   const depositRaw = deposit ? parseUnits(deposit, DEPOSIT_TOKEN_DECIMALS[depositToken]) : undefined;
   const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
+
+  const zVLTDollarValue = calculateZVLTDollarValue({ amount: receive, indexPrice });
 
   const hasEnoughAllowance =
     depositToken === 'USDT' || depositToken === 'zSTT'
@@ -176,13 +178,6 @@ export function DepositFlow({ apy }: { apy: number | null }) {
             inputMode="decimal"
             variant="amount"
             label="Deposit"
-            labelContent={
-              <BalanceDisplay
-                balance={depositBalances.data?.[depositToken]}
-                decimals={DEPOSIT_TOKEN_DECIMALS[depositToken]}
-                isPending={depositBalances.isPending}
-              />
-            }
             labelClassName="h-5"
             value={value ?? ''}
             onChange={(value) => {
@@ -194,6 +189,13 @@ export function DepositFlow({ apy }: { apy: number | null }) {
             isInvalid={invalid}
             isDisabled={isDisabled}
             decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
+            subContent={
+              <InputExtraInfo
+                decimals={DEPOSIT_TOKEN_DECIMALS[depositToken]}
+                dollarValue={depositRaw ?? 0n}
+                balance={{ value: depositBalances.data?.[depositToken], isPending: depositBalances.isPending }}
+              />
+            }
             endContent={
               <div className="flex items-center">
                 <MaxButton
@@ -230,11 +232,17 @@ export function DepositFlow({ apy }: { apy: number | null }) {
       <Input
         variant="amount"
         label="Receive"
-        labelContent={<BalanceDisplay balance={zvltBalance.data} decimals={18} isPending={zvltBalance.isPending} />}
         labelClassName="h-5"
         value={receive ?? ''}
         isDisabled
         hasNormalStyleIfDisabled={!isDisabled}
+        subContent={
+          <InputExtraInfo
+            decimals={18}
+            dollarValue={zVLTDollarValue}
+            balance={{ value: zvltBalance.data, isPending: zvltBalance.isPending }}
+          />
+        }
         endContent={<TokenDisplay symbol="zVLT" />}
       />
 
