@@ -132,9 +132,17 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
-          <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
-            Close
-          </Button>
+          <div className="flex gap-4">
+            <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
+              Close
+            </Button>
+
+            {transaction.type === 'SUCCESS' && (transaction.meta?.deposit || transaction.meta?.redeem) && (
+              <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
+                View Portfolio
+              </Link>
+            )}
+          </div>
         </DialogContentBox>
       </DialogContent>
     </Dialog>
