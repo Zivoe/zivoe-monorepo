@@ -274,9 +274,9 @@ export const handleDepositRefetches = ({
 };
 
 export function withErrorHandler(defaultErrorMessage: string, handler: (req: NextRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest) => {
+  return async (req: NextRequest): Promise<NextResponse> => {
     const { res, err } = await handlePromise(handler(req));
-    if (!err) return res;
+    if (!err && res) return res;
 
     let status: number = 500;
     let capture = true;
