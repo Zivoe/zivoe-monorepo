@@ -134,7 +134,9 @@ export function DepositFlow({ apy, indexPrice }: { apy: number | null; indexPric
       spender: approveToken === 'USDT' ? CONTRACTS.zRTR : CONTRACTS.zVLT,
       amount: depositRaw,
       name: approveToken,
-      abi: APPROVE_TOKEN_ABI[NETWORK][approveToken]
+      abi: APPROVE_TOKEN_ABI[NETWORK][approveToken],
+      successMessage: `You can now deposit ${approveToken}`,
+      errorMessage: `There was an error approving ${approveToken}`
     });
   };
 

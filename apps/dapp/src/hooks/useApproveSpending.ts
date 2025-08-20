@@ -7,7 +7,7 @@ import { type WriteContractParameters } from 'wagmi/actions';
 
 import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 
-import { DepositToken } from '@/types/constants';
+import { Token } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionData } from '@/lib/store';
@@ -32,13 +32,17 @@ export const useApproveSpending = () => {
       spender,
       amount,
       name,
-      abi
+      abi,
+      successMessage,
+      errorMessage
     }: {
       contract: Address;
       spender: Address;
       amount?: bigint;
       name: string;
       abi: ApproveTokenAbi;
+      successMessage: string;
+      errorMessage: string;
     }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
 
@@ -58,7 +62,7 @@ export const useApproveSpending = () => {
         messages: { pending: `Approving ${name}...` }
       });
 
-      return { receipt };
+      return { receipt, successMessage, errorMessage };
     },
 
     onError: (err, { abi, ...variables }) =>
@@ -68,7 +72,7 @@ export const useApproveSpending = () => {
         sentry: { flow: 'approve', extras: variables }
       }),
 
-    onSuccess: ({ receipt }, { name, abi }) => {
+    onSuccess: ({ receipt }, { name, abi, successMessage, errorMessage }) => {
       let meta: TransactionData['meta'] = undefined;
 
       if (receipt.status === 'success') {
@@ -86,7 +90,7 @@ export const useApproveSpending = () => {
             if (amount) {
               meta = {
                 approve: {
-                  token: name as DepositToken,
+                  token: name as Token,
                   amount
                 }
               };
@@ -102,14 +106,14 @@ export const useApproveSpending = () => {
           ? {
               type: 'SUCCESS',
               title: 'Approval Successful',
-              description: `You can now deposit ${name}`,
+              description: successMessage,
               hash: receipt.transactionHash,
               meta
             }
           : {
               type: 'ERROR',
               title: 'Approval Failed',
-              description: `There was an error approving ${name}`,
+              description: errorMessage,
               hash: receipt.transactionHash
             }
       );

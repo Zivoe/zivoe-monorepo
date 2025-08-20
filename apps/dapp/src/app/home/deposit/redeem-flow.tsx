@@ -135,7 +135,9 @@ export default function RedeemFlow({ indexPrice }: { indexPrice: number | null }
       spender: CONTRACTS.OCR,
       amount: redeemRaw,
       name: 'zVLT',
-      abi: erc20Abi
+      abi: erc20Abi,
+      successMessage: 'You can now redeem zVLT',
+      errorMessage: 'There was an error approving zVLT'
     });
   };
 
