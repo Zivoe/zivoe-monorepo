@@ -24,12 +24,11 @@ import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
 
+import { BalanceDisplay } from './_components/balance-display';
+import { MaxButton } from './_components/max-button';
+import { TokenDisplay } from './_components/token-display';
 import { useRedeemUSDC } from './_hooks/useRedeemUSDC';
-import { BalanceDisplay } from './balance-display';
-import { parseInput } from './common';
-import { createAmountValidator } from './form-schemas';
-import { MaxButton } from './max-button';
-import { TokenDisplay } from './token-display';
+import { createAmountValidator, parseInput } from './_utils';
 
 type RedeemForm = z.infer<z.ZodObject<{ redeem: ReturnType<typeof createAmountValidator> }>>;
 
@@ -79,8 +78,6 @@ export default function RedeemFlow() {
     zvltBalance.isFetching ||
     depositBalances.isFetching ||
     zvltAllowance.isFetching ||
-    vault.isFetching ||
-    redemption.isFetching ||
     chainalysis.isFetching;
 
   const isDisabled = isFetching || approveSpending.isPending || redeemUSDC.isPending;

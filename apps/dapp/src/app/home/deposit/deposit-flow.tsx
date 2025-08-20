@@ -14,9 +14,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
-import { Tab, TabList, TabPanel, Tabs } from '@zivoe/ui/core/tabs';
 import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
-import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
@@ -33,23 +31,18 @@ import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
 
+import { BalanceDisplay } from './_components/balance-display';
+import { MaxButton } from './_components/max-button';
+import { TokenDisplay } from './_components/token-display';
 import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
 import { useVaultDeposit } from './_hooks/useVaultDeposit';
-import { BalanceDisplay } from './balance-display';
-import { parseInput } from './common';
-import { createAmountValidator } from './form-schemas';
-import { MaxButton } from './max-button';
-import RedeemFlow from './redeem-flow';
-import { TokenDisplay } from './token-display';
-import { TransactionDialog } from './transaction-dialog';
-
-type APY = number | null;
+import { createAmountValidator, parseInput } from './_utils';
 
 type DepositForm = z.infer<z.ZodObject<{ deposit: ReturnType<typeof createAmountValidator> }>>;
 
-function DepositFlow({ apy }: { apy: APY }) {
+export function DepositFlow({ apy }: { apy: number | null }) {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
@@ -101,7 +94,6 @@ function DepositFlow({ apy }: { apy: APY }) {
     depositBalances.isFetching ||
     zvltBalance.isFetching ||
     allowances.isFetching ||
-    vault.isFetching ||
     chainalysis.isFetching;
 
   const isDisabled =
@@ -515,49 +507,3 @@ const APPROVE_TOKEN_ABI: Record<Network, Record<Extract<DepositToken, 'USDT' | '
     zSTT: zivoeTrancheTokenAbi
   }
 };
-
-export default function DepositBox({
-  apy,
-  className,
-  withTitle = true,
-  boxClassName
-}: {
-  apy: APY;
-  className?: string;
-  withTitle?: boolean;
-  boxClassName?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]',
-        className
-      )}
-    >
-      {withTitle && (
-        <div className="p-4">
-          <p className="text-h6 text-primary">Deposit & Earn</p>
-        </div>
-      )}
-
-      <DialogContentBox className={boxClassName}>
-        <Tabs defaultSelectedKey="deposit">
-          <TabList aria-label="Deposit and Redeem tabs">
-            <Tab id="deposit">Deposit</Tab>
-            <Tab id="redeem">Redeem</Tab>
-          </TabList>
-
-          <TabPanel id="deposit">
-            <DepositFlow apy={apy} />
-          </TabPanel>
-
-          <TabPanel id="redeem">
-            <RedeemFlow />
-          </TabPanel>
-        </Tabs>
-      </DialogContentBox>
-
-      <TransactionDialog />
-    </div>
-  );
-}
