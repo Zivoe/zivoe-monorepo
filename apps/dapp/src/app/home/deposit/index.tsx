@@ -32,9 +32,10 @@ export default function Deposit({ apy, indexPrice }: { apy: number | null; index
       </div>
 
       <Dialog isOpen={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
-        <DialogContent dialogClassName="gap-0">
-          <DialogHeader>
+        <DialogContent dialogClassName="gap-0" showCloseButton={false}>
+          <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>Earn</DialogTitle>
+            <AvailableLiquidity type="mobile" />
           </DialogHeader>
 
           <EarnBox
@@ -92,7 +93,7 @@ function EarnBox({
         <TransactionDialog />
       </div>
 
-      <AvailableLiquidity />
+      <AvailableLiquidity type="desktop" />
     </div>
   );
 }
