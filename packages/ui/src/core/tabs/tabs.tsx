@@ -47,7 +47,7 @@ const Tab = forwardRef<HTMLDivElement, TabProps>(({ className, ...props }, ref) 
           'flex flex-1 cursor-pointer items-center justify-center rounded-[6px] px-4 py-2',
           'text-small font-medium text-secondary transition-all',
           'hover:text-primary',
-          'selected:bg-surface-base selected:text-primary selected:shadow-sm',
+          'selected:bg-surface-base selected:text-primary selected:[box-shadow:0_1px_3px_0_rgba(16,24,40,0.10),0_1px_2px_0_rgba(16,24,40,0.06)]',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
           'pressed:scale-[0.98]',
