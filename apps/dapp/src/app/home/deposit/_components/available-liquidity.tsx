@@ -22,14 +22,16 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
   return (
     <div
       className={cn(
-        'gap-3 rounded-md bg-element-primary-light',
-        isDesktop ? 'mt-5 hidden px-6 py-4 lg:flex' : 'flex p-2 lg:hidden'
+        'rounded-md',
+        isDesktop
+          ? 'mt-5 hidden gap-3 bg-element-primary-light px-6 py-4 lg:flex'
+          : 'flex items-center gap-2 bg-element-primary-gentle p-1.5 lg:hidden'
       )}
     >
-      <ZapIcon className="size-6 flex-shrink-0 text-primary-subtle" />
+      <ZapIcon className={cn('flex-shrink-0', isDesktop ? 'size-6 text-primary-subtle' : 'size-4 text-brand')} />
 
       <div className="flex flex-col gap-1">
-        <p className={cn('font-medium text-primary-subtle', isDesktop ? 'text-leading' : 'text-regular')}>
+        <p className={cn('font-medium', isDesktop ? 'text-leading text-primary-subtle' : 'text-small text-brand')}>
           Instant Liquidity{isDesktop ? ' Is Now Available' : ':'}
           {!isDesktop && <span> ${formatted}</span>}
         </p>
