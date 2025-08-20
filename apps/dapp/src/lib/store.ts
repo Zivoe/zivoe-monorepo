@@ -18,6 +18,11 @@ export type TransactionData = {
       amount: bigint;
       receive: bigint;
     };
+
+    redeem?: {
+      amount: bigint;
+      receive: bigint;
+    };
   };
 };
 

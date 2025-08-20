@@ -24,7 +24,7 @@ const TabList = <T extends object>({ className, ...props }: Aria.TabListProps<T>
     <Aria.TabList
       className={composeRenderProps(className, (className) =>
         cn(
-          'rounded-2 flex bg-surface-elevated p-1',
+          'flex rounded-lg bg-surface-elevated p-1',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
           'data-[orientation=horizontal]:flex-row data-[orientation=vertical]:flex-col',
           className
@@ -69,7 +69,7 @@ const TabPanel = forwardRef<HTMLDivElement, TabPanelProps>(({ className, ...prop
     <Aria.TabPanel
       className={composeRenderProps(className, (className) =>
         cn(
-          'mt-2 rounded-[4px]',
+          'flex flex-col gap-4 rounded-[4px]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
           className
         )

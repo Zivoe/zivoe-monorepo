@@ -20,6 +20,7 @@ export type Contracts = {
   zRTR: Address;
   OCT_CONVERT: Address;
   OCT_DAO: Address;
+  OCR: Address;
 };
 
 export const getContracts = (network: Network) => {

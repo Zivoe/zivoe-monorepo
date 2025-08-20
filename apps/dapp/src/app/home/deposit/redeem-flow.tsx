@@ -1,0 +1,264 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { formatUnits, parseUnits } from 'viem';
+import { erc20Abi } from 'viem';
+import { z } from 'zod';
+
+import { Button } from '@zivoe/ui/core/button';
+import { Input } from '@zivoe/ui/core/input';
+
+import { CONTRACTS } from '@/lib/constants';
+
+import { useAccount } from '@/hooks/useAccount';
+import { useAccountBalance } from '@/hooks/useAccountBalance';
+import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
+import { useApproveSpending } from '@/hooks/useApproveSpending';
+import { useChainalysis } from '@/hooks/useChainalysis';
+import { useDepositBalances } from '@/hooks/useDepositBalances';
+import { useRedemption } from '@/hooks/useRedemption';
+import { useVault } from '@/hooks/useVault';
+
+import ConnectedAccount from '@/components/connected-account';
+
+import { useRedeemUSDC } from './_hooks/useRedeemUSDC';
+import { BalanceDisplay } from './balance-display';
+import { parseInput } from './common';
+import { createAmountValidator } from './form-schemas';
+import { MaxButton } from './max-button';
+import { TokenDisplay } from './token-display';
+
+type RedeemForm = z.infer<z.ZodObject<{ redeem: ReturnType<typeof createAmountValidator> }>>;
+
+export default function RedeemFlow() {
+  const [receive, setReceive] = useState<string | undefined>(undefined);
+
+  const account = useAccount();
+  const chainalysis = useChainalysis();
+
+  const zvltAllowance = useAllowance({ contract: CONTRACTS.zVLT, spender: CONTRACTS.OCR });
+  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
+
+  const depositBalances = useDepositBalances();
+
+  const vault = useVault();
+  const redemption = useRedemption();
+
+  const form = useForm<RedeemForm>({
+    resolver: zodResolver(
+      z.object({
+        redeem: createAmountValidator({
+          balance: zvltBalance.data ?? 0n,
+          decimals: 18,
+          requiredMessage: 'Redeem amount is required',
+          exceedsMessage: 'Redeem amount exceeds balance'
+        })
+      })
+    ),
+    defaultValues: { redeem: undefined },
+    mode: 'onChange'
+  });
+
+  const redeem = form.watch('redeem');
+  const redeemRaw = redeem ? parseUnits(redeem, 18) : undefined;
+  const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
+
+  const hasEnoughAllowance = checkHasEnoughAllowance({
+    allowance: zvltAllowance.data,
+    amount: redeemRaw
+  });
+
+  const approveSpending = useApproveSpending();
+  const redeemUSDC = useRedeemUSDC();
+
+  const isFetching =
+    account.isPending ||
+    zvltBalance.isFetching ||
+    depositBalances.isFetching ||
+    zvltAllowance.isFetching ||
+    vault.isFetching ||
+    redemption.isFetching ||
+    chainalysis.isFetching;
+
+  const isDisabled = isFetching || approveSpending.isPending || redeemUSDC.isPending;
+
+  const handleRedeemChange = (value: string) => {
+    const { usdcAmount, fee } = getRedeemAmount({
+      zVLTAmount: value,
+      totalSupply: vault.data?.totalSupply ?? 0n,
+      totalAssets: vault.data?.totalAssets ?? 0n,
+      redemptionFeeBIPS: redemption.data?.redemptionFeeBIPS ?? 0n
+    });
+
+    console.log('usdcAmount', usdcAmount);
+    console.log('fee', fee);
+
+    setReceive(usdcAmount);
+  };
+
+  const validateForm = () => form.trigger('redeem', { shouldFocus: true });
+
+  const handleApprove = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
+
+    approveSpending.mutate({
+      contract: CONTRACTS.zVLT,
+      spender: CONTRACTS.OCR,
+      amount: redeemRaw,
+      name: 'zVLT',
+      abi: erc20Abi
+    });
+  };
+
+  const handleRedeemSuccess = () => {
+    form.reset();
+    setReceive(undefined);
+  };
+
+  const handleRedeem = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
+
+    redeemUSDC.mutate({ amount: redeemRaw }, { onSuccess: handleRedeemSuccess });
+  };
+
+  useEffect(() => {
+    if (account.address) form.clearErrors();
+  }, [account.address]);
+
+  return (
+    <>
+      <Controller
+        control={form.control}
+        name="redeem"
+        render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
+          <Input
+            {...field}
+            inputMode="decimal"
+            variant="amount"
+            label="Redeem"
+            labelContent={<BalanceDisplay balance={zvltBalance.data} decimals={18} isPending={zvltBalance.isPending} />}
+            labelClassName="h-5"
+            value={value ?? ''}
+            onChange={(value) => {
+              const parsedValue = parseInput(value);
+              onChange(parsedValue || undefined);
+              handleRedeemChange(parsedValue);
+            }}
+            errorMessage={error?.message}
+            isInvalid={invalid}
+            isDisabled={isDisabled}
+            decimalPlaces={18}
+            endContent={
+              <div className="flex items-center">
+                <MaxButton
+                  balance={zvltBalance.data ?? 0n}
+                  decimals={18}
+                  onPress={(value) => {
+                    onChange(value);
+                    handleRedeemChange(value);
+                  }}
+                  isDisabled={isDisabled}
+                />
+
+                <div className="ml-3">
+                  <TokenDisplay symbol="zVLT" />
+                </div>
+              </div>
+            }
+          />
+        )}
+      />
+
+      <Input
+        variant="amount"
+        label="Receive"
+        labelContent={
+          <BalanceDisplay
+            balance={depositBalances.data?.USDC ?? 0n}
+            decimals={6}
+            isPending={depositBalances.isPending}
+          />
+        }
+        labelClassName="h-5"
+        value={receive ?? ''}
+        isDisabled
+        hasNormalStyleIfDisabled={!isDisabled}
+        endContent={<TokenDisplay symbol="USDC" />}
+      />
+
+      <ConnectedAccount>
+        {isFetching ? (
+          <Button fullWidth isPending={true} pendingContent="Loading..." />
+        ) : !hasRedeemRaw ? (
+          <Button fullWidth onPress={handleRedeem}>
+            Redeem
+          </Button>
+        ) : !hasEnoughAllowance ? (
+          <Button
+            fullWidth
+            onPress={handleApprove}
+            isPending={approveSpending.isPending}
+            pendingContent={
+              approveSpending.isTxPending
+                ? 'Approving zVLT...'
+                : approveSpending.isPending
+                  ? 'Signing Transaction...'
+                  : undefined
+            }
+          >
+            Approve
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            onPress={handleRedeem}
+            isPending={redeemUSDC.isPending}
+            pendingContent={
+              redeemUSDC.isTxPending ? 'Redeeming zVLT...' : redeemUSDC.isPending ? 'Signing Transaction...' : undefined
+            }
+          >
+            Redeem
+          </Button>
+        )}
+      </ConnectedAccount>
+    </>
+  );
+}
+
+const DECIMALS_OFFSET = 0n;
+const BIPS = 10000n;
+
+// calculateRedemptionAmount in OCR_Instant contract
+const getRedeemAmount = ({
+  zVLTAmount,
+  totalSupply,
+  totalAssets,
+  redemptionFeeBIPS
+}: {
+  zVLTAmount: string;
+  totalSupply: bigint;
+  totalAssets: bigint;
+  redemptionFeeBIPS: bigint;
+}) => {
+  if (!zVLTAmount) return { usdcAmount: undefined, fee: undefined };
+
+  const shares = parseUnits(zVLTAmount, 18);
+
+  // zVLT convertToAssets function
+  const zSTTReceived = (shares * (totalAssets + 1n)) / (totalSupply + 10n ** DECIMALS_OFFSET);
+
+  const fee = (zSTTReceived * redemptionFeeBIPS) / BIPS;
+  const usdcAmountRaw = zSTTReceived - fee;
+
+  let usdcAmount = formatUnits(usdcAmountRaw, 18);
+  usdcAmount = usdcAmount.replace(/(\.\d{6}).*/, '$1');
+
+  const feeFormatted = formatUnits(fee, 18);
+
+  return { usdcAmount, fee: feeFormatted };
+};
