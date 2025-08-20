@@ -7,3 +7,5 @@ export const DEPOSIT_TOKEN_DECIMALS: Record<DepositToken, number> = {
   frxUSD: 18,
   zSTT: 18
 };
+
+export type RedeemToken = 'zVLT';

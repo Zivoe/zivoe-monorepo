@@ -3,11 +3,9 @@
 import { ReactNode, useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAtom } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { erc20Abi, formatUnits, parseUnits } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
 import { z } from 'zod';
 
 import { Network } from '@zivoe/contracts';
@@ -15,24 +13,14 @@ import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
-import { Link } from '@zivoe/ui/core/link';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
-import { ZVltLogo } from '@zivoe/ui/icons';
-import {
-  ArrowRightIcon,
-  CheckCircleIcon,
-  CloseCircleIcon,
-  FrxUsdIcon,
-  UsdcIcon,
-  UsdtIcon,
-  ZsttIcon
-} from '@zivoe/ui/icons';
+import { Tab, TabList, TabPanel, Tabs } from '@zivoe/ui/core/tabs';
+import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
-import { transactionAtom } from '@/lib/store';
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -49,35 +37,41 @@ import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
 import { useVaultDeposit } from './_hooks/useVaultDeposit';
+import { BalanceDisplay } from './balance-display';
+import { parseInput } from './common';
+import { createAmountValidator } from './form-schemas';
+import { MaxButton } from './max-button';
+import RedeemFlow from './redeem-flow';
+import { TokenDisplay } from './token-display';
+import { TransactionDialog } from './transaction-dialog';
 
-export default function DepositBox({
-  apy,
-  className,
-  withTitle = true,
-  boxClassName
-}: {
-  apy: number | null;
-  className?: string;
-  withTitle?: boolean;
-  boxClassName?: string;
-}) {
+type APY = number | null;
+
+type DepositForm = z.infer<z.ZodObject<{ deposit: ReturnType<typeof createAmountValidator> }>>;
+
+function DepositFlow({ apy }: { apy: APY }) {
   const [depositToken, setDepositToken] = useState<DepositToken>('USDC');
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
   const account = useAccount();
   const chainalysis = useChainalysis();
 
+  const allowances = useDepositAllowances();
   const depositBalances = useDepositBalances();
 
-  const vault = useVault();
   const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
-  const allowances = useDepositAllowances();
+
+  const vault = useVault();
 
   const form = useForm<DepositForm>({
     resolver: zodResolver(
-      getDepositFormSchema({
-        balance: depositBalances.data?.[depositToken] ?? 0n,
-        decimals: DEPOSIT_TOKEN_DECIMALS[depositToken]
+      z.object({
+        deposit: createAmountValidator({
+          balance: depositBalances.data?.[depositToken] ?? 0n,
+          decimals: DEPOSIT_TOKEN_DECIMALS[depositToken],
+          requiredMessage: 'Deposit amount is required',
+          exceedsMessage: 'Deposit amount exceeds balance'
+        })
       })
     ),
     defaultValues: { deposit: undefined },
@@ -107,6 +101,7 @@ export default function DepositBox({
     depositBalances.isFetching ||
     zvltBalance.isFetching ||
     allowances.isFetching ||
+    vault.isFetching ||
     chainalysis.isFetching;
 
   const isDisabled =
@@ -179,199 +174,156 @@ export default function DepositBox({
   }, [account.address]);
 
   return (
-    <div
-      className={cn(
-        'sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]',
-        className
-      )}
-    >
-      {withTitle && (
-        <div className="p-4">
-          <p className="text-h6 text-primary">Deposit & Earn</p>
-        </div>
-      )}
+    <>
+      <Controller
+        control={form.control}
+        name="deposit"
+        render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
+          <Input
+            {...field}
+            inputMode="decimal"
+            variant="amount"
+            label="Deposit"
+            labelContent={
+              <BalanceDisplay
+                balance={depositBalances.data?.[depositToken]}
+                decimals={DEPOSIT_TOKEN_DECIMALS[depositToken]}
+                isPending={depositBalances.isPending}
+              />
+            }
+            labelClassName="h-5"
+            value={value ?? ''}
+            onChange={(value) => {
+              const parsedValue = parseInput(value);
+              onChange(parsedValue || undefined);
+              handleDepositChange(parsedValue);
+            }}
+            errorMessage={error?.message}
+            isInvalid={invalid}
+            isDisabled={isDisabled}
+            decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
+            endContent={
+              <div className="flex items-center">
+                <MaxButton
+                  balance={depositBalances.data?.[depositToken] ?? 0n}
+                  decimals={DEPOSIT_TOKEN_DECIMALS[depositToken]}
+                  onPress={(value) => {
+                    onChange(value);
+                    handleDepositChange(value);
+                  }}
+                  isDisabled={isDisabled}
+                />
 
-      <DialogContentBox className={boxClassName}>
-        <Controller
-          control={form.control}
-          name="deposit"
-          render={({ field: { value, onChange, ...field }, fieldState: { error, invalid } }) => (
-            <Input
-              {...field}
-              inputMode="decimal"
-              variant="amount"
-              label="Deposit"
-              labelContent={<DepositTokenBalance token={depositToken} />}
-              labelClassName="h-5"
-              value={value ?? ''}
-              onChange={(value) => {
-                const parsedValue = parseInput(value);
-                onChange(parsedValue || undefined);
-                handleDepositChange(parsedValue);
-              }}
-              errorMessage={error?.message}
-              isInvalid={invalid}
-              isDisabled={isDisabled}
-              decimalPlaces={DEPOSIT_TOKEN_DECIMALS[depositToken]}
-              endContent={
-                <div className="flex items-center">
-                  <DepositMaxButton
-                    token={depositToken}
-                    setDepositAmount={(value) => {
-                      onChange(value);
-                      handleDepositChange(value);
-                    }}
-                    isDisabled={isDisabled}
-                  />
+                <div className="ml-3">
+                  <>
+                    <DepositTokenDialog
+                      isDisabled={isDisabled}
+                      selected={depositToken}
+                      onSelectionChange={handleDepositTokenChange}
+                    />
 
-                  <div className="ml-3">
-                    <>
-                      <DepositTokenDialog
-                        isDisabled={isDisabled}
-                        selected={depositToken}
-                        onSelectionChange={handleDepositTokenChange}
-                      />
-
-                      <DepositTokenSelect
-                        selected={depositToken}
-                        onSelectionChange={handleDepositTokenChange}
-                        isDisabled={isDisabled}
-                      />
-                    </>
-                  </div>
+                    <DepositTokenSelect
+                      selected={depositToken}
+                      onSelectionChange={handleDepositTokenChange}
+                      isDisabled={isDisabled}
+                    />
+                  </>
                 </div>
+              </div>
+            }
+          />
+        )}
+      />
+
+      <Input
+        variant="amount"
+        label="Receive"
+        labelContent={<BalanceDisplay balance={zvltBalance.data} decimals={18} isPending={zvltBalance.isPending} />}
+        labelClassName="h-5"
+        value={receive ?? ''}
+        isDisabled
+        hasNormalStyleIfDisabled={!isDisabled}
+        endContent={<TokenDisplay symbol="zVLT" />}
+      />
+
+      <ConnectedAccount>
+        {isFetching ? (
+          <Button fullWidth isPending={true} pendingContent="Loading..." />
+        ) : !hasDepositRaw ? (
+          <Button fullWidth onPress={() => handleDeposit({ token: depositToken })}>
+            Deposit
+          </Button>
+        ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
+          !hasEnoughAllowance ? (
+            <Button
+              fullWidth
+              onPress={() => handleApprove({ approveToken: depositToken })}
+              isPending={approveSpending.isPending}
+              pendingContent={
+                approveSpending.isTxPending
+                  ? `Approving ${depositToken}...`
+                  : approveSpending.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
               }
-            />
-          )}
-        />
-
-        <Input
-          variant="amount"
-          label="Receive"
-          labelContent={<ZvltBalance />}
-          labelClassName="h-5"
-          value={receive ?? ''}
-          isDisabled
-          hasNormalStyleIfDisabled={!isDisabled}
-          endContent={
-            <div className="flex items-center gap-2">
-              <ZVltLogo className="!size-6" />
-              <p className="text-small !font-medium text-primary">zVLT</p>
-            </div>
-          }
-        />
-
-        <ConnectedAccount>
-          {isFetching ? (
-            <Button fullWidth isPending={true} pendingContent="Loading..." />
-          ) : !hasDepositRaw ? (
-            <Button fullWidth onPress={() => handleDeposit({ token: depositToken })}>
-              Deposit
+            >
+              Approve
             </Button>
-          ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
-            !hasEnoughAllowance ? (
-              <Button
-                fullWidth
-                onPress={() => handleApprove({ approveToken: depositToken })}
-                isPending={approveSpending.isPending}
-                pendingContent={
-                  approveSpending.isTxPending
-                    ? `Approving ${depositToken}...`
-                    : approveSpending.isPending
-                      ? 'Signing Transaction...'
-                      : undefined
-                }
-              >
-                Approve
-              </Button>
-            ) : depositToken === 'USDT' ? (
-              <Button
-                fullWidth
-                onPress={() => handleDeposit({ token: depositToken })}
-                isPending={routerDeposit.isPending}
-                pendingContent={
-                  routerDeposit.isTxPending
-                    ? `Depositing ${depositToken}...`
-                    : routerDeposit.isPending
-                      ? `Signing Transaction...`
-                      : undefined
-                }
-              >
-                Deposit
-              </Button>
-            ) : depositToken === 'zSTT' ? (
-              <Button
-                fullWidth
-                onPress={() => handleDeposit({ token: depositToken })}
-                isPending={vaultDeposit.isPending}
-                pendingContent={
-                  vaultDeposit.isTxPending
-                    ? `Depositing ${depositToken}...`
-                    : vaultDeposit.isPending
-                      ? `Signing Transaction...`
-                      : undefined
-                }
-              >
-                Deposit
-              </Button>
-            ) : null
-          ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
+          ) : depositToken === 'USDT' ? (
             <Button
               fullWidth
               onPress={() => handleDeposit({ token: depositToken })}
-              isPending={permitDeposit.isPending}
+              isPending={routerDeposit.isPending}
               pendingContent={
-                permitDeposit.isPermitPending
-                  ? `Signing Permit...`
-                  : permitDeposit.isTxPending
-                    ? `Depositing ${depositToken}...`
-                    : permitDeposit.isPending
-                      ? `Signing Transaction...`
-                      : undefined
+                routerDeposit.isTxPending
+                  ? `Depositing ${depositToken}...`
+                  : routerDeposit.isPending
+                    ? `Signing Transaction...`
+                    : undefined
               }
             >
               Deposit
             </Button>
-          ) : null}
-        </ConnectedAccount>
+          ) : depositToken === 'zSTT' ? (
+            <Button
+              fullWidth
+              onPress={() => handleDeposit({ token: depositToken })}
+              isPending={vaultDeposit.isPending}
+              pendingContent={
+                vaultDeposit.isTxPending
+                  ? `Depositing ${depositToken}...`
+                  : vaultDeposit.isPending
+                    ? `Signing Transaction...`
+                    : undefined
+              }
+            >
+              Deposit
+            </Button>
+          ) : null
+        ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
+          <Button
+            fullWidth
+            onPress={() => handleDeposit({ token: depositToken })}
+            isPending={permitDeposit.isPending}
+            pendingContent={
+              permitDeposit.isPermitPending
+                ? `Signing Permit...`
+                : permitDeposit.isTxPending
+                  ? `Depositing ${depositToken}...`
+                  : permitDeposit.isPending
+                    ? `Signing Transaction...`
+                    : undefined
+            }
+          >
+            Deposit
+          </Button>
+        ) : null}
+      </ConnectedAccount>
 
-        {receive && apy !== null && deposit ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
-      </DialogContentBox>
-
-      <TransactionDialog />
-    </div>
+      {receive && apy !== null && deposit ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
+    </>
   );
 }
-
-const getDepositFormSchema = ({ balance, decimals }: { balance: bigint; decimals: number }) =>
-  z.object({
-    deposit: z.string({ required_error: 'Deposit amount is required' }).superRefine((amount, ctx) => {
-      const parsedAmount = parseUnits(amount, decimals);
-
-      if (parsedAmount === 0n) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Deposit amount is required'
-        });
-      }
-
-      if (parsedAmount > balance) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Deposit amount exceeds balance'
-        });
-      }
-    })
-  });
-
-type DepositForm = z.infer<ReturnType<typeof getDepositFormSchema>>;
-
-const parseInput = (value: string) => {
-  if (value.startsWith('.')) value = '0' + value;
-
-  // Remove leading zeros
-  return value.replace(/^0+(?=\d)/, '');
-};
 
 const DECIMALS_OFFSET = 0n;
 const getReceiveAmount = ({
@@ -396,17 +348,6 @@ const getReceiveAmount = ({
   return receive;
 };
 
-function DepositTokenBalance({ token }: { token: DepositToken }) {
-  const depositBalances = useDepositBalances();
-  if (depositBalances.isPending || depositBalances.data === undefined) return null;
-
-  return (
-    <p className="text-small text-primary">
-      Balance: {formatBigIntToReadable(depositBalances.data[token], DEPOSIT_TOKEN_DECIMALS[token])}
-    </p>
-  );
-}
-
 const DEPOSIT_TOKEN_ICON: Record<DepositToken, ReactNode> = {
   USDC: <UsdcIcon />,
   USDT: <UsdtIcon />,
@@ -427,37 +368,6 @@ const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => ({
   name: DEPOSIT_TOKEN_NAME[token],
   icon: DEPOSIT_TOKEN_ICON[token]
 }));
-
-function DepositMaxButton({
-  token,
-  isDisabled,
-  setDepositAmount
-}: {
-  token: DepositToken;
-  isDisabled: boolean;
-  setDepositAmount: (value: string) => void;
-}) {
-  const depositBalances = useDepositBalances();
-  const hasDepositBalance = depositBalances.data !== undefined && depositBalances.data[token] > 0n;
-
-  if (!hasDepositBalance) return null;
-
-  const handleMaxDeposit = () => {
-    const balance = depositBalances.data?.[token] ?? 0n;
-    const decimals = DEPOSIT_TOKEN_DECIMALS[token];
-    const maxAmount = formatUnits(balance, decimals);
-
-    setDepositAmount(maxAmount);
-  };
-
-  return (
-    <div className="hidden items-center border-r border-default px-3 sm:flex">
-      <Button variant="border-light" size="s" isDisabled={isDisabled} onPress={handleMaxDeposit}>
-        Max
-      </Button>
-    </div>
-  );
-}
 
 function DepositTokenDialog({
   selected,
@@ -576,13 +486,6 @@ const getFilteredSelectItems = (depositBalances: Record<DepositToken, bigint> | 
   return DEPOSIT_TOKENS_SELECT_ITEMS.filter((item) => item.id !== 'zSTT' || (depositBalances?.[item.id] ?? 0n) > 0n);
 };
 
-function ZvltBalance() {
-  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
-  if (zvltBalance.isPending || zvltBalance.data === undefined) return null;
-
-  return <p className="text-small text-primary">Balance: {formatBigIntToReadable(zvltBalance.data)}</p>;
-}
-
 function EstimatedAnnualReturn({ depositAmount, apy }: { depositAmount: string; apy: number }) {
   let valueFormatted = '-';
   const depositAmountNumber = Number(depositAmount);
@@ -602,133 +505,6 @@ function EstimatedAnnualReturn({ depositAmount, apy }: { depositAmount: string; 
   );
 }
 
-const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
-
-function TransactionDialog() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [transaction, setTransaction] = useAtom(transactionAtom);
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) setTransaction(undefined);
-    setIsOpen(open);
-  };
-
-  useEffect(() => {
-    if (transaction) setIsOpen(true);
-  }, [transaction]);
-
-  if (!transaction) return null;
-
-  return (
-    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={false}>
-        <DialogContentBox className="p-4">
-          <div className="flex flex-col items-center gap-6 py-3">
-            <div
-              className={cn(
-                'flex size-12 items-center justify-center rounded-md',
-                transaction.type === 'SUCCESS' ? 'bg-element-primary-gentle' : 'bg-element-alert-light'
-              )}
-            >
-              {transaction.type === 'SUCCESS' ? (
-                <CheckCircleIcon className="size-8 text-primary" />
-              ) : (
-                <CloseCircleIcon className="size-8 text-alert-contrast" />
-              )}
-            </div>
-
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-h5 text-primary">{transaction.title}</p>
-                <p className="text-center text-regular text-secondary">{transaction.description}</p>
-              </div>
-
-              <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
-                See transaction details
-              </Link>
-            </div>
-          </div>
-
-          {transaction.meta?.approve && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.approve.token}
-                amount={transaction.meta.approve.amount}
-                decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.approve.token]}
-                icon={DEPOSIT_TOKEN_ICON[transaction.meta.approve.token]}
-              />
-            </TransactionDialogTokensSection>
-          )}
-
-          {transaction.meta?.deposit && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.deposit.token}
-                amount={transaction.meta.deposit.amount}
-                decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.deposit.token]}
-                icon={DEPOSIT_TOKEN_ICON[transaction.meta.deposit.token]}
-              />
-
-              <ArrowRightIcon className="size-4 text-icon-default" />
-
-              <TransactionDialogToken
-                token="zVLT"
-                amount={transaction.meta.deposit.receive}
-                decimals={18}
-                icon={<ZVltLogo />}
-              />
-            </TransactionDialogTokensSection>
-          )}
-
-          <div className="flex gap-4">
-            <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
-              Close
-            </Button>
-
-            {transaction.type === 'SUCCESS' && transaction.meta?.deposit && (
-              <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
-                View Portfolio
-              </Link>
-            )}
-          </div>
-        </DialogContentBox>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TransactionDialogTokensSection({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
-      {children}
-    </div>
-  );
-}
-
-function TransactionDialogToken({
-  token,
-  amount,
-  decimals,
-  icon
-}: {
-  token: DepositToken | 'zVLT';
-  amount: bigint;
-  decimals: number;
-  icon: ReactNode;
-}) {
-  const amountFormatted = formatBigIntToReadable(amount, decimals);
-
-  return (
-    <div className="flex items-center gap-2 [&_svg]:size-6">
-      {icon}
-
-      <p className="text-leading text-primary">
-        {amountFormatted === '0.00' ? '<0.01' : amountFormatted} {token}
-      </p>
-    </div>
-  );
-}
-
 const APPROVE_TOKEN_ABI: Record<Network, Record<Extract<DepositToken, 'USDT' | 'zSTT'>, ApproveTokenAbi>> = {
   MAINNET: {
     USDT: tetherTokenAbi,
@@ -739,3 +515,49 @@ const APPROVE_TOKEN_ABI: Record<Network, Record<Extract<DepositToken, 'USDT' | '
     zSTT: zivoeTrancheTokenAbi
   }
 };
+
+export default function DepositBox({
+  apy,
+  className,
+  withTitle = true,
+  boxClassName
+}: {
+  apy: APY;
+  className?: string;
+  withTitle?: boolean;
+  boxClassName?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'sticky top-14 hidden rounded-2xl bg-surface-elevated p-2 lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]',
+        className
+      )}
+    >
+      {withTitle && (
+        <div className="p-4">
+          <p className="text-h6 text-primary">Deposit & Earn</p>
+        </div>
+      )}
+
+      <DialogContentBox className={boxClassName}>
+        <Tabs defaultSelectedKey="deposit">
+          <TabList aria-label="Deposit and Redeem tabs">
+            <Tab id="deposit">Deposit</Tab>
+            <Tab id="redeem">Redeem</Tab>
+          </TabList>
+
+          <TabPanel id="deposit">
+            <DepositFlow apy={apy} />
+          </TabPanel>
+
+          <TabPanel id="redeem">
+            <RedeemFlow />
+          </TabPanel>
+        </Tabs>
+      </DialogContentBox>
+
+      <TransactionDialog />
+    </div>
+  );
+}
