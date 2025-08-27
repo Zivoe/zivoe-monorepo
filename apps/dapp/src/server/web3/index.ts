@@ -99,12 +99,8 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     usdcInStSTT,
     usdcInOCT_DAO,
     usdtInDAO,
-    usdtInYDL,
-    usdtInStSTT,
     usdtInOCT_DAO,
     frxUSDInDAO,
-    frxUSDInYDL,
-    frxUSDInStSTT,
     frxUSDInOCT_DAO,
     m0InDAO,
     m0InOCT_DAO,
@@ -117,13 +113,9 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     getBalance(contracts.USDC, CONTRACTS.OCT_DAO),
 
     getBalance(contracts.USDT, CONTRACTS.DAO),
-    getBalance(contracts.USDT, CONTRACTS.YDL),
-    getBalance(contracts.USDT, CONTRACTS.stSTT),
     getBalance(contracts.USDT, CONTRACTS.OCT_DAO),
 
     getBalance(contracts.frxUSD, CONTRACTS.DAO),
-    getBalance(contracts.frxUSD, CONTRACTS.YDL),
-    getBalance(contracts.frxUSD, CONTRACTS.stSTT),
     getBalance(contracts.frxUSD, CONTRACTS.OCT_DAO),
 
     getBalance(contracts.M0, CONTRACTS.DAO),
@@ -143,11 +135,8 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const decimals = getDecimals(NETWORK);
 
   const usdcTotal = normalizeToDecimals18(usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO, decimals.USDC);
-  const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInYDL + usdtInStSTT + usdtInOCT_DAO, decimals.USDT);
-  const frxUSDTotal = normalizeToDecimals18(
-    frxUSDInDAO + frxUSDInYDL + frxUSDInStSTT + frxUSDInOCT_DAO,
-    decimals.frxUSD
-  );
+  const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, decimals.USDT);
+  const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, decimals.frxUSD);
   const stablecoinsTotal = usdcTotal + usdtTotal + frxUSDTotal;
 
   const m0Total = normalizeToDecimals18(m0InDAO + m0InOCT_DAO, decimals.M0);
