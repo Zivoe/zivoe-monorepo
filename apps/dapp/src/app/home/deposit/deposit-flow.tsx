@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Aria from 'react-aria-components';
@@ -14,7 +14,6 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
-import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZsttIcon } from '@zivoe/ui/icons';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
@@ -30,6 +29,7 @@ import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
 
 import ConnectedAccount from '@/components/connected-account';
+import { TOKEN_INFO } from '@/components/token-info';
 
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -350,26 +350,16 @@ const getReceiveAmount = ({
   return receive;
 };
 
-const DEPOSIT_TOKEN_ICON: Record<DepositToken, ReactNode> = {
-  USDC: <UsdcIcon />,
-  USDT: <UsdtIcon />,
-  frxUSD: <FrxUsdIcon />,
-  zSTT: <ZsttIcon />
-};
+const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => {
+  const info = TOKEN_INFO[token];
 
-const DEPOSIT_TOKEN_NAME: Record<DepositToken, string> = {
-  USDC: 'USD Coin',
-  USDT: 'Tether USD',
-  frxUSD: 'Frax USD',
-  zSTT: 'Senior Tranche Token (Legacy)'
-};
-
-const DEPOSIT_TOKENS_SELECT_ITEMS = DEPOSIT_TOKENS.map((token) => ({
-  id: token,
-  label: token,
-  name: DEPOSIT_TOKEN_NAME[token],
-  icon: DEPOSIT_TOKEN_ICON[token]
-}));
+  return {
+    id: token,
+    label: info.label,
+    name: info.description,
+    icon: info.icon
+  };
+});
 
 function DepositTokenDialog({
   selected,
@@ -383,7 +373,7 @@ function DepositTokenDialog({
   const account = useAccount();
   const depositBalances = useDepositBalances();
 
-  const icon = DEPOSIT_TOKEN_ICON[selected];
+  const icon = TOKEN_INFO[selected].icon;
   if (!icon) return null;
 
   const selectItems = getFilteredSelectItems(depositBalances.data);

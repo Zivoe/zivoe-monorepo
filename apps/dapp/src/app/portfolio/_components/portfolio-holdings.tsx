@@ -2,15 +2,18 @@
 
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { ZVltLogo } from '@zivoe/ui/icons';
 import { WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
+
+import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, Token } from '@/types/constants';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import InfoSection from '@/components/info-section';
+import { TOKEN_INFO } from '@/components/token-info';
 
 import { usePortfolio } from '../_hooks/usePortfolio';
 
@@ -25,48 +28,63 @@ export function PortfolioHoldings() {
 function HoldingsContainer() {
   const account = useAccount();
   const { data: portfolio, isFetching } = usePortfolio();
+  const depositBalances = useDepositBalances();
 
-  if (account.isPending || isFetching)
+  const hasZVLTBalance = !!portfolio?.zVLTBalance && portfolio.zVLTBalance > 0n;
+
+  if (account.isPending || isFetching || depositBalances.isFetching)
     return (
       <HoldingsContent>
-        <AssetInfo asset="zVLT" isLoading />
+        <AssetInfo isLoading />
+        <AssetInfo isLoading />
+        <AssetInfo isLoading />
       </HoldingsContent>
     );
 
   if (account.isDisconnected)
     return (
-      <HoldingsInfoCard
-        title="Connect Wallet"
-        description="Your holdings will appear here once you connect your wallet"
-      />
+      <div className="flex h-[8.5rem] flex-col items-center justify-center gap-2 text-center">
+        <h3 className="text-h7 text-primary">Connect Wallet</h3>
+        <p className="text-regular text-secondary">Your holdings will appear here once you connect your wallet</p>
+      </div>
     );
-
-  if (!portfolio || !portfolio.zVLTBalance || !portfolio.value)
-    return <HoldingsInfoCard title="No Positions" description="Your holdings will appear here once you deposit" />;
 
   return (
     <HoldingsContent>
+      <></>
       <AssetInfo
         asset="zVLT"
-        balance={formatBigIntWithCommas({ value: portfolio.zVLTBalance })}
-        value={`$${formatBigIntWithCommas({ value: portfolio.value })}`}
+        balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
+        value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
+        action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
       />
-    </HoldingsContent>
-  );
-}
 
-function HoldingsInfoCard({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="flex h-[8.5rem] flex-col items-center justify-center gap-2 text-center">
-      <h3 className="text-h7 text-primary">{title}</h3>
-      <p className="text-regular text-secondary">{description}</p>
-    </div>
+      {DEPOSIT_TOKENS.map((token) => {
+        const balance = depositBalances.data?.[token];
+        if (!balance || balance <= 0n) return null;
+
+        const formattedBalance = formatBigIntWithCommas({
+          value: balance,
+          tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
+        });
+
+        return (
+          <AssetInfo
+            key={token}
+            asset={token}
+            balance={formattedBalance}
+            value={`$${formattedBalance}`}
+            action={{ text: 'Deposit', href: '/' }}
+          />
+        );
+      })}
+    </HoldingsContent>
   );
 }
 
 function HoldingsContent({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
       <TableHeader title="Asset" />
       <TableHeader title="Balance" />
       <TableHeader title="Value" />
@@ -77,24 +95,36 @@ function HoldingsContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AssetInfo({
-  asset,
-  ...props
-}: { asset: HoldingAsset } & ({ isLoading: true } | { balance: string; value: string })) {
-  const info = HOLDING_INFO[asset];
+function AssetInfo(
+  props: { isLoading: true } | { asset: Token; balance: string; value: string; action: { text: string; href: string } }
+) {
   const isLoading = 'isLoading' in props;
+  const info = isLoading ? null : TOKEN_INFO[props.asset];
 
   return (
     <>
       {/* Desktop View */}
       <TableElement>
         <div className="flex items-center gap-3">
-          {info.icon}
+          {!info ? (
+            <>
+              <Skeleton className="size-8 rounded-full" />
 
-          <div>
-            <p className="text-regular text-primary">{info.title}</p>
-            <p className="text-small text-secondary">{info.description}</p>
-          </div>
+              <div className="flex flex-col gap-1 py-0.5">
+                <Skeleton className="h-5 w-11 rounded-md" />
+                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
+
+              <div>
+                <p className="text-regular text-primary">{info.label}</p>
+                <p className="text-small text-secondary">{info.description}</p>
+              </div>
+            </>
+          )}
         </div>
       </TableElement>
 
@@ -107,20 +137,37 @@ function AssetInfo({
       </TableElement>
 
       <TableElement className="justify-end">
-        <Link variant="border" size="s" href="/">
-          Deposit
-        </Link>
+        {isLoading ? (
+          <Skeleton className="h-8 w-[4.695rem] rounded-md" />
+        ) : (
+          <Link variant="border" size="s" href={props.action.href}>
+            {props.action.text}
+          </Link>
+        )}
       </TableElement>
 
       {/* Mobile View */}
       <div className="flex flex-col gap-4 rounded-xl border border-default p-5 md:hidden">
         <div className="flex items-center gap-3">
-          {info.icon}
+          {!info ? (
+            <>
+              <Skeleton className="size-8 rounded-full" />
 
-          <div>
-            <p className="text-smallSubheading font-medium text-primary">{info.title}</p>
-            <p className="text-small text-secondary">{info.description}</p>
-          </div>
+              <div className="flex flex-col gap-1 py-0.5">
+                <Skeleton className="h-6 w-11 rounded-md" />
+                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
+
+              <div>
+                <p className="text-smallSubheading font-medium text-primary">{info.label}</p>
+                <p className="text-small text-secondary">{info.description}</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -135,16 +182,20 @@ function AssetInfo({
           </div>
         </div>
 
-        <Link variant="border" size="m" fullWidth href="/">
-          Deposit
-        </Link>
+        {isLoading ? (
+          <Skeleton className="h-10 w-full rounded-md"></Skeleton>
+        ) : (
+          <Link variant="border" size="m" fullWidth href="/">
+            Deposit
+          </Link>
+        )}
       </div>
     </>
   );
 }
 
-function AssetInfoSkeleton() {
-  return <Skeleton className="h-6 w-28 rounded-md" />;
+function AssetInfoSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={cn('h-6 w-28 rounded-md', className)} />;
 }
 
 function TableHeader({ title }: { title: string }) {
@@ -158,12 +209,3 @@ function TableHeader({ title }: { title: string }) {
 function TableElement({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn('hidden h-[5.25rem] items-center px-4 md:flex', className)}>{children}</div>;
 }
-
-type HoldingAsset = 'zVLT';
-const HOLDING_INFO: Record<HoldingAsset, { title: string; description: string; icon: React.ReactNode }> = {
-  zVLT: {
-    title: 'zVLT',
-    description: 'Zivoe Vault',
-    icon: <ZVltLogo className="size-8 flex-shrink-0" />
-  }
-};

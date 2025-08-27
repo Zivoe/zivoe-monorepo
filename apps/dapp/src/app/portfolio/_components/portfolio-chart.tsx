@@ -164,8 +164,8 @@ function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' })
         </ChartSkeletonCard>
       ) : type === 'empty' ? (
         <ChartSkeletonCard
-          title="You Don't Have Any Deposits, Yet"
-          description="Open a position by depositing your assets"
+          title="You Don't Have Any zVLT Yet"
+          description="Open a position by depositing your stablecoins"
         >
           <Link variant="primary" href="/">
             Deposit
