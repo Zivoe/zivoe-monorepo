@@ -2,15 +2,18 @@
 
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { ZVltLogo } from '@zivoe/ui/icons';
 import { WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
+
+import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, Token } from '@/types/constants';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import InfoSection from '@/components/info-section';
+import { TOKEN_INFO } from '@/components/token-info';
 
 import { usePortfolio } from '../_hooks/usePortfolio';
 
@@ -25,8 +28,9 @@ export function PortfolioHoldings() {
 function HoldingsContainer() {
   const account = useAccount();
   const { data: portfolio, isFetching } = usePortfolio();
+  const depositBalances = useDepositBalances();
 
-  if (account.isPending || isFetching)
+  if (account.isPending || isFetching || depositBalances.isFetching)
     return (
       <HoldingsContent>
         <AssetInfo isLoading />
@@ -49,15 +53,35 @@ function HoldingsContainer() {
         asset="zVLT"
         balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
         value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
-        action={{ text: 'Deposit', href: '/' }}
+        action={{ text: 'Redeem', href: '/?view=redeem' }}
       />
+
+      {DEPOSIT_TOKENS.map((token) => {
+        const balance = depositBalances.data?.[token];
+        if (!balance || balance <= 0n) return null;
+
+        const formattedBalance = formatBigIntWithCommas({
+          value: balance,
+          tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
+        });
+
+        return (
+          <AssetInfo
+            key={token}
+            asset={token}
+            balance={formattedBalance}
+            value={`$${formattedBalance}`}
+            action={{ text: 'Deposit', href: '/' }}
+          />
+        );
+      })}
     </HoldingsContent>
   );
 }
 
 function HoldingsContent({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
       <TableHeader title="Asset" />
       <TableHeader title="Balance" />
       <TableHeader title="Value" />
@@ -69,12 +93,10 @@ function HoldingsContent({ children }: { children: React.ReactNode }) {
 }
 
 function AssetInfo(
-  props:
-    | { isLoading: true }
-    | { asset: HoldingAsset; balance: string; value: string; action: { text: string; href: string } }
+  props: { isLoading: true } | { asset: Token; balance: string; value: string; action: { text: string; href: string } }
 ) {
   const isLoading = 'isLoading' in props;
-  const info = isLoading ? null : HOLDING_INFO[props.asset];
+  const info = isLoading ? null : TOKEN_INFO[props.asset];
 
   return (
     <>
@@ -92,10 +114,10 @@ function AssetInfo(
             </>
           ) : (
             <>
-              {info.icon}
+              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
 
               <div>
-                <p className="text-regular text-primary">{info.title}</p>
+                <p className="text-regular text-primary">{info.label}</p>
                 <p className="text-small text-secondary">{info.description}</p>
               </div>
             </>
@@ -135,10 +157,10 @@ function AssetInfo(
             </>
           ) : (
             <>
-              {info.icon}
+              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
 
               <div>
-                <p className="text-smallSubheading font-medium text-primary">{info.title}</p>
+                <p className="text-smallSubheading font-medium text-primary">{info.label}</p>
                 <p className="text-small text-secondary">{info.description}</p>
               </div>
             </>
@@ -184,12 +206,3 @@ function TableHeader({ title }: { title: string }) {
 function TableElement({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn('hidden h-[5.25rem] items-center px-4 md:flex', className)}>{children}</div>;
 }
-
-type HoldingAsset = 'zVLT';
-const HOLDING_INFO: Record<HoldingAsset, { title: string; description: string; icon: React.ReactNode }> = {
-  zVLT: {
-    title: 'zVLT',
-    description: 'Zivoe Vault',
-    icon: <ZVltLogo className="size-8 flex-shrink-0" />
-  }
-};
