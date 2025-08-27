@@ -30,6 +30,8 @@ function HoldingsContainer() {
   const { data: portfolio, isFetching } = usePortfolio();
   const depositBalances = useDepositBalances();
 
+  const hasZVLTBalance = !!portfolio?.zVLTBalance && portfolio.zVLTBalance > 0n;
+
   if (account.isPending || isFetching || depositBalances.isFetching)
     return (
       <HoldingsContent>
@@ -49,11 +51,12 @@ function HoldingsContainer() {
 
   return (
     <HoldingsContent>
+      <></>
       <AssetInfo
         asset="zVLT"
         balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
         value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
-        action={{ text: 'Redeem', href: '/?view=redeem' }}
+        action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
       />
 
       {DEPOSIT_TOKENS.map((token) => {
