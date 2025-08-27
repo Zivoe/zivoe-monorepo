@@ -17,6 +17,7 @@ export type Contracts = {
   zSTT: Address;
   stSTT: Address;
   OCC_USDC: Address;
+  OCC_Variable: Address;
   zVLT: Address;
   zRTR: Address;
   OCT_CONVERT: Address;

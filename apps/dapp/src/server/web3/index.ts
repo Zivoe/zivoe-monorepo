@@ -1,11 +1,11 @@
 import { Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 
 import { Network } from '@zivoe/contracts';
-import { occModularAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
+import { occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
-import { DAYS_PER_YEAR } from '@/lib/utils';
+import { DAYS_PER_YEAR, handlePromise } from '@/lib/utils';
 import { DAY_IN_SECONDS } from '@/lib/utils';
 
 import { TVL, Web3Request } from '@/types';
@@ -83,6 +83,12 @@ const normalizeToDecimals18 = (value: bigint, decimals: number): bigint => {
   return value * 10n ** BigInt(18 - decimals);
 };
 
+const OCC_USDC_LOAN_ID = 0n;
+
+// TODO: Add borrower address
+const OCC_VARIABLE_BORROWER = '0x0000000000000000000000000000000000000000' as const;
+const OCC_VARIABLE_START_BLOCK = 23228086n;
+
 const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const getBalance = (address: Address, holder: Address) =>
     client.readContract({
@@ -105,7 +111,8 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     m0InDAO,
     m0InOCT_DAO,
     aUSDCInOCR,
-    loanInfo
+    loanInfo,
+    loanVariableInfo
   ] = await Promise.all([
     getBalance(contracts.USDC, CONTRACTS.DAO),
     getBalance(contracts.USDC, CONTRACTS.YDL),
@@ -127,9 +134,19 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
       address: contracts.OCC_USDC,
       abi: occModularAbi,
       functionName: 'loans',
-      args: [0n],
+      args: [OCC_USDC_LOAN_ID],
       blockNumber
-    })
+    }),
+
+    handlePromise(
+      client.readContract({
+        address: contracts.OCC_Variable,
+        abi: occVariableAbi,
+        functionName: 'usage',
+        args: [OCC_VARIABLE_BORROWER],
+        blockNumber
+      })
+    )
   ]);
 
   const decimals = getDecimals(NETWORK);
@@ -145,7 +162,18 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR, decimals.aUSDC);
   const deFiTotal = aUSDCTotal;
 
-  const loansTotal = normalizeToDecimals18(loanInfo[1], decimals.USDC);
+  let loanVariableAmount: bigint | undefined;
+  if (loanVariableInfo.err || !loanVariableInfo.res) {
+    if (blockNumber >= OCC_VARIABLE_START_BLOCK) {
+      throw new Error('Failed to get loan variable amount');
+    } else {
+      loanVariableAmount = 0n;
+    }
+  } else {
+    loanVariableAmount = loanVariableInfo.res;
+  }
+
+  const loansTotal = normalizeToDecimals18(loanInfo[1] + loanVariableAmount, decimals.USDC);
 
   const tvl = stablecoinsTotal + treasuryBillsTotal + deFiTotal + loansTotal;
 
