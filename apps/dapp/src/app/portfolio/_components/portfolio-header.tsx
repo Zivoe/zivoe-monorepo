@@ -52,7 +52,7 @@ function HeaderSkeleton() {
 
 function HeaderContainer({ children }: { children: React.ReactNode }) {
   return (
-    <InfoSection title="Portfolio Value" icon={<PiggyBankIcon />}>
+    <InfoSection title="zVLT Value" icon={<PiggyBankIcon />}>
       <div className="flex flex-col gap-2">{children}</div>
     </InfoSection>
   );
