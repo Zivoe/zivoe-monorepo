@@ -72,6 +72,7 @@ export default function DepositAllocation({
             label="Stablecoins"
             percentage={stablecoinsPercentage.toFixed(2)}
             value={'$' + formatBigIntToReadable(stablecoins)}
+            className="border-b border-default"
             bulletClassName="bg-element-tertiary-contrast"
           />
 
