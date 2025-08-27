@@ -19,7 +19,8 @@ export const env = createEnv({
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
-    NEXT_PUBLIC_SENTRY_DSN: z.string()
+    NEXT_PUBLIC_SENTRY_DSN: z.string(),
+    NEXT_PUBLIC_INTERCOM_APP_ID: z.string()
   },
 
   runtimeEnv: {
@@ -36,7 +37,8 @@ export const env = createEnv({
     REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
-    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

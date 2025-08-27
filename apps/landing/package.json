@@ -13,6 +13,7 @@
   "dependencies": {
     "@aarsteinmedia/dotlottie-player-light": "^5.1.0",
     "@hookform/resolvers": "^5.0.1",
+    "@intercom/messenger-js-sdk": "^0.0.17",
     "@marsidev/react-turnstile": "^1.1.0",
     "@sentry/nextjs": "^9.42.0",
     "@t3-oss/env-nextjs": "^0.12.0",
@@ -46,14 +47,14 @@
     "@zivoe/ts-config": "workspace:*",
     "drizzle-kit": "^0.30.6",
     "eslint": "^9.21.0",
+    "import-in-the-middle": "^1.14.2",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "require-in-the-middle": "^7.5.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.7.3",
-    "require-in-the-middle": "^7.5.2",
-    "import-in-the-middle": "^1.14.2"
+    "typescript": "5.7.3"
   },
   "peerDependencies": {
     "@next/eslint-plugin-next": "^15.1.7"

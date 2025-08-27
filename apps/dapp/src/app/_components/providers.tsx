@@ -3,11 +3,12 @@
 import { ReactNode, useEffect } from 'react';
 
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { DynamicContextProps, DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
+import Intercom, { update } from '@intercom/messenger-js-sdk';
 import * as Sentry from '@sentry/nextjs';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -85,7 +86,16 @@ export default function Providers({
   children: ReactNode;
   initialState: State | undefined;
 }) {
+  const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    Intercom({ app_id: env.NEXT_PUBLIC_INTERCOM_APP_ID });
+  }, []);
+
+  useEffect(() => {
+    update({});
+  }, [pathname]);
 
   return (
     <>
