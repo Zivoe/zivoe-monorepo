@@ -1,13 +1,16 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
+import Intercom, { update } from '@intercom/messenger-js-sdk';
 import { QueryClient, QueryClientProvider, isServer } from '@tanstack/react-query';
 import { RouterProvider } from 'react-aria-components';
 
 import { Toaster } from '@zivoe/ui/core/sonner';
+
+import { env } from '@/env';
 
 import { PostHogProvider } from './posthog';
 
@@ -33,7 +36,16 @@ function getQueryClient() {
 
 export default function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = getQueryClient();
+
+  useEffect(() => {
+    Intercom({ app_id: env.NEXT_PUBLIC_INTERCOM_APP_ID });
+  }, []);
+
+  useEffect(() => {
+    update({});
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
