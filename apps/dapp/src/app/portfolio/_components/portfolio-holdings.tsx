@@ -29,7 +29,9 @@ function HoldingsContainer() {
   if (account.isPending || isFetching)
     return (
       <HoldingsContent>
-        <AssetInfo asset="zVLT" isLoading />
+        <AssetInfo isLoading />
+        <AssetInfo isLoading />
+        <AssetInfo isLoading />
       </HoldingsContent>
     );
 
@@ -50,6 +52,7 @@ function HoldingsContainer() {
         asset="zVLT"
         balance={formatBigIntWithCommas({ value: portfolio.zVLTBalance })}
         value={`$${formatBigIntWithCommas({ value: portfolio.value })}`}
+        action={{ text: 'Deposit', href: '/' }}
       />
     </HoldingsContent>
   );
@@ -66,7 +69,7 @@ function HoldingsInfoCard({ title, description }: { title: string; description: 
 
 function HoldingsContent({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
       <TableHeader title="Asset" />
       <TableHeader title="Balance" />
       <TableHeader title="Value" />
@@ -77,24 +80,38 @@ function HoldingsContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AssetInfo({
-  asset,
-  ...props
-}: { asset: HoldingAsset } & ({ isLoading: true } | { balance: string; value: string })) {
-  const info = HOLDING_INFO[asset];
+function AssetInfo(
+  props:
+    | { isLoading: true }
+    | { asset: HoldingAsset; balance: string; value: string; action: { text: string; href: string } }
+) {
   const isLoading = 'isLoading' in props;
+  const info = isLoading ? null : HOLDING_INFO[props.asset];
 
   return (
     <>
       {/* Desktop View */}
       <TableElement>
         <div className="flex items-center gap-3">
-          {info.icon}
+          {!info ? (
+            <>
+              <Skeleton className="size-8 rounded-full" />
 
-          <div>
-            <p className="text-regular text-primary">{info.title}</p>
-            <p className="text-small text-secondary">{info.description}</p>
-          </div>
+              <div className="flex flex-col gap-1 py-0.5">
+                <Skeleton className="h-5 w-11 rounded-md" />
+                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+              </div>
+            </>
+          ) : (
+            <>
+              {info.icon}
+
+              <div>
+                <p className="text-regular text-primary">{info.title}</p>
+                <p className="text-small text-secondary">{info.description}</p>
+              </div>
+            </>
+          )}
         </div>
       </TableElement>
 
@@ -107,20 +124,37 @@ function AssetInfo({
       </TableElement>
 
       <TableElement className="justify-end">
-        <Link variant="border" size="s" href="/">
-          Deposit
-        </Link>
+        {isLoading ? (
+          <Skeleton className="h-8 w-[4.695rem] rounded-md" />
+        ) : (
+          <Link variant="border" size="s" href={props.action.href}>
+            {props.action.text}
+          </Link>
+        )}
       </TableElement>
 
       {/* Mobile View */}
       <div className="flex flex-col gap-4 rounded-xl border border-default p-5 md:hidden">
         <div className="flex items-center gap-3">
-          {info.icon}
+          {!info ? (
+            <>
+              <Skeleton className="size-8 rounded-full" />
 
-          <div>
-            <p className="text-smallSubheading font-medium text-primary">{info.title}</p>
-            <p className="text-small text-secondary">{info.description}</p>
-          </div>
+              <div className="flex flex-col gap-1 py-0.5">
+                <Skeleton className="h-6 w-11 rounded-md" />
+                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+              </div>
+            </>
+          ) : (
+            <>
+              {info.icon}
+
+              <div>
+                <p className="text-smallSubheading font-medium text-primary">{info.title}</p>
+                <p className="text-small text-secondary">{info.description}</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -135,16 +169,20 @@ function AssetInfo({
           </div>
         </div>
 
-        <Link variant="border" size="m" fullWidth href="/">
-          Deposit
-        </Link>
+        {isLoading ? (
+          <Skeleton className="h-10 w-full rounded-md"></Skeleton>
+        ) : (
+          <Link variant="border" size="m" fullWidth href="/">
+            Deposit
+          </Link>
+        )}
       </div>
     </>
   );
 }
 
-function AssetInfoSkeleton() {
-  return <Skeleton className="h-6 w-28 rounded-md" />;
+function AssetInfoSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={cn('h-6 w-28 rounded-md', className)} />;
 }
 
 function TableHeader({ title }: { title: string }) {
