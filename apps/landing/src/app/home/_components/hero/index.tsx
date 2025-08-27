@@ -1,7 +1,5 @@
 import { Suspense } from 'react';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
-
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { Link, LinkProps } from '@zivoe/ui/core/link';
 
@@ -72,7 +70,7 @@ async function Statistics() {
   return (
     <div className="flex gap-6 lg:gap-16">
       {currentDailyData?.tvl ? (
-        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl))} />
+        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl.total))} />
       ) : null}
 
       {currentDailyData?.apy ? <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} /> : null}

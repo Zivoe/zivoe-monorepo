@@ -13,6 +13,7 @@ export type Contracts = {
   frxUSD: Address;
   GBL: Address;
   DAO: Address;
+  YDL: Address;
   zSTT: Address;
   stSTT: Address;
   OCC_USDC: Address;

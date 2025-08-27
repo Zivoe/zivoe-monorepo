@@ -11,33 +11,38 @@ import { formatBigIntToReadable } from '@/lib/utils';
 import InfoSection from '@/components/info-section';
 
 export default function DepositAllocation({
-  outstandingPrincipal,
+  total,
+  loans,
+  stablecoins,
   treasuryBills,
-  usdcBalance
+  deFi
 }: {
-  outstandingPrincipal: bigint;
-  usdcBalance: bigint;
+  total: bigint;
+  loans: bigint;
+  stablecoins: bigint;
   treasuryBills: bigint;
+  deFi: bigint;
 }) {
-  const total = Number(outstandingPrincipal + treasuryBills + usdcBalance);
-  const outstandingPrincipalPercentage = (Number(outstandingPrincipal) / total) * 100;
-  const treasuryBillsPercentage = (Number(treasuryBills) / total) * 100;
-  const usdcBalancePercentage = (Number(usdcBalance) / total) * 100;
+  const loansPercentage = (Number(loans) / Number(total)) * 100;
+  const stablecoinsPercentage = (Number(stablecoins) / Number(total)) * 100;
+  const treasuryBillsPercentage = (Number(treasuryBills) / Number(total)) * 100;
+  const deFiPercentage = (Number(deFi) / Number(total)) * 100;
 
   return (
     <InfoSection title="Asset Allocation" icon={<PieChartIcon />}>
       <div className="flex flex-col gap-3">
         <div className="flex h-4 gap-1 px-3">
-          <Block width={outstandingPrincipalPercentage} className="bg-element-primary-soft" />
-          <Block width={treasuryBillsPercentage} className="bg-element-secondary" />
-          <Block width={usdcBalancePercentage} className="bg-element-tertiary-contrast" />
+          <Block width={loansPercentage} className="bg-element-primary-soft" />
+          <Block width={treasuryBillsPercentage} className="bg-element-tertiary-contrast" />
+          <Block width={stablecoinsPercentage} className="bg-element-secondary" />
+          <Block width={deFiPercentage} className="bg-element-warning-soft" />
         </div>
 
         <div>
           <Allocation
             label="Loans"
-            percentage={outstandingPrincipalPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(outstandingPrincipal, 6)}
+            percentage={loansPercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(loans)}
             className="border-b border-default"
             bulletClassName="bg-element-primary-soft"
           />
@@ -58,16 +63,23 @@ export default function DepositAllocation({
               </>
             }
             percentage={treasuryBillsPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(treasuryBills, 6)}
+            value={'$' + formatBigIntToReadable(treasuryBills)}
             className="border-b border-default"
             bulletClassName="bg-element-secondary"
           />
 
           <Allocation
-            label="USDC"
-            percentage={usdcBalancePercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(usdcBalance, 6)}
+            label="Stablecoins"
+            percentage={stablecoinsPercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(stablecoins)}
             bulletClassName="bg-element-tertiary-contrast"
+          />
+
+          <Allocation
+            label="DeFi"
+            percentage={deFiPercentage.toFixed(2)}
+            value={'$' + formatBigIntToReadable(deFi)}
+            bulletClassName="bg-element-warning-soft"
           />
         </div>
       </div>
