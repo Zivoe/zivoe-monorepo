@@ -55,20 +55,24 @@ async function DepositStatsComponent() {
   const currentDailyData = dailyData[dailyData.length - 1];
   if (!currentDailyData) return null;
 
-  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl} revenue={BigInt(revenue)} />;
+  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl.total} revenue={BigInt(revenue)} />;
 }
 
 async function DepositAllocationComponent() {
-  const allocations = await data.getAssetAllocation();
-  if (!allocations) return null;
+  const dailyData = await data.getDepositDailyData();
 
-  const { outstandingPrincipal, usdcBalance, m0Balance } = allocations;
+  const currentTVL = dailyData?.[dailyData.length - 1]?.tvl;
+  if (!currentTVL) return null;
+
+  const { total, loans, stablecoins, treasuryBills, deFi } = currentTVL;
 
   return (
     <DepositAllocation
-      outstandingPrincipal={BigInt(outstandingPrincipal)}
-      treasuryBills={BigInt(m0Balance)}
-      usdcBalance={BigInt(usdcBalance)}
+      total={BigInt(total)}
+      loans={BigInt(loans.total)}
+      treasuryBills={BigInt(treasuryBills.total)}
+      stablecoins={BigInt(stablecoins.total)}
+      deFi={BigInt(deFi.total)}
     />
   );
 }

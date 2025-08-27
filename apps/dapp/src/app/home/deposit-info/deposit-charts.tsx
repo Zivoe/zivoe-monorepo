@@ -152,7 +152,7 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
 
     let data: number | undefined;
     if (type === 'Index price') data = item.indexPrice;
-    else if (type === 'TVL') data = Number(formatEther(BigInt(item.tvl)));
+    else if (type === 'TVL') data = Number(formatEther(BigInt(item.tvl.total)));
     else data = item.apy;
 
     return {
@@ -166,7 +166,7 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
 
   let currentValue: number | undefined;
   if (type === 'Index price') currentValue = currentDailyData.indexPrice;
-  else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl)));
+  else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl.total)));
   else currentValue = currentDailyData.apy;
 
   return {

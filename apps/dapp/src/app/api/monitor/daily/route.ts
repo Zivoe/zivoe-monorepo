@@ -17,6 +17,8 @@ import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
+import { DailyData } from '@/types';
+
 import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
 
 const MONITOR_SLUG = 'deposit-daily-cron';
@@ -128,16 +130,6 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
   return NextResponse.json({ success: true, data: 'Deposit daily data collected' });
 };
 
-type DailyData = {
-  timestamp: Date;
-  blockNumber: string;
-  indexPrice: number;
-  apy: number;
-  tvl: string;
-  zSTTTotalSupply: string;
-  vaultTotalAssets: string;
-};
-
 async function collectDailyData({
   date,
   client,
@@ -177,7 +169,7 @@ async function collectDailyData({
     blockNumber: blockNumber.toString(),
     indexPrice: indexPriceRes.res.indexPrice,
     apy: aprRes.res,
-    tvl: tvlRes.res.toString(),
+    tvl: tvlRes.res,
     zSTTTotalSupply: zSTTTotalSupplyRes.res.toString(),
     vaultTotalAssets: indexPriceRes.res.vaultTotalAssets
   };
