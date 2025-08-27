@@ -37,33 +37,21 @@ function HoldingsContainer() {
 
   if (account.isDisconnected)
     return (
-      <HoldingsInfoCard
-        title="Connect Wallet"
-        description="Your holdings will appear here once you connect your wallet"
-      />
+      <div className="flex h-[8.5rem] flex-col items-center justify-center gap-2 text-center">
+        <h3 className="text-h7 text-primary">Connect Wallet</h3>
+        <p className="text-regular text-secondary">Your holdings will appear here once you connect your wallet</p>
+      </div>
     );
-
-  if (!portfolio || !portfolio.zVLTBalance || !portfolio.value)
-    return <HoldingsInfoCard title="No Positions" description="Your holdings will appear here once you deposit" />;
 
   return (
     <HoldingsContent>
       <AssetInfo
         asset="zVLT"
-        balance={formatBigIntWithCommas({ value: portfolio.zVLTBalance })}
-        value={`$${formatBigIntWithCommas({ value: portfolio.value })}`}
+        balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
+        value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
         action={{ text: 'Deposit', href: '/' }}
       />
     </HoldingsContent>
-  );
-}
-
-function HoldingsInfoCard({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="flex h-[8.5rem] flex-col items-center justify-center gap-2 text-center">
-      <h3 className="text-h7 text-primary">{title}</h3>
-      <p className="text-regular text-secondary">{description}</p>
-    </div>
   );
 }
 
