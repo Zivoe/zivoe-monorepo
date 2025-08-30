@@ -85,8 +85,7 @@ const normalizeToDecimals18 = (value: bigint, decimals: number): bigint => {
 
 const OCC_USDC_LOAN_ID = 0n;
 
-// TODO: Add borrower address
-const OCC_VARIABLE_BORROWER = '0x0000000000000000000000000000000000000000' as const;
+const OCC_VARIABLE_BORROWER = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
 const OCC_VARIABLE_START_BLOCK = 23228086n;
 
 const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
@@ -163,7 +162,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const deFiTotal = aUSDCTotal;
 
   let loanVariableAmount: bigint | undefined;
-  if (loanVariableInfo.err || !loanVariableInfo.res) {
+  if (loanVariableInfo.err || loanVariableInfo.res === undefined) {
     if (blockNumber >= OCC_VARIABLE_START_BLOCK) {
       throw new Error('Failed to get loan variable amount');
     } else {
