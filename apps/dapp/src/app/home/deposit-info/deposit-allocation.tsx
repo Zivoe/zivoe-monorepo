@@ -65,14 +65,15 @@ export default function DepositAllocation({
             percentage={treasuryBillsPercentage.toFixed(2)}
             value={'$' + formatBigIntToReadable(treasuryBills)}
             className="border-b border-default"
-            bulletClassName="bg-element-secondary"
+            bulletClassName="bg-element-tertiary-contrast"
           />
 
           <Allocation
             label="Stablecoins"
             percentage={stablecoinsPercentage.toFixed(2)}
             value={'$' + formatBigIntToReadable(stablecoins)}
-            bulletClassName="bg-element-tertiary-contrast"
+            className="border-b border-default"
+            bulletClassName="bg-element-secondary"
           />
 
           <Allocation
