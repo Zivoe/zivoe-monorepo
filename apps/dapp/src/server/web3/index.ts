@@ -103,6 +103,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     usdcInYDL,
     usdcInStSTT,
     usdcInOCT_DAO,
+    usdcInOCC_Variable,
     usdtInDAO,
     usdtInOCT_DAO,
     frxUSDInDAO,
@@ -117,6 +118,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     getBalance(contracts.USDC, CONTRACTS.YDL),
     getBalance(contracts.USDC, CONTRACTS.stSTT),
     getBalance(contracts.USDC, CONTRACTS.OCT_DAO),
+    getBalance(contracts.USDC, CONTRACTS.OCC_Variable),
 
     getBalance(contracts.USDT, CONTRACTS.DAO),
     getBalance(contracts.USDT, CONTRACTS.OCT_DAO),
@@ -150,7 +152,10 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
 
   const decimals = getDecimals(NETWORK);
 
-  const usdcTotal = normalizeToDecimals18(usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO, decimals.USDC);
+  const usdcTotal = normalizeToDecimals18(
+    usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO + usdcInOCC_Variable,
+    decimals.USDC
+  );
   const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, decimals.USDT);
   const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, decimals.frxUSD);
   const stablecoinsTotal = usdcTotal + usdtTotal + frxUSDTotal;
