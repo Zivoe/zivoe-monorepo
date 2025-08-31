@@ -28,60 +28,70 @@ export default function DepositAllocation({
   const treasuryBillsPercentage = (Number(treasuryBills) / Number(total)) * 100;
   const deFiPercentage = (Number(deFi) / Number(total)) * 100;
 
+  const allocations = [
+    {
+      label: 'Loans',
+      percentage: loansPercentage,
+      value: loans,
+      bgColor: 'bg-element-primary-soft'
+    },
+    {
+      label: 'Treasury Bills',
+      percentage: treasuryBillsPercentage,
+      value: treasuryBills,
+      bgColor: 'bg-element-tertiary-contrast'
+    },
+    {
+      label: 'Stablecoins',
+      percentage: stablecoinsPercentage,
+      value: stablecoins,
+      bgColor: 'bg-element-secondary'
+    },
+    {
+      label: 'DeFi',
+      percentage: deFiPercentage,
+      value: deFi,
+      bgColor: 'bg-element-warning-soft'
+    }
+  ].sort((a, b) => b.percentage - a.percentage);
+
   return (
     <InfoSection title="Asset Allocation" icon={<PieChartIcon />}>
       <div className="flex flex-col gap-3">
         <div className="flex h-4 gap-1 px-3">
-          <Block width={loansPercentage} className="bg-element-primary-soft" />
-          <Block width={treasuryBillsPercentage} className="bg-element-tertiary-contrast" />
-          <Block width={stablecoinsPercentage} className="bg-element-secondary" />
-          <Block width={deFiPercentage} className="bg-element-warning-soft" />
+          {allocations.map((allocation, index) => (
+            <Block key={index} width={allocation.percentage} className={allocation.bgColor} />
+          ))}
         </div>
 
         <div>
-          <Allocation
-            label="Loans"
-            percentage={loansPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(loans)}
-            className="border-b border-default"
-            bulletClassName="bg-element-primary-soft"
-          />
-
-          <Allocation
-            label={
-              <>
-                Treasury Bills (
-                <Link
-                  href="https://dashboard.m0.org/"
-                  target="_blank"
-                  hideExternalLinkIcon
-                  className="text-regular sm:text-leading"
-                >
-                  $wM by M0
-                </Link>
+          {allocations.map((allocation, index) => (
+            <Allocation
+              key={index}
+              label={
+                allocation.label === 'Treasury Bills' ? (
+                  <>
+                    Treasury Bills (
+                    <Link
+                      href="https://dashboard.m0.org/"
+                      target="_blank"
+                      hideExternalLinkIcon
+                      className="text-regular sm:text-leading"
+                    >
+                      $wM by M0
+                    </Link>
+                    )
+                  </>
+                ) : (
+                  allocation.label
                 )
-              </>
-            }
-            percentage={treasuryBillsPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(treasuryBills)}
-            className="border-b border-default"
-            bulletClassName="bg-element-tertiary-contrast"
-          />
-
-          <Allocation
-            label="Stablecoins"
-            percentage={stablecoinsPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(stablecoins)}
-            className="border-b border-default"
-            bulletClassName="bg-element-secondary"
-          />
-
-          <Allocation
-            label="DeFi"
-            percentage={deFiPercentage.toFixed(2)}
-            value={'$' + formatBigIntToReadable(deFi)}
-            bulletClassName="bg-element-warning-soft"
-          />
+              }
+              percentage={allocation.percentage.toFixed(2)}
+              value={'$' + formatBigIntToReadable(allocation.value)}
+              className={index < allocations.length - 1 ? 'border-b border-default' : ''}
+              bulletClassName={allocation.bgColor}
+            />
+          ))}
         </div>
       </div>
     </InfoSection>
