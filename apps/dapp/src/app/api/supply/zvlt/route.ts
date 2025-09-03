@@ -14,24 +14,15 @@ import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import { type ApiResponse } from '../../utils';
-
 const DEFAULT_ERROR_MESSAGE = 'Error getting zVLT supply';
 
 const ratelimit = new Ratelimit({
   redis: redis,
-  limiter: Ratelimit.fixedWindow(25, '30 m')
+  limiter: Ratelimit.fixedWindow(15, '30 m')
 });
 
-const handler = async (req: NextRequest): ApiResponse<string> => {
+const handler = async (req: NextRequest) => {
   const headers = new Headers();
-
-  // Verify CoinGecko headers
-  const requestedWith = req.headers.get('X-Requested-With');
-  const userAgent = req.headers.get('User-Agent');
-
-  if (requestedWith !== 'com.coingecko' || userAgent !== 'CoinGecko +https://coingecko.com/')
-    throw new ApiError({ message: 'Unauthorized request', status: 403, capture: false });
 
   // Rate limit based on IP address
   const ip = ipAddress(req) ?? '127.0.0.1';
@@ -63,8 +54,8 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
   if (supply.err) throw new ApiError({ message: DEFAULT_ERROR_MESSAGE, exception: supply.err });
   if (!supply.res) throw new ApiError({ message: DEFAULT_ERROR_MESSAGE, exception: 'No supply result' });
 
-  const data = formatUnits(supply.res, 18);
-  return NextResponse.json({ success: true, data });
+  const result = formatUnits(supply.res, 18);
+  return NextResponse.json({ result });
 };
 
 export const GET = withErrorHandler(DEFAULT_ERROR_MESSAGE, handler);
