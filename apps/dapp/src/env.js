@@ -13,7 +13,8 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string(),
     LANDING_PAGE_URL: z.string().optional(),
     LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
-    SENTRY_AUTH_TOKEN: z.string()
+    SENTRY_AUTH_TOKEN: z.string(),
+    ZIVOE_API_KEY: z.string()
   },
 
   client: {
@@ -52,7 +53,8 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID
+    NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
+    ZIVOE_API_KEY: process.env.ZIVOE_API_KEY
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

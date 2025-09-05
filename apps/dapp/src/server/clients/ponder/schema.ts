@@ -7,7 +7,8 @@ export const account = onchainTable('account', (t) => ({
 export const accountRelations = relations(account, ({ one, many }) => ({
   vestingSchedule: one(vestingSchedule, { fields: [account.id], references: [vestingSchedule.id] }),
   balances: many(tokenBalance),
-  snapshots: many(balanceSnapshot)
+  snapshots: many(balanceSnapshot),
+  stakingPositions: many(stakingPosition)
 }));
 
 export const vestingSchedule = onchainTable('vesting_schedule', (t) => ({
@@ -65,4 +66,23 @@ export const occ = onchainTable('occ', (t) => ({
 export const loan = onchainTable('loan', (t) => ({
   id: t.text().primaryKey(),
   borrowAmount: t.bigint().notNull()
+}));
+
+export const stakingPosition = onchainTable(
+  'staking_position',
+  (t) => ({
+    id: t.text().primaryKey(),
+    type: t.text().notNull(),
+    accountId: t.text().notNull(),
+    balance: t.bigint().notNull(),
+    createdAt: t.bigint().notNull(),
+    lastUpdated: t.bigint().notNull()
+  }),
+  (table) => ({
+    typeIdx: index().on(table.type)
+  })
+);
+
+export const stakingPositionRelations = relations(stakingPosition, ({ one }) => ({
+  account: one(account, { fields: [stakingPosition.accountId], references: [account.id] })
 }));
