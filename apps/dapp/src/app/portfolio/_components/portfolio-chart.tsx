@@ -13,6 +13,8 @@ import { customNumber, formatBigIntWithCommas } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
+import SkeletonAction from '@/components/skeleton-action';
+
 import { usePortfolio } from '../_hooks/usePortfolio';
 
 export function PortfolioChart() {
@@ -156,45 +158,19 @@ function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' })
       </svg>
 
       {type === 'disconnected' ? (
-        <ChartSkeletonCard
-          title="Connect Wallet to View Holdings"
-          description="Your assets & balances will appear here"
-        >
+        <SkeletonAction title="Connect Wallet to View Holdings" description="Your assets & balances will appear here">
           <Button onPress={() => setShowAuthFlow(true)}>Connect Wallet</Button>
-        </ChartSkeletonCard>
+        </SkeletonAction>
       ) : type === 'empty' ? (
-        <ChartSkeletonCard
+        <SkeletonAction
           title="You Don't Have Any zVLT Yet"
           description="Open a position by depositing your stablecoins"
         >
           <Link variant="primary" href="/">
             Deposit
           </Link>
-        </ChartSkeletonCard>
+        </SkeletonAction>
       ) : null}
-    </div>
-  );
-}
-
-function ChartSkeletonCard({
-  title,
-  description,
-  children
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h3 className="text-h7 text-primary">{title}</h3>
-          <p className="text-regular text-secondary">{description}</p>
-        </div>
-
-        {children}
-      </div>
     </div>
   );
 }
