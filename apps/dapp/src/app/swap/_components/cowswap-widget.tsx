@@ -11,8 +11,9 @@ import { CONTRACTS, NETWORK } from '@/lib/constants';
 
 import { useAccount } from '@/hooks/useAccount';
 
-import SkeletonAction from '../skeleton-action';
-import { useCowswapListeners } from './useCowswapListeners';
+import SkeletonAction from '@/components/skeleton-action';
+
+import { useCowswapListeners } from '../_hooks/useCowswapListeners';
 
 const DEFAULT_NETWORK = NETWORK === 'SEPOLIA' ? sepolia.id : mainnet.id;
 
