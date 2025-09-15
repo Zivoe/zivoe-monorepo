@@ -1,4 +1,4 @@
-import { CowSwapTradingWidget } from '@/components/cowswap/CowSwapWidget';
+import { CowSwapTradingWidget } from '@/components/cowswap/cowswap-widget';
 import Page from '@/components/page';
 
 export default function SwapPage() {

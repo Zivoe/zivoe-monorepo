@@ -6,7 +6,6 @@ import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { mainnet, sepolia } from 'viem/chains';
 
 import { Button } from '@zivoe/ui/core/button';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
 
@@ -19,15 +18,15 @@ const DEFAULT_NETWORK = NETWORK === 'SEPOLIA' ? sepolia.id : mainnet.id;
 
 const theme: CowSwapWidgetPalette = {
   baseTheme: 'light',
-  primary: '#0A6061',
+  primary: '#10393b',
   background: '#ffffff',
-  paper: '#F9FAFB',
-  text: '#000000',
-  warning: '#F08F48',
-  danger: '#B91C1C',
-  alert: '#B91C1C',
-  info: '#578EBF',
-  success: '#038788'
+  paper: '#ffffff',
+  text: '#12131a',
+  warning: '#CA9504',
+  danger: '#DC2626',
+  alert: '#CA9504',
+  info: '#7BADDA',
+  success: '#059669'
 };
 
 export function CowSwapTradingWidget() {
@@ -46,7 +45,7 @@ export function CowSwapTradingWidget() {
     partnerFee: undefined,
     hideOrdersTable: true,
     disableToastMessages: true,
-    disableProgressBar: false,
+    disableProgressBar: true,
     hideNetworkSelector: true,
     hideLogo: true,
     sounds: {
@@ -57,7 +56,14 @@ export function CowSwapTradingWidget() {
     theme
   };
 
-  if (account.isPending) return <CowSwapWidgetSkeleton />;
+  if (account.isPending)
+    return (
+      <div className="size-16">
+        <video src="/loader.webm" autoPlay muted loop playsInline style={{ width: '100%', height: 'auto' }}>
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    );
 
   if (!account.address)
     return (
@@ -73,16 +79,6 @@ export function CowSwapTradingWidget() {
   return (
     <div className="[&>div]:w-fit">
       <CowSwapWidget params={params} listeners={listeners} provider={window.ethereum} />
-    </div>
-  );
-}
-
-function CowSwapWidgetSkeleton() {
-  return (
-    <div className="flex h-[23.625rem] w-[28.125rem] flex-col gap-[10px] rounded-2xl bg-surface-elevated p-[10px] pb-[1.875rem] pt-[3rem]">
-      <Skeleton className="h-[6.625rem] w-full rounded-2xl" />
-      <Skeleton className="h-[6.625rem] w-full rounded-2xl" />
-      <Skeleton className="h-[3.625rem] w-full rounded-2xl" />
     </div>
   );
 }
