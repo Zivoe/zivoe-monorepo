@@ -11,6 +11,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\""
   },
   "dependencies": {
+    "@cowprotocol/widget-lib": "^0.20.0",
+    "@cowprotocol/widget-react": "^0.14.0",
     "@dynamic-labs/ethereum": "3.9.13",
     "@dynamic-labs/sdk-react-core": "3.9.13",
     "@dynamic-labs/wagmi-connector": "3.9.13",
