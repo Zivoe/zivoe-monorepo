@@ -78,7 +78,7 @@ export function CowSwapTradingWidget() {
     );
 
   return (
-    <div className="[&>div]:w-fit">
+    <div className="flex w-full flex-1 [&_iframe]:w-full [&_iframe]:max-w-full">
       <CowSwapWidget params={params} listeners={listeners} provider={window.ethereum} />
     </div>
   );
