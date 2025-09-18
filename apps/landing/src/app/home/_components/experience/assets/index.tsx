@@ -8,6 +8,5 @@ export * from './securitize';
 export * from './chainalysis';
 export * from './m0';
 export * from './cow-swap';
-export * from './frax';
 export * from './plume';
 export * from './rwaio';
