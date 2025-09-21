@@ -10,7 +10,7 @@ import { DepositPageView } from './deposit/_utils';
 export default function Home({ initialView }: { initialView: DepositPageView }) {
   return (
     <div className="bg-surface-base">
-      <Hero title="zVLT" description="Gain exposure to consumer credit" />
+      <Hero title="zVLT" description="Gain exposure to private credit" />
 
       <Page className="flex gap-10 lg:flex-row">
         <DepositInfo />
