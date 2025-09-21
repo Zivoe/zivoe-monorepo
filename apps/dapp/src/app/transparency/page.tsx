@@ -12,8 +12,6 @@ import Page from '@/components/page';
 import AUMAccordion, { AUMAccordionSkeleton } from './_components/aum/aum-accordion';
 import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donut-chart';
 import { Card } from './_components/card';
-import { NewCoIcon } from './_components/icons/newco';
-import { ZinclusiveIcon } from './_components/icons/zinclusive';
 import Liquidity from './_components/liquidity';
 import LiquidityChart from './_components/liquidity-chart';
 import LoanCard from './_components/loans';
@@ -113,10 +111,9 @@ async function ZinclusiveLoan() {
 
   return (
     <LoanCard
-      image={<ZinclusiveIcon />}
-      title="Zinclusive"
+      title="Portfolio A"
       description="Consumer Credit"
-      info="Zivoe owns an interest in a portfolio of consumer loans originated and serviced by Zinclusive. Zinclusive provides financing to individual borrowers in underserved and underbanked markets."
+      info="Zivoe owns an interest in a portfolio of consumer loans originated and serviced by a consumer lender in the United States. The portfolio provides financing to individual borrowers in the nonprime segment."
       investmentValue={formatBigIntToReadable(BigInt(loans.zinclusive.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(loans.zinclusive.interest), 6)}
       averageLoanSize="$3,300"
@@ -133,10 +130,9 @@ async function NewCoLoan() {
 
   return (
     <LoanCard
-      image={<NewCoIcon />}
-      title="NewCo Capital Group"
+      title="Portfolio B"
       description="Merchant Cash Advance"
-      info="Zivoe owns an interest in a portfolio of merchant cash advance loans originated and serviced by NewCo Capital Group. NewCo is one of the largest providers of SME loans across both the United States and Canada."
+      info="Zivoe owns an interest in a portfolio of merchant cash advance loans originated and serviced by a leading SME finance provider. The portfolio supports small and medium-sized businesses across North America."
       investmentValue={formatBigIntToReadable(BigInt(newCo.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(newCo.interest), 6)}
       averageLoanSize="$3,829"

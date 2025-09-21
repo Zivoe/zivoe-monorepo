@@ -16,9 +16,8 @@ export default function DepositAbout() {
       <div className="flex flex-col gap-2">
         <div className={cn('line-clamp-2 space-y-6', showFullText && 'line-clamp-none')}>
           <p className="text-leading text-primary">
-            zVLT offers qualified purchasers exposure to a professionally managed private credit portfolio—an asset
-            class that has delivered strong, risk-adjusted returns to Wall Street investors for over 50 years. zVLT
-            invests across several private credit verticals including consumer credit, merchant cash advance, and more.
+          zVLT offers qualified purchasers exposure to a diversified portfolio of consumer loans and merchant cash advances. 
+          These asset classes have delivered some of the most attractive risk-adjusted returns to Wall Street for over 50 years.
           </p>
 
           <p className="text-leading text-primary">

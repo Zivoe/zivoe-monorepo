@@ -16,7 +16,6 @@ import {
   JPMorganIcon,
   M0Icon,
   MapleIcon,
-  PlumeIcon,
   RuntimeIcon,
   RwaioIcon,
   SecuritizeIcon,
@@ -127,10 +126,6 @@ export default function Experience() {
             >
               <Partner>
                 <CowSwapIcon />
-              </Partner>
-
-              <Partner>
-                <PlumeIcon />
               </Partner>
 
               <div className="flex flex-wrap gap-4">

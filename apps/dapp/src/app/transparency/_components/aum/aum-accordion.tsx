@@ -67,8 +67,8 @@ export default function AUMAccordion({ data }: { data: CurrentDailyData['tvl'] }
             )}
             {category.key === 'loans' && (
               <>
-                <PanelItem label="Zinclusive" value={data.loans.zinclusive} />
-                <PanelItem label="NewCo Capital Group" value={data.loans.newCo} />
+                <PanelItem label="Portfolio A - Consumer Credit" value={data.loans.zinclusive} />
+                <PanelItem label="Portfolio B - Merchant Cash Advance" value={data.loans.newCo} />
               </>
             )}
           </DisclosurePanel>

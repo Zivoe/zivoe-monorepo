@@ -23,7 +23,7 @@ export default function Portfolio() {
               Meet the Portfolio Behind the Performance
             </p>
             <p className="text-base/80 xl:max-w-[25rem] xl:text-leading">
-              Invest with confidence in a well-diversified portfolio of consumer and business loans.
+              Earn yield from a well-diversified private credit portfolio.
             </p>
           </div>
 

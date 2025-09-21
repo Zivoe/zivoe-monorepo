@@ -56,37 +56,42 @@ const FAQs: Array<{
   {
     question: 'What is Zivoe?',
     answer:
-      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the U.S. consumer lending market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment of the credit market available to individuals for the first time, offering exposure to yield opportunities that were traditionally out of reach.'
+      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals, offering exposure to yield opportunities that were traditionally out of reach.'
   },
   {
     question: 'How have these loans performed historically?',
     answer:
-      'The asset class Zivoe lends into is U.S. consumer credit, which has historically shown resilience even during economic downturns. During the 2008 financial crisis, access to revolving credit shrank by over $140 billion for underserved Americans. In contrast, Elevate Credit, a non-prime lender that maintained consistent performance through that period and later went public, was led at the time of its IPO by Walt Ramsey, now with Zivoe. This history underscores the durability of well-structured consumer credit portfolios, even in volatile market environments.'
+      'Private credit has shown consistent performance across market cycles, providing stable returns even when public markets experienced volatility. During the 2008 financial crisis, when traditional credit contracted sharply, many private lenders continued to perform, supported by disciplined underwriting and diversified borrower bases. This history underscores the resilience of private credit as an asset class.'
   },
   {
     question: 'What are the risks?',
     answer:
-      'As with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are tied to loan repayments. Zivoe mitigates these risks by working with Zinclusive, its lending partner, who is responsible for underwriting and originating loans. Capital is deployed into a broad set of U.S.-based consumer loans, offering meaningful diversification compared to protocols concentrated in a small number of business loans.'
+      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination. The platform diversifies exposure across multiple originators and asset classes while maintaining oversight of portfolio performance and concentration risk.'
   },
   {
     question: 'How do I earn yield?',
     answer:
-      "Depositors mint zVLT, Zivoe's ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are used off-chain to help fund consumer loans. As borrowers repay those loans with interest, capital flows back into the protocol and is automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by off-chain repayments."
+      "Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit."
   },
   {
     question: 'What are the fees?',
     answer:
-      'Zivoe currently takes a 15% protocol fee on the net interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
+      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
+  },
+  {
+    question: 'Is there a minimum deposit amount?',
+    answer:
+      'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
   },
   {
     question: 'What is the lockup period and liquidity policy?',
     answer:
-      'Withdrawals from the protocol are subject to available cash flows from underlying loan repayments. While Zivoe may open select windows for direct redemptions once critical scale is reached, the primary path for liquidity will be through secondary markets. Zivoe has established a liquidity partnership with Frax, one of the leading stablecoin projects in the space, including a joint pool to support trading of zVLT. This will provide users with flexible access to exit their positions without waiting on scheduled redemption events.'
+      'Zivoe enforces no lockup period, and you can withdraw from your zVLT position at any time liquidity permitting. To see how much liquidity is available for redemptions and to submit a redeem transaction, simply visit our dApp. In addition to redemptions, there is also an active zVLT / USDC Uniswap pool providing another venue for users to exit their position.'
   },
   {
-    question: 'How does the migration to zVLT work?',
+    question: 'How do I convert my tranche tokens to zVLT?',
     answer:
-      'Zivoe is transitioning from its original tranche-based system to a unified auto-compounding vault token called zVLT, which will launch alongside a new dApp. While the Legacy App will remain live and continue to accept senior tranche deposits, all new protocol activity will move to zVLT going forward. The full transition will occur with the launch of the new dApp, and a migration process will be shared for existing users. More details will be available soon through the dApp and Zivoe’s community channels.'
+      'Zivoe has transitioned from its original tranche-based system to a unified auto-compounding vault token called zVLT, which launched alongside our new dApp. Senior tranche token holders use their tokens in the new dApp to mint zVLT while junior tranche tokens holders will first need to visit our legacy dApp (a link to this can be found in the footer on this page) and convert their junior tranche tokens first to senior tranche tokens and then to zVLT.'
   },
   {
     question: 'Has Zivoe been audited?',
