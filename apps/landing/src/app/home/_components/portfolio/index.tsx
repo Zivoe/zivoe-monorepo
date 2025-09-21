@@ -17,12 +17,12 @@ export default function Portfolio() {
               Meet the Portfolio Behind the Performance
             </p>
             <p className="text-base/80 xl:max-w-[25rem] xl:text-leading">
-              Invest with confidence in a well-diversified portfolio of retail loans.
+              Earn yield from a well-diversified private credit portfolio.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            <Card title="Lent so far" description="$6,000,000">
+            <Card title="Lent so far" description="$7,000,000">
               <CardIcon className="bg-element-secondary">
                 <MoneyHandIcon />
               </CardIcon>

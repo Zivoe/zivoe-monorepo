@@ -16,10 +16,8 @@ export default function DepositAbout() {
       <div className="flex flex-col gap-2">
         <div className={cn('line-clamp-2 space-y-6', showFullText && 'line-clamp-none')}>
           <p className="text-leading text-primary">
-            zVLT offers qualified purchasers exposure to a professionally managed portfolio of non-prime consumer
-            loans—an asset class that has delivered strong, risk-adjusted returns to Wall Street investors for over 50
-            years. The loans zVLT invests in typically range from $2,000 to $10,000 in notional size and are extended to
-            borrowers across the North American region who demonstrate strong repayment behavior.
+          zVLT offers qualified purchasers exposure to a diversified portfolio of consumer loans and merchant cash advances. 
+          These asset classes have delivered some of the most attractive risk-adjusted returns to Wall Street for over 50 years.
           </p>
 
           <p className="text-leading text-primary">
