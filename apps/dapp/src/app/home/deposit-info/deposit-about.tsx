@@ -16,7 +16,7 @@ export default function DepositAbout() {
       <div className="flex flex-col gap-2">
         <div className={cn('line-clamp-2 space-y-6', showFullText && 'line-clamp-none')}>
           <p className="text-leading text-primary">
-          zVLT offers qualified purchasers exposure to a diversified portfolio of consumer loans and merchant cash advances. 
+          zVLT offers qualified purchasers exposure to a diversified portfolio of consumer loans and merchant cash advance loans. 
           These asset classes have delivered some of the most attractive risk-adjusted returns to Wall Street for over 50 years.
           </p>
 
