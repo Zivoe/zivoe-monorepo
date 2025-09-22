@@ -216,7 +216,7 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     title: 'Head of Risk',
     image: '/team/walt.png',
     bio:
-      'Credit risk leader with 20+ years of experience managing consumer credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
+      'Credit risk leader with 20+ years of experience managing credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
     linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
   },
   {
@@ -256,7 +256,7 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     title: 'Head of Investor Relations',
     image: '/team/thor.png',
     bio:
-      'Leads investor relations, community management, and operations at Zivoe. Active in crypto since 2017, with a background in finance and data science.',
+      'Leads investor relations and operations at Zivoe. Active in crypto since 2017, with a background in finance and data science.',
     linkedIn: 'https://www.linkedin.com/in/thor-abbasi/',
     x: 'https://x.com/thorabbasi'
   },
