@@ -29,7 +29,7 @@ export default function DepositAbout() {
           <p className="text-leading text-primary">
             zVLT delivers compelling yields that consistently outperform traditional stablecoin lending opportunities
             across the DeFi ecosystem. The strategy targets net annual returns of 14-17% APY, supported by a team with
-            decades of experience managing consumer credit risk.
+            decades of experience managing credit risk.
           </p>
         </div>
 

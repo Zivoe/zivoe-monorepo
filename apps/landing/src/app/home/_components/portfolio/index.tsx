@@ -28,7 +28,7 @@ export default function Portfolio() {
               </CardIcon>
             </Card>
 
-            <Card title="Average Loan Size" description="$2k-$10k">
+            <Card title="Portfolio Mix" description="Consumer Loans & Merchant Cash Advance Loans">
               <CardIcon className="bg-primary-400">
                 <ChartLightIcon />
               </CardIcon>
