@@ -66,7 +66,7 @@ const FAQs: Array<{
   {
     question: 'What are the risks?',
     answer:
-      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination. The platform diversifies exposure across multiple originators and asset classes while maintaining oversight of portfolio performance and concentration risk.'
+      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination.'
   },
   {
     question: 'How do I earn yield?',
@@ -84,7 +84,12 @@ const FAQs: Array<{
       'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
   },
   {
-    question: 'What is the lockup period and liquidity policy?',
+    question: 'Is there a minimum deposit amount?',
+    answer:
+      'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
+  },
+  {
+    question: 'What is the lockup and liquidity policy?',
     answer:
       'Zivoe enforces no lockup period, and you can withdraw from your zVLT position at any time liquidity permitting. To see how much liquidity is available for redemptions and to submit a redeem transaction, simply visit our dApp. In addition to redemptions, there is also an active zVLT / USDC Uniswap pool providing another venue for users to exit their position.'
   },
@@ -96,6 +101,6 @@ const FAQs: Array<{
   {
     question: 'Has Zivoe been audited?',
     answer:
-      'Yes. Zivoe’s smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards.'
+      'Yes. Zivoe\'s smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards.'
   }
 ];
