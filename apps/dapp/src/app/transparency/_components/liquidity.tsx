@@ -60,7 +60,7 @@ export default function Liquidity({ data }: { data: Liquidity }) {
           </Link>
 
           <Link
-            href="https://app.uniswap.org/explore/pools/ethereum/0xB0eE9f4e678De09C4c660C44e9430e3688f931f3"
+            href="https://app.uniswap.org/explore/tokens/ethereum/0x94babe9ee75c38034920bc6ed42748e8eefbedd4"
             target="_blank"
           >
             <Row className="border border-transparent border-b-subtle">
@@ -88,7 +88,7 @@ export default function Liquidity({ data }: { data: Liquidity }) {
                   <FrxUsdIcon className="size-6 shrink-0" />
                   <UsdtIcon className="-ml-1 size-6 shrink-0" />
                   <div className="-ml-1.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-elevated-low-emphasis text-extraSmall font-medium text-secondary">
-                    +5
+                    +2
                   </div>
                 </div>
                 <p className="text-regular text-primary">Various</p>

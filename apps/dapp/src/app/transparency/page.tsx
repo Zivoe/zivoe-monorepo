@@ -116,11 +116,11 @@ async function ZinclusiveLoan() {
       image={<ZinclusiveIcon />}
       title="Zinclusive"
       description="Consumer Credit"
-      info="Zivoe owns an interest in a portfolio of consumer loans originated and serviced by Zinclusive. Zinclusive provides financing to individual borrowers in underserved and underbanked markets across the United States."
+      info="Zivoe owns an interest in a portfolio of consumer loans originated and serviced by Zinclusive. Zinclusive provides financing to individual borrowers in underserved and underbanked markets."
       investmentValue={formatBigIntToReadable(BigInt(loans.zinclusive.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(loans.zinclusive.interest), 6)}
       averageLoanSize="$3,300"
-      geography="United States"
+      geography="Americas"
     />
   );
 }
@@ -140,7 +140,7 @@ async function NewCoLoan() {
       investmentValue={formatBigIntToReadable(BigInt(newCo.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(newCo.interest), 6)}
       averageLoanSize="$51,000"
-      geography="United States"
+      geography="Americas"
     />
   );
 }
