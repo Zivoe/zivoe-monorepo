@@ -46,7 +46,7 @@ export default function RedeemFlow() {
   const chainalysis = useChainalysis();
 
   const liquidity = useAvailableLiquidity();
-  const zvltAllowance = useAllowance({ contract: CONTRACTS.zVLT, spender: CONTRACTS.OCR });
+  const zvltAllowance = useAllowance({ contract: CONTRACTS.zVLT, spender: CONTRACTS.OCR_Cycle });
   const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
 
   const depositBalances = useDepositBalances();
@@ -132,7 +132,7 @@ export default function RedeemFlow() {
 
     approveSpending.mutate({
       contract: CONTRACTS.zVLT,
-      spender: CONTRACTS.OCR,
+      spender: CONTRACTS.OCR_Cycle,
       amount: redeemRaw,
       name: 'zVLT',
       abi: erc20Abi,

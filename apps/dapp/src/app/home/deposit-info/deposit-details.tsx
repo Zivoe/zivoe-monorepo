@@ -33,12 +33,13 @@ function Element({ title, value, className }: { title: string; value: string | R
 
 const ELEMENTS: Record<string, ReactElement | string> = {
   Eligibility: 'Institutions & Retail',
-  'Underlying Assets': 'Non-Prime Consumer Loans',
-  'Average Loan Size': '$2k - $10k',
-  Geography: 'United States',
+  'Underlying Assets': 'Consumer & Business Loans',
+  'Average Loan Size': '$3,300',
+  Geography: 'Americas',
   'Legal Structure': 'Bankruptcy Remote SPV',
   'Regulatory Compliance': 'Reg S Compliant Offering',
   'Management Fee': '2.5% APR',
+  Liquidity: 'Instant',
   Audits: (
     <Link
       href="https://docs.zivoe.com/official-links/audits"

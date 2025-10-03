@@ -13,7 +13,7 @@ import Providers from './_components/providers';
 
 const title = 'Zivoe | RWA Credit Protocol';
 const description =
-  'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to the consumer credit market.';
+  'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to private credit.';
 
 const image = {
   url: 'https://zivoe.com/zivoe-hero.jpg',

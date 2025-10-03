@@ -21,6 +21,27 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   }
 };
 
+export const formatBigIntWithCommas = ({
+  value,
+  tokenDecimals = 18,
+  displayDecimals = 2
+}: {
+  value: bigint;
+  tokenDecimals?: number;
+  displayDecimals?: number;
+}) => {
+  const inEther = formatUnits(value, tokenDecimals);
+  const numericValue = Number(inEther);
+
+  const multiplier = Math.pow(10, displayDecimals);
+  const rounded = Math.floor(numericValue * multiplier) / multiplier;
+
+  return rounded.toLocaleString('en-US', {
+    minimumFractionDigits: displayDecimals,
+    maximumFractionDigits: displayDecimals
+  });
+};
+
 const floorToDecimals = (num: number) => {
   return (Math.floor(num * 100) / 100).toFixed(2);
 };

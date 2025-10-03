@@ -5,15 +5,14 @@ import { cache as reactCache } from 'react';
 import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
-import { eq } from 'drizzle-orm';
+import { erc20Abi } from 'viem';
 
-import { getContracts } from '@zivoe/contracts';
+import { CONTRACTS, NETWORK } from '@/lib/constants';
 
 import { env } from '@/env';
 
 import { getDb } from '../clients/db';
-import { getPonder } from '../clients/ponder';
-import { occ } from '../clients/ponder/schema';
+import { getWeb3Client } from '../clients/web3';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
@@ -45,21 +44,62 @@ const getDepositDailyData = reactCache(
 
 export type DepositDailyData = NonNullable<Awaited<ReturnType<typeof getDepositDailyData>>>[number];
 
+const getCurrentDailyData = async () => {
+  const dailyData = await getDepositDailyData();
+  const currentDailyData = dailyData?.[dailyData.length - 1];
+  if (!currentDailyData) return null;
+
+  const { total, loans, stablecoins, treasuryBills, deFi } = currentDailyData.tvl;
+  const totalNumber = Number(total);
+
+  return {
+    ...currentDailyData,
+    tvl: {
+      total: BigInt(total),
+      loans: {
+        total: BigInt(loans.total),
+        zinclusive: BigInt(loans.zinclusive),
+        newCo: BigInt(loans.newCo),
+        percentage: (Number(loans.total) / totalNumber) * 100
+      },
+      stablecoins: {
+        total: BigInt(stablecoins.total),
+        total30Days: BigInt(stablecoins.total30Days),
+        percentage: (Number(stablecoins.total) / totalNumber) * 100,
+        usdc: BigInt(stablecoins.usdc),
+        usdt: BigInt(stablecoins.usdt),
+        frxUSD: BigInt(stablecoins.frxUSD)
+      },
+      treasuryBills: {
+        total: BigInt(treasuryBills.total),
+        percentage: (Number(treasuryBills.total) / totalNumber) * 100,
+        m0: BigInt(treasuryBills.m0)
+      },
+      deFi: {
+        total: BigInt(deFi.total),
+        percentage: (Number(deFi.total) / totalNumber) * 100,
+        aUSDC: BigInt(deFi.aUSDC)
+      }
+    }
+  };
+};
+
+export type CurrentDailyData = NonNullable<Awaited<ReturnType<typeof getCurrentDailyData>>>;
+
 const getRevenue = nextCache(
   async () => {
     try {
       const network = env.NEXT_PUBLIC_NETWORK;
-      const contracts = getContracts(network);
-      const ponder = getPonder(network);
+      const db = getDb(network);
 
-      const data = await ponder
-        .select({ totalRevenue: occ.totalRevenue })
-        .from(occ)
-        .where(eq(occ.id, contracts.OCC_USDC))
-        .limit(1);
+      const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
+      if (!latestData?.loansRevenue) return null;
 
-      const totalRevenue = data[0]?.totalRevenue;
-      return totalRevenue && totalRevenue !== 0n ? totalRevenue.toString() : null;
+      const { zinclusive, newCo } = latestData.loansRevenue;
+      if (zinclusive === null || newCo === null) return null;
+
+      const totalRevenue = BigInt(zinclusive) + BigInt(newCo);
+      return totalRevenue !== 0n ? totalRevenue.toString() : null;
     } catch (error) {
       Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
@@ -68,7 +108,77 @@ const getRevenue = nextCache(
   { tags: [DEPOSIT_DAILY_DATA_TAG] }
 );
 
+const getLiquidity = async () => {
+  try {
+    const client = getWeb3Client(NETWORK);
+
+    const [currentDailyData, uniswap] = await Promise.all([
+      getCurrentDailyData(),
+
+      CONTRACTS.UNISWAP_V3_POOL
+        ? client.readContract({
+            address: CONTRACTS.USDC,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [CONTRACTS.UNISWAP_V3_POOL]
+          })
+        : Promise.resolve(0n)
+    ]);
+
+    if (!currentDailyData) return null;
+
+    const aUSDC = currentDailyData.tvl.deFi.aUSDC;
+    const days3 = currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days;
+    const days30 = currentDailyData.tvl.stablecoins.total30Days;
+
+    return {
+      aUSDC,
+      uniswap,
+      days3,
+      days30
+    };
+  } catch (error) {
+    Sentry.captureException(error, { tags: { source: 'SERVER' } });
+  }
+};
+
+export type Liquidity = NonNullable<Awaited<ReturnType<typeof getLiquidity>>>;
+
+const getTransparencyLoansData = reactCache(
+  nextCache(
+    async () => {
+      try {
+        const db = getDb(NETWORK);
+
+        const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
+        if (!latestData?.loansRevenue) return null;
+
+        const { zinclusive: zinclusiveInterest, newCo: newCoInterest } = latestData.loansRevenue;
+        if (zinclusiveInterest === null || newCoInterest === null) return null;
+
+        return {
+          zinclusive: {
+            interest: zinclusiveInterest,
+            invested: latestData.tvl.loans.zinclusive
+          },
+          newCo: {
+            interest: newCoInterest,
+            invested: latestData.tvl.loans.newCo
+          }
+        };
+      } catch (error) {
+        Sentry.captureException(error, { tags: { source: 'SERVER' } });
+      }
+    },
+    undefined,
+    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  )
+);
+
 export const data = {
   getDepositDailyData,
-  getRevenue
+  getCurrentDailyData,
+  getRevenue,
+  getLiquidity,
+  getTransparencyLoansData
 };

@@ -57,17 +57,6 @@ export const balanceSnapshotRelations = relations(balanceSnapshot, ({ one }) => 
   account: one(account, { fields: [balanceSnapshot.accountId], references: [account.id] })
 }));
 
-export const occ = onchainTable('occ', (t) => ({
-  id: t.text().primaryKey(),
-  outstandingPrincipal: t.bigint().notNull(),
-  totalRevenue: t.bigint().notNull()
-}));
-
-export const loan = onchainTable('loan', (t) => ({
-  id: t.text().primaryKey(),
-  borrowAmount: t.bigint().notNull()
-}));
-
 export const stakingPosition = onchainTable(
   'staking_position',
   (t) => ({

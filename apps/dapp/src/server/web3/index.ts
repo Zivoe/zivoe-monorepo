@@ -1,7 +1,7 @@
 import { Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 
 import { Network } from '@zivoe/contracts';
-import { occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
+import { occCycleAbi, occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
@@ -85,10 +85,23 @@ const normalizeToDecimals18 = (value: bigint, decimals: number): bigint => {
 
 const OCC_USDC_LOAN_ID = 0n;
 
-const OCC_VARIABLE_BORROWER = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
-const OCC_VARIABLE_START_BLOCK = 23228086n;
+const ZINCLUSIVE_ADDRESS = '0xC8d6248fFbc59BFD51B23E69b962C60590d5f026' as const;
+const NEW_CO_ADDRESS = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
+
+const OCC_VARIABLE_START_BLOCK: Record<Network, bigint> = {
+  MAINNET: 23228086n,
+  SEPOLIA: 9077792n
+};
+
+const OCC_CYCLE_START_BLOCK: Record<Network, bigint> = {
+  MAINNET: 23484381n,
+  SEPOLIA: 9320714n
+};
 
 const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
+  const isOCCVariable = blockNumber >= OCC_VARIABLE_START_BLOCK[NETWORK];
+  const isOCCCycle = blockNumber >= OCC_CYCLE_START_BLOCK[NETWORK];
+
   const getBalance = (address: Address, holder: Address) =>
     client.readContract({
       address,
@@ -111,14 +124,17 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     m0InDAO,
     m0InOCT_DAO,
     aUSDCInOCR,
-    loanInfo,
-    loanVariableInfo
+    aUSDCInOCR_Cycle,
+    occModularInfo,
+    loanVariableAmount,
+    zinclusiveOccCycleAmount,
+    newCoOccCycleAmount
   ] = await Promise.all([
     getBalance(contracts.USDC, CONTRACTS.DAO),
     getBalance(contracts.USDC, CONTRACTS.YDL),
     getBalance(contracts.USDC, CONTRACTS.stSTT),
     getBalance(contracts.USDC, CONTRACTS.OCT_DAO),
-    getBalance(contracts.USDC, CONTRACTS.OCC_Variable),
+    isOCCCycle ? Promise.resolve(0n) : getBalance(contracts.USDC, CONTRACTS.OCC_Variable),
 
     getBalance(contracts.USDT, CONTRACTS.DAO),
     getBalance(contracts.USDT, CONTRACTS.OCT_DAO),
@@ -130,24 +146,47 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     getBalance(contracts.M0, CONTRACTS.OCT_DAO),
 
     getBalance(contracts.aUSDC, CONTRACTS.OCR),
+    getBalance(contracts.aUSDC, CONTRACTS.OCR_Cycle),
 
-    client.readContract({
-      address: contracts.OCC_USDC,
-      abi: occModularAbi,
-      functionName: 'loans',
-      args: [OCC_USDC_LOAN_ID],
-      blockNumber
-    }),
+    isOCCCycle
+      ? Promise.resolve(['', 0n] as const)
+      : client.readContract({
+          address: contracts.OCC_USDC,
+          abi: occModularAbi,
+          functionName: 'loans',
+          args: [OCC_USDC_LOAN_ID],
+          blockNumber
+        }),
 
-    handlePromise(
-      client.readContract({
-        address: contracts.OCC_Variable,
-        abi: occVariableAbi,
-        functionName: 'usage',
-        args: [OCC_VARIABLE_BORROWER],
-        blockNumber
-      })
-    )
+    isOCCCycle || !isOCCVariable
+      ? Promise.resolve(0n)
+      : client.readContract({
+          address: contracts.OCC_Variable,
+          abi: occVariableAbi,
+          functionName: 'usage',
+          args: [NEW_CO_ADDRESS],
+          blockNumber
+        }),
+
+    isOCCCycle
+      ? client.readContract({
+          address: contracts.OCC_Cycle,
+          abi: occCycleAbi,
+          functionName: 'usage',
+          args: [ZINCLUSIVE_ADDRESS],
+          blockNumber
+        })
+      : Promise.resolve(0n),
+
+    isOCCCycle
+      ? client.readContract({
+          address: contracts.OCC_Cycle,
+          abi: occCycleAbi,
+          functionName: 'usage',
+          args: [NEW_CO_ADDRESS],
+          blockNumber
+        })
+      : Promise.resolve(0n)
   ]);
 
   const decimals = getDecimals(NETWORK);
@@ -159,25 +198,17 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, decimals.USDT);
   const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, decimals.frxUSD);
   const stablecoinsTotal = usdcTotal + usdtTotal + frxUSDTotal;
+  const stablecoinsTotal30Days = normalizeToDecimals18(usdcInYDL + usdcInStSTT, decimals.USDC);
 
   const m0Total = normalizeToDecimals18(m0InDAO + m0InOCT_DAO, decimals.M0);
   const treasuryBillsTotal = m0Total;
 
-  const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR, decimals.aUSDC);
+  const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR + aUSDCInOCR_Cycle, decimals.aUSDC);
   const deFiTotal = aUSDCTotal;
 
-  let loanVariableAmount: bigint | undefined;
-  if (loanVariableInfo.err || loanVariableInfo.res === undefined) {
-    if (blockNumber >= OCC_VARIABLE_START_BLOCK) {
-      throw new Error('Failed to get loan variable amount');
-    } else {
-      loanVariableAmount = 0n;
-    }
-  } else {
-    loanVariableAmount = loanVariableInfo.res;
-  }
-
-  const loansTotal = normalizeToDecimals18(loanInfo[1] + loanVariableAmount, decimals.USDC);
+  const zinclusiveLoansTotal = normalizeToDecimals18(occModularInfo[1] + zinclusiveOccCycleAmount, decimals.USDC);
+  const newCoLoansTotal = normalizeToDecimals18(loanVariableAmount + newCoOccCycleAmount, decimals.USDC);
+  const loansTotal = zinclusiveLoansTotal + newCoLoansTotal;
 
   const tvl = stablecoinsTotal + treasuryBillsTotal + deFiTotal + loansTotal;
 
@@ -185,6 +216,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     total: tvl.toString(),
     stablecoins: {
       total: stablecoinsTotal.toString(),
+      total30Days: stablecoinsTotal30Days.toString(),
       usdc: usdcTotal.toString(),
       usdt: usdtTotal.toString(),
       frxUSD: frxUSDTotal.toString()
@@ -197,7 +229,11 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
       total: deFiTotal.toString(),
       aUSDC: aUSDCTotal.toString()
     },
-    loans: { total: loansTotal.toString() }
+    loans: {
+      total: loansTotal.toString(),
+      zinclusive: zinclusiveLoansTotal.toString(),
+      newCo: newCoLoansTotal.toString()
+    }
   };
 
   return tvlBreakdown;
@@ -214,9 +250,74 @@ const getZSTTTotalSupply = async ({ client, contracts, blockNumber }: Web3Reques
   return totalSupply;
 };
 
+const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) => {
+  const occCycleStartBlock = OCC_CYCLE_START_BLOCK[NETWORK];
+
+  if (blockNumber < occCycleStartBlock) {
+    return {
+      zinclusive: null,
+      newCo: null
+    };
+  }
+
+  const [repayLogs, cycleLogs] = await Promise.all([
+    client.getContractEvents({
+      address: contracts.OCC_Cycle,
+      abi: occCycleAbi,
+      eventName: 'Repay',
+      fromBlock: occCycleStartBlock,
+      toBlock: blockNumber
+    }),
+    client.getContractEvents({
+      address: contracts.OCC_Cycle,
+      abi: occCycleAbi,
+      eventName: 'Cycle',
+      fromBlock: occCycleStartBlock,
+      toBlock: blockNumber
+    })
+  ]);
+
+  let zinclusiveRevenue = 860736114911n;
+  let newCoRevenue = 0n;
+
+  for (const log of repayLogs) {
+    const { amount, base, user } = log.args;
+    if (!amount || !base || !user) continue;
+
+    const interest = amount - base;
+
+    if (user.toLowerCase() === ZINCLUSIVE_ADDRESS.toLowerCase()) {
+      zinclusiveRevenue += interest;
+    } else if (user.toLowerCase() === NEW_CO_ADDRESS.toLowerCase()) {
+      newCoRevenue += interest;
+    } else {
+      throw new Error('Unknown borrower');
+    }
+  }
+
+  for (const log of cycleLogs) {
+    const { amount, user } = log.args;
+    if (!amount || !user) continue;
+
+    if (user.toLowerCase() === ZINCLUSIVE_ADDRESS.toLowerCase()) {
+      zinclusiveRevenue += amount;
+    } else if (user.toLowerCase() === NEW_CO_ADDRESS.toLowerCase()) {
+      newCoRevenue += amount;
+    } else {
+      throw new Error('Unknown borrower');
+    }
+  }
+
+  return {
+    zinclusive: zinclusiveRevenue.toString(),
+    newCo: newCoRevenue.toString()
+  };
+};
+
 export const web3 = {
   getIndexPrice,
   getAPY,
   getTVL,
-  getZSTTTotalSupply
+  getZSTTTotalSupply,
+  getLoansRevenue
 };
