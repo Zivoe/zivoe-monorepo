@@ -33,8 +33,8 @@ function Element({ title, value, className }: { title: string; value: string | R
 
 const ELEMENTS: Record<string, ReactElement | string> = {
   Eligibility: 'Institutions & Non-US Retail',
-  'Underlying Assets': 'Consumer Loans & Merchant Cash Advance Loans',
-  Geography: 'United States',
+  'Underlying Assets': 'Consumer & Business Loans',
+  Geography: 'Americas',
   'Legal Structure': 'Bankruptcy Remote SPV',
   'Regulatory Compliance': 'Reg S Compliant Offering',
   'Management Fee': '2.5% APR',

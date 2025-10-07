@@ -28,7 +28,7 @@ export default function Portfolio() {
               </CardIcon>
             </Card>
 
-            <Card title="Portfolio Mix" description="Consumer & MCA Loans">
+            <Card title="Portfolio Mix" description="Consumer & Business Loans">
               <CardIcon className="bg-primary-400">
                 <ChartLightIcon />
               </CardIcon>

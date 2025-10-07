@@ -18,7 +18,7 @@ export default function Infrastructure() {
       <div className="flex flex-col gap-6 xl:flex-row">
         <Card
           title="Bankruptcy Remote"
-          description="Zivoe's portfolio is held by a bankruptcy-remote special purpose vehicle, ensuring our client's assets remain protected."
+          description="User assets are held in a bankruptcy-remote special purpose vehicle, ensuring user assets remain protected."
           className="bg-element-secondary-gentle"
         >
           <BankruptcyIcon className="absolute -right-0 -top-11 w-[180px] sm:right-0 sm:top-0 sm:w-fit" />
@@ -26,7 +26,7 @@ export default function Infrastructure() {
 
         <Card
           title="Custody Solutions"
-          description="Zivoe is integrated with industry-leading crypto custodians, offering an easy and secure way to deposit funds and manage positions."
+          description="Zivoe will be integrating with industry-leading crypto custodians, offering an easy and secure way to deposit funds and manage positions."
           className="bg-element-primary-gentle"
         >
           <CustodyIcon className="absolute -right-0 -top-11 w-[180px] sm:right-0 sm:top-0 sm:w-fit" />

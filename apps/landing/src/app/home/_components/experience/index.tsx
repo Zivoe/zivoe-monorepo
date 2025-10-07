@@ -123,7 +123,7 @@ export default function Experience() {
 
             <Section
               title="Collaborating with Industry Leaders"
-              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
+              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our users."
             >
               <Partner>
                 <CowSwapIcon />

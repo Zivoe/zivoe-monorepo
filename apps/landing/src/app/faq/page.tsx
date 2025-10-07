@@ -66,7 +66,7 @@ const FAQs: Array<{
   {
     question: 'What are the risks?',
     answer:
-      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe works with Zinclusive, a consumer lender who is responsible for underwriting and originating consumer loans, as well as NewCo Capital, who is responsible for originating and servicing merchant cash advance loans.'
+      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity.'
   },
   {
     question: 'How do I earn yield?',
