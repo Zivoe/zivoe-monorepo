@@ -61,12 +61,12 @@ const FAQs: Array<{
   {
     question: 'How have these loans performed historically?',
     answer:
-      'The private credit segments Zivoe lends into, consumer loans and merchant cash advance loans, have demonstrated resilience and strong performance across multiple market cycles.\n\nConsumer credit has historically shown durability even during economic downturns. During the 2008 financial crisis, access to revolving credit shrank by over $140 billion for underserved Americans. In contrast, Elevate Credit, a non-prime lender that maintained consistent performance through that period and later went public, was led at the time of its IPO by Walt Ramsey, now with Zivoe.\n\nMerchant cash advance loans have also built a long track record of attractive, risk-adjusted returns by providing small and medium businesses with essential access to working capital.\n\nTogether, these histories underscore the durability of well-structured private credit portfolios, even in volatile market environments.'
+      'Private credit has shown consistent performance across market cycles, providing stable returns even when public markets experienced volatility. During the 2008 financial crisis, when traditional credit contracted sharply, many private lenders continued to perform, supported by disciplined underwriting and diversified borrower bases. This history underscores the resilience of private credit as an asset class.'
   },
   {
     question: 'What are the risks?',
     answer:
-      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity.'
+      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination. The platform diversifies exposure across multiple originators and asset classes while maintaining oversight of portfolio performance and concentration risk.'
   },
   {
     question: 'How do I earn yield?',
