@@ -32,7 +32,7 @@ function Element({ title, value, className }: { title: string; value: string | R
 }
 
 const ELEMENTS: Record<string, ReactElement | string> = {
-  Eligibility: 'Institutions & Non-USRetail',
+  Eligibility: 'Institutions & Non-US Retail',
   'Underlying Assets': 'Consumer & Business Loans',
   'Average Loan Size': '$3,300',
   Geography: 'Americas',
