@@ -71,7 +71,7 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      "Depositors mint zVLT, Zivoe's ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating consumer loans and merchant cash advance loans. Over time, capital from these assets flows back on-chain and is automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by real world assets."
+      "Depositors mint zVLT, Zivoe's ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe's partners. Over time, capital from these assets flows back on-chain and is automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by real world assets."
   },
   {
     question: 'What are the fees?',
