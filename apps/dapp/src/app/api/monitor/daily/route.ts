@@ -145,11 +145,12 @@ async function collectDailyData({
 
   const blockNumber = BigInt(blockRes.res.block);
 
-  const [indexPriceRes, aprRes, tvlRes, zSTTTotalSupplyRes] = await Promise.all([
+  const [indexPriceRes, aprRes, tvlRes, zSTTTotalSupplyRes, loansRevenueRes] = await Promise.all([
     handlePromise(web3.getIndexPrice({ client, contracts, blockNumber })),
     handlePromise(web3.getAPY({ client, contracts, blockNumber })),
     handlePromise(web3.getTVL({ client, contracts, blockNumber })),
-    handlePromise(web3.getZSTTTotalSupply({ client, contracts, blockNumber }))
+    handlePromise(web3.getZSTTTotalSupply({ client, contracts, blockNumber })),
+    handlePromise(web3.getLoansRevenue({ client, contracts, blockNumber }))
   ]);
 
   if (indexPriceRes.err || indexPriceRes.res === undefined)
@@ -164,6 +165,9 @@ async function collectDailyData({
   if (zSTTTotalSupplyRes.err || zSTTTotalSupplyRes.res === undefined)
     throw new ApiError({ message: 'Failed to get zSTT total supply', exception: zSTTTotalSupplyRes.err });
 
+  if (loansRevenueRes.err || loansRevenueRes.res === undefined)
+    throw new ApiError({ message: 'Failed to get loans revenue', exception: loansRevenueRes.err });
+
   const data: DailyData = {
     timestamp: new Date(date.getTime() - 1),
     blockNumber: blockNumber.toString(),
@@ -171,7 +175,8 @@ async function collectDailyData({
     apy: aprRes.res,
     tvl: tvlRes.res,
     zSTTTotalSupply: zSTTTotalSupplyRes.res.toString(),
-    vaultTotalAssets: indexPriceRes.res.vaultTotalAssets
+    vaultTotalAssets: indexPriceRes.res.vaultTotalAssets,
+    loansRevenue: loansRevenueRes.res
   };
 
   return { data };

@@ -6,51 +6,36 @@ import { Link } from '@zivoe/ui/core/link';
 import { PieChartIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { CurrentDailyData } from '@/server/data';
+
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 
-export default function DepositAllocation({
-  total,
-  loans,
-  stablecoins,
-  treasuryBills,
-  deFi
-}: {
-  total: bigint;
-  loans: bigint;
-  stablecoins: bigint;
-  treasuryBills: bigint;
-  deFi: bigint;
-}) {
-  const loansPercentage = (Number(loans) / Number(total)) * 100;
-  const stablecoinsPercentage = (Number(stablecoins) / Number(total)) * 100;
-  const treasuryBillsPercentage = (Number(treasuryBills) / Number(total)) * 100;
-  const deFiPercentage = (Number(deFi) / Number(total)) * 100;
-
+export default function DepositAllocation({ loans, stablecoins, treasuryBills, deFi }: CurrentDailyData['tvl']) {
   const allocations = [
     {
       label: 'Loans',
-      percentage: loansPercentage,
-      value: loans,
+      percentage: loans.percentage,
+      value: loans.total,
       bgColor: 'bg-element-primary-soft'
     },
     {
       label: 'Treasury Bills',
-      percentage: treasuryBillsPercentage,
-      value: treasuryBills,
+      percentage: treasuryBills.percentage,
+      value: treasuryBills.total,
       bgColor: 'bg-element-tertiary-contrast'
     },
     {
       label: 'Stablecoins',
-      percentage: stablecoinsPercentage,
-      value: stablecoins,
+      percentage: stablecoins.percentage,
+      value: stablecoins.total,
       bgColor: 'bg-element-secondary'
     },
     {
       label: 'DeFi',
-      percentage: deFiPercentage,
-      value: deFi,
+      percentage: deFi.percentage,
+      value: deFi.total,
       bgColor: 'bg-element-warning-soft'
     }
   ].sort((a, b) => b.percentage - a.percentage);

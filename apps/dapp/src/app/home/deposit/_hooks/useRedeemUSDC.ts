@@ -31,7 +31,7 @@ export const useRedeemUSDC = () => {
 
       const params: RedeemUSDCParams & SimulateContractParameters = {
         abi: ocrInstantAbi,
-        address: CONTRACTS.OCR,
+        address: CONTRACTS.OCR_Cycle,
         functionName: 'redeemUSDC',
         args: [amount]
       };
@@ -118,7 +118,7 @@ export const useRedeemUSDC = () => {
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
           contract: CONTRACTS.zVLT,
-          spender: CONTRACTS.OCR
+          spender: CONTRACTS.OCR_Cycle
         })
       });
 

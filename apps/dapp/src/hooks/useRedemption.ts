@@ -18,7 +18,7 @@ export const useRedemption = () => {
       : async () => {
           const redemptionFeeBIPS = await web3.readContract({
             abi: ocrInstantAbi,
-            address: CONTRACTS.OCR,
+            address: CONTRACTS.OCR_Cycle,
             functionName: 'redemptionFeeBIPS'
           });
 

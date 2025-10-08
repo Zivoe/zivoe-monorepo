@@ -129,7 +129,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
 const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
   MAINNET: {
-    'Index price': [0.99, 1.03],
+    'Index price': [0.99, 1.05],
     TVL: [5_000_000, 10_000_000],
     APY: [10, 35]
   },
