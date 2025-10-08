@@ -139,7 +139,7 @@ async function NewCoLoan() {
       info="Zivoe owns an interest in a portfolio of merchant cash advance loans originated and serviced by NewCo Capital Group. NewCo is one of the largest providers of SME loans across both the United States and Canada."
       investmentValue={formatBigIntToReadable(BigInt(newCo.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(newCo.interest), 6)}
-      averageLoanSize="$51,000"
+      averageLoanSize="$3,829"
       geography="Americas"
     />
   );
