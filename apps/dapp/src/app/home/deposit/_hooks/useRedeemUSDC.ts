@@ -4,7 +4,7 @@ import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters, parseEventLogs } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
-import { ocrInstantAbi } from '@zivoe/contracts/abis';
+import { ocrCycleAbi } from '@zivoe/contracts/abis';
 
 import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
@@ -16,7 +16,7 @@ import useTx from '@/hooks/useTx';
 
 import { availableLiquidityQueryKey } from './useAvailableLiquidity';
 
-export type RedeemUSDCParams = WriteContractParameters<typeof ocrInstantAbi, 'redeemUSDC'>;
+export type RedeemUSDCParams = WriteContractParameters<typeof ocrCycleAbi, 'redeemUSDC'>;
 
 export const useRedeemUSDC = () => {
   const { address } = useAccount();
@@ -30,7 +30,7 @@ export const useRedeemUSDC = () => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to redeem' });
 
       const params: RedeemUSDCParams & SimulateContractParameters = {
-        abi: ocrInstantAbi,
+        abi: ocrCycleAbi,
         address: CONTRACTS.OCR_Cycle,
         functionName: 'redeemUSDC',
         args: [amount]
@@ -62,7 +62,7 @@ export const useRedeemUSDC = () => {
 
       try {
         const redeemLogs = parseEventLogs({
-          abi: ocrInstantAbi,
+          abi: ocrCycleAbi,
           eventName: 'zVLTBurnedForUSDC',
           logs: receipt.logs
         });
