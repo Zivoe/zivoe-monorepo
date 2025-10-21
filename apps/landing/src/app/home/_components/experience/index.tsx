@@ -127,7 +127,6 @@ export default function Experience() {
               <Partner>
                 <CowSwapIcon />
               </Partner>
-
               <div className="flex flex-wrap gap-4">
                 <Partner>
                   <RwaioIcon />
