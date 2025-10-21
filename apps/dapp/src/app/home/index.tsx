@@ -23,14 +23,8 @@ export default function Home({ initialView }: { initialView: DepositPageView }) 
 async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
   let apy: number | null = null;
 
-  const dailyData = await data.getDepositDailyData();
-
-  if (dailyData) {
-    const currentDailyData = dailyData[dailyData.length - 1];
-    if (currentDailyData) {
-      apy = currentDailyData.apy;
-    }
-  }
+  const currentDailyData = await data.getCurrentDailyData();
+  if (currentDailyData) apy = currentDailyData.apy;
 
   return <Deposit apy={apy} initialView={initialView} />;
 }

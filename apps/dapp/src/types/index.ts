@@ -16,12 +16,17 @@ export type DailyData = {
   tvl: TVL;
   zSTTTotalSupply: string;
   vaultTotalAssets: string;
+  loansRevenue: {
+    zinclusive: string | null;
+    newCo: string | null;
+  };
 };
 
 export type TVL = {
   total: string;
   stablecoins: {
     total: string;
+    total30Days: string;
     usdc: string;
     usdt: string;
     frxUSD: string;
@@ -36,5 +41,7 @@ export type TVL = {
   };
   loans: {
     total: string;
+    zinclusive: string;
+    newCo: string;
   };
 };

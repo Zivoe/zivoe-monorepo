@@ -1,54 +1,51 @@
 import 'server-only';
 
+import { cache as reactCache } from 'react';
+
 import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
-import { eq } from 'drizzle-orm';
-
-import { getContracts } from '@zivoe/contracts';
 
 import { env } from '@/env.js';
 
 import { getDb } from '../clients/db';
-import { getPonder } from '../clients/ponder';
-import { occTable } from '../clients/ponder/schema';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
 const network = env.NETWORK;
 
-const getCurrentDailyData = nextCache(
-  async () => {
-    try {
-      const client = getDb(network);
+const getCurrentDailyData = reactCache(
+  nextCache(
+    async () => {
+      try {
+        const client = getDb(network);
 
-      const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
-      if (!latest) throw new Error('Error getting daily data');
+        const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
+        if (!latest) throw new Error('Error getting daily data');
 
-      return latest;
-    } catch (error) {
-      Sentry.captureException(error, { tags: { source: 'SERVER' } });
-    }
-  },
-  undefined,
-  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+        return latest;
+      } catch (error) {
+        Sentry.captureException(error, { tags: { source: 'SERVER' } });
+      }
+    },
+    undefined,
+    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  )
 );
 
 const getRevenue = nextCache(
   async () => {
     try {
-      const contracts = getContracts(network);
-      const ponder = getPonder(network);
+      const db = getDb(network);
 
-      const data = await ponder
-        .select({ totalRevenue: occTable.totalRevenue })
-        .from(occTable)
-        .where(eq(occTable.id, contracts.OCC_USDC));
+      const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
+      if (!latestData?.loansRevenue) return null;
 
-      const totalRevenue = data[0]?.totalRevenue;
-      if (!totalRevenue) throw new Error('Error getting revenue');
+      const { zinclusive, newCo } = latestData.loansRevenue;
+      if (zinclusive === null || newCo === null) return null;
 
-      return totalRevenue.toString();
+      const totalRevenue = BigInt(zinclusive) + BigInt(newCo);
+      return totalRevenue !== 0n ? totalRevenue.toString() : null;
     } catch (error) {
       Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }

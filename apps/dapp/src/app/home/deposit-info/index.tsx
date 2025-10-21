@@ -49,32 +49,17 @@ async function DepositChartsComponent() {
 }
 
 async function DepositStatsComponent() {
-  const [dailyData, revenue] = await Promise.all([data.getDepositDailyData(), data.getRevenue()]);
-  if (!dailyData || !revenue) return null;
-
-  const currentDailyData = dailyData[dailyData.length - 1];
-  if (!currentDailyData) return null;
+  const [currentDailyData, revenue] = await Promise.all([data.getCurrentDailyData(), data.getRevenue()]);
+  if (!currentDailyData || !revenue) return null;
 
   return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl.total} revenue={BigInt(revenue)} />;
 }
 
 async function DepositAllocationComponent() {
-  const dailyData = await data.getDepositDailyData();
+  const currentDailyData = await data.getCurrentDailyData();
+  if (!currentDailyData) return null;
 
-  const currentTVL = dailyData?.[dailyData.length - 1]?.tvl;
-  if (!currentTVL) return null;
-
-  const { total, loans, stablecoins, treasuryBills, deFi } = currentTVL;
-
-  return (
-    <DepositAllocation
-      total={BigInt(total)}
-      loans={BigInt(loans.total)}
-      treasuryBills={BigInt(treasuryBills.total)}
-      stablecoins={BigInt(stablecoins.total)}
-      deFi={BigInt(deFi.total)}
-    />
-  );
+  return <DepositAllocation {...currentDailyData.tvl} />;
 }
 
 function DiamondSeparator() {

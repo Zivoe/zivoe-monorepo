@@ -6,11 +6,11 @@ import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 
-export default function DepositStats({ apy, tvl, revenue }: { apy: number; tvl: string; revenue: bigint }) {
+export default function DepositStats({ apy, tvl, revenue }: { apy: number; tvl: bigint; revenue: bigint }) {
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
-        <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(BigInt(tvl))} />
+        <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(tvl)} />
         <Box title="APY" icon={<TrendingIcon />} value={customNumber(apy) + '%'} />
         <Box title="Revenue" icon={<MoneyIcon />} value={'$' + formatBigIntToReadable(revenue, 6)} />
       </div>

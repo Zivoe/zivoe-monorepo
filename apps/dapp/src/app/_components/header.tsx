@@ -98,7 +98,8 @@ function NavigationItems() {
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
   { title: 'Earn', href: '/' },
   { title: 'Portfolio', href: '/portfolio' },
-  { title: 'Swap', href: '/swap' }
+  { title: 'Swap', href: '/swap' },
+  { title: 'Transparency', href: '/transparency' }
 ];
 
 function Wallet() {

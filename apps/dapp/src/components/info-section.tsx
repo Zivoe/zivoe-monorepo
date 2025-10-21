@@ -16,13 +16,19 @@ export default function InfoSection({
   return (
     <div className={cn('flex flex-col gap-6', className)}>
       <div className="flex items-center gap-2">
-        <div className="flex w-fit items-center justify-center rounded-[4px] bg-element-primary-gentle p-[5px] [&_svg]:size-4 [&_svg]:text-brand">
-          {icon}
-        </div>
+        <InfoSectionIcon>{icon}</InfoSectionIcon>
 
         <p className="text-h7 text-primary">{title}</p>
       </div>
 
+      {children}
+    </div>
+  );
+}
+
+export function InfoSectionIcon({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex w-fit items-center justify-center rounded-[4px] bg-element-primary-gentle p-[5px] [&_svg]:size-4 [&_svg]:text-brand">
       {children}
     </div>
   );

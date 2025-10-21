@@ -14,7 +14,7 @@ export const CheckIcon = React.forwardRef<SVGSVGElement, IconProps>(
         {...props}
         ref={forwardedRef}
       >
-        <path d="M3.33333 9.56083L6.48648 12.1622L12.6667 3.83786" stroke={color} stroke-linecap="square" />
+        <path d="M3.33333 9.56083L6.48648 12.1622L12.6667 3.83786" stroke={color} strokeLinecap="square" />
       </svg>
     );
   }

@@ -253,7 +253,10 @@ const config: Config = {
       },
 
       primary: {
-        '400': 'hsl(var(--primary-400))'
+        '400': 'hsl(var(--primary-400))',
+        '500': 'hsl(var(--primary-500))',
+        '600': 'hsl(var(--primary-600))',
+        '800': 'hsl(var(--primary-800))'
       }
     },
 
