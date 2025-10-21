@@ -5,7 +5,7 @@ import { Link, NextLink } from '@zivoe/ui/core/link';
 
 import Container from '@/components/container';
 
-import { DiscordIcon, GithubIcon, LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
+import { GithubIcon, LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
 
 export default function Footer() {
   return (
@@ -126,10 +126,6 @@ const SOCIALS: Array<{ href: string; icon: ReactNode }> = [
   {
     href: 'https://t.me/zivoeprotocol',
     icon: <TelegramIcon />
-  },
-  {
-    href: 'https://discord.gg/RCxGHjXYFs',
-    icon: <DiscordIcon />
   },
   {
     href: 'https://www.linkedin.com/company/zivoe-finance/',
