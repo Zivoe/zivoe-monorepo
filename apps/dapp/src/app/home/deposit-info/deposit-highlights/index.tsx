@@ -17,7 +17,7 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="24/7 Liquidity"
-          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions. Subject to liquidity availability."
+          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions, subject to available liquidity."
           className="bg-element-primary-gentle"
         />
 

@@ -26,7 +26,7 @@ export default function Diversify() {
       </div>
 
       <div className="flex w-full flex-col gap-6 sm:gap-8 xl:w-auto">
-        <Card label="Target APY" title="14.00% - 17.00%">
+        <Card label="Backed by Private Credit" title="Earn Real Yield>
           <TargetIcon className="pt-5 sm:absolute sm:bottom-0 sm:right-16 sm:pt-0" />
         </Card>
 

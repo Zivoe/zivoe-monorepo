@@ -12,7 +12,7 @@ export default function LoanCard({
   averageLoanSize,
   geography
 }: {
-  image?: ReactNode;
+  image: ReactNode;
   title: string;
   description: string;
   info: string;

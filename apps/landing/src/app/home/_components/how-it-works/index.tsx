@@ -47,7 +47,7 @@ export default function HowItWorks() {
           <Card
             label="Step 3"
             title="Redeem"
-            description="Redeem your zVLT back for USDC instantly"
+            description="Redeem your zVLT back for USDC instantly, subject to liquidity availability."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"
