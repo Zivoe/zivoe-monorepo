@@ -58,8 +58,8 @@ const getCurrentDailyData = async () => {
       total: BigInt(total),
       loans: {
         total: BigInt(loans.total),
-        zinclusive: BigInt(loans.zinclusive),
-        newCo: BigInt(loans.newCo),
+        portfolioA: BigInt(loans.portfolioA),
+        portfolioB: BigInt(loans.portfolioB),
         percentage: (Number(loans.total) / totalNumber) * 100
       },
       stablecoins: {
@@ -95,10 +95,10 @@ const getRevenue = nextCache(
       const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
       if (!latestData?.loansRevenue) return null;
 
-      const { zinclusive, newCo } = latestData.loansRevenue;
-      if (zinclusive === null || newCo === null) return null;
+      const { portfolioA, portfolioB } = latestData.loansRevenue;
+      if (portfolioA === null || portfolioB === null) return null;
 
-      const totalRevenue = BigInt(zinclusive) + BigInt(newCo);
+      const totalRevenue = BigInt(portfolioA) + BigInt(portfolioB);
       return totalRevenue !== 0n ? totalRevenue.toString() : null;
     } catch (error) {
       Sentry.captureException(error, { tags: { source: 'SERVER' } });
@@ -153,17 +153,17 @@ const getTransparencyLoansData = reactCache(
         const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
         if (!latestData?.loansRevenue) return null;
 
-        const { zinclusive: zinclusiveInterest, newCo: newCoInterest } = latestData.loansRevenue;
-        if (zinclusiveInterest === null || newCoInterest === null) return null;
+        const { portfolioA: portfolioAInterest, portfolioB: portfolioBInterest } = latestData.loansRevenue;
+        if (portfolioAInterest === null || portfolioBInterest === null) return null;
 
         return {
-          zinclusive: {
-            interest: zinclusiveInterest,
-            invested: latestData.tvl.loans.zinclusive
+          portfolioA: {
+            interest: portfolioAInterest,
+            invested: latestData.tvl.loans.portfolioA
           },
-          newCo: {
-            interest: newCoInterest,
-            invested: latestData.tvl.loans.newCo
+          portfolioB: {
+            interest: portfolioBInterest,
+            invested: latestData.tvl.loans.portfolioB
           }
         };
       } catch (error) {

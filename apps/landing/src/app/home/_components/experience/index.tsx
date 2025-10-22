@@ -13,11 +13,9 @@ import {
   CapitalOneIcon,
   ChainalysisIcon,
   CowSwapIcon,
-  FraxIcon,
   JPMorganIcon,
   M0Icon,
   MapleIcon,
-  PlumeIcon,
   RuntimeIcon,
   RwaioIcon,
   SecuritizeIcon,
@@ -124,23 +122,14 @@ export default function Experience() {
 
             <Section
               title="Collaborating with Industry Leaders"
-              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our clients."
+              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our users."
             >
               <Partner>
                 <CowSwapIcon />
               </Partner>
-
-              <Partner>
-                <PlumeIcon />
-              </Partner>
-
               <div className="flex flex-wrap gap-4">
                 <Partner>
                   <RwaioIcon />
-                </Partner>
-
-                <Partner>
-                  <FraxIcon />
                 </Partner>
 
                 <Partner>

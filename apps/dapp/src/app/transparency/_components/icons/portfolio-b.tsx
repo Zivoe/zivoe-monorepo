@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { IconProps } from '../../../../../../../packages/ui/src/icons/types';
+import { IconProps } from '@zivoe/ui/icons/types';
 
-export const NewCoIcon = React.forwardRef<SVGSVGElement, IconProps>(
+export const PortfolioBIcon = React.forwardRef<SVGSVGElement, IconProps>(
   ({ color = 'currentColor', ...props }, forwardedRef) => {
     return (
       <svg

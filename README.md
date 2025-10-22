@@ -1,6 +1,6 @@
 # Zivoe Web Monorepo
 
-This is the monorepo for the Zivoe websites [zivoe.com](https://zivoe.com) and [app.zivoe.com](https://app.zivoe.com), built with [Turborepo](https://turbo.build/repo) and managed using [pnpm workspaces](https://pnpm.io/workspaces). It includes the dApp, landing site, design system, and shared packages used across the platform.
+This is the monorepo for the Zivoe websites [zivoe.com](https://zivoe.com) and [app.zivoe.com](https://app.zivoe.com), built with [Turborepo](https://turbo.build/repo) and managed using [pnpm workspaces](https://pnpm.io/workspaces). It includes the dApp, landing site, design system, and shared packages used across all sites.
 
 ---
 

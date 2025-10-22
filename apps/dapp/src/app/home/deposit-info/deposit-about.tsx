@@ -16,21 +16,19 @@ export default function DepositAbout() {
       <div className="flex flex-col gap-2">
         <div className={cn('line-clamp-2 space-y-6', showFullText && 'line-clamp-none')}>
           <p className="text-leading text-primary">
-            zVLT offers qualified purchasers exposure to a professionally managed private credit portfolio—an asset
-            class that has delivered strong, risk-adjusted returns to Wall Street investors for over 50 years. zVLT
-            invests across several private credit verticals including consumer credit, merchant cash advance, and more.
+          zVLT offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that 
+          has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration 
+          credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.
           </p>
 
           <p className="text-leading text-primary">
-            zVLT is a yield-bearing token, meaning that it delivers returns through price appreciation. As borrowers
-            make interest payments, the underlying loan portfolio grows in value—reflected by a steadily increasing
-            token price.
+          zVLT is a yield-bearing token that delivers returns through price appreciation. As the underlying loan portfolio generates 
+          income and grows in value, this is reflected by a steadily increasing token price.
           </p>
 
           <p className="text-leading text-primary">
-            zVLT delivers compelling yields that outperforms most stablecoin lending opportunities across the DeFi
-            ecosystem. The strategy targets net annual returns of 14%-17% APY, supported by a team with decades of
-            experience managing credit risk.
+          zVLT seeks to provide consistent, risk-adjusted yields supported by a diversified, short-duration strategy 
+          and a team with decades of experience managing credit risk.
           </p>
         </div>
 

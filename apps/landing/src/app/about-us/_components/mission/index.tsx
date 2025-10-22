@@ -11,11 +11,10 @@ export default function Mission() {
         <div className="flex flex-col items-start gap-4 sm:max-w-[31.25rem] sm:items-center lg:max-w-[45rem]">
           <p className="!font-heading text-h5 text-primary sm:text-h3">Our Mission</p>
           <p className="text-regular text-primary sm:text-center sm:text-leading">
-            Zivoe (”z-eye-voh”) is a Balkan word meaning “to life.” At Zivoe, we believe finance should empower life—not
-            limit it. Yet, millions of people around the world are financially excluded, unable to access the credit
-            they need to build their futures. Zivoe is changing that. By leveraging blockchain, we connect borrowers and
-            lenders across borders, creating an open financial system that is accessible to everyone. With greater
-            transparency, efficiency, and fairness, we are reshaping the global credit market—one loan at a time.
+          Zivoe (“z-eye-voh”) is a Balkan word meaning “to life,” reflecting our belief that finance should improve life, not limit it. 
+          We are modernizing private credit by connecting on-chain capital to real-world lending opportunities with greater transparency, access, and efficiency. 
+          By building open financial infrastructure that enables sustainable yield and expands credit access to underserved markets, 
+          Zivoe is reshaping how capital moves across the global lending landscape.
           </p>
         </div>
       </Container>

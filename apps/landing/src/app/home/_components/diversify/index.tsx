@@ -16,7 +16,7 @@ export default function Diversify() {
           <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</p>
 
           <p className="text-leading text-secondary">
-            Zivoe gives you access to the private credit market, a proven asset class that has delivered strong returns to Wall Street investors for over 50 years.
+            Zivoe gives you access to the private credit market, a proven asset class that has delivered strong returns to Wall Street for over 50 years.
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export default function Diversify() {
       </div>
 
       <div className="flex w-full flex-col gap-6 sm:gap-8 xl:w-auto">
-        <Card label="Target APY" title="14.00% - 17.00%">
+        <Card label="Backed by Private Credit" title="Earn Real Yield">
           <TargetIcon className="pt-5 sm:absolute sm:bottom-0 sm:right-16 sm:pt-0" />
         </Card>
 

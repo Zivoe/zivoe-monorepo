@@ -17,21 +17,21 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="24/7 Liquidity"
-          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions."
+          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions, subject to available liquidity."
           className="bg-element-primary-gentle"
         />
 
         <Card
           icon={<AutocompoundingIcon />}
           title="Autocompounding"
-          description="As borrowers make interest payments, the proceeds are automatically reinvested into new loans, maximizing returns. "
+          description="As borrowers make interest payments, the proceeds are automatically redeployed into new loans, maximizing returns. "
           className="bg-element-secondary-light"
         />
 
         <Card
           icon={<ExperienceIcon />}
           title="Decades of Experience"
-          description="Our team has over 40 years of combined experience managing loan portfolios at leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
+          description="Our team has over 40 years of combined experience managing credit risk at leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
           className="bg-tertiary-100"
         >
           <Link variant="border" size="m" href="https://www.zivoe.com/about-us" target="_blank">

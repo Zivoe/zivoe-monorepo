@@ -32,8 +32,8 @@ function Element({ title, value, className }: { title: string; value: string | R
 }
 
 const ELEMENTS: Record<string, ReactElement | string> = {
-  Eligibility: 'Institutions & Retail',
-  'Underlying Assets': 'Consumer & Business Loans',
+  Eligibility: 'Institutions & Non-US Retail',
+  'Underlying Assets': 'Business & Consumer Loans',
   'Average Loan Size': '$3,300',
   Geography: 'Americas',
   'Legal Structure': 'Bankruptcy Remote SPV',
