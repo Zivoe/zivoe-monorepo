@@ -22,25 +22,27 @@ export default function LoanCard({
   geography: string;
 }) {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        {image}
+    <div className="flex h-full flex-col gap-6">
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-3">
+          {image}
 
-        <div>
-          <h3 className="text-leading text-primary">{title}</h3>
-          <p className="text-regular text-tertiary">{description}</p>
+          <div>
+            <h3 className="text-leading text-primary">{title}</h3>
+            <p className="text-regular text-tertiary">{description}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-regular text-primary">Deal Info</p>
+          <p className="text-regular text-secondary">{info}</p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p className="text-regular text-primary">Deal Info</p>
-        <p className="text-regular text-secondary">{info}</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
+      <div className="flex h-full flex-col gap-2">
         <p className="text-regular text-primary">Performance</p>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid h-full gap-2 sm:grid-cols-2">
           <PerformanceCard
             label="Investment Value"
             value={investmentValue}
