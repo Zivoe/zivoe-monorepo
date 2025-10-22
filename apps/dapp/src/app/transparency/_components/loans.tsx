@@ -22,7 +22,7 @@ export default function LoanCard({
   geography: string;
 }) {
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex h-full flex-col justify-between gap-6">
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
           {image}
@@ -39,10 +39,10 @@ export default function LoanCard({
         </div>
       </div>
 
-      <div className="flex h-full flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <p className="text-regular text-primary">Performance</p>
 
-        <div className="grid h-full gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <PerformanceCard
             label="Investment Value"
             value={investmentValue}
