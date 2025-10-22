@@ -41,10 +41,10 @@ const getRevenue = nextCache(
       const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
       if (!latestData?.loansRevenue) return null;
 
-      const { zinclusive, newCo } = latestData.loansRevenue;
-      if (zinclusive === null || newCo === null) return null;
+      const { portfolioA, portfolioB } = latestData.loansRevenue;
+      if (portfolioA === null || portfolioB === null) return null;
 
-      const totalRevenue = BigInt(zinclusive) + BigInt(newCo);
+      const totalRevenue = BigInt(portfolioA) + BigInt(portfolioB);
       return totalRevenue !== 0n ? totalRevenue.toString() : null;
     } catch (error) {
       Sentry.captureException(error, { tags: { source: 'SERVER' } });

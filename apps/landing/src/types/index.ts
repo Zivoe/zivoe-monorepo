@@ -7,8 +7,8 @@ export type DailyData = {
   zSTTTotalSupply: string;
   vaultTotalAssets: string;
   loansRevenue: {
-    zinclusive: string | null;
-    newCo: string | null;
+    portfolioA: string | null;
+    portfolioB: string | null;
   };
 };
 
@@ -31,7 +31,7 @@ export type TVL = {
   };
   loans: {
     total: string;
-    zinclusive: string;
-    newCo: string;
+    portfolioA: string;
+    portfolioB: string;
   };
 };

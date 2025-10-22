@@ -85,8 +85,8 @@ const normalizeToDecimals18 = (value: bigint, decimals: number): bigint => {
 
 const OCC_USDC_LOAN_ID = 0n;
 
-const ZINCLUSIVE_ADDRESS = '0xC8d6248fFbc59BFD51B23E69b962C60590d5f026' as const;
-const NEW_CO_ADDRESS = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
+const PORTFOLIO_A_ADDRESS = '0xC8d6248fFbc59BFD51B23E69b962C60590d5f026' as const;
+const PORTFOLIO_B_ADDRESS = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
 
 const OCC_VARIABLE_START_BLOCK: Record<Network, bigint> = {
   MAINNET: 23228086n,
@@ -127,8 +127,8 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     aUSDCInOCR_Cycle,
     occModularInfo,
     loanVariableAmount,
-    zinclusiveOccCycleAmount,
-    newCoOccCycleAmount
+    portfolioAOccCycleAmount,
+    portfolioBOccCycleAmount
   ] = await Promise.all([
     getBalance(contracts.USDC, CONTRACTS.DAO),
     getBalance(contracts.USDC, CONTRACTS.YDL),
@@ -164,7 +164,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
           address: contracts.OCC_Variable,
           abi: occVariableAbi,
           functionName: 'usage',
-          args: [NEW_CO_ADDRESS],
+          args: [PORTFOLIO_B_ADDRESS],
           blockNumber
         }),
 
@@ -173,7 +173,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
           address: contracts.OCC_Cycle,
           abi: occCycleAbi,
           functionName: 'usage',
-          args: [ZINCLUSIVE_ADDRESS],
+          args: [PORTFOLIO_A_ADDRESS],
           blockNumber
         })
       : Promise.resolve(0n),
@@ -183,7 +183,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
           address: contracts.OCC_Cycle,
           abi: occCycleAbi,
           functionName: 'usage',
-          args: [NEW_CO_ADDRESS],
+          args: [PORTFOLIO_B_ADDRESS],
           blockNumber
         })
       : Promise.resolve(0n)
@@ -206,9 +206,9 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR + aUSDCInOCR_Cycle, decimals.aUSDC);
   const deFiTotal = aUSDCTotal;
 
-  const zinclusiveLoansTotal = normalizeToDecimals18(occModularInfo[1] + zinclusiveOccCycleAmount, decimals.USDC);
-  const newCoLoansTotal = normalizeToDecimals18(loanVariableAmount + newCoOccCycleAmount, decimals.USDC);
-  const loansTotal = zinclusiveLoansTotal + newCoLoansTotal;
+  const portfolioALoansTotal = normalizeToDecimals18(occModularInfo[1] + portfolioAOccCycleAmount, decimals.USDC);
+  const portfolioBLoansTotal = normalizeToDecimals18(loanVariableAmount + portfolioBOccCycleAmount, decimals.USDC);
+  const loansTotal = portfolioALoansTotal + portfolioBLoansTotal;
 
   const tvl = stablecoinsTotal + treasuryBillsTotal + deFiTotal + loansTotal;
 
@@ -231,8 +231,8 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     },
     loans: {
       total: loansTotal.toString(),
-      zinclusive: zinclusiveLoansTotal.toString(),
-      newCo: newCoLoansTotal.toString()
+      portfolioA: portfolioALoansTotal.toString(),
+      portfolioB: portfolioBLoansTotal.toString()
     }
   };
 
@@ -255,8 +255,8 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
 
   if (blockNumber < occCycleStartBlock) {
     return {
-      zinclusive: null,
-      newCo: null
+      portfolioA: null,
+      portfolioB: null
     };
   }
 
@@ -277,8 +277,8 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
     })
   ]);
 
-  let zinclusiveRevenue = 860736114911n;
-  let newCoRevenue = 0n;
+  let portfolioARevenue = 860736114911n;
+  let portfolioBRevenue = 0n;
 
   for (const log of repayLogs) {
     const { amount, base, user } = log.args;
@@ -286,10 +286,10 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
 
     const interest = amount - base;
 
-    if (user.toLowerCase() === ZINCLUSIVE_ADDRESS.toLowerCase()) {
-      zinclusiveRevenue += interest;
-    } else if (user.toLowerCase() === NEW_CO_ADDRESS.toLowerCase()) {
-      newCoRevenue += interest;
+    if (user.toLowerCase() === PORTFOLIO_A_ADDRESS.toLowerCase()) {
+      portfolioARevenue += interest;
+    } else if (user.toLowerCase() === PORTFOLIO_B_ADDRESS.toLowerCase()) {
+      portfolioBRevenue += interest;
     } else {
       throw new Error('Unknown borrower');
     }
@@ -299,18 +299,18 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
     const { amount, user } = log.args;
     if (!amount || !user) continue;
 
-    if (user.toLowerCase() === ZINCLUSIVE_ADDRESS.toLowerCase()) {
-      zinclusiveRevenue += amount;
-    } else if (user.toLowerCase() === NEW_CO_ADDRESS.toLowerCase()) {
-      newCoRevenue += amount;
+    if (user.toLowerCase() === PORTFOLIO_A_ADDRESS.toLowerCase()) {
+      portfolioARevenue += amount;
+    } else if (user.toLowerCase() === PORTFOLIO_B_ADDRESS.toLowerCase()) {
+      portfolioBRevenue += amount;
     } else {
       throw new Error('Unknown borrower');
     }
   }
 
   return {
-    zinclusive: zinclusiveRevenue.toString(),
-    newCo: newCoRevenue.toString()
+    portfolioA: portfolioARevenue.toString(),
+    portfolioB: portfolioBRevenue.toString()
   };
 };
 

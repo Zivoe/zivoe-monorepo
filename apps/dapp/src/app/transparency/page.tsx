@@ -12,8 +12,8 @@ import Page from '@/components/page';
 import AUMAccordion, { AUMAccordionSkeleton } from './_components/aum/aum-accordion';
 import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donut-chart';
 import { Card } from './_components/card';
-import { NewCoIcon } from './_components/icons/newco';
-import { ZinclusiveIcon } from './_components/icons/zinclusive';
+import { PortfolioAIcon } from './_components/icons/portfolio-a';
+import { PortfolioBIcon } from './_components/icons/portfolio-b';
 import Liquidity from './_components/liquidity';
 import LiquidityChart from './_components/liquidity-chart';
 import LoanCard from './_components/loans';
@@ -62,11 +62,11 @@ export default async function TransparencyPage() {
               }
             >
               <Card.Body>
-                <ZinclusiveLoan />
+                <PortfolioALoan />
               </Card.Body>
 
               <Card.Body>
-                <NewCoLoan />
+                <PortfolioBLoan />
               </Card.Body>
             </Suspense>
           </div>
@@ -107,38 +107,36 @@ async function AssetsUnderManagement() {
   );
 }
 
-async function ZinclusiveLoan() {
+async function PortfolioALoan() {
   const loans = await data.getTransparencyLoansData();
   if (!loans) return null;
 
   return (
     <LoanCard
-      image={<ZinclusiveIcon />}
+      image={<PortfolioAIcon />}
       title="Portfolio A"
       description="Consumer Credit"
       info="Zivoe provides a fixed-rate credit facility to a U.S.-based consumer lender for the purpose of originating and funding consumer loans."
-      investmentValue={formatBigIntToReadable(BigInt(loans.zinclusive.invested), 18)}
-      interestEarned={formatBigIntToReadable(BigInt(loans.zinclusive.interest), 6)}
+      investmentValue={formatBigIntToReadable(BigInt(loans.portfolioA.invested), 18)}
+      interestEarned={formatBigIntToReadable(BigInt(loans.portfolioA.interest), 6)}
       averageLoanSize="$3,300"
       geography="Americas"
     />
   );
 }
 
-async function NewCoLoan() {
+async function PortfolioBLoan() {
   const loans = await data.getTransparencyLoansData();
   if (!loans) return null;
 
-  const { newCo } = loans;
-
   return (
     <LoanCard
-      image={<NewCoIcon />}
+      image={<PortfolioBIcon />}
       title="Portfolio B"
       description="Merchant Cash Advance"
       info="Zivoe owns an interest in a portfolio of merchant cash advance loans originated and serviced by a leading SME finance provider. The portfolio supports small and medium-sized businesses across North America."
-      investmentValue={formatBigIntToReadable(BigInt(newCo.invested), 18)}
-      interestEarned={formatBigIntToReadable(BigInt(newCo.interest), 6)}
+      investmentValue={formatBigIntToReadable(BigInt(loans.portfolioB.invested), 18)}
+      interestEarned={formatBigIntToReadable(BigInt(loans.portfolioB.interest), 6)}
       averageLoanSize="$3,829"
       geography="Americas"
     />
