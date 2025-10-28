@@ -10,9 +10,12 @@ export const DEPOSIT_TOKEN_DECIMALS: Record<DepositToken, number> = {
 
 export type RedeemToken = 'zVLT';
 
-export type Token = DepositToken | RedeemToken;
+export type UnstakeToken = 'stSTT';
+
+export type Token = DepositToken | RedeemToken | UnstakeToken;
 
 export const TOKEN_DECIMALS: Record<Token, number> = {
   ...DEPOSIT_TOKEN_DECIMALS,
-  zVLT: 18
+  zVLT: 18,
+  stSTT: 18
 };

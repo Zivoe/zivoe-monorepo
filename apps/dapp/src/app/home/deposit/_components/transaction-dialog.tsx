@@ -33,7 +33,8 @@ const TOKEN_ICON: Record<Token, ReactNode> = {
   USDT: <UsdtIcon />,
   frxUSD: <FrxUsdIcon />,
   zSTT: <ZsttIcon />,
-  zVLT: <ZVltLogo />
+  zVLT: <ZVltLogo />,
+  stSTT: <ZsttIcon />
 };
 
 export function TransactionDialog() {
@@ -132,6 +133,26 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
+          {transaction.meta?.unstake && (
+            <TransactionDialogTokensSection>
+              <TransactionDialogToken
+                token="stSTT"
+                amount={transaction.meta.unstake.amount}
+                decimals={18}
+                icon={<ZsttIcon />}
+              />
+
+              <ArrowRightIcon className="size-4 text-icon-default" />
+
+              <TransactionDialogToken
+                token="zSTT"
+                amount={transaction.meta.unstake.receive}
+                decimals={18}
+                icon={<ZsttIcon />}
+              />
+            </TransactionDialogTokensSection>
+          )}
+
           <div className="flex gap-4">
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
@@ -140,6 +161,12 @@ export function TransactionDialog() {
             {transaction.type === 'SUCCESS' && (transaction.meta?.deposit || transaction.meta?.redeem) && (
               <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
                 View Portfolio
+              </Link>
+            )}
+
+            {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
+              <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
+                Deposit zSTT
               </Link>
             )}
           </div>
@@ -163,7 +190,7 @@ function TransactionDialogToken({
   decimals,
   icon
 }: {
-  token: DepositToken | 'zVLT';
+  token: DepositToken | 'zVLT' | 'stSTT';
   amount: bigint;
   decimals: number;
   icon: ReactNode;
