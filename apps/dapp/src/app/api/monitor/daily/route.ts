@@ -83,9 +83,12 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
 
   const datesToProcess: Date[] = [];
 
-  while (start <= end) {
-    datesToProcess.push(new Date(start));
-    start.setDate(start.getDate() + 1);
+  const startTime = start.getTime();
+  const endTime = end.getTime();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  for (let time = startTime; time <= endTime; time += oneDayMs) {
+    datesToProcess.push(new Date(time));
   }
 
   const BATCH_SIZE = 30;
