@@ -1,8 +1,8 @@
-import Page from '@/components/page';
+import { CowSwapTradingWidget } from 'archived/swap/_components/cowswap-widget';
+import { CowswapElementLeft } from 'archived/swap/_components/element-left';
+import { CowswapElementRight } from 'archived/swap/_components/element-right';
 
-import { CowSwapTradingWidget } from '@/app/swap/_components/cowswap-widget';
-import { CowswapElementLeft } from '@/app/swap/_components/element-left';
-import { CowswapElementRight } from '@/app/swap/_components/element-right';
+import Page from '@/components/page';
 
 export default function SwapPage() {
   return (
