@@ -116,7 +116,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     usdcInYDL,
     usdcInStSTT,
     usdcInOCT_DAO,
-    usdcInOCC_Variable,
+    usdcInOCC,
     usdtInDAO,
     usdtInOCT_DAO,
     frxUSDInDAO,
@@ -134,7 +134,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
     getBalance(contracts.USDC, CONTRACTS.YDL),
     getBalance(contracts.USDC, CONTRACTS.stSTT),
     getBalance(contracts.USDC, CONTRACTS.OCT_DAO),
-    isOCCCycle ? Promise.resolve(0n) : getBalance(contracts.USDC, CONTRACTS.OCC_Variable),
+    isOCCCycle ? getBalance(contracts.USDC, CONTRACTS.OCC_Cycle) : getBalance(contracts.USDC, CONTRACTS.OCC_Variable),
 
     getBalance(contracts.USDT, CONTRACTS.DAO),
     getBalance(contracts.USDT, CONTRACTS.OCT_DAO),
@@ -192,7 +192,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const decimals = getDecimals(NETWORK);
 
   const usdcTotal = normalizeToDecimals18(
-    usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO + usdcInOCC_Variable,
+    usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO + usdcInOCC,
     decimals.USDC
   );
   const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, decimals.USDT);
