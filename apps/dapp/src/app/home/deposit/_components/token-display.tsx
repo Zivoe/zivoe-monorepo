@@ -1,10 +1,12 @@
-import { UsdcIcon, ZVltLogo } from '@zivoe/ui/icons';
+import { UsdcIcon, ZVltLogo, ZsttIcon } from '@zivoe/ui/icons';
 
-type TokenSymbol = 'zVLT' | 'USDC';
+type TokenSymbol = 'zVLT' | 'USDC' | 'zSTT' | 'stSTT';
 
 const TOKEN_ICONS: Record<TokenSymbol, React.ReactNode> = {
   zVLT: <ZVltLogo />,
-  USDC: <UsdcIcon />
+  USDC: <UsdcIcon />,
+  stSTT: <ZsttIcon />,
+  zSTT: <ZsttIcon />
 };
 
 export function TokenDisplay({ symbol }: { symbol: TokenSymbol }) {

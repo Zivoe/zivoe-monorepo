@@ -23,6 +23,11 @@ export type TransactionData = {
       amount: bigint;
       receive: bigint;
     };
+
+    unstake?: {
+      amount: bigint;
+      receive: bigint;
+    };
   };
 };
 
@@ -30,4 +35,6 @@ const transactionAtom = atom<TransactionData | undefined>(undefined);
 
 const depositDialogAtom = atom<boolean>(false);
 
-export { transactionAtom, depositDialogAtom };
+const unstakeDialogAtom = atom<boolean>(false);
+
+export { transactionAtom, depositDialogAtom, unstakeDialogAtom };

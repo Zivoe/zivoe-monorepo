@@ -1,5 +1,8 @@
 'use client';
 
+import { useAtom } from 'jotai';
+
+import { Button, ButtonProps } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { WalletIcon } from '@zivoe/ui/icons';
@@ -7,15 +10,19 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, Token } from '@/types/constants';
 
+import { unstakeDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
+import { CONTRACTS } from '@/lib/constants';
 
 import InfoSection from '@/components/info-section';
 import { TOKEN_INFO } from '@/components/token-info';
 
 import { usePortfolio } from '../_hooks/usePortfolio';
+import { UnstakeDialog } from './unstake-dialog';
 
 export function PortfolioHoldings() {
   return (
@@ -29,10 +36,13 @@ function HoldingsContainer() {
   const account = useAccount();
   const { data: portfolio, isFetching } = usePortfolio();
   const depositBalances = useDepositBalances();
+  const stSTTBalance = useAccountBalance({ address: CONTRACTS.stSTT });
+  const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useAtom(unstakeDialogAtom);
 
   const hasZVLTBalance = !!portfolio?.zVLTBalance && portfolio.zVLTBalance > 0n;
+  const hasStSTTBalance = !!stSTTBalance.data && stSTTBalance.data > 0n;
 
-  if (account.isPending || isFetching || depositBalances.isFetching)
+  if (account.isPending || isFetching || depositBalances.isFetching || stSTTBalance.isFetching)
     return (
       <HoldingsContent>
         <AssetInfo isLoading />
@@ -50,35 +60,48 @@ function HoldingsContainer() {
     );
 
   return (
-    <HoldingsContent>
-      <></>
-      <AssetInfo
-        asset="zVLT"
-        balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
-        value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
-        action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
-      />
+    <>
+      <HoldingsContent>
+        <></>
+        <AssetInfo
+          asset="zVLT"
+          balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
+          value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
+          action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
+        />
 
-      {DEPOSIT_TOKENS.map((token) => {
-        const balance = depositBalances.data?.[token];
-        if (!balance || balance <= 0n) return null;
+        {DEPOSIT_TOKENS.map((token) => {
+          const balance = depositBalances.data?.[token];
+          if (!balance || balance <= 0n) return null;
 
-        const formattedBalance = formatBigIntWithCommas({
-          value: balance,
-          tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
-        });
+          const formattedBalance = formatBigIntWithCommas({
+            value: balance,
+            tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
+          });
 
-        return (
+          return (
+            <AssetInfo
+              key={token}
+              asset={token}
+              balance={formattedBalance}
+              value={`$${formattedBalance}`}
+              action={{ text: 'Deposit', href: '/' }}
+            />
+          );
+        })}
+
+        {hasStSTTBalance && (
           <AssetInfo
-            key={token}
-            asset={token}
-            balance={formattedBalance}
-            value={`$${formattedBalance}`}
-            action={{ text: 'Deposit', href: '/' }}
+            asset="stSTT"
+            balance={formatBigIntWithCommas({ value: stSTTBalance.data ?? 0n })}
+            value={`$${formatBigIntWithCommas({ value: stSTTBalance.data ?? 0n })}`}
+            action={{ text: 'Unstake', onPress: () => setIsUnstakeDialogOpen(true) }}
           />
-        );
-      })}
-    </HoldingsContent>
+        )}
+      </HoldingsContent>
+
+      <UnstakeDialog isOpen={isUnstakeDialogOpen} onOpenChange={setIsUnstakeDialogOpen} />
+    </>
   );
 }
 
@@ -96,10 +119,35 @@ function HoldingsContent({ children }: { children: React.ReactNode }) {
 }
 
 function AssetInfo(
-  props: { isLoading: true } | { asset: Token; balance: string; value: string; action: { text: string; href: string } }
+  props:
+    | { isLoading: true }
+    | {
+        asset: Token;
+        balance: string;
+        value: string;
+        action: { text: string } & ({ href: string } | { onPress: () => void });
+      }
 ) {
   const isLoading = 'isLoading' in props;
   const info = isLoading ? null : TOKEN_INFO[props.asset];
+
+  const ActionButton = ({ size, fullWidth = false }: { size: ButtonProps['size']; fullWidth?: boolean }) => {
+    if (isLoading) return null;
+
+    if ('href' in props.action) {
+      return (
+        <Link variant="border" size={size} href={props.action.href} fullWidth={fullWidth}>
+          {props.action.text}
+        </Link>
+      );
+    }
+
+    return (
+      <Button variant="border" size={size} onPress={props.action.onPress} fullWidth={fullWidth}>
+        {props.action.text}
+      </Button>
+    );
+  };
 
   return (
     <>
@@ -137,13 +185,7 @@ function AssetInfo(
       </TableElement>
 
       <TableElement className="justify-end">
-        {isLoading ? (
-          <Skeleton className="h-8 w-[4.695rem] rounded-md" />
-        ) : (
-          <Link variant="border" size="s" href={props.action.href}>
-            {props.action.text}
-          </Link>
-        )}
+        {isLoading ? <Skeleton className="h-8 w-[4.695rem] rounded-md" /> : <ActionButton size="s" />}
       </TableElement>
 
       {/* Mobile View */}
@@ -182,13 +224,7 @@ function AssetInfo(
           </div>
         </div>
 
-        {isLoading ? (
-          <Skeleton className="h-10 w-full rounded-md"></Skeleton>
-        ) : (
-          <Link variant="border" size="m" fullWidth href="/">
-            Deposit
-          </Link>
-        )}
+        {isLoading ? <Skeleton className="h-10 w-full rounded-md"></Skeleton> : <ActionButton size="m" fullWidth />}
       </div>
     </>
   );

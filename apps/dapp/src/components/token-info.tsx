@@ -27,5 +27,10 @@ export const TOKEN_INFO: Record<Token, { label: string; description: string; ico
     label: 'zSTT',
     description: 'Senior Tranche Token',
     icon: <ZsttIcon />
+  },
+  stSTT: {
+    label: 'stSTT',
+    description: 'Staked Senior Tranche Token',
+    icon: <ZsttIcon />
   }
 };

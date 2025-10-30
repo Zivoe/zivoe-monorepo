@@ -12,10 +12,11 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
+import { RedeemUSDCParams } from '@/app/home/deposit/_hooks/useRedeemUSDC';
 import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
 import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
 import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
-import { RedeemUSDCParams } from '@/app/home/deposit/_hooks/useRedeemUSDC';
+import { UnstakeStSTTParams } from '@/app/portfolio/_hooks/useUnstakeStSTT';
 
 import { useAccount } from './useAccount';
 import { ApproveTokenParams } from './useApproveSpending';
@@ -48,7 +49,13 @@ export default function useTx() {
   };
 
   const sendTx = async (
-    params: ApproveTokenParams | RouterDepositParams | RouterDepositPermitParams | VaultDepositParams | RedeemUSDCParams
+    params:
+      | ApproveTokenParams
+      | RouterDepositParams
+      | RouterDepositPermitParams
+      | VaultDepositParams
+      | RedeemUSDCParams
+      | UnstakeStSTTParams
   ) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 
