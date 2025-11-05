@@ -59,7 +59,7 @@ export default function Liquidity({ data }: { data: Liquidity }) {
             </Row>
           </Link>
 
-          <Link
+          {/* <Link
             href="https://app.uniswap.org/explore/tokens/ethereum/0x94babe9ee75c38034920bc6ed42748e8eefbedd4"
             target="_blank"
           >
@@ -77,7 +77,7 @@ export default function Liquidity({ data }: { data: Liquidity }) {
                 </Badge>
               </Item>
             </Row>
-          </Link>
+          </Link> */}
 
           <Link href={ZIVOE_ZAPPER_URL} target="_blank">
             <Row className="border border-transparent border-b-subtle">
