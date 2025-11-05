@@ -25,7 +25,7 @@ export default function LoanCard({
     <div className="flex h-full flex-col justify-between gap-6">
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          {image}
+          <div className="size-12">{image}</div>
 
           <div>
             <h3 className="text-leading text-primary">{title}</h3>
