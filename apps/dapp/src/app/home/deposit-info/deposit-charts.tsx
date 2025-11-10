@@ -3,7 +3,6 @@
 import { useState } from 'react';
 
 import { Key } from 'react-aria-components';
-import { useMediaQuery } from 'react-responsive';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 import { formatEther } from 'viem';
 
@@ -20,7 +19,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { env } from '@/env';
 
-const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
+const CHART_TYPES = ['Index price', 'TVL'] as const;
 type ChartType = (typeof CHART_TYPES)[number];
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
@@ -38,9 +37,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
       <div className="flex justify-between gap-2">
         {chart.currentValue && (
           <p className="text-h4 text-primary">
-            {chart.type !== 'APY' && '$'}
-            {customNumber(chart.currentValue, chart.type === 'Index price' ? 3 : 2)}
-            {chart.type === 'APY' && '%'}
+            ${customNumber(chart.currentValue, chart.type === 'Index price' ? 3 : 2)}
           </p>
         )}
 
@@ -84,7 +81,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               width={60}
               scale="linear"
               domain={DOMAINS[env.NEXT_PUBLIC_NETWORK][chart.type]}
-              tickFormatter={(value) => (chart.type === 'TVL' || chart.type === 'APY' ? customNumber(value) : value)}
+              tickFormatter={(value) => (chart.type === 'TVL' ? customNumber(value) : value)}
             />
 
             <ChartTooltip
@@ -100,9 +97,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="font-heading text-regular tabular-nums text-primary">
-                          {chart.type !== 'APY' && '$'}
-                          {customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
-                          {chart.type === 'APY' && '%'}
+                          ${customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
                         </span>
                         <span className="text-small text-secondary">{date}</span>
                       </div>
@@ -129,14 +124,12 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
 const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
   MAINNET: {
-    'Index price': [0.99, 1.05],
-    TVL: [5_000_000, 10_000_000],
-    APY: [10, 35]
+    'Index price': [0.99, 1.06],
+    TVL: [5_000_000, 10_000_000]
   },
   SEPOLIA: {
     'Index price': [0, 2_000],
-    TVL: [70_000_000, 100_000_000],
-    APY: [16, 24]
+    TVL: [70_000_000, 100_000_000]
   }
 };
 
