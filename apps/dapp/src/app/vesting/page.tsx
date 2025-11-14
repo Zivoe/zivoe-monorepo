@@ -8,9 +8,7 @@ export default function VestingPage() {
       <Page className="flex flex-col gap-10">
         <div className="space-y-2">
           <h1 className="text-h3 text-primary">Vesting</h1>
-          <p className="text-regular text-secondary">
-            Unlock your vested tokens gradually to ensure long-term commitment and stability.
-          </p>
+          <p className="text-regular text-secondary">Manage your ZVE vesting schedule.</p>
         </div>
 
         <VestingComponents />

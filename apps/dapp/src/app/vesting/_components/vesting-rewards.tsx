@@ -2,12 +2,14 @@
 
 import { ReactNode } from 'react';
 
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { Label, PolarAngleAxis, PolarRadiusAxis, RadialBar, RadialBarChart } from 'recharts';
 
 import { Button } from '@zivoe/ui/core/button';
 import { ChartContainer } from '@zivoe/ui/core/chart';
 import { ContextualHelp, ContextualHelpDescription, ContextualHelpTitle } from '@zivoe/ui/core/contextual-help';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { toast } from '@zivoe/ui/core/sonner';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
@@ -26,6 +28,7 @@ import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 
 export function VestingRewards() {
   const account = useAccount();
+  const { setShowAuthFlow, handleLogOut } = useDynamicContext();
 
   const { data: vestingSchedule, isFetching: isScheduleFetching } = useVestingSchedule();
   const { data: claimableAmount, isFetching: isClaimableFetching } = useClaimableAmount();
@@ -40,59 +43,85 @@ export function VestingRewards() {
 
   const claimVesting = useClaimVesting();
 
+  const handleDisconnect = async () => {
+    try {
+      await handleLogOut();
+    } catch (error) {
+      console.error(error);
+      toast({ type: 'error', title: 'Error disconnecting wallet' });
+    }
+  };
+
   return (
     <>
       <Card>
-        <Card.Header title="Vesting rewards" />
+        <Card.Header title="Vesting Rewards" />
 
-        <CardBody>
-          <VestedChart hasSchedule={hasSchedule} vestedAmount={vestedAmount} totalVesting={totalVesting} />
+        {account.isDisconnected ? (
+          <EmptyState title="Connect Wallet" description="Your vesting schedule will appear here.">
+            <Button onPress={() => setShowAuthFlow(true)} fullWidth>
+              Connect Wallet
+            </Button>
+          </EmptyState>
+        ) : !hasSchedule ? (
+          <EmptyState
+            title="No Vesting Schedule"
+            description="The connected wallet does not have a vesting schedule associated with it."
+          >
+            <Button onPress={handleDisconnect} fullWidth>
+              Disconnect Wallet
+            </Button>
+          </EmptyState>
+        ) : (
+          <CardBody>
+            <VestedChart hasSchedule={hasSchedule} vestedAmount={vestedAmount} totalVesting={totalVesting} />
 
-          <div className="-mt-28 flex w-full flex-col gap-4">
-            <div className="flex w-full items-center justify-between rounded-[4px] border border-default bg-surface-base px-6 py-4">
-              <div className="flex items-center gap-2 py-2">
-                <p className="text-leading font-medium text-primary">Claimable Now</p>
+            <div className="-mt-28 flex w-full flex-col gap-4">
+              <div className="flex w-full items-center justify-between rounded-[4px] border border-default bg-surface-base px-6 py-4">
+                <div className="flex items-center gap-2 py-2">
+                  <p className="text-leading font-medium text-primary">Claimable Now</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="[&_svg]:size-7 [&_svg]:flex-shrink-0">{TOKEN_INFO['zVLT'].icon}</span>
+                  <p className="text-smallSubheading font-medium text-primary">
+                    {!hasSchedule || claimableAmount === undefined
+                      ? '-'
+                      : formatBigIntWithCommas({ value: claimableAmount, showUnderZero: true })}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="[&_svg]:size-7 [&_svg]:flex-shrink-0">{TOKEN_INFO['zVLT'].icon}</span>
-                <p className="text-smallSubheading font-medium text-primary">
-                  {!hasSchedule || account.isDisconnected || claimableAmount === undefined
-                    ? '-'
-                    : formatBigIntWithCommas({ value: claimableAmount, showUnderZero: true })}
-                </p>
-              </div>
+
+              <ConnectedAccount>
+                {isFetching ? (
+                  <Button fullWidth isPending={true} pendingContent="Loading..." />
+                ) : isDuringCliff ? (
+                  <Button fullWidth isDisabled>
+                    Cliff period is not over yet
+                  </Button>
+                ) : claimableAmount === undefined || claimableAmount === 0n ? (
+                  <Button fullWidth isDisabled>
+                    Nothing to claim
+                  </Button>
+                ) : (
+                  <Button
+                    fullWidth
+                    onPress={() => claimVesting.mutate()}
+                    isPending={claimVesting.isPending}
+                    pendingContent={
+                      claimVesting.isTxPending
+                        ? `Claiming...`
+                        : claimVesting.isPending
+                          ? `Signing Transaction...`
+                          : undefined
+                    }
+                  >
+                    Claim
+                  </Button>
+                )}
+              </ConnectedAccount>
             </div>
-
-            <ConnectedAccount>
-              {isFetching ? (
-                <Button fullWidth isPending={true} pendingContent="Loading..." />
-              ) : isDuringCliff ? (
-                <Button fullWidth isDisabled>
-                  Cliff period is not over yet
-                </Button>
-              ) : claimableAmount === undefined || claimableAmount === 0n ? (
-                <Button fullWidth isDisabled>
-                  Nothing to claim
-                </Button>
-              ) : (
-                <Button
-                  fullWidth
-                  onPress={() => claimVesting.mutate()}
-                  isPending={claimVesting.isPending}
-                  pendingContent={
-                    claimVesting.isTxPending
-                      ? `Claiming...`
-                      : claimVesting.isPending
-                        ? `Signing Transaction...`
-                        : undefined
-                  }
-                >
-                  Claim
-                </Button>
-              )}
-            </ConnectedAccount>
-          </div>
-        </CardBody>
+          </CardBody>
+        )}
       </Card>
 
       <TransactionDialog />
@@ -108,6 +137,21 @@ function CardBody({ children }: { children: ReactNode }) {
   );
 }
 
+function EmptyState({ children, title, description }: { children: ReactNode; title: string; description: string }) {
+  return (
+    <div className="flex min-h-[25rem] flex-col justify-between gap-4">
+      <div></div>
+
+      <div className="flex flex-col items-center gap-2 py-10">
+        <p className="text-h7 text-primary">{title}</p>
+        <p className="max-w-72 text-center text-regular text-secondary">{description}</p>
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
 function VestedChart({
   hasSchedule,
   vestedAmount,
@@ -117,8 +161,6 @@ function VestedChart({
   vestedAmount: bigint;
   totalVesting: bigint;
 }) {
-  const account = useAccount();
-
   const percentage = hasSchedule ? Math.min((Number(vestedAmount) / Number(totalVesting)) * 100, 100) : 0;
 
   return (
@@ -153,9 +195,7 @@ function VestedChart({
                           y={(viewBox.cy || 0) - 20}
                           className="fill-primary font-heading text-h6"
                         >
-                          {hasSchedule && !account.isDisconnected
-                            ? formatBigIntWithCommas({ value: vestedAmount, showUnderZero: true })
-                            : '-'}
+                          {hasSchedule ? formatBigIntWithCommas({ value: vestedAmount, showUnderZero: true }) : '-'}
                         </tspan>
                       </text>
                       <text x={(viewBox.cx || 0) - 15} y={(viewBox.cy || 0) + 20} textAnchor="middle">
