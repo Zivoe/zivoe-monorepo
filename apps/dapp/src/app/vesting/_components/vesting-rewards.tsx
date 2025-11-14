@@ -58,7 +58,7 @@ export function VestingRewards() {
                 <p className="text-smallSubheading font-medium text-primary">
                   {!hasSchedule || account.isDisconnected || claimableAmount === undefined
                     ? '-'
-                    : formatBigIntWithCommas({ value: claimableAmount })}
+                    : formatBigIntWithCommas({ value: claimableAmount, showUnderZero: true })}
                 </p>
               </div>
             </div>
@@ -154,7 +154,7 @@ function VestedChart({
                           className="fill-primary font-heading text-h6"
                         >
                           {hasSchedule && !account.isDisconnected
-                            ? formatBigIntWithCommas({ value: vestedAmount })
+                            ? formatBigIntWithCommas({ value: vestedAmount, showUnderZero: true })
                             : '-'}
                         </tspan>
                       </text>

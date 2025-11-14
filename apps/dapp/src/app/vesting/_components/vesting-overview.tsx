@@ -28,7 +28,9 @@ export function VestingOverview() {
       <div className="grid h-full grid-cols-2 gap-2">
         <InfoCard
           title="ZVE Granted"
-          value={!hasSchedule ? '-' : formatBigIntWithCommas({ value: vestingSchedule.totalVesting })}
+          value={
+            !hasSchedule ? '-' : formatBigIntWithCommas({ value: vestingSchedule.totalVesting, showUnderZero: true })
+          }
           tooltip={{ title: 'ZVE Granted', description: "The total number of tokens you're supposed to get." }}
         />
 
@@ -43,7 +45,9 @@ export function VestingOverview() {
 
         <InfoCard
           title="ZVE Vested"
-          value={!hasSchedule ? '-' : formatBigIntWithCommas({ value: vestingSchedule.vestedAmount })}
+          value={
+            !hasSchedule ? '-' : formatBigIntWithCommas({ value: vestingSchedule.vestedAmount, showUnderZero: true })
+          }
           tooltip={{
             title: 'ZVE Vested',
             description: 'Amount of ZVE that has already been unlocked and is eligible to claim.'
@@ -59,7 +63,7 @@ export function VestingOverview() {
               <div className="flex items-center gap-2">
                 <span className="[&_svg]:size-6 [&_svg]:flex-shrink-0">{TOKEN_INFO['zVLT'].icon}</span>
                 <p className="text-smallSubheading font-medium text-primary">
-                  {formatBigIntWithCommas({ value: vestingSchedule.totalWithdrawn })}
+                  {formatBigIntWithCommas({ value: vestingSchedule.totalWithdrawn, showUnderZero: true })}
                 </p>
               </div>
             )
