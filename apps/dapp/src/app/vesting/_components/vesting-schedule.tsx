@@ -6,37 +6,58 @@ import { CheckIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
+import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
 import { Card } from '@/app/transparency/_components/card';
 
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 
+type MilestoneState = 'COMPLETED' | 'CURRENT' | 'UPCOMING';
+
 export function VestingSchedule() {
   const account = useAccount();
   const { data: vestingSchedule } = useVestingSchedule();
+  const { data: blockchainTimestamp } = useBlockchainTimestamp();
 
-  if (account.isDisconnected || !vestingSchedule) return null;
+  if (account.isDisconnected || !vestingSchedule || !blockchainTimestamp) return null;
 
-  const milestones: Array<{ title: string; timestamp: bigint }> = [
+  const getMilestoneState = (index: number): MilestoneState => {
+    const { start, cliff, end } = vestingSchedule;
+
+    switch (index) {
+      case 0:
+        return 'COMPLETED';
+
+      case 1:
+        if (blockchainTimestamp >= cliff) return 'COMPLETED';
+        if (blockchainTimestamp >= start) return 'CURRENT';
+        return 'UPCOMING';
+
+      case 2:
+        if (blockchainTimestamp >= end) return 'COMPLETED';
+        if (blockchainTimestamp >= cliff) return 'CURRENT';
+        return 'UPCOMING';
+
+      default:
+        return 'UPCOMING';
+    }
+  };
+
+  const milestones: Array<{ title: string; timestamp: bigint; state: MilestoneState }> = [
     {
       title: 'Vesting Schedule Created',
-      timestamp: vestingSchedule.start
-    },
-    {
-      title: 'Cliff Starts',
-      timestamp: vestingSchedule.start
+      timestamp: vestingSchedule.start,
+      state: getMilestoneState(0)
     },
     {
       title: 'Cliff Ends',
-      timestamp: vestingSchedule.cliff
-    },
-    {
-      title: 'Vesting Start',
-      timestamp: vestingSchedule.cliff
+      timestamp: vestingSchedule.cliff,
+      state: getMilestoneState(1)
     },
     {
       title: 'Vesting Ends',
-      timestamp: vestingSchedule.end
+      timestamp: vestingSchedule.end,
+      state: getMilestoneState(2)
     }
   ];
 
@@ -45,30 +66,55 @@ export function VestingSchedule() {
       <Card.Header title="Schedule" />
 
       <CardBody>
-        <div className="relative flex items-start justify-between">
-          {/* Progress Line - Behind everything */}
-          <div className="absolute inset-x-0 top-2.5 h-0.5 bg-element-primary-soft" />
+        <div className="relative flex items-start">
+          {milestones.map((milestone, index) => {
+            const nextMilestone = milestones[index + 1];
+            const shouldShowTealLine = nextMilestone
+              ? nextMilestone.state === 'COMPLETED' || nextMilestone.state === 'CURRENT'
+              : milestone.state === 'COMPLETED';
 
-          {/* Milestones */}
-          {milestones.map((milestone, index) => (
-            <div key={index} className="relative flex flex-col gap-8">
-              {/* Milestone Indicator */}
-              <div className="relative z-10 flex size-5 items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-element-primary-soft" />
-                <CheckIcon className="relative z-10 size-4 text-base" />
-              </div>
+            return (
+              <div key={index} className={cn('relative flex flex-1 flex-col gap-8')}>
+                {/* Milestone Indicator and Line Container */}
+                <div className="relative flex items-center">
+                  {/* Milestone Indicator Circle */}
+                  <div className="relative z-10 flex size-5 shrink-0 items-center justify-center">
+                    <div
+                      className={cn(
+                        'absolute inset-0 rounded-full',
+                        milestone.state === 'COMPLETED' || milestone.state === 'CURRENT'
+                          ? 'bg-element-primary-soft'
+                          : 'bg-surface-elevated-high-contrast'
+                      )}
+                    />
+                    {milestone.state === 'COMPLETED' && <CheckIcon className="relative z-10 size-4 text-base" />}
+                    {(milestone.state === 'CURRENT' || milestone.state === 'UPCOMING') && (
+                      <div className="relative z-10 size-2 rounded-full bg-surface-base" />
+                    )}
+                  </div>
 
-              {/* Milestone Info */}
-              <div className="flex flex-col gap-1">
-                <p className="text-small font-medium text-primary">{milestone.title}</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-small text-secondary">{formatUTCDate(milestone.timestamp)}</p>
-                  <div className="size-1.5 rotate-45 bg-surface-elevated-contrast" />
-                  <p className="text-small text-secondary">{formatUTCTime(milestone.timestamp)}</p>
+                  {/* Progress Line after Circle */}
+
+                  <div className="relative h-0.5 flex-1">
+                    {/* Gray background line */}
+                    <div className="absolute inset-0 bg-surface-elevated-high-contrast" />
+                    {/* Teal overlay line */}
+                    {shouldShowTealLine && <div className="absolute inset-0 bg-element-primary-soft" />}
+                  </div>
+                </div>
+
+                {/* Milestone Info */}
+                <div className="flex flex-col gap-1">
+                  <p className="text-small font-medium text-primary">{milestone.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-small text-secondary">{formatUTCDate(milestone.timestamp)}</p>
+                    <div className="bg-surface-elevated-soft size-1.5 rotate-45" />
+                    <p className="text-small text-secondary">{formatUTCTime(milestone.timestamp)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardBody>
     </Card>
