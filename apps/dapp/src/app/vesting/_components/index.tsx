@@ -27,7 +27,7 @@ export default function VestingComponents() {
   if (isLoading)
     return (
       <>
-        <div className="flex w-full flex-col gap-6 md:flex-row">
+        <div className="flex w-full flex-col gap-6 lg:flex-row">
           <VestingOverviewSkeleton />
           <VestingRewardsSkeleton />
         </div>
@@ -38,7 +38,7 @@ export default function VestingComponents() {
 
   return (
     <>
-      <div className="flex w-full flex-col gap-6 md:flex-row">
+      <div className="flex w-full flex-col gap-6 lg:flex-row">
         <VestingOverview />
         <VestingRewards />
       </div>

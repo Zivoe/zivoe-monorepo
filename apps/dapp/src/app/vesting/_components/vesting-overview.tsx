@@ -25,7 +25,7 @@ export function VestingOverview() {
     <Card>
       <Card.Header title="Overview" />
 
-      <div className="grid h-full grid-cols-2 gap-2">
+      <div className="grid h-full grid-cols-1 gap-2 sm:grid-cols-2">
         <InfoCard
           title="ZVE Granted"
           value={
@@ -83,7 +83,7 @@ export function VestingOverviewSkeleton() {
     <Card>
       <Card.Header title="Overview" />
 
-      <div className="grid h-full grid-cols-2 gap-2">
+      <div className="grid h-full grid-cols-1 gap-2 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <InfoCardContainer key={index}>
             <Skeleton className="h-5 w-24 rounded-md" />
@@ -97,7 +97,7 @@ export function VestingOverviewSkeleton() {
 
 function InfoCardContainer({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full flex-col justify-between rounded-[4px] bg-surface-base p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+    <div className="flex h-full min-h-24 flex-col justify-between rounded-[4px] bg-surface-base p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
       {children}
     </div>
   );
