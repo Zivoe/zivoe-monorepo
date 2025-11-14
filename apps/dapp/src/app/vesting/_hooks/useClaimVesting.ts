@@ -80,7 +80,7 @@ export const useClaimVesting = () => {
           ? {
               type: 'SUCCESS',
               title: 'Claim Successful',
-              description: 'Your vested ZVE has been claimed.',
+              description: 'You have claimed all vested tokens',
               hash: receipt.transactionHash,
               meta
             }
