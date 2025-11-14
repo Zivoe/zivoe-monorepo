@@ -22,12 +22,15 @@ const account = {
     network,
     'CHAINALYSIS'
   ],
-  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO']
+  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
+  vestingSchedule: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'VESTING_SCHEDULE'],
+  claimableVesting: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CLAIMABLE_VESTING']
 };
 
 const app = {
   vault: ['VAULT'],
-  redemption: ['REDEMPTION']
+  redemption: ['REDEMPTION'],
+  blockchainTimestamp: ['BLOCKCHAIN_TIMESTAMP']
 };
 
 export const queryKeys = {

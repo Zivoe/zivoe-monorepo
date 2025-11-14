@@ -28,6 +28,10 @@ export type TransactionData = {
       amount: bigint;
       receive: bigint;
     };
+
+    claim?: {
+      amount: bigint;
+    };
   };
 };
 

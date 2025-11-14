@@ -21,14 +21,14 @@ function CardHeader({
 }: {
   title: string;
   titleSmall?: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn('flex items-center justify-between gap-10 px-2', className)}>
       <div className="flex items-center gap-2">
-        <InfoSectionIcon>{icon}</InfoSectionIcon>
+        {icon && <InfoSectionIcon>{icon}</InfoSectionIcon>}
 
         <>
           <h2 className={cn('text-h7 text-primary sm:hidden', !titleSmall && 'hidden')}>{titleSmall}</h2>

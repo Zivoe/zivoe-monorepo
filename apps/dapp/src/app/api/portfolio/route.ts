@@ -11,12 +11,13 @@ import { getWeb3Client } from '@/server/clients/web3';
 import { web3 } from '@/server/web3';
 
 import { NETWORK } from '@/lib/constants';
+import { addressSchema } from '@/lib/schemas';
 import { ApiError, DAY_IN_SECONDS, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../utils';
 
 const querySchema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+  address: addressSchema
 });
 
 type Snapshot = {
