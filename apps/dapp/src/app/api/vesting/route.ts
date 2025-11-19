@@ -37,7 +37,7 @@ const handler = async (req: NextRequest): ApiResponse<VestingScheduleData> => {
   const ponder = getPonder();
 
   const schedule = await ponder.query.vestingSchedule.findFirst({
-    where: (vestingSchedule, { eq }) => eq(vestingSchedule.id, address)
+    where: (vestingSchedule, { eq }) => eq(vestingSchedule.id, address.toLowerCase())
   });
 
   if (!schedule) {

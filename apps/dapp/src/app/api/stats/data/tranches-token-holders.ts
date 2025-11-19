@@ -10,7 +10,10 @@ export const getTranchesTokenHolders = async ({ ponder, contracts }: { ponder: P
   const balances = await ponder.query.tokenBalance.findMany({
     where: (tokenBalance, { and, or, eq, gt }) =>
       and(
-        or(eq(tokenBalance.tokenAddress, contracts.zSTT), eq(tokenBalance.tokenAddress, contracts.zJTT)),
+        or(
+          eq(tokenBalance.tokenAddress, contracts.zSTT.toLowerCase()),
+          eq(tokenBalance.tokenAddress, contracts.zJTT.toLowerCase())
+        ),
         gt(tokenBalance.balance, 0n)
       ),
     columns: {
@@ -23,7 +26,7 @@ export const getTranchesTokenHolders = async ({ ponder, contracts }: { ponder: P
   const entries: TrancheBalance[] = balances.map((balance) => ({
     accountId: balance.accountId,
     balance: balance.balance,
-    type: balance.tokenAddress === contracts.zSTT ? 'senior' : 'junior'
+    type: balance.tokenAddress === contracts.zSTT.toLowerCase() ? 'senior' : 'junior'
   }));
 
   return getTranchesHolders(entries);
