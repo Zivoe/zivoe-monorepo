@@ -13,12 +13,10 @@ import * as Sentry from '@sentry/nextjs';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
-
-import { NETWORK } from '@/lib/constants';
 
 import { useAccount } from '@/hooks/useAccount';
 
@@ -40,7 +38,7 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
 };
 
 export const wagmiConfig = createConfig({
-  chains: NETWORK === 'MAINNET' ? [mainnet] : [sepolia],
+  chains: [mainnet],
   multiInjectedProviderDiscovery: false,
   ssr: true,
   storage: createStorage({
@@ -50,10 +48,6 @@ export const wagmiConfig = createConfig({
     [mainnet.id]: fallback([
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY)
-    ]),
-    [sepolia.id]: fallback([
-      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY),
-      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY)
     ])
   }
 });

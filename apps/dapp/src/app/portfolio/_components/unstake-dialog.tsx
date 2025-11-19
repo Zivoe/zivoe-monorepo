@@ -7,6 +7,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
@@ -15,7 +16,6 @@ import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
-import { CONTRACTS } from '@/lib/constants';
 
 import ConnectedAccount from '@/components/connected-account';
 

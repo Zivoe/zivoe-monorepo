@@ -1,14 +1,13 @@
-import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { SimulateContractParameters, parseEventLogs } from 'viem';
 import { WriteContractParameters } from 'wagmi/actions';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { DepositToken } from '@/types/constants';
 
-import { CONTRACTS } from '@/lib/constants';
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 

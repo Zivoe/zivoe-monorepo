@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { z } from 'zod';
 
-import { NETWORKS, getContracts } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 
 import { getPonder } from '@/server/clients/ponder';
 import { getWeb3Client } from '@/server/clients/web3';
@@ -18,10 +18,6 @@ import { type TranchesHolder } from './data/tranches-holders-utils';
 import { getTranchesTokenHolders } from './data/tranches-token-holders';
 import { type ZvltDeposit, getZVLTDeposits } from './data/zvlt-deposits';
 import { type TokenHolder, getZVLTTokenHolders } from './data/zvlt-token-holders';
-
-const querySchema = z.object({
-  network: z.enum(NETWORKS)
-});
 
 type Stats = {
   itoDeposits: List<TranchesDeposit>;
@@ -49,25 +45,9 @@ const handler = async (req: NextRequest): ApiResponse<Stats> => {
     throw new ApiError({ message: 'Invalid API key', status: 403, capture: false });
   }
 
-  // Validate network parameter
-  const queryParams = {
-    network: req.nextUrl.searchParams.get('network')
-  };
-
-  if (!queryParams.network) {
-    throw new ApiError({ message: 'Network parameter is required', status: 400, capture: false });
-  }
-
-  const parsedQuery = querySchema.safeParse(queryParams);
-  if (!parsedQuery.success) {
-    throw new ApiError({ message: 'Network parameter is invalid', status: 400, capture: false });
-  }
-
   // Initialize clients
-  const { network } = parsedQuery.data;
-  const web3Client = getWeb3Client(network);
-  const contracts = getContracts(network);
-  const ponder = getPonder(network);
+  const web3Client = getWeb3Client();
+  const ponder = getPonder();
 
   // Fetch all data in parallel
   const [
@@ -78,12 +58,12 @@ const handler = async (req: NextRequest): ApiResponse<Stats> => {
     zvltHoldersRes,
     zvltDepositsRes
   ] = await Promise.all([
-    getTranchesDeposits({ client: web3Client, contracts, type: 'ITO' }),
-    getTranchesDeposits({ client: web3Client, contracts, type: 'ZVT' }),
-    getTranchesTokenHolders({ ponder, contracts }),
+    getTranchesDeposits({ client: web3Client, contracts: CONTRACTS, type: 'ITO' }),
+    getTranchesDeposits({ client: web3Client, contracts: CONTRACTS, type: 'ZVT' }),
+    getTranchesTokenHolders({ ponder, contracts: CONTRACTS }),
     getStakedTranchesHolders({ ponder }),
-    getZVLTTokenHolders({ ponder, contracts }),
-    getZVLTDeposits({ client: web3Client, contracts })
+    getZVLTTokenHolders({ ponder, contracts: CONTRACTS }),
+    getZVLTDeposits({ client: web3Client, contracts: CONTRACTS })
   ]);
 
   // Return formatted response

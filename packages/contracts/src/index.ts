@@ -1,10 +1,6 @@
 import { Address } from 'viem';
 
 import mainnetContracts from './mainnet.json';
-import sepoliaContracts from './sepolia.json';
-
-export const NETWORKS = ['MAINNET', 'SEPOLIA'] as const;
-export type Network = (typeof NETWORKS)[number];
 
 export type Contracts = {
   M0: Address;
@@ -34,6 +30,4 @@ export type Contracts = {
   UNISWAP_V3_POOL: Address | null;
 };
 
-export const getContracts = (network: Network) => {
-  return network === 'SEPOLIA' ? (sepoliaContracts as Contracts) : (mainnetContracts as Contracts);
-};
+export const CONTRACTS = mainnetContracts as Contracts;

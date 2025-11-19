@@ -2,6 +2,7 @@
 
 import { useAtom } from 'jotai';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { Button, ButtonProps } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
@@ -16,7 +17,6 @@ import { formatBigIntWithCommas } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
-import { CONTRACTS } from '@/lib/constants';
 
 import InfoSection from '@/components/info-section';
 import { TOKEN_INFO } from '@/components/token-info';

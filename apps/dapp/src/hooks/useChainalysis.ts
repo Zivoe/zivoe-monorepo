@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { sepolia } from 'viem/chains';
 import { useAccount as useAccountWagmi } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
@@ -23,10 +22,10 @@ export const useChainalysis = () => {
   const { address } = useAccount();
 
   const { chainId } = useAccountWagmi();
-  const network = chainId ? (chainId === sepolia.id ? 'SEPOLIA' : 'MAINNET') : undefined;
+  const network = chainId ? 'MAINNET' : undefined;
 
   const { data, isPending, isFetching, isSuccess } = useQuery({
-    queryKey: queryKeys.account.chainalysis({ accountAddress: address, network }),
+    queryKey: queryKeys.account.chainalysis({ accountAddress: address }),
 
     queryFn: async () => {
       const { res, err } = await handlePromise(

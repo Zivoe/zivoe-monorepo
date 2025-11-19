@@ -1,7 +1,5 @@
 import { Address } from 'viem';
 
-import { Network } from '@zivoe/contracts';
-
 type AccountProps = {
   accountAddress?: Address;
 };
@@ -17,11 +15,7 @@ const account = {
     contract,
     spender
   ],
-  chainalysis: ({ accountAddress, network }: AccountProps & { network: Network | undefined }) => [
-    ...account.by({ accountAddress }),
-    network,
-    'CHAINALYSIS'
-  ],
+  chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
   vestingSchedule: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'VESTING_SCHEDULE'],
   claimableVesting: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CLAIMABLE_VESTING']

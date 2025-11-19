@@ -3,11 +3,9 @@
 import { useState } from 'react';
 
 import { Key } from 'react-aria-components';
-import { useMediaQuery } from 'react-responsive';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 import { formatEther } from 'viem';
 
-import type { Network } from '@zivoe/contracts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
@@ -17,8 +15,6 @@ import { DepositDailyData } from '@/server/data';
 import { customNumber } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
-
-import { env } from '@/env';
 
 const CHART_TYPES = ['Index price', 'TVL', 'APY'] as const;
 type ChartType = (typeof CHART_TYPES)[number];
@@ -83,7 +79,7 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               minTickGap={20}
               width={60}
               scale="linear"
-              domain={DOMAINS[env.NEXT_PUBLIC_NETWORK][chart.type]}
+              domain={DOMAINS[chart.type]}
               tickFormatter={(value) => (chart.type === 'TVL' || chart.type === 'APY' ? customNumber(value) : value)}
             />
 
@@ -127,17 +123,10 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
   );
 }
 
-const DOMAINS: Record<Network, Record<ChartType, [number, number]>> = {
-  MAINNET: {
-    'Index price': [0.99, 1.05],
-    TVL: [5_000_000, 10_000_000],
-    APY: [10, 35]
-  },
-  SEPOLIA: {
-    'Index price': [0, 2_000],
-    TVL: [70_000_000, 100_000_000],
-    APY: [16, 24]
-  }
+const DOMAINS: Record<ChartType, [number, number]> = {
+  'Index price': [0.99, 1.05],
+  TVL: [5_000_000, 10_000_000],
+  APY: [10, 35]
 };
 
 const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDailyData>; typeIndex: Key }) => {

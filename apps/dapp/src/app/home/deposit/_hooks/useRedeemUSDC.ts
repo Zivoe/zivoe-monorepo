@@ -4,9 +4,9 @@ import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters, parseEventLogs } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleAbi } from '@zivoe/contracts/abis';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionData, depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
@@ -71,10 +71,6 @@ export const useRedeemUSDC = () => {
         if (redeemLog) {
           depositAmount = redeemLog.args.zVLTBurned;
           receiveAmount = redeemLog.args.USDCRedeemed;
-
-          // on sepolia the `USDC` token is a fake one that has 18 decimals
-          // on mainnet we have the real USDC token which has 6 decimals
-          if (NETWORK === 'SEPOLIA') receiveAmount = receiveAmount / 10n ** 12n;
         }
       } catch (error) {
         Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'redeem' } });

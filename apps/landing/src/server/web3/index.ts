@@ -6,19 +6,15 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { env } from '@/env.js';
-
 import { getDb } from '../clients/db';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
-
-const network = env.NETWORK;
 
 const getCurrentDailyData = reactCache(
   nextCache(
     async () => {
       try {
-        const client = getDb(network);
+        const client = getDb();
 
         const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
         if (!latest) throw new Error('Error getting daily data');
@@ -36,7 +32,7 @@ const getCurrentDailyData = reactCache(
 const getRevenue = nextCache(
   async () => {
     try {
-      const db = getDb(network);
+      const db = getDb();
 
       const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
       if (!latestData?.loansRevenue) return null;

@@ -3,19 +3,16 @@
 import { type CowSwapWidgetPalette, type CowSwapWidgetParams, TradeType } from '@cowprotocol/widget-lib';
 import { CowSwapWidget } from '@cowprotocol/widget-react';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { Button } from '@zivoe/ui/core/button';
-
-import { CONTRACTS, NETWORK } from '@/lib/constants';
 
 import { useAccount } from '@/hooks/useAccount';
 
 import SkeletonAction from '@/components/skeleton-action';
 
 import { useCowswapListeners } from '../_hooks/useCowswapListeners';
-
-const DEFAULT_NETWORK = NETWORK === 'SEPOLIA' ? sepolia.id : mainnet.id;
 
 const theme: CowSwapWidgetPalette = {
   baseTheme: 'light',
@@ -38,7 +35,7 @@ export function CowSwapTradingWidget() {
   const params: CowSwapWidgetParams = {
     appCode: 'Zivoe',
     standaloneMode: false,
-    chainId: DEFAULT_NETWORK,
+    chainId: mainnet.id,
     tradeType: TradeType.SWAP,
     enabledTradeTypes: [TradeType.SWAP],
     sell: { asset: CONTRACTS.zVLT },

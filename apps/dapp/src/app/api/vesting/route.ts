@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 import { getPonder } from '@/server/clients/ponder';
 
-import { NETWORK } from '@/lib/constants';
 import { addressSchema } from '@/lib/schemas';
 import { ApiError, withErrorHandler } from '@/lib/utils';
 
@@ -35,7 +34,7 @@ const handler = async (req: NextRequest): ApiResponse<VestingScheduleData> => {
     throw new ApiError({ message: 'Address parameter is required and must be valid', status: 400, capture: false });
 
   const { address } = parsedQuery.data;
-  const ponder = getPonder(NETWORK);
+  const ponder = getPonder();
 
   const schedule = await ponder.query.vestingSchedule.findFirst({
     where: (vestingSchedule, { eq }) => eq(vestingSchedule.id, address)

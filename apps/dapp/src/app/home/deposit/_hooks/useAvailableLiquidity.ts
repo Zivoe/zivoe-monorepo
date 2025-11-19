@@ -1,4 +1,5 @@
-import { CONTRACTS } from '@/lib/constants';
+import { CONTRACTS } from '@zivoe/contracts';
+
 import { queryKeys } from '@/lib/query-keys';
 
 import { useBalance } from '@/hooks/useBalance';

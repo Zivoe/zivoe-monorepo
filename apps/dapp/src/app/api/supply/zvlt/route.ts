@@ -4,15 +4,13 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { ipAddress } from '@vercel/functions';
 import { formatUnits } from 'viem';
 
-import { getContracts } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { redis } from '@/server/clients/redis';
 import { getWeb3Client } from '@/server/clients/web3';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
-
-import { env } from '@/env';
 
 const DEFAULT_ERROR_MESSAGE = 'Error getting zVLT supply';
 
@@ -39,13 +37,11 @@ const handler = async (req: NextRequest) => {
     throw new ApiError({ message: 'The request has been rate limited.', status: 429, headers });
 
   // Get zVLT supply
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const client = getWeb3Client(network);
-  const contracts = getContracts(network);
+  const client = getWeb3Client();
 
   const supply = await handlePromise(
     client.readContract({
-      address: contracts.zVLT,
+      address: CONTRACTS.zVLT,
       abi: zivoeVaultAbi,
       functionName: 'totalSupply'
     })

@@ -4,9 +4,9 @@ import { useSetAtom } from 'jotai';
 import { type SimulateContractParameters, parseEventLogs } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 
-import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionData, transactionAtom } from '@/lib/store';
 import { onTxError, skipTxSettled } from '@/lib/utils';

@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
@@ -22,11 +22,10 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKEN_DECIMALS, DepositToken, TOKEN_DECIMALS, Token } from '@/types/constants';
 
-import { NETWORK } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
-const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
+const EXPLORER_URL = mainnet.blockExplorers.default.url;
 
 const TOKEN_ICON: Record<Token, ReactNode> = {
   USDC: <UsdcIcon />,

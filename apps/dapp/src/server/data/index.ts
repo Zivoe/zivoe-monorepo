@@ -7,9 +7,7 @@ import { unstable_cache as nextCache } from 'next/cache';
 import * as Sentry from '@sentry/nextjs';
 import { erc20Abi } from 'viem';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
-
-import { env } from '@/env';
+import { CONTRACTS } from '@zivoe/contracts';
 
 import { getDb } from '../clients/db';
 import { getWeb3Client } from '../clients/web3';
@@ -20,7 +18,7 @@ const getDepositDailyData = reactCache(
   nextCache(
     async () => {
       try {
-        const db = getDb(env.NEXT_PUBLIC_NETWORK);
+        const db = getDb();
         const data = await db.daily
           .find({ timestamp: { $gte: new Date('2025-06-20') } })
           .sort({ timestamp: 1 })
@@ -89,8 +87,7 @@ export type CurrentDailyData = NonNullable<Awaited<ReturnType<typeof getCurrentD
 const getRevenue = nextCache(
   async () => {
     try {
-      const network = env.NEXT_PUBLIC_NETWORK;
-      const db = getDb(network);
+      const db = getDb();
 
       const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
       if (!latestData?.loansRevenue) return null;
@@ -110,7 +107,7 @@ const getRevenue = nextCache(
 
 const getLiquidity = async () => {
   try {
-    const client = getWeb3Client(NETWORK);
+    const client = getWeb3Client();
 
     const [currentDailyData, uniswap] = await Promise.all([
       getCurrentDailyData(),
@@ -148,7 +145,7 @@ const getTransparencyLoansData = reactCache(
   nextCache(
     async () => {
       try {
-        const db = getDb(NETWORK);
+        const db = getDb();
 
         const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
         if (!latestData?.loansRevenue) return null;

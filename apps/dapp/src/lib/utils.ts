@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { QueryClient } from '@tanstack/react-query';
 import { Address, TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { toast } from '@zivoe/ui/core/sonner';
 
@@ -13,7 +14,6 @@ import { TransactionData } from '@/lib/store';
 
 import { env } from '@/env';
 
-import { CONTRACTS } from './constants';
 import { queryKeys } from './query-keys';
 
 export const DAY_IN_SECONDS = 86400;
