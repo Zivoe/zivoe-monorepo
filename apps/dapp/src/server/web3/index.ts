@@ -267,6 +267,11 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
   let portfolioARevenue = 860736114911n;
   let portfolioBRevenue = 0n;
 
+  // Manual Payment based on https://etherscan.io/tx/0x51657f55d5dbf8e3aa7dbc41c07bba5e021a0a043a14359273d5d70c0147934e
+  if (blockNumber >= 23771206n) {
+    portfolioARevenue += 70774103958n;
+  }
+
   for (const log of repayLogs) {
     const { amount, base, user } = log.args;
     if (!amount || !base || !user) continue;
