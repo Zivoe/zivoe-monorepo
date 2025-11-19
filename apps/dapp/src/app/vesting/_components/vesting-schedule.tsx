@@ -59,7 +59,7 @@ export function VestingSchedule() {
 
   const milestones: Array<{ title: string; timestamp: bigint; state: MilestoneState }> = [
     {
-      title: 'Vesting Schedule Created',
+      title: 'Vesting Starts',
       timestamp: vestingSchedule.start,
       state: getMilestoneState(0)
     },
