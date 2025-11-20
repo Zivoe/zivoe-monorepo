@@ -17,7 +17,6 @@ import { customNumber } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 const CHART_TYPES = ['Index price', 'TVL'] as const;
-type ChartType = (typeof CHART_TYPES)[number];
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
@@ -77,7 +76,8 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
               minTickGap={20}
               width={60}
               scale="linear"
-              domain={DOMAINS[chart.type]}
+              domain={chart.domain}
+              ticks={chart.ticks}
               tickFormatter={(value) => (chart.type === 'TVL' ? customNumber(value) : value)}
             />
 
@@ -119,11 +119,6 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
   );
 }
 
-const DOMAINS: Record<ChartType, [number, number]> = {
-  'Index price': [0.99, 1.05],
-  TVL: [5_000_000, 10_000_000]
-};
-
 const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDailyData>; typeIndex: Key }) => {
   const type = CHART_TYPES[Number(typeIndex)];
   if (!type) return undefined;
@@ -153,9 +148,31 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
   else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl.total)));
   else currentValue = currentDailyData.apy;
 
+  let domain: [number, number];
+  let ticks: number[] | undefined;
+
+  if (type === 'TVL') {
+    domain = [5_000_000, 10_000_000];
+  } else {
+    const values = data.map((d) => d.data).filter((d) => d !== undefined);
+    const maxValue = Math.max(...values);
+
+    // Round up to nearest 0.01
+    const roundedMax = Math.ceil(maxValue * 100) / 100;
+    domain = [0.99, roundedMax];
+
+    // Generate ticks at 0.01 intervals
+    ticks = [];
+    for (let tick = 0.99; tick <= roundedMax; tick = Math.round((tick + 0.01) * 100) / 100) {
+      ticks.push(tick);
+    }
+  }
+
   return {
     data,
     currentValue,
-    type
+    type,
+    domain,
+    ticks
   };
 };
