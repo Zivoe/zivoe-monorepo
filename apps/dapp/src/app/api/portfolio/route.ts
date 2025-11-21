@@ -48,8 +48,11 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
 
   const snapshotsReq = handlePromise(
     ponder.query.balanceSnapshot.findMany({
-      where: (balanceSnapshot, { and, eq, gt }) =>
-        and(eq(balanceSnapshot.tokenAddress, CONTRACTS.zVLT), eq(balanceSnapshot.accountId, address.toLowerCase())),
+      where: (balanceSnapshot, { and, eq }) =>
+        and(
+          eq(balanceSnapshot.tokenAddress, CONTRACTS.zVLT.toLowerCase()),
+          eq(balanceSnapshot.accountId, address.toLowerCase())
+        ),
       orderBy: (balanceSnapshot, { asc }) => asc(balanceSnapshot.timestamp),
       columns: {
         timestamp: true,
