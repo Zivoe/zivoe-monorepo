@@ -1,9 +1,9 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleAbi } from '@zivoe/contracts/abis';
 
-import { CONTRACTS } from '@/lib/constants';
 import { queryKeys } from '@/lib/query-keys';
 
 export const useRedemption = () => {

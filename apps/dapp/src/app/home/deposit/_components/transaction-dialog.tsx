@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
@@ -22,11 +22,10 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKEN_DECIMALS, DepositToken, TOKEN_DECIMALS, Token } from '@/types/constants';
 
-import { NETWORK } from '@/lib/constants';
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
-const EXPLORER_URL = NETWORK === 'SEPOLIA' ? sepolia.blockExplorers.default.url : mainnet.blockExplorers.default.url;
+const EXPLORER_URL = mainnet.blockExplorers.default.url;
 
 const TOKEN_ICON: Record<Token, ReactNode> = {
   USDC: <UsdcIcon />,
@@ -153,16 +152,28 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
+          {transaction.meta?.claim && (
+            <TransactionDialogTokensSection>
+              <TransactionDialogToken
+                token="ZVE"
+                amount={transaction.meta.claim.amount}
+                decimals={18}
+                icon={<ZVltLogo />}
+              />
+            </TransactionDialogTokensSection>
+          )}
+
           <div className="flex gap-4">
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
             </Button>
 
-            {transaction.type === 'SUCCESS' && (transaction.meta?.deposit || transaction.meta?.redeem) && (
-              <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
-                View Portfolio
-              </Link>
-            )}
+            {transaction.type === 'SUCCESS' &&
+              (transaction.meta?.deposit || transaction.meta?.redeem || transaction.meta?.claim) && (
+                <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
+                  View Portfolio
+                </Link>
+              )}
 
             {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
               <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
@@ -190,7 +201,7 @@ function TransactionDialogToken({
   decimals,
   icon
 }: {
-  token: DepositToken | 'zVLT' | 'stSTT';
+  token: DepositToken | 'zVLT' | 'stSTT' | 'ZVE';
   amount: bigint;
   decimals: number;
   icon: ReactNode;

@@ -3,7 +3,6 @@
 import { ZapIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { NETWORK } from '@/lib/constants';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAvailableLiquidity } from '../_hooks/useAvailableLiquidity';
@@ -16,7 +15,7 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
 
   const formatted = formatBigIntWithCommas({
     value: liquidity.data,
-    tokenDecimals: NETWORK === 'MAINNET' ? 6 : 18
+    tokenDecimals: 6
   });
 
   return (

@@ -16,7 +16,7 @@ const ZVLT_DECIMALS = 18;
 export const getZVLTTokenHolders = async ({ ponder, contracts }: { ponder: Ponder; contracts: Contracts }) => {
   const balances = await ponder.query.tokenBalance.findMany({
     where: (tokenBalance, { and, eq, gt }) =>
-      and(eq(tokenBalance.tokenAddress, contracts.zVLT), gt(tokenBalance.balance, 0n)),
+      and(eq(tokenBalance.tokenAddress, contracts.zVLT.toLowerCase()), gt(tokenBalance.balance, 0n)),
     columns: {
       accountId: true,
       balance: true

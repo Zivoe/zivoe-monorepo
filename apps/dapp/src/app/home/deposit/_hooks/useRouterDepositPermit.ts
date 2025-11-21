@@ -3,16 +3,15 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { WriteContractParameters } from 'wagmi/actions';
 
-import { Network } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
 import { DepositToken } from '@/types/constants';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import {
   AppError,
@@ -70,7 +69,7 @@ export const useRouterDepositPermit = () => {
             deadline
           },
           domain: {
-            ...DOMAIN[NETWORK][stableCoinName],
+            ...DOMAIN[stableCoinName],
             verifyingContract: CONTRACTS[stableCoinName]
           }
         })
@@ -158,31 +157,16 @@ export const useRouterDepositPermit = () => {
   };
 };
 
-const DOMAIN: Record<Network, Record<RouterDepositPermitToken, { name: string; version: string; chainId: number }>> = {
-  MAINNET: {
-    USDC: {
-      name: 'USD Coin',
-      version: '2',
-      chainId: mainnet.id
-    },
-    frxUSD: {
-      name: 'Frax USD',
-      version: '1',
-      chainId: mainnet.id
-    }
+const DOMAIN: Record<RouterDepositPermitToken, { name: string; version: string; chainId: number }> = {
+  USDC: {
+    name: 'USD Coin',
+    version: '2',
+    chainId: mainnet.id
   },
-
-  SEPOLIA: {
-    USDC: {
-      name: 'USD Coin',
-      version: '1',
-      chainId: sepolia.id
-    },
-    frxUSD: {
-      name: 'Frax USD',
-      version: '1',
-      chainId: sepolia.id
-    }
+  frxUSD: {
+    name: 'Frax USD',
+    version: '1',
+    chainId: mainnet.id
   }
 };
 

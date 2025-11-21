@@ -6,7 +6,7 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { PublicClient } from 'viem';
 import { z } from 'zod';
 
-import { Contracts, NETWORKS, getContracts } from '@zivoe/contracts';
+import { CONTRACTS, Contracts } from '@zivoe/contracts';
 
 import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
@@ -24,7 +24,6 @@ import { ApiResponse, getLastBlockByDate, getUTCStartOfDay } from '../../utils';
 const MONITOR_SLUG = 'deposit-daily-cron';
 
 const bodySchema = z.object({
-  network: z.enum(NETWORKS),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional()
 });
@@ -42,19 +41,15 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
     throw new ApiError({ message: 'Network parameter is not valid', status: 400, capture: false });
 
   // Get context
-  const { network, startDate, endDate } = parsedBody.data;
+  const { startDate, endDate } = parsedBody.data;
 
-  let sentryCheckInId: string | null = null;
-  if (network === 'MAINNET') {
-    sentryCheckInId = Sentry.captureCheckIn({
-      monitorSlug: MONITOR_SLUG,
-      status: 'in_progress'
-    });
-  }
+  const sentryCheckInId = Sentry.captureCheckIn({
+    monitorSlug: MONITOR_SLUG,
+    status: 'in_progress'
+  });
 
-  const client = getWeb3Client(network);
-  const contracts = getContracts(network);
-  const db = getDb(network);
+  const client = getWeb3Client();
+  const db = getDb();
 
   // Determine date range to process
   let start: Date, end: Date;
@@ -96,7 +91,9 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
 
   for (let i = 0; i < datesToProcess.length; i += BATCH_SIZE) {
     const batch = datesToProcess.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(batch.map((date) => collectDailyData({ date, client, contracts })));
+    const batchResults = await Promise.all(
+      batch.map((date) => collectDailyData({ date, client, contracts: CONTRACTS }))
+    );
 
     const validResults = batchResults.filter((result): result is { data: DailyData } => result.data !== undefined);
     dailyDataToInsert.push(...validResults.map((result) => result.data));
@@ -122,13 +119,11 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
       throw new ApiError({ message: 'Failed to revalidate landing page', status: 500, exception: err });
   }
 
-  if (sentryCheckInId) {
-    Sentry.captureCheckIn({
-      checkInId: sentryCheckInId,
-      monitorSlug: MONITOR_SLUG,
-      status: 'ok'
-    });
-  }
+  Sentry.captureCheckIn({
+    checkInId: sentryCheckInId,
+    monitorSlug: MONITOR_SLUG,
+    status: 'ok'
+  });
 
   return NextResponse.json({ success: true, data: 'Deposit daily data collected' });
 };

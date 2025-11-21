@@ -17,6 +17,7 @@ import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit'
 import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
 import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
 import { UnstakeStSTTParams } from '@/app/portfolio/_hooks/useUnstakeStSTT';
+import { ClaimVestingParams } from '@/app/vesting/_hooks/useClaimVesting';
 
 import { useAccount } from './useAccount';
 import { ApproveTokenParams } from './useApproveSpending';
@@ -56,6 +57,7 @@ export default function useTx() {
       | VaultDepositParams
       | RedeemUSDCParams
       | UnstakeStSTTParams
+      | ClaimVestingParams
   ) => {
     const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
 
@@ -75,13 +77,22 @@ export default function useTx() {
     return { hash, sendTx };
   };
 
-  const waitForTxReceipt = async ({ hash, messages }: { hash: Hash; messages: { pending: string } }) => {
+  const waitForTxReceipt = async ({
+    hash,
+    messages,
+    delay
+  }: {
+    hash: Hash;
+    messages: { pending: string };
+    delay?: number;
+  }) => {
     if (!publicClient) throw new Error('Public client not found');
 
     setIsTxPending(true);
     const toastId = toast({ type: 'pending', title: messages.pending });
 
     const { err, res: receipt } = await handlePromise(publicClient.waitForTransactionReceipt({ hash }));
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
 
     setIsTxPending(false);
     sonnerToast.dismiss(toastId);

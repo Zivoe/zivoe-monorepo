@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
-import { erc20Abi, formatUnits, parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
-import { Network } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
@@ -17,7 +17,6 @@ import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, Select
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -134,7 +133,7 @@ export function DepositFlow({ apy }: { apy: number | null }) {
       spender: approveToken === 'USDT' ? CONTRACTS.zRTR : CONTRACTS.zVLT,
       amount: depositRaw,
       name: approveToken,
-      abi: APPROVE_TOKEN_ABI[NETWORK][approveToken],
+      abi: APPROVE_TOKEN_ABI[approveToken],
       successMessage: `You can now deposit ${approveToken}`,
       errorMessage: `There was an error approving ${approveToken}`
     });
@@ -501,13 +500,7 @@ function EstimatedAnnualReturn({ depositAmount, apy }: { depositAmount: string; 
   );
 }
 
-const APPROVE_TOKEN_ABI: Record<Network, Record<Extract<DepositToken, 'USDT' | 'zSTT'>, ApproveTokenAbi>> = {
-  MAINNET: {
-    USDT: tetherTokenAbi,
-    zSTT: zivoeTrancheTokenAbi
-  },
-  SEPOLIA: {
-    USDT: erc20Abi,
-    zSTT: zivoeTrancheTokenAbi
-  }
+const APPROVE_TOKEN_ABI: Record<Extract<DepositToken, 'USDT' | 'zSTT'>, ApproveTokenAbi> = {
+  USDT: tetherTokenAbi,
+  zSTT: zivoeTrancheTokenAbi
 };

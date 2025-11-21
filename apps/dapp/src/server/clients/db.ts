@@ -4,8 +4,6 @@ import { cache } from 'react';
 
 import { Collection, MongoClient, ServerApiVersion } from 'mongodb';
 
-import type { Network } from '@zivoe/contracts';
-
 import { env } from '@/env.js';
 import { DailyData } from '@/types';
 
@@ -21,9 +19,8 @@ const mongoClient =
 
 if (env.NODE_ENV !== 'production') globalForDb.mongoClient = mongoClient;
 
-export const getDb = cache((network: Network) => {
-  let zivoeDb = mongoClient.db('ZivoeMainnet');
-  if (network === 'SEPOLIA') zivoeDb = mongoClient.db('ZivoeSepolia');
+export const getDb = cache(() => {
+  const zivoeDb = mongoClient.db('ZivoeMainnet');
 
   return {
     daily: zivoeDb.collection('Daily') as Collection<DailyData>

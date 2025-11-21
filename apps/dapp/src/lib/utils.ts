@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { QueryClient } from '@tanstack/react-query';
 import { Address, TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { toast } from '@zivoe/ui/core/sonner';
 
@@ -13,7 +14,6 @@ import { TransactionData } from '@/lib/store';
 
 import { env } from '@/env';
 
-import { CONTRACTS } from './constants';
 import { queryKeys } from './query-keys';
 
 export const DAY_IN_SECONDS = 86400;
@@ -48,11 +48,13 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
 export const formatBigIntWithCommas = ({
   value,
   tokenDecimals = 18,
-  displayDecimals = 2
+  displayDecimals = 2,
+  showUnderZero = false
 }: {
   value: bigint;
   tokenDecimals?: number;
   displayDecimals?: number;
+  showUnderZero?: boolean;
 }) => {
   const inEther = formatUnits(value, tokenDecimals);
   const numericValue = Number(inEther);
@@ -60,10 +62,12 @@ export const formatBigIntWithCommas = ({
   const multiplier = Math.pow(10, displayDecimals);
   const rounded = Math.floor(numericValue * multiplier) / multiplier;
 
-  return rounded.toLocaleString('en-US', {
+  const formatted = rounded.toLocaleString('en-US', {
     minimumFractionDigits: displayDecimals,
     maximumFractionDigits: displayDecimals
   });
+
+  return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
 
 const floorToDecimals = (num: number, decimals: number = 2) => {

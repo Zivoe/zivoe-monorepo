@@ -1,12 +1,10 @@
 import { Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 
-import { Network } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 import { occCycleAbi, occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
-import { DAYS_PER_YEAR, handlePromise } from '@/lib/utils';
-import { DAY_IN_SECONDS } from '@/lib/utils';
+import { DAYS_PER_YEAR, DAY_IN_SECONDS } from '@/lib/utils';
 
 import { TVL, Web3Request } from '@/types';
 
@@ -68,16 +66,6 @@ const getAPY = async ({ client, contracts, blockNumber }: Web3Request) => {
   return Number(apy.toFixed(6));
 };
 
-const getDecimals = (network: Network) => {
-  return {
-    USDC: 6,
-    USDT: 6,
-    frxUSD: 18,
-    M0: 6,
-    aUSDC: network === 'SEPOLIA' ? 18 : 6
-  } as const;
-};
-
 // Normalize to 18 decimals for consistent calculation
 const normalizeToDecimals18 = (value: bigint, decimals: number): bigint => {
   return value * 10n ** BigInt(18 - decimals);
@@ -88,19 +76,20 @@ const OCC_USDC_LOAN_ID = 0n;
 const PORTFOLIO_A_ADDRESS = '0xC8d6248fFbc59BFD51B23E69b962C60590d5f026' as const;
 const PORTFOLIO_B_ADDRESS = '0x50C72Ff8c5e7498F64BEAeB8Ed5BE83CABEB0Fd5' as const;
 
-const OCC_VARIABLE_START_BLOCK: Record<Network, bigint> = {
-  MAINNET: 23228086n,
-  SEPOLIA: 9077792n
-};
+const OCC_VARIABLE_START_BLOCK = 23228086n;
+const OCC_CYCLE_START_BLOCK = 23484381n;
 
-const OCC_CYCLE_START_BLOCK: Record<Network, bigint> = {
-  MAINNET: 23484381n,
-  SEPOLIA: 9320714n
-};
+const DECIMALS = {
+  USDC: 6,
+  USDT: 6,
+  frxUSD: 18,
+  M0: 6,
+  aUSDC: 6
+} as const;
 
 const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
-  const isOCCVariable = blockNumber >= OCC_VARIABLE_START_BLOCK[NETWORK];
-  const isOCCCycle = blockNumber >= OCC_CYCLE_START_BLOCK[NETWORK];
+  const isOCCVariable = blockNumber >= OCC_VARIABLE_START_BLOCK;
+  const isOCCCycle = blockNumber >= OCC_CYCLE_START_BLOCK;
 
   const getBalance = (address: Address, holder: Address) =>
     client.readContract({
@@ -189,25 +178,23 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
       : Promise.resolve(0n)
   ]);
 
-  const decimals = getDecimals(NETWORK);
-
   const usdcTotal = normalizeToDecimals18(
     usdcInDAO + usdcInYDL + usdcInStSTT + usdcInOCT_DAO + usdcInOCC,
-    decimals.USDC
+    DECIMALS.USDC
   );
-  const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, decimals.USDT);
-  const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, decimals.frxUSD);
+  const usdtTotal = normalizeToDecimals18(usdtInDAO + usdtInOCT_DAO, DECIMALS.USDT);
+  const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, DECIMALS.frxUSD);
   const stablecoinsTotal = usdcTotal + usdtTotal + frxUSDTotal;
-  const stablecoinsTotal30Days = normalizeToDecimals18(usdcInYDL + usdcInStSTT, decimals.USDC);
+  const stablecoinsTotal30Days = normalizeToDecimals18(usdcInYDL + usdcInStSTT, DECIMALS.USDC);
 
-  const m0Total = normalizeToDecimals18(m0InDAO + m0InOCT_DAO, decimals.M0);
+  const m0Total = normalizeToDecimals18(m0InDAO + m0InOCT_DAO, DECIMALS.M0);
   const treasuryBillsTotal = m0Total;
 
-  const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR + aUSDCInOCR_Cycle, decimals.aUSDC);
+  const aUSDCTotal = normalizeToDecimals18(aUSDCInOCR + aUSDCInOCR_Cycle, DECIMALS.aUSDC);
   const deFiTotal = aUSDCTotal;
 
-  const portfolioALoansTotal = normalizeToDecimals18(occModularInfo[1] + portfolioAOccCycleAmount, decimals.USDC);
-  const portfolioBLoansTotal = normalizeToDecimals18(loanVariableAmount + portfolioBOccCycleAmount, decimals.USDC);
+  const portfolioALoansTotal = normalizeToDecimals18(occModularInfo[1] + portfolioAOccCycleAmount, DECIMALS.USDC);
+  const portfolioBLoansTotal = normalizeToDecimals18(loanVariableAmount + portfolioBOccCycleAmount, DECIMALS.USDC);
   const loansTotal = portfolioALoansTotal + portfolioBLoansTotal;
 
   const tvl = stablecoinsTotal + treasuryBillsTotal + deFiTotal + loansTotal;
@@ -251,7 +238,7 @@ const getZSTTTotalSupply = async ({ client, contracts, blockNumber }: Web3Reques
 };
 
 const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) => {
-  const occCycleStartBlock = OCC_CYCLE_START_BLOCK[NETWORK];
+  const occCycleStartBlock = OCC_CYCLE_START_BLOCK;
 
   if (blockNumber < occCycleStartBlock) {
     return {
@@ -279,6 +266,11 @@ const getLoansRevenue = async ({ client, contracts, blockNumber }: Web3Request) 
 
   let portfolioARevenue = 860736114911n;
   let portfolioBRevenue = 0n;
+
+  // Manual Payment based on https://etherscan.io/tx/0x51657f55d5dbf8e3aa7dbc41c07bba5e021a0a043a14359273d5d70c0147934e
+  if (blockNumber >= 23771206n) {
+    portfolioARevenue += 70774103958n;
+  }
 
   for (const log of repayLogs) {
     const { amount, base, user } = log.args;

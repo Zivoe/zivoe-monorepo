@@ -2,11 +2,12 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { usePublicClient } from 'wagmi';
 
+import { CONTRACTS } from '@zivoe/contracts';
+
 import { DEPOSIT_TOKENS, DepositToken } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
 
-import { CONTRACTS } from '../lib/constants';
 import { useAccount } from './useAccount';
 
 export const useDepositBalances = () => {

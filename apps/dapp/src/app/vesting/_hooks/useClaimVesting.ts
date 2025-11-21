@@ -5,33 +5,30 @@ import { type SimulateContractParameters, parseEventLogs } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
-import { zivoeRewardsAbi } from '@zivoe/contracts/abis';
+import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { TransactionData, transactionAtom, unstakeDialogAtom } from '@/lib/store';
-import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
+import { TransactionData, transactionAtom } from '@/lib/store';
+import { onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
 
-export type UnstakeStSTTParams = WriteContractParameters<typeof zivoeRewardsAbi, 'withdraw'>;
+export type ClaimVestingParams = WriteContractParameters<typeof zivoeRewardsVestingAbi, 'getRewards'>;
 
-export const useUnstakeStSTT = () => {
+export const useClaimVesting = () => {
   const { address } = useAccount();
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const setTransaction = useSetAtom(transactionAtom);
-  const setIsUnstakeDialogOpen = useSetAtom(unstakeDialogAtom);
 
   const mutationInfo = useMutation({
-    mutationFn: async ({ amount }: { amount?: bigint }) => {
-      if (!amount || amount === 0n) throw new AppError({ message: 'No amount to unstake' });
-
-      const params: UnstakeStSTTParams & SimulateContractParameters = {
-        abi: zivoeRewardsAbi,
-        address: CONTRACTS.stSTT,
-        functionName: 'withdraw',
-        args: [amount]
+    mutationFn: async () => {
+      const params: ClaimVestingParams & SimulateContractParameters = {
+        abi: zivoeRewardsVestingAbi,
+        address: CONTRACTS.vestZVE,
+        functionName: 'fullWithdraw',
+        args: []
       };
 
       await simulateTx(params);
@@ -40,17 +37,18 @@ export const useUnstakeStSTT = () => {
 
       const receipt = await waitForTxReceipt({
         hash,
-        messages: { pending: 'Unstaking stSTT...' }
+        messages: { pending: 'Claiming...' },
+        delay: 2000
       });
 
-      return { receipt, amount };
+      return { receipt };
     },
 
-    onError: (err, variables) => {
+    onError: (err) => {
       onTxError({
         err,
-        defaultToastMsg: 'Error Unstaking stSTT',
-        sentry: { flow: 'unstake-ststt', extras: variables }
+        defaultToastMsg: 'Error claiming',
+        sentry: { flow: 'claim-vesting', extras: {} }
       });
     },
 
@@ -59,7 +57,7 @@ export const useUnstakeStSTT = () => {
 
       try {
         const withdrawnLogs = parseEventLogs({
-          abi: zivoeRewardsAbi,
+          abi: zivoeRewardsVestingAbi,
           eventName: 'Withdrawn',
           logs: receipt.logs
         });
@@ -67,13 +65,13 @@ export const useUnstakeStSTT = () => {
         const withdrawnLog = withdrawnLogs[0];
         if (withdrawnLog) amount = withdrawnLog.args.amount;
       } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'unstake-ststt' } });
+        Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'claim-vesting' } });
       }
 
       let meta: TransactionData['meta'] = undefined;
       if (amount) {
         meta = {
-          unstake: { amount, receive: amount }
+          claim: { amount }
         };
       }
 
@@ -81,36 +79,37 @@ export const useUnstakeStSTT = () => {
         receipt.status === 'success'
           ? {
               type: 'SUCCESS',
-              title: 'Unstake Successful',
-              description: 'Your unstake has been completed.',
+              title: 'Claim Successful',
+              description: 'You have claimed all vested tokens',
               hash: receipt.transactionHash,
               meta
             }
           : {
               type: 'ERROR',
-              title: 'Unstake Failed',
-              description: 'There was an error unstaking your stSTT',
+              title: 'Claim Failed',
+              description: 'There was an error claiming your vested ZVE',
               hash: receipt.transactionHash
             };
 
       setTransaction(transactionData);
-      if (transactionData.type === 'SUCCESS') setIsUnstakeDialogOpen(false);
     },
 
     onSettled: (_, err) => {
       if (skipTxSettled(err)) return;
 
-      // Refetch stSTT balance
+      // Refetch vesting schedule
       queryClient.invalidateQueries({
-        queryKey: queryKeys.account.balanceOf({
-          accountAddress: address,
-          id: CONTRACTS.stSTT
-        })
+        queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
       });
 
-      // Refetch zSTT balance
+      // Refetch claimable amount
       queryClient.invalidateQueries({
-        queryKey: queryKeys.account.depositBalances({ accountAddress: address })
+        queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
+      });
+
+      // Refetch blockchain timestamp
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.app.blockchainTimestamp
       });
     }
   });

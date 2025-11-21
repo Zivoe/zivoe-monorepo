@@ -1,4 +1,4 @@
-import { CONTRACTS } from '@/lib/constants';
+import { CONTRACTS } from '@zivoe/contracts';
 
 import { useAllowance } from '@/hooks/useAllowance';
 

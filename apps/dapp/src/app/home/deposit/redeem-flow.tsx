@@ -8,10 +8,10 @@ import { formatUnits, parseUnits } from 'viem';
 import { erc20Abi } from 'viem';
 import { z } from 'zod';
 
+import { CONTRACTS } from '@zivoe/contracts';
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 
-import { CONTRACTS, NETWORK } from '@/lib/constants';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -72,7 +72,7 @@ export default function RedeemFlow() {
             });
 
             if (usdcAmount) {
-              const receiveAmount = parseUnits(usdcAmount, NETWORK === 'SEPOLIA' ? 18 : 6);
+              const receiveAmount = parseUnits(usdcAmount, 6);
 
               if (receiveAmount > liquidity.data) {
                 ctx.addIssue({

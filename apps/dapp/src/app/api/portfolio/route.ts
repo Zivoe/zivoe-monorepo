@@ -3,20 +3,20 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
-import { getContracts } from '@zivoe/contracts';
+import { CONTRACTS } from '@zivoe/contracts';
 
 import { getDb } from '@/server/clients/db';
 import { getPonder } from '@/server/clients/ponder';
 import { getWeb3Client } from '@/server/clients/web3';
 import { web3 } from '@/server/web3';
 
-import { NETWORK } from '@/lib/constants';
+import { addressSchema } from '@/lib/schemas';
 import { ApiError, DAY_IN_SECONDS, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../utils';
 
 const querySchema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+  address: addressSchema
 });
 
 type Snapshot = {
@@ -42,15 +42,14 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     throw new ApiError({ message: 'Address parameter is required and must be valid', status: 400, capture: false });
 
   const { address } = parsedQuery.data;
-  const ponder = getPonder(NETWORK);
-  const db = getDb(NETWORK);
-  const contracts = getContracts(NETWORK);
-  const web3Client = getWeb3Client(NETWORK);
+  const ponder = getPonder();
+  const db = getDb();
+  const web3Client = getWeb3Client();
 
   const snapshotsReq = handlePromise(
     ponder.query.balanceSnapshot.findMany({
       where: (balanceSnapshot, { and, eq, gt }) =>
-        and(eq(balanceSnapshot.tokenAddress, contracts.zVLT), eq(balanceSnapshot.accountId, address)),
+        and(eq(balanceSnapshot.tokenAddress, CONTRACTS.zVLT), eq(balanceSnapshot.accountId, address.toLowerCase())),
       orderBy: (balanceSnapshot, { asc }) => asc(balanceSnapshot.timestamp),
       columns: {
         timestamp: true,
@@ -61,7 +60,7 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
 
   const dailyReq = handlePromise(db.daily.find({}, { projection: { timestamp: 1, indexPrice: 1 } }).toArray());
   const currentIndexPriceReq = handlePromise(
-    web3.getIndexPrice({ client: web3Client, contracts, blockNumber: undefined })
+    web3.getIndexPrice({ client: web3Client, contracts: CONTRACTS, blockNumber: undefined })
   );
 
   const [snapshotsRes, dailyRes, currentIndexPriceRes] = await Promise.all([
