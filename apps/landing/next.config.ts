@@ -5,8 +5,8 @@ import { withSentryConfig } from '@sentry/nextjs';
 import './src/env';
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   experimental: {
-    ppr: 'incremental',
     staleTimes: {
       dynamic: 30,
       static: 180

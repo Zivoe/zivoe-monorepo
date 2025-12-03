@@ -1,4 +1,4 @@
-import { revalidateTag } from 'next/cache';
+import { updateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { DEPOSIT_DAILY_DATA_TAG } from '@/server/web3';
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: 'X-API-Key header is required' }, { status: 401 });
   if (apiKey !== env.REVALIDATE_API_KEY) return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
 
-  revalidateTag(DEPOSIT_DAILY_DATA_TAG);
+  updateTag(DEPOSIT_DAILY_DATA_TAG);
 
   return NextResponse.json({ success: true });
 }
