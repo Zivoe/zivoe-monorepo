@@ -11,6 +11,8 @@ import { env } from '@/env';
 
 import Providers from './_components/providers';
 
+export const experimental_ppr = true;
+
 const title = 'Zivoe | RWA Credit Protocol';
 const description =
   'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to private credit.';
