@@ -103,7 +103,7 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
   if (insertAllResult.err)
     throw new ApiError({ message: 'Failed to insert daily data', status: 500, exception: insertAllResult.err });
 
-  revalidateTag(DEPOSIT_DAILY_DATA_TAG);
+  revalidateTag(DEPOSIT_DAILY_DATA_TAG, { expire: 0 });
 
   if (env.LANDING_PAGE_URL && env.LANDING_PAGE_REVALIDATE_API_KEY) {
     const { res, err } = await handlePromise(
