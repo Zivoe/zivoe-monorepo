@@ -29,8 +29,7 @@ export default function Hero() {
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
               <p className="text-h4 text-primary sm:text-h2">Your Portal to Private Credit</p>
               <p className="text-smallSubheading text-primary sm:max-w-full">
-                Grow your wealth through a diversified, short-duration portfolio 
-                designed to generate sustainable yield.
+                Grow your wealth through a diversified, short-duration portfolio designed to generate sustainable yield.
               </p>
             </div>
 
