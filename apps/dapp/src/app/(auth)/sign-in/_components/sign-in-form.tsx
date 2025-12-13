@@ -49,14 +49,26 @@ export default function SignInForm() {
             <>
               <Header
                 title="Sign Up or Sign In"
-                description="Enter your email to sign in to your account. If you don't have an account yet, one will be created for you."
+                description={
+                  <p className="text-regular text-secondary">
+                    Enter your email to sign in to your account. If you don't have an account yet, one will be created
+                    for you.
+                  </p>
+                }
               />
 
               <EmailStepForm onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
             </>
           ) : (
             <>
-              <Header title="Verify Your Email" description={`We've sent an OTP code to ${email}.`}>
+              <Header
+                title="Verify Your Email"
+                description={
+                  <p className="text-regular text-secondary">
+                    We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
+                  </p>
+                }
+              >
                 <Button variant="link-primary" onPress={() => setStep('EMAIL')} className="font-medium">
                   <ArrowLeftIcon className="size-4" />
                   <span className="text-leading font-medium">Back</span>
@@ -383,14 +395,22 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
   );
 }
 
-function Header({ title, description, children }: { title: string; description: string; children?: React.ReactNode }) {
+function Header({
+  title,
+  description,
+  children
+}: {
+  title: string;
+  description: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex w-full flex-col gap-11">
       {children}
 
       <div className="flex flex-col gap-4">
         <h1 className="text-neutral-900 text-h5">{title}</h1>
-        <p className="text-regular text-secondary">{description}</p>
+        {description}
       </div>
     </div>
   );
