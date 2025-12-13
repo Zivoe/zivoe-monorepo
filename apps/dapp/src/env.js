@@ -21,6 +21,7 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
     RESEND_API_KEY: z.string(),
+    TURNSTILE_SECRET_KEY: z.string(),
 
     // Vercel (auto-populated on Vercel)
     VERCEL: z.enum(['1', '0']).default('0'),
@@ -38,7 +39,8 @@ export const env = createEnv({
     NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
-    NEXT_PUBLIC_INTERCOM_APP_ID: z.string()
+    NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
   },
 
   runtimeEnv: {
@@ -68,6 +70,8 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
 
     // Vercel
     VERCEL: process.env.VERCEL ?? '0',

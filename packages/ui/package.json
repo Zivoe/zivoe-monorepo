@@ -16,6 +16,7 @@
     "@radix-ui/react-portal": "^1.1.6",
     "@radix-ui/react-scroll-area": "^1.2.3",
     "@storybook/react": "^8.5.8",
+    "input-otp": "^1.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "recharts": "^2.15.1",
     "sonner": "^2.0.3",

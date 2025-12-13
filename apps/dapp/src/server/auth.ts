@@ -5,8 +5,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
-import { emailOTP } from 'better-auth/plugins';
+import { captcha, emailOTP } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
+
+import { WITH_TURNSTILE } from '@/types/constants';
 
 import { sendOTPEmail } from '@/server/utils/send-email';
 
@@ -46,8 +48,9 @@ export const auth = betterAuth({
     window: 60,
     max: 100, // 100 requests per window (global default)
     customRules: {
-      '/email-otp/send-verification-otp': { window: 60, max: 3 },
-      '/sign-in/*': { window: 60, max: 10 }
+      '/email-otp/send-verification-otp': { window: 300, max: 4 },
+      '/sign-in/email-otp': { window: 60, max: 10 },
+      '/sign-in/social': { window: 60, max: 10 }
     },
     customStorage: {
       get: async (key: string) => {
@@ -55,29 +58,36 @@ export const auth = betterAuth({
         return data ?? undefined;
       },
       set: async (key: string, value: { key: string; count: number; lastRequest: number }) => {
-        // Store with 60 second TTL (matching the window)
-        await redis.set(key, value, { ex: 60 });
+        // Store with 5 minute TTL (matching the longest rate limit window)
+        await redis.set(key, value, { ex: 300 });
       }
     }
   },
 
   plugins: [
+    ...(WITH_TURNSTILE
+      ? [
+          captcha({
+            provider: 'cloudflare-turnstile',
+            secretKey: env.TURNSTILE_SECRET_KEY,
+            endpoints: ['/email-otp/send-verification-otp']
+          })
+        ]
+      : []),
+
     emailOTP({
       otpLength: 6,
       expiresIn: 300, // 5 minutes
       storeOTP: 'hashed',
+      allowedAttempts: 3,
 
       async sendVerificationOTP({ email, otp, type }) {
         if (type !== 'sign-in') return;
 
-        const { err } = await handlePromise(
-          sendOTPEmail({
-            to: email,
-            otp
-          })
-        );
-
-        if (err) Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'send-otp' } });
+        // Fire and forget to avoid timing attacks (email enumeration)
+        sendOTPEmail({ to: email, otp }).catch((err) => {
+          Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'send-otp' } });
+        });
       }
     }),
 
@@ -88,8 +98,7 @@ export const auth = betterAuth({
     google: {
       prompt: 'select_account',
       clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      redirectUri: `${BASE_URL}/api/auth/callback/google`
+      clientSecret: env.GOOGLE_CLIENT_SECRET
     }
   },
 
@@ -147,6 +156,11 @@ export const auth = betterAuth({
             );
 
             if (cleanupErr) Sentry.captureException(cleanupErr, { tags: { source: 'SERVER', flow: 'cleanup-user' } });
+
+            // Abort the auth flow - profile creation is required
+            throw new APIError('INTERNAL_SERVER_ERROR', {
+              message: 'Failed to complete signup. Please try again.'
+            });
           }
         }
       }

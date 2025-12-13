@@ -8,6 +8,17 @@ const config: Config = {
     extend: {
       screens: {
         sm: '600px'
+      },
+
+      keyframes: {
+        'caret-blink': {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' }
+        }
+      },
+
+      animation: {
+        'caret-blink': 'caret-blink 1.2s ease-out infinite'
       }
     },
 
@@ -172,7 +183,8 @@ const config: Config = {
       base: 'hsl(var(--neutral-0))',
       neutral: {
         '300': 'hsl(var(--neutral-300))',
-        '600': 'hsl(var(--neutral-600))'
+        '600': 'hsl(var(--neutral-600))',
+        '900': 'hsl(var(--neutral-900))'
       },
       'secondary-contrast': 'hsl(var(--secondary-700))',
       icon: {

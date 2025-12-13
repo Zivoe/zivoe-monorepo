@@ -23,6 +23,7 @@
     "@dynamic-labs/wallet-book": "3.9.13",
     "@hookform/resolvers": "^5.0.1",
     "@intercom/messenger-js-sdk": "^0.0.17",
+    "@marsidev/react-turnstile": "^1.1.0",
     "@ponder/client": "^0.12.0",
     "@react-email/components": "^1.0.1",
     "@sentry/nextjs": "^9.40.0",
