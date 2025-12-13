@@ -14,7 +14,7 @@ export async function sendOTPEmail({ to, otp }: { to: string; otp: string }) {
   const text = toPlainText(html);
 
   const { data, error } = await resend.emails.send({
-    from: 'Acme <onboarding@resend.dev>',
+    from: 'Zivoe <no-reply@zivoe.com>',
     to,
     subject: 'Sign in to Zivoe',
     html,
