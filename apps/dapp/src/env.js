@@ -13,7 +13,21 @@ export const env = createEnv({
     LANDING_PAGE_URL: z.string().optional(),
     LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
     SENTRY_AUTH_TOKEN: z.string(),
-    ZIVOE_API_KEY: z.string()
+    ZIVOE_API_KEY: z.string(),
+
+    // Auth
+    AUTH_DATABASE_URL: z.string(),
+    BETTER_AUTH_SECRET: z.string().min(32),
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
+    RESEND_API_KEY: z.string(),
+
+    // Vercel (auto-populated on Vercel)
+    VERCEL: z.enum(['1', '0']).default('0'),
+    VERCEL_ENV: z.enum(['production', 'preview', 'development']).default('development'),
+    VERCEL_URL: z.string().optional(),
+    VERCEL_BRANCH_URL: z.string().optional(),
+    VERCEL_PROJECT_PRODUCTION_URL: z.string().optional()
   },
 
   client: {
@@ -46,7 +60,21 @@ export const env = createEnv({
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
-    ZIVOE_API_KEY: process.env.ZIVOE_API_KEY
+    ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
+
+    // Auth
+    AUTH_DATABASE_URL: process.env.AUTH_DATABASE_URL,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+
+    // Vercel
+    VERCEL: process.env.VERCEL ?? '0',
+    VERCEL_ENV: process.env.VERCEL_ENV ?? 'development',
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

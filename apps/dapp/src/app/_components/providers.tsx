@@ -18,6 +18,8 @@ import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallb
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
+import { authClient, useSession } from '@/lib/auth-client';
+
 import { useAccount } from '@/hooks/useAccount';
 
 import { env } from '@/env';
@@ -91,6 +93,12 @@ export default function Providers({
     update({});
   }, [pathname]);
 
+  // Refresh the signed cache cookie as RSC are not able to do it
+  // https://www.better-auth.com/docs/integrations/next#rsc-and-server-actions
+  useEffect(() => {
+    authClient.getSession();
+  }, [pathname]);
+
   return (
     <>
       <RouterProvider navigate={router.push}>
@@ -117,13 +125,17 @@ export default function Providers({
 function SentryContext({ children }: { children: ReactNode }) {
   const { address } = useAccount();
   const { primaryWallet } = useDynamicContext();
+  const { data: session } = useSession();
 
   useEffect(() => {
-    Sentry.setUser(address ? { id: address } : null);
+    const userId = session?.user?.id ?? null;
+    const email = session?.user?.email ?? null;
+
+    Sentry.setUser(userId || email || address ? { id: userId ?? undefined, email: email ?? undefined, address } : null);
 
     const wallet = address && primaryWallet?.key ? primaryWallet.key : null;
     Sentry.setTag('wallet', wallet);
-  }, [address, primaryWallet]);
+  }, [address, primaryWallet, session]);
 
   return <>{children}</>;
 }

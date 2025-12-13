@@ -12,7 +12,6 @@ import { Link } from '@zivoe/ui/core/link';
 import { toast } from '@zivoe/ui/core/sonner';
 import { LockIcon } from '@zivoe/ui/icons';
 
-import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
 
 export default function ChainalysisAssessmentDialog() {

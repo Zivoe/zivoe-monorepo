@@ -3,11 +3,12 @@ import { Suspense } from 'react';
 import { Link } from '@zivoe/ui/core/link';
 import { CreditIcon, DollarIcon, DropIcon } from '@zivoe/ui/icons';
 
+import { AppShell } from '@/components/app-shell';
+import Page from '@/components/page';
 import { data } from '@/server/data';
+import { verifySession } from '@/server/data/auth';
 
 import { formatBigIntToReadable } from '@/lib/utils';
-
-import Page from '@/components/page';
 
 import AUMAccordion, { AUMAccordionSkeleton } from './_components/aum/aum-accordion';
 import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donut-chart';
@@ -20,9 +21,12 @@ import LoanCard from './_components/loans';
 import { ZIVOE_ZAPPER_URL } from './_utils/constants';
 
 export default async function TransparencyPage() {
+  await verifySession();
+
   return (
-    <div className="bg-surface-base">
-      <Page className="flex gap-10">
+    <AppShell>
+      <div className="bg-surface-base">
+        <Page className="flex gap-10">
         <div className="space-y-2">
           <h1 className="text-h3 text-primary">Transparency</h1>
           <p className="text-regular text-secondary">Access real-time data and reports about zVLT</p>
@@ -88,8 +92,9 @@ export default async function TransparencyPage() {
             </Suspense>
           </div>
         </Card>
-      </Page>
-    </div>
+        </Page>
+      </div>
+    </AppShell>
   );
 }
 

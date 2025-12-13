@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { DynamicUserProfile, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
@@ -16,6 +16,7 @@ import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
+import { signOut } from '@/lib/auth-client';
 import { truncateAddress } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -36,6 +37,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <Wallet />
+          <SignOut />
           <MobileNavigation />
         </div>
       </div>
@@ -121,5 +123,50 @@ function Wallet() {
         {truncateAddress(address)}
       </Button>
     </ConnectedAccount>
+  );
+}
+
+// TODO: Replace with dropdown with options
+function SignOut() {
+  const router = useRouter();
+  const [isPending, setIsPending] = React.useState(false);
+
+  const handleSignOut = async () => {
+    setIsPending(true);
+
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push('/sign-in');
+          router.refresh();
+        }
+      }
+    });
+
+    setIsPending(false);
+  };
+
+  return (
+    <Button variant="border-light" onPress={handleSignOut} isPending={isPending} aria-label="Sign out">
+      <LogoutIcon className="size-5" />
+    </Button>
+  );
+}
+
+function LogoutIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
   );
 }
