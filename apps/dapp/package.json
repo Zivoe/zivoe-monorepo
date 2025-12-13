@@ -41,7 +41,7 @@
     "ethereum-block-by-date": "^1.5.0",
     "jotai": "^2.12.5",
     "mongodb": "^6.13.1",
-    "next": "15.5.7",
+    "next": "15.6.0-canary.58",
     "pg": "^8.16.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",

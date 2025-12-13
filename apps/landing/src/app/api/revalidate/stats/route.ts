@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: 'X-API-Key header is required' }, { status: 401 });
   if (apiKey !== env.REVALIDATE_API_KEY) return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
 
-  revalidateTag(DEPOSIT_DAILY_DATA_TAG);
+  revalidateTag(DEPOSIT_DAILY_DATA_TAG, { expire: 0 });
 
   return NextResponse.json({ success: true });
 }
