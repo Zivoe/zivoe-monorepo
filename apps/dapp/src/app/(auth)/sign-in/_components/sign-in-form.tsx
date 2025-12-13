@@ -43,7 +43,10 @@ export default function SignInForm() {
 
   return (
     <>
-      <div className="flex max-w-[37rem] flex-1 items-center justify-center lg:items-center">
+      <div className="flex max-w-[37rem] flex-1 flex-col items-center">
+        {/* Top spacer for small height screens */}
+        <div className="min-h-11 flex-1" />
+
         <div className="flex w-full flex-col gap-11">
           {step === 'EMAIL' ? (
             <>
@@ -79,6 +82,9 @@ export default function SignInForm() {
             </>
           )}
         </div>
+
+        {/* Bottom spacer for small height screens */}
+        <div className="min-h-6 flex-1" />
       </div>
 
       <Footer>
