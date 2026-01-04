@@ -16,6 +16,10 @@ export const env = createEnv({
     SENTRY_AUTH_TOKEN: z.string(),
     ZIVOE_API_KEY: z.string(),
 
+    // Newsletter
+    BEEHIIV_PUBLICATION_ID: z.string(),
+    BEEHIIV_API_KEY: z.string(),
+
     // Auth
     AUTH_DATABASE_URL: z.string(),
     BETTER_AUTH_SECRET: z.string().min(32),
@@ -67,6 +71,10 @@ export const env = createEnv({
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
+
+    // Newsletter
+    BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
+    BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
 
     // Auth
     AUTH_DATABASE_URL: process.env.AUTH_DATABASE_URL,

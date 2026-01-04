@@ -186,9 +186,30 @@ export const auth = betterAuth({
             })
             .catch((err) => {
               Sentry.captureException(err, {
-                tags: { source: 'SERVER', flow: 'schedule-welcome-email' }
+                tags: { source: 'SERVER', flow: 'schedule-welcome-email' },
+                extra: { userId: user.id }
               });
             });
+
+          // Subscribe to newsletter (fire and forget - don't block user creation)
+          fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
+            method: 'POST',
+            body: JSON.stringify({
+              email: user.email,
+              utm_source: 'dapp-v2',
+              send_welcome_email: false
+            }),
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${env.BEEHIIV_API_KEY}`
+            }
+          }).catch((err) => {
+            Sentry.captureException(err, {
+              tags: { source: 'SERVER', flow: 'subscribe-newsletter' },
+              extra: { userId: user.id }
+            });
+          });
         }
       }
     }
