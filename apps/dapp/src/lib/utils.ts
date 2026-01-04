@@ -313,3 +313,8 @@ export const getEndOfDayUTC = (date: Date) => {
   d.setUTCHours(23, 59, 59, 999);
   return d;
 };
+
+export const EMAILS = {
+  INVESTORS: 'investors@zivoe.com',
+  INQUIRE: 'inquire@zivoe.com'
+} as const;

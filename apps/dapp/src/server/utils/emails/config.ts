@@ -1,4 +1,8 @@
+import 'server-only';
+
 import { type TailwindConfig, pixelBasedPreset } from '@react-email/components';
+
+import { BASE_URL } from '../base-url';
 
 export const emailTailwindConfig: TailwindConfig = {
   presets: [pixelBasedPreset],
@@ -29,13 +33,5 @@ export const emailTailwindConfig: TailwindConfig = {
   }
 };
 
-// TODO: Upload the logo to our next js app
-export const ZIVOE_LOGO_URL = 'https://0y6j06m0os.ufs.sh/f/2CBiWT05Di8GOe61kB4it3PjRXd4A0ekG2v7oaIQpwWhTJVM';
-
-// TODO: Upload Thor's headshot to our next js app
-export const THOR_AVATAR_URL = 'https://0y6j06m0os.ufs.sh/f/2CBiWT05Di8GZs0hTDnfCWhyzMENnowG9Imp7FYkxsejTbRr';
-
-export const EMAILS = {
-  INVESTORS: 'investors@zivoe.com',
-  INQUIRE: 'inquire@zivoe.com'
-} as const;
+export const ZIVOE_LOGO_URL = `${BASE_URL}/zivoe-logo-email.png`;
+export const THOR_AVATAR_URL = `${BASE_URL}/thor-avatar.jpg`;

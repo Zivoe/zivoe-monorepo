@@ -1,7 +1,7 @@
 import { Link } from '@zivoe/ui/core/link';
 import { EmailIcon } from '@zivoe/ui/icons';
 
-import { EMAILS } from '@/server/utils/emails/config';
+import { EMAILS } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 

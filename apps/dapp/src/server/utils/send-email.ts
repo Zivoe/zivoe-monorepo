@@ -3,9 +3,10 @@ import 'server-only';
 import { render } from '@react-email/components';
 import { Resend } from 'resend';
 
+import { EMAILS } from '@/lib/utils';
+
 import { env } from '@/env';
 
-import { EMAILS } from './emails/config';
 import OTPEmail from './emails/otp-email';
 import WelcomeEmail from './emails/welcome-email';
 
@@ -15,7 +16,7 @@ export async function sendOTPEmail({ to, otp }: { to: string; otp: string }) {
   const html = await render(OTPEmail({ otp }));
 
   const { data, error } = await resend.emails.send({
-    from: 'Zivoe <verify@zivoe.com>',
+    from: 'Zivoe <verify@auth.zivoe.com>',
     replyTo: EMAILS.INVESTORS,
     to,
     subject: 'Sign in to Zivoe',
@@ -32,7 +33,7 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
 
   const { data, error } = await resend.emails.send(
     {
-      from: 'Zivoe <hello@zivoe.com>',
+      from: 'Zivoe <hello@auth.zivoe.com>',
       replyTo: EMAILS.INVESTORS,
       to,
       subject: 'Welcome to Zivoe',

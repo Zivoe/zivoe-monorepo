@@ -6,7 +6,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { LINKS } from '@/types/constants';
 
-import { EMAILS } from '@/server/utils/emails/config';
+import { EMAILS } from '@/lib/utils';
 
 function Container({ children }: { children: React.ReactNode }) {
   return (
