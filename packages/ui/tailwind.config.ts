@@ -7,7 +7,8 @@ const config: Config = {
   theme: {
     extend: {
       screens: {
-        sm: '600px'
+        sm: '600px',
+        '3xl': '1920px'
       },
 
       keyframes: {

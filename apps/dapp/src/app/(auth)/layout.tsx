@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Desktop right panel */}
-      <div className="relative hidden max-h-[calc(100dvh-2rem)] items-end justify-end overflow-hidden rounded-xl bg-element-tertiary xl:flex">
+      <div className="relative hidden max-h-[calc(100dvh-2rem)] items-end justify-start overflow-hidden rounded-xl bg-element-tertiary xl:flex 3xl:justify-end">
         <ZivoeLogo className="absolute left-10 top-10 h-10" />
         <Image
           src="/auth-hero.jpg"
