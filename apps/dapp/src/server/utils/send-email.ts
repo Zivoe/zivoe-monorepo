@@ -33,7 +33,7 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
 
   const { data, error } = await resend.emails.send(
     {
-      from: 'Zivoe <hello@auth.zivoe.com>',
+      from: 'Thor from Zivoe <hello@auth.zivoe.com>',
       replyTo: EMAILS.INVESTORS,
       to,
       subject: 'Welcome to Zivoe',

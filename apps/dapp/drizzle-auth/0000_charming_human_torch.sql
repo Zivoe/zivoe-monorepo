@@ -3,12 +3,11 @@ CREATE TYPE "public"."amount_of_interest" AS ENUM('under_1k', '10k_100k', '100k_
 CREATE TYPE "public"."how_found_zivoe" AS ENUM('x_twitter', 'linkedin', 'google_search', 'media_coverage', 'conference_event', 'word_of_mouth', 'other');--> statement-breakpoint
 CREATE TABLE "profile" (
 	"id" uuid PRIMARY KEY NOT NULL,
-	"account_type" "account_type",
-	"onboarded_at" timestamp with time zone,
-	"first_name" text,
-	"last_name" text,
-	"amount_of_interest" "amount_of_interest",
-	"how_found_zivoe" "how_found_zivoe",
+	"account_type" "account_type" NOT NULL,
+	"first_name" text NOT NULL,
+	"last_name" text NOT NULL,
+	"amount_of_interest" "amount_of_interest" NOT NULL,
+	"how_found_zivoe" "how_found_zivoe" NOT NULL,
 	"country_of_residence" text,
 	"job_title" text,
 	"entity_name" text,

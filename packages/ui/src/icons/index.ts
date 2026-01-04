@@ -48,3 +48,4 @@ export * from './hourglass';
 export * from './clock';
 export * from './google';
 export * from './twitter';
+export * from './logout';

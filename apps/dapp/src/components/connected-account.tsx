@@ -15,11 +15,15 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 export default function ConnectedAccount({
   children,
   fullWidth = true,
-  type = 'loading'
+  type = 'loading',
+  connectCopy = 'Connect Wallet',
+  connectSkeletonClassName
 }: {
   children: ReactNode;
   fullWidth?: boolean;
   type?: 'loading' | 'skeleton';
+  connectCopy?: ReactNode | string;
+  connectSkeletonClassName?: string;
 }) {
   const { setShowAuthFlow, handleLogOut } = useDynamicContext();
   const { isPending, isDisconnected, address } = useAccount();
@@ -37,7 +41,9 @@ export default function ConnectedAccount({
 
   if (isPending || (address && (assessment.isFetching || assessment.isPending))) {
     return type === 'skeleton' ? (
-      <Skeleton className={cn('h-12 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]')} />
+      <Skeleton
+        className={cn('h-12 rounded-[4px]', fullWidth ? 'w-full' : 'w-[9.0625rem]', connectSkeletonClassName)}
+      />
     ) : (
       <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
         Pending
@@ -48,7 +54,7 @@ export default function ConnectedAccount({
   if (isDisconnected)
     return (
       <Button onPress={() => setShowAuthFlow(true)} fullWidth={fullWidth}>
-        Connect Wallet
+        {connectCopy}
       </Button>
     );
 

@@ -26,19 +26,26 @@ const handler = async (req: NextRequest) => {
   // * If we start getting duplicates QStash messages
   // * Implement Redis-based idempotency using Upstash-Message-Id header
 
-  // Verify user is actually onboarded before sending notification
-  const profileResult = await authDb
-    .select({ onboardedAt: profile.onboardedAt })
-    .from(profile)
-    .where(eq(profile.id, parsedBody.data.userId))
-    .limit(1);
+  const { err: profileErr, res: profileRes } = await handlePromise(
+    authDb
+      .select({ id: profile.id, createdAt: profile.createdAt })
+      .from(profile)
+      .where(eq(profile.id, parsedBody.data.userId))
+      .limit(1)
+  );
 
-  if (!profileResult[0]?.onboardedAt) {
-    return NextResponse.json({ success: true, data: 'User not onboarded, skipping Telegram notification' });
+  if (profileErr) {
+    throw new ApiError({ message: 'Failed to query user profile', status: 500, exception: profileErr, capture: false });
+  }
+
+  const profileData = profileRes?.[0];
+
+  if (!profileData || !profileData.createdAt) {
+    throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
   }
 
   const { err } = await handlePromise(sendTelegramMessage({ text: formatOnboardingMessage(parsedBody.data) }));
-  if (err) throw new ApiError({ message: 'Failed to send Telegram notification', status: 500, exception: err });
+  if (err) throw new ApiError({ message: 'Failed to send Telegram notification', status: 500, exception: err, capture: false });
 
   return NextResponse.json({ success: true, data: 'Telegram notification sent' });
 };

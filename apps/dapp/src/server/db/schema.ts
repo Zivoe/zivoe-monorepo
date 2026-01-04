@@ -5,13 +5,7 @@ import { user } from './auth-schema';
 export const accountTypeEnum = pgEnum('account_type', ['individual', 'organization']);
 export type AccountType = (typeof accountTypeEnum.enumValues)[number];
 
-export const amountOfInterestValues = [
-  'under_1k',
-  '10k_100k',
-  '100k_250k',
-  '250k_1m',
-  'over_1m'
-] as const;
+export const amountOfInterestValues = ['under_1k', '10k_100k', '100k_250k', '250k_1m', 'over_1m'] as const;
 export const amountOfInterestEnum = pgEnum('amount_of_interest', amountOfInterestValues);
 export type AmountOfInterest = (typeof amountOfInterestValues)[number];
 
@@ -32,14 +26,12 @@ export const profile = pgTable('profile', {
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
 
-  accountType: accountTypeEnum('account_type'),
-  onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
-
-  // Personal info (both account types)
-  firstName: text('first_name'),
-  lastName: text('last_name'),
-  amountOfInterest: amountOfInterestEnum('amount_of_interest'),
-  howFoundZivoe: howFoundZivoeEnum('how_found_zivoe'),
+  // Personal required fields (set during onboarding)
+  accountType: accountTypeEnum('account_type').notNull(),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  amountOfInterest: amountOfInterestEnum('amount_of_interest').notNull(),
+  howFoundZivoe: howFoundZivoeEnum('how_found_zivoe').notNull(),
 
   // Individual-specific
   countryOfResidence: text('country_of_residence'),

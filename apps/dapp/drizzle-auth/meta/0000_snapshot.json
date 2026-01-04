@@ -1,5 +1,5 @@
 {
-  "id": "e6332167-8fa8-4153-8ebd-c597a5189def",
+  "id": "250a5a6e-dbce-413f-84ca-1b85766aa424",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -19,39 +19,33 @@
           "type": "account_type",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
-        },
-        "onboarded_at": {
-          "name": "onboarded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "first_name": {
           "name": "first_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "last_name": {
           "name": "last_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "amount_of_interest": {
           "name": "amount_of_interest",
           "type": "amount_of_interest",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "how_found_zivoe": {
           "name": "how_found_zivoe",
           "type": "how_found_zivoe",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "country_of_residence": {
           "name": "country_of_residence",

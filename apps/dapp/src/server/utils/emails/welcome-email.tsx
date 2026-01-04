@@ -22,7 +22,7 @@ export default function WelcomeEmail({ name }: { name?: string }) {
   return (
     <Html>
       <Head />
-      <Preview>Thor from Zivoe here — let's connect</Preview>
+      <Preview>Let's connect</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">

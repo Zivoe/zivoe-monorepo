@@ -25,38 +25,38 @@ const handler = async (req: NextRequest) => {
 
   const { userId } = parsedBody.data;
 
-  const result = await authDb
-    .select({
-      email: schema.user.email,
-      firstName: schema.profile.firstName,
-      lastName: schema.profile.lastName,
-      onboardedAt: schema.profile.onboardedAt
-    })
-    .from(schema.user)
-    .leftJoin(schema.profile, eq(schema.user.id, schema.profile.id))
-    .where(eq(schema.user.id, userId))
-    .limit(1);
+  const { err: profileErr, res: profileRes } = await handlePromise(
+    authDb
+      .select({
+        email: schema.user.email,
+        firstName: schema.profile.firstName,
+        lastName: schema.profile.lastName,
+        createdAt: schema.profile.createdAt
+      })
+      .from(schema.user)
+      .leftJoin(schema.profile, eq(schema.user.id, schema.profile.id))
+      .where(eq(schema.user.id, userId))
+      .limit(1)
+  );
 
-  const userData = result[0];
-
-  // User was deleted before welcome email was sent - gracefully skip
-  if (!userData) {
-    return NextResponse.json({ success: true, data: 'User not found, skipping welcome email' });
+  if (profileErr) {
+    throw new ApiError({ message: 'Failed to query user profile', status: 500, exception: profileErr, capture: false });
   }
 
-  // Only send if user has completed onboarding
-  if (!userData.onboardedAt) {
-    return NextResponse.json({ success: true, data: 'User not onboarded, skipping welcome email' });
+  const profile = profileRes?.[0];
+
+  if (!profile || !profile.createdAt) {
+    throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
   }
 
   const { err } = await handlePromise(
     sendWelcomeEmail({
-      to: userData.email,
-      name: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || undefined,
+      to: profile.email,
+      name: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || undefined,
       userId
     })
   );
-  if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err });
+  if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
 
   return NextResponse.json({ success: true, data: 'Welcome email sent' });
 };

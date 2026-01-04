@@ -5,10 +5,8 @@ import { after } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { APIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, emailOTP } from 'better-auth/plugins';
-import { eq } from 'drizzle-orm';
 
 import { WITH_TURNSTILE } from '@/types/constants';
 
@@ -145,35 +143,11 @@ export const auth = betterAuth({
     }
   },
 
-  // create profile record on user signup (atomic: success or rollback)
+  // Subscribe to newsletter and track signup on user creation
   databaseHooks: {
     user: {
       create: {
         after: async (user) => {
-          const { err } = await handlePromise(
-            authDb.insert(schema.profile).values({
-              id: user.id,
-              createdAt: user.createdAt,
-              updatedAt: user.updatedAt
-            })
-          );
-
-          if (err) {
-            Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'create-profile' } });
-
-            // Rollback: delete the orphaned user to maintain data consistency
-            const { err: cleanupErr } = await handlePromise(
-              authDb.delete(schema.user).where(eq(schema.user.id, user.id))
-            );
-
-            if (cleanupErr) Sentry.captureException(cleanupErr, { tags: { source: 'SERVER', flow: 'cleanup-user' } });
-
-            // Abort the auth flow - profile creation is required
-            throw new APIError('INTERNAL_SERVER_ERROR', {
-              message: 'Failed to complete signup. Please try again.'
-            });
-          }
-
           // TODO: test after on Vercel
           after(async () => {
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
