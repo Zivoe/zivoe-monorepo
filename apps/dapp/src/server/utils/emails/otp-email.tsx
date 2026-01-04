@@ -9,49 +9,21 @@ import {
   Preview,
   Section,
   Tailwind,
-  Text,
-  pixelBasedPreset
+  Text
 } from '@react-email/components';
+
+import { emailTailwindConfig, ZIVOE_LOGO_URL } from './config';
 
 export default function OTPEmail({ otp }: { otp: string }) {
   return (
     <Html>
       <Head />
       <Preview>Your Zivoe verification code</Preview>
-      <Tailwind
-        config={{
-          presets: [pixelBasedPreset],
-          theme: {
-            extend: {
-              colors: {
-                neutral: {
-                  0: '#FFFFFF',
-                  25: '#FCFCFD',
-                  50: '#F9FAFB',
-                  100: '#F3F4F6',
-                  200: '#E5E7EB',
-                  300: '#E4E5EB',
-                  400: '#9CA3AF',
-                  500: '#6B7280',
-                  600: '#6B7085',
-                  950: '#12131A'
-                },
-                primary: {
-                  50: '#E6F7F7',
-                  100: '#CCF0F0',
-                  500: '#009999',
-                  600: '#008080',
-                  900: '#004D4D'
-                }
-              }
-            }
-          }
-        }}
-      >
+      <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
             <Section className="mb-8 text-center">
-              <Img src="https://app.zivoe.com/zivoe-logo.png" width="112" height="33" alt="Zivoe" className="mx-auto" />
+              <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" className="mx-auto" />
             </Section>
 
             <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-2 text-center font-semibold">

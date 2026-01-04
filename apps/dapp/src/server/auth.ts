@@ -17,8 +17,12 @@ import { handlePromise } from '@/lib/utils';
 import { env } from '@/env';
 
 import { authDb } from './clients/auth-db';
+import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
+
+// Delay: 24h in production, 60s otherwise (for testing)
+const WELCOME_EMAIL_DELAY_SECONDS = env.NODE_ENV === 'production' ? 86400 : 60;
 
 const BASE_URL =
   env.VERCEL_ENV === 'preview' && env.VERCEL_URL
@@ -170,6 +174,21 @@ export const auth = betterAuth({
               message: 'Failed to complete signup. Please try again.'
             });
           }
+
+          // Schedule welcome email (fire and forget - don't block user creation)
+          qstash
+            .publishJSON({
+              url: `${BASE_URL}/api/email/welcome`,
+              body: { userId: user.id },
+              delay: WELCOME_EMAIL_DELAY_SECONDS,
+              retries: 1,
+              failureCallback: `${BASE_URL}/api/qstash/failure`
+            })
+            .catch((err) => {
+              Sentry.captureException(err, {
+                tags: { source: 'SERVER', flow: 'schedule-welcome-email' }
+              });
+            });
         }
       }
     }
