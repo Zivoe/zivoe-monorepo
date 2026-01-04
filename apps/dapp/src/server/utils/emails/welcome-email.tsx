@@ -65,7 +65,7 @@ export default function WelcomeEmail({ name }: { name?: string }) {
               </Link>
               <Text className="text-sm text-neutral-500 m-0 mt-3">
                 Or reach out on Telegram{' '}
-                <Link href="https://t.me/thorabbasi" className="text-primary-600 underline">
+                <Link href={`${BASE_URL}/telegram/thor`} className="text-primary-600 underline">
                   @thorabbasi
                 </Link>
               </Text>

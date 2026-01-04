@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         source: '/meet/thor',
         destination: 'https://calendly.com/thor-zivoe/conversation',
         permanent: false
+      },
+      {
+        source: '/telegram/thor',
+        destination: 'https://t.me/thorabbasi',
+        permanent: false
       }
     ];
   },
