@@ -47,3 +47,4 @@ export * from './uniswap';
 export * from './hourglass';
 export * from './clock';
 export * from './google';
+export * from './twitter';

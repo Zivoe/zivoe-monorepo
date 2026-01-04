@@ -20,6 +20,8 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
+    TWITTER_CLIENT_ID: z.string(),
+    TWITTER_CLIENT_SECRET: z.string(),
     RESEND_API_KEY: z.string(),
     TURNSTILE_SECRET_KEY: z.string(),
 
@@ -69,6 +71,8 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+    TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,

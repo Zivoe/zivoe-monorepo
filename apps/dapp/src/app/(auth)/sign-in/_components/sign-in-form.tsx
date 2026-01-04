@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -17,7 +17,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from '@zivo
 import { Link, LinkProps } from '@zivoe/ui/core/link';
 import { Separator } from '@zivoe/ui/core/separator';
 import { toast } from '@zivoe/ui/core/sonner';
-import { ArrowLeftIcon, GoogleIcon } from '@zivoe/ui/icons';
+import { ArrowLeftIcon, GoogleIcon, TwitterIcon } from '@zivoe/ui/icons';
 
 import { LINKS, WITH_TURNSTILE } from '@/types/constants';
 
@@ -32,6 +32,8 @@ import { useTurnstile } from '../_hooks/useTurnstile';
 type Step = 'EMAIL' | 'OTP';
 
 export default function SignInForm() {
+  const searchParams = useSearchParams();
+
   const [step, setStep] = useState<Step>('EMAIL');
   const [email, setEmail] = useState('');
   const { turnstileRef, turnstilePromiseRef, executeTurnstile } = useTurnstile();
@@ -40,6 +42,22 @@ export default function SignInForm() {
     setEmail(data.email);
     setStep('OTP');
   };
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+
+    if (error) {
+      // Small delay to ensure toast provider is mounted after hydration
+      setTimeout(() => {
+        toast({
+          title: 'Sign in failed',
+          type: 'error'
+        });
+
+        window.history.replaceState({}, '', '/sign-in');
+      }, 0);
+    }
+  }, [searchParams]);
 
   return (
     <>
@@ -134,13 +152,15 @@ function EmailStepForm({
   executeTurnstile: () => Promise<string>;
 }) {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isTwitterLoading, setIsTwitterLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+  const handleSocialSignIn = async ({ provider }: { provider: 'google' | 'twitter' }) => {
+    if (provider === 'google') setIsGoogleLoading(true);
+    else setIsTwitterLoading(true);
 
     const { err } = await handlePromise(
       authClient.signIn.social({
-        provider: 'google',
+        provider,
         callbackURL: '/'
       })
     );
@@ -152,10 +172,11 @@ function EmailStepForm({
         type: 'error'
       });
 
-      Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'google-signin' } });
+      Sentry.captureException(err, { tags: { source: 'SERVER', flow: `${provider}-signin` } });
     }
 
-    setIsGoogleLoading(false);
+    if (provider === 'google') setIsGoogleLoading(false);
+    else setIsTwitterLoading(false);
   };
 
   const form = useForm<EmailFormData>({
@@ -225,7 +246,7 @@ function EmailStepForm({
           type="submit"
           fullWidth
           isPending={form.formState.isSubmitting}
-          isDisabled={isGoogleLoading}
+          isDisabled={isGoogleLoading || isTwitterLoading}
           pendingContent="Sending code..."
         >
           Continue
@@ -234,17 +255,31 @@ function EmailStepForm({
 
       <Separator>Or</Separator>
 
-      <Button
-        type="button"
-        variant="border-light"
-        fullWidth
-        onPress={handleGoogleSignIn}
-        isPending={isGoogleLoading}
-        isDisabled={form.formState.isSubmitting}
-        className="[&_svg]:!size-6"
-      >
-        <GoogleIcon />
-      </Button>
+      <div className="flex gap-6">
+        <Button
+          type="button"
+          variant="border-light"
+          fullWidth
+          onPress={() => handleSocialSignIn({ provider: 'google' })}
+          isPending={isGoogleLoading}
+          isDisabled={form.formState.isSubmitting || isTwitterLoading}
+          className="[&_svg]:!size-6"
+        >
+          <GoogleIcon />
+        </Button>
+
+        <Button
+          type="button"
+          variant="border-light"
+          fullWidth
+          onPress={() => handleSocialSignIn({ provider: 'twitter' })}
+          isPending={isTwitterLoading}
+          isDisabled={form.formState.isSubmitting || isGoogleLoading}
+          className="[&_svg]:!size-6"
+        >
+          <TwitterIcon />
+        </Button>
+      </div>
     </>
   );
 }
@@ -415,7 +450,7 @@ function Header({
       {children}
 
       <div className="flex flex-col gap-4">
-        <h1 className="text-neutral-900 text-h5">{title}</h1>
+        <h1 className="text-h5 text-neutral-900">{title}</h1>
         {description}
       </div>
     </div>

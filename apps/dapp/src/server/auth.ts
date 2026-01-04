@@ -31,6 +31,10 @@ export const auth = betterAuth({
   baseURL: BASE_URL,
   basePath: '/api/auth',
 
+  onAPIError: {
+    errorURL: '/sign-in'
+  },
+
   database: drizzleAdapter(authDb, {
     provider: 'pg',
     schema
@@ -99,6 +103,10 @@ export const auth = betterAuth({
       prompt: 'select_account',
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET
+    },
+    twitter: {
+      clientId: env.TWITTER_CLIENT_ID,
+      clientSecret: env.TWITTER_CLIENT_SECRET
     }
   },
 
