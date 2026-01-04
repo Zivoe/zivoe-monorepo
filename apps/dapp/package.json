@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate --config=drizzle-auth.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle-auth.config.ts",
     "db:push": "drizzle-kit push --config=drizzle-auth.config.ts",
-    "db:studio": "drizzle-kit studio --config=drizzle-auth.config.ts"
+    "db:studio": "drizzle-kit studio --config=drizzle-auth.config.ts",
+    "email:dev": "email dev --dir src/server/utils/emails --port 3001"
   },
   "dependencies": {
     "@cowprotocol/widget-lib": "^0.20.0",
@@ -60,6 +61,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@react-email/preview-server": "5.1.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/country-list": "^2.1.4",
     "@types/eslint": "^9.6.1",
@@ -78,6 +80,7 @@
     "postcss": "^8.5.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-email": "^5.1.0",
     "require-in-the-middle": "^7.5.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",

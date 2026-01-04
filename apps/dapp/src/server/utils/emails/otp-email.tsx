@@ -12,7 +12,7 @@ import {
   Text
 } from '@react-email/components';
 
-import { emailTailwindConfig, ZIVOE_LOGO_URL } from './config';
+import { ZIVOE_LOGO_URL, emailTailwindConfig } from './config';
 
 export default function OTPEmail({ otp }: { otp: string }) {
   return (
@@ -34,7 +34,10 @@ export default function OTPEmail({ otp }: { otp: string }) {
               Enter this verification code to access your account:
             </Text>
 
-            <Section className="border-primary-100 bg-primary-50 my-6 rounded-xl border px-6 py-8">
+            <Section
+              className="border-primary-100 bg-primary-50 my-6 rounded-xl border px-8 py-10"
+              style={{ boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}
+            >
               <Text className="font-mono text-4xl text-primary-600 m-0 text-center font-bold tracking-[0.3em]">
                 {otp}
               </Text>

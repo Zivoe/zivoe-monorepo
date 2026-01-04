@@ -6,13 +6,14 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Tailwind,
   Text
 } from '@react-email/components';
 
-import { emailTailwindConfig, ZIVOE_LOGO_URL } from './config';
+import { THOR_AVATAR_URL, ZIVOE_LOGO_URL, emailTailwindConfig } from './config';
 
 export default function WelcomeEmail({ name }: { name?: string }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
@@ -20,7 +21,7 @@ export default function WelcomeEmail({ name }: { name?: string }) {
   return (
     <Html>
       <Head />
-      <Preview>Your journey into decentralized credit starts now.</Preview>
+      <Preview>Thor from Zivoe here — let's connect</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
@@ -28,24 +29,61 @@ export default function WelcomeEmail({ name }: { name?: string }) {
               <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" className="mx-auto" />
             </Section>
 
-            <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-2 text-center font-semibold">
+            <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
               Welcome to Zivoe
             </Heading>
 
             <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
             <Text className="m-0 mb-4 leading-6 text-neutral-600">
-              Thank you for joining Zivoe. We&apos;re excited to have you on board.
+              I'm Thor from Zivoe's investor relations team, nice to meet you. I look after new liquidity providers and
+              partners joining the platform.
             </Text>
 
-            <Text className="m-0 mb-6 leading-6 text-neutral-600">
-              Zivoe is a decentralized credit protocol that brings real-world assets on-chain. Start exploring the
-              platform to discover yield opportunities and learn more about our mission.
+            <Text className="m-0 mb-4 leading-6 text-neutral-600">
+              I saw your account creation come through and wanted to check in to see if there are any immediate
+              questions I can help answer.
             </Text>
 
-            <Text className="text-sm text-neutral-500 m-0 mt-4 text-center leading-5">
-              If you have any questions, feel free to reach out to our support team.
+            <Text className="m-0 mb-4 leading-6 text-neutral-600">
+              Our primary offering is zVLT, a yield-bearing token targeting ~15% net annualized returns. The strategy
+              deploys capital across private credit verticals, with a heavy focus on revenue-based financing for small
+              and medium-sized businesses. We offer instant liquidity for retail participants and quarterly redemptions
+              for institutional clients.
             </Text>
+
+            <Text className="m-0 leading-6 text-neutral-600">Worth a quick chat?</Text>
+
+            <Section className="my-8 text-center">
+              <Link
+                href="https://calendly.com/thor-zivoe/conversation"
+                className="text-neutral-0 rounded-lg bg-primary-600 px-6 py-3 font-medium"
+                style={{ display: 'inline-block' }}
+              >
+                Book a Call
+              </Link>
+              <Text className="text-sm text-neutral-500 m-0 mt-3">
+                Or reach out on Telegram{' '}
+                <Link href="https://t.me/thorabbasi" className="text-primary-600 underline">
+                  @thorabbasi
+                </Link>
+              </Text>
+            </Section>
+
+            <Section className="mt-6">
+              <table>
+                <tr>
+                  <td style={{ verticalAlign: 'top', paddingRight: '12px' }}>
+                    <Img src={THOR_AVATAR_URL} width="48" height="48" alt="Thor" style={{ borderRadius: '50%' }} />
+                  </td>
+
+                  <td>
+                    <Text className="text-neutral-950 m-0 font-medium">Thor</Text>
+                    <Text className="text-sm text-neutral-500 m-0">Investor Relations, Zivoe</Text>
+                  </td>
+                </tr>
+              </table>
+            </Section>
 
             <Hr className="border-neutral-200 my-8" />
 
