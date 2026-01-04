@@ -66,30 +66,25 @@ export async function completeOnboarding(data: OnboardingFormData) {
     return { error: 'Failed to complete onboarding. Please try again.' };
   }
 
-  const { onboardedAt, updatedAt, firstName, lastName, ...rest } = updateData;
-
-  const profileData = {
-    email: session.user.email,
-    name: `${firstName} ${lastName}`,
-    ...rest
-  };
-
   // TODO: test after on Vercel
   after(async () => {
     const flows = ['schedule-welcome-email', 'schedule-telegram-notification', 'onboarding-posthog-capture'];
+    const { onboardedAt, updatedAt, firstName, lastName, ...rest } = updateData;
 
     const results = await Promise.allSettled([
       qstash.publishJSON({
         url: `${BASE_URL}/api/email/welcome`,
         body: { userId: session.user.id },
         retries: 3,
+        deduplicationId: `onboarding-welcome-${session.user.id}`,
         failureCallback: `${BASE_URL}/api/qstash/failure`
       }),
 
       qstash.publishJSON({
         url: `${BASE_URL}/api/telegram/onboarding`,
-        body: profileData,
+        body: { userId: session.user.id, email: session.user.email, name: `${firstName} ${lastName}`, ...rest },
         retries: 3,
+        deduplicationId: `onboarding-telegram-${session.user.id}`,
         failureCallback: `${BASE_URL}/api/qstash/failure`
       }),
 

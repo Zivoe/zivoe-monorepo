@@ -25,17 +25,37 @@ const handler = async (req: NextRequest) => {
 
   const { userId } = parsedBody.data;
 
-  // TODO: Check onboarding data after implementing it...
-  const user = await authDb.query.user.findFirst({
-    where: eq(schema.user.id, userId)
-  });
+  const result = await authDb
+    .select({
+      email: schema.user.email,
+      firstName: schema.profile.firstName,
+      lastName: schema.profile.lastName,
+      onboardedAt: schema.profile.onboardedAt
+    })
+    .from(schema.user)
+    .leftJoin(schema.profile, eq(schema.user.id, schema.profile.id))
+    .where(eq(schema.user.id, userId))
+    .limit(1);
+
+  const userData = result[0];
 
   // User was deleted before welcome email was sent - gracefully skip
-  if (!user) {
+  if (!userData) {
     return NextResponse.json({ success: true, data: 'User not found, skipping welcome email' });
   }
 
-  const { err } = await handlePromise(sendWelcomeEmail({ to: user.email, name: user.name ?? undefined, userId }));
+  // Only send if user has completed onboarding
+  if (!userData.onboardedAt) {
+    return NextResponse.json({ success: true, data: 'User not onboarded, skipping welcome email' });
+  }
+
+  const { err } = await handlePromise(
+    sendWelcomeEmail({
+      to: userData.email,
+      name: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || undefined,
+      userId
+    })
+  );
   if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err });
 
   return NextResponse.json({ success: true, data: 'Welcome email sent' });

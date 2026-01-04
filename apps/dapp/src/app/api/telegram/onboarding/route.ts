@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { authDb } from '@/server/clients/auth-db';
+import { profile } from '@/server/db/schema';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
-const bodySchema = z.record(z.unknown());
+const bodySchema = z
+  .object({
+    userId: z.string().uuid()
+  })
+  .passthrough();
 
 const handler = async (req: NextRequest) => {
   const body = await handlePromise(req.json() as Promise<Record<string, unknown>>);
@@ -15,6 +22,20 @@ const handler = async (req: NextRequest) => {
 
   const parsedBody = bodySchema.safeParse(body.res);
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
+
+  // * If we start getting duplicates QStash messages
+  // * Implement Redis-based idempotency using Upstash-Message-Id header
+
+  // Verify user is actually onboarded before sending notification
+  const profileResult = await authDb
+    .select({ onboardedAt: profile.onboardedAt })
+    .from(profile)
+    .where(eq(profile.id, parsedBody.data.userId))
+    .limit(1);
+
+  if (!profileResult[0]?.onboardedAt) {
+    return NextResponse.json({ success: true, data: 'User not onboarded, skipping Telegram notification' });
+  }
 
   const { err } = await handlePromise(sendTelegramMessage({ text: formatOnboardingMessage(parsedBody.data) }));
   if (err) throw new ApiError({ message: 'Failed to send Telegram notification', status: 500, exception: err });
