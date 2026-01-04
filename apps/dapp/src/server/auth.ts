@@ -1,6 +1,7 @@
 import 'server-only';
 
 import * as Sentry from '@sentry/nextjs';
+import { waitUntil } from '@vercel/functions';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
@@ -182,55 +183,66 @@ export const auth = betterAuth({
             });
           }
 
-          // Schedule welcome email (fire and forget - don't block user creation)
-          qstash
-            .publishJSON({
-              url: `${BASE_URL}/api/email/welcome`,
-              body: { userId: user.id },
-              delay: WELCOME_EMAIL_DELAY_SECONDS,
-              retries: 1,
-              failureCallback: `${BASE_URL}/api/qstash/failure`
-            })
-            .catch((err) => {
-              Sentry.captureException(err, {
-                tags: { source: 'SERVER', flow: 'schedule-welcome-email' },
-                extra: { userId: user.id }
+          // Non-critical operations: extend request lifetime without blocking auth response
+          // TODO: test waitUntil on Vercel
+          waitUntil(
+            Promise.allSettled([
+              // Schedule welcome email
+              qstash.publishJSON({
+                url: `${BASE_URL}/api/email/welcome`,
+                body: { userId: user.id },
+                delay: WELCOME_EMAIL_DELAY_SECONDS,
+                retries: 1,
+                failureCallback: `${BASE_URL}/api/qstash/failure`
+              }),
+
+              // Subscribe to newsletter
+              fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  email: user.email,
+                  utm_source: 'dapp-v2',
+                  send_welcome_email: false
+                }),
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${env.BEEHIIV_API_KEY}`
+                }
+              }).then(async (res) => {
+                if (!res.ok) {
+                  const body = await res.text().catch(() => 'Failed to read response body');
+                  throw new Error(`Beehiiv API error ${res.status}: ${body}`);
+                }
+
+                return res;
+              }),
+
+              // Track signup event
+              posthog.captureImmediate({
+                distinctId: user.id,
+                event: 'auth:sign-up',
+                properties: {
+                  $set: {
+                    email: user.email,
+                    name: user.name,
+                    created_at: user.createdAt.toISOString()
+                  }
+                }
+              })
+            ]).then((results) => {
+              // Log any failures to Sentry
+              const flows = ['schedule-welcome-email', 'sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
+              results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                  Sentry.captureException(result.reason, {
+                    tags: { source: 'SERVER', flow: flows[index] },
+                    extra: { userId: user.id }
+                  });
+                }
               });
-            });
-
-          // Subscribe to newsletter (fire and forget - don't block user creation)
-          fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
-            method: 'POST',
-            body: JSON.stringify({
-              email: user.email,
-              utm_source: 'dapp-v2',
-              send_welcome_email: false
-            }),
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${env.BEEHIIV_API_KEY}`
-            }
-          }).catch((err) => {
-            Sentry.captureException(err, {
-              tags: { source: 'SERVER', flow: 'subscribe-newsletter' },
-              extra: { userId: user.id }
-            });
-          });
-
-          posthog.capture({
-            distinctId: user.id,
-            event: 'auth:sign-up',
-            properties: {
-              $set: {
-                email: user.email,
-                name: user.name,
-                created_at: user.createdAt.toISOString()
-              }
-            }
-          });
-
-          posthog.shutdown();
+            })
+          );
         }
       }
     }
