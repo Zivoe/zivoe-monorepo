@@ -3,12 +3,14 @@ import { Suspense } from 'react';
 import { Link } from '@zivoe/ui/core/link';
 import { CreditIcon, DollarIcon, DropIcon } from '@zivoe/ui/icons';
 
-import { AppShell } from '@/components/app-shell';
-import Page from '@/components/page';
 import { data } from '@/server/data';
 import { verifySession } from '@/server/data/auth';
 
 import { formatBigIntToReadable } from '@/lib/utils';
+
+import { AppShell } from '@/components/app-shell';
+import OnboardingGuard from '@/components/onboarding-guard';
+import Page from '@/components/page';
 
 import AUMAccordion, { AUMAccordionSkeleton } from './_components/aum/aum-accordion';
 import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donut-chart';
@@ -24,77 +26,81 @@ export default async function TransparencyPage() {
   await verifySession();
 
   return (
-    <AppShell>
-      <div className="bg-surface-base">
-        <Page className="flex gap-10">
-        <div className="space-y-2">
-          <h1 className="text-h3 text-primary">Transparency</h1>
-          <p className="text-regular text-secondary">Access real-time data and reports about zVLT</p>
+    <>
+      <AppShell>
+        <div className="bg-surface-base">
+          <Page className="flex gap-10">
+            <div className="space-y-2">
+              <h1 className="text-h3 text-primary">Transparency</h1>
+              <p className="text-regular text-secondary">Access real-time data and reports about zVLT</p>
+            </div>
+
+            <Card>
+              <Card.Header title="Assets Under Management" titleSmall="AUM" icon={<DollarIcon />}>
+                <Link size="m" href={ZIVOE_ZAPPER_URL} target="_blank">
+                  View Wallets
+                </Link>
+              </Card.Header>
+
+              <Card.Body>
+                <Suspense
+                  fallback={
+                    <div className="flex w-full flex-col items-center gap-12 lg:flex-row">
+                      <AUMDonutChartSkeleton />
+                      <AUMAccordionSkeleton />
+                    </div>
+                  }
+                >
+                  <AssetsUnderManagement />
+                </Suspense>
+              </Card.Body>
+            </Card>
+
+            <Card>
+              <Card.Header title="Loans" icon={<CreditIcon />} />
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Suspense
+                  fallback={
+                    <>
+                      <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
+                      <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
+                    </>
+                  }
+                >
+                  <Card.Body>
+                    <PortfolioALoan />
+                  </Card.Body>
+
+                  <Card.Body>
+                    <PortfolioBLoan />
+                  </Card.Body>
+                </Suspense>
+              </div>
+            </Card>
+
+            <Card>
+              <Card.Header title="Liquidity" icon={<DropIcon />} />
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Suspense
+                  fallback={
+                    <>
+                      <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
+                      <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
+                    </>
+                  }
+                >
+                  <LiquidityWrapper />
+                </Suspense>
+              </div>
+            </Card>
+          </Page>
         </div>
+      </AppShell>
 
-        <Card>
-          <Card.Header title="Assets Under Management" titleSmall="AUM" icon={<DollarIcon />}>
-            <Link size="m" href={ZIVOE_ZAPPER_URL} target="_blank">
-              View Wallets
-            </Link>
-          </Card.Header>
-
-          <Card.Body>
-            <Suspense
-              fallback={
-                <div className="flex w-full flex-col items-center gap-12 lg:flex-row">
-                  <AUMDonutChartSkeleton />
-                  <AUMAccordionSkeleton />
-                </div>
-              }
-            >
-              <AssetsUnderManagement />
-            </Suspense>
-          </Card.Body>
-        </Card>
-
-        <Card>
-          <Card.Header title="Loans" icon={<CreditIcon />} />
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Suspense
-              fallback={
-                <>
-                  <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
-                  <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
-                </>
-              }
-            >
-              <Card.Body>
-                <PortfolioALoan />
-              </Card.Body>
-
-              <Card.Body>
-                <PortfolioBLoan />
-              </Card.Body>
-            </Suspense>
-          </div>
-        </Card>
-
-        <Card>
-          <Card.Header title="Liquidity" icon={<DropIcon />} />
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Suspense
-              fallback={
-                <>
-                  <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
-                  <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
-                </>
-              }
-            >
-              <LiquidityWrapper />
-            </Suspense>
-          </div>
-        </Card>
-        </Page>
-      </div>
-    </AppShell>
+      <OnboardingGuard />
+    </>
   );
 }
 

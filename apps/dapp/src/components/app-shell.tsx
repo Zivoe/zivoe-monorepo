@@ -8,7 +8,7 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-// TODO: Refactor this into a separate layout
+// TODO: optimization -Refactor this into a separate (app) layout
 export function AppShell({ children }: AppShellProps) {
   return (
     <>
