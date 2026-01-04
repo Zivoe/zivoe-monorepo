@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { DynamicUserProfile, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
+import { usePostHog } from 'posthog-js/react';
 import { OverlayTriggerStateContext } from 'react-aria-components';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
@@ -129,6 +130,8 @@ function Wallet() {
 // TODO: Replace with dropdown with options
 function SignOut() {
   const router = useRouter();
+  const posthog = usePostHog();
+
   const [isPending, setIsPending] = React.useState(false);
 
   const handleSignOut = async () => {
@@ -137,6 +140,7 @@ function SignOut() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
+          posthog.reset();
           router.push('/sign-in');
           router.refresh();
         }

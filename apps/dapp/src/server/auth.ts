@@ -17,6 +17,7 @@ import { handlePromise } from '@/lib/utils';
 import { env } from '@/env';
 
 import { authDb } from './clients/auth-db';
+import { posthog } from './clients/posthog';
 import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
@@ -216,6 +217,20 @@ export const auth = betterAuth({
               extra: { userId: user.id }
             });
           });
+
+          posthog.capture({
+            distinctId: user.id,
+            event: 'auth:sign-up',
+            properties: {
+              $set: {
+                email: user.email,
+                name: user.name,
+                created_at: user.createdAt.toISOString()
+              }
+            }
+          });
+
+          posthog.shutdown();
         }
       }
     }
