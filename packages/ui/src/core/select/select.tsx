@@ -58,21 +58,28 @@ const SelectTrigger = ({
   </Button>
 );
 
+interface SelectPopoverProps extends AriaPopoverProps {
+  matchTriggerWidth?: boolean;
+}
+
 const SelectPopover = ({
   offset = 4,
   placement = 'bottom',
   maxHeight = 320,
   shouldFlip = true,
+  matchTriggerWidth = false,
   className,
   ...props
-}: AriaPopoverProps) => (
+}: SelectPopoverProps) => (
   <BasePopover
     offset={offset}
     placement={placement}
     maxHeight={maxHeight}
     shouldFlip={shouldFlip}
     showOverlayArrow={false}
-    className={composeRenderProps(className, (className) => cn('w-[--trigger-width] max-w-none p-0', className))}
+    className={composeRenderProps(className, (className) =>
+      cn('p-0', matchTriggerWidth && 'w-[--trigger-width] max-w-none', className)
+    )}
     {...props}
   />
 );

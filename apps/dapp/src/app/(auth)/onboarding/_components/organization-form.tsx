@@ -156,7 +156,7 @@ function PersonalInfoForm({
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover>
+                    <SelectPopover matchTriggerWidth>
                       <SelectListBox items={howFoundZivoeItems}>
                         {(item) => <SelectItem id={item.value}>{item.label}</SelectItem>}
                       </SelectListBox>
@@ -258,7 +258,7 @@ function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover shouldFlip={false}>
+                    <SelectPopover shouldFlip={false} matchTriggerWidth>
                       <SelectListBox items={COUNTRIES}>
                         {(item) => (
                           <SelectItem id={item.value} textValue={item.label}>
@@ -296,7 +296,7 @@ function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover>
+                    <SelectPopover matchTriggerWidth>
                       <SelectListBox items={amountOfInterestItems}>
                         {(item) => <SelectItem id={item.value}>{item.label}</SelectItem>}
                       </SelectListBox>
@@ -308,7 +308,7 @@ function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
           </div>
         </div>
 
-        <Button type="submit" fullWidth isPending={onboarding.isPending} pendingContent="Completing...">
+        <Button type="submit" fullWidth isPending={onboarding.isPending} pendingContent="Onboarding...">
           Continue
         </Button>
       </form>

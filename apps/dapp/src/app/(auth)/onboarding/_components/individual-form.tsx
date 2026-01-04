@@ -127,7 +127,7 @@ export default function IndividualForm({ onBack }: { onBack: () => void }) {
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover shouldFlip={false}>
+                    <SelectPopover shouldFlip={false} matchTriggerWidth>
                       <SelectListBox items={COUNTRIES}>
                         {(item) => (
                           <SelectItem id={item.value} textValue={item.label}>
@@ -165,7 +165,7 @@ export default function IndividualForm({ onBack }: { onBack: () => void }) {
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover>
+                    <SelectPopover matchTriggerWidth>
                       <SelectListBox items={amountOfInterestItems}>
                         {(item) => <SelectItem id={item.value}>{item.label}</SelectItem>}
                       </SelectListBox>
@@ -197,7 +197,7 @@ export default function IndividualForm({ onBack }: { onBack: () => void }) {
 
                   <FieldError>{error?.message}</FieldError>
 
-                  <SelectPopover>
+                  <SelectPopover matchTriggerWidth>
                     <SelectListBox items={howFoundZivoeItems}>
                       {(item) => <SelectItem id={item.value}>{item.label}</SelectItem>}
                     </SelectListBox>
@@ -208,7 +208,7 @@ export default function IndividualForm({ onBack }: { onBack: () => void }) {
           />
         </div>
 
-        <Button type="submit" fullWidth isPending={onboarding.isPending} pendingContent="Completing...">
+        <Button type="submit" fullWidth isPending={onboarding.isPending} pendingContent="Onboarding...">
           Continue
         </Button>
       </form>
