@@ -108,9 +108,10 @@ export default function SignInForm() {
       <Footer>
         {step === 'EMAIL' ? (
           <>
-            By clicking continue, you have read and agree to our{' '}
-            <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use</FooterLink>, and{' '}
-            <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>.
+            By clicking continue, you agree to our{' '}
+            <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use & Privacy Policy</FooterLink>, comply with our{' '}
+            <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>, and consent to receive
+            communications from Zivoe.
           </>
         ) : (
           <>
@@ -459,8 +460,8 @@ function Header({
 
 function Footer({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex justify-center py-5">
-      <p className="max-w-[28rem] text-center text-small text-tertiary">{children}</p>
+    <div className="flex max-w-[36.7rem] justify-center py-5">
+      <p className="text-center text-small text-tertiary">{children}</p>
     </div>
   );
 }
