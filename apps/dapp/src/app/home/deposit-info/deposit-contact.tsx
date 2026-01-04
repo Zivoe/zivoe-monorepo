@@ -1,6 +1,8 @@
 import { Link } from '@zivoe/ui/core/link';
 import { EmailIcon } from '@zivoe/ui/icons';
 
+import { EMAILS } from '@/server/utils/emails/config';
+
 import InfoSection from '@/components/info-section';
 
 export default function DepositContact() {
@@ -11,9 +13,9 @@ export default function DepositContact() {
         <Link
           variant="link-neutral-dark"
           className="underline underline-offset-8 hover:no-underline"
-          href="mailto:investors@zivoe.com"
+          href={`mailto:${EMAILS.INVESTORS}`}
         >
-          investors@zivoe.com
+          {EMAILS.INVESTORS}
         </Link>
         .
       </p>

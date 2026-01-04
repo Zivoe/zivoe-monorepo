@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 
 import { env } from '@/env';
 
+import { EMAILS } from './emails/config';
 import OTPEmail from './emails/otp-email';
 import WelcomeEmail from './emails/welcome-email';
 
@@ -15,7 +16,7 @@ export async function sendOTPEmail({ to, otp }: { to: string; otp: string }) {
 
   const { data, error } = await resend.emails.send({
     from: 'Zivoe <verify@zivoe.com>',
-    replyTo: 'support@zivoe.com',
+    replyTo: EMAILS.INVESTORS,
     to,
     subject: 'Sign in to Zivoe',
     html
@@ -32,7 +33,7 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
   const { data, error } = await resend.emails.send(
     {
       from: 'Zivoe <hello@zivoe.com>',
-      replyTo: 'support@zivoe.com',
+      replyTo: EMAILS.INVESTORS,
       to,
       subject: 'Welcome to Zivoe',
       html

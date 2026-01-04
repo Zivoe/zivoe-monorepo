@@ -6,6 +6,8 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { LINKS } from '@/types/constants';
 
+import { EMAILS } from '@/server/utils/emails/config';
+
 function Container({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex w-full max-w-[37rem] flex-1 flex-col items-center">
@@ -102,8 +104,8 @@ function HelpFooter() {
   return (
     <Footer>
       Need help? Contact us at{' '}
-      <FooterLink variant="link-primary" href="mailto:investors@zivoe.com">
-        investors@zivoe.com
+      <FooterLink variant="link-primary" href={`mailto:${EMAILS.INVESTORS}`}>
+        {EMAILS.INVESTORS}
       </FooterLink>
     </Footer>
   );

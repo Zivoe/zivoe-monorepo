@@ -29,5 +29,10 @@ export const emailTailwindConfig: TailwindConfig = {
   }
 };
 
-// TODO: Upload the logo
-export const ZIVOE_LOGO_URL = 'https://app.zivoe.com/zivoe-logo.png';
+// TODO: Upload the logo to our next js app
+export const ZIVOE_LOGO_URL = 'https://0y6j06m0os.ufs.sh/f/2CBiWT05Di8GOe61kB4it3PjRXd4A0ekG2v7oaIQpwWhTJVM';
+
+export const EMAILS = {
+  INVESTORS: 'investors@zivoe.com',
+  INQUIRE: 'inquire@zivoe.com'
+} as const;
