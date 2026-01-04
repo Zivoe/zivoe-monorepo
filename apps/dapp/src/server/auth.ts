@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { after } from 'next/server';
+
 import * as Sentry from '@sentry/nextjs';
-import { waitUntil } from '@vercel/functions';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
@@ -11,6 +12,7 @@ import { eq } from 'drizzle-orm';
 
 import { WITH_TURNSTILE } from '@/types/constants';
 
+import { BASE_URL } from '@/server/utils/base-url';
 import { sendOTPEmail } from '@/server/utils/send-email';
 
 import { handlePromise } from '@/lib/utils';
@@ -19,19 +21,8 @@ import { env } from '@/env';
 
 import { authDb } from './clients/auth-db';
 import { posthog } from './clients/posthog';
-import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
-
-// Delay: 24h in production, 60s otherwise (for testing)
-const WELCOME_EMAIL_DELAY_SECONDS = env.NODE_ENV === 'production' ? 86400 : 60;
-
-const BASE_URL =
-  env.VERCEL_ENV === 'preview' && env.VERCEL_URL
-    ? `https://${env.VERCEL_URL}`
-    : env.VERCEL_ENV === 'production' && env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'http://localhost:3000';
 
 export const auth = betterAuth({
   baseURL: BASE_URL,
@@ -183,19 +174,11 @@ export const auth = betterAuth({
             });
           }
 
-          // Non-critical operations: extend request lifetime without blocking auth response
-          // TODO: test waitUntil on Vercel
-          waitUntil(
-            Promise.allSettled([
-              // Schedule welcome email
-              qstash.publishJSON({
-                url: `${BASE_URL}/api/email/welcome`,
-                body: { userId: user.id },
-                delay: WELCOME_EMAIL_DELAY_SECONDS,
-                retries: 1,
-                failureCallback: `${BASE_URL}/api/qstash/failure`
-              }),
+          // TODO: test after on Vercel
+          after(async () => {
+            const flows = ['sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
 
+            const results = await Promise.allSettled([
               // Subscribe to newsletter
               fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
                 method: 'POST',
@@ -230,19 +213,17 @@ export const auth = betterAuth({
                   }
                 }
               })
-            ]).then((results) => {
-              // Log any failures to Sentry
-              const flows = ['schedule-welcome-email', 'sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
-              results.forEach((result, index) => {
-                if (result.status === 'rejected') {
-                  Sentry.captureException(result.reason, {
-                    tags: { source: 'SERVER', flow: flows[index] },
-                    extra: { userId: user.id }
-                  });
-                }
-              });
-            })
-          );
+            ]);
+
+            results.forEach((result, index) => {
+              if (result.status === 'rejected') {
+                Sentry.captureException(result.reason, {
+                  tags: { source: 'SERVER', flow: flows[index] },
+                  extra: { userId: user.id }
+                });
+              }
+            });
+          });
         }
       }
     }

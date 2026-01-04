@@ -31,6 +31,10 @@ export const env = createEnv({
     RESEND_WEBHOOK_SECRET: z.string(),
     TURNSTILE_SECRET_KEY: z.string(),
 
+    // Telegram
+    TELEGRAM_BOT_TOKEN: z.string(),
+    TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
+
     // Vercel (auto-populated on Vercel)
     VERCEL: z.enum(['1', '0']).default('0'),
     VERCEL_ENV: z.enum(['production', 'preview', 'development']).default('development'),
@@ -88,6 +92,10 @@ export const env = createEnv({
     RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+
+    // Telegram
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
 
     // Vercel
     VERCEL: process.env.VERCEL ?? '0',

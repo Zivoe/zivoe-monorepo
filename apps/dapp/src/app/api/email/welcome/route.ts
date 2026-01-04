@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -37,15 +36,7 @@ const handler = async (req: NextRequest) => {
   }
 
   const { err } = await handlePromise(sendWelcomeEmail({ to: user.email, name: user.name ?? undefined, userId }));
-
-  if (err) {
-    Sentry.captureException(err, {
-      tags: { source: 'SERVER', flow: 'welcome-email' },
-      extra: { userId }
-    });
-
-    throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err });
-  }
+  if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err });
 
   return NextResponse.json({ success: true, data: 'Welcome email sent' });
 };
