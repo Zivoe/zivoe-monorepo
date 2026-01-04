@@ -28,6 +28,7 @@ export const env = createEnv({
     TWITTER_CLIENT_ID: z.string(),
     TWITTER_CLIENT_SECRET: z.string(),
     RESEND_API_KEY: z.string(),
+    RESEND_WEBHOOK_SECRET: z.string(),
     TURNSTILE_SECRET_KEY: z.string(),
 
     // Vercel (auto-populated on Vercel)
@@ -84,6 +85,7 @@ export const env = createEnv({
     TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
     TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
 

@@ -92,10 +92,16 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp, type }) {
         if (type !== 'sign-in') return;
 
-        // Fire and forget to avoid timing attacks (email enumeration)
-        sendOTPEmail({ to: email, otp }).catch((err) => {
+        // Fire and forget pattern is not needed because anyone can use the email-otp flow, you cannot gain any information from timing attacks.
+        // ? Resend has a global 2 req/s limit, in the case of a big burst of requests, we might want to either
+        // ? - send the email in a job with retries or
+        // ? - add exponential backoff retries
+        const { err } = await handlePromise(sendOTPEmail({ to: email, otp }));
+
+        if (err) {
           Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'send-otp' } });
-        });
+          throw err;
+        }
       }
     }),
 

@@ -18,7 +18,7 @@ export default function OTPEmail({ otp }: { otp: string }) {
   return (
     <Html>
       <Head />
-      <Preview>Your Zivoe verification code</Preview>
+      <Preview>Your Zivoe verification code is ready. It expires in 5 minutes.</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
