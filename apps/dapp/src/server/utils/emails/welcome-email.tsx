@@ -13,6 +13,7 @@ import {
   Text
 } from '@react-email/components';
 
+import { BASE_URL } from '../base-url';
 import { THOR_AVATAR_URL, ZIVOE_LOGO_URL, emailTailwindConfig } from './config';
 
 export default function WelcomeEmail({ name }: { name?: string }) {
@@ -56,7 +57,7 @@ export default function WelcomeEmail({ name }: { name?: string }) {
 
             <Section className="my-8 text-center">
               <Link
-                href="https://calendly.com/thor-zivoe/conversation"
+                href={`${BASE_URL}/meet/thor`}
                 className="text-neutral-0 rounded-lg bg-primary-600 px-6 py-3 font-medium"
                 style={{ display: 'inline-block' }}
               >

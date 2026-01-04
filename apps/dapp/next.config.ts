@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
     }
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/meet/thor',
+        destination: 'https://calendly.com/thor-zivoe/conversation',
+        permanent: false
+      }
+    ];
+  },
+
   async rewrites() {
     return [
       {
