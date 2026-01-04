@@ -47,4 +47,4 @@ const ListBoxItem = <T extends object>({
   );
 };
 
-export { ListBoxItem };
+export { ListBoxItem, type ListBoxItemProps };
