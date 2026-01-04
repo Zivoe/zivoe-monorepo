@@ -450,8 +450,8 @@ function DepositTokenSelect({
     <Select
       placeholder="Select"
       aria-label="Select a chart view"
-      selectedKey={selected}
-      onSelectionChange={(value) => onSelectionChange(value as DepositToken)}
+      value={selected}
+      onChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
       <SelectTrigger variant="border-light" className="w-[7.4375rem] justify-between gap-2 lg:hidden">
@@ -466,6 +466,7 @@ function DepositTokenSelect({
               value={item}
               textValue={item.label}
               className="flex items-center gap-2 [&_svg]:size-5"
+              showCheckmark={false}
             >
               {item.icon}
               {item.label}

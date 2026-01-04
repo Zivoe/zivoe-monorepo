@@ -284,7 +284,8 @@ const config: Config = {
       base: 'hsl(var(--neutral-0))',
       'primary-subtle': 'hsl(var(--primary-700))',
       neutral: {
-        '100': 'hsl(var(--neutral-100))'
+        '100': 'hsl(var(--neutral-100))',
+        '400': 'hsl(var(--neutral-400))'
       }
     },
 

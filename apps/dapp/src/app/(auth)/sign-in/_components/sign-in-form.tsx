@@ -14,18 +14,18 @@ import { z } from 'zod';
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from '@zivoe/ui/core/input-otp';
-import { Link, LinkProps } from '@zivoe/ui/core/link';
 import { Separator } from '@zivoe/ui/core/separator';
 import { toast } from '@zivoe/ui/core/sonner';
 import { ArrowLeftIcon, GoogleIcon, TwitterIcon } from '@zivoe/ui/icons';
 
-import { LINKS, WITH_TURNSTILE } from '@/types/constants';
+import { WITH_TURNSTILE } from '@/types/constants';
 
 import { authClient } from '@/lib/auth-client';
 import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
 
+import { Auth } from '../../_components/common';
 import { useOtpResendRateLimit } from '../_hooks/useOtpResendRateLimit';
 import { useTurnstile } from '../_hooks/useTurnstile';
 
@@ -61,67 +61,38 @@ export default function SignInForm() {
 
   return (
     <>
-      <div className="flex max-w-[37rem] flex-1 flex-col items-center">
-        {/* Top spacer for small height screens */}
-        <div className="min-h-11 flex-1" />
-
-        <div className="flex w-full flex-col gap-11">
-          {step === 'EMAIL' ? (
-            <>
-              <Header
-                title="Sign Up or Sign In"
-                description={
-                  <p className="text-regular text-secondary">
-                    Enter your email to sign in to your account. If you don't have an account yet, one will be created
-                    for you.
-                  </p>
-                }
-              />
-
-              <EmailStepForm onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
-            </>
-          ) : (
-            <>
-              <Header
-                title="Verify Your Email"
-                description={
-                  <p className="text-regular text-secondary">
-                    We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
-                  </p>
-                }
-              >
-                <Button variant="link-primary" onPress={() => setStep('EMAIL')} className="font-medium">
-                  <ArrowLeftIcon className="size-4" />
-                  <span className="text-leading font-medium">Back</span>
-                </Button>
-              </Header>
-
-              <OtpStepForm email={email} executeTurnstile={executeTurnstile} />
-            </>
-          )}
-        </div>
-
-        {/* Bottom spacer for small height screens */}
-        <div className="min-h-6 flex-1" />
-      </div>
-
-      <Footer>
+      <Auth.Container>
         {step === 'EMAIL' ? (
           <>
-            By clicking continue, you agree to our{' '}
-            <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use & Privacy Policy</FooterLink>, comply with our{' '}
-            <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>, and consent to receive
-            communications from Zivoe.
+            <Auth.Header
+              title="Sign Up or Sign In"
+              description="Enter your email to sign in to your account. If you don't have an account yet, one will be created for you."
+            />
+
+            <EmailStepForm onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
           </>
         ) : (
           <>
-            Need help? Contact us at{' '}
-            <FooterLink variant="link-primary" href="mailto:investors@zivoe.com">
-              investors@zivoe.com
-            </FooterLink>
+            <Auth.Header
+              title="Verify Your Email"
+              description={
+                <p className="text-regular text-secondary">
+                  We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
+                </p>
+              }
+            >
+              <Button variant="link-primary" onPress={() => setStep('EMAIL')} className="font-medium">
+                <ArrowLeftIcon className="size-4" />
+                <span className="text-leading font-medium">Back</span>
+              </Button>
+            </Auth.Header>
+
+            <OtpStepForm email={email} executeTurnstile={executeTurnstile} />
           </>
         )}
-      </Footer>
+      </Auth.Container>
+
+      {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
 
       {WITH_TURNSTILE && (
         <div className="absolute bottom-0 right-0">
@@ -434,57 +405,5 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
         </div>
       )}
     </div>
-  );
-}
-
-function Header({
-  title,
-  description,
-  children
-}: {
-  title: string;
-  description: React.ReactNode;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex w-full flex-col gap-11">
-      {children}
-
-      <div className="flex flex-col gap-4">
-        <h1 className="text-h5 text-neutral-900">{title}</h1>
-        {description}
-      </div>
-    </div>
-  );
-}
-
-function Footer({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex max-w-[36.7rem] justify-center py-5">
-      <p className="text-center text-small text-tertiary">{children}</p>
-    </div>
-  );
-}
-
-function FooterLink({
-  variant = 'link-tertiary',
-  href,
-  children
-}: {
-  variant?: LinkProps['variant'];
-  href: string;
-  children: string;
-}) {
-  return (
-    <Link
-      href={href}
-      target="_blank"
-      hideExternalLinkIcon
-      variant={variant}
-      size="s"
-      className="hover:underline-offset-4"
-    >
-      {children}
-    </Link>
   );
 }

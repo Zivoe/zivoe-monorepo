@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ButtonProps as AriaButtonProps,
   ListBox as AriaListBox,
   ListBoxProps as AriaListBoxProps,
   PopoverProps as AriaPopoverProps,
@@ -24,17 +23,30 @@ const SelectItem = ListBoxItem;
 const SelectValue = <T extends object>({ className, ...props }: AriaSelectValueProps<T>) => (
   <AriaSelectValue
     className={composeRenderProps(className, (className) =>
-      cn('line-clamp-1 data-[placeholder]:text-primary [&>[slot=description]]:hidden', className)
+      cn('line-clamp-1 data-[placeholder]:text-tertiary [&>[slot=description]]:hidden', className)
     )}
     {...props}
   />
 );
 
-const SelectTrigger = ({ variant = 'chip', size = 's', className, children, ...props }: ButtonProps) => (
+interface SelectTriggerProps extends ButtonProps {
+  isInvalid?: boolean;
+}
+
+const SelectTrigger = ({
+  variant = 'chip',
+  size = 's',
+  className,
+  children,
+  isInvalid,
+  ...props
+}: SelectTriggerProps) => (
   <Button
     variant={variant}
     size={size}
-    className={composeRenderProps(className, (className) => cn(className))}
+    className={composeRenderProps(className, (className) =>
+      cn(className, isInvalid && '!shadow-[0_0_0_1px_theme(colors.alert.600),0_0_4px_1px_theme(colors.alert.600)]')
+    )}
     {...props}
   >
     {composeRenderProps(children, (children) => (
@@ -46,12 +58,21 @@ const SelectTrigger = ({ variant = 'chip', size = 's', className, children, ...p
   </Button>
 );
 
-const SelectPopover = ({ offset = 4, placement = 'bottom', className, ...props }: AriaPopoverProps) => (
+const SelectPopover = ({
+  offset = 4,
+  placement = 'bottom',
+  maxHeight = 320,
+  shouldFlip = true,
+  className,
+  ...props
+}: AriaPopoverProps) => (
   <BasePopover
     offset={offset}
     placement={placement}
+    maxHeight={maxHeight}
+    shouldFlip={shouldFlip}
     showOverlayArrow={false}
-    className={composeRenderProps(className, (className) => cn('p-0', className))}
+    className={composeRenderProps(className, (className) => cn('w-[--trigger-width] max-w-none p-0', className))}
     {...props}
   />
 );

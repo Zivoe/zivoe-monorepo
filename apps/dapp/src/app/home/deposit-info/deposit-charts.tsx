@@ -40,8 +40,8 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
         <Select
           placeholder="Select"
           aria-label="Select a chart view"
-          selectedKey={selectedChartType}
-          onSelectionChange={(key) => setSelectedChartType(key ?? 0)}
+          value={selectedChartType}
+          onChange={(key) => setSelectedChartType(key ?? 0)}
         >
           <SelectTrigger>
             <ChartIcon className="size-4 text-icon-default" />
@@ -50,7 +50,11 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
 
           <SelectPopover>
             <SelectListBox items={CHART_SELECT_ITEMS}>
-              {(item) => <SelectItem key={item.id}>{item.label}</SelectItem>}
+              {(item) => (
+                <SelectItem key={item.id} showCheckmark={false}>
+                  {item.label}
+                </SelectItem>
+              )}
             </SelectListBox>
           </SelectPopover>
         </Select>
