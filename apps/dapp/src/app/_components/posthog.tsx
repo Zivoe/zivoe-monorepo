@@ -60,14 +60,8 @@ function PostHogPageView() {
   }, [pathname, searchParams, posthog]);
 
   useEffect(() => {
-    if (session?.user) {
-      posthog.identify(session.user.id, {
-        email: session.user.email,
-        name: session.user.name
-      });
-    } else {
-      posthog.reset();
-    }
+    if (session?.user) posthog.identify(session.user.id);
+    else posthog.reset();
   }, [session, posthog]);
 
   return null;
