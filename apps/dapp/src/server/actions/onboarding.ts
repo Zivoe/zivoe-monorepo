@@ -66,7 +66,6 @@ export async function completeOnboarding(data: OnboardingFormData) {
   // Check if user already onboarded
   if (!res?.length) redirect('/');
 
-  // TODO: test after on Vercel
   after(async () => {
     const flows = ['schedule-welcome-email', 'schedule-telegram-notification', 'onboarding-posthog-capture'];
     const { id, firstName, lastName, ...rest } = insertData;

@@ -152,7 +152,6 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          // TODO: test after on Vercel
           after(async () => {
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
 
