@@ -52,7 +52,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendWelcomeEmail({
       to: profile.email,
-      name: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || undefined,
+      name: profile.firstName || profile.lastName || undefined,
       userId
     })
   );
