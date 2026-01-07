@@ -45,13 +45,19 @@ const handler = async (req: NextRequest) => {
   }
 
   const { err } = await handlePromise(sendTelegramMessage({ text: formatOnboardingMessage(parsedBody.data) }));
-  if (err) throw new ApiError({ message: 'Failed to send Telegram notification', status: 500, exception: err, capture: false });
+  if (err)
+    throw new ApiError({
+      message: 'Failed to send Telegram notification',
+      status: 500,
+      exception: err,
+      capture: false
+    });
 
   return NextResponse.json({ success: true, data: 'Telegram notification sent' });
 };
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error sending Telegram notification', handler)(req) as unknown as NextResponse;
+  return withErrorHandler('Error sending Telegram notification', handler)(req);
 });
 
 const MAX_MESSAGE_LENGTH = 4096;

@@ -5,7 +5,7 @@ import { user } from './auth-schema';
 export const accountTypeEnum = pgEnum('account_type', ['individual', 'organization']);
 export type AccountType = (typeof accountTypeEnum.enumValues)[number];
 
-export const amountOfInterestValues = ['under_1k', '10k_100k', '100k_250k', '250k_1m', 'over_1m'] as const;
+export const amountOfInterestValues = ['1k_10k', '10k_100k', '100k_250k', '250k_1m', 'over_1m'] as const;
 export const amountOfInterestEnum = pgEnum('amount_of_interest', amountOfInterestValues);
 export type AmountOfInterest = (typeof amountOfInterestValues)[number];
 

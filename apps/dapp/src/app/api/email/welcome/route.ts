@@ -62,5 +62,5 @@ const handler = async (req: NextRequest) => {
 };
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error sending welcome email', handler)(req) as unknown as NextResponse;
+  return withErrorHandler('Error sending welcome email', handler)(req);
 });

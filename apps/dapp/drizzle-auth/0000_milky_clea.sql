@@ -1,5 +1,5 @@
 CREATE TYPE "public"."account_type" AS ENUM('individual', 'organization');--> statement-breakpoint
-CREATE TYPE "public"."amount_of_interest" AS ENUM('under_1k', '10k_100k', '100k_250k', '250k_1m', 'over_1m');--> statement-breakpoint
+CREATE TYPE "public"."amount_of_interest" AS ENUM('1k_10k', '10k_100k', '100k_250k', '250k_1m', 'over_1m');--> statement-breakpoint
 CREATE TYPE "public"."how_found_zivoe" AS ENUM('x_twitter', 'linkedin', 'google_search', 'media_coverage', 'conference_event', 'word_of_mouth', 'other');--> statement-breakpoint
 CREATE TABLE "profile" (
 	"id" uuid PRIMARY KEY NOT NULL,

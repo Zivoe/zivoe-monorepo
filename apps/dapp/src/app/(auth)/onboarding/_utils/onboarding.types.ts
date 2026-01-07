@@ -1,7 +1,7 @@
 import type { AmountOfInterest, HowFoundZivoe } from '@/server/db/schema';
 
 export const AMOUNT_OF_INTEREST_OPTIONS: Record<AmountOfInterest, string> = {
-  under_1k: '<$1k',
+  '1k_10k': '$1k - $10k',
   '10k_100k': '$10k - $100k',
   '100k_250k': '$100k - $250k',
   '250k_1m': '$250k - $1M',

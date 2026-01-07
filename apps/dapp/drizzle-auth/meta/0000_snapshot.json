@@ -1,5 +1,5 @@
 {
-  "id": "250a5a6e-dbce-413f-84ca-1b85766aa424",
+  "id": "fe9d5ba7-94df-410a-bee6-6d36c944696e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -469,7 +469,7 @@
       "name": "amount_of_interest",
       "schema": "public",
       "values": [
-        "under_1k",
+        "1k_10k",
         "10k_100k",
         "100k_250k",
         "250k_1m",

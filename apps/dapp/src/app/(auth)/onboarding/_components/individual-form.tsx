@@ -1,9 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Button } from '@zivoe/ui/core/button';
@@ -11,23 +8,15 @@ import { FieldError } from '@zivoe/ui/core/field/field-error';
 import { Label } from '@zivoe/ui/core/field/label';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@zivoe/ui/core/select';
-import { toast } from '@zivoe/ui/core/sonner';
 
 import { COUNTRIES } from '@/types/countries';
 
-import { completeOnboarding } from '@/server/actions/onboarding';
-
-import {
-  type IndividualFormData,
-  OnboardingFormData,
-  accountTypeValues,
-  individualSchema
-} from '@/lib/schemas/onboarding';
-import { AppError, onTxError } from '@/lib/utils';
+import { type IndividualFormData, accountTypeValues, individualSchema } from '@/lib/schemas/onboarding';
 
 import { AMOUNT_OF_INTEREST_OPTIONS, HOW_FOUND_ZIVOE_OPTIONS } from '@/app/(auth)/onboarding/_utils/onboarding.types';
 
 import { Auth } from '../../_components/common';
+import { useCompleteOnboarding } from '../_hooks/useCompleteOnboarding';
 
 const amountOfInterestItems = Object.entries(AMOUNT_OF_INTEREST_OPTIONS).map(([value, label]) => ({
   value,
@@ -214,33 +203,4 @@ export default function IndividualForm({ onBack }: { onBack: () => void }) {
       </form>
     </>
   );
-}
-
-function useCompleteOnboarding() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (data: OnboardingFormData) => {
-      const { error } = await completeOnboarding(data);
-      if (error) throw new AppError({ message: 'Onboarding failed', exception: error, capture: false });
-    },
-
-    onSuccess: () => {
-      toast({
-        type: 'success',
-        title: 'Welcome to Zivoe!',
-        description: 'Your account has been set up successfully.'
-      });
-
-      router.push('/');
-    },
-
-    onError: (err) => {
-      onTxError({
-        err,
-        defaultToastMsg: 'An unexpected error occurred. Please try again.',
-        sentry: { flow: 'onboarding', extras: {} }
-      });
-    }
-  });
 }
