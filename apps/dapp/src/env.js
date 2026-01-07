@@ -23,6 +23,7 @@ export const env = createEnv({
     // Auth
     AUTH_DATABASE_URL: z.string(),
     BETTER_AUTH_SECRET: z.string().min(32),
+    APP_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
     TWITTER_CLIENT_ID: z.string(),
@@ -84,6 +85,7 @@ export const env = createEnv({
     // Auth
     AUTH_DATABASE_URL: process.env.AUTH_DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    APP_URL: process.env.APP_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,

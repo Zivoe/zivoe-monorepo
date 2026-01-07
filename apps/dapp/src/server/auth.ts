@@ -114,6 +114,10 @@ export const auth = betterAuth({
   trustedOrigins: () => {
     const origins: string[] = [];
 
+    if (env.APP_URL) {
+      origins.push(env.APP_URL);
+    }
+
     if (env.VERCEL_URL) {
       origins.push(`https://${env.VERCEL_URL}`);
     }
