@@ -42,6 +42,13 @@ export const auth = betterAuth({
     }
   },
 
+  account: {
+    accountLinking: {
+      enabled: true,
+      updateUserInfoOnLink: true
+    }
+  },
+
   rateLimit: {
     enabled: true,
     window: 60,
