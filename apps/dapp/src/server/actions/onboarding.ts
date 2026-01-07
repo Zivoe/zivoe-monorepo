@@ -91,7 +91,7 @@ export async function completeOnboarding(data: OnboardingFormData) {
         distinctId: session.user.id,
         event: 'onboarding:completed',
         properties: {
-          $set: rest
+          $set: { ...rest, authId: id, name: `${firstName} ${lastName}` }
         }
       })
     ]);
