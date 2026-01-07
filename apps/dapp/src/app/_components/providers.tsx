@@ -26,10 +26,6 @@ import { env } from '@/env';
 
 import { PostHogProvider } from './posthog';
 
-const WelcomeDialog = dynamic(() => import('./welcome-dialog'), {
-  ssr: false
-});
-
 const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   environmentId: env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
   walletConnectors: [EthereumWalletConnectors],
@@ -117,7 +113,6 @@ export default function Providers({
       </RouterProvider>
 
       <Toaster />
-      <WelcomeDialog />
     </>
   );
 }
