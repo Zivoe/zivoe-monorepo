@@ -19,8 +19,8 @@ import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { TransactionDialog } from '@/app/home/deposit/_components/transaction-dialog';
-import { Card } from '@/app/transparency/_components/card';
+import { TransactionDialog } from '@/app/(dashboard)/home/deposit/_components/transaction-dialog';
+import { Card } from '@/app/(dashboard)/transparency/_components/card';
 
 import { useClaimVesting } from '../_hooks/useClaimVesting';
 import { useClaimableAmount } from '../_hooks/useClaimableAmount';

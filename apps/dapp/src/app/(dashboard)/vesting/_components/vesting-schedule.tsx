@@ -8,7 +8,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
-import { Card } from '@/app/transparency/_components/card';
+import { Card } from '@/app/(dashboard)/transparency/_components/card';
 
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 

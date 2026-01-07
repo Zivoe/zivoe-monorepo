@@ -12,12 +12,12 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
-import { RedeemUSDCParams } from '@/app/home/deposit/_hooks/useRedeemUSDC';
-import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
-import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
-import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
-import { UnstakeStSTTParams } from '@/app/portfolio/_hooks/useUnstakeStSTT';
-import { ClaimVestingParams } from '@/app/vesting/_hooks/useClaimVesting';
+import { RedeemUSDCParams } from '@/app/(dashboard)/home/deposit/_hooks/useRedeemUSDC';
+import { RouterDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDeposit';
+import { RouterDepositPermitParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDepositPermit';
+import { VaultDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useVaultDeposit';
+import { UnstakeStSTTParams } from '@/app/(dashboard)/portfolio/_hooks/useUnstakeStSTT';
+import { ClaimVestingParams } from '@/app/(dashboard)/vesting/_hooks/useClaimVesting';
 
 import { useAccount } from './useAccount';
 import { ApproveTokenParams } from './useApproveSpending';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSelectedLayoutSegment, useSelectedLayoutSegments } from 'next/navigation';
+import { useSelectedLayoutSegment } from 'next/navigation';
 
 import { Link } from '@zivoe/ui/core/link';
 import { cn } from '@zivoe/ui/lib/tw-utils';

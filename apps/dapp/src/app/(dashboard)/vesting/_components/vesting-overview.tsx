@@ -11,7 +11,7 @@ import { useAccount } from '@/hooks/useAccount';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { Card } from '@/app/transparency/_components/card';
+import { Card } from '@/app/(dashboard)/transparency/_components/card';
 
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 

@@ -1,8 +1,7 @@
-import { AppShell } from '@/components/app-shell';
-import OnboardingGuard from '@/components/onboarding-guard';
-
 import Home from './home';
 import { depositPageViewSchema } from './home/deposit/_utils';
+
+import { OnboardingGuard } from './_components/onboarding-guard';
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const params = await searchParams;
@@ -10,11 +9,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <AppShell>
-        <Home initialView={validatedView.success ? validatedView.data : null} />
-      </AppShell>
-
       <OnboardingGuard />
+      <Home initialView={validatedView.success ? validatedView.data : null} />
     </>
   );
 }

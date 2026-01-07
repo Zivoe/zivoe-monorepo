@@ -19,11 +19,11 @@ import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import ConnectedAccount from '@/components/connected-account';
 
-import { InputExtraInfo } from '@/app/home/deposit/_components/input-extra-info';
-import { MaxButton } from '@/app/home/deposit/_components/max-button';
-import { TokenDisplay } from '@/app/home/deposit/_components/token-display';
-import { TransactionDialog } from '@/app/home/deposit/_components/transaction-dialog';
-import { createAmountValidator, parseInput } from '@/app/home/deposit/_utils';
+import { InputExtraInfo } from '@/app/(dashboard)/home/deposit/_components/input-extra-info';
+import { MaxButton } from '@/app/(dashboard)/home/deposit/_components/max-button';
+import { TokenDisplay } from '@/app/(dashboard)/home/deposit/_components/token-display';
+import { TransactionDialog } from '@/app/(dashboard)/home/deposit/_components/transaction-dialog';
+import { createAmountValidator, parseInput } from '@/app/(dashboard)/home/deposit/_utils';
 
 import { useUnstakeStSTT } from '../_hooks/useUnstakeStSTT';
 

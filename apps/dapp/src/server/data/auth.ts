@@ -24,15 +24,12 @@ export const getUser = cache(async () => {
 
 export const verifySession = cache(async () => {
   const { user } = await getUser();
-
-  if (!user) {
-    redirect('/sign-in');
-  }
+  if (!user) redirect('/sign-in');
 
   return { user };
 });
 
-export const verifyOnboarded = cache(async () => {
+export const getOnboardedStatus = cache(async () => {
   const { user } = await verifySession();
 
   const { err, res } = await handlePromise(
@@ -57,9 +54,15 @@ export const verifyOnboarded = cache(async () => {
   return { isOnboarded: !!profile && profile.id && profile.createdAt, user };
 });
 
-export const getUserMenuData = async () => {
-  const { isOnboarded, user } = await verifyOnboarded();
+export const verifyOnboarded = async () => {
+  const { isOnboarded, user } = await getOnboardedStatus();
   if (!isOnboarded) redirect('/onboarding');
+
+  return { user };
+};
+
+export const getUserMenuData = async () => {
+  const { user } = await verifyOnboarded();
 
   const { err, res } = await handlePromise(
     authDb

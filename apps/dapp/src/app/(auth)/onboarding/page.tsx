@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 
-import { verifyOnboarded } from '@/server/data/auth';
+import { getOnboardedStatus } from '@/server/data/auth';
 
 import OnboardingForm from './_components/onboarding-form';
 
 export default async function OnboardingPage() {
-  const { isOnboarded } = await verifyOnboarded();
+  const { isOnboarded } = await getOnboardedStatus();
   if (isOnboarded) redirect('/');
 
   return (
