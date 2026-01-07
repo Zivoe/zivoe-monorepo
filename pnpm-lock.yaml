@@ -23,12 +23,6 @@ importers:
 
   apps/dapp:
     dependencies:
-      '@cowprotocol/widget-lib':
-        specifier: ^0.20.0
-        version: 0.20.0
-      '@cowprotocol/widget-react':
-        specifier: ^0.14.0
-        version: 0.14.3
       '@dynamic-labs/ethereum':
         specifier: 3.9.13
         version: 3.9.13(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@types/react@19.0.10)(@upstash/redis@1.36.0)(@vercel/functions@2.2.13)(bufferutil@4.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(utf-8-validate@5.0.10)(viem@2.43.5(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))
@@ -110,9 +104,6 @@ importers:
       next:
         specifier: 15.6.0-canary.60
         version: 15.6.0-canary.60(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      pg:
-        specifier: ^8.16.0
-        version: 8.16.3
       postgres:
         specifier: ^3.4.5
         version: 3.4.7
@@ -171,9 +162,6 @@ importers:
       '@types/node':
         specifier: ^22.13.5
         version: 22.19.3
-      '@types/pg':
-        specifier: ^8.15.2
-        version: 8.16.0
       '@types/react':
         specifier: 19.0.10
         version: 19.0.10
@@ -236,7 +224,7 @@ importers:
         version: 5.3.0(@types/react@19.0.10)
       '@hookform/resolvers':
         specifier: ^5.0.1
-        version: 5.2.2(react-hook-form@7.69.0(react@19.2.3))
+        version: 5.2.2(react-hook-form@7.70.0(react@19.2.3))
       '@intercom/messenger-js-sdk':
         specifier: ^0.0.17
         version: 0.0.17
@@ -267,9 +255,6 @@ importers:
       next:
         specifier: 15.6.0-canary.60
         version: 15.6.0-canary.60(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      pg:
-        specifier: ^8.16.0
-        version: 8.16.3
       postgres:
         specifier: ^3.4.5
         version: 3.4.7
@@ -283,8 +268,8 @@ importers:
         specifier: ^1.6.0
         version: 1.14.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-hook-form:
-        specifier: ^7.53.0
-        version: 7.69.0(react@19.2.3)
+        specifier: ^7.70.0
+        version: 7.70.0(react@19.2.3)
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -307,9 +292,6 @@ importers:
       '@types/node':
         specifier: ^22.13.5
         version: 22.19.3
-      '@types/pg':
-        specifier: ^8.15.2
-        version: 8.16.0
       '@types/react':
         specifier: 19.0.10
         version: 19.0.10
@@ -1356,30 +1338,6 @@ packages:
     resolution: {integrity: sha512-wf/lwQvWAA0goIghcb91dQYpkLBcyhOhQNqG/VgWhnKzgt+UOMvra7EX/2fv70arm5RW+PUHoQHHDa6/p77Eqg==}
     peerDependencies:
       commander: ~12.1.0
-
-  '@cowprotocol/events@1.6.1':
-    resolution: {integrity: sha512-4ea0JYS5OE5FV58rxm5jUiwxzlMe96gpL2EaZIjov0MRincS5/RhlsfcBziWUQrPmTBTr1qxQ1Dbzw78D5eIbQ==}
-
-  '@cowprotocol/events@2.1.0':
-    resolution: {integrity: sha512-6Z13zutTToSjRriA1sW8F96fZJQe2Np1YfbbM8Iylfy7+YOM6bDUkmfzfe5rlZxNkmwMRe2qOYilsXcYzP2zPw==}
-
-  '@cowprotocol/iframe-transport@1.1.1':
-    resolution: {integrity: sha512-kSMvYnYfYw3SNy1yCZnig+OYDKTJ1pDPrv67LvUFm4U8srdnNs5vmqJovU97WkQ07DhZmmwoqnXgtYPUBkkTiA==}
-
-  '@cowprotocol/types@1.2.0':
-    resolution: {integrity: sha512-K/jOyLtffgEFs52hRKX7tyDHtIA3asnsB9So6lINCPfNetr1GhM818+kf+f3sPtOHWsBpL3pTkjJphzDVCQntQ==}
-
-  '@cowprotocol/types@2.1.1':
-    resolution: {integrity: sha512-F7VcDZg12+M2X7WMvWP4yGcl2ammVgfvtKsUEfl9IWSE42UhbElzSsUpBYR1clE5Gz/l11UsA/F6YRtEAGgYjw==}
-
-  '@cowprotocol/widget-lib@0.20.0':
-    resolution: {integrity: sha512-+iRFm8YeKP0qIjK0D08yfinRRHUNc/h0A0sRopIeJCRiKsIJR2legwD02BuzhNv3EiwxwH7aRmqdYpILYJzGUw==}
-
-  '@cowprotocol/widget-lib@0.22.1':
-    resolution: {integrity: sha512-RSPia8ffutV8WisEmdVpw/i16UMTZWzBdwkPrx07IY20DahwywOk4xQpJvZc5p3u9dgtbnpbevJ60XfMqj/BsA==}
-
-  '@cowprotocol/widget-react@0.14.3':
-    resolution: {integrity: sha512-M4xCRrUS783YFHwY3k5r6vrm8uYDMHo8sLMh3AASShMWy9+cnSE4e4vPt4WNElWYflFKlZtdtyHyioiXyYRZtw==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -9591,6 +9549,12 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-hook-form@7.70.0:
+    resolution: {integrity: sha512-COOMajS4FI3Wuwrs3GPpi/Jeef/5W1DRR84Yl5/ShlT3dKVFUfoGiEZ/QE6Uw8P4T2/CLJdcTVYKvWBMQTEpvw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+
   react-i18next@13.5.0:
     resolution: {integrity: sha512-CFJ5NDGJ2MUyBohEHxljOq/39NQ972rh1ajnadG9BjTk+UXbHLq4z5DKEbEQBDoIhUmmbuS/fIMJKo6VOax1HA==}
     peerDependencies:
@@ -12266,34 +12230,6 @@ snapshots:
     dependencies:
       commander: 12.1.0
 
-  '@cowprotocol/events@1.6.1':
-    dependencies:
-      '@cowprotocol/types': 1.2.0
-
-  '@cowprotocol/events@2.1.0':
-    dependencies:
-      '@cowprotocol/types': 2.1.1
-
-  '@cowprotocol/iframe-transport@1.1.1': {}
-
-  '@cowprotocol/types@1.2.0': {}
-
-  '@cowprotocol/types@2.1.1': {}
-
-  '@cowprotocol/widget-lib@0.20.0':
-    dependencies:
-      '@cowprotocol/events': 1.6.1
-      '@cowprotocol/iframe-transport': 1.1.1
-
-  '@cowprotocol/widget-lib@0.22.1':
-    dependencies:
-      '@cowprotocol/events': 2.1.0
-      '@cowprotocol/iframe-transport': 1.1.1
-
-  '@cowprotocol/widget-react@0.14.3':
-    dependencies:
-      '@cowprotocol/widget-lib': 0.22.1
-
   '@drizzle-team/brocli@0.10.2': {}
 
   '@dynamic-labs/assert-package-version@3.9.13':
@@ -13021,6 +12957,11 @@ snapshots:
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.69.0(react@19.2.3)
+
+  '@hookform/resolvers@5.2.2(react-hook-form@7.70.0(react@19.2.3))':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.70.0(react@19.2.3)
 
   '@hpke/chacha20poly1305@1.7.1':
     dependencies:
@@ -20577,7 +20518,7 @@ snapshots:
 
   extension-port-stream@3.0.0:
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
 
   eyes@0.1.8: {}
@@ -23099,6 +23040,10 @@ snapshots:
       '@types/react': 19.0.10
 
   react-hook-form@7.69.0(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+
+  react-hook-form@7.70.0(react@19.2.3):
     dependencies:
       react: 19.2.3
 

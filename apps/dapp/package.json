@@ -16,8 +16,6 @@
     "email:dev": "email dev --dir src/server/utils/emails --port 3001"
   },
   "dependencies": {
-    "@cowprotocol/widget-lib": "^0.20.0",
-    "@cowprotocol/widget-react": "^0.14.0",
     "@dynamic-labs/ethereum": "3.9.13",
     "@dynamic-labs/sdk-react-core": "3.9.13",
     "@dynamic-labs/wagmi-connector": "3.9.13",
@@ -44,7 +42,6 @@
     "jotai": "^2.12.5",
     "mongodb": "^6.13.1",
     "next": "15.6.0-canary.60",
-    "pg": "^8.16.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",
     "posthog-node": "^5.17.2",
@@ -66,7 +63,6 @@
     "@types/country-list": "^2.1.4",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.13.5",
-    "@types/pg": "^8.15.2",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
     "@zivoe/contracts": "workspace:*",
