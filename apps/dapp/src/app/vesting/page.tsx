@@ -1,5 +1,3 @@
-import { verifySession } from '@/server/data/auth';
-
 import { AppShell } from '@/components/app-shell';
 import OnboardingGuard from '@/components/onboarding-guard';
 import Page from '@/components/page';
@@ -7,8 +5,6 @@ import Page from '@/components/page';
 import VestingComponents from './_components';
 
 export default async function VestingPage() {
-  await verifySession();
-
   return (
     <>
       <AppShell>

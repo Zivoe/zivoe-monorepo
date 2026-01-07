@@ -4,7 +4,6 @@ import { Link } from '@zivoe/ui/core/link';
 import { CreditIcon, DollarIcon, DropIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
-import { verifySession } from '@/server/data/auth';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
@@ -23,8 +22,6 @@ import LoanCard from './_components/loans';
 import { ZIVOE_ZAPPER_URL } from './_utils/constants';
 
 export default async function TransparencyPage() {
-  await verifySession();
-
   return (
     <>
       <AppShell>

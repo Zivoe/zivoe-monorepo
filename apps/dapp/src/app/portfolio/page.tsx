@@ -1,5 +1,3 @@
-import { verifySession } from '@/server/data/auth';
-
 import { AppShell } from '@/components/app-shell';
 import OnboardingGuard from '@/components/onboarding-guard';
 import Page from '@/components/page';
@@ -9,8 +7,6 @@ import { PortfolioHeader } from './_components/portfolio-header';
 import { PortfolioHoldings } from './_components/portfolio-holdings';
 
 export default async function Portfolio() {
-  await verifySession();
-
   return (
     <>
       <AppShell>
