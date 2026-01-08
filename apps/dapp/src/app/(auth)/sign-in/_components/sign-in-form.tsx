@@ -133,7 +133,7 @@ function EmailStepForm({
     const { err } = await handlePromise(
       authClient.signIn.social({
         provider,
-        callbackURL: '/'
+        callbackURL: '/api/auth/post-signin'
       })
     );
 
@@ -307,7 +307,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       return;
     }
 
-    router.push('/');
+    router.push('/api/auth/post-signin');
   };
 
   const handleResendCode = async () => {
