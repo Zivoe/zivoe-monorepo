@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
@@ -19,8 +19,9 @@ import { Separator } from '@zivoe/ui/core/separator';
 import { LogoutIcon } from '@zivoe/ui/icons';
 import { tv } from '@zivoe/ui/lib/tw-utils';
 
-import { signOut } from '@/lib/auth-client';
-import { truncateAddress } from '@/lib/utils';
+import { signOutAction } from '@/server/actions/auth';
+
+import { handlePromise, truncateAddress } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 
@@ -110,7 +111,6 @@ const avatarButtonStyles = tv({
 });
 
 export function UserMenu({ user }: { user: User }) {
-  const router = useRouter();
   const posthog = usePostHog();
 
   const [isPending, setIsPending] = React.useState(false);
@@ -120,18 +120,22 @@ export function UserMenu({ user }: { user: User }) {
   const handleSignOut = async () => {
     setIsPending(true);
 
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          posthog.reset();
-          router.push('/sign-in');
-        },
-        onError: (err) => {
-          toast.error('Error signing out');
-          Sentry.captureException(err, { tags: { flow: 'sign-out' } });
-        }
+    const { res, err } = await handlePromise(signOutAction());
+
+    if (err) {
+      const isRedirect = err instanceof Error && err.message.includes('NEXT_REDIRECT');
+
+      if (isRedirect) posthog.reset();
+      else {
+        toast.error('Error signing out');
+        Sentry.captureException(err, { tags: { flow: 'sign-out' } });
       }
-    });
+    } else if (!res) {
+      toast.error('Error signing out');
+      Sentry.captureException('Unexpected error signing out', { tags: { flow: 'sign-out' } });
+    } else if (res.error) {
+      toast.error(res.error);
+    }
 
     setIsPending(false);
   };
