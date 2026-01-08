@@ -364,7 +364,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
         control={form.control}
         name="otp"
         render={({ field: { value, onChange, ref }, fieldState: { error } }) => (
-          <div className="flex w-[32rem] flex-col gap-2">
+          <div className="flex w-full max-w-[32rem] flex-col gap-2">
             <InputOTP
               autoFocus
               ref={ref}
