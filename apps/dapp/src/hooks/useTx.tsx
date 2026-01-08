@@ -24,7 +24,7 @@ import { ApproveTokenParams } from './useApproveSpending';
 
 export default function useTx() {
   const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { mutateAsync } = useWriteContract();
   const { address } = useAccount();
 
   const [isTxPending, setIsTxPending] = useState(false);
@@ -59,7 +59,7 @@ export default function useTx() {
       | UnstakeStSTTParams
       | ClaimVestingParams
   ) => {
-    const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
+    const { err, res: hash } = await handlePromise(mutateAsync(params as WriteContractParameters));
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
