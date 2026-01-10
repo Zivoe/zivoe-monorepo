@@ -51,3 +51,7 @@ export function handlePromise<T>(promise: Promise<T>) {
     .then((res: T) => ({ res, err: undefined }))
     .catch((err: unknown) => Promise.resolve({ res: undefined, err }));
 }
+
+export const EMAILS = {
+  INVESTORS: 'investors@zivoe.com'
+} as const;

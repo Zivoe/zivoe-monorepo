@@ -7,6 +7,8 @@ import { usePathname, useSearchParams } from 'next/navigation.js';
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 
+import { useSession } from '@/lib/auth-client';
+
 import { env } from '@/env';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
@@ -45,6 +47,7 @@ function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
+  const { data: session } = useSession();
 
   useEffect(() => {
     if (!pathname || !posthog) return;
@@ -55,6 +58,11 @@ function PostHogPageView() {
 
     posthog.capture('$pageview', { $current_url: url });
   }, [pathname, searchParams, posthog]);
+
+  useEffect(() => {
+    if (session?.user) posthog.identify(session.user.id);
+    else posthog.reset();
+  }, [session, posthog]);
 
   return null;
 }

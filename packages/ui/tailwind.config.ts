@@ -7,7 +7,19 @@ const config: Config = {
   theme: {
     extend: {
       screens: {
-        sm: '600px'
+        sm: '600px',
+        '3xl': '1920px'
+      },
+
+      keyframes: {
+        'caret-blink': {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' }
+        }
+      },
+
+      animation: {
+        'caret-blink': 'caret-blink 1.2s ease-out infinite'
       }
     },
 
@@ -172,7 +184,8 @@ const config: Config = {
       base: 'hsl(var(--neutral-0))',
       neutral: {
         '300': 'hsl(var(--neutral-300))',
-        '600': 'hsl(var(--neutral-600))'
+        '600': 'hsl(var(--neutral-600))',
+        '900': 'hsl(var(--neutral-900))'
       },
       'secondary-contrast': 'hsl(var(--secondary-700))',
       icon: {
@@ -271,7 +284,8 @@ const config: Config = {
       base: 'hsl(var(--neutral-0))',
       'primary-subtle': 'hsl(var(--primary-700))',
       neutral: {
-        '100': 'hsl(var(--neutral-100))'
+        '100': 'hsl(var(--neutral-100))',
+        '400': 'hsl(var(--neutral-400))'
       }
     },
 

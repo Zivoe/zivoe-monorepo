@@ -3,6 +3,8 @@ import { ReactNode } from 'react';
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';
 
+import { EMAILS } from '@/lib/utils';
+
 import Container from '@/components/container';
 
 import { GithubIcon, LinkedInIcon, TelegramIcon, XIcon, YoutubeIcon } from './assets';
@@ -113,7 +115,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     links: [
       { href: '/team', label: 'Team' },
       // { href: '/', label: 'Media Kit' },
-      { href: 'mailto:investors@zivoe.com', label: 'Contact Us' }
+      { href: `mailto:${EMAILS.INVESTORS}`, label: 'Contact Us' }
     ]
   }
 ];

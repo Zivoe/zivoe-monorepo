@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAccount as useAccountWagmi } from 'wagmi';
+import { useConnection } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
 import { handlePromise } from '@/lib/utils';
@@ -21,7 +21,7 @@ type ErrorResponse = {
 export const useChainalysis = () => {
   const { address } = useAccount();
 
-  const { chainId } = useAccountWagmi();
+  const { chainId } = useConnection();
   const network = chainId ? 'MAINNET' : undefined;
 
   const { data, isPending, isFetching, isSuccess } = useQuery({

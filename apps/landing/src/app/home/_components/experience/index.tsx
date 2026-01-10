@@ -4,6 +4,8 @@ import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { EMAILS } from '@/lib/utils';
+
 import Container from '@/components/container';
 import NewsletterHeader from '@/components/newsletter/common/newsletter-header';
 import { TowerLeftIcon } from '@/components/tower-left-icon';
@@ -47,7 +49,7 @@ export default function Experience() {
               </div>
             </div>
 
-            <Link variant="primary" href="mailto:investors@zivoe.com" size="l">
+            <Link variant="primary" href={`mailto:${EMAILS.INVESTORS}`} size="l">
               Let's Talk
             </Link>
           </div>

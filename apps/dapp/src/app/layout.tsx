@@ -11,9 +11,6 @@ import '@zivoe/ui/globals.css';
 
 import { env } from '@/env';
 
-import ChainalysisAssessmentDialog from './_components/chainalysis-assessment-dialog';
-import Footer from './_components/footer';
-import Header from './_components/header';
 import Providers, { wagmiConfig } from './_components/providers';
 
 const title = 'Zivoe | RWA Credit Protocol';
@@ -50,24 +47,14 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function Layout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const headersList = await headers();
   const initialState = cookieToInitialState(wagmiConfig, headersList.get('cookie'));
 
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} h-full antialiased`}>
       <body className="flex h-full flex-col">
-        <Providers initialState={initialState}>
-          <Header />
-
-          <div className="flex h-full flex-col justify-between bg-surface-base">
-            {children}
-            <Footer />
-          </div>
-
-          <ChainalysisAssessmentDialog />
-        </Providers>
-
+        <Providers initialState={initialState}>{children}</Providers>
         <Analytics mode={env.NEXT_PUBLIC_ENV} />
       </body>
     </html>

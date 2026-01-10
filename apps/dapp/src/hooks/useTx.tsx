@@ -12,19 +12,19 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
-import { RedeemUSDCParams } from '@/app/home/deposit/_hooks/useRedeemUSDC';
-import { RouterDepositParams } from '@/app/home/deposit/_hooks/useRouterDeposit';
-import { RouterDepositPermitParams } from '@/app/home/deposit/_hooks/useRouterDepositPermit';
-import { VaultDepositParams } from '@/app/home/deposit/_hooks/useVaultDeposit';
-import { UnstakeStSTTParams } from '@/app/portfolio/_hooks/useUnstakeStSTT';
-import { ClaimVestingParams } from '@/app/vesting/_hooks/useClaimVesting';
+import { RedeemUSDCParams } from '@/app/(dashboard)/home/deposit/_hooks/useRedeemUSDC';
+import { RouterDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDeposit';
+import { RouterDepositPermitParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDepositPermit';
+import { VaultDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useVaultDeposit';
+import { UnstakeStSTTParams } from '@/app/(dashboard)/portfolio/_hooks/useUnstakeStSTT';
+import { ClaimVestingParams } from '@/app/(dashboard)/vesting/_hooks/useClaimVesting';
 
 import { useAccount } from './useAccount';
 import { ApproveTokenParams } from './useApproveSpending';
 
 export default function useTx() {
   const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { mutateAsync } = useWriteContract();
   const { address } = useAccount();
 
   const [isTxPending, setIsTxPending] = useState(false);
@@ -59,7 +59,7 @@ export default function useTx() {
       | UnstakeStSTTParams
       | ClaimVestingParams
   ) => {
-    const { err, res: hash } = await handlePromise(writeContractAsync(params as WriteContractParameters));
+    const { err, res: hash } = await handlePromise(mutateAsync(params as WriteContractParameters));
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
