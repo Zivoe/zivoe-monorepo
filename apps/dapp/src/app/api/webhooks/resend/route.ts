@@ -136,7 +136,10 @@ export async function POST(req: NextRequest) {
 
       default:
         // Shouldn't happen if webhook subscription is configured correctly
-        console.warn(`Unexpected Resend webhook event type: ${type}`);
+        Sentry.captureException(new Error(`Unexpected Resend webhook event type: ${type}`), {
+          tags: { source: 'SERVER', flow: 'resend-webhook-unknown' },
+          extra: sentryExtra
+        });
         break;
     }
 
