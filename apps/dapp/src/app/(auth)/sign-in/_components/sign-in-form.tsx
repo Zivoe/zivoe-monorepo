@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
-import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from '@zivoe/ui/core/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from '@zivoe/ui/core/otp';
 import { Separator } from '@zivoe/ui/core/separator';
 import { toast } from '@zivoe/ui/core/sonner';
 import { ArrowLeftIcon, GoogleIcon, TwitterIcon } from '@zivoe/ui/icons';
