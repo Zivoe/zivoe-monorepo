@@ -95,7 +95,7 @@ export default function SignInForm() {
       {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
 
       {WITH_TURNSTILE && (
-        <div className="absolute bottom-0 right-0">
+        <div className="absolute bottom-0 right-0 z-50">
           <Turnstile
             options={{ execution: 'execute', appearance: 'execute' }}
             siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
