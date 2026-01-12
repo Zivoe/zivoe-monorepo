@@ -6,6 +6,7 @@ import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
 import { VariantProps } from 'tailwind-variants';
 
+import { CheckIcon } from '../../icons';
 import { cn, tv } from '../../lib/tw-utils';
 import { FieldError } from '../field/field-error';
 import { Label, labelVariants } from '../field/label';
@@ -28,28 +29,79 @@ const radioVariants = tv({
       'focus:outline-none focus-visible:outline-none'
     ],
 
-    circle: 'group-data-[selected]:group-data-[disabled]:bg-neutral-500 size-2.5 rounded-full bg-element-base'
+    circle: 'size-2.5 rounded-full bg-element-base group-data-[selected]:group-data-[disabled]:bg-neutral-500'
   }
 });
 
-const Radio = forwardRef<HTMLLabelElement, Aria.RadioProps>(({ className, children, ...props }, ref) => {
-  const { container, element, circle } = radioVariants();
+const cardRadioVariants = tv({
+  slots: {
+    container: [
+      'group flex h-14 w-full items-center justify-between overflow-hidden rounded p-4',
+      'border border-default bg-surface-base transition-colors',
+      /* Hover */
+      'hover:cursor-pointer hover:bg-surface-elevated',
+      /* Selected */
+      'data-[selected]:border-active data-[selected]:bg-element-primary-light',
+      /* Focus */
+      'data-[focus-visible]:ring-2 data-[focus-visible]:ring-default data-[focus-visible]:ring-offset-1',
+      /* Disabled */
+      'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60',
+      /* Invalid */
+      'data-[invalid]:border-alert data-[invalid]:shadow-[0px_0px_4px_0px_theme(colors.alert.600)]'
+    ],
 
-  return (
-    <Aria.Radio
-      className={composeRenderProps(className, (className) => cn(container(), labelVariants(), className))}
-      {...props}
-      ref={ref}
-    >
-      {composeRenderProps(children, (children, renderProps) => (
-        <>
-          <span className={element()}>{renderProps.isSelected && <div className={circle()} />}</span>
-          <div className="flex items-center gap-4 text-regular font-normal text-primary">{children}</div>
-        </>
-      ))}
-    </Aria.Radio>
-  );
+    content: 'flex items-center gap-2 text-regular font-medium text-primary',
+
+    indicator: [
+      'border-neutral-400 flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors',
+      'group-data-[selected]:border-transparent group-data-[selected]:bg-element-primary-soft group-data-[selected]:text-base'
+    ]
+  }
 });
+
+interface RadioProps extends Aria.RadioProps {
+  variant?: 'default' | 'card';
+}
+
+const Radio = forwardRef<HTMLLabelElement, RadioProps>(
+  ({ className, children, variant = 'default', ...props }, ref) => {
+    if (variant === 'card') {
+      const { container, content, indicator } = cardRadioVariants();
+
+      return (
+        <Aria.Radio
+          className={composeRenderProps(className, (className) => cn(container(), className))}
+          {...props}
+          ref={ref}
+        >
+          {composeRenderProps(children, (children, renderProps) => (
+            <>
+              <div className={content()}>{children}</div>
+              <div className={indicator()}>{renderProps.isSelected && <CheckIcon className="size-4" />}</div>
+            </>
+          ))}
+        </Aria.Radio>
+      );
+    }
+
+    const { container, element, circle } = radioVariants();
+
+    return (
+      <Aria.Radio
+        className={composeRenderProps(className, (className) => cn(container(), labelVariants(), className))}
+        {...props}
+        ref={ref}
+      >
+        {composeRenderProps(children, (children, renderProps) => (
+          <>
+            <span className={element()}>{renderProps.isSelected && <div className={circle()} />}</span>
+            <div className="flex items-center gap-4 text-regular font-normal text-primary">{children}</div>
+          </>
+        ))}
+      </Aria.Radio>
+    );
+  }
+);
 
 interface RadioGroupProps extends Aria.RadioGroupProps, VariantProps<typeof radioVariants> {
   label?: string;
@@ -82,5 +134,5 @@ const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(
 Radio.displayName = 'ZivoeUI.Radio';
 RadioGroup.displayName = 'ZivoeUI.RadioGroup';
 
-export { Radio, RadioGroup, radioVariants };
-export type { RadioGroupProps };
+export { Radio, RadioGroup, radioVariants, cardRadioVariants };
+export type { RadioProps, RadioGroupProps };

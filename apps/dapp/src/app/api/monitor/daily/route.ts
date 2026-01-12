@@ -181,5 +181,5 @@ async function collectDailyData({
 }
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error collecting daily data', handler)(req) as unknown as NextResponse;
+  return withErrorHandler('Error collecting daily data', handler)(req);
 });

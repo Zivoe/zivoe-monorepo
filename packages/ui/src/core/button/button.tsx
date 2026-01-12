@@ -45,6 +45,7 @@ const buttonVariants = tv({
       'link-neutral-dark': 'text-primary',
       'link-neutral-light': 'text-secondary',
       'link-alert': 'text-alert-subtle',
+      'link-tertiary': 'text-tertiary',
       chip: 'border border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light pressed:bg-element-neutral disabled:border-neutral-100'
     },
 
@@ -60,7 +61,15 @@ const buttonVariants = tv({
 
   compoundVariants: [
     {
-      variant: ['link-base', 'link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
+      variant: [
+        'link-base',
+        'link-primary',
+        'link-secondary',
+        'link-neutral-dark',
+        'link-neutral-light',
+        'link-alert',
+        'link-tertiary'
+      ],
       className:
         'h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },
