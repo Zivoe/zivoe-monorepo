@@ -37,8 +37,8 @@ export default function WelcomeEmail({ name }: { name?: string }) {
             <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
             <Text className="m-0 mb-4 leading-6 text-neutral-600">
-              I'm Thor from Zivoe's investor relations team, nice to meet you. I look after new liquidity providers and
-              partners joining the platform.
+              I'm Thor from Zivoe's onboarding team, nice to meet you. I look after new liquidity providers and partners
+              joining the platform.
             </Text>
 
             <Text className="m-0 mb-4 leading-6 text-neutral-600">
@@ -48,9 +48,9 @@ export default function WelcomeEmail({ name }: { name?: string }) {
 
             <Text className="m-0 mb-4 leading-6 text-neutral-600">
               Our primary offering is zVLT, a yield-bearing token targeting ~15% net annualized returns. The strategy
-              deploys capital across private credit verticals, with a heavy focus on revenue-based financing for small
-              and medium-sized businesses. We offer instant liquidity for retail participants and quarterly redemptions
-              for institutional clients.
+              deploys capital across short-duration private credit verticals, primarily revenue-based financing for
+              small and medium-sized businesses, offering faster performance visibility than traditional private credit
+              opportunities.
             </Text>
 
             <Text className="m-0 leading-6 text-neutral-600">Worth a quick chat?</Text>
@@ -80,7 +80,7 @@ export default function WelcomeEmail({ name }: { name?: string }) {
 
                   <td>
                     <Text className="text-neutral-950 m-0 font-medium">Thor</Text>
-                    <Text className="text-sm text-neutral-500 m-0">Investor Relations, Zivoe</Text>
+                    <Text className="text-sm text-neutral-500 m-0">Onboarding, Zivoe</Text>
                   </td>
                 </tr>
               </table>
