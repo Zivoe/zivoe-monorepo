@@ -16,7 +16,8 @@ export default function Diversify() {
           <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</p>
 
           <p className="text-leading text-secondary">
-            Zivoe gives you access to the private credit market, a proven asset class that has delivered strong returns to Wall Street for over 50 years.
+            Zivoe gives you access to the private credit market, a proven asset class that has delivered strong returns
+            to Wall Street for over 50 years.
           </p>
         </div>
 

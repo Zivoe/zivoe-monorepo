@@ -31,7 +31,7 @@ const checkboxVariants = tv({
       'focus:outline-none focus-visible:outline-none'
     ],
 
-    icon: 'group-data-[disabled]:text-icon-default size-4 text-base'
+    icon: 'size-4 text-base group-data-[disabled]:text-icon-default'
   }
 });
 

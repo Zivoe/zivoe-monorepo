@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { BankIcon, WalletIcon } from '../../icons';
 import { Radio, RadioGroup } from '.';
+import { BankIcon, WalletIcon } from '../../icons';
 
 const meta: Meta = {
   title: 'Core/Radio',

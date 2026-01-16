@@ -53,7 +53,7 @@ const cardRadioVariants = tv({
     content: 'flex items-center gap-2 text-regular font-medium text-primary',
 
     indicator: [
-      'border-neutral-400 flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors',
+      'flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-400 transition-colors',
       'group-data-[selected]:border-transparent group-data-[selected]:bg-element-primary-soft group-data-[selected]:text-base'
     ]
   }
