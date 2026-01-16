@@ -21,12 +21,12 @@ import {
   orgPersonalInfoSchema
 } from '@/lib/schemas/onboarding';
 
-import { AMOUNT_OF_INTEREST_OPTIONS, HOW_FOUND_ZIVOE_OPTIONS } from '@/app/(auth)/onboarding/_utils/onboarding.types';
+import { HOW_FOUND_ZIVOE_OPTIONS, ORG_AMOUNT_OPTIONS } from '@/app/(auth)/onboarding/_utils/onboarding.types';
 
 import { Auth } from '../../_components/common';
 import { useCompleteOnboarding } from '../_hooks/useCompleteOnboarding';
 
-const amountOfInterestItems = Object.entries(AMOUNT_OF_INTEREST_OPTIONS).map(([value, label]) => ({
+const amountOfInterestItems = Object.entries(ORG_AMOUNT_OPTIONS).map(([value, label]) => ({
   value,
   label
 }));

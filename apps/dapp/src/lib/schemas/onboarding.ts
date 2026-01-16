@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
-import { amountOfInterestValues, howFoundZivoeValues } from '@/server/db/schema';
+import { howFoundZivoeValues, individualAmountValues, orgAmountValues } from '@/server/db/schema';
 
-const amountOfInterestEnum = z.enum(amountOfInterestValues, {
+const individualAmountEnum = z.enum(individualAmountValues, {
+  required_error: 'Please select an amount of interest'
+});
+
+const orgAmountEnum = z.enum(orgAmountValues, {
   required_error: 'Please select an amount of interest'
 });
 const howFoundZivoeEnum = z.enum(howFoundZivoeValues, {
@@ -25,7 +29,7 @@ export const individualSchema = z.object({
   firstName: z.string({ required_error: 'First name is required' }).min(1, 'First name is required'),
   lastName: z.string({ required_error: 'Last name is required' }).min(1, 'Last name is required'),
   countryOfResidence: z.string({ required_error: 'Please select a country' }).min(1, 'Please select a country'),
-  amountOfInterest: amountOfInterestEnum,
+  amountOfInterest: individualAmountEnum,
   howFoundZivoe: howFoundZivoeEnum
 });
 export type IndividualFormData = z.infer<typeof individualSchema>;
@@ -43,7 +47,7 @@ export type OrgPersonalInfoFormData = z.infer<typeof orgPersonalInfoSchema>;
 export const orgEntityInfoSchema = z.object({
   entityName: z.string({ required_error: 'Entity name is required' }).min(1, 'Entity name is required'),
   countryOfIncorporation: z.string({ required_error: 'Please select a country' }).min(1, 'Please select a country'),
-  amountOfInterest: amountOfInterestEnum
+  amountOfInterest: orgAmountEnum
 });
 export type OrgEntityInfoFormData = z.infer<typeof orgEntityInfoSchema>;
 
