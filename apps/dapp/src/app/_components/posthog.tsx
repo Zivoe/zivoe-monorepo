@@ -21,7 +21,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       loaded: function (ph) {
         if (env.NEXT_PUBLIC_ENV !== 'production') {
           ph.opt_out_capturing();
-          ph.set_config({ disable_session_recording: true });
+          ph.stopSessionRecording();
         }
       }
     });
