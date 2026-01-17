@@ -30,7 +30,7 @@ const SANCTIONED_COUNTRY_CODES = new Set([
   'SD', // Sudan
   'SY', // Syria
   'VE', // Venezuela
-  'YE', // Yemen
+  'YE' // Yemen
 ]);
 
 export const COUNTRIES = getData()

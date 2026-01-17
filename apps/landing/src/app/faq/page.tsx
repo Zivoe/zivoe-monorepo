@@ -71,7 +71,7 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      "Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit."
+      'Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit.'
   },
   {
     question: 'What are the fees?',
@@ -101,6 +101,6 @@ const FAQs: Array<{
   {
     question: 'Has Zivoe been audited?',
     answer:
-      'Yes. Zivoe\'s smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards.'
+      "Yes. Zivoe's smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards."
   }
 ];
