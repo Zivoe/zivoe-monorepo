@@ -13,7 +13,10 @@
     "db:migrate": "drizzle-kit migrate --config=drizzle-auth.config.ts",
     "db:push": "drizzle-kit push --config=drizzle-auth.config.ts",
     "db:studio": "drizzle-kit studio --config=drizzle-auth.config.ts",
-    "email:dev": "email dev --dir src/server/utils/emails --port 3001"
+    "email:dev": "email dev --dir src/server/utils/emails --port 3001",
+    "schedules:sync": "tsx --env-file=.env scripts/qstash-schedules.ts sync",
+    "schedules:list": "tsx --env-file=.env scripts/qstash-schedules.ts list",
+    "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove"
   },
   "dependencies": {
     "@dynamic-labs/ethereum": "4.52.5",
@@ -59,6 +62,7 @@
   },
   "devDependencies": {
     "@react-email/preview-server": "5.1.0",
+    "tsx": "^4.19.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/country-list": "^2.1.4",
     "@types/eslint": "^9.6.1",
@@ -90,6 +94,6 @@
   },
   "packageManager": "pnpm@10.4.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }
