@@ -17,7 +17,7 @@ import { env } from '@/env';
 import { ApiResponse } from '../../../utils';
 import { collectDailyData } from '../shared';
 
-const MONITOR_SLUG = 'deposit-daily-cron';
+const MONITOR_SLUG = 'network-hourly-cron';
 
 const handler = async (_req: NextRequest): ApiResponse<string> => {
   const sentryCheckInId = Sentry.captureCheckIn({
@@ -87,6 +87,8 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
     });
 
     throw error;
+  } finally {
+    await Sentry.flush(2000);
   }
 };
 
