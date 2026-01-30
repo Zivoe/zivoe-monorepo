@@ -19,6 +19,7 @@ import { env } from '@/env';
 
 import { authDb } from './clients/auth-db';
 import { posthog } from './clients/posthog';
+import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
 
@@ -153,7 +154,7 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           after(async () => {
-            const flows = ['sign-up-subscribe-newsletter', 'sign-up-posthog-capture'];
+            const flows = ['sign-up-subscribe-newsletter', 'sign-up-schedule-reminder', 'sign-up-posthog-capture'];
 
             const results = await Promise.allSettled([
               // Subscribe to newsletter
@@ -176,6 +177,16 @@ export const auth = betterAuth({
                 }
 
                 return res;
+              }),
+
+              // Schedule onboarding reminder (3 days) for users who don't complete it
+              qstash.publishJSON({
+                url: `${BASE_URL}/api/email/onboarding-reminder`,
+                body: { userId: user.id },
+                delay: '3d',
+                retries: 3,
+                deduplicationId: `onboarding-reminder-3day-${user.id}`,
+                failureCallback: `${BASE_URL}/api/qstash/failure`
               }),
 
               // Track signup event
