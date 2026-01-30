@@ -1,95 +1,35 @@
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Section,
-  Tailwind,
-  Text
-} from '@react-email/components';
+import { Heading, Text } from '@react-email/components';
 
-import { BASE_URL } from '../base-url';
-import { THOR_AVATAR_URL, ZIVOE_LOGO_URL, emailTailwindConfig } from './config';
+import { BookCallSection } from './components/book-call-section';
+import { EmailLayout } from './components/email-layout';
 
 export default function ReminderEmail({ name }: { name?: string }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <Html>
-      <Head />
-      <Preview>Quick follow-up from Zivoe</Preview>
-      <Tailwind config={emailTailwindConfig}>
-        <Body className="bg-neutral-50 font-sans">
-          <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
-            <Section className="mb-8 text-center">
-              <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" className="mx-auto" />
-            </Section>
+    <EmailLayout preview="Quick follow-up from Zivoe">
+      <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
+        Quick Follow-Up
+      </Heading>
 
-            <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
-              Quick Follow-Up
-            </Heading>
+      <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
-            <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
+      <Text className="m-0 mb-4 leading-6 text-neutral-600">
+        Thor here again from Zivoe. I wanted to follow up on my previous email and see if you had any questions
+        about getting started.
+      </Text>
 
-            <Text className="m-0 mb-4 leading-6 text-neutral-600">
-              Thor here again from Zivoe. I wanted to follow up on my previous email and see if you had any questions
-              about getting started.
-            </Text>
+      <Text className="m-0 mb-4 leading-6 text-neutral-600">
+        Many of our liquidity providers find it helpful to have a quick intro call where we can walk through zVLT,
+        our yield-bearing token targeting ~15% net annualized returns, and answer any questions about the
+        platform.
+      </Text>
 
-            <Text className="m-0 mb-4 leading-6 text-neutral-600">
-              Many of our liquidity providers find it helpful to have a quick intro call where we can walk through zVLT,
-              our yield-bearing token targeting ~15% net annualized returns, and answer any questions about the
-              platform.
-            </Text>
+      <Text className="m-0 leading-6 text-neutral-600">
+        If you're interested, I'd be happy to find a time that works for you.
+      </Text>
 
-            <Text className="m-0 leading-6 text-neutral-600">
-              If you're interested, I'd be happy to find a time that works for you.
-            </Text>
-
-            <Section className="my-8 text-center">
-              <Link
-                href={`${BASE_URL}/meet/thor`}
-                className="text-neutral-0 rounded-lg bg-primary-600 px-6 py-3 font-medium"
-                style={{ display: 'inline-block' }}
-              >
-                Book a Call
-              </Link>
-              <Text className="text-sm text-neutral-500 m-0 mt-3">
-                Or reach out on Telegram{' '}
-                <Link href={`${BASE_URL}/telegram/thor`} className="text-primary-600 underline">
-                  @thorabbasi
-                </Link>
-              </Text>
-            </Section>
-
-            <Section className="mt-6">
-              <table>
-                <tr>
-                  <td style={{ verticalAlign: 'top', paddingRight: '12px' }}>
-                    <Img src={THOR_AVATAR_URL} width="48" height="48" alt="Thor" style={{ borderRadius: '50%' }} />
-                  </td>
-
-                  <td>
-                    <Text className="text-neutral-950 m-0 font-medium">Thor</Text>
-                    <Text className="text-sm text-neutral-500 m-0">Onboarding, Zivoe</Text>
-                  </td>
-                </tr>
-              </table>
-            </Section>
-
-            <Hr className="border-neutral-200 my-8" />
-
-            <Section className="text-center">
-              <Text className="text-xs text-neutral-400 m-0">Zivoe — RWA Credit Protocol</Text>
-            </Section>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+      <BookCallSection />
+    </EmailLayout>
   );
 }
