@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
@@ -25,6 +26,12 @@ const handler = async (req: NextRequest) => {
   const profile = await getUserEmailProfile(userId);
 
   if (!profile || !profile.createdAt) {
+    Sentry.captureMessage('Reminder email skipped: user/profile not found', {
+      level: 'info',
+      tags: { source: 'API', flow: 'reminder-email' },
+      extra: { userId }
+    });
+
     return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
