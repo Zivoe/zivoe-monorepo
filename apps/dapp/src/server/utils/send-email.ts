@@ -76,7 +76,7 @@ export async function sendFirstOnboardingReminderEmail({
       from: 'Thor from Zivoe <hello@auth.zivoe.com>',
       replyTo: EMAILS.INVESTORS,
       to,
-      subject: 'Thanks for Signing Up - Zivoe',
+      subject: 'Getting Started',
       html
     },
     {
@@ -113,7 +113,7 @@ export async function sendSecondOnboardingReminderEmail({
       from: 'Thor from Zivoe <hello@auth.zivoe.com>',
       replyTo: EMAILS.INVESTORS,
       to,
-      subject: 'Following Up - Zivoe',
+      subject: 'Last Nudge',
       html
     },
     {

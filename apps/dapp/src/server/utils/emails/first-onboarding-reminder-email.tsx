@@ -13,17 +13,17 @@ export default function FirstOnboardingReminderEmail({
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="Thanks for Signing Up - Zivoe">
+    <EmailLayout>
       <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
-        Thanks for Signing Up
+        Getting Started
       </Heading>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
       {accountType === 'individual' ? (
         <Text className="m-0 mb-4 leading-6 text-neutral-600">
-          Just wanted to follow up and say thanks for signing up. As a refresher, Zivoe is a protocol providing
-          on-chain access to private credit strategies backed by real business cash flows.
+          Just wanted to follow up and say thanks for signing up. As a refresher, Zivoe provides on-chain access to
+          private credit strategies backed by real business cash flows.
         </Text>
       ) : (
         <Text className="m-0 mb-4 leading-6 text-neutral-600">
@@ -38,7 +38,7 @@ export default function FirstOnboardingReminderEmail({
           : 'If you have any questions or want to walk through the structure, happy to help.'}
       </Text>
 
-      <BookCallSection />
+      <BookCallSection ctaText="Go to App" ctaHref="https://app.zivoe.com/" />
     </EmailLayout>
   );
 }

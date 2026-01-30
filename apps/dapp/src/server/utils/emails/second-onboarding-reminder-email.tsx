@@ -13,9 +13,9 @@ export default function SecondOnboardingReminderEmail({
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="Following Up - Zivoe">
+    <EmailLayout>
       <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
-        Following Up
+        Last Nudge
       </Heading>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
@@ -42,7 +42,7 @@ export default function SecondOnboardingReminderEmail({
           : "If you're still evaluating, happy to share access to our data room. Just let me know."}
       </Text>
 
-      <BookCallSection />
+      <BookCallSection ctaText="Go to App" ctaHref="https://app.zivoe.com/" />
     </EmailLayout>
   );
 }
