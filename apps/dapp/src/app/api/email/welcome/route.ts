@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
@@ -42,14 +43,23 @@ const handler = async (req: NextRequest) => {
   if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
 
   // Schedule first onboarding reminder (3 days after welcome email)
-  await qstash.publishJSON({
-    url: `${BASE_URL}/api/email/reminder`,
-    body: { userId, reminderNumber: 1 },
-    delay: '3d',
-    retries: 3,
-    deduplicationId: `onboarding-reminder-3day-${userId}`,
-    failureCallback: `${BASE_URL}/api/qstash/failure`
-  });
+  const { err: scheduleErr } = await handlePromise(
+    qstash.publishJSON({
+      url: `${BASE_URL}/api/email/reminder`,
+      body: { userId, reminderNumber: 1 },
+      delay: '3d',
+      retries: 3,
+      deduplicationId: `onboarding-reminder-3day-${userId}`,
+      failureCallback: `${BASE_URL}/api/qstash/failure`
+    })
+  );
+
+  if (scheduleErr) {
+    Sentry.captureException(scheduleErr, {
+      tags: { source: 'API', flow: 'welcome-email' },
+      extra: { userId, reminderNumber: 1 }
+    });
+  }
 
   return NextResponse.json({ success: true, data: 'Welcome email sent' });
 };

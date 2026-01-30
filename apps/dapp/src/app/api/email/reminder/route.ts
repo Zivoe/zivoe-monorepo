@@ -29,8 +29,7 @@ const handler = async (req: NextRequest) => {
   const profile = await getUserEmailProfile(userId);
 
   if (!profile || !profile.createdAt || !profile.accountType) {
-    Sentry.captureMessage('Reminder email skipped: user/profile not found', {
-      level: 'info',
+    Sentry.captureException(new Error('Reminder email skipped: user/profile not found'), {
       tags: { source: 'API', flow: 'reminder-email' },
       extra: { userId, reminderNumber }
     });
@@ -54,14 +53,23 @@ const handler = async (req: NextRequest) => {
 
   // After sending reminder 1, schedule reminder 2 (7 days later = 10 days from onboarding)
   if (reminderNumber === 1) {
-    await qstash.publishJSON({
-      url: `${BASE_URL}/api/email/reminder`,
-      body: { userId, reminderNumber: 2 },
-      delay: '7d',
-      retries: 3,
-      deduplicationId: `onboarding-reminder-10day-${userId}`,
-      failureCallback: `${BASE_URL}/api/qstash/failure`
-    });
+    const { err: scheduleErr } = await handlePromise(
+      qstash.publishJSON({
+        url: `${BASE_URL}/api/email/reminder`,
+        body: { userId, reminderNumber: 2 },
+        delay: '7d',
+        retries: 3,
+        deduplicationId: `onboarding-reminder-10day-${userId}`,
+        failureCallback: `${BASE_URL}/api/qstash/failure`
+      })
+    );
+
+    if (scheduleErr) {
+      Sentry.captureException(scheduleErr, {
+        tags: { source: 'API', flow: 'reminder-email' },
+        extra: { userId, reminderNumber: 2 }
+      });
+    }
   }
 
   return NextResponse.json({ success: true, data: `Reminder ${reminderNumber} email sent` });
