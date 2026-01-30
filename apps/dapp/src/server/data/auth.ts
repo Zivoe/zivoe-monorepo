@@ -68,6 +68,7 @@ export const getUserEmailProfile = async (userId: string) => {
         email: schema.user.email,
         firstName: schema.profile.firstName,
         lastName: schema.profile.lastName,
+        accountType: schema.profile.accountType,
         createdAt: schema.profile.createdAt
       })
       .from(schema.user)

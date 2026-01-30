@@ -7,8 +7,9 @@ import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
+import FirstOnboardingReminderEmail from './emails/first-onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
-import ReminderEmail from './emails/reminder-email';
+import SecondOnboardingReminderEmail from './emails/second-onboarding-reminder-email';
 import WelcomeEmail from './emails/welcome-email';
 
 const resend = new Resend(env.RESEND_API_KEY);
@@ -57,19 +58,66 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
   return { data };
 }
 
-export async function sendReminderEmail({ to, name, userId }: { to: string; name?: string; userId: string }) {
-  const html = await render(ReminderEmail({ name }));
+export async function sendFirstOnboardingReminderEmail({
+  to,
+  name,
+  accountType,
+  userId
+}: {
+  to: string;
+  name?: string;
+  accountType: 'individual' | 'organization';
+  userId: string;
+}) {
+  const html = await render(FirstOnboardingReminderEmail({ name, accountType }));
 
   const { data, error } = await resend.emails.send(
     {
       from: 'Thor from Zivoe <hello@auth.zivoe.com>',
       replyTo: EMAILS.INVESTORS,
       to,
-      subject: 'Quick follow-up from Zivoe',
+      subject: 'Thanks for Signing Up - Zivoe',
       html
     },
     {
-      idempotencyKey: `reminder-email/${userId}`
+      idempotencyKey: `first-onboarding-reminder-email/${userId}`
+    }
+  );
+
+  if (error) {
+    if (error.name === 'invalid_idempotent_request' || error.name === 'concurrent_idempotent_requests') {
+      return { data: null };
+    }
+
+    throw error;
+  }
+
+  return { data };
+}
+
+export async function sendSecondOnboardingReminderEmail({
+  to,
+  name,
+  accountType,
+  userId
+}: {
+  to: string;
+  name?: string;
+  accountType: 'individual' | 'organization';
+  userId: string;
+}) {
+  const html = await render(SecondOnboardingReminderEmail({ name, accountType }));
+
+  const { data, error } = await resend.emails.send(
+    {
+      from: 'Thor from Zivoe <hello@auth.zivoe.com>',
+      replyTo: EMAILS.INVESTORS,
+      to,
+      subject: 'Following Up - Zivoe',
+      html
+    },
+    {
+      idempotencyKey: `second-onboarding-reminder-email/${userId}`
     }
   );
 
