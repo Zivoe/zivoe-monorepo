@@ -3,10 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
-import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
-import { BASE_URL } from '@/server/utils/base-url';
-import { sendWelcomeEmail } from '@/server/utils/send-email';
+import { sendReminderEmail } from '@/server/utils/send-email';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
@@ -24,36 +22,26 @@ const handler = async (req: NextRequest) => {
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
 
   const { userId } = parsedBody.data;
-
   const profile = await getUserEmailProfile(userId);
 
   if (!profile || !profile.createdAt) {
-    throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
+    return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
   const { err } = await handlePromise(
-    sendWelcomeEmail({
+    sendReminderEmail({
       to: profile.email,
       name: profile.firstName || profile.lastName || undefined,
       userId
     })
   );
 
-  if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
+  if (err)
+    throw new ApiError({ message: 'Failed to send reminder email', status: 500, exception: err, capture: false });
 
-  // Schedule 7-day reminder email
-  await qstash.publishJSON({
-    url: `${BASE_URL}/api/email/reminder`,
-    body: { userId },
-    delay: '7d',
-    retries: 3,
-    deduplicationId: `reminder-7day-${userId}`,
-    failureCallback: `${BASE_URL}/api/qstash/failure`
-  });
-
-  return NextResponse.json({ success: true, data: 'Welcome email sent' });
+  return NextResponse.json({ success: true, data: 'Reminder email sent' });
 };
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error sending welcome email', handler)(req);
+  return withErrorHandler('Error sending reminder email', handler)(req);
 });
