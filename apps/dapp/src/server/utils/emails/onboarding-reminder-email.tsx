@@ -1,6 +1,6 @@
 import { Heading, Text } from '@react-email/components';
 
-import { BookCallSection } from './components/book-call-section';
+import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
 
 export default function OnboardingReminderEmail({ name }: { name?: string }) {
@@ -23,7 +23,7 @@ export default function OnboardingReminderEmail({ name }: { name?: string }) {
         If you hit any snags or have questions, happy to help get you set up.
       </Text>
 
-      <BookCallSection ctaText="Finish Signing Up" ctaHref="https://app.zivoe.com/sign-in" />
+      <ContactCtaSection ctaText="Finish Signing Up" ctaHref="https://app.zivoe.com/sign-in" />
     </EmailLayout>
   );
 }

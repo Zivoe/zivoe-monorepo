@@ -3,15 +3,13 @@ import { Img, Link, Section, Text } from '@react-email/components';
 import { BASE_URL } from '../../base-url';
 import { THOR_AVATAR_URL } from '../config';
 
-type BookCallSectionProps = {
-  ctaText?: string;
-  ctaHref?: string;
-};
-
-export function BookCallSection({
+export function ContactCtaSection({
   ctaText = 'Book a Call',
   ctaHref = `${BASE_URL}/meet/thor`
-}: BookCallSectionProps) {
+}: {
+  ctaText?: string;
+  ctaHref?: string;
+}) {
   return (
     <>
       <Section className="my-8 text-center">

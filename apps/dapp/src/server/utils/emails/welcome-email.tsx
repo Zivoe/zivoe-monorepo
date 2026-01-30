@@ -1,6 +1,6 @@
 import { Heading, Text } from '@react-email/components';
 
-import { BookCallSection } from './components/book-call-section';
+import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
 
 export default function WelcomeEmail({ name }: { name?: string }) {
@@ -20,20 +20,19 @@ export default function WelcomeEmail({ name }: { name?: string }) {
       </Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        I saw your account creation come through and wanted to check in to see if there are any immediate
-        questions I can help answer.
+        I saw your account creation come through and wanted to check in to see if there are any immediate questions I
+        can help answer.
       </Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        Our primary offering is zVLT, a yield-bearing token targeting ~15% net annualized returns. The strategy
-        deploys capital across short-duration private credit verticals, primarily revenue-based financing for
-        small and medium-sized businesses, offering faster performance visibility than traditional private credit
-        opportunities.
+        Our primary offering is zVLT, a yield-bearing token targeting ~15% net annualized returns. The strategy deploys
+        capital across short-duration private credit verticals, primarily revenue-based financing for small and
+        medium-sized businesses, offering faster performance visibility than traditional private credit opportunities.
       </Text>
 
       <Text className="m-0 leading-6 text-neutral-600">Worth a quick chat?</Text>
 
-      <BookCallSection />
+      <ContactCtaSection />
     </EmailLayout>
   );
 }
