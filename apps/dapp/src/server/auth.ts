@@ -183,7 +183,7 @@ export const auth = betterAuth({
               qstash.publishJSON({
                 url: `${BASE_URL}/api/email/onboarding-reminder`,
                 body: { userId: user.id },
-                delay: '3d',
+                delay: '1d',
                 retries: 3,
                 deduplicationId: `onboarding-reminder-3day-${user.id}`,
                 failureCallback: `${BASE_URL}/api/qstash/failure`

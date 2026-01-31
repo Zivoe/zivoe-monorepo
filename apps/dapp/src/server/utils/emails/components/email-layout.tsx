@@ -13,11 +13,11 @@ import {
 
 import { ZIVOE_LOGO_URL, emailTailwindConfig } from '../config';
 
-export function EmailLayout({ preview, children }: { preview?: string; children: React.ReactNode }) {
+export function EmailLayout({ preview, children }: { preview: string; children: React.ReactNode }) {
   return (
     <Html>
       <Head />
-      {preview && <Preview>{preview}</Preview>}
+      <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">

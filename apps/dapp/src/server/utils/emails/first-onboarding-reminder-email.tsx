@@ -1,4 +1,4 @@
-import { Heading, Text } from '@react-email/components';
+import { Text } from '@react-email/components';
 
 import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
@@ -13,11 +13,7 @@ export default function FirstOnboardingReminderEmail({
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout>
-      <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
-        Getting Started
-      </Heading>
-
+    <EmailLayout preview="Ready to earn yield on private credit?">
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
       {accountType === 'individual' ? (
