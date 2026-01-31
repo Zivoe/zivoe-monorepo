@@ -61,6 +61,29 @@ export const verifyOnboarded = async () => {
   return { user };
 };
 
+export const getUserEmailProfile = async (userId: string) => {
+  const { err, res } = await handlePromise(
+    authDb
+      .select({
+        email: schema.user.email,
+        firstName: schema.profile.firstName,
+        lastName: schema.profile.lastName,
+        accountType: schema.profile.accountType,
+        createdAt: schema.profile.createdAt
+      })
+      .from(schema.user)
+      .leftJoin(schema.profile, eq(schema.user.id, schema.profile.id))
+      .where(eq(schema.user.id, userId))
+      .limit(1)
+  );
+
+  if (err) {
+    throw new AppError({ message: 'Failed to query user profile', type: 'error', capture: false });
+  }
+
+  return res?.[0] ?? null;
+};
+
 export const getUserMenuData = async () => {
   const { user } = await verifyOnboarded();
 
