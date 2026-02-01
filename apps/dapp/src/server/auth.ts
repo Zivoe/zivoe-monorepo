@@ -179,13 +179,13 @@ export const auth = betterAuth({
                 return res;
               }),
 
-              // Schedule onboarding reminder (3 days) for users who don't complete it
+              // Schedule onboarding reminder (1 day) for users who don't complete it
               qstash.publishJSON({
                 url: `${BASE_URL}/api/email/onboarding-reminder`,
                 body: { userId: user.id },
                 delay: '1d',
                 retries: 3,
-                deduplicationId: `onboarding-reminder-3day-${user.id}`,
+                deduplicationId: `onboarding-reminder-1day-${user.id}`,
                 failureCallback: `${BASE_URL}/api/qstash/failure`
               }),
 

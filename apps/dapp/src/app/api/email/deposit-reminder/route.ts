@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
 import { BASE_URL } from '@/server/utils/base-url';
-import { sendFirstOnboardingReminderEmail, sendSecondOnboardingReminderEmail } from '@/server/utils/send-email';
+import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
@@ -29,15 +29,15 @@ const handler = async (req: NextRequest) => {
   const profile = await getUserEmailProfile(userId);
 
   if (!profile || !profile.createdAt || !profile.accountType) {
-    Sentry.captureException(new Error('Reminder email skipped: user/profile not found'), {
-      tags: { source: 'API', flow: 'reminder-email' },
+    Sentry.captureException(new Error('Deposit reminder email skipped: user/profile not found'), {
+      tags: { source: 'API', flow: 'deposit-reminder-email' },
       extra: { userId, reminderNumber }
     });
 
     return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
-  const sendEmail = reminderNumber === 1 ? sendFirstOnboardingReminderEmail : sendSecondOnboardingReminderEmail;
+  const sendEmail = reminderNumber === 1 ? sendFirstDepositReminderEmail : sendSecondDepositReminderEmail;
 
   const { err } = await handlePromise(
     sendEmail({
@@ -55,18 +55,18 @@ const handler = async (req: NextRequest) => {
   if (reminderNumber === 1) {
     const { err: scheduleErr } = await handlePromise(
       qstash.publishJSON({
-        url: `${BASE_URL}/api/email/reminder`,
+        url: `${BASE_URL}/api/email/deposit-reminder`,
         body: { userId, reminderNumber: 2 },
         delay: '7d',
         retries: 3,
-        deduplicationId: `onboarding-reminder-10day-${userId}`,
+        deduplicationId: `deposit-reminder-10day-${userId}`,
         failureCallback: `${BASE_URL}/api/qstash/failure`
       })
     );
 
     if (scheduleErr) {
       Sentry.captureException(scheduleErr, {
-        tags: { source: 'API', flow: 'reminder-email' },
+        tags: { source: 'API', flow: 'deposit-reminder-email' },
         extra: { userId, reminderNumber: 2 }
       });
     }
@@ -76,5 +76,5 @@ const handler = async (req: NextRequest) => {
 };
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error sending reminder email', handler)(req);
+  return withErrorHandler('Error sending deposit reminder email', handler)(req);
 });

@@ -7,10 +7,10 @@ import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import FirstOnboardingReminderEmail from './emails/first-onboarding-reminder-email';
+import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
-import SecondOnboardingReminderEmail from './emails/second-onboarding-reminder-email';
+import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
 import WelcomeEmail from './emails/welcome-email';
 
 const resend = new Resend(env.RESEND_API_KEY);
@@ -86,7 +86,7 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
   return { data };
 }
 
-export async function sendFirstOnboardingReminderEmail({
+export async function sendFirstDepositReminderEmail({
   to,
   name,
   accountType,
@@ -97,7 +97,7 @@ export async function sendFirstOnboardingReminderEmail({
   accountType: 'individual' | 'organization';
   userId: string;
 }) {
-  const html = await render(FirstOnboardingReminderEmail({ name, accountType }));
+  const html = await render(FirstDepositReminderEmail({ name, accountType }));
 
   const { data, error } = await resend.emails.send(
     {
@@ -108,7 +108,7 @@ export async function sendFirstOnboardingReminderEmail({
       html
     },
     {
-      idempotencyKey: `first-onboarding-reminder-email/${userId}`
+      idempotencyKey: `first-deposit-reminder-email/${userId}`
     }
   );
 
@@ -123,7 +123,7 @@ export async function sendFirstOnboardingReminderEmail({
   return { data };
 }
 
-export async function sendSecondOnboardingReminderEmail({
+export async function sendSecondDepositReminderEmail({
   to,
   name,
   accountType,
@@ -134,7 +134,7 @@ export async function sendSecondOnboardingReminderEmail({
   accountType: 'individual' | 'organization';
   userId: string;
 }) {
-  const html = await render(SecondOnboardingReminderEmail({ name, accountType }));
+  const html = await render(SecondDepositReminderEmail({ name, accountType }));
 
   const { data, error } = await resend.emails.send(
     {
@@ -145,7 +145,7 @@ export async function sendSecondOnboardingReminderEmail({
       html
     },
     {
-      idempotencyKey: `second-onboarding-reminder-email/${userId}`
+      idempotencyKey: `second-deposit-reminder-email/${userId}`
     }
   );
 

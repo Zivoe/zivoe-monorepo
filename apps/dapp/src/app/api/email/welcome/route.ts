@@ -42,14 +42,14 @@ const handler = async (req: NextRequest) => {
 
   if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
 
-  // Schedule first onboarding reminder (3 days after welcome email)
+  // Schedule first deposit reminder (3 days after welcome email)
   const { err: scheduleErr } = await handlePromise(
     qstash.publishJSON({
-      url: `${BASE_URL}/api/email/reminder`,
+      url: `${BASE_URL}/api/email/deposit-reminder`,
       body: { userId, reminderNumber: 1 },
       delay: '3d',
       retries: 3,
-      deduplicationId: `onboarding-reminder-3day-${userId}`,
+      deduplicationId: `deposit-reminder-3day-${userId}`,
       failureCallback: `${BASE_URL}/api/qstash/failure`
     })
   );

@@ -3,7 +3,7 @@ import { Text } from '@react-email/components';
 import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
 
-export default function SecondOnboardingReminderEmail({
+export default function SecondDepositReminderEmail({
   name,
   accountType
 }: {
