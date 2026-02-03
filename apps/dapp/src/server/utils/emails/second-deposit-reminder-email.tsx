@@ -22,12 +22,13 @@ export default function SecondDepositReminderEmail({
 
       {accountType === 'individual' ? (
         <Text className="m-0 mb-4 leading-6 text-neutral-600">
-          Private credit has been one of the top performing asset classes of the last decade but has been inaccessible
-          to most. Zivoe makes this asset class accessible on-chain to qualified participants.
+          Private credit has traditionally been reserved for institutional investors. Zivoe is designed to provide
+          eligible individuals on-chain access to short-duration private credit strategies, primarily revenue-based
+          financing for small and medium-sized businesses.
         </Text>
       ) : (
         <Text className="m-0 mb-4 leading-6 text-neutral-600">
-          We're deploying into short-duration private credit - primarily merchant cash advances with 3-6 month
+          We're deploying into short-duration private credit, primarily merchant cash advances with 3 to 6 month
           turnover.
         </Text>
       )}
