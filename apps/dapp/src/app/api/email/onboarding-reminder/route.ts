@@ -4,10 +4,8 @@ import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
-import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
-import { BASE_URL } from '@/server/utils/base-url';
-import { sendWelcomeEmail } from '@/server/utils/send-email';
+import { sendOnboardingReminderEmail } from '@/server/utils/send-email';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
@@ -25,45 +23,44 @@ const handler = async (req: NextRequest) => {
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
 
   const { userId } = parsedBody.data;
-
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile || !profile.createdAt) {
-    throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
+  // User not found (deleted?)
+  if (!profile) {
+    Sentry.captureMessage('Signup reminder skipped: user not found', {
+      level: 'warning',
+      tags: { source: 'API', flow: 'signup-reminder' },
+      extra: { userId }
+    });
+
+    return NextResponse.json({ success: true, data: 'User not found, skipping signup reminder' });
   }
 
+  // User already onboarded - no need to send reminder
+  if (profile.createdAt) {
+    return NextResponse.json({ success: true, data: 'User already onboarded, skipping signup reminder' });
+  }
+
+  // User hasn't onboarded - send reminder
   const { err } = await handlePromise(
-    sendWelcomeEmail({
+    sendOnboardingReminderEmail({
       to: profile.email,
       name: profile.firstName || profile.lastName || undefined,
       userId
     })
   );
 
-  if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
-
-  // Schedule first deposit reminder (3 days after welcome email)
-  const { err: scheduleErr } = await handlePromise(
-    qstash.publishJSON({
-      url: `${BASE_URL}/api/email/deposit-reminder`,
-      body: { userId, reminderNumber: 1 },
-      delay: '3d',
-      retries: 3,
-      deduplicationId: `deposit-reminder-3day-${userId}`,
-      failureCallback: `${BASE_URL}/api/qstash/failure`
-    })
-  );
-
-  if (scheduleErr) {
-    Sentry.captureException(scheduleErr, {
-      tags: { source: 'API', flow: 'welcome-email' },
-      extra: { userId, reminderNumber: 1 }
+  if (err)
+    throw new ApiError({
+      message: 'Failed to send signup reminder email',
+      status: 500,
+      exception: err,
+      capture: false
     });
-  }
 
-  return NextResponse.json({ success: true, data: 'Welcome email sent' });
+  return NextResponse.json({ success: true, data: 'Signup reminder email sent' });
 };
 
 export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
-  return withErrorHandler('Error sending welcome email', handler)(req);
+  return withErrorHandler('Error sending signup reminder email', handler)(req);
 });
