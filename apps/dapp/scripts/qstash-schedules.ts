@@ -11,6 +11,13 @@ const SCHEDULES: Array<ScheduleConfig> = [
     cron: '0 * * * *', // Every hour at minute 0
     retries: 3,
     failureCallback: '/api/qstash/failure'
+  },
+  {
+    destination: '/api/monitor/refresh-holdings',
+    scheduleId: 'wallet-holdings-refresh',
+    cron: '0 */6 * * *', // Every 6 hours
+    retries: 1,
+    failureCallback: '/api/qstash/failure'
   }
 ];
 

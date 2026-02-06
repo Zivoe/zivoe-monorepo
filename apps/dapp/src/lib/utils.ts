@@ -75,6 +75,8 @@ const floorToDecimals = (num: number, decimals: number = 2) => {
   return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
 };
 
+export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
+
 export function handlePromise<T>(promise: Promise<T>) {
   return promise
     .then((res: T) => ({ res, err: undefined }))

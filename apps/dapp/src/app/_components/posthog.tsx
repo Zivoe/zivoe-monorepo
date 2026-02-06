@@ -60,7 +60,7 @@ function PostHogPageView() {
   }, [pathname, searchParams, posthog]);
 
   useEffect(() => {
-    if (session?.user) posthog.identify(session.user.id);
+    if (session?.user) posthog.identify(session.user.id, { email: session.user.email });
     else posthog.reset();
   }, [session, posthog]);
 

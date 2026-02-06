@@ -15,6 +15,7 @@ export const env = createEnv({
     LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
     SENTRY_AUTH_TOKEN: z.string(),
     ZIVOE_API_KEY: z.string(),
+    ZAPPER_API_KEY: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
@@ -77,6 +78,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
+    ZAPPER_API_KEY: process.env.ZAPPER_API_KEY,
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,

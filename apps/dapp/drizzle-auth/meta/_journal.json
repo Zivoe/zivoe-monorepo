@@ -15,6 +15,13 @@
       "when": 1768320268589,
       "tag": "0001_thankful_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770248834335,
+      "tag": "0002_condemned_nemesis",
+      "breakpoints": true
     }
   ]
 }
