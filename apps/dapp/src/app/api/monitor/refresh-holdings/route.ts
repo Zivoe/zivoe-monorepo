@@ -250,6 +250,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
   }
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
   return withErrorHandler('Error refreshing wallet holdings', handler)(req);
-});
+};
