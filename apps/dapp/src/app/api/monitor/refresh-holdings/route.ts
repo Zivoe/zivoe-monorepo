@@ -19,7 +19,7 @@ type RefreshResult = {
 };
 
 const DURATION_WARNING_MS = 45_000; // 45 seconds of Vercel's 60s limit
-const FANOUT_THRESHOLD = 500;
+const FANOUT_THRESHOLD = 300;
 const MONITOR_SLUG = 'wallet-holdings-cron';
 const STALE_DAYS = 7;
 
@@ -93,7 +93,10 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
 
     const addresses = [...addressesSet];
 
-    // Alert if approaching scale where fan-out architecture is needed
+    // TODO: When wallet count exceeds FANOUT_THRESHOLD, convert this cron into an orchestrator.
+    // Use qstash.batchJSON() to publish all batches in a single HTTP request to /api/monitor/refresh-holdings-batch.
+    // Each worker gets its own 60s budget. Stagger with delay param to avoid Zapper rate limits.
+    // Cap at ~500 addresses per run (ORDER BY stalest first) to avoid thundering herd.
     if (addresses.length >= FANOUT_THRESHOLD) {
       Sentry.captureException(
         new Error(
@@ -135,43 +138,47 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
           level: 'info'
         });
 
-        // Update holdings in a single transaction per batch
-        let batchUpdated = 0;
-        await authDb.transaction(async (tx) => {
-          for (const [address, portfolio] of portfolios) {
+        // Build values for bulk upsert, collect missing addresses for reporting
+        const missingAddresses: string[] = [];
+        const values = [...portfolios.entries()]
+          .filter(([address, portfolio]) => {
             if (!portfolio.presentInResponse) {
-              Sentry.captureException(new Error('Zapper response missing portfolio for address'), {
-                tags: { source: 'API', flow: 'wallet-holdings-cron' },
-                extra: { address, batchIndex }
-              });
-
-              continue;
+              missingAddresses.push(address);
+              return false;
             }
+            return true;
+          })
+          .map(([address, portfolio]) => ({
+            address,
+            totalValueUsd: roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD),
+            tokenBalanceUsd: roundTo4(portfolio.tokenBalanceUSD),
+            defiBalanceUsd: roundTo4(portfolio.appBalanceUSD),
+            holdingsUpdatedAt: sql`now()`
+          }));
 
-            const tokenBalanceUsd = roundTo4(portfolio.tokenBalanceUSD);
-            const defiBalanceUsd = roundTo4(portfolio.appBalanceUSD);
-            const totalValueUsd = roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD);
+        if (values.length > 0) {
+          await authDb
+            .insert(walletHoldings)
+            .values(values)
+            .onConflictDoUpdate({
+              target: walletHoldings.address,
+              set: {
+                totalValueUsd: sql`excluded.total_value_usd`,
+                tokenBalanceUsd: sql`excluded.token_balance_usd`,
+                defiBalanceUsd: sql`excluded.defi_balance_usd`,
+                holdingsUpdatedAt: sql`now()`
+              }
+            });
+        }
 
-            const holdingsData = {
-              totalValueUsd,
-              tokenBalanceUsd,
-              defiBalanceUsd,
-              holdingsUpdatedAt: sql`now()`
-            };
+        if (missingAddresses.length > 0) {
+          Sentry.captureException(new Error('Zapper response missing portfolios'), {
+            tags: { source: 'API', flow: 'wallet-holdings-cron' },
+            extra: { addresses: missingAddresses, batchIndex }
+          });
+        }
 
-            await tx
-              .insert(walletHoldings)
-              .values({ address, ...holdingsData })
-              .onConflictDoUpdate({
-                target: walletHoldings.address,
-                set: holdingsData
-              });
-
-            batchUpdated++;
-          }
-        });
-
-        holdingsUpdated += batchUpdated;
+        holdingsUpdated += values.length;
       } catch (batchError) {
         batchErrors++;
 
@@ -183,7 +190,7 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
 
       // Delay between batches to avoid potential Zapper rate limits
       if (i + MAX_ACCOUNTS_PER_QUERY < addresses.length) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
 

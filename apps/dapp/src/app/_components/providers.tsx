@@ -152,22 +152,18 @@ function WalletTracker() {
   useEffect(() => {
     if (!address || !userId) return;
 
-    let cancelled = false;
-
     const normalizedAddress = address.toLowerCase();
     const walletType = primaryWallet?.key ?? 'unknown';
     const cacheKey = `${normalizedAddress}:${walletType}`;
+    const storageKey = `wallets_${userId}`;
 
     // Check localStorage cache to avoid unnecessary server calls
-    const storageKey = `wallets_${userId}`;
-    let cached = new Set<string>();
     try {
-      cached = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+      const cached = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+      if (cached.has(cacheKey)) return;
     } catch {
-      // localStorage blocked - proceed to server (it handles dedup)
+      // localStorage blocked — server handles dedup
     }
-
-    if (cached.has(cacheKey)) return;
 
     handlePromise(
       trackWalletConnection({
@@ -175,20 +171,17 @@ function WalletTracker() {
         walletType: primaryWallet?.key ?? null
       })
     ).then(({ res, err }) => {
-      if (cancelled || err || !res?.tracked) return;
+      if (err || !res?.tracked) return;
 
       try {
-        cached.add(cacheKey);
-        if (cached.size > MAX_WALLET_CACHE_SIZE) cached = new Set([cacheKey]);
-        localStorage.setItem(storageKey, JSON.stringify([...cached]));
+        let fresh = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+        fresh.add(cacheKey);
+        if (fresh.size > MAX_WALLET_CACHE_SIZE) fresh = new Set([cacheKey]);
+        localStorage.setItem(storageKey, JSON.stringify([...fresh]));
       } catch {
-        // Silently fail - server is source of truth
+        // Silently fail — server is source of truth
       }
     });
-
-    return () => {
-      cancelled = true;
-    };
   }, [address, primaryWallet?.key, userId]);
 
   return null;

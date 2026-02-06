@@ -66,6 +66,7 @@ const handler = async (req: NextRequest): ApiResponse<WalletsResponse> => {
     .leftJoin(profile, eq(user.id, profile.id))
     .leftJoin(walletHoldings, eq(walletConnection.address, walletHoldings.address));
 
+  // TODO: At ~5K+ users, add cursor-based pagination and a separate summary query (using wallet_holdings PK for dedup).
   // Group wallets by userId and track unique address holdings
   const userMap = new Map<string, UserData>();
   const uniqueAddressHoldings = new Map<string, number>();

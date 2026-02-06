@@ -60,30 +60,26 @@ interface PortfolioResponse {
   errors?: Array<{ message: string }>;
 }
 
-const createZapperClient = () => {
-  return ky.create({
-    prefixUrl: 'https://public.zapper.xyz',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${Buffer.from(env.ZAPPER_API_KEY + ':').toString('base64')}`
-    },
-    retry: {
-      limit: 1,
-      methods: ['post'],
-      statusCodes: [408, 429, 500, 502, 503, 504]
-    }
-  });
-};
+const zapperClient = ky.create({
+  prefixUrl: 'https://public.zapper.xyz',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Basic ${Buffer.from(env.ZAPPER_API_KEY + ':').toString('base64')}`
+  },
+  retry: {
+    limit: 1,
+    methods: ['post'],
+    statusCodes: [408, 429, 500, 502, 503, 504]
+  }
+});
 
 export async function fetchPortfolios(addresses: string[]): Promise<Map<string, ZapperPortfolio>> {
   if (addresses.length === 0) {
     return new Map();
   }
 
-  const client = createZapperClient();
-
   const { res: json, err } = await handlePromise(
-    client
+    zapperClient
       .post('graphql', {
         json: {
           query: PORTFOLIO_QUERY,
@@ -118,13 +114,13 @@ export async function fetchPortfolios(addresses: string[]): Promise<Map<string, 
 
   for (const edge of portfolioData.tokenBalances?.byAccount?.edges ?? []) {
     const addr = edge.node.accountAddress.toLowerCase();
-    tokenBalancesByAddress.set(addr, edge.node.balanceUSD);
+    tokenBalancesByAddress.set(addr, (tokenBalancesByAddress.get(addr) ?? 0) + edge.node.balanceUSD);
     seenAddresses.add(addr);
   }
 
   for (const edge of portfolioData.appBalances?.byAccount?.edges ?? []) {
     const addr = edge.node.accountAddress.toLowerCase();
-    appBalancesByAddress.set(addr, edge.node.balanceUSD);
+    appBalancesByAddress.set(addr, (appBalancesByAddress.get(addr) ?? 0) + edge.node.balanceUSD);
     seenAddresses.add(addr);
   }
 

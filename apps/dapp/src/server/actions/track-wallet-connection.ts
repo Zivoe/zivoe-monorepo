@@ -77,23 +77,14 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
   // Wallet already tracked (upsert updated existing row)
   if (!res[0].isNew) return { tracked: true };
 
-  // Fetch initial holdings via background job
-  const { err: qstashErr } = await handlePromise(
+  // Fetch initial holdings + capture analytics in parallel
+  const [qstashResult, posthogResult] = await Promise.allSettled([
     qstash.publishJSON({
       url: `${BASE_URL}/api/wallets/fetch-holdings`,
       body: { address: normalizedAddress },
-      retries: 2
-    })
-  );
-
-  if (qstashErr) {
-    Sentry.captureException(qstashErr, {
-      tags: { source: 'SERVER', flow: 'track-wallet-connection' },
-      extra: { userId: user.id, address: normalizedAddress }
-    });
-  }
-
-  const { err: posthogErr } = await handlePromise(
+      retries: 2,
+      deduplicationId: `fetch-holdings-${normalizedAddress}`
+    }),
     posthog.captureImmediate({
       distinctId: user.id,
       event: 'wallet_connected',
@@ -102,10 +93,17 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
         wallet_type: wallet.walletType
       }
     })
-  );
+  ]);
 
-  if (posthogErr) {
-    Sentry.captureException(posthogErr, {
+  if (qstashResult.status === 'rejected') {
+    Sentry.captureException(qstashResult.reason, {
+      tags: { source: 'SERVER', flow: 'track-wallet-connection' },
+      extra: { userId: user.id, address: normalizedAddress }
+    });
+  }
+
+  if (posthogResult.status === 'rejected') {
+    Sentry.captureException(posthogResult.reason, {
       tags: { source: 'SERVER', flow: 'track-wallet-connection' },
       extra: { userId: user.id, address: normalizedAddress }
     });
