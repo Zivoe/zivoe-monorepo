@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq, sql } from 'drizzle-orm';
 import { isAddress } from 'viem';
@@ -49,21 +48,9 @@ const handler = async (req: NextRequest): ApiResponse<FetchResult> => {
   const portfolios = await fetchPortfolios([normalizedAddress]);
   const portfolio = portfolios.get(normalizedAddress);
 
-  if (!portfolio || !portfolio.presentInResponse) {
-    Sentry.captureException(new Error('Zapper response missing portfolio for address'), {
-      tags: { source: 'API', flow: 'wallet-holdings-fetch' },
-      extra: { address: normalizedAddress }
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: { address: normalizedAddress, updated: false }
-    });
-  }
-
-  const tokenBalanceUsd = roundTo4(portfolio.tokenBalanceUSD);
-  const defiBalanceUsd = roundTo4(portfolio.appBalanceUSD);
-  const totalValueUsd = roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD);
+  const tokenBalanceUsd = roundTo4(portfolio?.tokenBalanceUSD ?? 0);
+  const defiBalanceUsd = roundTo4(portfolio?.appBalanceUSD ?? 0);
+  const totalValueUsd = roundTo4(tokenBalanceUsd + defiBalanceUsd);
 
   const holdingsData = {
     totalValueUsd,
