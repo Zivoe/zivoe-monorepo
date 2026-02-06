@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect } from 'react';
 
-import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
@@ -18,7 +17,10 @@ import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallb
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
+import { trackWalletConnection } from '@/server/actions/track-wallet-connection';
+
 import { authClient, useSession } from '@/lib/auth-client';
+import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 
@@ -103,6 +105,7 @@ export default function Providers({
             <WagmiProvider config={wagmiConfig} initialState={initialState}>
               <QueryClientProvider client={queryClient}>
                 <DynamicWagmiConnector>
+                  <WalletTracker />
                   <SentryContext>{children}</SentryContext>
                 </DynamicWagmiConnector>
                 <ReactQueryDevtools initialIsOpen={false} />
@@ -133,4 +136,60 @@ function SentryContext({ children }: { children: ReactNode }) {
   }, [address, primaryWallet, session]);
 
   return <>{children}</>;
+}
+
+// * Wallet connection tracking relies on connect-only mode where only one wallet
+// * is active at a time. If multi-wallet support is added, switch to tracking
+// * the connectedWallets array instead of primaryWallet.
+const MAX_WALLET_CACHE_SIZE = 100;
+
+function WalletTracker() {
+  const { address } = useAccount();
+  const { primaryWallet } = useDynamicContext();
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+
+  useEffect(() => {
+    if (!address || !userId) return;
+
+    let cancelled = false;
+
+    const normalizedAddress = address.toLowerCase();
+    const walletType = primaryWallet?.key ?? 'unknown';
+    const cacheKey = `${normalizedAddress}:${walletType}`;
+
+    // Check localStorage cache to avoid unnecessary server calls
+    const storageKey = `wallets_${userId}`;
+    let cached = new Set<string>();
+    try {
+      cached = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+    } catch {
+      // localStorage blocked - proceed to server (it handles dedup)
+    }
+
+    if (cached.has(cacheKey)) return;
+
+    handlePromise(
+      trackWalletConnection({
+        address,
+        walletType: primaryWallet?.key ?? null
+      })
+    ).then(({ res, err }) => {
+      if (cancelled || err || !res?.tracked) return;
+
+      try {
+        cached.add(cacheKey);
+        if (cached.size > MAX_WALLET_CACHE_SIZE) cached = new Set([cacheKey]);
+        localStorage.setItem(storageKey, JSON.stringify([...cached]));
+      } catch {
+        // Silently fail - server is source of truth
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, primaryWallet?.key, userId]);
+
+  return null;
 }
