@@ -67,25 +67,25 @@ export async function completeOnboarding(data: OnboardingFormData) {
   if (!res?.length) redirect('/');
 
   after(async () => {
-    const flows = ['schedule-welcome-email', 'schedule-telegram-notification', 'onboarding-posthog-capture'];
+    const flows = ['onboarding-posthog-capture'];
     const { id, firstName, lastName, ...rest } = insertData;
 
     const results = await Promise.allSettled([
-      qstash.publishJSON({
-        url: `${BASE_URL}/api/email/welcome`,
-        body: { userId: session.user.id },
-        retries: 3,
-        deduplicationId: `onboarding-welcome-${session.user.id}`,
-        failureCallback: `${BASE_URL}/api/qstash/failure`
-      }),
+      // qstash.publishJSON({
+      //   url: `${BASE_URL}/api/email/welcome`,
+      //   body: { userId: session.user.id },
+      //   retries: 3,
+      //   deduplicationId: `onboarding-welcome-${session.user.id}`,
+      //   failureCallback: `${BASE_URL}/api/qstash/failure`
+      // }),
 
-      qstash.publishJSON({
-        url: `${BASE_URL}/api/telegram/onboarding`,
-        body: { userId: session.user.id, email: session.user.email, name: `${firstName} ${lastName}`, ...rest },
-        retries: 3,
-        deduplicationId: `onboarding-telegram-${session.user.id}`,
-        failureCallback: `${BASE_URL}/api/qstash/failure`
-      }),
+      // qstash.publishJSON({
+      //   url: `${BASE_URL}/api/telegram/onboarding`,
+      //   body: { userId: session.user.id, email: session.user.email, name: `${firstName} ${lastName}`, ...rest },
+      //   retries: 3,
+      //   deduplicationId: `onboarding-telegram-${session.user.id}`,
+      //   failureCallback: `${BASE_URL}/api/qstash/failure`
+      // }),
 
       posthog.captureImmediate({
         distinctId: session.user.id,

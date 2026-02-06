@@ -180,14 +180,14 @@ export const auth = betterAuth({
               }),
 
               // Schedule onboarding reminder (1 day) for users who don't complete it
-              qstash.publishJSON({
-                url: `${BASE_URL}/api/email/onboarding-reminder`,
-                body: { userId: user.id },
-                delay: '1d',
-                retries: 3,
-                deduplicationId: `onboarding-reminder-1day-${user.id}`,
-                failureCallback: `${BASE_URL}/api/qstash/failure`
-              }),
+              // qstash.publishJSON({
+              //   url: `${BASE_URL}/api/email/onboarding-reminder`,
+              //   body: { userId: user.id },
+              //   delay: '1d',
+              //   retries: 3,
+              //   deduplicationId: `onboarding-reminder-1day-${user.id}`,
+              //   failureCallback: `${BASE_URL}/api/qstash/failure`
+              // }),
 
               // Track signup event
               posthog.captureImmediate({
