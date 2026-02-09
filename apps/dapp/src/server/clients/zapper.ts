@@ -38,7 +38,6 @@ const PORTFOLIO_QUERY = `
 interface ZapperPortfolio {
   tokenBalanceUSD: number;
   appBalanceUSD: number;
-  presentInResponse: boolean;
 }
 
 interface AccountBalanceNode {
@@ -110,27 +109,23 @@ export async function fetchPortfolios(addresses: string[]): Promise<Map<string, 
   // Build a map of address -> balances from byAccount edges
   const tokenBalancesByAddress = new Map<string, number>();
   const appBalancesByAddress = new Map<string, number>();
-  const seenAddresses = new Set<string>();
 
   for (const edge of portfolioData.tokenBalances?.byAccount?.edges ?? []) {
     const addr = edge.node.accountAddress.toLowerCase();
     tokenBalancesByAddress.set(addr, (tokenBalancesByAddress.get(addr) ?? 0) + edge.node.balanceUSD);
-    seenAddresses.add(addr);
   }
 
   for (const edge of portfolioData.appBalances?.byAccount?.edges ?? []) {
     const addr = edge.node.accountAddress.toLowerCase();
     appBalancesByAddress.set(addr, (appBalancesByAddress.get(addr) ?? 0) + edge.node.balanceUSD);
-    seenAddresses.add(addr);
   }
 
-  // Build result map with per-address portfolios
+  // Build result map — addresses not in response default to $0
   for (const address of addresses) {
     const normalizedAddress = address.toLowerCase();
     const portfolio: ZapperPortfolio = {
       tokenBalanceUSD: tokenBalancesByAddress.get(normalizedAddress) ?? 0,
-      appBalanceUSD: appBalancesByAddress.get(normalizedAddress) ?? 0,
-      presentInResponse: seenAddresses.has(normalizedAddress)
+      appBalanceUSD: appBalancesByAddress.get(normalizedAddress) ?? 0
     };
     result.set(normalizedAddress, portfolio);
   }

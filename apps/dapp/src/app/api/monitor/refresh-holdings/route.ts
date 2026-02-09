@@ -138,23 +138,14 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
           level: 'info'
         });
 
-        // Build values for bulk upsert, collect missing addresses for reporting
-        const missingAddresses: string[] = [];
-        const values = [...portfolios.entries()]
-          .filter(([address, portfolio]) => {
-            if (!portfolio.presentInResponse) {
-              missingAddresses.push(address);
-              return false;
-            }
-            return true;
-          })
-          .map(([address, portfolio]) => ({
-            address,
-            totalValueUsd: roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD),
-            tokenBalanceUsd: roundTo4(portfolio.tokenBalanceUSD),
-            defiBalanceUsd: roundTo4(portfolio.appBalanceUSD),
-            holdingsUpdatedAt: sql`now()`
-          }));
+        // Build values for bulk upsert
+        const values = [...portfolios.entries()].map(([address, portfolio]) => ({
+          address,
+          totalValueUsd: roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD),
+          tokenBalanceUsd: roundTo4(portfolio.tokenBalanceUSD),
+          defiBalanceUsd: roundTo4(portfolio.appBalanceUSD),
+          holdingsUpdatedAt: sql`now()`
+        }));
 
         if (values.length > 0) {
           await authDb
@@ -169,13 +160,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
                 holdingsUpdatedAt: sql`now()`
               }
             });
-        }
-
-        if (missingAddresses.length > 0) {
-          Sentry.captureException(new Error('Zapper response missing portfolios'), {
-            tags: { source: 'API', flow: 'wallet-holdings-cron' },
-            extra: { addresses: missingAddresses, batchIndex }
-          });
         }
 
         holdingsUpdated += values.length;
