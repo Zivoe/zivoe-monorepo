@@ -5,5 +5,6 @@ Sentry.init({
   enabled: process.env.NEXT_PUBLIC_ENV === 'production',
   sampleRate: 1,
   tracesSampleRate: 0.5,
+  enableLogs: true,
   debug: false
 });
