@@ -40,14 +40,14 @@ type UserData = {
   wallets: WalletInfo[];
 };
 
-type WalletsResponse = {
+type UserWalletStatsResponse = {
   totalUsers: number;
   totalWallets: number;
   totalValueUSD: number;
   users: UserData[];
 };
 
-const handler = async (req: NextRequest): ApiResponse<WalletsResponse> => {
+const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> => {
   const apiKey = req.headers.get('X-API-Key');
 
   if (!apiKey) {
@@ -173,4 +173,4 @@ const handler = async (req: NextRequest): ApiResponse<WalletsResponse> => {
   });
 };
 
-export const GET = withErrorHandler('Error fetching wallets', handler);
+export const GET = withErrorHandler('Error fetching user wallet stats', handler);
