@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { authDb } from '@/server/clients/auth-db';
 import { profile, user, walletConnection, walletHoldings } from '@/server/db/schema';
 
+import { addressSchema } from '@/lib/schemas';
 import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
 import { type ApiResponse } from '../../utils';
+
+const querySchema = z
+  .object({
+    email: z.string().email().optional(),
+    address: addressSchema.optional()
+  })
+  .refine((data) => !(data.email && data.address), {
+    message: 'Cannot filter by both email and address simultaneously'
+  });
 
 type WalletInfo = {
   address: string;
@@ -47,6 +58,38 @@ const handler = async (req: NextRequest): ApiResponse<WalletsResponse> => {
     throw new ApiError({ message: 'Invalid API key', status: 403, capture: false });
   }
 
+  const searchParams = req.nextUrl.searchParams;
+  const queryParams = {
+    email: searchParams.get('email') ?? undefined,
+    address: searchParams.get('address') ?? undefined
+  };
+
+  const parsedQuery = querySchema.safeParse(queryParams);
+  if (!parsedQuery.success) {
+    throw new ApiError({
+      message: parsedQuery.error.errors[0]?.message ?? 'Invalid query parameters',
+      status: 400,
+      capture: false
+    });
+  }
+
+  const { email, address } = parsedQuery.data;
+
+  let condition;
+
+  if (email) {
+    condition = eq(user.email, email.toLowerCase());
+  }
+
+  if (address) {
+    const matchingUserIds = authDb
+      .selectDistinct({ userId: walletConnection.userId })
+      .from(walletConnection)
+      .where(eq(walletConnection.address, address.toLowerCase()));
+
+    condition = inArray(user.id, matchingUserIds);
+  }
+
   const wallets = await authDb
     .select({
       address: walletConnection.address,
@@ -64,7 +107,8 @@ const handler = async (req: NextRequest): ApiResponse<WalletsResponse> => {
     .from(walletConnection)
     .innerJoin(user, eq(walletConnection.userId, user.id))
     .leftJoin(profile, eq(user.id, profile.id))
-    .leftJoin(walletHoldings, eq(walletConnection.address, walletHoldings.address));
+    .leftJoin(walletHoldings, eq(walletConnection.address, walletHoldings.address))
+    .where(condition);
 
   // TODO: At ~5K+ users, add cursor-based pagination and a separate summary query (using wallet_holdings PK for dedup).
   // Group wallets by userId and track unique address holdings

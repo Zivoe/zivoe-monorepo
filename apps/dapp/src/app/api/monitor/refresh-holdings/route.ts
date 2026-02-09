@@ -13,7 +13,7 @@ import { roundTo4, withErrorHandler } from '@/lib/utils';
 import { type ApiResponse } from '../../utils';
 
 type RefreshResult = {
-  holdingsProcessed: number;
+  staleOrMissing: number;
   staleHoldings: number;
   holdingsUpdated: number;
 };
@@ -84,7 +84,7 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
       return NextResponse.json({
         success: true,
         data: {
-          holdingsProcessed: 0,
+          staleOrMissing: 0,
           staleHoldings: 0,
           holdingsUpdated: 0
         }
@@ -216,7 +216,7 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
     return NextResponse.json({
       success: true,
       data: {
-        holdingsProcessed: staleOrMissingCount,
+        staleOrMissing: staleOrMissingCount,
         staleHoldings: staleHoldingsCount,
         holdingsUpdated
       }
