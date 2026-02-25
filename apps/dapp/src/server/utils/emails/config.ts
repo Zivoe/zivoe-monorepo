@@ -8,6 +8,16 @@ export const emailTailwindConfig: TailwindConfig = {
   presets: [pixelBasedPreset],
   theme: {
     extend: {
+      fontSize: {
+        extraSmall: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0' }],
+        small: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0' }],
+        regular: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+        leading: ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+        h5: ['2rem', { lineHeight: '2.25rem', letterSpacing: '0' }]
+      },
+      fontFamily: {
+        heading: ['Georgia', 'Times New Roman', 'serif']
+      },
       colors: {
         neutral: {
           0: '#FFFFFF',
@@ -32,6 +42,8 @@ export const emailTailwindConfig: TailwindConfig = {
       textColor: {
         primary: { DEFAULT: '#12131A' },
         secondary: '#6B7085',
+        disabled: '#D1D5DB',
+        base: '#FFFFFF',
         brand: '#004D4D',
         'brand-subtle': '#008080'
       },

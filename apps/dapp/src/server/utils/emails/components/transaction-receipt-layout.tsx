@@ -22,25 +22,37 @@ export function TransactionReceiptLayout({ preview, children }: { preview: strin
               <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" />
             </Section>
 
-            <Section className="flex flex-col gap-6 px-8 py-10">{children}</Section>
+            <Section className="px-8 py-10" style={{ width: '100%' }}>
+              {children}
+            </Section>
 
-            <Section className="flex flex-col gap-10 bg-surface-brand px-8 py-8">
-              <table role="presentation" width="100%" cellPadding="0" cellSpacing="0">
+            <Section className="bg-surface-brand px-8 py-8" style={{ width: '100%' }}>
+              <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '40px' }}>
                 <tbody>
                   <tr>
                     <td width="50%" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
-                      <Text className="text-extraSmall text-disabled">INQUIRIES</Text>
-                      <Link href={`mailto:${RECEIPT_INQUIRIES_EMAIL}`} className="text-small text-base no-underline">
-                        {RECEIPT_INQUIRIES_EMAIL}
-                      </Link>
+                      <Text className="m-0 text-extraSmall text-disabled">INQUIRIES</Text>
+                      <Text className="m-0 mt-2 text-small leading-5 text-disabled">
+                        <Link
+                          href={`mailto:${RECEIPT_INQUIRIES_EMAIL}`}
+                          className="text-base no-underline"
+                          style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
+                        >
+                          {RECEIPT_INQUIRIES_EMAIL}
+                        </Link>
+                      </Text>
                     </td>
 
                     <td width="50%" style={{ verticalAlign: 'top' }}>
-                      <Text className="text-extraSmall text-disabled">QUICK LINKS</Text>
+                      <Text className="m-0 text-extraSmall text-disabled">QUICK LINKS</Text>
 
                       {RECEIPT_QUICK_LINKS.map((link) => (
-                        <Text key={link.label} className="text-xs m-0 mb-2 leading-4">
-                          <Link href={link.href} className="text-neutral-0 no-underline">
+                        <Text key={link.label} className="m-0 mt-2 text-small leading-5 text-disabled">
+                          <Link
+                            href={link.href}
+                            className="text-base no-underline"
+                            style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
+                          >
                             {link.label}
                           </Link>
                         </Text>
@@ -50,12 +62,12 @@ export function TransactionReceiptLayout({ preview, children }: { preview: strin
                 </tbody>
               </table>
 
-              <Section>
-                <Text className="text-extraSmall text-disabled">DISCLAIMER</Text>
-                <Text className="text-extraSmall text-disabled">{RECEIPT_DISCLAIMER_TEXT}</Text>
+              <Section style={{ marginBottom: '24px', width: '100%' }}>
+                <Text className="m-0 mb-2 text-extraSmall text-disabled">DISCLAIMER</Text>
+                <Text className="m-0 text-extraSmall text-disabled">{RECEIPT_DISCLAIMER_TEXT}</Text>
               </Section>
 
-              <Text className="text-extraSmall text-disabled">{RECEIPT_COPYRIGHT_TEXT}</Text>
+              <Text className="m-0 text-extraSmall text-disabled">{RECEIPT_COPYRIGHT_TEXT}</Text>
             </Section>
           </Container>
         </Body>

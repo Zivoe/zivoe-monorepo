@@ -41,9 +41,9 @@ export default function DepositConfirmationEmail({
 
   return (
     <TransactionReceiptLayout preview="Your deposit receipt is ready">
-      <Section className="flex flex-col gap-2">
-        <Heading className="mb-2 text-center font-heading text-h5 text-primary">Deposit Receipt</Heading>
-        <Text className="text-center text-regular text-secondary">zVLT has been transferred to your wallet.</Text>
+      <Section className="mb-6 text-center" style={{ width: '100%' }}>
+        <Heading className="m-0 mb-2 font-heading text-h5 text-primary">Deposit Receipt</Heading>
+        <Text className="m-0 text-regular text-secondary">zVLT has been transferred to your wallet.</Text>
       </Section>
 
       <ReceiptTokenFlowRow

@@ -37,7 +37,7 @@ function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
 
 export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount; to: ReceiptTokenFlowAmount }) {
   return (
-    <Section className="rounded-md border border-subtle bg-surface-base-soft px-4 py-3">
+    <Section className="mb-6 rounded-md border border-subtle bg-surface-base-soft px-4 py-3" style={{ width: '100%' }}>
       <table role="presentation" width="100%" cellPadding="0" cellSpacing="0">
         <tbody>
           <tr>
@@ -60,7 +60,11 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
 }
 
 export function ReceiptDetailTable({ children }: { children: ReactNode }) {
-  return <Section>{children}</Section>;
+  return (
+    <Section className="mb-6" style={{ width: '100%' }}>
+      {children}
+    </Section>
+  );
 }
 
 export function ReceiptDetailRow({
@@ -74,7 +78,7 @@ export function ReceiptDetailRow({
 }) {
   return (
     <>
-      <Section className="py-4">
+      <Section className="py-4" style={{ width: '100%' }}>
         <table role="presentation" width="100%" cellPadding="0" cellSpacing="0">
           <tbody>
             <tr>
@@ -149,11 +153,11 @@ export function ReceiptCtaButton({
   label?: string;
 }) {
   return (
-    <Section className="text-center">
+    <Section className="text-center" style={{ width: '100%' }}>
       <Link
         href={href}
         className="block rounded-md border border-active px-4 py-4 text-center no-underline"
-        style={{ display: 'block' }}
+        style={{ display: 'block', width: '100%' }}
       >
         <table role="presentation" align="center" cellPadding="0" cellSpacing="0">
           <tbody>

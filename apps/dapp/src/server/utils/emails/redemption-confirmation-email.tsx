@@ -40,9 +40,9 @@ export default function RedemptionConfirmationEmail({
 
   return (
     <TransactionReceiptLayout preview="Your redemption receipt is ready">
-      <Section className="flex flex-col gap-2">
-        <Heading className="mb-2 text-center font-heading text-h5 text-primary">Redemption Receipt</Heading>
-        <Text className="text-center text-regular text-secondary">USDC has been transferred to your wallet.</Text>
+      <Section className="mb-6 text-center" style={{ width: '100%' }}>
+        <Heading className="m-0 mb-2 font-heading text-h5 text-primary">Redemption Receipt</Heading>
+        <Text className="m-0 text-regular text-secondary">USDC has been transferred to your wallet.</Text>
       </Section>
 
       <ReceiptTokenFlowRow
