@@ -22,6 +22,20 @@
       "when": 1770248834335,
       "tag": "0002_condemned_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771550090905,
+      "tag": "0003_conscious_whirlwind",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771638098710,
+      "tag": "0004_seed_monitor_cursors",
+      "breakpoints": true
     }
   ]
 }
