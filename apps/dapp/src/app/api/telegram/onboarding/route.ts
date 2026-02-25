@@ -8,7 +8,7 @@ import { authDb } from '@/server/clients/auth-db';
 import { profile } from '@/server/db/schema';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
-import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
+import { ApiError, escapeHtml, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z
   .object({
@@ -78,11 +78,6 @@ function formatOnboardingMessage(data: Record<string, unknown>): string {
   }
 
   return message;
-}
-
-function escapeHtml(text: string): string {
-  const entities: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;' };
-  return text.replace(/[<>&]/g, (c) => entities[c] ?? c);
 }
 
 function formatLabel(key: string): string {

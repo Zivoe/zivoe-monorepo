@@ -8,7 +8,7 @@ import { authDb } from '@/server/clients/auth-db';
 import { MAX_ACCOUNTS_PER_QUERY, fetchPortfolios } from '@/server/clients/zapper';
 import { walletConnection, walletHoldings } from '@/server/db/schema';
 
-import { roundTo4, withErrorHandler } from '@/lib/utils';
+import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../../utils';
 
@@ -114,6 +114,8 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
 
     let holdingsUpdated = 0;
     let batchErrors = 0;
+    let firstBatchError: unknown = undefined;
+    const failedBatches: Array<{ batchIndex: number; batchSize: number }> = [];
     const totalBatches = Math.ceil(addresses.length / MAX_ACCOUNTS_PER_QUERY);
 
     // Process in batches
@@ -165,10 +167,14 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
         holdingsUpdated += values.length;
       } catch (batchError) {
         batchErrors++;
+        firstBatchError ??= batchError;
+        if (failedBatches.length < 10) failedBatches.push({ batchIndex, batchSize: batch.length });
 
-        Sentry.captureException(batchError, {
-          tags: { source: 'API', flow: 'wallet-holdings-cron' },
-          extra: { batchIndex, totalBatches, batchSize: batch.length }
+        Sentry.addBreadcrumb({
+          category: 'batch',
+          message: `Batch ${batchIndex}/${totalBatches} failed`,
+          data: { batchSize: batch.length },
+          level: 'error'
         });
       }
 
@@ -204,13 +210,22 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
       missingHoldings: missingHoldingsCount,
       holdingsUpdated,
       batchErrors,
+      failedBatches,
       durationMs
     });
+
+    if (batchErrors > 0) {
+      throw new ApiError({
+        message: `Failed to refresh ${batchErrors} holdings batch(es)`,
+        status: 500,
+        exception: firstBatchError ?? new Error('Unknown batch failure')
+      });
+    }
 
     Sentry.captureCheckIn({
       checkInId: sentryCheckInId,
       monitorSlug: MONITOR_SLUG,
-      status: batchErrors > 0 ? 'error' : 'ok'
+      status: 'ok'
     });
 
     return NextResponse.json({

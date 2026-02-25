@@ -12,7 +12,7 @@ import { auth } from '@/server/auth';
 import { authDb } from '@/server/clients/auth-db';
 import * as schema from '@/server/db/schema';
 
-import { AppError, handlePromise } from '@/lib/utils';
+import { ApiError, AppError, handlePromise } from '@/lib/utils';
 
 export const getUser = cache(async () => {
   const data = await auth.api.getSession({
@@ -78,7 +78,7 @@ export const getUserEmailProfile = async (userId: string) => {
   );
 
   if (err) {
-    throw new AppError({ message: 'Failed to query user profile', type: 'error', capture: false });
+    throw new ApiError({ message: 'Failed to query user profile', exception: err, capture: false });
   }
 
   return res?.[0] ?? null;
