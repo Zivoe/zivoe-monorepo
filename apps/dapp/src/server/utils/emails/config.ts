@@ -28,6 +28,24 @@ export const emailTailwindConfig: TailwindConfig = {
           600: '#008080',
           900: '#004D4D'
         }
+      },
+      textColor: {
+        primary: { DEFAULT: '#12131A' },
+        secondary: '#6B7085',
+        brand: '#004D4D',
+        'brand-subtle': '#008080'
+      },
+      backgroundColor: {
+        surface: {
+          base: '#FFFFFF',
+          'base-soft': '#FCFCFD',
+          elevated: '#F9FAFB',
+          brand: '#004D4D'
+        }
+      },
+      borderColor: {
+        subtle: '#E5E7EB',
+        active: '#008080'
       }
     }
   }
