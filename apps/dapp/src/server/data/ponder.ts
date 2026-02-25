@@ -42,7 +42,11 @@ export async function getEventsAfterCursor<T extends typeof deposit | typeof red
   }
 
   const ponder = getPonder();
-  const t = table as typeof deposit; // both tables share blockNumber + logIndex
+
+  // * SAFETY: Cast to `deposit` type because both deposit and redemption tables
+  // * share identical blockNumber + logIndex columns used in the query below.
+  // * If either table schema changes these columns, this cast will silently break.
+  const t = table as typeof deposit;
 
   const { res, err } = await handlePromise(
     ponder

@@ -73,7 +73,14 @@ export async function updateMonitorCursor(flow: TransactionEventType, cursor: Mo
           lastBlockNumber: cursor.lastBlockNumber,
           lastLogIndex: cursor.lastLogIndex,
           updatedAt: sql`now()`
-        }
+        },
+        // Only update if the incoming cursor is strictly ahead of the stored one.
+        // Prevents cursor rewind when concurrent cron runs (e.g. QStash retries) overlap.
+        setWhere: sql`excluded.last_block_number > ${transactionMonitorCursor.lastBlockNumber}
+          OR (
+            excluded.last_block_number = ${transactionMonitorCursor.lastBlockNumber}
+            AND excluded.last_log_index > ${transactionMonitorCursor.lastLogIndex}
+          )`
       })
   );
 
