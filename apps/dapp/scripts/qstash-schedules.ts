@@ -1,3 +1,11 @@
+/**
+ * QStash Schedule Manager
+ *
+ * Local dev:
+ *   1. npx @upstash/qstash-cli@latest dev
+ *   2. Update .env with Qstash tokens and APP_URL
+ *   3. pnpm schedules:sync
+ */
 import { Client, CreateScheduleRequest } from '@upstash/qstash';
 
 type ScheduleConfig = Required<Pick<CreateScheduleRequest, 'scheduleId' | 'cron' | 'retries' | 'failureCallback'>> & {
@@ -16,6 +24,20 @@ const SCHEDULES: Array<ScheduleConfig> = [
     destination: '/api/monitor/refresh-holdings',
     scheduleId: 'wallet-holdings-refresh',
     cron: '0 */6 * * *', // Every 6 hours
+    retries: 1,
+    failureCallback: '/api/qstash/failure'
+  },
+  {
+    destination: '/api/monitor/deposits',
+    scheduleId: 'deposits-5min',
+    cron: '*/5 * * * *', // Every 5 minutes
+    retries: 1,
+    failureCallback: '/api/qstash/failure'
+  },
+  {
+    destination: '/api/monitor/redemptions',
+    scheduleId: 'redemptions-5min',
+    cron: '*/5 * * * *', // Every 5 minutes
     retries: 1,
     failureCallback: '/api/qstash/failure'
   }
