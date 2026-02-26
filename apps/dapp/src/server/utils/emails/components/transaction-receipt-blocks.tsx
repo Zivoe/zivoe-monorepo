@@ -101,7 +101,7 @@ export function ReceiptDetailRow({
 
 export function ReceiptSuccessBadge() {
   return (
-    <table role="presentation" cellPadding="0" cellSpacing="0" align="right">
+    <table role="presentation" cellPadding="0" cellSpacing="0" align="right" style={{ width: 'auto' }}>
       <tbody>
         <tr>
           <td style={{ borderRadius: '4px', backgroundColor: '#E6F7F7', padding: '4px 8px' }}>
@@ -113,7 +113,7 @@ export function ReceiptSuccessBadge() {
                   </td>
 
                   <td style={{ verticalAlign: 'middle' }}>
-                    <Text className="text-small text-brand">Success</Text>
+                    <Text className="m-0 text-small leading-4 text-brand">Success</Text>
                   </td>
                 </tr>
               </tbody>
