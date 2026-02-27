@@ -1,4 +1,5 @@
-import { index, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { bigint, index, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
 import { user } from './auth-schema';
 
@@ -33,6 +34,10 @@ export const howFoundZivoeValues = [
 ] as const;
 export const howFoundZivoeEnum = pgEnum('how_found_zivoe', howFoundZivoeValues);
 export type HowFoundZivoe = (typeof howFoundZivoeValues)[number];
+
+export const transactionEventTypeValues = ['deposit', 'redemption'] as const;
+export const transactionEventTypeEnum = pgEnum('transaction_event_type', transactionEventTypeValues);
+export type TransactionEventType = (typeof transactionEventTypeValues)[number];
 
 export const profile = pgTable('profile', {
   id: uuid('id')
@@ -83,6 +88,41 @@ export const walletHoldings = pgTable('wallet_holdings', {
   tokenBalanceUsd: numeric('token_balance_usd', { mode: 'number' }).notNull(),
   defiBalanceUsd: numeric('defi_balance_usd', { mode: 'number' }).notNull(),
   holdingsUpdatedAt: timestamp('holdings_updated_at', { withTimezone: true })
+});
+
+/**
+ * Tracks which transaction emails have been sent to prevent duplicates.
+ * Uses eventId (txHash:logIndex) + userId as unique constraint.
+ */
+export const transactionEmailSent = pgTable(
+  'transaction_email_sent',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: text('event_id').notNull(), // `${txHash}:${logIndex}`
+    txHash: text('tx_hash').notNull(),
+    logIndex: text('log_index').notNull(),
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'set null' }),
+    walletAddress: text('wallet_address').notNull(),
+    eventType: transactionEventTypeEnum('event_type').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow()
+  },
+  (table) => [
+    unique('transaction_email_sent_event_user_unique').on(table.eventId, table.userId),
+    index('transaction_email_sent_event_idx').on(table.eventId)
+  ]
+);
+
+/**
+ * Stores the last processed onchain event cursor for each monitor flow.
+ * Cursor is represented by (blockNumber, logIndex).
+ */
+export const transactionMonitorCursor = pgTable('transaction_monitor_cursor', {
+  flow: transactionEventTypeEnum('flow').primaryKey(),
+  lastBlockNumber: bigint('last_block_number', { mode: 'bigint' })
+    .notNull()
+    .default(sql`0`),
+  lastLogIndex: integer('last_log_index').notNull().default(-1),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 export * from './auth-schema';

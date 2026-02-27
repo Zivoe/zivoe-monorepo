@@ -6,6 +6,7 @@ export const env = createEnv({
     NODE_ENV: z.enum(['development', 'test', 'production']),
     DATABASE_URI: z.string(),
     PONDER_MAINNET_DATABASE_URL: z.string(),
+    QSTASH_URL: z.string().url().optional(),
     QSTASH_TOKEN: z.string(),
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
     QSTASH_NEXT_SIGNING_KEY: z.string(),
@@ -36,6 +37,7 @@ export const env = createEnv({
     // Telegram
     TELEGRAM_BOT_TOKEN: z.string(),
     TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
+    TELEGRAM_TXS_CHAT_ID: z.string(),
 
     // Vercel (auto-populated on Vercel)
     VERCEL: z.enum(['1', '0']).default('0'),
@@ -63,6 +65,7 @@ export const env = createEnv({
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY,
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY,
     PONDER_MAINNET_DATABASE_URL: process.env.PONDER_MAINNET_DATABASE_URL,
+    QSTASH_URL: process.env.QSTASH_URL,
     QSTASH_TOKEN: process.env.QSTASH_TOKEN,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
     QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
@@ -100,6 +103,7 @@ export const env = createEnv({
     // Telegram
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
+    TELEGRAM_TXS_CHAT_ID: process.env.TELEGRAM_TXS_CHAT_ID,
 
     // Vercel
     VERCEL: process.env.VERCEL ?? '0',

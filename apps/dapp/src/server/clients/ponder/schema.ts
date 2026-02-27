@@ -75,3 +75,51 @@ export const stakingPosition = onchainTable(
 export const stakingPositionRelations = relations(stakingPosition, ({ one }) => ({
   account: one(account, { fields: [stakingPosition.accountId], references: [account.id] })
 }));
+
+export const deposit = onchainTable(
+  'deposit',
+  (t) => ({
+    id: t.text().primaryKey(), // `${txHash}:${logIndex}`
+    accountId: t.text().notNull(), // User wallet address (owner from event)
+    assets: t.bigint().notNull(), // zSTT amount deposited (ERC4626 assets)
+    shares: t.bigint().notNull(), // zVLT shares received
+    inputTokenAddress: t.text(), // Router input token address (stablecoin), null if unresolved
+    inputAmountRaw: t.bigint(), // Router input amount (native decimals), null if unresolved
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+    txHash: t.text().notNull(),
+    logIndex: t.integer().notNull()
+  }),
+  (table) => ({
+    accountIdx: index().on(table.accountId),
+    blockLogIdx: index().on(table.blockNumber, table.logIndex)
+  })
+);
+
+export const depositRelations = relations(deposit, ({ one }) => ({
+  account: one(account, { fields: [deposit.accountId], references: [account.id] })
+}));
+
+// Redemption tracking for OCR_Cycle:zVLTBurnedForUSDC events
+export const redemption = onchainTable(
+  'redemption',
+  (t) => ({
+    id: t.text().primaryKey(), // `${txHash}:${logIndex}`
+    accountId: t.text().notNull(), // User wallet address
+    zVLTBurned: t.bigint().notNull(), // zVLT amount burned
+    usdcRedeemed: t.bigint().notNull(), // USDC amount received by user
+    fee: t.bigint().notNull(), // Fee charged in USDC
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+    txHash: t.text().notNull(),
+    logIndex: t.integer().notNull()
+  }),
+  (table) => ({
+    accountIdx: index().on(table.accountId),
+    blockLogIdx: index().on(table.blockNumber, table.logIndex)
+  })
+);
+
+export const redemptionRelations = relations(redemption, ({ one }) => ({
+  account: one(account, { fields: [redemption.accountId], references: [account.id] })
+}));

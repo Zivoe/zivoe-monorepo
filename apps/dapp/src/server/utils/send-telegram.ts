@@ -2,6 +2,8 @@ import 'server-only';
 
 import { env } from '@/env';
 
+const TELEGRAM_MAX_LENGTH = 4096;
+
 export async function sendTelegramMessage({
   chatId = env.TELEGRAM_ONBOARDING_CHAT_ID,
   text,
@@ -27,4 +29,40 @@ export async function sendTelegramMessage({
   }
 
   return response.json();
+}
+
+/**
+ * Batches multiple text items into as few Telegram messages as possible,
+ * splitting at item boundaries to stay under the 4096 char limit.
+ */
+export async function sendBatchedTelegramMessages({
+  chatId,
+  items,
+  separator = '\n\n'
+}: {
+  chatId: string;
+  items: string[];
+  separator?: string;
+}) {
+  if (items.length === 0) return;
+
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const item of items) {
+    const candidate = current ? current + separator + item : item;
+
+    if (candidate.length > TELEGRAM_MAX_LENGTH) {
+      if (current) chunks.push(current);
+      current = item;
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) chunks.push(current);
+
+  for (const chunk of chunks) {
+    await sendTelegramMessage({ chatId, text: chunk, parseMode: 'HTML' });
+  }
 }

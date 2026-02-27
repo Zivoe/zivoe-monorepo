@@ -77,6 +77,11 @@ const floorToDecimals = (num: number, decimals: number = 2) => {
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 
+const HTML_ENTITIES: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;' };
+export function escapeHtml(text: string): string {
+  return text.replace(/[<>&]/g, (c) => HTML_ENTITIES[c] ?? c);
+}
+
 export function handlePromise<T>(promise: Promise<T>) {
   return promise
     .then((res: T) => ({ res, err: undefined }))
