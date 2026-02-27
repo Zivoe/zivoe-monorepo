@@ -32,6 +32,8 @@ import { env } from '@/env';
 
 import { ApiResponse } from '../../utils';
 
+export const maxDuration = 60; // seconds
+
 const MONITOR_SLUG = 'redemptions-cron';
 const ROUTE_PATH = '/api/monitor/redemptions';
 
