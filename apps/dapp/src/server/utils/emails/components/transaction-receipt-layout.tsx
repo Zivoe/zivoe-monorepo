@@ -26,6 +26,15 @@ export function TransactionReceiptLayout({ preview, children }: { preview: strin
             width: 100% !important;
           }
 
+          .receipt-mobile-arrow-right {
+            display: none !important;
+            mso-hide: all !important;
+          }
+
+          .receipt-mobile-arrow-down {
+            display: block !important;
+          }
+
           @media only screen and (min-width: 601px) {
             .receipt-desktop-token-flow {
               display: table !important;
@@ -33,6 +42,16 @@ export function TransactionReceiptLayout({ preview, children }: { preview: strin
             }
 
             .receipt-mobile-token-flow {
+              display: none !important;
+              mso-hide: all !important;
+            }
+
+            .receipt-mobile-arrow-right {
+              display: block !important;
+              mso-hide: none !important;
+            }
+
+            .receipt-mobile-arrow-down {
               display: none !important;
               mso-hide: all !important;
             }

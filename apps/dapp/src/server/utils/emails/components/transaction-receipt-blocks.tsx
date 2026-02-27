@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { Hr, Img, Link, Section, Text } from '@react-email/components';
 
 import {
+  RECEIPT_ARROW_DOWN_GRAY_URL,
   RECEIPT_ARROW_RIGHT_GRAY_URL,
   RECEIPT_ARROW_RIGHT_TEAL_URL,
   RECEIPT_CHECK_CIRCLE_URL,
@@ -84,7 +85,8 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
 
           <tr>
             <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
-              <Img src={RECEIPT_ARROW_RIGHT_GRAY_URL} width="16" height="16" alt="" />
+              <Img className="receipt-mobile-arrow-right" src={RECEIPT_ARROW_RIGHT_GRAY_URL} width="16" height="16" alt="" />
+              <Img className="receipt-mobile-arrow-down" src={RECEIPT_ARROW_DOWN_GRAY_URL} width="16" height="16" alt="" />
             </td>
           </tr>
 

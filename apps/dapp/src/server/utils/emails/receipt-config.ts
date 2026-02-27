@@ -34,6 +34,7 @@ export function getReceiptTokenIconUrl(tokenSymbol: ReceiptTokenSymbol): string 
 }
 
 export const RECEIPT_ARROW_RIGHT_GRAY_URL = `${BASE_URL}/email-icons/arrow-right-gray.png`;
+export const RECEIPT_ARROW_DOWN_GRAY_URL = `${BASE_URL}/email-icons/arrow-down-gray.png`;
 export const RECEIPT_ARROW_RIGHT_TEAL_URL = `${BASE_URL}/email-icons/arrow-right-teal.png`;
 export const RECEIPT_CHECK_CIRCLE_URL = `${BASE_URL}/email-icons/check-circle.png`;
 export const RECEIPT_EXTERNAL_LINK_URL = `${BASE_URL}/email-icons/external-link.png`;
