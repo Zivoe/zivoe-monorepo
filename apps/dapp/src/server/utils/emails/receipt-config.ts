@@ -4,7 +4,7 @@ import { LINKS } from '@/types/constants';
 
 import { BASE_URL } from '../base-url';
 
-export const RECEIPT_VIEW_IN_APP_URL = 'https://app.zivoe.com/';
+export const RECEIPT_VIEW_IN_APP_URL = 'https://app.zivoe.com/portfolio';
 export const RECEIPT_INQUIRIES_EMAIL = 'investors@zivoe.com';
 
 export const RECEIPT_DISCLAIMER_TEXT =
@@ -13,7 +13,7 @@ export const RECEIPT_DISCLAIMER_TEXT =
 export const RECEIPT_COPYRIGHT_TEXT = '(c) Zivoe 2025. All Right Reserved.';
 
 export const RECEIPT_QUICK_LINKS = [
-  { label: 'Website', href: RECEIPT_VIEW_IN_APP_URL },
+  { label: 'Website', href: 'https://zivoe.com' },
   { label: 'Terms', href: LINKS.TERMS_OF_USE },
   { label: 'Reg S Compliance', href: LINKS.REG_S_COMPLIANCE }
 ] as const;
