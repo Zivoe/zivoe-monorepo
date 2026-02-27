@@ -18,6 +18,8 @@ type ReceiptTokenFlowAmount = {
 };
 
 function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
+  const safeValue = value.replace(/\s+/g, '\u00A0');
+
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" align="center">
       <tbody>
@@ -27,7 +29,9 @@ function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
           </td>
 
           <td style={{ verticalAlign: 'middle' }}>
-            <Text className="text-leading text-primary">{value}</Text>
+            <Text className="m-0 text-leading text-primary" style={{ whiteSpace: 'nowrap' }}>
+              {safeValue}
+            </Text>
           </td>
         </tr>
       </tbody>
@@ -38,7 +42,14 @@ function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
 export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount; to: ReceiptTokenFlowAmount }) {
   return (
     <Section className="mb-6 rounded-md border border-subtle bg-surface-base-soft px-4 py-3" style={{ width: '100%' }}>
-      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0">
+      <table
+        role="presentation"
+        width="100%"
+        cellPadding="0"
+        cellSpacing="0"
+        className="receipt-desktop-token-flow"
+        style={{ display: 'none', width: '100%' }}
+      >
         <tbody>
           <tr>
             <td width="45%" align="center" style={{ verticalAlign: 'middle' }}>
@@ -50,6 +61,35 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
             </td>
 
             <td width="45%" align="center" style={{ verticalAlign: 'middle' }}>
+              <ReceiptTokenAmount symbol={to.symbol} value={to.value} />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table
+        role="presentation"
+        width="100%"
+        cellPadding="0"
+        cellSpacing="0"
+        className="receipt-mobile-token-flow"
+        style={{ display: 'table', width: '100%' }}
+      >
+        <tbody>
+          <tr>
+            <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
+              <ReceiptTokenAmount symbol={from.symbol} value={from.value} />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
+              <Img src={RECEIPT_ARROW_RIGHT_GRAY_URL} width="16" height="16" alt="" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style={{ verticalAlign: 'middle' }}>
               <ReceiptTokenAmount symbol={to.symbol} value={to.value} />
             </td>
           </tr>
@@ -157,16 +197,26 @@ export function ReceiptCtaButton({
       <Link
         href={href}
         className="block rounded-md border border-active px-4 py-4 text-center no-underline"
-        style={{ display: 'block', width: '100%' }}
+        style={{ display: 'block' }}
       >
-        <table role="presentation" align="center" cellPadding="0" cellSpacing="0">
+        <table
+          role="presentation"
+          align="center"
+          cellPadding="0"
+          cellSpacing="0"
+          style={{ width: 'auto', margin: '0 auto' }}
+        >
           <tbody>
             <tr>
+              <td style={{ width: '16px', minWidth: '16px', paddingRight: '8px', fontSize: '0', lineHeight: '0' }}>
+                &nbsp;
+              </td>
+
               <td style={{ verticalAlign: 'middle' }}>
                 <Text className="m-0 text-regular font-medium leading-5 text-brand">{label}</Text>
               </td>
 
-              <td style={{ paddingLeft: '8px', verticalAlign: 'middle' }}>
+              <td style={{ width: '16px', minWidth: '16px', paddingLeft: '8px', verticalAlign: 'middle' }}>
                 <Img src={RECEIPT_ARROW_RIGHT_TEAL_URL} width="16" height="16" alt="" />
               </td>
             </tr>

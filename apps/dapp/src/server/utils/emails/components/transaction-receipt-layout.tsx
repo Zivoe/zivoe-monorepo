@@ -13,7 +13,32 @@ import {
 export function TransactionReceiptLayout({ preview, children }: { preview: string; children: ReactNode }) {
   return (
     <Html>
-      <Head />
+      <Head>
+        <style>{`
+          .receipt-desktop-token-flow {
+            display: none !important;
+            width: 100% !important;
+            mso-hide: all !important;
+          }
+
+          .receipt-mobile-token-flow {
+            display: table !important;
+            width: 100% !important;
+          }
+
+          @media only screen and (min-width: 601px) {
+            .receipt-desktop-token-flow {
+              display: table !important;
+              mso-hide: none !important;
+            }
+
+            .receipt-mobile-token-flow {
+              display: none !important;
+              mso-hide: all !important;
+            }
+          }
+        `}</style>
+      </Head>
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="font-sans bg-surface-elevated py-10">
