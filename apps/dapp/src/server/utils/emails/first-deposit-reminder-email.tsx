@@ -5,15 +5,17 @@ import { EmailLayout } from './components/email-layout';
 
 export default function FirstDepositReminderEmail({
   name,
-  accountType
+  accountType,
+  unsubscribeUrl
 }: {
   name?: string;
   accountType: 'individual' | 'organization';
+  unsubscribeUrl?: string;
 }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="Ready to earn yield on private credit?">
+    <EmailLayout preview="Ready to earn yield on private credit?" unsubscribeUrl={unsubscribeUrl}>
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
       {accountType === 'individual' ? (

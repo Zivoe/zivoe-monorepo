@@ -10,7 +10,7 @@ export const RECEIPT_INQUIRIES_EMAIL = 'investors@zivoe.com';
 export const RECEIPT_DISCLAIMER_TEXT =
   'This update is for informational purposes only. Past performance is not indicative of future results. Private credit investments involve risk, including loss of principal. Token valuations are based on Net Asset Value (NAV) methodology and may fluctuate based on market conditions.';
 
-export const RECEIPT_COPYRIGHT_TEXT = '(c) Zivoe 2025. All Right Reserved.';
+export const RECEIPT_COPYRIGHT_TEXT = '© Zivoe 2025. All Rights Reserved.';
 
 export const RECEIPT_QUICK_LINKS = [
   { label: 'Website', href: 'https://zivoe.com' },

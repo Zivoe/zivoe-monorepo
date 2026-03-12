@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
 import { getUserEmailProfile } from '@/server/data/auth';
+import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { sendOnboardingReminderEmail } from '@/server/utils/send-email';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
@@ -39,6 +40,15 @@ const handler = async (req: NextRequest) => {
   // User already onboarded - no need to send reminder
   if (profile.createdAt) {
     return NextResponse.json({ success: true, data: 'User already onboarded, skipping signup reminder' });
+  }
+
+  const isProductTipsEnabled = await isEmailPreferenceEnabled({
+    userId,
+    bucket: 'product_tips'
+  });
+
+  if (!isProductTipsEnabled) {
+    return NextResponse.json({ success: true, data: 'Product tips disabled, skipping signup reminder' });
   }
 
   // User hasn't onboarded - send reminder
