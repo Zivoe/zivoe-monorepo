@@ -11,6 +11,7 @@ import { captcha, emailOTP } from 'better-auth/plugins';
 import { WITH_TURNSTILE } from '@/types/constants';
 
 import { BASE_URL } from '@/server/utils/base-url';
+import { subscribeToBeehiiv } from '@/server/utils/beehiiv';
 import { sendOTPEmail } from '@/server/utils/send-email';
 
 import { handlePromise } from '@/lib/utils';
@@ -158,25 +159,10 @@ export const auth = betterAuth({
 
             const results = await Promise.allSettled([
               // Subscribe to newsletter
-              fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  email: user.email,
-                  utm_source: 'dapp-v2',
-                  send_welcome_email: false
-                }),
-                headers: {
-                  Accept: 'application/json',
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${env.BEEHIIV_API_KEY}`
-                }
-              }).then(async (res) => {
-                if (!res.ok) {
-                  const body = await res.text().catch(() => 'Failed to read response body');
-                  throw new Error(`Beehiiv API error ${res.status}: ${body}`);
-                }
-
-                return res;
+              subscribeToBeehiiv({
+                email: user.email,
+                utmSource: 'dapp-v2',
+                sendWelcomeEmail: false
               }),
 
               // Schedule onboarding reminder (1 day) for users who don't complete it
