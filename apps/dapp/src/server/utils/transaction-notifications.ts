@@ -6,7 +6,7 @@ import { authDb } from '@/server/clients/auth-db';
 import { transactionEmailSent, transactionMonitorCursor, user, walletConnection } from '@/server/db/schema';
 import type { TransactionEventType } from '@/server/db/schema';
 
-import { ApiError, handlePromise } from '@/lib/utils';
+import { ApiError, escapeHtml, handlePromise } from '@/lib/utils';
 
 export const FINALITY_CONFIRMATIONS = 12n;
 export const EVENT_BATCH_LIMIT = 50;
@@ -23,6 +23,10 @@ export type FailureContext = {
   walletAddress?: string;
   blockNumber?: bigint;
   logIndex?: number;
+};
+
+type TelegramEmailRecord = {
+  email: string | null;
 };
 
 export async function getMonitorCursor(flow: TransactionEventType) {
@@ -115,6 +119,24 @@ export async function getUsersForWallet(address: string) {
   }
 
   return res ?? [];
+}
+
+export function formatTelegramEmailLine(users: TelegramEmailRecord[]) {
+  const emails: string[] = [];
+  const seenEmails = new Set<string>();
+
+  for (const user of users) {
+    const normalizedEmail = user.email?.trim();
+    if (!normalizedEmail || seenEmails.has(normalizedEmail)) continue;
+
+    seenEmails.add(normalizedEmail);
+    emails.push(escapeHtml(normalizedEmail));
+  }
+
+  if (emails.length === 0) return 'Email: not found';
+  if (emails.length === 1) return `Email: ${emails[0]}`;
+
+  return `Emails: ${emails.join(', ')}`;
 }
 
 export async function wasEmailSent({ eventId, userId }: { eventId: string; userId: string }) {
