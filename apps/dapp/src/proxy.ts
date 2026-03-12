@@ -17,12 +17,13 @@ export const config = {
     /*
      * Match all request paths except:
      * - sign-in (public auth page)
+     * - unsubscribe (public token-based preference page)
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - static assets (.jpg, .png, .svg, .webp)
      */
-    '/((?!sign-in|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
+    '/((?!sign-in|unsubscribe|api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
   ]
 };

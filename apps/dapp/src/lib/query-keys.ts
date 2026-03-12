@@ -24,7 +24,8 @@ const account = {
 const app = {
   vault: ['VAULT'],
   redemption: ['REDEMPTION'],
-  blockchainTimestamp: ['BLOCKCHAIN_TIMESTAMP']
+  blockchainTimestamp: ['BLOCKCHAIN_TIMESTAMP'],
+  emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session']
 };
 
 export const queryKeys = {

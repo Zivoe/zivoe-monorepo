@@ -3,11 +3,11 @@ import { Text } from '@react-email/components';
 import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
 
-export default function OnboardingReminderEmail({ name }: { name?: string }) {
+export default function OnboardingReminderEmail({ name, unsubscribeUrl }: { name?: string; unsubscribeUrl?: string }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="Finish your onboarding">
+    <EmailLayout preview="Finish your onboarding" unsubscribeUrl={unsubscribeUrl}>
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">

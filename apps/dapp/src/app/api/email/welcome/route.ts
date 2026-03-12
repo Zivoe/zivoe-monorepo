@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
+import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendWelcomeEmail } from '@/server/utils/send-email';
 
@@ -30,6 +31,15 @@ const handler = async (req: NextRequest) => {
 
   if (!profile || !profile.createdAt) {
     throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
+  }
+
+  const isProductTipsEnabled = await isEmailPreferenceEnabled({
+    userId,
+    bucket: 'product_tips'
+  });
+
+  if (!isProductTipsEnabled) {
+    return NextResponse.json({ success: true, data: 'Product tips disabled, skipping welcome email' });
   }
 
   const { err } = await handlePromise(

@@ -33,6 +33,7 @@ export const env = createEnv({
     RESEND_API_KEY: z.string(),
     RESEND_WEBHOOK_SECRET: z.string(),
     TURNSTILE_SECRET_KEY: z.string(),
+    UNSUBSCRIBE_TOKEN_SECRET: z.string().min(32),
 
     // Telegram
     TELEGRAM_BOT_TOKEN: z.string(),
@@ -98,6 +99,7 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+    UNSUBSCRIBE_TOKEN_SECRET: process.env.UNSUBSCRIBE_TOKEN_SECRET,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
 
     // Telegram

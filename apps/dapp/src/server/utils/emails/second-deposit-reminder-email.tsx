@@ -5,20 +5,20 @@ import { EmailLayout } from './components/email-layout';
 
 export default function SecondDepositReminderEmail({
   name,
-  accountType
+  accountType,
+  unsubscribeUrl
 }: {
   name?: string;
   accountType: 'individual' | 'organization';
+  unsubscribeUrl?: string;
 }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="Last chance to get started">
+    <EmailLayout preview="Last chance to get started" unsubscribeUrl={unsubscribeUrl}>
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
-      <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        One more nudge, then I'll leave you alone.
-      </Text>
+      <Text className="m-0 mb-4 leading-6 text-neutral-600">One more nudge, then I'll leave you alone.</Text>
 
       {accountType === 'individual' ? (
         <Text className="m-0 mb-4 leading-6 text-neutral-600">
