@@ -1,6 +1,6 @@
 'use client';
 
-import { useSelectedLayoutSegment } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { Link } from '@zivoe/ui/core/link';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -8,8 +8,8 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 import { LINKS } from '@/types/constants';
 
 export default function Footer() {
-  const segment = useSelectedLayoutSegment();
-  const isDepositPage = segment === null;
+  const pathname = usePathname();
+  const isDepositPage = pathname === '/';
 
   return (
     <div className={cn('bg-surface-base p-4 lg:pb-4', isDepositPage && 'pb-[6.125rem]')}>

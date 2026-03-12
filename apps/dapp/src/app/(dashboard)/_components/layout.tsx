@@ -161,6 +161,10 @@ export function UserMenu({ user }: { user: User }) {
 
           <Separator />
 
+          <Link variant="ghost-light" fullWidth className="justify-start" href="/unsubscribe">
+            Settings
+          </Link>
+
           <Button
             variant="ghost-light"
             fullWidth
