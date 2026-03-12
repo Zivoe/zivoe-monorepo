@@ -19,6 +19,7 @@ import { EMAILS } from '@/lib/utils';
 
 import Footer from '@/app/(dashboard)/_components/footer';
 import EmailPreferencesForm from '@/app/unsubscribe/_components/email-preferences-form';
+import UnsubscribeHeaderPattern from '@/app/unsubscribe/_components/unsubscribe-header-pattern';
 
 export default async function UnsubscribePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const params = await searchParams;
@@ -78,18 +79,22 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
 function ManageNotificationsLayout({ description, children }: { description: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-surface-base">
-      <header className="bg-element-tertiary px-6 pb-14 pt-8 md:px-10 md:pb-20">
-        <NextLink href="/">
-          <ZivoeLogo className="h-8 text-base" />
-        </NextLink>
+      <header className="relative overflow-hidden border-b border-subtle bg-element-tertiary px-6 pb-14 pt-8 md:min-h-[25rem] md:px-10 md:pb-[9.5625rem] md:pt-12">
+        <UnsubscribeHeaderPattern />
 
-        <div className="mt-10 flex flex-col items-center text-center md:mt-16">
-          <h1 className="text-h3 text-brand">Manage Notifications</h1>
-          <p className="mt-3 max-w-[500px] text-leading text-brand">{description}</p>
+        <div className="relative z-10">
+          <NextLink href="/">
+            <ZivoeLogo className="h-8 text-base md:h-10" />
+          </NextLink>
+
+          <div className="mt-10 flex flex-col items-center text-center md:mt-12">
+            <h1 className="text-h3 text-brand">Manage Notifications</h1>
+            <p className="mt-3 max-w-[500px] text-leading text-brand">{description}</p>
+          </div>
         </div>
       </header>
 
-      <main className="-mt-6 flex-1 px-4 md:-mt-10 md:px-10">{children}</main>
+      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-[4.5rem] md:px-10">{children}</main>
 
       <Footer />
     </div>
