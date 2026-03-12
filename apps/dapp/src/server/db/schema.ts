@@ -1,5 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { bigint, index, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth-schema';
 
@@ -122,6 +134,16 @@ export const transactionMonitorCursor = pgTable('transaction_monitor_cursor', {
     .notNull()
     .default(sql`0`),
   lastLogIndex: integer('last_log_index').notNull().default(-1),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+export const userEmailPreferences = pgTable('user_email_preferences', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  productTipsEnabled: boolean('product_tips_enabled').notNull().default(true),
+  transactionReceiptsEnabled: boolean('transaction_receipts_enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
