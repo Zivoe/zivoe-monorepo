@@ -4,7 +4,7 @@ import { ContactCtaSection } from './components/contact-cta-section';
 import { EmailLayout } from './components/email-layout';
 
 export default function WelcomeEmail({ name }: { name?: string }) {
-  const greeting = name ? `Hi ${name},` : 'Hi there,';
+  const greeting = name ? `Hi ${name},` : 'Hi There,';
 
   return (
     <EmailLayout preview="Let's connect">
