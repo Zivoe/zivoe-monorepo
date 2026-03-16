@@ -22,6 +22,7 @@ import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 import {
   EVENT_BATCH_LIMIT,
   FINALITY_CONFIRMATIONS,
+  formatTelegramEmailLine,
   getMonitorCursor,
   getUsersForWallet,
   recordEmailSent,
@@ -161,8 +162,12 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
         })
       )} zSTT)`;
 
+      runEvent.stage = 'get_users';
+      const users = await getUsersForWallet(deposit.accountId);
+      const telegramEmailLine = formatTelegramEmailLine(users);
+
       telegramItems.push(
-        `<b>Deposit</b>\nUser: ${deposit.accountId}\nInput: ${escapeHtml(
+        `<b>Deposit</b>\nUser: ${deposit.accountId}\n${telegramEmailLine}\nInput: ${escapeHtml(
           formatBigIntWithCommas({
             value: inputDetails.amountRaw,
             tokenDecimals: inputDetails.decimals,
@@ -178,9 +183,6 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
           })
         )} zVLT\nTx: ${deposit.txHash}`
       );
-
-      runEvent.stage = 'get_users';
-      const users = await getUsersForWallet(deposit.accountId);
 
       if (users.length === 0) {
         runEvent.counters.skippedNoUserEvents++;
