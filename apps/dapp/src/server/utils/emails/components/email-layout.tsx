@@ -1,19 +1,17 @@
-import {
-  Body,
-  Container,
-  Head,
-  Hr,
-  Html,
-  Img,
-  Preview,
-  Section,
-  Tailwind,
-  Text
-} from '@react-email/components';
+import { Body, Container, Head, Hr, Html, Img, Preview, Section, Tailwind } from '@react-email/components';
 
 import { ZIVOE_LOGO_URL, emailTailwindConfig } from '../config';
+import { EmailFooterRow } from './email-footer-row';
 
-export function EmailLayout({ preview, children }: { preview: string; children: React.ReactNode }) {
+export function EmailLayout({
+  preview,
+  children,
+  unsubscribeUrl
+}: {
+  preview: string;
+  children: React.ReactNode;
+  unsubscribeUrl?: string;
+}) {
   return (
     <Html>
       <Head />
@@ -29,9 +27,12 @@ export function EmailLayout({ preview, children }: { preview: string; children: 
 
             <Hr className="border-neutral-200 my-8" />
 
-            <Section className="text-center">
-              <Text className="text-xs text-neutral-400 m-0">Zivoe — RWA Credit Protocol</Text>
-            </Section>
+            <EmailFooterRow
+              leftContent="Zivoe - RWA Credit Protocol"
+              unsubscribeUrl={unsubscribeUrl}
+              leftTextClassName="m-0 text-xs text-neutral-400"
+              unsubscribeLinkClassName="text-xs text-neutral-500 no-underline"
+            />
           </Container>
         </Body>
       </Tailwind>

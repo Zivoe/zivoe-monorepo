@@ -9,8 +9,17 @@ import {
   RECEIPT_INQUIRIES_EMAIL,
   RECEIPT_QUICK_LINKS
 } from '../receipt-config';
+import { EmailFooterRow } from './email-footer-row';
 
-export function TransactionReceiptLayout({ preview, children }: { preview: string; children: ReactNode }) {
+export function TransactionReceiptLayout({
+  preview,
+  children,
+  unsubscribeUrl
+}: {
+  preview: string;
+  children: ReactNode;
+  unsubscribeUrl?: string;
+}) {
   return (
     <Html>
       <Head>
@@ -111,7 +120,14 @@ export function TransactionReceiptLayout({ preview, children }: { preview: strin
                 <Text className="m-0 text-extraSmall text-disabled">{RECEIPT_DISCLAIMER_TEXT}</Text>
               </Section>
 
-              <Text className="m-0 text-extraSmall text-disabled">{RECEIPT_COPYRIGHT_TEXT}</Text>
+              <EmailFooterRow
+                leftContent={RECEIPT_COPYRIGHT_TEXT}
+                unsubscribeUrl={unsubscribeUrl}
+                leftWidth="65%"
+                rightWidth="35%"
+                leftTextClassName="m-0 text-extraSmall text-disabled"
+                unsubscribeLinkClassName="text-base text-disabled no-underline"
+              />
             </Section>
           </Container>
         </Body>

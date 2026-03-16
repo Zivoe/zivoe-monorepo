@@ -25,6 +25,7 @@ interface DepositConfirmationEmailProps {
   walletAddress: string;
   txHash: string;
   eventTimestamp: bigint;
+  unsubscribeUrl?: string;
 }
 
 export default function DepositConfirmationEmail({
@@ -33,14 +34,15 @@ export default function DepositConfirmationEmail({
   sharesReceived,
   walletAddress,
   txHash,
-  eventTimestamp
+  eventTimestamp,
+  unsubscribeUrl
 }: DepositConfirmationEmailProps) {
   const formattedTimestamp = formatEventTimestampUtc(eventTimestamp);
   const walletExplorerUrl = getAddressExplorerUrl(walletAddress);
   const transactionExplorerUrl = getTransactionExplorerUrl(txHash);
 
   return (
-    <TransactionReceiptLayout preview="Your deposit receipt is ready">
+    <TransactionReceiptLayout preview="Your deposit receipt is ready" unsubscribeUrl={unsubscribeUrl}>
       <Section className="mb-6 text-center" style={{ width: '100%' }}>
         <Heading className="m-0 mb-2 font-heading text-h5 text-primary">Deposit Receipt</Heading>
         <Text className="m-0 text-regular text-secondary">zVLT has been transferred to your wallet.</Text>

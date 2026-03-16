@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
+import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { hasUserDeposited } from '@/server/data/ponder';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
@@ -40,6 +41,15 @@ const handler = async (req: NextRequest) => {
 
   const hasDeposited = await hasUserDeposited(userId);
   if (hasDeposited) return NextResponse.json({ success: true, data: 'User has already deposited, skipping reminder' });
+
+  const isProductTipsEnabled = await isEmailPreferenceEnabled({
+    userId,
+    bucket: 'product_tips'
+  });
+
+  if (!isProductTipsEnabled) {
+    return NextResponse.json({ success: true, data: 'Product tips disabled, skipping reminder' });
+  }
 
   const sendEmail = reminderNumber === 1 ? sendFirstDepositReminderEmail : sendSecondDepositReminderEmail;
 

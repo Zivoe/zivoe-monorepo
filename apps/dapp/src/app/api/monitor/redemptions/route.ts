@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 
 import { redemption as redemptionTable } from '@/server/clients/ponder/schema';
 import { getWeb3Client } from '@/server/clients/web3';
+import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { getEventsAfterCursor } from '@/server/data/ponder';
 import {
   createCronRunWideEvent,
@@ -88,6 +89,7 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
       limit: EVENT_BATCH_LIMIT
     });
     runEvent.counters.fetchedEvents = redemptions.length;
+    const receiptPreferenceCache = new Map<string, boolean>();
 
     const telegramItems: string[] = [];
 
@@ -154,6 +156,17 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
           ...failureContext,
           userId: userRecord.userId
         };
+
+        const cachedPreference = receiptPreferenceCache.get(userRecord.userId);
+        const canReceiveTransactionEmails =
+          cachedPreference ??
+          (await isEmailPreferenceEnabled({
+            userId: userRecord.userId,
+            bucket: 'transaction_receipts'
+          }));
+        receiptPreferenceCache.set(userRecord.userId, canReceiveTransactionEmails);
+
+        if (!canReceiveTransactionEmails) continue;
 
         runEvent.stage = 'dedupe_check';
         const alreadySent = await wasEmailSent({ eventId: redemption.id, userId: userRecord.userId });

@@ -40,7 +40,8 @@
         "TELEGRAM_TXS_CHAT_ID",
         "NEXT_PUBLIC_POSTHOG_KEY",
         "NEXT_PUBLIC_INTERCOM_APP_ID",
-        "ZAPPER_API_KEY"
+        "ZAPPER_API_KEY",
+        "UNSUBSCRIBE_TOKEN_SECRET"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
