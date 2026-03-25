@@ -20,10 +20,10 @@
     "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove"
   },
   "dependencies": {
-    "@dynamic-labs/ethereum": "4.52.5",
-    "@dynamic-labs/sdk-react-core": "4.52.5",
-    "@dynamic-labs/wagmi-connector": "4.52.5",
-    "@dynamic-labs/wallet-book": "4.52.5",
+    "@dynamic-labs/ethereum": "4.69.0",
+    "@dynamic-labs/sdk-react-core": "4.69.0",
+    "@dynamic-labs/wagmi-connector": "4.69.0",
+    "@dynamic-labs/wallet-book": "4.69.0",
     "@hookform/resolvers": "^5.0.1",
     "@intercom/messenger-js-sdk": "^0.0.17",
     "@marsidev/react-turnstile": "^1.1.0",
@@ -58,8 +58,8 @@
     "resend": "^6.5.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.3",
-    "viem": "^2.44.0",
-    "wagmi": "^3.2.0",
+    "viem": "^2.47.6",
+    "wagmi": "^3.5.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
