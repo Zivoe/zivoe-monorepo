@@ -2,15 +2,15 @@ import { useState } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
+import { type SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
 import { mainnet } from 'viem/chains';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { WriteContractParameters } from 'wagmi/actions';
+import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
-import { DepositToken } from '@/types/constants';
+import { type DepositToken } from '@/types/constants';
 
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import {
@@ -46,49 +46,62 @@ export const useRouterDepositPermit = () => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
       setIsPermitPending(true);
-
-      const nonce = await publicClient.readContract({
-        address: CONTRACTS[stableCoinName],
-        abi: erc20PermitAbi,
-        functionName: 'nonces',
-        args: [address]
-      });
-
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 minutes from now
 
-      const { err, res: signature } = await handlePromise(
-        walletClient.signTypedData({
-          account: address,
-          primaryType: 'Permit',
-          types: TYPES,
-          message: {
-            owner: address,
-            spender: CONTRACTS.zRTR,
-            value: amount,
-            nonce,
-            deadline
-          },
-          domain: {
-            ...DOMAIN[stableCoinName],
-            verifyingContract: CONTRACTS[stableCoinName]
-          }
-        })
-      );
+      let signature: `0x${string}` | undefined;
 
-      if (err || !signature) {
-        const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
-        if (isUserRejection) {
-          throw new AppError({
-            message: 'Transaction rejected',
-            exception: err,
-            refetch: false,
-            type: 'warning',
-            capture: false
-          });
-        } else throw err || new AppError({ message: 'Error signing data' });
+      try {
+        const nonce = await publicClient.readContract({
+          address: CONTRACTS[stableCoinName],
+          abi: erc20PermitAbi,
+          functionName: 'nonces',
+          args: [address]
+        });
+
+        const signResult = await handlePromise(
+          walletClient.signTypedData({
+            account: address,
+            primaryType: 'Permit',
+            types: TYPES,
+            message: {
+              owner: address,
+              spender: CONTRACTS.zRTR,
+              value: amount,
+              nonce,
+              deadline
+            },
+            domain: {
+              ...DOMAIN[stableCoinName],
+              verifyingContract: CONTRACTS[stableCoinName]
+            }
+          })
+        );
+
+        if (signResult.err || !signResult.res) {
+          const isUserRejection =
+            signResult.err &&
+            signResult.err instanceof Error &&
+            signResult.err.message.includes('User rejected the request');
+
+          if (isUserRejection) {
+            throw new AppError({
+              message: 'Transaction rejected',
+              exception: signResult.err,
+              refetch: false,
+              type: 'warning',
+              capture: false
+            });
+          }
+
+          throw signResult.err instanceof Error ? signResult.err : new AppError({ message: 'Error signing data' });
+        }
+
+        signature = signResult.res;
+      } finally {
+        setIsPermitPending(false);
       }
 
-      setIsPermitPending(false);
+      if (!signature) throw new AppError({ message: 'Error signing data' });
 
       const v = hexToNumber(slice(signature, 64, 65));
       const r = slice(signature, 0, 32);

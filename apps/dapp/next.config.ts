@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
     }
   },
 
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'pbs.twimg.com' },
+      { protocol: 'https', hostname: 'abs.twimg.com' }
+    ]
+  },
+
   async redirects() {
     return [
       {
@@ -37,10 +45,6 @@ const nextConfig: NextConfig = {
       {
         source: '/vd3asd/:path*',
         destination: 'https://us.i.posthog.com/:path*'
-      },
-      {
-        source: '/vd3asd/decide',
-        destination: 'https://us.i.posthog.com/decide'
       }
     ];
   }

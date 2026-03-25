@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { Ratelimit } from '@upstash/ratelimit';
+import { ipAddress } from '@vercel/functions';
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
@@ -7,6 +9,7 @@ import { CONTRACTS } from '@zivoe/contracts';
 
 import { getDb } from '@/server/clients/db';
 import { getPonder } from '@/server/clients/ponder';
+import { redis } from '@/server/clients/redis';
 import { getWeb3Client } from '@/server/clients/web3';
 import { web3 } from '@/server/web3';
 
@@ -31,7 +34,28 @@ export type PortfolioData = {
   snapshots: Array<Snapshot>;
 };
 
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(30, '5 m')
+});
+
 const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
+  const headers = new Headers();
+
+  const ip = ipAddress(req) ?? '127.0.0.1';
+  const rateLimitRes = await handlePromise(ratelimit.limit(`portfolio:${ip}`));
+
+  if (rateLimitRes.err || !rateLimitRes.res) {
+    throw new ApiError({ message: 'Error checking rate limit', status: 500, exception: rateLimitRes.err });
+  }
+
+  headers.set('X-RateLimit-Limit', rateLimitRes.res.limit.toString());
+  headers.set('X-RateLimit-Remaining', rateLimitRes.res.remaining.toString());
+
+  if (!rateLimitRes.res.success) {
+    throw new ApiError({ message: 'The request has been rate limited.', status: 429, headers, capture: false });
+  }
+
   const searchParams = req.nextUrl.searchParams;
   const queryParams = {
     address: searchParams.get('address')
@@ -105,10 +129,13 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
 
   const zVLTBalance = snapshotsRes.res[snapshotsRes.res.length - 1]?.balance?.toString() ?? null;
 
-  return NextResponse.json({
-    success: true,
-    data: { timestamp: portfolioTimestamp, value: portfolioValue, zVLTBalance, snapshots: filledSnapshots }
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      data: { timestamp: portfolioTimestamp, value: portfolioValue, zVLTBalance, snapshots: filledSnapshots }
+    },
+    { headers }
+  );
 };
 
 function processAndFillSnapshots(

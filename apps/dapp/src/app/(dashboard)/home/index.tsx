@@ -5,7 +5,7 @@ import Page from '@/components/page';
 
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
-import { DepositPageView } from './deposit/_utils';
+import { type DepositPageView } from './deposit/_utils';
 
 export default function Home({ initialView }: { initialView: DepositPageView }) {
   return (
