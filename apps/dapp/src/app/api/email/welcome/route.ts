@@ -10,6 +10,7 @@ import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendWelcomeEmail } from '@/server/utils/send-email';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z.object({
@@ -60,7 +61,8 @@ const handler = async (req: NextRequest) => {
       delay: '3d',
       retries: 3,
       deduplicationId: `deposit-reminder-3day-${userId}`,
-      failureCallback: `${BASE_URL}/api/qstash/failure`
+      failureCallback: getQstashFailureCallback(BASE_URL),
+      label: QSTASH_JOB_LABELS.emailDepositReminderFirst
     })
   );
 

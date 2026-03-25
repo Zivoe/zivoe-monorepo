@@ -13,6 +13,7 @@ import { qstash } from '@/server/clients/qstash';
 import { profile } from '@/server/db/schema';
 import { BASE_URL } from '@/server/utils/base-url';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { type OnboardingFormData, onboardingSchema } from '@/lib/schemas/onboarding';
 import { handlePromise } from '@/lib/utils';
 
@@ -76,7 +77,8 @@ export async function completeOnboarding(data: OnboardingFormData) {
         body: { userId: session.user.id },
         retries: 3,
         deduplicationId: `onboarding-welcome-${session.user.id}`,
-        failureCallback: `${BASE_URL}/api/qstash/failure`
+        failureCallback: getQstashFailureCallback(BASE_URL),
+        label: QSTASH_JOB_LABELS.emailWelcome
       }),
 
       qstash.publishJSON({
@@ -84,7 +86,8 @@ export async function completeOnboarding(data: OnboardingFormData) {
         body: { userId: session.user.id, email: session.user.email, name: `${firstName} ${lastName}`, ...rest },
         retries: 3,
         deduplicationId: `onboarding-telegram-${session.user.id}`,
-        failureCallback: `${BASE_URL}/api/qstash/failure`
+        failureCallback: getQstashFailureCallback(BASE_URL),
+        label: QSTASH_JOB_LABELS.telegramOnboarding
       }),
 
       posthog.captureImmediate({

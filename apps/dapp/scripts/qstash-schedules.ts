@@ -6,9 +6,13 @@
  *   2. Update .env with Qstash tokens and APP_URL
  *   3. pnpm schedules:sync
  */
-import { Client, CreateScheduleRequest } from '@upstash/qstash';
+import { Client, type CreateScheduleRequest } from '@upstash/qstash';
 
-type ScheduleConfig = Required<Pick<CreateScheduleRequest, 'scheduleId' | 'cron' | 'retries' | 'failureCallback'>> & {
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '../src/lib/qstash';
+
+type ScheduleConfig = Required<
+  Pick<CreateScheduleRequest, 'scheduleId' | 'cron' | 'retries' | 'failureCallback' | 'label'>
+> & {
   destination: string;
 };
 
@@ -18,28 +22,32 @@ const SCHEDULES: Array<ScheduleConfig> = [
     scheduleId: 'network-live-hourly',
     cron: '0 * * * *', // Every hour at minute 0
     retries: 3,
-    failureCallback: '/api/qstash/failure'
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.monitorNetworkLive
   },
   {
     destination: '/api/monitor/refresh-holdings',
     scheduleId: 'wallet-holdings-refresh',
     cron: '0 */6 * * *', // Every 6 hours
     retries: 1,
-    failureCallback: '/api/qstash/failure'
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.monitorRefreshHoldings
   },
   {
     destination: '/api/monitor/deposits',
     scheduleId: 'deposits-5min',
     cron: '*/5 * * * *', // Every 5 minutes
     retries: 1,
-    failureCallback: '/api/qstash/failure'
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.monitorDeposits
   },
   {
     destination: '/api/monitor/redemptions',
     scheduleId: 'redemptions-5min',
     cron: '*/5 * * * *', // Every 5 minutes
     retries: 1,
-    failureCallback: '/api/qstash/failure'
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.monitorRedemptions
   }
 ];
 
@@ -63,20 +71,22 @@ async function sync() {
 
   for (const schedule of SCHEDULES) {
     const destination = `${baseUrl}${schedule.destination}`;
-    const failureCallback = `${baseUrl}${schedule.failureCallback}`;
+    const failureCallback = getQstashFailureCallback(baseUrl);
 
     await client.schedules.create({
       scheduleId: schedule.scheduleId,
       destination,
       cron: schedule.cron,
       retries: schedule.retries,
-      failureCallback
+      failureCallback,
+      label: schedule.label
     });
 
     console.log(`  ${schedule.scheduleId}`);
     console.log(`    cron: ${schedule.cron}`);
     console.log(`    dest: ${destination}`);
     console.log(`    retries: ${schedule.retries}`);
+    console.log(`    label: ${schedule.label}`);
     console.log(`    failureCallback: ${failureCallback}`);
     console.log();
   }
@@ -98,6 +108,7 @@ async function list() {
     console.log(`    cron: ${s.cron}`);
     console.log(`    dest: ${s.destination}`);
     console.log(`    retries: ${s.retries}`);
+    if (s.label) console.log(`    label: ${s.label}`);
     if (s.callback) console.log(`    callback: ${s.callback}`);
     console.log(`    paused: ${s.isPaused}`);
     console.log();

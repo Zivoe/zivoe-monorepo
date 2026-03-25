@@ -14,6 +14,7 @@ import { BASE_URL } from '@/server/utils/base-url';
 import { subscribeToBeehiiv } from '@/server/utils/beehiiv';
 import { sendOTPEmail } from '@/server/utils/send-email';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -172,7 +173,8 @@ export const auth = betterAuth({
                 delay: '1d',
                 retries: 3,
                 deduplicationId: `onboarding-reminder-1day-${user.id}`,
-                failureCallback: `${BASE_URL}/api/qstash/failure`
+                failureCallback: getQstashFailureCallback(BASE_URL),
+                label: QSTASH_JOB_LABELS.emailOnboardingReminder
               }),
 
               // Track signup event
