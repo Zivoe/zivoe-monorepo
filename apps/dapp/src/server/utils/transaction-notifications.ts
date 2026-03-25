@@ -121,8 +121,8 @@ export async function getUsersForWallet(address: string) {
   return res ?? [];
 }
 
-export function formatTelegramEmailLine(users: TelegramEmailRecord[]) {
-  const emails: string[] = [];
+export function formatTelegramEmailLine(users: Array<TelegramEmailRecord>) {
+  const emails: Array<string> = [];
   const seenEmails = new Set<string>();
 
   for (const user of users) {

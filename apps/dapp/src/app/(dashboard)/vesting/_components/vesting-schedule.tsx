@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { CheckIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';

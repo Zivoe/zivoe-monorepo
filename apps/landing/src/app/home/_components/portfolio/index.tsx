@@ -1,4 +1,4 @@
-import { ReactNode, Suspense } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';

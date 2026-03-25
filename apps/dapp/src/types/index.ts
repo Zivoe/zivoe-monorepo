@@ -1,6 +1,6 @@
-import { PublicClient } from 'viem';
+import { type PublicClient } from 'viem';
 
-import { Contracts } from '@zivoe/contracts';
+import { type Contracts } from '@zivoe/contracts';
 
 export type Web3Request = {
   client: PublicClient;

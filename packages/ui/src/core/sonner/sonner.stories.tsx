@@ -1,7 +1,7 @@
-import { Meta, StoryObj } from '@storybook/react';
+import { type Meta, type StoryObj } from '@storybook/react';
 
 import { Button } from '../button';
-import { ToastProps, Toaster, iconVariants, toast } from './sonner';
+import { type ToastProps, Toaster, iconVariants, toast } from './sonner';
 
 const meta: Meta = {
   title: 'Core/Toaster',

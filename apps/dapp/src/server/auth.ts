@@ -94,7 +94,7 @@ export const auth = betterAuth({
 
         if (err) {
           Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'send-otp' } });
-          throw err;
+          throw err instanceof Error ? err : new Error('Failed to send OTP email', { cause: err });
         }
       }
     }),
@@ -115,7 +115,7 @@ export const auth = betterAuth({
   },
 
   trustedOrigins: () => {
-    const origins: string[] = [];
+    const origins: Array<string> = [];
 
     if (env.APP_URL) {
       origins.push(env.APP_URL);

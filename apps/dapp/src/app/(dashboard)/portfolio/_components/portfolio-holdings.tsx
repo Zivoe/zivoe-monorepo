@@ -3,13 +3,13 @@
 import { useAtom } from 'jotai';
 
 import { CONTRACTS } from '@zivoe/contracts';
-import { Button, ButtonProps } from '@zivoe/ui/core/button';
+import { Button, type ButtonProps } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, Token } from '@/types/constants';
+import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, type Token } from '@/types/constants';
 
 import { unstakeDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';

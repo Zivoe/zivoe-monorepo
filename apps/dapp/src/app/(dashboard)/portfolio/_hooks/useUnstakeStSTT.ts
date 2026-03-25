@@ -8,7 +8,7 @@ import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { TransactionData, transactionAtom, unstakeDialogAtom } from '@/lib/store';
+import { type TransactionData, transactionAtom, unstakeDialogAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -101,7 +101,7 @@ export const useUnstakeStSTT = () => {
       if (skipTxSettled(err)) return;
 
       // Refetch stSTT balance
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.balanceOf({
           accountAddress: address,
           id: CONTRACTS.stSTT
@@ -109,7 +109,7 @@ export const useUnstakeStSTT = () => {
       });
 
       // Refetch zSTT balance
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.depositBalances({ accountAddress: address })
       });
     }

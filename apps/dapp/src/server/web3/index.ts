@@ -1,4 +1,4 @@
-import { Address, erc20Abi, formatUnits, parseUnits } from 'viem';
+import { type Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { occCycleAbi, occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
@@ -6,7 +6,7 @@ import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { DAYS_PER_YEAR, DAY_IN_SECONDS } from '@/lib/utils';
 
-import { TVL, Web3Request } from '@/types';
+import { type TVL, type Web3Request } from '@/types';
 
 const getIndexPrice = async ({
   client,

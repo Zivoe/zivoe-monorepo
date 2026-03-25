@@ -1,12 +1,12 @@
-import { PublicClient } from 'viem';
+import { type PublicClient } from 'viem';
 
-import { Contracts } from '@zivoe/contracts';
+import { type Contracts } from '@zivoe/contracts';
 
 import { web3 } from '@/server/web3';
 
 import { ApiError, handlePromise } from '@/lib/utils';
 
-import { DailyData } from '@/types';
+import { type DailyData } from '@/types';
 
 import { getLastBlockByDate } from '../../utils';
 

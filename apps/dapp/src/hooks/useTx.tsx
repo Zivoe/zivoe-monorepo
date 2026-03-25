@@ -12,15 +12,15 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { AppError, handlePromise } from '@/lib/utils';
 
-import { RedeemUSDCParams } from '@/app/(dashboard)/home/deposit/_hooks/useRedeemUSDC';
-import { RouterDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDeposit';
-import { RouterDepositPermitParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDepositPermit';
-import { VaultDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useVaultDeposit';
-import { UnstakeStSTTParams } from '@/app/(dashboard)/portfolio/_hooks/useUnstakeStSTT';
-import { ClaimVestingParams } from '@/app/(dashboard)/vesting/_hooks/useClaimVesting';
+import { type RedeemUSDCParams } from '@/app/(dashboard)/home/deposit/_hooks/useRedeemUSDC';
+import { type RouterDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDeposit';
+import { type RouterDepositPermitParams } from '@/app/(dashboard)/home/deposit/_hooks/useRouterDepositPermit';
+import { type VaultDepositParams } from '@/app/(dashboard)/home/deposit/_hooks/useVaultDeposit';
+import { type UnstakeStSTTParams } from '@/app/(dashboard)/portfolio/_hooks/useUnstakeStSTT';
+import { type ClaimVestingParams } from '@/app/(dashboard)/vesting/_hooks/useClaimVesting';
 
 import { useAccount } from './useAccount';
-import { ApproveTokenParams } from './useApproveSpending';
+import { type ApproveTokenParams } from './useApproveSpending';
 
 export default function useTx() {
   const publicClient = usePublicClient();

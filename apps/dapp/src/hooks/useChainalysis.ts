@@ -34,7 +34,7 @@ export const useChainalysis = () => {
         )
       );
 
-      if (err) throw err;
+      if (err) throw err instanceof Error ? err : new Error('Chainalysis request failed', { cause: err });
       if (!res) throw new Error('No response from Chainalysis');
 
       const parsedResponse = await res.json();

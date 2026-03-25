@@ -1,7 +1,7 @@
-import { HTMLAttributeAnchorTarget, useEffect } from 'react';
+import { type HTMLAttributeAnchorTarget, useEffect } from 'react';
 
 import { PrefetchKind } from 'next/dist/client/components/router-reducer/router-reducer-types';
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { type AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useRouter } from 'next/navigation';
 
 const prefetchedUrls = new Set<string>();

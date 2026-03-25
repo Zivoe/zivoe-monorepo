@@ -1,12 +1,12 @@
 'use client';
 
-import { ReactElement } from 'react';
+import { type ReactElement } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
 import { PieChartIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { CurrentDailyData } from '@/server/data';
+import { type CurrentDailyData } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 

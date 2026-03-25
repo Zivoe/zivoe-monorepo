@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { IconProps } from '@zivoe/ui/icons/types';
+import { type IconProps } from '@zivoe/ui/icons/types';
 
 export const CowSwapIcon = React.forwardRef<SVGSVGElement, IconProps>(
-  ({ color = 'currentColor', ...props }, forwardedRef) => {
+  ({ color: _color = 'currentColor', ..._props }, _forwardedRef) => {
     return (
       <svg width="98" height="19" viewBox="0 0 98 19" fill="none" xmlns="http://www.w3.org/2000/svg">
         <mask

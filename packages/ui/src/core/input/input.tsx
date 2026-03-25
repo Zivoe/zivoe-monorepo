@@ -1,10 +1,10 @@
 'use client';
 
-import { ReactNode, forwardRef, useContext } from 'react';
+import { type ReactNode, forwardRef, useContext } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
-import { VariantProps, tv } from 'tailwind-variants';
+import { type VariantProps, tv } from 'tailwind-variants';
 
 import { CloseIcon } from '../../icons/close';
 import { cn } from '../../lib/tw-utils';
@@ -29,7 +29,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
       label,
-      labelClassName,
+      labelClassName: _labelClassName,
       placeholder,
       value,
       errorMessage,
@@ -124,7 +124,7 @@ const parseFields = ({
   placeholder: string | undefined;
   value: string | undefined;
   autoComplete: string | undefined;
-  type: any;
+  type: string | undefined;
 }) => {
   let parsedPlaceholder = placeholder;
   let parsedValue = value;
@@ -132,10 +132,10 @@ const parseFields = ({
   let parsedType = type;
 
   if (variant === 'amount') {
-    if (!parsedPlaceholder) parsedPlaceholder = '0.0';
-    if (!parsedValue) parsedValue = '';
-    if (!parsedAutoComplete) parsedAutoComplete = 'off';
-    if (!parsedType) parsedType = 'text';
+    parsedPlaceholder ??= '0.0';
+    parsedValue ??= '';
+    parsedAutoComplete ??= 'off';
+    parsedType ??= 'text';
   }
 
   return { parsedPlaceholder, parsedValue, parsedAutoComplete, parsedType };
@@ -192,7 +192,7 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
     const buttonContext = useContext(Aria.ButtonContext);
 
     return (
-      <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => {} }}>
+      <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => { /* noop */ } }}>
         <Aria.Group
           onClick={(e) => e.currentTarget.querySelector('input')?.focus()}
           className={composeRenderProps(className, (className) =>

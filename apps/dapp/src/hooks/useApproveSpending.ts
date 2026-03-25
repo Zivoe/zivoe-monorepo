@@ -1,16 +1,16 @@
 import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, erc20Abi, parseEventLogs } from 'viem';
+import { type SimulateContractParameters, type erc20Abi, parseEventLogs } from 'viem';
 import { type Address } from 'viem/accounts';
 import { type WriteContractParameters } from 'wagmi/actions';
 
-import { tetherTokenAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
+import { type tetherTokenAbi, type zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 
-import { Token } from '@/types/constants';
+import { type Token } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
-import { TransactionData } from '@/lib/store';
+import { type TransactionData } from '@/lib/store';
 import { transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
@@ -65,7 +65,7 @@ export const useApproveSpending = () => {
       return { receipt, successMessage, errorMessage };
     },
 
-    onError: (err, { abi, ...variables }) =>
+    onError: (err, { abi: _abi, ...variables }) =>
       onTxError({
         err,
         defaultToastMsg: `Error Approving ${variables.name}`,
@@ -123,7 +123,7 @@ export const useApproveSpending = () => {
       if (skipTxSettled(err)) return;
 
       // Refetch allowance
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({ accountAddress: address, contract, spender })
       });
     }

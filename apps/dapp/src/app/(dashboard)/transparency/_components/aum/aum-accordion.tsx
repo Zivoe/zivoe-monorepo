@@ -5,7 +5,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { DisclosureArrowIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { CurrentDailyData } from '@/server/data';
+import { type CurrentDailyData } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 

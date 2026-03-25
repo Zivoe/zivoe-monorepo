@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { Label, PolarAngleAxis, PolarRadiusAxis, RadialBar, RadialBarChart } from 'recharts';
@@ -82,7 +82,7 @@ export function VestingRewards() {
                   <p className="text-leading font-medium text-primary">Claimable Now</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="[&_svg]:size-7 [&_svg]:flex-shrink-0">{TOKEN_INFO['zVLT'].icon}</span>
+                  <span className="[&_svg]:size-7 [&_svg]:flex-shrink-0">{TOKEN_INFO.zVLT.icon}</span>
                   <p className="text-smallSubheading font-medium text-primary">
                     {!hasSchedule || claimableAmount === undefined
                       ? '-'
@@ -191,17 +191,17 @@ function VestedChart({
                     <g>
                       <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
                         <tspan
-                          x={(viewBox.cx || 0) - 5}
-                          y={(viewBox.cy || 0) - 20}
+                          x={(viewBox.cx ?? 0) - 5}
+                          y={(viewBox.cy ?? 0) - 20}
                           className="fill-primary font-heading text-h6"
                         >
                           {hasSchedule ? formatBigIntWithCommas({ value: vestedAmount, showUnderZero: true }) : '-'}
                         </tspan>
                       </text>
-                      <text x={(viewBox.cx || 0) - 15} y={(viewBox.cy || 0) + 20} textAnchor="middle">
+                      <text x={(viewBox.cx ?? 0) - 15} y={(viewBox.cy ?? 0) + 20} textAnchor="middle">
                         <tspan className="fill-secondary text-small font-normal">Vested to date</tspan>
                       </text>
-                      <foreignObject x={(viewBox.cx || 0) + 35} y={(viewBox.cy || 0) + 3} width={30} height={30}>
+                      <foreignObject x={(viewBox.cx ?? 0) + 35} y={(viewBox.cy ?? 0) + 3} width={30} height={30}>
                         <ContextualHelp variant="info">
                           <ContextualHelpTitle>Vested to date</ContextualHelpTitle>
                           <ContextualHelpDescription>

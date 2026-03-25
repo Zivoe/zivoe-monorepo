@@ -1,5 +1,5 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { Address, erc20Abi } from 'viem';
+import { type Address, erc20Abi } from 'viem';
 import { usePublicClient } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';

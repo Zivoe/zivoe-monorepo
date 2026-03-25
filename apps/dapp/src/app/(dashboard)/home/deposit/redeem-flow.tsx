@@ -300,7 +300,7 @@ const getRedeemAmount = ({
   const fee = (zSTTReceived * redemptionFeeBIPS) / BIPS / 10n ** 12n;
   const usdcAmountRaw = zSTTReceived / 10n ** 12n - fee;
 
-  let usdcAmount = formatUnits(usdcAmountRaw, 6);
+  const usdcAmount = formatUnits(usdcAmountRaw, 6);
 
   return { usdcAmount, fee };
 };

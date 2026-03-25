@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
 import { setDatabaseSchema } from '@ponder/client';
-import { NodePgDatabase, drizzle } from 'drizzle-orm/node-postgres';
+import { type NodePgDatabase, drizzle } from 'drizzle-orm/node-postgres';
 
 import { env } from '@/env';
 

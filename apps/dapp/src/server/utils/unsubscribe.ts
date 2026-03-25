@@ -132,7 +132,7 @@ function decodeBase64Url(value: string) {
   }
 }
 
-function safeParseJson(value: string): unknown | null {
+function safeParseJson(value: string): unknown {
   try {
     return JSON.parse(value);
   } catch {

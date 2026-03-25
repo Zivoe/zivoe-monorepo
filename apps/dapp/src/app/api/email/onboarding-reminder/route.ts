@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -55,7 +55,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendOnboardingReminderEmail({
       to: profile.email,
-      name: profile.firstName || profile.lastName || undefined,
+      name: profile.firstName ?? profile.lastName ?? undefined,
       userId
     })
   );

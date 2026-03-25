@@ -2,10 +2,10 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { Collection, MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ServerApiVersion } from 'mongodb';
 
 import { env } from '@/env.js';
-import { DailyData } from '@/types';
+import { type DailyData } from '@/types';
 
 const globalForDb = globalThis as unknown as {
   mongoClient: MongoClient | undefined;
@@ -23,7 +23,7 @@ export const getDb = cache(() => {
   const zivoeDb = mongoClient.db('ZivoeMainnet');
 
   return {
-    daily: zivoeDb.collection('Daily') as Collection<DailyData>
+    daily: zivoeDb.collection<DailyData>('Daily')
   };
 });
 

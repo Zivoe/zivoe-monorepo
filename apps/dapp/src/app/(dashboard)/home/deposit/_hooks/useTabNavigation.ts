@@ -7,7 +7,7 @@ import { useMediaQuery } from 'react-responsive';
 
 import { depositDialogAtom } from '@/lib/store';
 
-import { DepositPageView } from '../_utils';
+import { type DepositPageView } from '../_utils';
 
 export function useTabNavigation() {
   const router = useRouter();

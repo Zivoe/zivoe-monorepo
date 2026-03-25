@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
-import { VariantProps } from 'tailwind-variants';
+import { type VariantProps } from 'tailwind-variants';
 
 import { CheckIcon } from '../../icons';
 import { cn, tv } from '../../lib/tw-utils';

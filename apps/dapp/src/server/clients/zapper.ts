@@ -72,7 +72,7 @@ const zapperClient = ky.create({
   }
 });
 
-export async function fetchPortfolios(addresses: string[]): Promise<Map<string, ZapperPortfolio>> {
+export async function fetchPortfolios(addresses: Array<string>): Promise<Map<string, ZapperPortfolio>> {
   if (addresses.length === 0) {
     return new Map();
   }

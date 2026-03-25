@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -30,7 +30,7 @@ const handler = async (req: NextRequest) => {
 
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile || !profile.createdAt) {
+  if (!profile?.createdAt) {
     throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
   }
 
@@ -46,7 +46,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendWelcomeEmail({
       to: profile.email,
-      name: profile.firstName || profile.lastName || undefined,
+      name: profile.firstName ?? profile.lastName ?? undefined,
       userId
     })
   );

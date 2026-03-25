@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 
-import { Metadata } from 'next';
+import { type Metadata } from 'next';
 import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
 import { Analytics } from '@vercel/analytics/next';

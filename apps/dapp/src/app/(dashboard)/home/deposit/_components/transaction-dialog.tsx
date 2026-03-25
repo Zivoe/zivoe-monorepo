@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
 import { mainnet } from 'viem/chains';
@@ -20,7 +20,7 @@ import {
 } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DEPOSIT_TOKEN_DECIMALS, DepositToken, TOKEN_DECIMALS, Token } from '@/types/constants';
+import { DEPOSIT_TOKEN_DECIMALS, type DepositToken, TOKEN_DECIMALS, type Token } from '@/types/constants';
 
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
@@ -169,7 +169,7 @@ export function TransactionDialog() {
             </Button>
 
             {transaction.type === 'SUCCESS' &&
-              (transaction.meta?.deposit || transaction.meta?.redeem || transaction.meta?.claim) && (
+              (transaction.meta?.deposit ?? transaction.meta?.redeem ?? transaction.meta?.claim) && (
                 <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
                   View Portfolio
                 </Link>

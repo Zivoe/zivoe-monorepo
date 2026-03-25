@@ -94,25 +94,23 @@ export const useClaimVesting = () => {
       setTransaction(transactionData);
     },
 
-    onSettled: async (_, err) => {
+    onSettled: (_, err) => {
       if (skipTxSettled(err)) return;
 
-      await Promise.all([
-        // Refetch vesting schedule
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
-        }),
+      // Refetch vesting schedule
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
+      });
 
-        // Refetch claimable amount
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
-        }),
+      // Refetch claimable amount
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
+      });
 
-        // Refetch blockchain timestamp
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.app.blockchainTimestamp
-        })
-      ]);
+      // Refetch blockchain timestamp
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.app.blockchainTimestamp
+      });
     }
   });
 

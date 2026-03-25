@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { QueryClient } from '@tanstack/react-query';
-import { Address, TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
+import { type QueryClient } from '@tanstack/react-query';
+import { type Address, type TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { DepositToken } from '@/types/constants';
+import { type DepositToken } from '@/types/constants';
 
-import { TransactionData } from '@/lib/store';
+import { type TransactionData } from '@/lib/store';
 
 import { env } from '@/env';
 
@@ -24,7 +24,7 @@ export const truncateAddress = (address: string | undefined) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export function customNumber(number: number, decimals: number = 2) {
+export function customNumber(number: number, decimals = 2) {
   if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
   else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
   else {
@@ -70,7 +70,7 @@ export const formatBigIntWithCommas = ({
   return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
 
-const floorToDecimals = (num: number, decimals: number = 2) => {
+const floorToDecimals = (num: number, decimals = 2) => {
   const multiplier = Math.pow(10, decimals);
   return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
 };
@@ -173,7 +173,7 @@ export const onTxError = ({
   if (type === 'warning') toast({ type: 'warning', title: toastMsg });
   else toast({ type: 'error', title: toastMsg });
 
-  if (refetch && onRefetch) onRefetch();
+  if (refetch && onRefetch) void onRefetch();
 
   if (capture)
     Sentry.captureException(exception, {
@@ -259,7 +259,7 @@ export const handleDepositRefetches = ({
 }) => {
   // Refetch allowance
   if (allowanceSpender) {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: queryKeys.account.allowance({
         accountAddress: address,
         contract: CONTRACTS[stableCoinName],
@@ -269,17 +269,17 @@ export const handleDepositRefetches = ({
   }
 
   // Refetch deposit balances
-  queryClient.invalidateQueries({
+  void queryClient.invalidateQueries({
     queryKey: queryKeys.account.depositBalances({ accountAddress: address })
   });
 
   // Refetch zVLT balance
-  queryClient.invalidateQueries({
+  void queryClient.invalidateQueries({
     queryKey: queryKeys.account.balanceOf({ accountAddress: address, id: CONTRACTS.zVLT })
   });
 
   // Refetch portfolio
-  queryClient.invalidateQueries({
+  void queryClient.invalidateQueries({
     queryKey: queryKeys.account.portfolio({ accountAddress: address })
   });
 };
@@ -289,7 +289,7 @@ export function withErrorHandler(defaultErrorMessage: string, handler: (req: Nex
     const { res, err } = await handlePromise(handler(req));
     if (!err && res) return res;
 
-    let status: number = 500;
+    let status = 500;
     let capture = true;
     let errorMessage = defaultErrorMessage;
     let exception: unknown = err;

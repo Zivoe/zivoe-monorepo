@@ -35,7 +35,7 @@ const SANCTIONED_COUNTRY_CODES = new Set([
 
 export const COUNTRIES = getData()
   .map((c) => {
-    const code = getCode(c.name) || '';
+    const code = getCode(c.name) ?? '';
     return {
       value: c.name,
       label: c.name,

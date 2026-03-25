@@ -5,8 +5,8 @@ import { DAY_IN_SECONDS, handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 
-import { PortfolioData } from '@/app/api/portfolio/route';
-import { ApiResponseError, ApiResponseSuccess } from '@/app/api/utils';
+import { type PortfolioData } from '@/app/api/portfolio/route';
+import { type ApiResponseError, type ApiResponseSuccess } from '@/app/api/utils';
 
 const DEFAULT_ERROR_MESSAGE = 'Failed to fetch portfolio';
 

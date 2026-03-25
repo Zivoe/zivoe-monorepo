@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
-import { EmailPreferences, resolveUnsubscribeActor, saveAppEmailPreferences } from '@/server/data/email-preferences';
+import { type EmailPreferences, resolveUnsubscribeActor, saveAppEmailPreferences } from '@/server/data/email-preferences';
 import { syncBeehiivNewsletterPreference } from '@/server/utils/beehiiv';
 
 import { handlePromise } from '@/lib/utils';

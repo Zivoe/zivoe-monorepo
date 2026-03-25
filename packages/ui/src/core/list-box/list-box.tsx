@@ -2,7 +2,7 @@
 
 import {
   ListBoxItem as AriaListBoxItem,
-  ListBoxItemProps as AriaListBoxItemProps,
+  type ListBoxItemProps as AriaListBoxItemProps,
   composeRenderProps
 } from 'react-aria-components';
 
@@ -33,7 +33,7 @@ const ListBoxItem = <T extends object>({
 }: ListBoxItemProps<T>) => {
   return (
     <AriaListBoxItem
-      textValue={props.textValue || (typeof children === 'string' ? children : undefined)}
+      textValue={props.textValue ?? (typeof children === 'string' ? children : undefined)}
       className={composeRenderProps(className, (className) => listBoxItemVariants({ className }))}
       {...props}
     >

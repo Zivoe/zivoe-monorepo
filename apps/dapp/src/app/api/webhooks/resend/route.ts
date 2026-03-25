@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
@@ -14,7 +14,7 @@ type ResendWebhookEvent = {
     created_at: string;
     email_id: string;
     from: string;
-    to: string[];
+    to: Array<string>;
     subject: string;
     /** Present on email.bounced events */
     bounce?: {
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       },
       webhookSecret: env.RESEND_WEBHOOK_SECRET
     }) as ResendWebhookEvent;
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid webhook signature' });
   }
 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
       default:
         // Shouldn't happen if webhook subscription is configured correctly
-        Sentry.captureException(new Error(`Unexpected Resend webhook event type: ${type}`), {
+        Sentry.captureException(new Error(`Unexpected Resend webhook event type: ${type as string}`), {
           tags: { source: 'SERVER', flow: 'resend-webhook-unknown' },
           extra: sentryExtra
         });

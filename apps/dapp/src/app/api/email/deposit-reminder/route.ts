@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -31,7 +31,7 @@ const handler = async (req: NextRequest) => {
   const { userId, reminderNumber } = parsedBody.data;
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile || !profile.createdAt || !profile.accountType) {
+  if (!profile?.createdAt || !profile.accountType) {
     Sentry.captureException(new Error('Deposit reminder email skipped: user/profile not found'), {
       tags: { source: 'API', flow: 'deposit-reminder-email' },
       extra: { userId, reminderNumber }
@@ -57,7 +57,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendEmail({
       to: profile.email,
-      name: profile.firstName || profile.lastName || undefined,
+      name: profile.firstName ?? profile.lastName ?? undefined,
       accountType: profile.accountType,
       userId
     })

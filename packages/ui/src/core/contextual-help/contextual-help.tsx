@@ -1,5 +1,3 @@
-import { composeRenderProps } from 'react-aria-components';
-
 import { InfoIcon, QuestionIcon } from '../../icons';
 import { cn } from '../../lib/tw-utils';
 import { Button } from '../button';

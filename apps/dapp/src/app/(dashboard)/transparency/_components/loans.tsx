@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { DollarIcon, GlobeIcon, LineChartIcon, TrendingIcon } from '@zivoe/ui/icons';
 

@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { IconProps } from './types';
+import { type IconProps } from './types';
 
 export const ZVltLogo = React.forwardRef<SVGSVGElement, IconProps>(
-  ({ color = 'currentColor', ...props }, forwardedRef) => {
+  ({ color: _color = 'currentColor', ...props }, forwardedRef) => {
     return (
       <svg
         width="48"
