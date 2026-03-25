@@ -6,7 +6,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbo",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
     "start": "next start",
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
     "db:generate": "drizzle-kit generate --config=drizzle-auth.config.ts",
@@ -63,7 +64,6 @@
   },
   "devDependencies": {
     "@react-email/preview-server": "5.1.0",
-    "tsx": "^4.19.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/country-list": "^2.1.4",
     "@types/eslint": "^9.6.1",
@@ -85,7 +85,9 @@
     "require-in-the-middle": "^7.5.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.7.3"
+    "tsx": "^4.19.0",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.57.1"
   },
   "overrides": {
     "react-is": "^19.0.0"
