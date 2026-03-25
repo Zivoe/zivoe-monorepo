@@ -1,3 +1,5 @@
+import { type Metadata } from 'next';
+
 import { Disclosure, DisclosureGroup, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 
 import Container from '@/components/container';
@@ -5,6 +7,11 @@ import Footer from '@/components/footer';
 import NavigationSection from '@/components/navigation';
 import Newsletter from '@/components/newsletter';
 import { TowerLeftIcon } from '@/components/tower-left-icon';
+
+export const metadata: Metadata = {
+  title: 'FAQ | Zivoe',
+  description: 'Answers to common questions about Zivoe, our features, and services.'
+};
 
 export default function FAQPage() {
   return (
@@ -26,7 +33,7 @@ function Faq() {
     <div className="relative">
       <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-[7rem] lg:pt-[10rem] xl:gap-[7.5rem] xl:px-[10.75rem]">
         <div className="flex w-full flex-col gap-4 lg:max-w-[27.5rem]">
-          <p className="text-h4 text-primary lg:text-h2">Your Questions, Answered</p>
+          <h1 className="text-h4 text-primary lg:text-h2">Your Questions, Answered</h1>
           <p className="text-regular text-primary lg:text-leading">
             Here you can find answers to common questions about Zivoe, our features, and services.
           </p>
@@ -77,11 +84,6 @@ const FAQs: Array<{
     question: 'What are the fees?',
     answer:
       'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
-  },
-  {
-    question: 'Is there a minimum deposit amount?',
-    answer:
-      'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
   },
   {
     question: 'Is there a minimum deposit amount?',

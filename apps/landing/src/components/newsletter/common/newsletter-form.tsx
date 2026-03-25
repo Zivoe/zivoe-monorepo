@@ -52,7 +52,7 @@ export default function NewsletterForm() {
       turnstileToken = token;
     }
 
-    await joinNewsletter.mutate({ ...data, turnstileToken });
+    await joinNewsletter.mutateAsync({ ...data, turnstileToken });
   };
 
   return (
