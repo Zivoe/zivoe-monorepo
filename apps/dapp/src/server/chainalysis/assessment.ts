@@ -17,26 +17,21 @@ const assessmentSchema = z.object({
 
 export type ChainalysisAssessment = z.infer<typeof assessmentSchema>;
 
-const assessmentRegistrationSchema = z.object({
-  address: z.string()
-});
-
-type AssessmentRegistration = z.infer<typeof assessmentRegistrationSchema>;
-
 async function fetchAssessment({ address }: { address: Address }) {
   const response = await fetch(CHAINALYSIS_BASE_URL + address, {
     headers: {
-      'Content-Type': 'application/json',
+      Accept: 'application/json',
       Token: env.CHAINALYSIS_API_KEY
     }
   });
 
   if (!response.ok) {
-    if (response.status === 404) return null;
-    throw new Error('Error fetching risk assessment!');
+    const responseBody = await response.text();
+    const errorDetails = responseBody.trim() || response.statusText;
+    throw new Error(`Chainalysis fetch failed (${response.status}): ${errorDetails}`);
   }
 
-  const data = await (response.json() as Promise<ChainalysisAssessment>);
+  const data: unknown = await response.json();
   const parsedData = assessmentSchema.safeParse(data);
 
   if (!parsedData.success) {
@@ -44,32 +39,6 @@ async function fetchAssessment({ address }: { address: Address }) {
   }
 
   return parsedData.data;
-}
-
-async function registerAddress({ address }: { address: Address }) {
-  const response = await fetch(CHAINALYSIS_BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Token: env.CHAINALYSIS_API_KEY
-    },
-    body: JSON.stringify({ address })
-  });
-
-  if (!response.ok) {
-    throw new Error('Error registering address for risk assessment!');
-  }
-
-  const data = await (response.json() as Promise<AssessmentRegistration>);
-  const parsedData = assessmentRegistrationSchema.safeParse(data);
-
-  if (!parsedData.success) {
-    throw new Error('Unexpected risk assessment registration response shape!');
-  }
-
-  if (parsedData.data.address !== address) {
-    throw new Error('Risk assessment registration address is not matching!');
-  }
 }
 
 export async function getChainalysisAssessment({ address }: { address: Address }) {
@@ -80,20 +49,5 @@ export async function getChainalysisAssessment({ address }: { address: Address }
     return { address, risk: 'Low', riskReason: null } satisfies ChainalysisAssessment;
   }
 
-  let assessment = await fetchAssessment({ address });
-
-  if (!assessment) {
-    await registerAddress({ address });
-    assessment = await fetchAssessment({ address });
-
-    if (!assessment) {
-      throw new Error('Error fetching risk assessment after registration!');
-    }
-  }
-
-  return {
-    address: assessment.address,
-    risk: assessment.risk,
-    riskReason: assessment.riskReason
-  } satisfies ChainalysisAssessment;
+  return fetchAssessment({ address });
 }
