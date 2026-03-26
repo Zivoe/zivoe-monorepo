@@ -8,8 +8,8 @@ import { composeRenderProps } from 'react-aria-components';
 import { usePrefetch } from '../../hooks/usePrefetch';
 import { CaretRightIcon } from '../../icons';
 import { fixedForwardRef } from '../../lib';
-import { VariantProps, cn, tv } from '../../lib/tw-utils';
-import { Button, ButtonProps } from '../button';
+import { type VariantProps, cn, tv } from '../../lib/tw-utils';
+import { Button, type ButtonProps } from '../button';
 import { BasePopover } from '../popover';
 import { ScrollArea, ScrollBar } from '../scroll-area';
 
@@ -77,7 +77,7 @@ const MenuItem = ({ children, className, target = '_self', prefetch = true, ...p
   return (
     <Aria.MenuItem
       target={target}
-      textValue={props.textValue || (typeof children === 'string' ? children : undefined)}
+      textValue={props.textValue ?? (typeof children === 'string' ? children : undefined)}
       className={composeRenderProps(className, (className, { isSelected }) =>
         menuItemVariants({ className, isSelected })
       )}
@@ -97,7 +97,7 @@ const MenuSeparator = ({ className, ...props }: Aria.SeparatorProps) => (
   <Aria.Separator className={cn('my-1 h-px bg-element-neutral-light', className)} {...props} />
 );
 
-const MenuButton = ({ className, isCurrent, ...props }: ButtonProps & { isCurrent?: boolean }) => {
+const MenuButton = ({ className, isCurrent: _isCurrent, ...props }: ButtonProps & { isCurrent?: boolean }) => {
   return <Button className={composeRenderProps(className, (className) => cn(className))} {...props} />;
 };
 

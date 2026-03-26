@@ -22,10 +22,6 @@ const nextConfig: NextConfig = {
       {
         source: '/asbr3d/:path*',
         destination: 'https://us.i.posthog.com/:path*'
-      },
-      {
-        source: '/asbr3d/decide',
-        destination: 'https://us.i.posthog.com/decide'
       }
     ];
   }

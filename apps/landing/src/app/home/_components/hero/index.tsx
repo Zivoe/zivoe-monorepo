@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
-import { Link, LinkProps } from '@zivoe/ui/core/link';
+import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
 import { web3 } from '@/server/web3';
 
@@ -50,7 +50,10 @@ export default function Hero() {
       <HeroElement2TabletComponent />
       <HeroElement2MobileComponent />
 
-      <HeroClouds className="absolute -left-[150px] bottom-1/4 -z-20 w-[433px] rotate-[15deg] sm:bottom-1/3 lg:-bottom-[100px] lg:w-[866px]" />
+      <HeroClouds
+        aria-hidden="true"
+        className="absolute -left-[150px] bottom-1/4 -z-20 w-[433px] rotate-[15deg] sm:bottom-1/3 lg:-bottom-[100px] lg:w-[866px]"
+      />
     </div>
   );
 }

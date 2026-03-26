@@ -12,7 +12,7 @@ import { cn } from '../../lib/tw-utils';
 import { Button } from '../button';
 import { nativeScrollAreaStyles } from '../native-scroll-area';
 
-interface DialogProps extends React.ComponentProps<typeof Aria.DialogTrigger> {}
+type DialogProps = React.ComponentProps<typeof Aria.DialogTrigger>;
 const Dialog = Aria.DialogTrigger;
 const Modal = Aria.Modal;
 type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'children' | 'isDismissable'> & {
@@ -36,7 +36,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       showCloseButton = true,
       isFullScreen = false,
       showFullScreenHeader = true,
-      role,
+      role: _role,
       logoType = 'dark',
       ...props
     }: DialogContentProps,

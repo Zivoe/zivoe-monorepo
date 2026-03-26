@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { Key } from 'react-aria-components';
+import { type Key } from 'react-aria-components';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 import { formatEther } from 'viem';
 
@@ -10,7 +10,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/cor
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
 
-import { DepositDailyData } from '@/server/data';
+import { type DepositDailyData } from '@/server/data';
 
 import { customNumber } from '@/lib/utils';
 
@@ -153,7 +153,7 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
   else currentValue = currentDailyData.apy;
 
   let domain: [number, number];
-  let ticks: number[] | undefined;
+  let ticks: Array<number> | undefined;
 
   if (type === 'TVL') {
     domain = [5_000_000, 10_000_000];

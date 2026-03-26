@@ -2,7 +2,7 @@ import 'server-only';
 
 import { type GetContractEventsReturnType, type PublicClient, formatUnits, getAddress, parseUnits } from 'viem';
 
-import { Contracts } from '@zivoe/contracts';
+import { type Contracts } from '@zivoe/contracts';
 import { zivoeItoAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
 const DECIMALS = 18;
@@ -84,7 +84,7 @@ const processDeposits = ({
     if (!account || !amount || !asset) continue;
 
     const address = getAddress(account);
-    const existing = depositsMap.get(address) || { senior: 0n, junior: 0n };
+    const existing = depositsMap.get(address) ?? { senior: 0n, junior: 0n };
 
     let amountWei = amount;
     if (asset === contracts.USDC || asset === contracts.USDT) {

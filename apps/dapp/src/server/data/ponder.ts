@@ -4,7 +4,7 @@ import { and, asc, eq, gt, inArray, lte, or } from 'drizzle-orm';
 
 import { authDb } from '@/server/clients/auth-db';
 import { getPonder } from '@/server/clients/ponder';
-import { deposit, redemption } from '@/server/clients/ponder/schema';
+import { deposit, type redemption } from '@/server/clients/ponder/schema';
 import { walletConnection } from '@/server/db/schema';
 
 import { ApiError, handlePromise } from '@/lib/utils';
@@ -32,7 +32,7 @@ export async function getEventsAfterCursor<T extends typeof deposit | typeof red
   cursor: EventCursor;
   safeBlockNumber: bigint;
   limit: number;
-}): Promise<T['$inferSelect'][]> {
+}): Promise<Array<T['$inferSelect']>> {
   if (!table) {
     throw new ApiError({
       message: `Missing ${tableName} table reference for monitor cursor query`,
@@ -99,7 +99,7 @@ export async function hasUserDeposited(userId: string): Promise<boolean> {
   return hasDeposited(addresses);
 }
 
-async function hasDeposited(walletAddresses: string[]) {
+async function hasDeposited(walletAddresses: Array<string>) {
   if (walletAddresses.length === 0) return false;
 
   const ponder = getPonder();

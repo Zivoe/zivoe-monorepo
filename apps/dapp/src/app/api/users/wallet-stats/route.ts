@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
@@ -37,14 +37,14 @@ type UserData = {
   defiBalanceUSD: number;
   holdingsUpdatedAt: Date | null;
   walletCount: number;
-  wallets: WalletInfo[];
+  wallets: Array<WalletInfo>;
 };
 
 type UserWalletStatsResponse = {
   totalUsers: number;
   totalWallets: number;
   totalValueUSD: number;
-  users: UserData[];
+  users: Array<UserData>;
 };
 
 const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> => {

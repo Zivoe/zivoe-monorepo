@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { SimulateContractParameters, parseEventLogs } from 'viem';
-import { WriteContractParameters } from 'wagmi/actions';
+import { type SimulateContractParameters, parseEventLogs } from 'viem';
+import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
-import { DepositToken } from '@/types/constants';
+import { type DepositToken } from '@/types/constants';
 
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';

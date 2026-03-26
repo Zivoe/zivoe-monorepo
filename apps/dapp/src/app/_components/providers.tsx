@@ -1,11 +1,11 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
-import { DynamicContextProps, DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { type DynamicContextProps, DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import Intercom, { update } from '@intercom/messenger-js-sdk';
 import * as Sentry from '@sentry/nextjs';
@@ -13,7 +13,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
 import { mainnet } from 'viem/chains';
-import { State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
+import { type State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
 
@@ -94,12 +94,12 @@ export default function Providers({
   // Refresh the signed cache cookie as RSC are not able to do it
   // https://www.better-auth.com/docs/integrations/next#rsc-and-server-actions
   useEffect(() => {
-    authClient.getSession();
+    void authClient.getSession();
   }, [pathname]);
 
   return (
     <>
-      <RouterProvider navigate={router.push}>
+      <RouterProvider navigate={(path) => router.push(path)}>
         <PostHogProvider>
           <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
             <WagmiProvider config={wagmiConfig} initialState={initialState}>
@@ -159,13 +159,13 @@ function WalletTracker() {
 
     // Check localStorage cache to avoid unnecessary server calls
     try {
-      const cached = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+      const cached = new Set(JSON.parse(localStorage.getItem(storageKey) ?? '[]'));
       if (cached.has(cacheKey)) return;
     } catch {
       // localStorage blocked — server handles dedup
     }
 
-    handlePromise(
+    void handlePromise(
       trackWalletConnection({
         address,
         walletType: primaryWallet?.key ?? null
@@ -174,7 +174,7 @@ function WalletTracker() {
       if (err || !res?.tracked) return;
 
       try {
-        let fresh = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+        let fresh = new Set(JSON.parse(localStorage.getItem(storageKey) ?? '[]'));
         fresh.add(cacheKey);
         if (fresh.size > MAX_WALLET_CACHE_SIZE) fresh = new Set([cacheKey]);
         localStorage.setItem(storageKey, JSON.stringify([...fresh]));

@@ -1,4 +1,4 @@
-import { Address, erc20Abi, formatUnits, parseUnits } from 'viem';
+import { type Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { occCycleAbi, occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
@@ -6,7 +6,7 @@ import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
 
 import { DAYS_PER_YEAR, DAY_IN_SECONDS } from '@/lib/utils';
 
-import { TVL, Web3Request } from '@/types';
+import { type TVL, type Web3Request } from '@/types';
 
 const getIndexPrice = async ({
   client,
@@ -54,6 +54,10 @@ const getAPY = async ({ client, contracts, blockNumber }: Web3Request) => {
   const rewardRate = Number(rewardRateRes[2]);
   const totalSupply = Number(totalSupplyRes);
 
+  if (!Number.isFinite(rewardRate) || !Number.isFinite(totalSupply) || totalSupply === 0) {
+    return 0;
+  }
+
   const rewardRatePerDay = rewardRate * DAY_IN_SECONDS;
   const rewardRatePerYear = rewardRatePerDay * DAYS_PER_YEAR;
   const apr = rewardRatePerYear / totalSupply;
@@ -62,8 +66,7 @@ const getAPY = async ({ client, contracts, blockNumber }: Web3Request) => {
   const periodRate = dailyRate * COMPOUNDING_PERIOD;
   const periodsPerYear = DAYS_PER_YEAR / COMPOUNDING_PERIOD;
   const apy = ((1 + periodRate) ** periodsPerYear - 1) * 100;
-
-  return Number(apy.toFixed(6));
+  return Number.isFinite(apy) ? Number(apy.toFixed(6)) : 0;
 };
 
 // Normalize to 18 decimals for consistent calculation

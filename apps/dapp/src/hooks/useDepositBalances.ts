@@ -4,7 +4,7 @@ import { usePublicClient } from 'wagmi';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { DEPOSIT_TOKENS, DepositToken } from '@/types/constants';
+import { DEPOSIT_TOKENS, type DepositToken } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
 

@@ -2,8 +2,6 @@
 
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { PiggyBankIcon } from '@zivoe/ui/icons';
-import { cn } from '@zivoe/ui/lib/tw-utils';
-
 import { formatBigIntWithCommas, getEndOfDayUTC } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';

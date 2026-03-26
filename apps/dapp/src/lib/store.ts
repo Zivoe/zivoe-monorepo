@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
 
-import { DepositToken, Token } from '@/types/constants';
+import { type DepositToken, type Token } from '@/types/constants';
 
 export type TransactionData = {
   type: 'SUCCESS' | 'ERROR';

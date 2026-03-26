@@ -6,7 +6,7 @@ import { type WriteContractParameters } from 'wagmi/actions';
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
-import { DepositToken } from '@/types/constants';
+import { type DepositToken } from '@/types/constants';
 
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';

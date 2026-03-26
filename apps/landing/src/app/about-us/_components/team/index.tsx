@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import Image from 'next/image';
 
@@ -93,7 +93,7 @@ export default function Team() {
                     {selected.bio ?? 'Bio coming soon.'}
                   </p>
 
-                  {(selected.linkedIn || selected.x) && (
+                  {(selected.linkedIn ?? selected.x) && (
                     <div className="mt-2 flex w-full items-center gap-3">
                       {selected.x && (
                         <Link

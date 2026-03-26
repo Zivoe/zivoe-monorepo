@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 
 import { authDb } from '@/server/clients/auth-db';
 import { user, userEmailPreferences } from '@/server/db/schema';
-import { UnsubscribeBucket, doesUnsubscribeTokenMatchEmail, verifyUnsubscribeToken } from '@/server/utils/unsubscribe';
+import { type UnsubscribeBucket, doesUnsubscribeTokenMatchEmail, verifyUnsubscribeToken } from '@/server/utils/unsubscribe';
 
 import { getUser } from './auth';
 

@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { type ReactElement } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
 import { DocumentIcon } from '@zivoe/ui/icons';

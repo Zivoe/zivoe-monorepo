@@ -1,6 +1,6 @@
 import { Button } from '@zivoe/ui/core/button';
-import { Link, LinkProps } from '@zivoe/ui/core/link';
-import { SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
+import { Link, type LinkProps } from '@zivoe/ui/core/link';
+import { SelectTrigger } from '@zivoe/ui/core/select';
 import { ArrowLeftIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 

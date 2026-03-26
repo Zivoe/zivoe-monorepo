@@ -1,5 +1,5 @@
 import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
-import { Address } from 'viem';
+import { type Address, isAddress } from 'viem';
 
 export const useAccount = () => {
   const { sdkHasLoaded, primaryWallet } = useDynamicContext();
@@ -7,10 +7,13 @@ export const useAccount = () => {
 
   const isPending = !sdkHasLoaded;
   const isDisconnected = !isPending && !isLoggedIn;
+  const walletAddress = primaryWallet?.address;
+  const address: Address | undefined =
+    !isPending && !isDisconnected && walletAddress && isAddress(walletAddress) ? walletAddress : undefined;
 
   return {
     isPending,
     isDisconnected,
-    address: !isPending && !isDisconnected ? (primaryWallet?.address as Address) : undefined
+    address
   };
 };

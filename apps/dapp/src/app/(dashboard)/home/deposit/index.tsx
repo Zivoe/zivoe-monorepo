@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { useAtom, useSetAtom } from 'jotai';
-import { Key } from 'react-aria-components';
+import { type Key } from 'react-aria-components';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
@@ -19,7 +19,7 @@ import ConnectedAccount from '@/components/connected-account';
 import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
-import { DepositPageView, depositPageViewSchema } from './_utils';
+import { type DepositPageView, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 

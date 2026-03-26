@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { IconProps } from '../icons/types';
+import { type IconProps } from '../icons/types';
 
 export const ZivoeLogo = React.forwardRef<SVGSVGElement, IconProps & { type?: 'dark' | 'light' }>(
-  ({ color = 'currentColor', type = 'dark', ...props }, forwardedRef) => {
+  ({ color: _color = 'currentColor', type = 'dark', ...props }, forwardedRef) => {
     const fill = type === 'dark' ? '#12131A' : '#FEFEFE';
 
     return (

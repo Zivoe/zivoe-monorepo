@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { Selection } from 'react-aria-components';
+import { type Selection } from 'react-aria-components';
 
 import { Menu, MenuButton, MenuItem, MenuPopover, MenuSeparator, MenuSubTrigger, MenuTrigger } from '.';
 import { Button } from '../button';
@@ -161,7 +161,7 @@ const items = [
 ];
 
 const SingleSelectionComponent = () => {
-  let [selected, setSelected] = React.useState<any>(new Set(['0']));
+  const [selected, setSelected] = React.useState<Selection>(new Set(['0']));
 
   const hasSelection = selected === 'all' || selected.size > 0;
 
@@ -207,7 +207,7 @@ const countries = [
 ];
 
 const MultipleSelectionsComponent = () => {
-  let [selected, setSelected] = React.useState<Selection>(new Set([]));
+  const [selected, setSelected] = React.useState<Selection>(new Set([]));
 
   const hasSelection = selected === 'all' || selected.size > 0;
 

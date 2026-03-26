@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { ContextualHelp, ContextualHelpDescription, ContextualHelpTitle } from '@zivoe/ui/core/contextual-help';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
@@ -61,7 +61,7 @@ export function VestingOverview() {
               '-'
             ) : (
               <div className="flex items-center gap-2">
-                <span className="[&_svg]:size-6 [&_svg]:flex-shrink-0">{TOKEN_INFO['zVLT'].icon}</span>
+                <span className="[&_svg]:size-6 [&_svg]:flex-shrink-0">{TOKEN_INFO.zVLT.icon}</span>
                 <p className="text-smallSubheading font-medium text-primary">
                   {formatBigIntWithCommas({ value: vestingSchedule.totalWithdrawn, showUnderZero: true })}
                 </p>

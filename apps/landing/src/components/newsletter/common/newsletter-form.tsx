@@ -52,7 +52,7 @@ export default function NewsletterForm() {
       turnstileToken = token;
     }
 
-    await joinNewsletter.mutate({ ...data, turnstileToken });
+    await joinNewsletter.mutateAsync({ ...data, turnstileToken });
   };
 
   return (
@@ -137,7 +137,7 @@ const useTurnstile = () => {
         turnstileRef.current?.reset();
         turnstileRef.current?.execute();
       } catch (error) {
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }

@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
 
-import { Liquidity } from '@/server/data';
+import { type Liquidity } from '@/server/data';
 
 import { customNumber, formatBigIntWithCommas } from '@/lib/utils';
 

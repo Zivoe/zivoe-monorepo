@@ -1,12 +1,12 @@
 'use client';
 
-import { HTMLAttributeAnchorTarget, ReactNode, forwardRef } from 'react';
+import { type HTMLAttributeAnchorTarget, type ReactNode, forwardRef } from 'react';
 
-import NextLinkComponent, { LinkProps as NextLinkComponentProps } from 'next/link';
+import NextLinkComponent, { type LinkProps as NextLinkComponentProps } from 'next/link';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
-import { VariantProps } from 'tailwind-variants';
+import { type VariantProps } from 'tailwind-variants';
 
 import { usePrefetch } from '../../hooks/usePrefetch';
 import { ExternalLinkIcon } from '../../icons';

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq, sql } from 'drizzle-orm';

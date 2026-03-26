@@ -54,7 +54,7 @@ export type CronRunWideEvent = {
   qstashRetried?: number;
   counters: CronRunCounters;
   samples: {
-    skippedNoUserEventIds: string[];
+    skippedNoUserEventIds: Array<string>;
     skippedAlreadySent: Array<{ eventId: string; userId: string }>;
   };
   failure?: CronFailureDetails;
@@ -133,7 +133,7 @@ export function createCronRunWideEvent({
   };
 }
 
-export function pushSample<T>(target: T[], value: T, maxSize: number = 10) {
+export function pushSample<T>(target: Array<T>, value: T, maxSize = 10) {
   if (target.length >= maxSize) return;
   target.push(value);
 }

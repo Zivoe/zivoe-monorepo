@@ -1,6 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-import { z } from 'zod';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { CONTRACTS } from '@zivoe/contracts';
 

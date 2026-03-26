@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { IconProps } from './types';
+import { type IconProps } from './types';
 
 export const ZsttIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
   return (

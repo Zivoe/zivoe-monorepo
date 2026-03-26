@@ -8,13 +8,13 @@ import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { TransactionData, transactionAtom } from '@/lib/store';
+import { type TransactionData, transactionAtom } from '@/lib/store';
 import { onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import useTx from '@/hooks/useTx';
 
-export type ClaimVestingParams = WriteContractParameters<typeof zivoeRewardsVestingAbi, 'getRewards'>;
+export type ClaimVestingParams = WriteContractParameters<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
 
 export const useClaimVesting = () => {
   const { address } = useAccount();
@@ -98,17 +98,17 @@ export const useClaimVesting = () => {
       if (skipTxSettled(err)) return;
 
       // Refetch vesting schedule
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
       });
 
       // Refetch claimable amount
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
       });
 
       // Refetch blockchain timestamp
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.app.blockchainTimestamp
       });
     }

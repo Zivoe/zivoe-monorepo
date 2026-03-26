@@ -24,7 +24,7 @@ export const getZVLTTokenHolders = async ({ ponder, contracts }: { ponder: Ponde
     orderBy: (tokenBalance, { desc }) => desc(tokenBalance.balance)
   });
 
-  const holders: TokenHolder[] = balances.map((balance) => ({
+  const holders: Array<TokenHolder> = balances.map((balance) => ({
     address: getAddress(balance.accountId),
     balance: formatUnits(balance.balance, ZVLT_DECIMALS)
   }));

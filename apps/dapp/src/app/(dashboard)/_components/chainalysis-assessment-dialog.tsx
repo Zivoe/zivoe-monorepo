@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
-
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 import { Button } from '@zivoe/ui/core/button';
@@ -15,8 +13,6 @@ import { LockIcon } from '@zivoe/ui/icons';
 import { useChainalysis } from '@/hooks/useChainalysis';
 
 export default function ChainalysisAssessmentDialog() {
-  const router = useRouter();
-
   const { handleLogOut } = useDynamicContext();
 
   const assessment = useChainalysis();
@@ -38,7 +34,7 @@ export default function ChainalysisAssessmentDialog() {
     if (assessment.isRiskyAddress) {
       setIsDialogOpen(true);
     }
-  }, [assessment.isRiskyAddress, router]);
+  }, [assessment.isRiskyAddress]);
 
   return (
     <Dialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen}>

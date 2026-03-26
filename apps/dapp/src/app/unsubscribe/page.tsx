@@ -2,8 +2,6 @@ import type { ReactNode } from 'react';
 
 import { redirect } from 'next/navigation';
 
-import * as Sentry from '@sentry/nextjs';
-
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';
 
@@ -61,7 +59,8 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
     ]);
 
   if (appPreferencesErr || !appPreferences || newsletterPreferenceErr) {
-    throw appPreferencesErr ?? newsletterPreferenceErr ?? new Error('Failed to load email preferences.');
+    const cause = appPreferencesErr ?? newsletterPreferenceErr;
+    throw new Error('Failed to load email preferences.', cause ? { cause } : undefined);
   }
 
   const preferences: EmailPreferences = {

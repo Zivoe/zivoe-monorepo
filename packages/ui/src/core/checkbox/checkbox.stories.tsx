@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { Checkbox, CheckboxGroup, checkboxVariants } from '.';
+import { Checkbox, CheckboxGroup } from '.';
 
 const meta: Meta = {
   title: 'Core/Checkbox',

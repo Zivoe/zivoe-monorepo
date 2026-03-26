@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { Contracts } from '@zivoe/contracts';
+import { type Contracts } from '@zivoe/contracts';
 
 import { type Ponder } from '@/server/clients/ponder';
 
@@ -23,7 +23,7 @@ export const getTranchesTokenHolders = async ({ ponder, contracts }: { ponder: P
     }
   });
 
-  const entries: TrancheBalance[] = balances.map((balance) => ({
+  const entries: Array<TrancheBalance> = balances.map((balance) => ({
     accountId: balance.accountId,
     balance: balance.balance,
     type: balance.tokenAddress === contracts.zSTT.toLowerCase() ? 'senior' : 'junior'

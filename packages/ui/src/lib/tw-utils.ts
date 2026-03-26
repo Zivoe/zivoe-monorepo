@@ -1,5 +1,5 @@
 import { type ClassNameValue, extendTailwindMerge } from 'tailwind-merge';
-import { TV, VariantProps, tv as tvBase } from 'tailwind-variants';
+import { type TV, type VariantProps, tv as tvBase } from 'tailwind-variants';
 
 const twMergeConfig = {
   classGroups: {

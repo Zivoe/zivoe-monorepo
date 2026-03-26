@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -11,6 +11,7 @@ import { hasUserDeposited } from '@/server/data/ponder';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z.object({
@@ -30,7 +31,7 @@ const handler = async (req: NextRequest) => {
   const { userId, reminderNumber } = parsedBody.data;
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile || !profile.createdAt || !profile.accountType) {
+  if (!profile?.createdAt || !profile.accountType) {
     Sentry.captureException(new Error('Deposit reminder email skipped: user/profile not found'), {
       tags: { source: 'API', flow: 'deposit-reminder-email' },
       extra: { userId, reminderNumber }
@@ -56,7 +57,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendEmail({
       to: profile.email,
-      name: profile.firstName || profile.lastName || undefined,
+      name: profile.firstName ?? profile.lastName ?? undefined,
       accountType: profile.accountType,
       userId
     })
@@ -74,7 +75,8 @@ const handler = async (req: NextRequest) => {
         delay: '7d',
         retries: 3,
         deduplicationId: `deposit-reminder-10day-${userId}`,
-        failureCallback: `${BASE_URL}/api/qstash/failure`
+        failureCallback: getQstashFailureCallback(BASE_URL),
+        label: QSTASH_JOB_LABELS.emailDepositReminderSecond
       })
     );
 

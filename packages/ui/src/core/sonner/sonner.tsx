@@ -5,7 +5,7 @@ import React from 'react';
 import { Toaster as Sonner, toast as sonnerToast } from 'sonner';
 
 import { CheckCircleIcon, CloseCircleIcon, Spinner, WarningIcon } from '../../icons';
-import { VariantProps, cn, tv } from '../../lib/tw-utils';
+import { type VariantProps, cn, tv } from '../../lib/tw-utils';
 
 function Toaster({ ...props }: React.ComponentProps<typeof Sonner>) {
   return <Sonner theme="light" position="top-right" {...props} />;

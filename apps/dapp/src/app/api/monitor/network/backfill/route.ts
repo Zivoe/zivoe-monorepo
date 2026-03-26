@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { z } from 'zod';
 
@@ -11,9 +11,9 @@ import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib
 
 import { env } from '@/env';
 
-import { DailyData } from '@/types';
+import { type DailyData } from '@/types';
 
-import { ApiResponse } from '../../../utils';
+import { type ApiResponse } from '../../../utils';
 import { collectDailyData } from '../shared';
 
 const BackfillSchema = z.object({
@@ -78,7 +78,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
   const db = getDb();
 
   // Build array of dates to process
-  const datesToProcess: Date[] = [];
+  const datesToProcess: Array<Date> = [];
   const currentDate = new Date(start);
   while (currentDate <= end) {
     datesToProcess.push(new Date(currentDate));
@@ -87,7 +87,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
 
   // Process in batches of 30 for parallel execution
   const BATCH_SIZE = 30;
-  const dailyDataArray: DailyData[] = [];
+  const dailyDataArray: Array<DailyData> = [];
 
   for (let i = 0; i < datesToProcess.length; i += BATCH_SIZE) {
     const batch = datesToProcess.slice(i, i + BATCH_SIZE);

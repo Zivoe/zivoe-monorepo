@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -32,7 +32,7 @@ import { ApiError, escapeHtml, formatBigIntWithCommas, handlePromise, withErrorH
 
 import { env } from '@/env';
 
-import { ApiResponse } from '../../utils';
+import { type ApiResponse } from '../../utils';
 
 export const maxDuration = 60; // seconds
 
@@ -91,7 +91,7 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
     runEvent.counters.fetchedEvents = redemptions.length;
     const receiptPreferenceCache = new Map<string, boolean>();
 
-    const telegramItems: string[] = [];
+    const telegramItems: Array<string> = [];
 
     for (const redemption of redemptions) {
       const eventCursor = {

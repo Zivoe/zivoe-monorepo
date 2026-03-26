@@ -6,8 +6,8 @@ import { handlePromise } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
-import { ApiResponseError, ApiResponseSuccess } from '@/app/api/utils';
-import { VestingScheduleData } from '@/app/api/vesting/route';
+import { type ApiResponseError, type ApiResponseSuccess } from '@/app/api/utils';
+import { type VestingScheduleData } from '@/app/api/vesting/route';
 
 const DEFAULT_ERROR_MESSAGE = 'Failed to fetch vesting schedule';
 

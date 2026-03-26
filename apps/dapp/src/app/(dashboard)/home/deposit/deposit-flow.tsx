@@ -15,14 +15,14 @@ import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } fr
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 
-import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, DepositToken } from '@/types/constants';
+import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, type DepositToken } from '@/types/constants';
 
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { checkHasEnoughAllowance } from '@/hooks/useAllowance';
-import { ApproveTokenAbi, useApproveSpending } from '@/hooks/useApproveSpending';
+import { type ApproveTokenAbi, useApproveSpending } from '@/hooks/useApproveSpending';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
@@ -117,7 +117,7 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   const handleDepositTokenChange = (value: DepositToken) => {
     setDepositToken(value);
     setReceive(undefined);
-    form.setValue('deposit', undefined as any);
+    form.setValue('deposit', undefined as unknown as string);
     form.clearErrors('deposit');
     form.setFocus('deposit');
   };

@@ -2,17 +2,17 @@
 
 import {
   ListBox as AriaListBox,
-  ListBoxProps as AriaListBoxProps,
-  PopoverProps as AriaPopoverProps,
+  type ListBoxProps as AriaListBoxProps,
+  type PopoverProps as AriaPopoverProps,
   Select as AriaSelect,
   SelectValue as AriaSelectValue,
-  SelectValueProps as AriaSelectValueProps,
+  type SelectValueProps as AriaSelectValueProps,
   composeRenderProps
 } from 'react-aria-components';
 
 import { ChevronDownIcon } from '../../icons';
 import { cn } from '../../lib/tw-utils';
-import { Button, ButtonProps } from '../button';
+import { Button, type ButtonProps } from '../button';
 import { ListBoxItem } from '../list-box';
 import { BasePopover } from '../popover';
 
@@ -86,7 +86,7 @@ const SelectPopover = ({
 
 const SelectListBox = <T extends object>({
   className,
-  scrollAreaClassName,
+  scrollAreaClassName: _scrollAreaClassName,
   ...props
 }: AriaListBoxProps<T> & { scrollAreaClassName?: string }) => (
   <AriaListBox

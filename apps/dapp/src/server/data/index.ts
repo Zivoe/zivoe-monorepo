@@ -14,6 +14,11 @@ import { getWeb3Client } from '../clients/web3';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
+const toPercentage = (value: string, total: number) => {
+  if (!Number.isFinite(total) || total <= 0) return 0;
+  return (Number(value) / total) * 100;
+};
+
 const getDepositDailyData = reactCache(
   nextCache(
     async () => {
@@ -58,24 +63,24 @@ const getCurrentDailyData = async () => {
         total: BigInt(loans.total),
         portfolioA: BigInt(loans.portfolioA),
         portfolioB: BigInt(loans.portfolioB),
-        percentage: (Number(loans.total) / totalNumber) * 100
+        percentage: toPercentage(loans.total, totalNumber)
       },
       stablecoins: {
         total: BigInt(stablecoins.total),
         total30Days: BigInt(stablecoins.total30Days),
-        percentage: (Number(stablecoins.total) / totalNumber) * 100,
+        percentage: toPercentage(stablecoins.total, totalNumber),
         usdc: BigInt(stablecoins.usdc),
         usdt: BigInt(stablecoins.usdt),
         frxUSD: BigInt(stablecoins.frxUSD)
       },
       treasuryBills: {
         total: BigInt(treasuryBills.total),
-        percentage: (Number(treasuryBills.total) / totalNumber) * 100,
+        percentage: toPercentage(treasuryBills.total, totalNumber),
         m0: BigInt(treasuryBills.m0)
       },
       deFi: {
         total: BigInt(deFi.total),
-        percentage: (Number(deFi.total) / totalNumber) * 100,
+        percentage: toPercentage(deFi.total, totalNumber),
         aUSDC: BigInt(deFi.aUSDC)
       }
     }

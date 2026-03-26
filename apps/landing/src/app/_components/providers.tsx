@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -29,7 +29,7 @@ let browserQueryClient: QueryClient | undefined = undefined;
 function getQueryClient() {
   if (isServer) return makeQueryClient();
   else {
-    if (!browserQueryClient) browserQueryClient = makeQueryClient();
+    browserQueryClient ??= makeQueryClient();
     return browserQueryClient;
   }
 }
@@ -50,7 +50,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <PostHogProvider>
-        <RouterProvider navigate={router.push}>{children}</RouterProvider>
+        <RouterProvider navigate={(path) => router.push(path)}>{children}</RouterProvider>
       </PostHogProvider>
       <Toaster />
     </QueryClientProvider>

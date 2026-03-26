@@ -31,7 +31,7 @@ export async function sendOTPEmail({ to, otp }: { to: string; otp: string }) {
     html
   });
 
-  if (error) throw error;
+  if (error) throw new Error(error.message, { cause: error });
 
   return { data };
 }
@@ -251,7 +251,7 @@ function handleIdempotentResult<T>({
     if (error.name === 'invalid_idempotent_request' || error.name === 'concurrent_idempotent_requests') {
       return { data: null };
     }
-    throw error;
+    throw new Error(error.message, { cause: error });
   }
   return { data };
 }

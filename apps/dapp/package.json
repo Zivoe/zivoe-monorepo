@@ -6,7 +6,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbo",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
     "start": "next start",
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
     "db:generate": "drizzle-kit generate --config=drizzle-auth.config.ts",
@@ -19,10 +20,10 @@
     "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove"
   },
   "dependencies": {
-    "@dynamic-labs/ethereum": "4.52.5",
-    "@dynamic-labs/sdk-react-core": "4.52.5",
-    "@dynamic-labs/wagmi-connector": "4.52.5",
-    "@dynamic-labs/wallet-book": "4.52.5",
+    "@dynamic-labs/ethereum": "4.69.0",
+    "@dynamic-labs/sdk-react-core": "4.69.0",
+    "@dynamic-labs/wagmi-connector": "4.69.0",
+    "@dynamic-labs/wallet-book": "4.69.0",
     "@hookform/resolvers": "^5.0.1",
     "@intercom/messenger-js-sdk": "^0.0.17",
     "@marsidev/react-turnstile": "^1.1.0",
@@ -57,13 +58,12 @@
     "resend": "^6.5.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.3",
-    "viem": "^2.44.0",
-    "wagmi": "^3.2.0",
+    "viem": "^2.47.6",
+    "wagmi": "^3.5.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@react-email/preview-server": "5.1.0",
-    "tsx": "^4.19.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/country-list": "^2.1.4",
     "@types/eslint": "^9.6.1",
@@ -85,7 +85,9 @@
     "require-in-the-middle": "^7.5.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.7.3"
+    "tsx": "^4.19.0",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.57.1"
   },
   "overrides": {
     "react-is": "^19.0.0"
@@ -95,6 +97,6 @@
   },
   "packageManager": "pnpm@10.4.1",
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   }
 }

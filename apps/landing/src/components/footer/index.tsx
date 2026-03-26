@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';

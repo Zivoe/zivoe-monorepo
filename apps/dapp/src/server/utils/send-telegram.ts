@@ -41,12 +41,12 @@ export async function sendBatchedTelegramMessages({
   separator = '\n\n'
 }: {
   chatId: string;
-  items: string[];
+  items: Array<string>;
   separator?: string;
 }) {
   if (items.length === 0) return;
 
-  const chunks: string[] = [];
+  const chunks: Array<string> = [];
   let current = '';
 
   for (const item of items) {

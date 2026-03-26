@@ -1,4 +1,4 @@
 {
   "extends": "@zivoe/ts-config/base.json",
-  "include": [".storybook/**/*", "postcss.config.cjs", "prettier.config.cjs"]
+  "include": [".storybook/**/*", "postcss.config.cjs", "prettier.config.cjs", "tailwind.config.ts", "vite.config.ts"]
 }

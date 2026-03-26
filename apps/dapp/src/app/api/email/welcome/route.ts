@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -10,6 +10,7 @@ import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendWelcomeEmail } from '@/server/utils/send-email';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z.object({
@@ -29,7 +30,7 @@ const handler = async (req: NextRequest) => {
 
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile || !profile.createdAt) {
+  if (!profile?.createdAt) {
     throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
   }
 
@@ -45,7 +46,7 @@ const handler = async (req: NextRequest) => {
   const { err } = await handlePromise(
     sendWelcomeEmail({
       to: profile.email,
-      name: profile.firstName || profile.lastName || undefined,
+      name: profile.firstName ?? profile.lastName ?? undefined,
       userId
     })
   );
@@ -60,7 +61,8 @@ const handler = async (req: NextRequest) => {
       delay: '3d',
       retries: 3,
       deduplicationId: `deposit-reminder-3day-${userId}`,
-      failureCallback: `${BASE_URL}/api/qstash/failure`
+      failureCallback: getQstashFailureCallback(BASE_URL),
+      label: QSTASH_JOB_LABELS.emailDepositReminderFirst
     })
   );
 

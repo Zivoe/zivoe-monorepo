@@ -1,6 +1,6 @@
 import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZVltLogo, ZsttIcon } from '@zivoe/ui/icons';
 
-import { Token } from '@/types/constants';
+import { type Token } from '@/types/constants';
 
 export const TOKEN_INFO: Record<Token, { label: string; description: string; icon: React.ReactNode }> = {
   zVLT: {

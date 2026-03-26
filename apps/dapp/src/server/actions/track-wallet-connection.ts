@@ -12,6 +12,7 @@ import { redis } from '@/server/clients/redis';
 import { walletConnection } from '@/server/db/schema';
 import { BASE_URL } from '@/server/utils/base-url';
 
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { handlePromise } from '@/lib/utils';
 
 import { getUser } from '../data/auth';
@@ -83,7 +84,9 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
       url: `${BASE_URL}/api/wallets/fetch-holdings`,
       body: { address: normalizedAddress },
       retries: 2,
-      deduplicationId: `fetch-holdings-${normalizedAddress}`
+      deduplicationId: `fetch-holdings-${normalizedAddress}`,
+      failureCallback: getQstashFailureCallback(BASE_URL),
+      label: QSTASH_JOB_LABELS.walletFetchHoldings
     }),
     posthog.captureImmediate({
       distinctId: user.id,

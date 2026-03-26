@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
-import { VariantProps, tv } from 'tailwind-variants';
+import { type VariantProps, tv } from 'tailwind-variants';
 
 import { OverlayArrow } from '../common/overlay-arrow';
 

@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
-import { VariantProps } from 'tailwind-variants';
+import { type VariantProps } from 'tailwind-variants';
 
 import { CheckIcon, MinusIcon } from '../../icons';
 import { cn, tv } from '../../lib/tw-utils';
@@ -68,18 +68,18 @@ type CheckboxGroupProps = Aria.CheckboxGroupProps & {
   label?: string;
   errorMessage?: string;
   elementsClassName?: string;
-} & ({ showSelectAll: true; values: string[] } | { showSelectAll?: false; values?: never });
+} & ({ showSelectAll: true; values: Array<string> } | { showSelectAll?: false; values?: never });
 
 const CheckboxGroup = forwardRef<HTMLDivElement, CheckboxGroupProps>(
   (
     {
       label,
       errorMessage,
-      values,
+      values: _values,
       className,
       elementsClassName,
       children,
-      showSelectAll,
+      showSelectAll: _showSelectAll,
       ...props
     }: CheckboxGroupProps,
     ref

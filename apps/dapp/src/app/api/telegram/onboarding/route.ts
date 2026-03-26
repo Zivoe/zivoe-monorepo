@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq } from 'drizzle-orm';
@@ -40,7 +40,7 @@ const handler = async (req: NextRequest) => {
 
   const profileData = profileRes?.[0];
 
-  if (!profileData || !profileData.createdAt) {
+  if (!profileData?.createdAt) {
     throw new ApiError({ message: 'Profile not found or deleted', status: 500, capture: false });
   }
 
@@ -67,7 +67,8 @@ function formatOnboardingMessage(data: Record<string, unknown>): string {
 
   for (const [key, value] of Object.entries(data)) {
     if (value !== undefined && value !== null) {
-      lines.push(`<b>${formatLabel(key)}:</b> ${escapeHtml(String(value))}`);
+      const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value as string | number | boolean);
+      lines.push(`<b>${formatLabel(key)}:</b> ${escapeHtml(stringValue)}`);
     }
   }
 

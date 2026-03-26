@@ -1,5 +1,5 @@
 import { revalidateTag } from 'next/cache';
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -14,7 +14,7 @@ import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib
 
 import { env } from '@/env';
 
-import { ApiResponse } from '../../../utils';
+import { type ApiResponse } from '../../../utils';
 import { collectDailyData } from '../shared';
 
 const MONITOR_SLUG = 'network-hourly-cron';

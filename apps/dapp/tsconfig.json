@@ -15,8 +15,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "postcss.config.cjs",
-    "prettier.config.cjs",
-    ".eslintrc.js"
+    "prettier.config.cjs"
   ],
   "exclude": ["node_modules", "archived"]
 }

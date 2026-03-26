@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { type NextResponse } from 'next/server';
 
 import EthDater from 'ethereum-block-by-date';
-import { PublicClient } from 'viem';
+import { type PublicClient } from 'viem';
 
 export type ApiResponseSuccess<T = void> = { success: true; data?: T };
 export type ApiResponseError = { error: string };

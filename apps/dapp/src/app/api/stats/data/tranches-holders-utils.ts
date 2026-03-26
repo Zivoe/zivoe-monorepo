@@ -18,7 +18,7 @@ export type TrancheBalance = {
 
 const DECIMALS = 18;
 
-export const getTranchesHolders = (entries: TrancheBalance[]): TranchesHolder[] => {
+export const getTranchesHolders = (entries: Array<TrancheBalance>): Array<TranchesHolder> => {
   const holdersMap = new Map<string, TranchesHolder>();
 
   for (const entry of entries) {

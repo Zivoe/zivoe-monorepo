@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
@@ -183,13 +184,31 @@ export function UserMenu({ user }: { user: User }) {
 }
 
 function UserAvatar({ user }: { user: User }) {
-  if (user.image) {
-    return <img src={user.image} alt={user.name} className="size-10 rounded-full object-cover" />;
+  const avatarSrc = getAvatarSrc(user.image);
+
+  if (avatarSrc) {
+    return <Image src={avatarSrc} alt={user.name} width={40} height={40} className="size-10 rounded-full object-cover" />;
   }
 
   const initials = getInitials({ user });
 
   return <span className="text-regular font-medium text-secondary">{initials}</span>;
+}
+
+const ALLOWED_AVATAR_HOSTS = new Set(['lh3.googleusercontent.com', 'pbs.twimg.com', 'abs.twimg.com']);
+
+function getAvatarSrc(image: string | null) {
+  if (!image) return null;
+  if (image.startsWith('/')) return image;
+
+  try {
+    const url = new URL(image);
+    if (url.protocol !== 'https:') return null;
+    if (!ALLOWED_AVATAR_HOSTS.has(url.hostname)) return null;
+    return image;
+  } catch {
+    return null;
+  }
 }
 
 function getInitials({ user }: { user: User }) {

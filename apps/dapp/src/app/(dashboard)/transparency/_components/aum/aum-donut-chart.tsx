@@ -6,7 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { CurrentDailyData } from '@/server/data';
+import { type CurrentDailyData } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
@@ -36,7 +36,7 @@ export default function AUMDonutChart({ data, className }: { data: CurrentDailyD
 
   const activeSegment = activeIndex >= 0 && activeIndex < chartData.length ? chartData[activeIndex] : null;
 
-  const handlePieEnter = (_: any, index: number) => {
+  const handlePieEnter = (_: unknown, index: number) => {
     setActiveIndex(index);
   };
 

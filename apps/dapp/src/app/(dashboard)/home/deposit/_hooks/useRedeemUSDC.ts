@@ -8,7 +8,7 @@ import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { TransactionData, depositDialogAtom, transactionAtom } from '@/lib/store';
+import { type TransactionData, depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -110,7 +110,7 @@ export const useRedeemUSDC = () => {
       if (skipTxSettled(err)) return;
 
       // Refetch allowance for zVLT
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
           contract: CONTRACTS.zVLT,
@@ -119,7 +119,7 @@ export const useRedeemUSDC = () => {
       });
 
       // Refetch zVLT balance
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.balanceOf({
           accountAddress: address,
           id: CONTRACTS.zVLT
@@ -127,12 +127,12 @@ export const useRedeemUSDC = () => {
       });
 
       // Refetch balances
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: queryKeys.account.depositBalances({ accountAddress: address })
       });
 
       // Refetch available liquidity
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: availableLiquidityQueryKey
       });
     }

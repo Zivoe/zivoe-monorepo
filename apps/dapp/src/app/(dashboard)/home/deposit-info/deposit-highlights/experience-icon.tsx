@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { IconProps } from '@zivoe/ui/icons/types';
+import { type IconProps } from '@zivoe/ui/icons/types';
 
 export const ExperienceIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
   return (
