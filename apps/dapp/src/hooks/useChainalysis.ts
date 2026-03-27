@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { mainnet } from 'viem/chains';
 import { useConnection } from 'wagmi';
 
+import { type ApiResponseError, type ApiResponseSuccess } from '@/app/api/utils';
 import { queryKeys } from '@/lib/query-keys';
 import { handlePromise } from '@/lib/utils';
-
-import { env } from '@/env';
 
 import { useAccount } from './useAccount';
 
@@ -14,36 +14,28 @@ type Assessment = {
   riskReason: string | null;
 };
 
-type ErrorResponse = {
-  error: string;
-};
-
 export const useChainalysis = () => {
   const { address } = useAccount();
 
   const { chainId } = useConnection();
-  const network = chainId ? 'MAINNET' : undefined;
+  const isMainnet = chainId === mainnet.id;
 
   const { data, isPending, isFetching, isSuccess } = useQuery({
     queryKey: queryKeys.account.chainalysis({ accountAddress: address }),
 
     queryFn: async () => {
-      const { res, err } = await handlePromise(
-        fetch(
-          env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL + '/api/chainalysis/assessment?address=' + address + '&network=' + network
-        )
-      );
+      const { res, err } = await handlePromise(fetch('/api/chainalysis/assessment?address=' + address));
 
       if (err) throw err instanceof Error ? err : new Error('Chainalysis request failed', { cause: err });
       if (!res) throw new Error('No response from Chainalysis');
 
-      const parsedResponse = await res.json();
-      if (!res.ok) throw new Error((parsedResponse as ErrorResponse).error);
+      const parsedResponse = (await res.json()) as ApiResponseSuccess<Assessment> | ApiResponseError;
+      if (!res.ok) throw new Error((parsedResponse as ApiResponseError).error);
 
-      return parsedResponse.data as Assessment;
+      return (parsedResponse as ApiResponseSuccess<Assessment>).data;
     },
 
-    enabled: !!(address && network),
+    enabled: !!(address && isMainnet),
     staleTime: 60 * 60 * 1000,
     retry: false,
     meta: { toastErrorMessage: 'Error Assessing Account Risk!' }

@@ -17,6 +17,7 @@ export const env = createEnv({
     SENTRY_AUTH_TOKEN: z.string(),
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
+    CHAINALYSIS_API_KEY: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
@@ -37,6 +38,7 @@ export const env = createEnv({
 
     // Telegram
     TELEGRAM_BOT_TOKEN: z.string(),
+    TELEGRAM_CHAINALYSIS_CHAT_ID: z.string(),
     TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
     TELEGRAM_TXS_CHAT_ID: z.string(),
 
@@ -53,7 +55,6 @@ export const env = createEnv({
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: z.string(),
-    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
     NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
@@ -73,7 +74,6 @@ export const env = createEnv({
     NEXT_PUBLIC_DYNAMIC_ENV_ID: process.env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-    NEXT_PUBLIC_ZIVOE_ANALYTICS_URL: process.env.NEXT_PUBLIC_ZIVOE_ANALYTICS_URL,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     LANDING_PAGE_URL: process.env.LANDING_PAGE_URL,
     LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY,
@@ -83,6 +83,7 @@ export const env = createEnv({
     NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
     ZAPPER_API_KEY: process.env.ZAPPER_API_KEY,
+    CHAINALYSIS_API_KEY: process.env.CHAINALYSIS_API_KEY,
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
@@ -104,6 +105,7 @@ export const env = createEnv({
 
     // Telegram
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAINALYSIS_CHAT_ID: process.env.TELEGRAM_CHAINALYSIS_CHAT_ID,
     TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
     TELEGRAM_TXS_CHAT_ID: process.env.TELEGRAM_TXS_CHAT_ID,
 
