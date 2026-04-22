@@ -1,0 +1,7 @@
+{
+  "extends": "@zivoe/ts-config/react-library.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}
