@@ -3,6 +3,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Input, type InputProps } from '.';
+import { SearchIcon } from '../../icons/search';
 import { Button } from '../button';
 
 const meta: Meta<InputProps> = {
@@ -12,7 +13,7 @@ const meta: Meta<InputProps> = {
   argTypes: {
     type: {
       control: 'select',
-      options: ['text', 'password', 'number', 'email', 'tel', 'url']
+      options: ['text', 'password', 'number', 'email', 'tel', 'url', 'search']
     },
     label: {
       control: 'text'
@@ -77,6 +78,17 @@ export const States: Story = {
       <Input placeholder="Right Content" endContent={<Icon />} />
       <Input placeholder="Right Content Clearable" endContent={<Button size="s">Button</Button>} isClearable />
       <Input variant="amount" placeholder="0.0" label="Deposit" />
+      <Input
+        type="search"
+        variant="search"
+        label="Search articles"
+        labelClassName="sr-only"
+        placeholder="Search articles"
+        startContent={<SearchIcon className="!size-5 shrink-0 text-icon-default" />}
+        isClearable
+        clearButtonAriaLabel="Clear search"
+        clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
+      />
     </div>
   )
 };

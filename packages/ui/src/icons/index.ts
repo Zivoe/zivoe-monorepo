@@ -16,6 +16,7 @@ export * from './arrow-left';
 export * from './arrow-right';
 export * from './info';
 export * from './question';
+export * from './search';
 export * from './zVLT-logo';
 export * from './diamond';
 export * from './trending';

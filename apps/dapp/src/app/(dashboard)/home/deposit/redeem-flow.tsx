@@ -168,7 +168,6 @@ export default function RedeemFlow() {
             inputMode="decimal"
             variant="amount"
             label="Redeem"
-            labelClassName="h-5"
             value={value ?? ''}
             onChange={(value) => {
               const parsedValue = parseInput(value);
@@ -210,7 +209,6 @@ export default function RedeemFlow() {
       <Input
         variant="amount"
         label="Receive"
-        labelClassName="h-5"
         value={receive.value ?? ''}
         isDisabled
         hasNormalStyleIfDisabled={!isDisabled}

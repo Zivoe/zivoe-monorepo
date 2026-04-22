@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, forwardRef, useContext } from 'react';
+import { type ReactNode, forwardRef, useContext, useRef } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
@@ -20,6 +20,9 @@ interface InputProps extends Aria.SearchFieldProps, VariantProps<typeof inputGro
   isClearable?: boolean;
   groupClassName?: string;
   labelClassName?: string;
+  inputClassName?: string;
+  clearButtonClassName?: string;
+  clearButtonAriaLabel?: string;
   decimalPlaces?: number;
   hasNormalStyleIfDisabled?: boolean;
   subContent?: ReactNode;
@@ -29,7 +32,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
       label,
-      labelClassName: _labelClassName,
+      labelClassName,
       placeholder,
       value,
       errorMessage,
@@ -39,6 +42,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       isReadOnly,
       type,
       groupClassName,
+      inputClassName,
+      clearButtonClassName,
+      clearButtonAriaLabel = 'Clear input',
       variant,
       autoComplete,
       onChange,
@@ -58,6 +64,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     });
 
     const amountRegex = getAmountRegex(decimalPlaces);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     return (
       <InputField
@@ -73,7 +80,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       >
         {({ state }) => (
           <>
-            {label && <Label>{label}</Label>}
+            {label && <Label className={labelClassName}>{label}</Label>}
 
             <InputGroup
               variant={variant}
@@ -86,15 +93,31 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 <InputElement
                   variant={variant}
                   hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
+                  className={inputClassName}
                   placeholder={parsedPlaceholder}
                   type={parsedType}
-                  ref={ref}
+                  ref={(node) => {
+                    inputRef.current = node;
+
+                    if (typeof ref === 'function') {
+                      ref(node);
+                    } else if (ref) {
+                      ref.current = node;
+                    }
+                  }}
                 />
 
                 {endContent}
 
                 {isClearable && !isReadOnly && (
-                  <InputButton onPress={() => state.setValue('')} aria-label="Clear input">
+                  <InputButton
+                    className={clearButtonClassName}
+                    onPress={() => {
+                      state.setValue('');
+                      inputRef.current?.focus();
+                    }}
+                    aria-label={clearButtonAriaLabel}
+                  >
                     <CloseIcon />
                   </InputButton>
                 )}
@@ -120,7 +143,7 @@ const parseFields = ({
   autoComplete,
   type
 }: {
-  variant: 'amount' | 'default' | undefined;
+  variant: 'amount' | 'default' | 'search' | undefined;
   placeholder: string | undefined;
   value: string | undefined;
   autoComplete: string | undefined;
@@ -173,7 +196,8 @@ const inputGroupStyles = tv({
   variants: {
     variant: {
       default: 'h-12 bg-surface-base-soft px-4 text-small',
-      amount: 'h-24 bg-surface-base pl-6 pr-4 text-h6'
+      amount: 'h-24 bg-surface-base pl-6 pr-4 text-h6',
+      search: 'h-14 rounded-[6px] bg-surface-base px-5 text-regular focus-within:shadow-none hover:border-default'
     },
 
     hasNormalStyleIfDisabled: {
@@ -192,7 +216,14 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
     const buttonContext = useContext(Aria.ButtonContext);
 
     return (
-      <Aria.ButtonContext.Provider value={{ ...buttonContext, onPress: () => { /* noop */ } }}>
+      <Aria.ButtonContext.Provider
+        value={{
+          ...buttonContext,
+          onPress: () => {
+            /* noop */
+          }
+        }}
+      >
         <Aria.Group
           onClick={(e) => e.currentTarget.querySelector('input')?.focus()}
           className={composeRenderProps(className, (className) =>
@@ -214,7 +245,8 @@ const inputElementStyles = tv({
   variants: {
     variant: {
       default: 'bg-surface-base-soft placeholder:text-small',
-      amount: 'bg-surface-base placeholder:text-h6'
+      amount: 'bg-surface-base placeholder:text-h6',
+      search: 'bg-surface-base text-regular'
     },
 
     hasNormalStyleIfDisabled: {
