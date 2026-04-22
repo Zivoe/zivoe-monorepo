@@ -29,7 +29,7 @@ const linkSizeField: Field = {
   name: 'size',
   type: 'select',
   required: true,
-  defaultValue: 'l',
+  defaultValue: 'xs',
   options: INSIGHTS_RICH_TEXT_LINK_SIZES.map((size) => ({
     label: size,
     value: size

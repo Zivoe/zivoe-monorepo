@@ -138,7 +138,7 @@ function renderLink(node: RichTextLinkNode) {
   const rawVariant = typeof node.fields.variant === 'string' ? node.fields.variant : '';
   const rawSize = typeof node.fields.size === 'string' ? node.fields.size : '';
   const variant: LinkProps['variant'] = isLinkVariant(rawVariant) ? rawVariant : 'link-primary';
-  const size: LinkProps['size'] = isLinkSize(rawSize) ? rawSize : 'l';
+  const size: LinkProps['size'] = isLinkSize(rawSize) ? rawSize : 'xs';
 
   if (!href || !isSafeHref(href)) {
     return renderChildren(node.children);
