@@ -1,6 +1,7 @@
 import type {
   RecursiveNodes,
   SerializedAutoLinkNode,
+  SerializedBlockNode,
   SerializedHeadingNode,
   SerializedLineBreakNode,
   SerializedLinkNode,
@@ -12,6 +13,7 @@ import type {
   SerializedUploadNode,
   TypedEditorState
 } from '@payloadcms/richtext-lexical';
+import type { InsightsEmbedBlockFields } from '@zivoe/cms-types/insights-embeds';
 import type { Author, Category, InsightsPost, Media } from '@zivoe/cms-types/payload-types';
 
 type NormalizedMedia = Pick<Media, 'alt' | 'caption'> & {
@@ -36,6 +38,7 @@ export type InsightsCategory = Pick<Category, 'description' | 'slug' | 'title'> 
 
 type InsightsBaseRichTextNode =
   | SerializedAutoLinkNode
+  | SerializedBlockNode<InsightsEmbedBlockFields>
   | SerializedHeadingNode
   | SerializedLineBreakNode
   | SerializedLinkNode

@@ -542,6 +542,57 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InsightsTwitterEmbedBlock".
+ */
+export interface InsightsTwitterEmbedBlock {
+  /**
+   * Paste the public X URL.
+   */
+  url: string;
+  /**
+   * Optional caption shown below the embed.
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'twitterEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InsightsLinkedInEmbedBlock".
+ */
+export interface InsightsLinkedInEmbedBlock {
+  /**
+   * Paste the public LinkedIn URL.
+   */
+  url: string;
+  /**
+   * Optional caption shown below the embed.
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'linkedInEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InsightsYouTubeEmbedBlock".
+ */
+export interface InsightsYouTubeEmbedBlock {
+  /**
+   * Paste the public YouTube URL.
+   */
+  url: string;
+  /**
+   * Optional caption shown below the embed.
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
 export interface Auth {

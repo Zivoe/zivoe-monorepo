@@ -1,6 +1,8 @@
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload';
 import { slugField } from 'payload';
 
+import { canonicalizeInsightsEmbedUrl, isInsightsEmbedBlockType } from '@zivoe/cms-types/insights-embeds';
+
 import { canReadPublishedInsights, isAdminOrEditor } from '@/access/users';
 import { extractPlainTextFromRichText } from '@/lib/extract-rich-text';
 import { buildInsightsPreviewUrl } from '@/lib/preview';
@@ -29,6 +31,68 @@ const syncSearchBody: CollectionBeforeChangeHook = ({ data, originalDoc }) => ({
   ...data,
   searchBody: extractPlainTextFromRichText(data.body ?? originalDoc?.body)
 });
+
+type RichTextNode = {
+  children?: Array<RichTextNode>;
+  fields?: {
+    blockType?: string;
+    url?: unknown;
+    [key: string]: unknown;
+  };
+  type?: string;
+};
+
+type RichTextDocument = {
+  root?: {
+    children?: Array<RichTextNode>;
+  };
+};
+
+function isRichTextDocument(value: unknown): value is RichTextDocument {
+  return typeof value === 'object' && value !== null && 'root' in value;
+}
+
+function canonicalizeInsightsEmbedUrls(document: unknown) {
+  if (!isRichTextDocument(document)) return document;
+
+  const nextDocument = structuredClone(document);
+  let changed = false;
+
+  const walk = (nodes?: Array<RichTextNode>) => {
+    if (!nodes) return;
+
+    for (const node of nodes) {
+      if (node.type === 'block' && node.fields && typeof node.fields.blockType === 'string' && isInsightsEmbedBlockType(node.fields.blockType)) {
+        const currentUrl = node.fields.url;
+        if (typeof currentUrl === 'string') {
+          const canonicalUrl = canonicalizeInsightsEmbedUrl(node.fields.blockType, currentUrl);
+          if (canonicalUrl && canonicalUrl !== currentUrl) {
+            node.fields.url = canonicalUrl;
+            changed = true;
+          }
+        }
+      }
+
+      walk(node.children);
+    }
+  };
+
+  walk(nextDocument.root?.children);
+  return changed ? nextDocument : document;
+}
+
+const normalizeEmbedUrls: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  const body = data.body ?? originalDoc?.body;
+  if (!body) return data;
+
+  const normalizedBody = canonicalizeInsightsEmbedUrls(body);
+  if (normalizedBody === body) return data;
+
+  return {
+    ...data,
+    body: normalizedBody
+  };
+};
 
 export const InsightsPosts: CollectionConfig = {
   slug: 'insightsPosts',
@@ -150,7 +214,7 @@ export const InsightsPosts: CollectionConfig = {
     }
   ],
   hooks: {
-    beforeChange: [setPublishedAtOnFirstPublish, syncSearchBody],
+    beforeChange: [setPublishedAtOnFirstPublish, normalizeEmbedUrls, syncSearchBody],
     afterChange: [revalidateInsightsAfterChange],
     afterDelete: [revalidateInsightsAfterDelete]
   },

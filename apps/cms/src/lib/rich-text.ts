@@ -2,6 +2,7 @@ import type { Field } from 'payload';
 
 import {
   BlockquoteFeature,
+  BlocksFeature,
   FixedToolbarFeature,
   HeadingFeature,
   InlineToolbarFeature,
@@ -13,6 +14,8 @@ import {
   UploadFeature
 } from '@payloadcms/richtext-lexical';
 import { INSIGHTS_RICH_TEXT_LINK_SIZES, INSIGHTS_RICH_TEXT_LINK_VARIANTS } from '@zivoe/cms-types/insights-rich-text';
+
+import { insightsEmbedBlocks } from './insights-embed-blocks';
 
 const linkVariantField: Field = {
   name: 'variant',
@@ -62,6 +65,9 @@ export const insightsRichTextEditor = lexicalEditor({
         }
       },
       enabledCollections: ['media']
+    }),
+    BlocksFeature({
+      blocks: insightsEmbedBlocks
     })
   ]
 });
