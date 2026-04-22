@@ -128,13 +128,13 @@ importers:
     dependencies:
       '@dynamic-labs/ethereum':
         specifier: 4.69.0
-        version: 4.69.0(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10))(@types/react@19.0.10)(@upstash/redis@1.36.1)(@vercel/functions@2.2.13)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.2.3))(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        version: 4.69.0(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10))(@types/react@19.0.10)(@upstash/redis@1.36.1)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.27))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.2.3))(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       '@dynamic-labs/sdk-react-core':
         specifier: 4.69.0
         version: 4.69.0(@dynamic-labs-wallet/forward-mpc-client@0.3.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10))(@types/react@19.0.10)(bufferutil@4.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(utf-8-validate@5.0.10)
       '@dynamic-labs/wagmi-connector':
         specifier: 4.69.0
-        version: 4.69.0(7a7ddf5c682244c86c9a8f85e07a7c8a)
+        version: 4.69.0(0456225b14b11b26fc1cf38e65c01954)
       '@dynamic-labs/wallet-book':
         specifier: 4.69.0
         version: 4.69.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -152,13 +152,13 @@ importers:
         version: 15.6.0-canary.60
       '@ponder/client':
         specifier: ^0.12.0
-        version: 0.12.26(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.6.1)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)(typescript@5.7.3)
+        version: 0.12.26(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.10.2)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)(typescript@5.7.3)
       '@react-email/components':
         specifier: ^1.0.1
         version: 1.0.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@sentry/nextjs':
-        specifier: ^9.41.0
-        version: 9.47.1(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.104.1(esbuild@0.19.12))
+        specifier: 9.42.0
+        version: 9.42.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(react@19.2.3)(webpack@5.104.1(esbuild@0.19.12))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.7.3)(valibot@1.3.1(typescript@5.7.3))(zod@3.25.76)
@@ -179,22 +179,22 @@ importers:
         version: 1.36.1
       '@vercel/analytics':
         specifier: ^1.5.0
-        version: 1.6.1(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 1.6.1(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(react@19.2.3)
       '@vercel/functions':
         specifier: ^2.1.0
-        version: 2.2.13
+        version: 2.2.13(@aws-sdk/credential-provider-web-identity@3.972.27)
       '@zivoe/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       better-auth:
         specifier: ^1.4.4
-        version: 1.4.17(drizzle-kit@0.30.6)(drizzle-orm@0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.6.1)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(mongodb@6.21.0)(next@15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.17.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 1.4.17(drizzle-kit@0.30.6)(drizzle-orm@0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.10.2)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(mongodb@6.21.0)(next@15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(pg@8.17.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       country-list:
         specifier: ^2.4.1
         version: 2.4.1
       drizzle-orm:
         specifier: ^0.41.0
-        version: 0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.6.1)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)
+        version: 0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(@types/pg@8.10.2)(gel@2.2.0)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)
       ethereum-block-by-date:
         specifier: ^1.5.0
         version: 1.5.0
@@ -209,7 +209,7 @@ importers:
         version: 6.21.0
       next:
         specifier: 15.6.0-canary.60
-        version: 15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4)
       postgres:
         specifier: ^3.4.5
         version: 3.4.8
@@ -248,14 +248,14 @@ importers:
         version: 2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       wagmi:
         specifier: ^3.5.0
-        version: 3.5.0(@coinbase/wallet-sdk@4.3.7(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.3))(@types/react@19.0.10)(@walletconnect/ethereum-provider@2.21.5(@types/react@19.0.10)(@upstash/redis@1.36.1)(@vercel/functions@2.2.13)(bufferutil@4.1.0)(react@19.2.3)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ox@0.14.7(typescript@5.7.3)(zod@3.25.76))(react@19.2.3)(typescript@5.7.3)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))
+        version: 3.5.0(@coinbase/wallet-sdk@4.3.7(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.3))(@types/react@19.0.10)(@walletconnect/ethereum-provider@2.21.5(@types/react@19.0.10)(@upstash/redis@1.36.1)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.27))(bufferutil@4.1.0)(react@19.2.3)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ox@0.14.7(typescript@5.7.3)(zod@3.25.76))(react@19.2.3)(typescript@5.7.3)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))
       zod:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
       '@react-email/preview-server':
         specifier: 5.1.0
-        version: 5.1.0(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 5.1.0(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4)
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
         version: 5.2.2(prettier@3.8.1)
@@ -291,13 +291,13 @@ importers:
         version: 0.30.6
       eslint:
         specifier: ^9.21.0
-        version: 9.39.2(jiti@1.21.7)
+        version: 9.39.2(jiti@2.4.2)
       import-in-the-middle:
         specifier: ^1.14.2
         version: 1.15.0
       ponder:
         specifier: ^0.12.0
-        version: 0.12.26(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@types/pg@8.6.1)(bufferutil@4.1.0)(gel@2.2.0)(hono@4.11.5)(postgres@3.4.8)(terser@5.46.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+        version: 0.12.26(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@types/pg@8.10.2)(bufferutil@4.1.0)(gel@2.2.0)(hono@4.11.5)(postgres@3.4.8)(sass@1.77.4)(terser@5.46.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(viem@2.47.6(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
       postcss:
         specifier: ^8.5.3
         version: 8.5.6
@@ -327,7 +327,7 @@ importers:
         version: 5.7.3
       typescript-eslint:
         specifier: ^8.57.1
-        version: 8.57.1(eslint@9.39.2(jiti@1.21.7))(typescript@5.7.3)
+        version: 8.57.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.7.3)
 
   apps/landing:
     dependencies:
@@ -346,9 +346,18 @@ importers:
       '@next/eslint-plugin-next':
         specifier: ^15.6.0-canary.60
         version: 15.6.0-canary.60
+      '@payloadcms/live-preview-react':
+        specifier: 3.80.0
+        version: 3.80.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@payloadcms/richtext-lexical':
+        specifier: 3.80.0
+        version: 3.80.0(@faceless-ui/modal@3.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@faceless-ui/scroll-info@2.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@payloadcms/next@3.80.0(@types/react@19.0.10)(graphql@16.12.0)(monaco-editor@0.55.1)(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(payload@3.80.0(bufferutil@4.1.0)(graphql@16.12.0)(typescript@5.7.3)(utf-8-validate@5.0.10))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3))(@types/react@19.0.10)(bufferutil@4.1.0)(monaco-editor@0.55.1)(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(payload@3.80.0(bufferutil@4.1.0)(graphql@16.12.0)(typescript@5.7.3)(utf-8-validate@5.0.10))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(utf-8-validate@5.0.10)(yjs@13.6.30)
+      '@payloadcms/sdk':
+        specifier: 3.80.0
+        version: 3.80.0(bufferutil@4.1.0)(graphql@16.12.0)(typescript@5.7.3)(utf-8-validate@5.0.10)
       '@sentry/nextjs':
-        specifier: ^9.42.0
-        version: 9.47.1(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.104.1)
+        specifier: 9.42.0
+        version: 9.42.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(react@19.2.3)(webpack@5.104.1)
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.7.3)(valibot@1.3.1(typescript@5.7.3))(zod@3.25.76)
@@ -357,7 +366,10 @@ importers:
         version: 5.90.20(react@19.2.3)
       '@vercel/analytics':
         specifier: ^1.5.0
-        version: 1.6.1(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 1.6.1(next@15.6.0-canary.60(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4))(react@19.2.3)
+      '@zivoe/cms-types':
+        specifier: workspace:*
+        version: link:../../packages/cms-types
       '@zivoe/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -366,7 +378,7 @@ importers:
         version: 6.21.0
       next:
         specifier: 15.6.0-canary.60
-        version: 15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 15.6.0-canary.60(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.77.4)
       postgres:
         specifier: ^3.4.5
         version: 3.4.8
@@ -494,7 +506,7 @@ importers:
         version: 8.6.15(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@8.6.15(bufferutil@4.1.0)(prettier@3.8.1)(utf-8-validate@5.0.10))(typescript@5.7.3)
       '@storybook/react-vite':
         specifier: ^8.5.8
-        version: 8.6.15(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(rollup@4.56.0)(storybook@8.6.15(bufferutil@4.1.0)(prettier@3.8.1)(utf-8-validate@5.0.10))(typescript@5.7.3)(vite@6.4.1(@types/node@22.19.7)(jiti@2.4.2)(terser@5.46.0)(tsx@4.21.0))
+        version: 8.6.15(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(rollup@4.56.0)(storybook@8.6.15(bufferutil@4.1.0)(prettier@3.8.1)(utf-8-validate@5.0.10))(typescript@5.7.3)(vite@6.4.1(@types/node@22.19.7)(jiti@2.4.2)(sass@1.77.4)(terser@5.46.0)(tsx@4.21.0))
       '@types/react':
         specifier: 19.0.10
         version: 19.0.10
@@ -506,7 +518,7 @@ importers:
         version: 8.53.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.7.3)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
-        version: 4.7.0(vite@6.4.1(@types/node@22.19.7)(jiti@2.4.2)(terser@5.46.0)(tsx@4.21.0))
+        version: 4.7.0(vite@6.4.1(@types/node@22.19.7)(jiti@2.4.2)(sass@1.77.4)(terser@5.46.0)(tsx@4.21.0))
       '@zivoe/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint

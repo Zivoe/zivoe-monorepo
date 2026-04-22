@@ -9,7 +9,7 @@ export const env = createEnv({
     BEEHIIV_API_KEY: z.string(),
     TURNSTILE_SECRET_KEY: z.string(),
     REVALIDATE_API_KEY: z.string(),
-    SENTRY_AUTH_TOKEN: z.string()
+    INSIGHTS_PREVIEW_SECRET: z.string()
   },
 
   client: {
@@ -17,7 +17,9 @@ export const env = createEnv({
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
-    NEXT_PUBLIC_INTERCOM_APP_ID: z.string()
+    NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
+    NEXT_PUBLIC_INSIGHTS_CMS_URL: z.string().url(),
+    NEXT_PUBLIC_INSIGHTS_MEDIA_URL: z.string().url()
   },
 
   runtimeEnv: {
@@ -30,9 +32,11 @@ export const env = createEnv({
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    INSIGHTS_PREVIEW_SECRET: process.env.INSIGHTS_PREVIEW_SECRET,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID
+    NEXT_PUBLIC_INTERCOM_APP_ID: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
+    NEXT_PUBLIC_INSIGHTS_CMS_URL: process.env.NEXT_PUBLIC_INSIGHTS_CMS_URL,
+    NEXT_PUBLIC_INSIGHTS_MEDIA_URL: process.env.NEXT_PUBLIC_INSIGHTS_MEDIA_URL
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),

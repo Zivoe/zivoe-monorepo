@@ -96,7 +96,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   {
     title: 'Explore',
     links: [
-      { href: 'https://blog.zivoe.com', label: 'Newsletter' },
+      { href: '/insights', label: 'Insights' },
       { href: 'https://docs.zivoe.com', label: 'Docs' },
       { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub' },
       { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits' },
