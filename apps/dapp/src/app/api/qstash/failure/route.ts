@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { handlePromise } from '@/lib/utils';
 
 function decodeBase64(str: string | undefined): string | undefined {
@@ -53,4 +53,4 @@ const handler = async (req: NextRequest) => {
   return NextResponse.json({ success: true, data: 'Failure logged' });
 };
 
-export const POST = verifySignatureAppRouter(handler);
+export const POST = withQstashSignature(handler);

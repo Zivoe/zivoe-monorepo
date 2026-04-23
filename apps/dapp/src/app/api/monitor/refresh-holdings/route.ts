@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { count, eq, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { authDb } from '@/server/clients/auth-db';
 import { MAX_ACCOUNTS_PER_QUERY, fetchPortfolios } from '@/server/clients/zapper';
 import { walletConnection, walletHoldings } from '@/server/db/schema';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../../utils';
@@ -249,6 +249,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
   }
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error refreshing wallet holdings', handler)(req);
 });

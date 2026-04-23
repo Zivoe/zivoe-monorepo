@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
 import { getUserEmailProfile } from '@/server/data/auth';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { sendOnboardingReminderEmail } from '@/server/utils/send-email';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z.object({
@@ -71,6 +71,6 @@ const handler = async (req: NextRequest) => {
   return NextResponse.json({ success: true, data: 'Signup reminder email sent' });
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error sending signup reminder email', handler)(req);
 });
