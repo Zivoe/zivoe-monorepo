@@ -7,6 +7,7 @@ export const env = createEnv({
     DATABASE_URI: z.string(),
     BEEHIIV_PUBLICATION_ID: z.string(),
     BEEHIIV_API_KEY: z.string(),
+    SENTRY_AUTH_TOKEN: z.string().optional(),
     TURNSTILE_SECRET_KEY: z.string(),
     REVALIDATE_API_KEY: z.string(),
     INSIGHTS_PREVIEW_SECRET: z.string()
@@ -27,6 +28,7 @@ export const env = createEnv({
     DATABASE_URI: process.env.DATABASE_URI,
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
+    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
