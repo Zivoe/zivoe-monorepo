@@ -43,7 +43,6 @@ module.exports = withSentryConfig(nextConfig, {
   project: 'landing',
   authToken: process.env.SENTRY_AUTH_TOKEN,
   widenClientFileUpload: true,
-  tunnelRoute: true,
-  disableLogger: true,
-  reactComponentAnnotation: { enabled: true }
+  tunnelRoute: '/monitoring',
+  useRunAfterProductionCompileHook: true
 });
