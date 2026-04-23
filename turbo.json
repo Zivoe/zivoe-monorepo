@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "env": [
+        "NODE_ENV",
         "DATABASE_URI",
         "DATABASE_URL",
         "NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY",
@@ -44,9 +45,11 @@
         "ZAPPER_API_KEY",
         "CHAINALYSIS_API_KEY",
         "UNSUBSCRIBE_TOKEN_SECRET",
-        "INSIGHTS_CMS_URL",
+        "NEXT_PUBLIC_INSIGHTS_CMS_URL",
+        "NEXT_PUBLIC_INSIGHTS_MEDIA_URL",
         "INSIGHTS_PREVIEW_SECRET",
         "SERVER_URL",
+        "VERCEL_URL",
         "PAYLOAD_SECRET",
         "LANDING_PREVIEW_URL",
         "LANDING_REVALIDATE_URL",
