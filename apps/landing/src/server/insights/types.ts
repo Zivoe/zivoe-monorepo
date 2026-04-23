@@ -3,6 +3,7 @@ import type {
   SerializedAutoLinkNode,
   SerializedBlockNode,
   SerializedHeadingNode,
+  SerializedHorizontalRuleNode,
   SerializedLineBreakNode,
   SerializedLinkNode,
   SerializedListItemNode,
@@ -40,6 +41,7 @@ type InsightsBaseRichTextNode =
   | SerializedAutoLinkNode
   | SerializedBlockNode<InsightsEmbedBlockFields>
   | SerializedHeadingNode
+  | SerializedHorizontalRuleNode
   | SerializedLineBreakNode
   | SerializedLinkNode
   | SerializedListItemNode

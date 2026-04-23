@@ -58,6 +58,7 @@ const jsxConverters: JSXConvertersFunction<RichTextNode> = ({ defaultConverters 
     const children = nodesToJSX({ nodes: node.children });
     return <p>{children?.length ? children : <br />}</p>;
   },
+  horizontalrule: () => <hr className="my-4 border-0 border-t border-default" />,
   quote: ({ node, nodesToJSX }) => renderQuote(node, nodesToJSX),
   upload: ({ node }) => renderUpload(node),
   blocks: {

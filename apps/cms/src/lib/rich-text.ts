@@ -5,6 +5,7 @@ import {
   BlocksFeature,
   FixedToolbarFeature,
   HeadingFeature,
+  HorizontalRuleFeature,
   InlineToolbarFeature,
   lexicalEditor,
   LinkFeature,
@@ -52,6 +53,7 @@ export const insightsRichTextEditor = lexicalEditor({
     UnorderedListFeature(),
     OrderedListFeature(),
     BlockquoteFeature(),
+    HorizontalRuleFeature(),
     FixedToolbarFeature(),
     InlineToolbarFeature(),
     LinkFeature({
