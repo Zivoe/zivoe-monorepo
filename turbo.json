@@ -50,6 +50,7 @@
         "INSIGHTS_PREVIEW_SECRET",
         "SERVER_URL",
         "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
         "PAYLOAD_SECRET",
         "LANDING_PREVIEW_URL",
         "LANDING_REVALIDATE_URL",

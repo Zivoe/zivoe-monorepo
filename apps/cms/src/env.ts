@@ -11,6 +11,7 @@ export const env = createEnv({
     LANDING_PREVIEW_URL: z.string().url(),
     LANDING_REVALIDATE_URL: z.string().url(),
     LANDING_REVALIDATE_API_KEY: z.string().min(1),
+    VERCEL_BRANCH_URL: z.string().min(1).optional(),
     VERCEL_URL: z.string().min(1).optional(),
     R2_BUCKET: z.string().min(1),
     R2_ACCESS_KEY_ID: z.string().min(1),
@@ -21,6 +22,7 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     SERVER_URL: process.env.SERVER_URL,
+    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
     VERCEL_URL: process.env.VERCEL_URL,
     DATABASE_URL: process.env.DATABASE_URL,
     PAYLOAD_SECRET: process.env.PAYLOAD_SECRET,
@@ -41,6 +43,10 @@ export const env = createEnv({
 export function getCmsServerUrl() {
   if (env.SERVER_URL) {
     return env.SERVER_URL;
+  }
+
+  if (env.VERCEL_BRANCH_URL) {
+    return `https://${env.VERCEL_BRANCH_URL}`;
   }
 
   if (env.VERCEL_URL) {
