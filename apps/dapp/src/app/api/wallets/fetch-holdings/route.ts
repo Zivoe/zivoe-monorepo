@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq, sql } from 'drizzle-orm';
 import { isAddress } from 'viem';
 
@@ -8,6 +7,7 @@ import { authDb } from '@/server/clients/auth-db';
 import { fetchPortfolios } from '@/server/clients/zapper';
 import { walletHoldings } from '@/server/db/schema';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { roundTo4, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../../utils';
@@ -77,6 +77,6 @@ const handler = async (req: NextRequest): ApiResponse<FetchResult> => {
   });
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error fetching wallet holdings', handler)(req);
 });

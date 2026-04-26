@@ -1,0 +1,19 @@
+{
+  "name": "@zivoe/cms-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./insights-embeds": "./src/insights-embeds.ts",
+    "./payload-types": "./src/payload-types.ts",
+    "./insights-rich-text": "./src/insights-rich-text.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@zivoe/ts-config": "workspace:*",
+    "typescript": "5.7.3"
+  }
+}

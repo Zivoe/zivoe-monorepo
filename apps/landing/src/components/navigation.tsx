@@ -97,6 +97,8 @@ const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: string }> 
   { title: 'Home', href: '/' },
   { title: 'Team', href: '/team' },
   { title: 'FAQ', href: '/faq' },
+  // TODO: Add back when insights are published
+  // { title: 'Insights', href: '/insights' },
   { title: 'Newsletter', href: 'https://blog.zivoe.com', target: '_blank' },
   { title: 'Docs', href: 'https://docs.zivoe.com', target: '_blank' }
 ];

@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { z } from 'zod';
 
 import { qstash } from '@/server/clients/qstash';
@@ -11,7 +10,7 @@ import { hasUserDeposited } from '@/server/data/ponder';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
-import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
+import { QSTASH_JOB_LABELS, getQstashFailureCallback, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z.object({
@@ -91,6 +90,6 @@ const handler = async (req: NextRequest) => {
   return NextResponse.json({ success: true, data: `Reminder ${reminderNumber} email sent` });
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error sending deposit reminder email', handler)(req);
 });

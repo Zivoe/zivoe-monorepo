@@ -2,15 +2,26 @@ import type { NextConfig } from 'next';
 
 import { withSentryConfig } from '@sentry/nextjs';
 
-import './src/env';
+import { env } from './src/env';
+
+const insightsMediaUrl = new URL(env.NEXT_PUBLIC_INSIGHTS_MEDIA_URL);
 
 const nextConfig: NextConfig = {
   experimental: {
-    ppr: true,
     staleTimes: {
       dynamic: 30,
       static: 180
     }
+  },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: insightsMediaUrl.protocol.replace(':', '') as 'http' | 'https',
+        hostname: insightsMediaUrl.hostname,
+        pathname: '/**'
+      }
+    ]
   },
 
   async rewrites() {

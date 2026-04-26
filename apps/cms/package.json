@@ -1,0 +1,60 @@
+{
+  "name": "zivoe-cms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm run generate:importmap && next build",
+    "dev": "pnpm run generate:importmap && next dev --turbo -p 3001",
+    "db:studio": "pnpm -C ../dapp exec drizzle-kit studio --config=../cms/drizzle-studio.config.mjs",
+    "db:migrate": "payload migrate",
+    "db:migrate:create": "payload migrate:create",
+    "db:migrate:status": "payload migrate:status",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit && pnpm run check:generated-types",
+    "check:generated-types": "pnpm run generate:types && pnpm run generate:importmap && git diff --exit-code -- ../../packages/cms-types/src/payload-types.ts ./src/app/\\(payload\\)/importMap.ts",
+    "start": "next start",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "generate:types": "SKIP_ENV_VALIDATION=1 payload generate:types",
+    "generate:importmap": "payload generate:importmap"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.844.0",
+    "@payloadcms/db-postgres": "3.80.0",
+    "@payloadcms/next": "3.80.0",
+    "@payloadcms/richtext-lexical": "3.80.0",
+    "@payloadcms/storage-s3": "3.80.0",
+    "@t3-oss/env-nextjs": "^0.12.0",
+    "@zivoe/cms-types": "workspace:*",
+    "graphql": "^16.11.0",
+    "next": "15.4.11",
+    "payload": "3.80.0",
+    "pg": "^8.16.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "sharp": "^0.34.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^15.4.11",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^22.13.5",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "@zivoe/eslint-config": "workspace:*",
+    "@zivoe/prettier-config": "workspace:*",
+    "@zivoe/ts-config": "workspace:*",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.21.0",
+    "postcss": "^8.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "tailwindcss": "^3.4.17",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.57.1"
+  },
+  "packageManager": "pnpm@10.4.1",
+  "engines": {
+    "node": ">=22"
+  }
+}

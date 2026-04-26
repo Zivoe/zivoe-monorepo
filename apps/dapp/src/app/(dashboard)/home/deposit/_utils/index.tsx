@@ -1,7 +1,9 @@
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
-export const depositPageViewSchema = z.enum(['deposit', 'redeem']).nullable();
+export const depositPageTabSchema = z.enum(['deposit', 'redeem']);
+export const depositPageViewSchema = depositPageTabSchema.nullable();
+export type DepositPageTab = z.infer<typeof depositPageTabSchema>;
 export type DepositPageView = z.infer<typeof depositPageViewSchema>;
 
 export const createAmountValidator = ({

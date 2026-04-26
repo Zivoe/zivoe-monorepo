@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -8,6 +7,7 @@ import { authDb } from '@/server/clients/auth-db';
 import { profile } from '@/server/db/schema';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, escapeHtml, handlePromise, withErrorHandler } from '@/lib/utils';
 
 const bodySchema = z
@@ -56,7 +56,7 @@ const handler = async (req: NextRequest) => {
   return NextResponse.json({ success: true, data: 'Telegram notification sent' });
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error sending Telegram notification', handler)(req);
 });
 
@@ -67,7 +67,17 @@ function formatOnboardingMessage(data: Record<string, unknown>): string {
 
   for (const [key, value] of Object.entries(data)) {
     if (value !== undefined && value !== null) {
-      const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value as string | number | boolean);
+      let stringValue: string;
+
+      if (typeof value === 'object') stringValue = JSON.stringify(value);
+      else if (typeof value === 'string') stringValue = value;
+      else if (typeof value === 'number') stringValue = String(value);
+      else if (typeof value === 'boolean') stringValue = String(value);
+      else if (typeof value === 'bigint') stringValue = String(value);
+      else if (typeof value === 'symbol') stringValue = String(value);
+      else if (typeof value === 'function') stringValue = '[function]';
+      else stringValue = '';
+
       lines.push(`<b>${formatLabel(key)}:</b> ${escapeHtml(stringValue)}`);
     }
   }

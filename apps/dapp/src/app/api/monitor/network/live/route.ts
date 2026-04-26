@@ -2,7 +2,6 @@ import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
@@ -10,6 +9,7 @@ import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
 import { DEPOSIT_DAILY_DATA_TAG } from '@/server/data';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -92,6 +92,6 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
   }
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error collecting daily data', handler)(req);
 });

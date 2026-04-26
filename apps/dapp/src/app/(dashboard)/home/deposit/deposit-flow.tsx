@@ -179,7 +179,6 @@ export function DepositFlow({ apy }: { apy: number | null }) {
             inputMode="decimal"
             variant="amount"
             label="Deposit"
-            labelClassName="h-5"
             value={value ?? ''}
             onChange={(value) => {
               const parsedValue = parseInput(value);
@@ -233,7 +232,6 @@ export function DepositFlow({ apy }: { apy: number | null }) {
       <Input
         variant="amount"
         label="Receive"
-        labelClassName="h-5"
         value={receive ?? ''}
         isDisabled
         hasNormalStyleIfDisabled={!isDisabled}

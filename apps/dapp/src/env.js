@@ -14,7 +14,7 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string(),
     LANDING_PAGE_URL: z.string().optional(),
     LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
-    SENTRY_AUTH_TOKEN: z.string(),
+    SENTRY_AUTH_TOKEN: z.string().optional(),
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
     CHAINALYSIS_API_KEY: z.string(),
