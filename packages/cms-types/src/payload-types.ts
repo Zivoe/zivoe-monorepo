@@ -248,9 +248,9 @@ export interface InsightsPost {
    */
   excerpt: string;
   /**
-   * Hero image shown at the top of the article and on listing cards.
+   * Optional hero image shown at the top of the article and on listing cards.
    */
-  featuredImage: number | Media;
+  featuredImage?: (number | null) | Media;
   author: number | Author;
   category: number | Category;
   /**

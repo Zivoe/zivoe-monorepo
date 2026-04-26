@@ -1,177 +1,177 @@
-import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres';
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "public"."enum_users_role" AS ENUM('admin', 'editor');
   CREATE TYPE "public"."enum_insights_posts_status" AS ENUM('draft', 'published');
   CREATE TYPE "public"."enum__insights_posts_v_version_status" AS ENUM('draft', 'published');
   CREATE TABLE "users_sessions" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"id" varchar PRIMARY KEY NOT NULL,
-  	"created_at" timestamp(3) with time zone,
-  	"expires_at" timestamp(3) with time zone NOT NULL
+    "_order" integer NOT NULL,
+    "_parent_id" integer NOT NULL,
+    "id" varchar PRIMARY KEY NOT NULL,
+    "created_at" timestamp(3) with time zone,
+    "expires_at" timestamp(3) with time zone NOT NULL
   );
-  
+
   CREATE TABLE "users" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"name" varchar NOT NULL,
-  	"role" "enum_users_role" DEFAULT 'editor' NOT NULL,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"email" varchar NOT NULL,
-  	"reset_password_token" varchar,
-  	"reset_password_expiration" timestamp(3) with time zone,
-  	"salt" varchar,
-  	"hash" varchar,
-  	"login_attempts" numeric DEFAULT 0,
-  	"lock_until" timestamp(3) with time zone
+    "id" serial PRIMARY KEY NOT NULL,
+    "name" varchar NOT NULL,
+    "role" "enum_users_role" DEFAULT 'editor' NOT NULL,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "email" varchar NOT NULL,
+    "reset_password_token" varchar,
+    "reset_password_expiration" timestamp(3) with time zone,
+    "salt" varchar,
+    "hash" varchar,
+    "login_attempts" numeric DEFAULT 0,
+    "lock_until" timestamp(3) with time zone
   );
-  
+
   CREATE TABLE "authors" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"name" varchar NOT NULL,
-  	"generate_slug" boolean DEFAULT true,
-  	"slug" varchar NOT NULL,
-  	"title" varchar,
-  	"bio" varchar,
-  	"avatar_id" integer,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "name" varchar NOT NULL,
+    "generate_slug" boolean DEFAULT true,
+    "slug" varchar NOT NULL,
+    "title" varchar,
+    "bio" varchar,
+    "avatar_id" integer,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "categories" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"title" varchar NOT NULL,
-  	"generate_slug" boolean DEFAULT true,
-  	"slug" varchar NOT NULL,
-  	"description" varchar,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "title" varchar NOT NULL,
+    "generate_slug" boolean DEFAULT true,
+    "slug" varchar NOT NULL,
+    "description" varchar,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "media" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"alt" varchar NOT NULL,
-  	"caption" varchar,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"url" varchar,
-  	"thumbnail_u_r_l" varchar,
-  	"filename" varchar,
-  	"mime_type" varchar,
-  	"filesize" numeric,
-  	"width" numeric,
-  	"height" numeric,
-  	"focal_x" numeric,
-  	"focal_y" numeric,
-  	"sizes_hero_url" varchar,
-  	"sizes_hero_width" numeric,
-  	"sizes_hero_height" numeric,
-  	"sizes_hero_mime_type" varchar,
-  	"sizes_hero_filesize" numeric,
-  	"sizes_hero_filename" varchar,
-  	"sizes_card_url" varchar,
-  	"sizes_card_width" numeric,
-  	"sizes_card_height" numeric,
-  	"sizes_card_mime_type" varchar,
-  	"sizes_card_filesize" numeric,
-  	"sizes_card_filename" varchar
+    "id" serial PRIMARY KEY NOT NULL,
+    "alt" varchar NOT NULL,
+    "caption" varchar,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "url" varchar,
+    "thumbnail_u_r_l" varchar,
+    "filename" varchar,
+    "mime_type" varchar,
+    "filesize" numeric,
+    "width" numeric,
+    "height" numeric,
+    "focal_x" numeric,
+    "focal_y" numeric,
+    "sizes_hero_url" varchar,
+    "sizes_hero_width" numeric,
+    "sizes_hero_height" numeric,
+    "sizes_hero_mime_type" varchar,
+    "sizes_hero_filesize" numeric,
+    "sizes_hero_filename" varchar,
+    "sizes_card_url" varchar,
+    "sizes_card_width" numeric,
+    "sizes_card_height" numeric,
+    "sizes_card_mime_type" varchar,
+    "sizes_card_filesize" numeric,
+    "sizes_card_filename" varchar
   );
-  
+
   CREATE TABLE "insights_posts" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"title" varchar,
-  	"generate_slug" boolean DEFAULT true,
-  	"slug" varchar,
-  	"excerpt" varchar,
-  	"featured_image_id" integer,
-  	"author_id" integer,
-  	"category_id" integer,
-  	"published_at" timestamp(3) with time zone,
-  	"body" jsonb,
-  	"search_body" varchar,
-  	"meta_title" varchar,
-  	"meta_description" varchar,
-  	"seo_image_override_id" integer,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"_status" "enum_insights_posts_status" DEFAULT 'draft'
+    "id" serial PRIMARY KEY NOT NULL,
+    "title" varchar,
+    "generate_slug" boolean DEFAULT true,
+    "slug" varchar,
+    "excerpt" varchar,
+    "featured_image_id" integer,
+    "author_id" integer,
+    "category_id" integer,
+    "published_at" timestamp(3) with time zone,
+    "body" jsonb,
+    "search_body" varchar,
+    "meta_title" varchar,
+    "meta_description" varchar,
+    "seo_image_override_id" integer,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "_status" "enum_insights_posts_status" DEFAULT 'draft'
   );
-  
+
   CREATE TABLE "_insights_posts_v" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"parent_id" integer,
-  	"version_title" varchar,
-  	"version_generate_slug" boolean DEFAULT true,
-  	"version_slug" varchar,
-  	"version_excerpt" varchar,
-  	"version_featured_image_id" integer,
-  	"version_author_id" integer,
-  	"version_category_id" integer,
-  	"version_published_at" timestamp(3) with time zone,
-  	"version_body" jsonb,
-  	"version_search_body" varchar,
-  	"version_meta_title" varchar,
-  	"version_meta_description" varchar,
-  	"version_seo_image_override_id" integer,
-  	"version_updated_at" timestamp(3) with time zone,
-  	"version_created_at" timestamp(3) with time zone,
-  	"version__status" "enum__insights_posts_v_version_status" DEFAULT 'draft',
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"latest" boolean
+    "id" serial PRIMARY KEY NOT NULL,
+    "parent_id" integer,
+    "version_title" varchar,
+    "version_generate_slug" boolean DEFAULT true,
+    "version_slug" varchar,
+    "version_excerpt" varchar,
+    "version_featured_image_id" integer,
+    "version_author_id" integer,
+    "version_category_id" integer,
+    "version_published_at" timestamp(3) with time zone,
+    "version_body" jsonb,
+    "version_search_body" varchar,
+    "version_meta_title" varchar,
+    "version_meta_description" varchar,
+    "version_seo_image_override_id" integer,
+    "version_updated_at" timestamp(3) with time zone,
+    "version_created_at" timestamp(3) with time zone,
+    "version__status" "enum__insights_posts_v_version_status" DEFAULT 'draft',
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "latest" boolean
   );
-  
+
   CREATE TABLE "payload_kv" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"key" varchar NOT NULL,
-  	"data" jsonb NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "key" varchar NOT NULL,
+    "data" jsonb NOT NULL
   );
-  
+
   CREATE TABLE "payload_locked_documents" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"global_slug" varchar,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "global_slug" varchar,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "payload_locked_documents_rels" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"order" integer,
-  	"parent_id" integer NOT NULL,
-  	"path" varchar NOT NULL,
-  	"users_id" integer,
-  	"authors_id" integer,
-  	"categories_id" integer,
-  	"media_id" integer,
-  	"insights_posts_id" integer
+    "id" serial PRIMARY KEY NOT NULL,
+    "order" integer,
+    "parent_id" integer NOT NULL,
+    "path" varchar NOT NULL,
+    "users_id" integer,
+    "authors_id" integer,
+    "categories_id" integer,
+    "media_id" integer,
+    "insights_posts_id" integer
   );
-  
+
   CREATE TABLE "payload_preferences" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"key" varchar,
-  	"value" jsonb,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "key" varchar,
+    "value" jsonb,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "payload_preferences_rels" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"order" integer,
-  	"parent_id" integer NOT NULL,
-  	"path" varchar NOT NULL,
-  	"users_id" integer
+    "id" serial PRIMARY KEY NOT NULL,
+    "order" integer,
+    "parent_id" integer NOT NULL,
+    "path" varchar NOT NULL,
+    "users_id" integer
   );
-  
+
   CREATE TABLE "payload_migrations" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"name" varchar,
-  	"batch" numeric,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+    "id" serial PRIMARY KEY NOT NULL,
+    "name" varchar,
+    "batch" numeric,
+    "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+    "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   ALTER TABLE "users_sessions" ADD CONSTRAINT "users_sessions_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "authors" ADD CONSTRAINT "authors_avatar_id_media_id_fk" FOREIGN KEY ("avatar_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "insights_posts" ADD CONSTRAINT "insights_posts_featured_image_id_media_id_fk" FOREIGN KEY ("featured_image_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
@@ -248,10 +248,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_preferences_rels_path_idx" ON "payload_preferences_rels" USING btree ("path");
   CREATE INDEX "payload_preferences_rels_users_id_idx" ON "payload_preferences_rels" USING btree ("users_id");
   CREATE INDEX "payload_migrations_updated_at_idx" ON "payload_migrations" USING btree ("updated_at");
-  CREATE INDEX "payload_migrations_created_at_idx" ON "payload_migrations" USING btree ("created_at");`)
+  CREATE INDEX "payload_migrations_created_at_idx" ON "payload_migrations" USING btree ("created_at");`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    DROP TABLE "users_sessions" CASCADE;
   DROP TABLE "users" CASCADE;
@@ -268,5 +268,5 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "payload_migrations" CASCADE;
   DROP TYPE "public"."enum_users_role";
   DROP TYPE "public"."enum_insights_posts_status";
-  DROP TYPE "public"."enum__insights_posts_v_version_status";`)
+  DROP TYPE "public"."enum__insights_posts_v_version_status";`);
 }

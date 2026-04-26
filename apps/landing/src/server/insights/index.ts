@@ -51,30 +51,47 @@ const getCategoriesCached = reactCache(
   nextCache(() => getCategories(false), ['insights-categories'], { tags: [INSIGHTS_TAG] })
 );
 
+async function getPostsPage({
+  categoryId,
+  page,
+  preview,
+  search
+}: {
+  categoryId?: string;
+  page: number;
+  preview: boolean;
+  search?: string;
+}) {
+  try {
+    const response = await findInsightsPosts({
+      categoryId,
+      limit: INSIGHTS_PAGE_SIZE,
+      page,
+      preview,
+      search
+    });
+
+    return normalizePaginatedPosts(response, INSIGHTS_PAGE_SIZE);
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        source: 'SERVER',
+        target: 'insights-list'
+      }
+    });
+
+    throw error;
+  }
+}
+
 const getPostsPageCached = reactCache(
   nextCache(
-    async ({ categoryId, page, search }: { categoryId?: string; page: number; search?: string }) => {
-      try {
-        const response = await findInsightsPosts({
-          categoryId,
-          limit: INSIGHTS_PAGE_SIZE,
-          page,
-          preview: false,
-          search
-        });
-
-        return normalizePaginatedPosts(response, INSIGHTS_PAGE_SIZE);
-      } catch (error) {
-        Sentry.captureException(error, {
-          tags: {
-            source: 'SERVER',
-            target: 'insights-list'
-          }
-        });
-
-        throw error;
-      }
-    },
+    async ({ categoryId, page }: { categoryId?: string; page: number }) =>
+      getPostsPage({
+        categoryId,
+        page,
+        preview: false
+      }),
     ['insights-page'],
     { tags: [INSIGHTS_TAG] }
   )
@@ -179,34 +196,36 @@ export async function getInsightsListing(args: {
   const selectedCategory = args.categorySlug
     ? (categories.find((category) => category.slug === args.categorySlug) ?? null)
     : null;
-  const posts = args.preview
-    ? await (async () => {
-        try {
-          const response = await findInsightsPosts({
-            categoryId: selectedCategory?.id,
-            limit: INSIGHTS_PAGE_SIZE,
-            page: args.page,
-            preview: true,
-            search: args.search
-          });
-
-          return normalizePaginatedPosts(response, INSIGHTS_PAGE_SIZE);
-        } catch (error) {
-          Sentry.captureException(error, {
-            tags: {
-              source: 'SERVER',
-              target: 'insights-list'
-            }
-          });
-
-          throw error;
-        }
-      })()
-    : await getPostsPageCached({
-        categoryId: selectedCategory?.id,
+  const categoryId = selectedCategory?.id;
+  const posts = await (async () => {
+    if (args.preview || args.search) {
+      return getPostsPage({
+        categoryId,
         page: args.page,
+        preview: args.preview,
         search: args.search
       });
+    }
+
+    if (args.page <= 1) {
+      return getPostsPageCached({ categoryId, page: 1 });
+    }
+
+    const firstPage = await getPostsPageCached({ categoryId, page: 1 });
+    if (args.page > firstPage.totalPages) {
+      return {
+        ...firstPage,
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: firstPage.totalPages > 0,
+        nextPage: null,
+        page: args.page,
+        prevPage: firstPage.totalPages || null
+      };
+    }
+
+    return getPostsPageCached({ categoryId, page: args.page });
+  })();
 
   return {
     categories,

@@ -1,8 +1,7 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { postgresAdapter } from '@payloadcms/db-postgres';
 import { s3Storage } from '@payloadcms/storage-s3';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildConfig } from 'payload';
 import sharp from 'sharp';
 
@@ -42,8 +41,7 @@ export default buildConfig({
     migrationDir: path.resolve(dirname, 'src/migrations'),
     pool: {
       connectionString: env.DATABASE_URL
-    },
-    push: false
+    }
   }),
   plugins: [
     s3Storage({

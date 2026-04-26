@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import { NextLink } from '@zivoe/ui/core/link';
 
@@ -34,6 +35,17 @@ export const metadata: Metadata = {
   }
 };
 
+function buildInsightsListingHref({ category, page, search }: { category?: string; page: number; search?: string }) {
+  const params = new URLSearchParams();
+
+  if (category) params.set('category', category);
+  if (search) params.set('search', search);
+  if (page > 1) params.set('page', `${page}`);
+
+  const query = params.toString();
+  return query ? `/insights?${query}` : '/insights';
+}
+
 export default async function InsightsPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : undefined;
   const previewSession = await getInsightsPreviewSession();
@@ -53,6 +65,12 @@ export default async function InsightsPage({ searchParams }: PageProps) {
     preview: previewSession.isEnabled,
     search
   });
+
+  if (normalizedPage > 1 && (posts.totalPages === 0 || normalizedPage > posts.totalPages)) {
+    redirect(
+      buildInsightsListingHref({ category: selectedCategory?.slug, page: Math.max(posts.totalPages, 1), search })
+    );
+  }
 
   return (
     <>

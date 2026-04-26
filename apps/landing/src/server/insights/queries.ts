@@ -99,7 +99,7 @@ type PostQueryDocument = Pick<
 > & {
   author: number | Author;
   category: number | Category;
-  featuredImage: number | Media;
+  featuredImage?: number | Media | null;
   seoImageOverride?: number | Media | null;
 };
 
