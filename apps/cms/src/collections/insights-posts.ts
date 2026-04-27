@@ -160,8 +160,8 @@ export const InsightsPosts: CollectionConfig = {
         date: {
           pickerAppearance: 'dayAndTime'
         },
-        description: 'Set automatically the first time this article is published.',
-        readOnly: true
+        description: 'Leave blank to set automatically the first time this article is published, or set a publish date manually.',
+        readOnly: false
       }
     },
     {

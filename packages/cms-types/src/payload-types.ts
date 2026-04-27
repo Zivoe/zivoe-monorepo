@@ -254,7 +254,7 @@ export interface InsightsPost {
   author: number | Author;
   category: number | Category;
   /**
-   * Set automatically the first time this article is published.
+   * Leave blank to set automatically the first time this article is published, or set a publish date manually.
    */
   publishedAt?: string | null;
   body: {
