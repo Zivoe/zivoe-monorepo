@@ -4,7 +4,9 @@
   "tasks": {
     "build": {
       "env": [
+        "NODE_ENV",
         "DATABASE_URI",
+        "DATABASE_URL",
         "NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY",
         "NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY",
         "QSTASH_CURRENT_SIGNING_KEY",
@@ -42,7 +44,22 @@
         "NEXT_PUBLIC_INTERCOM_APP_ID",
         "ZAPPER_API_KEY",
         "CHAINALYSIS_API_KEY",
-        "UNSUBSCRIBE_TOKEN_SECRET"
+        "UNSUBSCRIBE_TOKEN_SECRET",
+        "NEXT_PUBLIC_INSIGHTS_CMS_URL",
+        "NEXT_PUBLIC_INSIGHTS_MEDIA_URL",
+        "INSIGHTS_PREVIEW_SECRET",
+        "SERVER_URL",
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+        "PAYLOAD_SECRET",
+        "LANDING_PREVIEW_URL",
+        "LANDING_REVALIDATE_URL",
+        "LANDING_REVALIDATE_API_KEY",
+        "R2_BUCKET",
+        "R2_ACCESS_KEY_ID",
+        "R2_SECRET_ACCESS_KEY",
+        "R2_ENDPOINT",
+        "R2_PUBLIC_URL"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

@@ -25,7 +25,22 @@ import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
 
-export const auth = betterAuth({
+type DappAuthSession = {
+  user: {
+    id: string;
+    email: string;
+  };
+} | null;
+
+type DappAuth = {
+  handler: (request: Request) => Promise<Response>;
+  api: {
+    getSession: (options: { headers: unknown }) => Promise<DappAuthSession>;
+    signOut: (options: { headers: unknown }) => Promise<unknown>;
+  };
+};
+
+export const auth: DappAuth = betterAuth({
   baseURL: BASE_URL,
   basePath: '/api/auth',
 
@@ -204,4 +219,4 @@ export const auth = betterAuth({
       }
     }
   }
-});
+}) as unknown as DappAuth;

@@ -19,7 +19,7 @@ import ConnectedAccount from '@/components/connected-account';
 import AvailableLiquidity from './_components/available-liquidity';
 import { TransactionDialog } from './_components/transaction-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
-import { type DepositPageView, depositPageViewSchema } from './_utils';
+import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
@@ -82,7 +82,7 @@ function EarnBox({
   const { updateTab, isMobile } = useTabNavigation();
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  const [selectedTab, setSelectedTab] = useState<DepositPageView>(initialView ?? 'deposit');
+  const [selectedTab, setSelectedTab] = useState<DepositPageTab>(() => initialView ?? 'deposit');
 
   useEffect(() => {
     const view = searchParams.get('view');
@@ -94,9 +94,11 @@ function EarnBox({
   }, [searchParams, isMobile, setIsDepositDialogOpen]);
 
   const handleTabChange = (key: Key) => {
-    const tabKey = String(key) as NonNullable<DepositPageView>;
-    setSelectedTab(tabKey);
-    updateTab(tabKey);
+    const tabKey = depositPageTabSchema.safeParse(key);
+    if (!tabKey.success) return;
+
+    setSelectedTab(tabKey.data);
+    updateTab(tabKey.data);
   };
 
   return (

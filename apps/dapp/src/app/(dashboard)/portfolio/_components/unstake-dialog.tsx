@@ -103,7 +103,6 @@ export function UnstakeDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpe
                   inputMode="decimal"
                   variant="amount"
                   label="Unstake"
-                  labelClassName="h-5"
                   value={value ?? ''}
                   onChange={(value) => {
                     const parsedValue = parseInput(value);
@@ -145,7 +144,6 @@ export function UnstakeDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpe
             <Input
               variant="amount"
               label="Receive"
-              labelClassName="h-5"
               value={receive ?? ''}
               isDisabled
               hasNormalStyleIfDisabled={!isDisabled}

@@ -39,7 +39,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/functions": "^2.1.0",
     "@zivoe/ui": "workspace:*",
-    "better-auth": "^1.4.4",
+    "better-auth": "1.4.17",
     "country-list": "^2.4.1",
     "drizzle-orm": "^0.41.0",
     "ethereum-block-by-date": "^1.5.0",

@@ -96,6 +96,8 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   {
     title: 'Explore',
     links: [
+      // TODO: Add back when insights are published
+      // { href: '/insights', label: 'Insights' },
       { href: 'https://blog.zivoe.com', label: 'Newsletter' },
       { href: 'https://docs.zivoe.com', label: 'Docs' },
       { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub' },

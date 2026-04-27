@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
@@ -31,6 +30,7 @@ import {
 } from '@/server/utils/transaction-notifications';
 import type { FailureContext, MonitorCursor } from '@/server/utils/transaction-notifications';
 
+import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, escapeHtml, formatBigIntWithCommas, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -354,6 +354,6 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
   }
 };
 
-export const POST = verifySignatureAppRouter(async (req: NextRequest) => {
+export const POST = withQstashSignature(async (req: NextRequest) => {
   return withErrorHandler('Error processing deposit notifications', handler)(req);
 });

@@ -1,0 +1,22 @@
+{
+  "extends": "@zivoe/ts-config/nextjs.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@payload-config": ["./payload.config.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "next.config.ts",
+    "payload.config.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "postcss.config.cjs",
+    "prettier.config.cjs"
+  ],
+  "exclude": ["node_modules"]
+}
