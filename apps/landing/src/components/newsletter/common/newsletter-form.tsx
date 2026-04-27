@@ -84,7 +84,7 @@ export default function NewsletterForm() {
 
       {WITH_TURNSTILE && (
         <Turnstile
-          options={{ execution: 'execute', appearance: 'execute' }}
+          options={{ execution: 'execute', appearance: 'execute', size: 'normal' }}
           siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
           onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}

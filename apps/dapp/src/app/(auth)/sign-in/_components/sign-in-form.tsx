@@ -97,7 +97,7 @@ export default function SignInForm() {
       {WITH_TURNSTILE && (
         <div className="absolute bottom-0 right-0 z-50">
           <Turnstile
-            options={{ execution: 'execute', appearance: 'execute' }}
+            options={{ execution: 'execute', appearance: 'execute', size: 'normal' }}
             siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
             onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
