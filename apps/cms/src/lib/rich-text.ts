@@ -1,6 +1,7 @@
 import type { Field } from 'payload';
 
 import {
+  BoldFeature,
   BlockquoteFeature,
   BlocksFeature,
   FixedToolbarFeature,
@@ -48,6 +49,7 @@ const uploadCaptionField: Field = {
 
 export const insightsRichTextEditor = lexicalEditor({
   features: [
+    BoldFeature(),
     ParagraphFeature(),
     HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }),
     UnorderedListFeature(),

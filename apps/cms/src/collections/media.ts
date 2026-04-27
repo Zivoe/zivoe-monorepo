@@ -30,7 +30,7 @@ export const Media: CollectionConfig = {
       {
         name: 'card',
         width: 960,
-        height: 640,
+        height: 540,
         crop: 'center'
       }
     ],

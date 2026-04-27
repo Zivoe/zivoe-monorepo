@@ -16,7 +16,7 @@ export function InsightCard({
   priority?: boolean;
   variant?: 'compact' | 'default';
 }) {
-  const imageUrl = post.featuredImage.cardUrl ?? post.featuredImage.url;
+  const imageUrl = post.featuredImage.heroUrl ?? post.featuredImage.cardUrl ?? post.featuredImage.url;
   const isCompact = variant === 'compact';
 
   return (
@@ -29,16 +29,16 @@ export function InsightCard({
     >
       <div
         className={cn(
-          'overflow-hidden rounded-[8px] bg-surface-base-soft',
-          isCompact ? 'aspect-[1.58/1] rounded-[4px]' : 'aspect-[16/11]'
+          'aspect-[16/9] overflow-hidden rounded-[8px] bg-surface-base-soft',
+          isCompact && 'rounded-[4px]'
         )}
       >
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={post.featuredImage.alt}
-            width={post.featuredImage.width ?? 960}
-            height={post.featuredImage.height ?? 640}
+            width={post.featuredImage.width ?? 1600}
+            height={post.featuredImage.height ?? 900}
             sizes={
               isCompact
                 ? '(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 95vw'
