@@ -17,7 +17,9 @@ export default function HowItWorks() {
           </p>
 
           <div className="flex flex-col gap-4 sm:items-center">
-            <p className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">Earning Has Never Been Simpler</p>
+            <h2 className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">
+              Earning Has Never Been Simpler
+            </h2>
 
             <p className="text-leading text-secondary sm:text-center sm:text-smallSubheading">
               Start earning steady, risk-adjusted returns today — just deposit USDC.

@@ -71,12 +71,21 @@ const menuItemVariants = tv({
 type MenuItemProps = Aria.MenuItemProps &
   Omit<VariantProps<typeof menuItemVariants>, 'isSelected'> & { prefetch?: boolean };
 
-const MenuItem = ({ children, className, target = '_self', prefetch = true, ...props }: MenuItemProps) => {
+const MenuItem = ({
+  children,
+  className,
+  target = '_self',
+  rel: providedRel,
+  prefetch = true,
+  ...props
+}: MenuItemProps) => {
   usePrefetch({ href: props.href, target, enabled: prefetch });
+  const rel = target === '_blank' ? (providedRel ?? 'noopener noreferrer') : providedRel;
 
   return (
     <Aria.MenuItem
       target={target}
+      rel={rel}
       textValue={props.textValue ?? (typeof children === 'string' ? children : undefined)}
       className={composeRenderProps(className, (className, { isSelected }) =>
         menuItemVariants({ className, isSelected })

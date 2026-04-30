@@ -7,41 +7,35 @@ import { Analytics } from '@vercel/analytics/next';
 
 import '@zivoe/ui/globals.css';
 
+import { SITE_DESCRIPTION, SITE_IMAGE, SITE_ORIGIN, SITE_TITLE } from '@/lib/seo';
+
 import { env } from '@/env';
 
 import Providers from './_components/providers';
 
-const title = 'Zivoe | RWA Credit Protocol';
-const description =
-  'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to private credit.';
-
-const image = {
-  url: 'https://zivoe.com/zivoe-hero.jpg',
-  alt: title
-};
-
 export const metadata: Metadata = {
-  title,
-  applicationName: title,
-  description,
+  metadataBase: new URL(SITE_ORIGIN),
+  title: SITE_TITLE,
+  applicationName: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   icons: [{ rel: 'icon', url: '/favicon.ico' }],
-  authors: [{ name: 'Zivoe', url: 'https://zivoe.com/' }],
+  authors: [{ name: 'Zivoe', url: SITE_ORIGIN }],
   creator: 'Zivoe',
   openGraph: {
-    title,
-    description,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     type: 'website',
-    url: 'https://zivoe.com',
-    images: [image],
-    siteName: title,
+    url: SITE_ORIGIN,
+    images: [SITE_IMAGE],
+    siteName: SITE_TITLE,
     locale: 'en_US'
   },
   twitter: {
-    title,
-    description,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     card: 'summary_large_image',
     creator: '@zivoeprotocol',
-    images: [image]
+    images: [SITE_IMAGE]
   }
 };
 

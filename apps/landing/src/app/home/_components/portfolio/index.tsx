@@ -19,9 +19,9 @@ export default function Portfolio() {
       <Container className="w-full items-center justify-between gap-10 py-20 sm:gap-20 sm:px-10 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-center xl:gap-24 xl:px-[8.75rem] xl:py-0">
         <div className="flex flex-col gap-10 xl:gap-20 xl:py-[15.375rem]">
           <div className="flex flex-col gap-4">
-            <p className="text-h5 text-base sm:text-h3 xl:max-w-[30.875rem] xl:text-h2">
+            <h2 className="text-h5 text-base sm:text-h3 xl:max-w-[30.875rem] xl:text-h2">
               Meet the Portfolio Behind the Performance
-            </p>
+            </h2>
             <p className="text-base/80 xl:max-w-[25rem] xl:text-leading">
               Earn yield from a well-diversified private credit portfolio.
             </p>

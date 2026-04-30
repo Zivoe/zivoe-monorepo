@@ -2,6 +2,8 @@ import { type Metadata } from 'next';
 
 import { Disclosure, DisclosureGroup, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 
+import { JsonLd, SITE_ORIGIN } from '@/lib/seo';
+
 import Container from '@/components/container';
 import Footer from '@/components/footer';
 import NavigationSection from '@/components/navigation';
@@ -10,12 +12,16 @@ import { TowerLeftIcon } from '@/components/tower-left-icon';
 
 export const metadata: Metadata = {
   title: 'FAQ | Zivoe',
-  description: 'Answers to common questions about Zivoe, our features, and services.'
+  description: 'Answers to common questions about Zivoe, our features, and services.',
+  alternates: {
+    canonical: '/faq'
+  }
 };
 
 export default function FAQPage() {
   return (
     <>
+      <JsonLd data={faqJsonLd} />
       <div className="bg-surface-base lg:h-[5.75rem]">
         <NavigationSection />
       </div>
@@ -106,3 +112,17 @@ const FAQs: Array<{
       "Yes. Zivoe's smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards."
   }
 ];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  '@id': `${SITE_ORIGIN}/faq#faq`,
+  mainEntity: FAQs.map(({ question, answer }) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: answer
+    }
+  }))
+};

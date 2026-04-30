@@ -8,7 +8,10 @@ import Team from '../about-us/_components/team';
 
 export const metadata: Metadata = {
   title: 'Team | Zivoe',
-  description: 'Meet the team behind Zivoe.'
+  description: 'Meet the team behind Zivoe.',
+  alternates: {
+    canonical: '/team'
+  }
 };
 
 export const dynamic = 'force-static';

@@ -10,7 +10,7 @@ export default function Hero() {
       <Container className="mt-[3.125rem] sm:px-10 md:px-[6.25rem] lg:mt-[10rem]">
         <div className="flex max-w-[21.45rem] flex-col gap-4 sm:max-w-[36rem] lg:gap-[12.5rem]">
           <div className="flex flex-col gap-4">
-            <p className="text-h4 text-primary sm:text-h2">Meet the Team</p>
+            <h1 className="text-h4 text-primary sm:text-h2">Meet the Team</h1>
             <p className="text-regular text-primary sm:max-w-full sm:text-leading">
               We come from leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, and
               Maple Finance.

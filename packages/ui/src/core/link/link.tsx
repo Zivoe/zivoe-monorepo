@@ -28,12 +28,14 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       hideExternalLinkIcon = false,
       size,
       target = '_self',
+      rel: providedRel,
       children,
       ...props
     },
     ref
   ) => {
     usePrefetch({ href, target, enabled: prefetch });
+    const rel = getSafeRel(target, providedRel);
 
     return (
       <Aria.Link
@@ -47,6 +49,7 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
         )}
         href={href}
         target={target}
+        rel={rel}
         {...props}
         ref={ref}
       >
@@ -66,15 +69,22 @@ type NextLinkProps = NextLinkComponentProps & {
   prefetch?: boolean;
   className?: string;
   target?: HTMLAttributeAnchorTarget;
+  rel?: string;
   children?: ReactNode;
 };
 
 const NextLink = forwardRef<HTMLAnchorElement, NextLinkProps>(
-  ({ target = '_self', prefetch = true, ...props }, ref) => {
+  ({ target = '_self', prefetch = true, rel: providedRel, ...props }, ref) => {
     usePrefetch({ href: props.href, target: target, enabled: prefetch });
-    return <NextLinkComponent ref={ref} {...props} target={target} prefetch={false} />;
+    const rel = getSafeRel(target, providedRel);
+
+    return <NextLinkComponent ref={ref} {...props} target={target} rel={rel} prefetch={false} />;
   }
 );
+
+function getSafeRel(target: HTMLAttributeAnchorTarget | undefined, rel: string | undefined) {
+  return target === '_blank' ? (rel ?? 'noopener noreferrer') : rel;
+}
 
 Link.displayName = 'ZivoeUI.Link';
 NextLink.displayName = 'ZivoeUI.NextLink';
