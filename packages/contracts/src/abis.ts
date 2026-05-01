@@ -5299,10 +5299,10 @@ export const occCycleAbi = [
 ] as const;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// OCR_Cycle
+// OCR_CycleV2
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const ocrCycleAbi = [
+export const ocrCycleV2Abi = [
   {
     type: 'constructor',
     inputs: [
@@ -5311,20 +5311,11 @@ export const ocrCycleAbi = [
       { name: '_GBL', internalType: 'address', type: 'address' },
       { name: '_zVLT', internalType: 'address', type: 'address' },
       { name: '_zSTT', internalType: 'address', type: 'address' },
-      { name: '_AAVE_V3_POOL', internalType: 'address', type: 'address' },
-      { name: '_aUSDC', internalType: 'address', type: 'address' },
       { name: '_OCC', internalType: 'address', type: 'address' },
       { name: '_underwriter', internalType: 'address', type: 'address' },
       { name: '_redemptionFeeBIPS', internalType: 'uint16', type: 'uint16' }
     ],
     stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'AAVE_V3_POOL',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -5344,13 +5335,6 @@ export const ocrCycleAbi = [
     type: 'function',
     inputs: [],
     name: 'USDC',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'aUSDC',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view'
   },
@@ -5730,44 +5714,6 @@ export const ocrCycleAbi = [
       }
     ],
     name: 'OwnershipTransferred'
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      },
-      {
-        name: 'aTokenBalance',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      }
-    ],
-    name: 'USDCDepositedToAAVE'
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      },
-      {
-        name: 'aTokenBalance',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false
-      }
-    ],
-    name: 'USDCWithdrawnFromAAVE'
   },
   {
     type: 'event',

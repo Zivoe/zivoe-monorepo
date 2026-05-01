@@ -26,6 +26,7 @@ export type Contracts = {
   OCT_DAO: Address;
   OCR: Address;
   OCR_Cycle: Address;
+  OCR_CycleV2: Address;
   aUSDC: Address;
   UNISWAP_V3_POOL: Address | null;
 };

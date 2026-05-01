@@ -2,7 +2,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 
 import { CONTRACTS } from '@zivoe/contracts';
-import { ocrCycleAbi } from '@zivoe/contracts/abis';
+import { ocrCycleV2Abi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
 
@@ -17,8 +17,8 @@ export const useRedemption = () => {
       ? skipToken
       : async () => {
           const redemptionFeeBIPS = await web3.readContract({
-            abi: ocrCycleAbi,
-            address: CONTRACTS.OCR_Cycle,
+            abi: ocrCycleV2Abi,
+            address: CONTRACTS.OCR_CycleV2,
             functionName: 'redemptionFeeBIPS'
           });
 

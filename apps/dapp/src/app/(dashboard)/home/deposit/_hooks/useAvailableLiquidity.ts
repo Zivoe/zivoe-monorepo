@@ -6,12 +6,12 @@ import { useBalance } from '@/hooks/useBalance';
 
 export const useAvailableLiquidity = () => {
   return useBalance({
-    tokenAddress: CONTRACTS.aUSDC,
-    accountAddress: CONTRACTS.OCR_Cycle
+    tokenAddress: CONTRACTS.USDC,
+    accountAddress: CONTRACTS.OCR_CycleV2
   });
 };
 
 export const availableLiquidityQueryKey = queryKeys.account.balanceOf({
-  accountAddress: CONTRACTS.OCR_Cycle,
-  id: CONTRACTS.aUSDC
+  accountAddress: CONTRACTS.OCR_CycleV2,
+  id: CONTRACTS.USDC
 });

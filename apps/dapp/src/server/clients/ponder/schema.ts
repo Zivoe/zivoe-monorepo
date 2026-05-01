@@ -100,7 +100,7 @@ export const depositRelations = relations(deposit, ({ one }) => ({
   account: one(account, { fields: [deposit.accountId], references: [account.id] })
 }));
 
-// Redemption tracking for OCR_Cycle:zVLTBurnedForUSDC events
+// Redemption tracking for OCR_Cycle:zVLTBurnedForUSDC events and OCR_CycleV2:zVLTBurnedForUSDC events
 export const redemption = onchainTable(
   'redemption',
   (t) => ({
