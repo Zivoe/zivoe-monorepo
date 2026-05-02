@@ -49,7 +49,7 @@ export default function Deposit({ apy, initialView }: { apy: number | null; init
         <DialogContent dialogClassName="gap-0" showCloseButton={false}>
           <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>Earn</DialogTitle>
-            {/* <AvailableLiquidity type="mobile" /> */}
+            <AvailableLiquidity type="mobile" />
           </DialogHeader>
 
           <EarnBox
@@ -130,7 +130,7 @@ function EarnBox({
         <TransactionDialog />
       </div>
 
-      {/* <AvailableLiquidity type="desktop" /> */}
+      <AvailableLiquidity type="desktop" />
     </div>
   );
 }
