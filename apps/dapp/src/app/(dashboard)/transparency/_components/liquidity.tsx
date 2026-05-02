@@ -45,10 +45,10 @@ export default function Liquidity({ data }: { data: Liquidity }) {
           <Link href="/?view=redeem">
             <Row className="border border-transparent border-b-subtle">
               <Venue type="Zivoe" title="Redeem" />
-              <Item>{formatBigIntToReadable(data.aUSDC, 18)}</Item>
+              <Item>{formatBigIntToReadable(data.redeemUSDC, 18)}</Item>
               <Item>
                 <UsdcIcon className="size-6" />
-                <p className="text-regular text-primary">aUSDC</p>
+                <p className="text-regular text-primary">USDC</p>
               </Item>
               <Item>
                 <Badge variant="primary">

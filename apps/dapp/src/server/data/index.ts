@@ -70,6 +70,7 @@ const getCurrentDailyData = async () => {
         total30Days: BigInt(stablecoins.total30Days),
         percentage: toPercentage(stablecoins.total, totalNumber),
         usdc: BigInt(stablecoins.usdc),
+        usdcInOCRCycleV2: BigInt(stablecoins.usdcInOCRCycleV2 ?? 0),
         usdt: BigInt(stablecoins.usdt),
         frxUSD: BigInt(stablecoins.frxUSD)
       },
@@ -129,12 +130,14 @@ const getLiquidity = async () => {
 
     if (!currentDailyData) return null;
 
-    const aUSDC = currentDailyData.tvl.deFi.aUSDC;
-    const days3 = currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days;
+    const redeemUSDC = currentDailyData.tvl.stablecoins.usdcInOCRCycleV2;
+    const days3Raw =
+      currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days - redeemUSDC;
+    const days3 = days3Raw > 0n ? days3Raw : 0n;
     const days30 = currentDailyData.tvl.stablecoins.total30Days;
 
     return {
-      aUSDC,
+      redeemUSDC,
       uniswap,
       days3,
       days30

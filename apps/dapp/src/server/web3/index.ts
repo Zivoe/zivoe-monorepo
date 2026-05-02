@@ -191,6 +191,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
   const frxUSDTotal = normalizeToDecimals18(frxUSDInDAO + frxUSDInOCT_DAO, DECIMALS.frxUSD);
   const stablecoinsTotal = usdcTotal + usdtTotal + frxUSDTotal;
   const stablecoinsTotal30Days = normalizeToDecimals18(usdcInYDL + usdcInStSTT, DECIMALS.USDC);
+  const usdcInOCRCycleV2Total = normalizeToDecimals18(USDCInOCR_CycleV2, DECIMALS.USDC);
 
   const m0Total = normalizeToDecimals18(m0InDAO + m0InOCT_DAO, DECIMALS.M0);
   const treasuryBillsTotal = m0Total;
@@ -210,6 +211,7 @@ const getTVL = async ({ client, contracts, blockNumber }: Web3Request) => {
       total: stablecoinsTotal.toString(),
       total30Days: stablecoinsTotal30Days.toString(),
       usdc: usdcTotal.toString(),
+      usdcInOCRCycleV2: usdcInOCRCycleV2Total.toString(),
       usdt: usdtTotal.toString(),
       frxUSD: frxUSDTotal.toString()
     },
