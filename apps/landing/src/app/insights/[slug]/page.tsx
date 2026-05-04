@@ -1,19 +1,22 @@
 import { type ReactNode } from 'react';
 
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
 
-import { ArrowLeftIcon } from '@zivoe/ui/icons';
 import { NextLink } from '@zivoe/ui/core/link';
+import { ArrowLeftIcon } from '@zivoe/ui/icons';
+
+import { getInsightsCmsOrigin } from '@/server/clients/cms';
+import { getAllInsightSlugs, getInsightPostBySlug, getRelatedInsightPosts } from '@/server/insights';
+import { formatInsightDate } from '@/server/insights';
+import { getInsightsPreviewSession } from '@/server/insights/preview';
+
+import { JsonLd, SITE_ORIGIN } from '@/lib/seo';
 
 import Container from '@/components/container';
 import Footer from '@/components/footer';
 import Newsletter from '@/components/newsletter';
-import { getAllInsightSlugs, getInsightPostBySlug, getRelatedInsightPosts } from '@/server/insights';
-import { getInsightsPreviewSession } from '@/server/insights/preview';
-import { formatInsightDate } from '@/server/insights';
-import { getInsightsCmsOrigin } from '@/server/clients/cms';
 
 import { InsightCard } from '../_components/card';
 import { LeavePreviewBanner } from '../_components/leave-preview';
@@ -47,10 +50,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const image = post.seoImageOverride?.heroUrl ?? post.seoImageOverride?.url ?? post.featuredImage.heroUrl ?? post.featuredImage.url;
+  const image =
+    post.seoImageOverride?.heroUrl ??
+    post.seoImageOverride?.url ??
+    post.featuredImage.heroUrl ??
+    post.featuredImage.url;
   const title = `${post.metaTitle} | Zivoe`;
   const description = post.metaDescription;
-  const url = `https://zivoe.com/insights/${post.slug}`;
+  const url = `${SITE_ORIGIN}/insights/${post.slug}`;
 
   return {
     title,
@@ -94,7 +101,10 @@ export default async function InsightPostPage({ params }: PageProps) {
   });
 
   const articleImage =
-    post.seoImageOverride?.heroUrl ?? post.seoImageOverride?.url ?? post.featuredImage.heroUrl ?? post.featuredImage.url;
+    post.seoImageOverride?.heroUrl ??
+    post.seoImageOverride?.url ??
+    post.featuredImage.heroUrl ??
+    post.featuredImage.url;
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -108,31 +118,31 @@ export default async function InsightPostPage({ params }: PageProps) {
     publisher: {
       '@type': 'Organization',
       name: 'Zivoe',
-      logo: { '@type': 'ImageObject', url: 'https://zivoe.com/favicon.ico' }
+      logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/favicon.ico` }
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://zivoe.com/insights/${post.slug}`
+      '@id': `${SITE_ORIGIN}/insights/${post.slug}`
     }
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
+      <JsonLd data={articleJsonLd} />
       <Container className="px-4 pb-20 pt-10 sm:px-10 xl:px-[8.5rem]">
         <div className="mx-auto flex w-full max-w-[57rem] flex-col gap-8">
           {previewSession.isEnabled ? <InsightsLivePreview serverURL={getInsightsCmsOrigin()} /> : null}
 
-          <NextLink href="/insights" className="inline-flex items-center gap-2 text-small text-primary hover:text-brand">
+          <NextLink
+            href="/insights"
+            className="inline-flex items-center gap-2 text-small text-primary hover:text-brand"
+          >
             <ArrowLeftIcon className="size-4" />
             Back
           </NextLink>
 
           <div className="overflow-hidden rounded-[8px] bg-surface-base-soft">
-            {post.featuredImage.heroUrl ?? post.featuredImage.url ? (
+            {(post.featuredImage.heroUrl ?? post.featuredImage.url) ? (
               <Image
                 src={post.featuredImage.heroUrl ?? post.featuredImage.url ?? ''}
                 alt={post.featuredImage.alt}

@@ -12,7 +12,7 @@ export default function Infrastructure() {
       <div className="flex max-w-[40rem] flex-col gap-8">
         <p className="!font-heading text-small text-primary sm:text-leading">Wall Street-Grade Security</p>
 
-        <p className="text-h6 text-primary sm:text-h4 xl:text-h2">Rest Easy, Knowing Your Assets Are Protected</p>
+        <h2 className="text-h6 text-primary sm:text-h4 xl:text-h2">Rest Easy, Knowing Your Assets Are Protected</h2>
       </div>
 
       <div className="flex flex-col gap-6 xl:flex-row">

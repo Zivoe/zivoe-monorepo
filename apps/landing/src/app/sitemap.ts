@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 import { getAllInsightSlugs } from '@/server/insights';
 
-const SITE_ORIGIN = 'https://zivoe.com';
+import { SITE_ORIGIN } from '@/lib/seo';
 
-const STATIC_PATHS = ['/', '/about-us', '/team', '/faq', '/insights'];
+const STATIC_PATHS = ['/', '/team', '/faq', '/insights'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const insightEntries = await getAllInsightSlugs();

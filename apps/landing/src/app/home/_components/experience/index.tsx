@@ -35,9 +35,9 @@ export default function Experience() {
         <div className="z-10 mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
           <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-[40rem]">
             <div className="flex flex-col gap-6">
-              <p className="!font-heading text-subheading text-primary sm:text-h4 xl:text-h3">
+              <h2 className="!font-heading text-subheading text-primary sm:text-h4 xl:text-h3">
                 Driven by Experience. Powered by Collaboration.
-              </p>
+              </h2>
 
               <div>
                 <p className="text-leading text-primary sm:text-smallSubheading">

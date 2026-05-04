@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   title: 'Insights | Zivoe',
   description: 'Read the latest Zivoe insights, updates, and perspectives on private credit.',
   alternates: {
-    canonical: 'https://zivoe.com/insights'
+    canonical: '/insights'
   }
 };
 
