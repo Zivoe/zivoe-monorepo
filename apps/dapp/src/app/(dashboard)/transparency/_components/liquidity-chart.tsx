@@ -10,12 +10,12 @@ import { customNumber, formatBigIntWithCommas } from '@/lib/utils';
 
 export default function LiquidityChart({ data }: { data: Liquidity }) {
   const chartData = (() => {
-    const instantValue = Number(data.aUSDC / 10n ** 18n) + Number(data.uniswap / 10n ** 6n);
+    const instantValue = Number(data.redeemUSDC / 10n ** 18n) + Number(data.uniswap / 10n ** 6n);
     const days3Value = Number(data.days3 / 10n ** 12n) / 10 ** 6;
     const days30Value = Number(data.days30 / 10n ** 12n) / 10 ** 6;
 
-    const aUSDCIn6Decimals = data.aUSDC / 10n ** 12n;
-    const instantOriginalValue = aUSDCIn6Decimals + data.uniswap;
+    const redeemUSDCIn6Decimals = data.redeemUSDC / 10n ** 12n;
+    const instantOriginalValue = redeemUSDCIn6Decimals + data.uniswap;
 
     return [
       {

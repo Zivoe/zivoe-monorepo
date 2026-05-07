@@ -18,6 +18,7 @@ export type TVL = {
     total: string;
     total30Days: string;
     usdc: string;
+    usdcInOCRCycleV2: string;
     usdt: string;
     frxUSD: string;
   };
