@@ -52,7 +52,7 @@ async function DepositStatsComponent() {
   const [currentDailyData, revenue] = await Promise.all([data.getCurrentDailyData(), data.getRevenue()]);
   if (!currentDailyData || !revenue) return null;
 
-  return <DepositStats apy={currentDailyData.apy} tvl={currentDailyData.tvl.total} revenue={BigInt(revenue)} />;
+  return <DepositStats tvl={currentDailyData.tvl.total} revenue={BigInt(revenue)} />;
 }
 
 async function DepositAllocationComponent() {
