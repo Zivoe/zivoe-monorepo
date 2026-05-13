@@ -5,7 +5,7 @@ import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
 import { web3 } from '@/server/web3';
 
-import { customNumber, formatBigIntToReadable } from '@/lib/utils';
+import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -75,7 +75,7 @@ async function Statistics() {
         <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl.total))} />
       ) : null}
 
-      {currentDailyData?.apy ? <Statistic label="APY" value={customNumber(currentDailyData.apy) + '%'} /> : null}
+      <Statistic label="Target Net APY" value="10-12%" />
 
       {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
     </div>
@@ -84,9 +84,9 @@ async function Statistics() {
 
 function Statistic({ label, value, description }: { label: string; value: string; description?: string }) {
   return (
-    <div className="flex flex-col gap-3 text-primary">
+    <div className="flex shrink-0 flex-col gap-3 text-primary">
       <div className="flex items-center">
-        <p className="text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+        <p className="whitespace-nowrap text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
 
         {description && (
           <ContextualHelp variant="info">
@@ -94,7 +94,7 @@ function Statistic({ label, value, description }: { label: string; value: string
           </ContextualHelp>
         )}
       </div>
-      <p className="text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
+      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
     </div>
   );
 }

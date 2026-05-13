@@ -17,8 +17,8 @@ export default function Infrastructure() {
 
       <div className="flex flex-col gap-6 xl:flex-row">
         <Card
-          title="Bankruptcy Remote"
-          description="User assets are held in bankruptcy-remote special purpose vehicles, ensuring user assets remain protected."
+          title="SPV Structure"
+          description="User assets are held in special purpose vehicles, ensuring user assets remain protected."
           className="bg-element-secondary-gentle"
         >
           <BankruptcyIcon className="absolute -right-0 -top-11 w-[180px] sm:right-0 sm:top-0 sm:w-fit" />
