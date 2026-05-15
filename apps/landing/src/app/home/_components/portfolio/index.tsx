@@ -2,7 +2,7 @@ import { type ReactNode, Suspense } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { ChartLightIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
+import { CalendarIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { web3 } from '@/server/web3';
@@ -32,13 +32,13 @@ export default function Portfolio() {
               <LoanPortfolio />
             </Suspense>
 
-            <Card title="Average Loan Size" description="$3,300">
+            <Card title="Live Since" description="September 2024">
               <CardIcon className="bg-primary-400">
-                <ChartLightIcon />
+                <CalendarIcon />
               </CardIcon>
             </Card>
 
-            <Card title="Geography" description="Americas">
+            <Card title="Geography" description="Americas & EU">
               <CardIcon className="bg-[#84DAC0]">
                 <GlobeIcon />
               </CardIcon>

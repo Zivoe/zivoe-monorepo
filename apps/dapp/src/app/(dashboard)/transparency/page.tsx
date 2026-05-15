@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
-import { CreditIcon, DollarIcon, DropIcon } from '@zivoe/ui/icons';
+import { CreditIcon, DollarIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
@@ -15,8 +15,8 @@ import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donu
 import { Card } from './_components/card';
 import { PortfolioAIcon } from './_components/icons/portfolio-a';
 import { PortfolioBIcon } from './_components/icons/portfolio-b';
-import Liquidity from './_components/liquidity';
-import LiquidityChart from './_components/liquidity-chart';
+// import Liquidity from './_components/liquidity';
+// import LiquidityChart from './_components/liquidity-chart';
 import LoanCard from './_components/loans';
 import { ZIVOE_ZAPPER_URL } from './_utils/constants';
 
@@ -29,7 +29,15 @@ export default function TransparencyPage() {
         <Page className="flex gap-10">
           <div className="space-y-2">
             <h1 className="text-h3 text-primary">Transparency</h1>
-            <p className="text-regular text-secondary">Access real-time data and reports about zVLT</p>
+            <p className="text-regular text-secondary">
+              We're currently upgrading our reporting infrastructure to provide more detailed portfolio analytics. To
+              view historical performance, see the index price on our Earn page. If you have any questions about our
+              portfolio, please contact{' '}
+              <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
+                investors@zivoe.com
+              </Link>
+              .
+            </p>
           </div>
 
           <Card>
@@ -76,7 +84,7 @@ export default function TransparencyPage() {
             </div>
           </Card>
 
-          <Card>
+          {/* <Card>
             <Card.Header title="Liquidity" icon={<DropIcon />} />
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -91,7 +99,7 @@ export default function TransparencyPage() {
                 <LiquidityWrapper />
               </Suspense>
             </div>
-          </Card>
+          </Card> */}
         </Page>
       </div>
     </>
@@ -125,7 +133,7 @@ async function PortfolioALoan() {
       investmentValue={formatBigIntToReadable(BigInt(loans.portfolioA.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(loans.portfolioA.interest), 6)}
       averageLoanSize="$3,300"
-      geography="Americas"
+      geography="Americas and EU"
     />
   );
 }
@@ -143,24 +151,24 @@ async function PortfolioBLoan() {
       investmentValue={formatBigIntToReadable(BigInt(loans.portfolioB.invested), 18)}
       interestEarned={formatBigIntToReadable(BigInt(loans.portfolioB.interest), 6)}
       averageLoanSize="$3,829"
-      geography="Americas"
+      geography="Americas and EU"
     />
   );
 }
 
-async function LiquidityWrapper() {
-  const liquidity = await data.getLiquidity();
-  if (!liquidity) return null;
-
-  return (
-    <>
-      <Card.Body>
-        <Liquidity data={liquidity} />
-      </Card.Body>
-
-      <Card.Body>
-        <LiquidityChart data={liquidity} />
-      </Card.Body>
-    </>
-  );
-}
+// async function LiquidityWrapper() {
+//   const liquidity = await data.getLiquidity();
+//   if (!liquidity) return null;
+//
+//   return (
+//     <>
+//       <Card.Body>
+//         <Liquidity data={liquidity} />
+//       </Card.Body>
+//
+//       <Card.Body>
+//         <LiquidityChart data={liquidity} />
+//       </Card.Body>
+//     </>
+//   );
+// }

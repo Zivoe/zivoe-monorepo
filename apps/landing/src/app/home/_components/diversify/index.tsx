@@ -35,7 +35,7 @@ export default function Diversify() {
           <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:bottom-0 sm:right-8 sm:-ml-0 sm:w-auto" />
         </Card>
 
-        <Card label="Via Instant Redemptions" title="24/7 Liquidity">
+        <Card label="Via Direct Redemptions" title="Flexible Liquidity">
           <LiquidityIcon className="w-[7.1875rem] sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
         </Card>
 
