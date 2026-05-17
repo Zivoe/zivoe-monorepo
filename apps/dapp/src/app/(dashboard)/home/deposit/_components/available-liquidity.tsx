@@ -45,7 +45,7 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
         </div>
       )}
 
-      {/* Need more liquidity */}
+      {/* Looking to redeem */}
       <div
         className={cn(
           'flex rounded-md bg-element-warning-light text-warning',
@@ -55,7 +55,7 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
         <InfoIcon className={cn('flex-shrink-0', isDesktop ? 'size-6' : 'size-4')} />
 
         <div className={cn('flex flex-col', isDesktop && 'gap-1')}>
-          {isDesktop && <p className="text-leading font-medium">Need more liquidity?</p>}
+          {isDesktop && <p className="text-leading font-medium">Looking to redeem?</p>}
 
           <p className={cn('font-medium', isDesktop ? 'text-regular font-normal' : 'text-small')}>
             Contact us at{' '}
@@ -70,7 +70,7 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
             >
               {EMAILS.INVESTORS}
             </Link>
-            {!isDesktop && ' for more liquidity'}
+            {!isDesktop && ' to redeem'}
           </p>
         </div>
       </div>

@@ -1,6 +1,9 @@
+import { type ReactNode } from 'react';
+
 import { type Metadata } from 'next';
 
 import { Disclosure, DisclosureGroup, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
+import { Link } from '@zivoe/ui/core/link';
 
 import { JsonLd, SITE_ORIGIN } from '@/lib/seo';
 
@@ -64,7 +67,8 @@ function Faq() {
 
 const FAQs: Array<{
   question: string;
-  answer: string;
+  answer: ReactNode;
+  jsonLdAnswer?: string;
 }> = [
   {
     question: 'What is Zivoe?',
@@ -98,8 +102,19 @@ const FAQs: Array<{
   },
   {
     question: 'What is the lockup and liquidity policy?',
-    answer:
-      'Zivoe enforces no lockup period, and you can withdraw from your zVLT position at any time liquidity permitting. To see how much liquidity is available for redemptions and to submit a redeem transaction, simply visit our dApp. In addition to redemptions, there is also an active zVLT / USDC Uniswap pool providing another venue for users to exit their position.'
+    answer: (
+      <>
+        Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital
+        availability. To initiate a redemption, or if you have questions about the redemption process before depositing,
+        contact us at{' '}
+        <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
+          investors@zivoe.com
+        </Link>
+        .
+      </>
+    ),
+    jsonLdAnswer:
+      'Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital availability. To initiate a redemption, or if you have questions about the redemption process before depositing, contact us at investors@zivoe.com.'
   },
   {
     question: 'How do I convert my tranche tokens to zVLT?',
@@ -117,12 +132,12 @@ const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   '@id': `${SITE_ORIGIN}/faq#faq`,
-  mainEntity: FAQs.map(({ question, answer }) => ({
+  mainEntity: FAQs.map(({ question, answer, jsonLdAnswer }) => ({
     '@type': 'Question',
     name: question,
     acceptedAnswer: {
       '@type': 'Answer',
-      text: answer
+      text: jsonLdAnswer ?? (typeof answer === 'string' ? answer : '')
     }
   }))
 };

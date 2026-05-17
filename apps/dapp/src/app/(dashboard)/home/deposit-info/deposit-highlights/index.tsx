@@ -16,8 +16,8 @@ export default function DepositHighlights() {
       <div className="flex flex-col gap-3">
         <Card
           icon={<LiquidityIcon />}
-          title="24/7 Liquidity"
-          description="Enjoy 24/7/365 liquidity for zVLT via instant redemptions, subject to available liquidity."
+          title="Flexible Liquidity"
+          description="Contact us at investors@zivo.com to initiate a redemption or with any questions about liquidity before depositing."
           className="bg-element-primary-gentle"
         />
 
