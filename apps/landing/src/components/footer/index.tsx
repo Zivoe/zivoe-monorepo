@@ -80,8 +80,8 @@ function FooterSection({ title, links }: { title: string; links: Array<FooterSec
       <p className="!font-heading text-regular text-tertiary">{title}</p>
 
       <div className="flex flex-col gap-3">
-        {links.map(({ href, label }) => (
-          <Link key={label} href={href} target="_blank" hideExternalLinkIcon variant="link-base" size="s">
+        {links.map(({ href, label, target }) => (
+          <Link key={label} href={href} target={target} variant="link-base" size="s">
             {label}
           </Link>
         ))}
@@ -90,33 +90,24 @@ function FooterSection({ title, links }: { title: string; links: Array<FooterSec
   );
 }
 
-type FooterSectionLink = { href: string; label: string };
+type FooterSectionLink = { href: string; label: string; target?: string };
 
 const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }> = [
   {
     title: 'Explore',
     links: [
-      // TODO: Add back when insights are published
-      // { href: '/insights', label: 'Insights' },
-      { href: 'https://blog.zivoe.com', label: 'Newsletter' },
-      { href: 'https://docs.zivoe.com', label: 'Docs' },
-      { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub' },
-      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits' },
+      { href: '/insights', label: 'Insights' },
+      { href: 'https://docs.zivoe.com', label: 'Docs', target: '_blank' },
+      { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub', target: '_blank' },
+      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits', target: '_blank' },
       { href: '/faq', label: 'FAQ' }
     ]
   },
-  {
-    title: 'Legacy',
-    links: [
-      { href: 'https://legacy.zivoe.com', label: 'App' },
-      { href: 'https://legacy.zivoe.com/governance', label: 'Governance' }
-    ]
-  },
+
   {
     title: 'Company',
     links: [
       { href: '/team', label: 'Team' },
-      // { href: '/', label: 'Media Kit' },
       { href: `mailto:${EMAILS.INVESTORS}`, label: 'Contact Us' }
     ]
   }
