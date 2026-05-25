@@ -6,6 +6,7 @@ import { redemption as redemptionTable } from '@/server/clients/ponder/schema';
 import { getWeb3Client } from '@/server/clients/web3';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { getEventsAfterCursor } from '@/server/data/ponder';
+import { captureServerEvent } from '@/server/utils/analytics';
 import {
   createCronRunWideEvent,
   getErrorMessage,
@@ -28,6 +29,7 @@ import {
 import type { FailureContext, MonitorCursor } from '@/server/utils/transaction-notifications';
 
 import { withQstashSignature } from '@/lib/qstash';
+import { createTransactionProperties } from '@/lib/analytics/events';
 import { ApiError, escapeHtml, formatBigIntWithCommas, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -110,6 +112,32 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
       runEvent.stage = 'get_users';
       const users = await getUsersForWallet(redemption.accountId);
       const telegramEmailLine = formatTelegramEmailLine(users);
+
+      await Promise.all(
+        users.map((userRecord) =>
+          captureServerEvent({
+            distinctId: userRecord.userId,
+            event: 'tx:redeem_confirmed',
+            timestamp: new Date(Number(redemption.timestamp) * 1000),
+            properties: {
+              ...createTransactionProperties({
+                flow: 'redeem',
+                step: 'confirmed',
+                walletAddress: redemption.accountId,
+                tokenIn: 'zVLT',
+                tokenOut: 'USDC',
+                amountInRaw: redemption.zVLTBurned,
+                amountOutRaw: redemption.usdcRedeemed,
+                txHash: redemption.txHash,
+                blockNumber: redemption.blockNumber,
+                logIndex: redemption.logIndex,
+                eventId: redemption.id
+              }),
+              $insert_id: `tx:redeem_confirmed:${redemption.id}:${userRecord.userId}`
+            }
+          })
+        )
+      );
 
       telegramItems.push(
         `<b>Redeem</b>\nUser: ${redemption.accountId}\n${telegramEmailLine}\nzVLT burned: ${escapeHtml(

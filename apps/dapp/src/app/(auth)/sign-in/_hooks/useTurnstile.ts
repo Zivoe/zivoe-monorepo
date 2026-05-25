@@ -20,7 +20,7 @@ export const useTurnstile = () => {
         turnstileRef.current?.reset();
         turnstileRef.current?.execute();
       } catch (error) {
-        reject(error as Error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }

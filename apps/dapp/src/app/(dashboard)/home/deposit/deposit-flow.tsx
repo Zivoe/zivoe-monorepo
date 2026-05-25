@@ -17,6 +17,8 @@ import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, Select
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, type DepositToken } from '@/types/constants';
 
+import { createTransactionProperties } from '@/lib/analytics/events';
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -46,6 +48,7 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   const [receive, setReceive] = useState<string | undefined>(undefined);
 
   const account = useAccount();
+  const analytics = useAnalytics();
   const chainalysis = useChainalysis();
 
   const allowances = useDepositAllowances();
@@ -147,6 +150,19 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   const handleDeposit = async ({ token }: { token: DepositToken }) => {
     const isValid = await validateForm();
     if (!isValid) return;
+
+    analytics.capture(
+      'tx:deposit_started',
+      createTransactionProperties({
+        flow: 'deposit',
+        step: 'started',
+        walletAddress: account.address,
+        tokenIn: token,
+        tokenOut: 'zVLT',
+        amountInRaw: depositRaw,
+        amountOutRaw: receive ? parseUnits(receive, 18) : undefined
+      })
+    );
 
     if (token === 'USDT')
       routerDeposit.mutate({ stableCoinName: token, amount: depositRaw }, { onSuccess: handleDepositSuccess });

@@ -8,6 +8,8 @@ import { zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
 
 import { type DepositToken } from '@/types/constants';
 
+import { createTransactionProperties, getAnalyticsErrorType } from '@/lib/analytics/events';
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, onTxError, skipTxSettled } from '@/lib/utils';
 
@@ -19,6 +21,7 @@ export type RouterDepositParams = WriteContractParameters<typeof zivoeRouterAbi,
 
 export const useRouterDeposit = () => {
   const { address } = useAccount();
+  const analytics = useAnalytics();
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const setTransaction = useSetAtom(transactionAtom);
@@ -28,6 +31,15 @@ export const useRouterDeposit = () => {
     mutationFn: async ({ stableCoinName, amount }: { stableCoinName: RouterDepositToken; amount?: bigint }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
+      const baseAnalyticsInput = {
+        flow: 'deposit',
+        step: 'submitted',
+        walletAddress: address,
+        tokenIn: stableCoinName,
+        tokenOut: 'zVLT',
+        amountInRaw: amount
+      } as const;
+
       const params: RouterDepositParams & SimulateContractParameters = {
         abi: zivoeRouterAbi,
         address: CONTRACTS.zRTR,
@@ -35,16 +47,46 @@ export const useRouterDeposit = () => {
         args: [CONTRACTS[stableCoinName], amount]
       };
 
-      await simulateTx(params);
+      let txHash: `0x${string}` | undefined;
 
-      const { hash } = await sendTx(params);
+      try {
+        await simulateTx(params);
 
-      const receipt = await waitForTxReceipt({
-        hash,
-        messages: { pending: `Depositing ${stableCoinName}...` }
-      });
+        const { hash } = await sendTx(params);
+        txHash = hash;
+        analytics.capture('tx:deposit_submitted', createTransactionProperties({ ...baseAnalyticsInput, txHash }));
 
-      return { receipt };
+        const receipt = await waitForTxReceipt({
+          hash,
+          messages: { pending: `Depositing ${stableCoinName}...` }
+        });
+
+        analytics.capture(
+          receipt.status === 'success' ? 'tx:deposit_receipt' : 'tx:deposit_failed',
+          createTransactionProperties({
+            ...baseAnalyticsInput,
+            step: receipt.status === 'success' ? 'receipt' : 'failed',
+            txHash: receipt.transactionHash,
+            receiptStatus: receipt.status
+          })
+        );
+
+        return { receipt };
+      } catch (err) {
+        const errorType = getAnalyticsErrorType(err);
+
+        analytics.capture(
+          errorType === 'user_rejected' ? 'tx:deposit_signature_rejected' : 'tx:deposit_failed',
+          createTransactionProperties({
+            ...baseAnalyticsInput,
+            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
+            txHash,
+            error_type: errorType
+          })
+        );
+
+        throw err;
+      }
     },
 
     onError: (err, variables) => {

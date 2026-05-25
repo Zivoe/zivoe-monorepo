@@ -94,6 +94,15 @@ export async function completeOnboarding(data: OnboardingFormData) {
         distinctId: session.user.id,
         event: 'onboarding:completed',
         properties: {
+          account_type: rest.accountType,
+          amount_of_interest: rest.amountOfInterest,
+          how_found_zivoe: rest.howFoundZivoe,
+          country:
+            rest.accountType === 'individual'
+              ? rest.countryOfResidence
+              : rest.accountType === 'organization'
+                ? rest.countryOfIncorporation
+                : undefined,
           $set: { ...rest, authId: id, name: `${firstName} ${lastName}` }
         }
       })

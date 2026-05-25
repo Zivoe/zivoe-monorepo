@@ -6,10 +6,10 @@ import { sql } from 'drizzle-orm';
 import { isAddress } from 'viem';
 
 import { authDb } from '@/server/clients/auth-db';
-import { posthog } from '@/server/clients/posthog';
 import { qstash } from '@/server/clients/qstash';
 import { redis } from '@/server/clients/redis';
 import { walletConnection } from '@/server/db/schema';
+import { captureServerEvent } from '@/server/utils/analytics';
 import { BASE_URL } from '@/server/utils/base-url';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
@@ -88,7 +88,7 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
       failureCallback: getQstashFailureCallback(BASE_URL),
       label: QSTASH_JOB_LABELS.walletFetchHoldings
     }),
-    posthog.captureImmediate({
+    captureServerEvent({
       distinctId: user.id,
       event: 'wallet_connected',
       properties: {

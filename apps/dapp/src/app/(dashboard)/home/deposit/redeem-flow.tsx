@@ -12,6 +12,8 @@ import { CONTRACTS } from '@zivoe/contracts';
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
 
+import { createTransactionProperties } from '@/lib/analytics/events';
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -43,6 +45,7 @@ export default function RedeemFlow() {
   const [receive, setReceive] = useState<Receive>({ value: undefined, fee: undefined });
 
   const account = useAccount();
+  const analytics = useAnalytics();
   const chainalysis = useChainalysis();
 
   const liquidity = useAvailableLiquidity();
@@ -149,6 +152,19 @@ export default function RedeemFlow() {
   const handleRedeem = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
+
+    analytics.capture(
+      'tx:redeem_started',
+      createTransactionProperties({
+        flow: 'redeem',
+        step: 'started',
+        walletAddress: account.address,
+        tokenIn: 'zVLT',
+        tokenOut: 'USDC',
+        amountInRaw: redeemRaw,
+        amountOutRaw: receive.value ? parseUnits(receive.value, 6) : undefined
+      })
+    );
 
     redeemUSDC.mutate({ amount: redeemRaw }, { onSuccess: handleRedeemSuccess });
   };
