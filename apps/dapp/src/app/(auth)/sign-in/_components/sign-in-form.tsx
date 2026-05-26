@@ -20,6 +20,7 @@ import { ArrowLeftIcon, GoogleIcon, TwitterIcon } from '@zivoe/ui/icons';
 
 import { WITH_TURNSTILE } from '@/types/constants';
 
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { authClient } from '@/lib/auth-client';
 import { handlePromise } from '@/lib/utils';
 
@@ -123,6 +124,7 @@ function EmailStepForm({
   onSuccess: (data: EmailFormData) => void;
   executeTurnstile: () => Promise<string>;
 }) {
+  const analytics = useAnalytics();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isTwitterLoading, setIsTwitterLoading] = useState(false);
 
@@ -189,6 +191,7 @@ function EmailStepForm({
       return;
     }
 
+    analytics.capture('auth:otp_requested', { method: 'email_otp' });
     onSuccess({ email });
   };
 
@@ -267,6 +270,7 @@ const otpSchema = z.object({
 type OtpFormData = z.infer<typeof otpSchema>;
 
 function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnstile: () => Promise<string> }) {
+  const analytics = useAnalytics();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -345,6 +349,8 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
 
       Sentry.captureException(error, { tags: { source: 'SERVER', flow: 'resend-otp' } });
     } else {
+      analytics.capture('auth:otp_resent', { method: 'email_otp' });
+
       toast({
         title: 'Code sent',
         description: 'A new verification code has been sent to your email',

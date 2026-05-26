@@ -8,6 +8,7 @@ import { deposit as depositTable } from '@/server/clients/ponder/schema';
 import { getWeb3Client } from '@/server/clients/web3';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { getEventsAfterCursor } from '@/server/data/ponder';
+import { captureServerEvent } from '@/server/utils/analytics';
 import {
   createCronRunWideEvent,
   getErrorMessage,
@@ -31,6 +32,7 @@ import {
 import type { FailureContext, MonitorCursor } from '@/server/utils/transaction-notifications';
 
 import { withQstashSignature } from '@/lib/qstash';
+import { createTransactionProperties } from '@/lib/analytics/events';
 import { ApiError, escapeHtml, formatBigIntWithCommas, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -165,6 +167,32 @@ const handler = async (req: NextRequest): ApiResponse<string> => {
       runEvent.stage = 'get_users';
       const users = await getUsersForWallet(deposit.accountId);
       const telegramEmailLine = formatTelegramEmailLine(users);
+
+      await Promise.all(
+        users.map((userRecord) =>
+          captureServerEvent({
+            distinctId: userRecord.userId,
+            event: 'tx:deposit_confirmed',
+            timestamp: new Date(Number(deposit.timestamp) * 1000),
+            properties: {
+              ...createTransactionProperties({
+                flow: 'deposit',
+                step: 'confirmed',
+                walletAddress: deposit.accountId,
+                tokenIn: inputDetails.tokenSymbol,
+                tokenOut: 'zVLT',
+                amountInRaw: inputDetails.amountRaw,
+                amountOutRaw: deposit.shares,
+                txHash: deposit.txHash,
+                blockNumber: deposit.blockNumber,
+                logIndex: deposit.logIndex,
+                eventId: deposit.id
+              }),
+              $insert_id: `tx:deposit_confirmed:${deposit.id}:${userRecord.userId}`
+            }
+          })
+        )
+      );
 
       telegramItems.push(
         `<b>Deposit</b>\nUser: ${deposit.accountId}\n${telegramEmailLine}\nInput: ${escapeHtml(

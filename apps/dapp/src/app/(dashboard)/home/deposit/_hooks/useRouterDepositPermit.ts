@@ -12,6 +12,8 @@ import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contrac
 
 import { type DepositToken } from '@/types/constants';
 
+import { createTransactionProperties, getAnalyticsErrorType } from '@/lib/analytics/events';
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom, transactionAtom } from '@/lib/store';
 import {
   AppError,
@@ -30,6 +32,7 @@ export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRout
 
 export const useRouterDepositPermit = () => {
   const publicClient = usePublicClient();
+  const analytics = useAnalytics();
   const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
   const queryClient = useQueryClient();
   const setTransaction = useSetAtom(transactionAtom);
@@ -45,12 +48,32 @@ export const useRouterDepositPermit = () => {
       if (!walletClient || !publicClient || !address) throw new AppError({ message: 'Client or address not found' });
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
+      const depositAnalyticsInput = {
+        flow: 'deposit',
+        step: 'submitted',
+        walletAddress: address,
+        tokenIn: stableCoinName,
+        tokenOut: 'zVLT',
+        amountInRaw: amount
+      } as const;
+
+      const permitAnalyticsInput = {
+        flow: 'permit',
+        step: 'started',
+        walletAddress: address,
+        tokenIn: stableCoinName,
+        amountInRaw: amount,
+        spender: CONTRACTS.zRTR
+      } as const;
+
       setIsPermitPending(true);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 minutes from now
 
       let signature: `0x${string}` | undefined;
 
       try {
+        analytics.capture('tx:permit_started', createTransactionProperties(permitAnalyticsInput));
+
         const nonce = await publicClient.readContract({
           address: CONTRACTS[stableCoinName],
           abi: erc20PermitAbi,
@@ -97,6 +120,20 @@ export const useRouterDepositPermit = () => {
         }
 
         signature = signResult.res;
+        analytics.capture('tx:permit_signed', createTransactionProperties({ ...permitAnalyticsInput, step: 'signed' }));
+      } catch (err) {
+        const errorType = getAnalyticsErrorType(err);
+
+        analytics.capture(
+          errorType === 'user_rejected' ? 'tx:permit_signature_rejected' : 'tx:permit_failed',
+          createTransactionProperties({
+            ...permitAnalyticsInput,
+            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
+            error_type: errorType
+          })
+        );
+
+        throw err;
       } finally {
         setIsPermitPending(false);
       }
@@ -114,16 +151,46 @@ export const useRouterDepositPermit = () => {
         args: [address, CONTRACTS[stableCoinName], amount, deadline, v, r, s]
       };
 
-      await simulateTx(params);
+      let txHash: `0x${string}` | undefined;
 
-      const { hash } = await sendTx(params);
+      try {
+        await simulateTx(params);
 
-      const receipt = await waitForTxReceipt({
-        hash,
-        messages: { pending: `Depositing ${stableCoinName}...` }
-      });
+        const { hash } = await sendTx(params);
+        txHash = hash;
+        analytics.capture('tx:deposit_submitted', createTransactionProperties({ ...depositAnalyticsInput, txHash }));
 
-      return { receipt };
+        const receipt = await waitForTxReceipt({
+          hash,
+          messages: { pending: `Depositing ${stableCoinName}...` }
+        });
+
+        analytics.capture(
+          receipt.status === 'success' ? 'tx:deposit_receipt' : 'tx:deposit_failed',
+          createTransactionProperties({
+            ...depositAnalyticsInput,
+            step: receipt.status === 'success' ? 'receipt' : 'failed',
+            txHash: receipt.transactionHash,
+            receiptStatus: receipt.status
+          })
+        );
+
+        return { receipt };
+      } catch (err) {
+        const errorType = getAnalyticsErrorType(err);
+
+        analytics.capture(
+          errorType === 'user_rejected' ? 'tx:deposit_signature_rejected' : 'tx:deposit_failed',
+          createTransactionProperties({
+            ...depositAnalyticsInput,
+            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
+            txHash,
+            error_type: errorType
+          })
+        );
+
+        throw err;
+      }
     },
 
     onError: (err, variables) =>

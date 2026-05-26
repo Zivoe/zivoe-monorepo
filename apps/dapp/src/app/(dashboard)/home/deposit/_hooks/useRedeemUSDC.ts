@@ -7,6 +7,8 @@ import { type WriteContractParameters } from 'wagmi/actions';
 import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleV2Abi } from '@zivoe/contracts/abis';
 
+import { createTransactionProperties, getAnalyticsErrorType } from '@/lib/analytics/events';
+import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData, depositDialogAtom, transactionAtom } from '@/lib/store';
 import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
@@ -20,6 +22,7 @@ export type RedeemUSDCParams = WriteContractParameters<typeof ocrCycleV2Abi, 're
 
 export const useRedeemUSDC = () => {
   const { address } = useAccount();
+  const analytics = useAnalytics();
   const queryClient = useQueryClient();
   const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const setTransaction = useSetAtom(transactionAtom);
@@ -29,6 +32,15 @@ export const useRedeemUSDC = () => {
     mutationFn: async ({ amount }: { amount?: bigint }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to redeem' });
 
+      const baseAnalyticsInput = {
+        flow: 'redeem',
+        step: 'submitted',
+        walletAddress: address,
+        tokenIn: 'zVLT',
+        tokenOut: 'USDC',
+        amountInRaw: amount
+      } as const;
+
       const params: RedeemUSDCParams & SimulateContractParameters = {
         abi: ocrCycleV2Abi,
         address: CONTRACTS.OCR_CycleV2,
@@ -36,16 +48,46 @@ export const useRedeemUSDC = () => {
         args: [amount]
       };
 
-      await simulateTx(params);
+      let txHash: `0x${string}` | undefined;
 
-      const { hash } = await sendTx(params);
+      try {
+        await simulateTx(params);
 
-      const receipt = await waitForTxReceipt({
-        hash,
-        messages: { pending: 'Redeeming zVLT...' }
-      });
+        const { hash } = await sendTx(params);
+        txHash = hash;
+        analytics.capture('tx:redeem_submitted', createTransactionProperties({ ...baseAnalyticsInput, txHash }));
 
-      return { receipt, amount };
+        const receipt = await waitForTxReceipt({
+          hash,
+          messages: { pending: 'Redeeming zVLT...' }
+        });
+
+        analytics.capture(
+          receipt.status === 'success' ? 'tx:redeem_receipt' : 'tx:redeem_failed',
+          createTransactionProperties({
+            ...baseAnalyticsInput,
+            step: receipt.status === 'success' ? 'receipt' : 'failed',
+            txHash: receipt.transactionHash,
+            receiptStatus: receipt.status
+          })
+        );
+
+        return { receipt, amount };
+      } catch (err) {
+        const errorType = getAnalyticsErrorType(err);
+
+        analytics.capture(
+          errorType === 'user_rejected' ? 'tx:redeem_signature_rejected' : 'tx:redeem_failed',
+          createTransactionProperties({
+            ...baseAnalyticsInput,
+            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
+            txHash,
+            error_type: errorType
+          })
+        );
+
+        throw err;
+      }
     },
 
     onError: (err, variables) => {
