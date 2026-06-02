@@ -31,10 +31,9 @@ export type AnalyticsEvent =
   | 'tx:permit_signed'
   | 'tx:permit_failed';
 
-export type AnalyticsProperties = Record<
-  string,
-  string | number | boolean | null | undefined | Array<string | number | boolean>
->;
+type AnalyticsPropertyValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
+
+export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | Record<string, unknown>>;
 
 type TransactionFlow = 'deposit' | 'redeem' | 'approval' | 'permit';
 
