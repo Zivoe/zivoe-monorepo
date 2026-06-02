@@ -19,11 +19,12 @@ export const config = {
      * - sign-in (public auth page)
      * - unsubscribe (public token-based preference page)
      * - api (API routes)
+     * - vd3asd (PostHog reverse proxy)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - static assets (.jpg, .png, .svg, .webp)
      */
-    '/((?!sign-in|unsubscribe|api|monitoring|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
+    '/((?!sign-in|unsubscribe|api|monitoring|vd3asd|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
   ]
 };

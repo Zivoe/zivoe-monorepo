@@ -10,6 +10,7 @@ import { captcha, emailOTP } from 'better-auth/plugins';
 
 import { WITH_TURNSTILE } from '@/types/constants';
 
+import { captureServerEvent } from '@/server/utils/analytics';
 import { BASE_URL } from '@/server/utils/base-url';
 import { subscribeToBeehiiv } from '@/server/utils/beehiiv';
 import { sendOTPEmail } from '@/server/utils/send-email';
@@ -20,7 +21,6 @@ import { handlePromise } from '@/lib/utils';
 import { env } from '@/env';
 
 import { authDb } from './clients/auth-db';
-import { posthog } from './clients/posthog';
 import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
 import * as schema from './db/schema';
@@ -193,7 +193,7 @@ export const auth: DappAuth = betterAuth({
               }),
 
               // Track signup event
-              posthog.captureImmediate({
+              captureServerEvent({
                 distinctId: user.id,
                 event: 'auth:sign-up',
                 properties: {

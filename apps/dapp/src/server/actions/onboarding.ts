@@ -8,9 +8,9 @@ import * as Sentry from '@sentry/nextjs';
 
 import { auth } from '@/server/auth';
 import { authDb } from '@/server/clients/auth-db';
-import { posthog } from '@/server/clients/posthog';
 import { qstash } from '@/server/clients/qstash';
 import { profile } from '@/server/db/schema';
+import { captureServerEvent } from '@/server/utils/analytics';
 import { BASE_URL } from '@/server/utils/base-url';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
@@ -90,7 +90,7 @@ export async function completeOnboarding(data: OnboardingFormData) {
         label: QSTASH_JOB_LABELS.telegramOnboarding
       }),
 
-      posthog.captureImmediate({
+      captureServerEvent({
         distinctId: session.user.id,
         event: 'onboarding:completed',
         properties: {
