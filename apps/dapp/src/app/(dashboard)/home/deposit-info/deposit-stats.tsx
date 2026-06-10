@@ -11,7 +11,7 @@ export default function DepositStats({ tvl, revenue }: { tvl: bigint; revenue: b
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
         <Box title="TVL" icon={<BankIcon />} value={'$' + formatBigIntToReadable(tvl)} />
-        <Box title="Target Net APY" icon={<TrendingIcon />} value="10-12%" />
+        <Box title="Target Net APY" icon={<TrendingIcon />} value="10%+" />
         <Box title="Revenue" icon={<MoneyIcon />} value={'$' + formatBigIntToReadable(revenue, 6)} />
       </div>
     </InfoSection>
