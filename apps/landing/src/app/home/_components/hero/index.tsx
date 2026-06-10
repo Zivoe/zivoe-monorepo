@@ -75,7 +75,7 @@ async function Statistics() {
         <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl.total))} />
       ) : null}
 
-      <Statistic label="Target Net APY" value="10-12%" />
+      <Statistic label="Target Net APY" value="10%+" />
 
       {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
     </div>
