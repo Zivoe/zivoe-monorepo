@@ -2,8 +2,11 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
+  doublePrecision,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -13,6 +16,7 @@ import {
   uuid
 } from 'drizzle-orm/pg-core';
 
+import { type DailyData, type TVL } from '../../types';
 import { user } from './auth-schema';
 
 export const accountTypeEnum = pgEnum('account_type', ['individual', 'organization']);
@@ -136,6 +140,28 @@ export const transactionMonitorCursor = pgTable('transaction_monitor_cursor', {
   lastLogIndex: integer('last_log_index').notNull().default(-1),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+export const dailyData = pgTable('daily_data', {
+  timestamp: timestamp('timestamp', { withTimezone: true }).primaryKey(),
+  blockNumber: text('block_number').notNull(),
+  indexPrice: doublePrecision('index_price').notNull(),
+  apy: doublePrecision('apy').notNull(),
+  tvl: jsonb('tvl').$type<TVL>().notNull(),
+  zSTTTotalSupply: text('zstt_total_supply').notNull(),
+  vaultTotalAssets: text('vault_total_assets').notNull(),
+  loansRevenue: jsonb('loans_revenue').$type<DailyData['loansRevenue']>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+export const safelist = pgTable(
+  'safelist',
+  {
+    walletAddress: text('wallet_address').primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [check('safelist_wallet_address_lowercase_check', sql`${table.walletAddress} = lower(${table.walletAddress})`)]
+);
 
 export const userEmailPreferences = pgTable('user_email_preferences', {
   userId: uuid('user_id')

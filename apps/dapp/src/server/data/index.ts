@@ -9,8 +9,8 @@ import { erc20Abi } from 'viem';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '../clients/db';
 import { getWeb3Client } from '../clients/web3';
+import { getLatestDailyData, listDepositDailyData } from './daily-data';
 
 export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
 
@@ -23,17 +23,12 @@ const getDepositDailyData = reactCache(
   nextCache(
     async () => {
       try {
-        const db = getDb();
-        const data = await db.daily
-          .find({ timestamp: { $gte: new Date('2025-06-20') } })
-          .sort({ timestamp: 1 })
-          .toArray();
+        const data = await listDepositDailyData();
 
         if (data.length === 0) throw new Error('No daily data found');
 
         return data.map((item) => ({
           ...item,
-          _id: item._id.toString(),
           timestamp: item.timestamp.toUTCString()
         }));
       } catch (error) {
@@ -93,9 +88,7 @@ export type CurrentDailyData = NonNullable<Awaited<ReturnType<typeof getCurrentD
 const getRevenue = nextCache(
   async () => {
     try {
-      const db = getDb();
-
-      const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
+      const latestData = await getLatestDailyData();
       if (!latestData?.loansRevenue) return null;
 
       const { portfolioA, portfolioB } = latestData.loansRevenue;
@@ -131,8 +124,7 @@ const getLiquidity = async () => {
     if (!currentDailyData) return null;
 
     const redeemUSDC = currentDailyData.tvl.stablecoins.usdcInOCRCycleV2;
-    const days3Raw =
-      currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days - redeemUSDC;
+    const days3Raw = currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days - redeemUSDC;
     const days3 = days3Raw > 0n ? days3Raw : 0n;
     const days30 = currentDailyData.tvl.stablecoins.total30Days;
 
@@ -153,9 +145,7 @@ const getTransparencyLoansData = reactCache(
   nextCache(
     async () => {
       try {
-        const db = getDb();
-
-        const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
+        const latestData = await getLatestDailyData();
         if (!latestData?.loansRevenue) return null;
 
         const { portfolioA: portfolioAInterest, portfolioB: portfolioBInterest } = latestData.loansRevenue;

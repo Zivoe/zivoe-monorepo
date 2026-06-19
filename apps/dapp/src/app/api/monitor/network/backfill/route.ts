@@ -4,14 +4,12 @@ import { z } from 'zod';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
+import { upsertManyDailyData } from '@/server/data/daily-data';
 
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
-
-import { type DailyData } from '@/types';
 
 import { type ApiResponse } from '../../../utils';
 import { collectDailyData } from '../shared';
@@ -75,7 +73,6 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
   }
 
   const client = getWeb3Client();
-  const db = getDb();
 
   // Build array of dates to process
   const datesToProcess: Array<Date> = [];
@@ -87,7 +84,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
 
   // Process in batches of 30 for parallel execution
   const BATCH_SIZE = 30;
-  const dailyDataArray: Array<DailyData> = [];
+  let daysProcessed = 0;
 
   for (let i = 0; i < datesToProcess.length; i += BATCH_SIZE) {
     const batch = datesToProcess.slice(i, i + BATCH_SIZE);
@@ -105,33 +102,23 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
         });
       })
     );
-    dailyDataArray.push(...batchResults);
-  }
 
-  // Idempotent storage with bulkWrite
-  if (dailyDataArray.length > 0) {
-    const operations = dailyDataArray.map((data) => ({
-      updateOne: {
-        filter: { timestamp: data.timestamp },
-        update: { $set: data },
-        upsert: true
-      }
-    }));
-
-    const bulkWriteRes = await handlePromise(db.daily.bulkWrite(operations));
-    if (bulkWriteRes.err) {
+    const upsertRes = await handlePromise(upsertManyDailyData(batchResults));
+    if (upsertRes.err) {
       throw new ApiError({
         message: 'Failed to write daily data',
         status: 500,
-        exception: bulkWriteRes.err
+        exception: upsertRes.err
       });
     }
+
+    daysProcessed += batchResults.length;
   }
 
   return NextResponse.json({
     success: true,
     data: {
-      daysProcessed: dailyDataArray.length,
+      daysProcessed,
       startDate,
       endDate
     }

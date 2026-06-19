@@ -5,9 +5,9 @@ import * as Sentry from '@sentry/nextjs';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
 import { DEPOSIT_DAILY_DATA_TAG } from '@/server/data';
+import { upsertDailyData } from '@/server/data/daily-data';
 
 import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
@@ -27,7 +27,6 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
 
   try {
     const client = getWeb3Client();
-    const db = getDb();
 
     const now = new Date();
     const hourStart = new Date(now);
@@ -48,9 +47,7 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
       recordTimestamp: getEndOfDayUTC(recordDate) // End of day for storage
     });
 
-    const upsertResult = await handlePromise(
-      db.daily.updateOne({ timestamp: liveData.timestamp }, { $set: liveData }, { upsert: true })
-    );
+    const upsertResult = await handlePromise(upsertDailyData(liveData));
 
     if (upsertResult.err)
       throw new ApiError({ message: 'Failed to upsert live daily data', status: 500, exception: upsertResult.err });
