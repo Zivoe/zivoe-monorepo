@@ -1,4 +1,3 @@
-import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
@@ -6,16 +5,13 @@ import * as Sentry from '@sentry/nextjs';
 import { CONTRACTS } from '@zivoe/contracts';
 
 import { getWeb3Client } from '@/server/clients/web3';
-import { PROTOCOL_DAILY_SNAPSHOT_TAG } from '@/server/data';
 import { upsertProtocolDailySnapshot } from '@/server/data/protocol-daily-snapshot';
 
 import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
-import { env } from '@/env';
-
 import { type ApiResponse } from '../../../utils';
-import { collectProtocolDailySnapshot } from '../shared';
+import { collectProtocolDailySnapshot, revalidateProtocolDailySnapshotCaches } from '../shared';
 
 const MONITOR_SLUG = 'network-hourly-cron';
 
@@ -56,22 +52,7 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
         exception: upsertResult.err
       });
 
-    // Cache invalidation
-    revalidateTag(PROTOCOL_DAILY_SNAPSHOT_TAG, { expire: 0 });
-
-    if (env.LANDING_PAGE_URL && env.LANDING_PAGE_REVALIDATE_API_KEY) {
-      const { res, err } = await handlePromise(
-        fetch(`${env.LANDING_PAGE_URL}/api/revalidate/stats`, {
-          method: 'POST',
-          headers: {
-            'X-API-Key': env.LANDING_PAGE_REVALIDATE_API_KEY
-          }
-        })
-      );
-
-      if (err || !res?.ok)
-        throw new ApiError({ message: 'Failed to revalidate landing page', status: 500, exception: err });
-    }
+    await revalidateProtocolDailySnapshotCaches();
 
     Sentry.captureCheckIn({
       checkInId: sentryCheckInId,

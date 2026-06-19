@@ -19,7 +19,9 @@ const getCurrentDailySnapshot = reactCache(
         const latest = await getLatestProtocolDailySnapshot(db);
         if (!latest) throw new Error('Error getting protocol daily snapshot');
 
-        return latest;
+        // unstable_cache serializes the result to JSON, so a Date would come
+        // back as a string on cache hits — serialize it explicitly instead.
+        return { ...latest, timestamp: latest.timestamp.toUTCString() };
       } catch (error) {
         Sentry.captureException(error, { tags: { source: 'SERVER' } });
       }

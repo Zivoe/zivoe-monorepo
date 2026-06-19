@@ -5,8 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./onboarding": "./src/onboarding.ts",
-    "./schema": "./src/schema/index.ts",
-    "./protocol-daily-snapshot": "./src/queries/protocol-daily-snapshot.ts"
+    "./schema": "./src/schema/index.ts"
   },
   "scripts": {
     "lint": "eslint ./src/ drizzle.config.ts",

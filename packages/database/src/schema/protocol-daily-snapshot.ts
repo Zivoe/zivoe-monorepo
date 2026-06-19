@@ -1,3 +1,4 @@
+import { getTableColumns } from 'drizzle-orm';
 import { doublePrecision, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 type ProtocolDailySnapshotTvl = {
@@ -43,19 +44,14 @@ export const protocolDailySnapshot = pgTable('daily_data', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
-export const protocolDailySnapshotColumns = {
-  timestamp: protocolDailySnapshot.timestamp,
-  blockNumber: protocolDailySnapshot.blockNumber,
-  indexPrice: protocolDailySnapshot.indexPrice,
-  apy: protocolDailySnapshot.apy,
-  tvl: protocolDailySnapshot.tvl,
-  zSTTTotalSupply: protocolDailySnapshot.zSTTTotalSupply,
-  vaultTotalAssets: protocolDailySnapshot.vaultTotalAssets,
-  loansRevenue: protocolDailySnapshot.loansRevenue
-};
+const { createdAt: _createdAt, updatedAt: _updatedAt, ...dataColumns } = getTableColumns(protocolDailySnapshot);
+
+/** Every column except the audit columns — the data the apps actually consume. */
+export const protocolDailySnapshotColumns = dataColumns;
 
 export type ProtocolDailySnapshot = Pick<
   typeof protocolDailySnapshot.$inferSelect,
   keyof typeof protocolDailySnapshotColumns
 >;
+export type ProtocolDailySnapshotInsert = Omit<typeof protocolDailySnapshot.$inferInsert, 'createdAt' | 'updatedAt'>;
 export type TVL = ProtocolDailySnapshot['tvl'];

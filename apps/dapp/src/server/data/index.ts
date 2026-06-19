@@ -67,7 +67,7 @@ const getCurrentDailySnapshot = async () => {
         total30Days: BigInt(stablecoins.total30Days),
         percentage: toPercentage(stablecoins.total, totalNumber),
         usdc: BigInt(stablecoins.usdc),
-        usdcInOCRCycleV2: BigInt(stablecoins.usdcInOCRCycleV2 ?? 0),
+        usdcInOCRCycleV2: BigInt(stablecoins.usdcInOCRCycleV2),
         usdt: BigInt(stablecoins.usdt),
         frxUSD: BigInt(stablecoins.frxUSD)
       },

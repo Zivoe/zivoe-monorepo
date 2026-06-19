@@ -12,7 +12,7 @@ import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib
 import { env } from '@/env';
 
 import { type ApiResponse } from '../../../utils';
-import { collectProtocolDailySnapshot } from '../shared';
+import { collectProtocolDailySnapshot, revalidateProtocolDailySnapshotCaches } from '../shared';
 
 const BackfillSchema = z.object({
   startDate: z.string().date(),
@@ -114,6 +114,8 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
 
     daysProcessed += batchResults.length;
   }
+
+  await revalidateProtocolDailySnapshotCaches();
 
   return NextResponse.json({
     success: true,
