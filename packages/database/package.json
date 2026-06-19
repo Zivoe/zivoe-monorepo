@@ -1,0 +1,36 @@
+{
+  "name": "@zivoe/database",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./onboarding": "./src/onboarding.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint ./src/ drizzle.config.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "check-types": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.41.0",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^22.13.5",
+    "@zivoe/eslint-config": "workspace:*",
+    "@zivoe/prettier-config": "workspace:*",
+    "@zivoe/ts-config": "workspace:*",
+    "drizzle-kit": "^0.30.6",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.2",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.57.1"
+  }
+}

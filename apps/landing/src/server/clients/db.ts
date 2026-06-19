@@ -1,30 +1,17 @@
 import 'server-only';
 
-import { cache } from 'react';
+import postgres, { type Sql } from 'postgres';
 
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { createDatabase } from '@zivoe/database';
 
-import { env } from '@/env.js';
-import { type DailyData } from '@/types';
+import { env } from '@/env';
 
-const globalForDb = globalThis as unknown as {
-  mongoClient: MongoClient | undefined;
+const globalForDatabase = globalThis as unknown as {
+  databaseClient: Sql | undefined;
 };
 
-const mongoClient =
-  globalForDb.mongoClient ??
-  new MongoClient(env.DATABASE_URI, {
-    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-  });
+const client = globalForDatabase.databaseClient ?? postgres(env.DATABASE_URL, { prepare: false });
 
-if (env.NODE_ENV !== 'production') globalForDb.mongoClient = mongoClient;
+if (env.NODE_ENV !== 'production') globalForDatabase.databaseClient = client;
 
-export const getDb = cache(() => {
-  const zivoeDb = mongoClient.db('ZivoeMainnet');
-
-  return {
-    daily: zivoeDb.collection<DailyData>('Daily')
-  };
-});
-
-export type Db = ReturnType<typeof getDb>;
+export const db = createDatabase(client);

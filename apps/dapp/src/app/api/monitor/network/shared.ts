@@ -1,23 +1,27 @@
+import { revalidateTag } from 'next/cache';
+
 import { type PublicClient } from 'viem';
 
 import { type Contracts } from '@zivoe/contracts';
+import { type ProtocolDailySnapshotInsert } from '@zivoe/database/schema';
 
+import { PROTOCOL_DAILY_SNAPSHOT_TAG } from '@/server/data';
 import { web3 } from '@/server/web3';
 
 import { ApiError, handlePromise } from '@/lib/utils';
 
-import { type DailyData } from '@/types';
+import { env } from '@/env';
 
 import { getLastBlockByDate } from '../../utils';
 
 /**
- * Unified function to collect daily data at a specific block.
+ * Unified function to collect a Protocol Daily Snapshot at a specific block.
  * Handles both historical backfill and live hourly modes.
  *
  * @param blockTimestamp - The time at which to find the block (EthDater finds block BEFORE this time)
  * @param recordTimestamp - The timestamp to store in DB (end-of-day for the target day)
  */
-export async function collectDailyData({
+export async function collectProtocolDailySnapshot({
   client,
   contracts,
   blockTimestamp,
@@ -58,7 +62,7 @@ export async function collectDailyData({
   if (loansRevenueRes.err || loansRevenueRes.res === undefined)
     throw new ApiError({ message: 'Failed to get loans revenue', exception: loansRevenueRes.err });
 
-  const data: DailyData = {
+  const data: ProtocolDailySnapshotInsert = {
     timestamp: recordTimestamp,
     blockNumber: blockNumber.toString(),
     indexPrice: indexPriceRes.res.indexPrice,
@@ -70,4 +74,27 @@ export async function collectDailyData({
   };
 
   return data;
+}
+
+/**
+ * Invalidates every cache that serves protocol daily snapshots: the dapp's
+ * cache tag and the landing page's stats cache. Call after any write to the
+ * snapshots table (hourly live collection, backfill/restore).
+ */
+export async function revalidateProtocolDailySnapshotCaches() {
+  revalidateTag(PROTOCOL_DAILY_SNAPSHOT_TAG, { expire: 0 });
+
+  if (env.LANDING_PAGE_URL && env.LANDING_PAGE_REVALIDATE_API_KEY) {
+    const { res, err } = await handlePromise(
+      fetch(`${env.LANDING_PAGE_URL}/api/revalidate/stats`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': env.LANDING_PAGE_REVALIDATE_API_KEY
+        }
+      })
+    );
+
+    if (err || !res?.ok)
+      throw new ApiError({ message: 'Failed to revalidate landing page', status: 500, exception: err });
+  }
 }

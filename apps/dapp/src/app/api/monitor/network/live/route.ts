@@ -1,21 +1,17 @@
-import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
-import { DEPOSIT_DAILY_DATA_TAG } from '@/server/data';
+import { upsertProtocolDailySnapshot } from '@/server/data/protocol-daily-snapshot';
 
 import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
-import { env } from '@/env';
-
 import { type ApiResponse } from '../../../utils';
-import { collectDailyData } from '../shared';
+import { collectProtocolDailySnapshot, revalidateProtocolDailySnapshotCaches } from '../shared';
 
 const MONITOR_SLUG = 'network-hourly-cron';
 
@@ -27,7 +23,6 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
 
   try {
     const client = getWeb3Client();
-    const db = getDb();
 
     const now = new Date();
     const hourStart = new Date(now);
@@ -41,36 +36,23 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
         ? new Date(hourStart.getTime() - 1) // Previous day
         : hourStart; // Same day
 
-    const liveData = await collectDailyData({
+    const liveData = await collectProtocolDailySnapshot({
       client,
       contracts: CONTRACTS,
       blockTimestamp: hourStart, // Block at current hour
       recordTimestamp: getEndOfDayUTC(recordDate) // End of day for storage
     });
 
-    const upsertResult = await handlePromise(
-      db.daily.updateOne({ timestamp: liveData.timestamp }, { $set: liveData }, { upsert: true })
-    );
+    const upsertResult = await handlePromise(upsertProtocolDailySnapshot(liveData));
 
     if (upsertResult.err)
-      throw new ApiError({ message: 'Failed to upsert live daily data', status: 500, exception: upsertResult.err });
+      throw new ApiError({
+        message: 'Failed to upsert live protocol daily snapshot',
+        status: 500,
+        exception: upsertResult.err
+      });
 
-    // Cache invalidation
-    revalidateTag(DEPOSIT_DAILY_DATA_TAG, { expire: 0 });
-
-    if (env.LANDING_PAGE_URL && env.LANDING_PAGE_REVALIDATE_API_KEY) {
-      const { res, err } = await handlePromise(
-        fetch(`${env.LANDING_PAGE_URL}/api/revalidate/stats`, {
-          method: 'POST',
-          headers: {
-            'X-API-Key': env.LANDING_PAGE_REVALIDATE_API_KEY
-          }
-        })
-      );
-
-      if (err || !res?.ok)
-        throw new ApiError({ message: 'Failed to revalidate landing page', status: 500, exception: err });
-    }
+    await revalidateProtocolDailySnapshotCaches();
 
     Sentry.captureCheckIn({
       checkInId: sentryCheckInId,
@@ -78,7 +60,7 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
       status: 'ok'
     });
 
-    return NextResponse.json({ success: true, data: 'Deposit daily data collected' });
+    return NextResponse.json({ success: true, data: 'Protocol daily snapshot collected' });
   } catch (error) {
     Sentry.captureCheckIn({
       checkInId: sentryCheckInId,
@@ -93,5 +75,5 @@ const handler = async (_req: NextRequest): ApiResponse<string> => {
 };
 
 export const POST = withQstashSignature(async (req: NextRequest) => {
-  return withErrorHandler('Error collecting daily data', handler)(req);
+  return withErrorHandler('Error collecting protocol daily snapshot', handler)(req);
 });

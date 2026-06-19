@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-import { howFoundZivoeValues, individualAmountValues, orgAmountValues } from '@/server/db/schema';
+import {
+  accountTypeValues,
+  howFoundZivoeValues,
+  individualAmountValues,
+  orgAmountValues
+} from '@zivoe/database/onboarding';
+
+export { accountTypeValues } from '@zivoe/database/onboarding';
 
 const individualAmountEnum = z.enum(individualAmountValues, {
   required_error: 'Please select an amount of interest'
@@ -13,8 +20,6 @@ const howFoundZivoeEnum = z.enum(howFoundZivoeValues, {
   required_error: 'Please select how you found Zivoe'
 });
 
-// Account type values - single source of truth
-export const accountTypeValues = ['individual', 'organization'] as const;
 export type AccountType = (typeof accountTypeValues)[number];
 
 // Account type form schema

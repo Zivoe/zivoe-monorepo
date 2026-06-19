@@ -40,7 +40,7 @@ export default buildConfig({
   db: postgresAdapter({
     migrationDir: path.resolve(dirname, 'src/migrations'),
     pool: {
-      connectionString: env.DATABASE_URL
+      connectionString: env.CMS_DATABASE_URL
     }
   }),
   plugins: [

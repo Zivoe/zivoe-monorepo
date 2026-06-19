@@ -1,9 +1,9 @@
 import 'server-only';
 
-import { type Address, getAddress } from 'viem';
+import { type Address } from 'viem';
 import { z } from 'zod';
 
-import { getDb } from '@/server/clients/db';
+import { isSafelistedAddress } from '@/server/data/safelist';
 
 import { env } from '@/env';
 
@@ -42,8 +42,7 @@ async function fetchAssessment({ address }: { address: Address }) {
 }
 
 export async function getChainalysisAssessment({ address }: { address: Address }) {
-  const db = getDb();
-  const isOnSafeList = await db.safelist.findOne({ walletAddress: getAddress(address) });
+  const isOnSafeList = await isSafelistedAddress(address);
 
   if (isOnSafeList) {
     return { address, risk: 'Low', riskReason: null } satisfies ChainalysisAssessment;

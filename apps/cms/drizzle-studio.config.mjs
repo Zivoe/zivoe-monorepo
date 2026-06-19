@@ -12,6 +12,6 @@ process.loadEnvFile(path.resolve(dirname, '.env'));
 export default defineConfig({
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL
+    url: process.env.CMS_DATABASE_URL
   }
 });

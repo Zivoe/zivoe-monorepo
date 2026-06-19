@@ -1,4 +1,4 @@
-import type { HowFoundZivoe, IndividualAmountOfInterest, OrgAmountOfInterest } from '@/server/db/schema';
+import type { HowFoundZivoe, IndividualAmountOfInterest, OrgAmountOfInterest } from '@zivoe/database/onboarding';
 
 export const INDIVIDUAL_AMOUNT_OPTIONS: Record<IndividualAmountOfInterest, string> = {
   '1k_10k': '$1k - $10k',

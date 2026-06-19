@@ -3,10 +3,11 @@ import { type Address, erc20Abi, formatUnits, parseUnits } from 'viem';
 import { CONTRACTS } from '@zivoe/contracts';
 import { occCycleAbi, occModularAbi, occVariableAbi, zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
+import { type TVL } from '@zivoe/database/schema';
 
 import { DAYS_PER_YEAR, DAY_IN_SECONDS } from '@/lib/utils';
 
-import { type TVL, type Web3Request } from '@/types';
+import { type Web3Request } from '@/types';
 
 const getIndexPrice = async ({
   client,

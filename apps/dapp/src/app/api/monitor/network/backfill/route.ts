@@ -4,17 +4,15 @@ import { z } from 'zod';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '@/server/clients/db';
 import { getWeb3Client } from '@/server/clients/web3';
+import { upsertManyProtocolDailySnapshots } from '@/server/data/protocol-daily-snapshot';
 
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import { type DailyData } from '@/types';
-
 import { type ApiResponse } from '../../../utils';
-import { collectDailyData } from '../shared';
+import { collectProtocolDailySnapshot, revalidateProtocolDailySnapshotCaches } from '../shared';
 
 const BackfillSchema = z.object({
   startDate: z.string().date(),
@@ -75,7 +73,6 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
   }
 
   const client = getWeb3Client();
-  const db = getDb();
 
   // Build array of dates to process
   const datesToProcess: Array<Date> = [];
@@ -87,7 +84,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
 
   // Process in batches of 30 for parallel execution
   const BATCH_SIZE = 30;
-  const dailyDataArray: Array<DailyData> = [];
+  let daysProcessed = 0;
 
   for (let i = 0; i < datesToProcess.length; i += BATCH_SIZE) {
     const batch = datesToProcess.slice(i, i + BATCH_SIZE);
@@ -97,7 +94,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
         nextDayMidnight.setUTCDate(nextDayMidnight.getUTCDate() + 1);
         nextDayMidnight.setUTCHours(0, 0, 0, 0);
 
-        return collectDailyData({
+        return collectProtocolDailySnapshot({
           client,
           contracts: CONTRACTS,
           blockTimestamp: nextDayMidnight,
@@ -105,37 +102,29 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
         });
       })
     );
-    dailyDataArray.push(...batchResults);
-  }
 
-  // Idempotent storage with bulkWrite
-  if (dailyDataArray.length > 0) {
-    const operations = dailyDataArray.map((data) => ({
-      updateOne: {
-        filter: { timestamp: data.timestamp },
-        update: { $set: data },
-        upsert: true
-      }
-    }));
-
-    const bulkWriteRes = await handlePromise(db.daily.bulkWrite(operations));
-    if (bulkWriteRes.err) {
+    const upsertRes = await handlePromise(upsertManyProtocolDailySnapshots(batchResults));
+    if (upsertRes.err) {
       throw new ApiError({
-        message: 'Failed to write daily data',
+        message: 'Failed to write protocol daily snapshots',
         status: 500,
-        exception: bulkWriteRes.err
+        exception: upsertRes.err
       });
     }
+
+    daysProcessed += batchResults.length;
   }
+
+  await revalidateProtocolDailySnapshotCaches();
 
   return NextResponse.json({
     success: true,
     data: {
-      daysProcessed: dailyDataArray.length,
+      daysProcessed,
       startDate,
       endDate
     }
   });
 };
 
-export const POST = withErrorHandler('Error during daily data backfill', handler);
+export const POST = withErrorHandler('Error during protocol daily snapshot backfill', handler);

@@ -6,13 +6,13 @@ import { Link } from '@zivoe/ui/core/link';
 import { PieChartIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { type CurrentDailyData } from '@/server/data';
+import { type CurrentDailySnapshot } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 
-export default function DepositAllocation({ loans, stablecoins, treasuryBills, deFi }: CurrentDailyData['tvl']) {
+export default function DepositAllocation({ loans, stablecoins, treasuryBills, deFi }: CurrentDailySnapshot['tvl']) {
   const allocations = [
     {
       label: 'Loans',

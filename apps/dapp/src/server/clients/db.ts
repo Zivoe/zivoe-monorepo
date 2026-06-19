@@ -1,35 +1,17 @@
 import 'server-only';
 
-import { cache } from 'react';
+import postgres, { type Sql } from 'postgres';
 
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { createDatabase } from '@zivoe/database';
 
-import { env } from '@/env.js';
-import { type DailyData } from '@/types';
+import { env } from '@/env';
 
-type SafelistEntry = {
-  walletAddress: string;
+const globalForDatabase = globalThis as unknown as {
+  databaseClient: Sql | undefined;
 };
 
-const globalForDb = globalThis as unknown as {
-  mongoClient: MongoClient | undefined;
-};
+const client = globalForDatabase.databaseClient ?? postgres(env.DATABASE_URL, { prepare: false });
+if (env.NODE_ENV !== 'production') globalForDatabase.databaseClient = client;
 
-const mongoClient =
-  globalForDb.mongoClient ??
-  new MongoClient(env.DATABASE_URI, {
-    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-  });
-
-if (env.NODE_ENV !== 'production') globalForDb.mongoClient = mongoClient;
-
-export const getDb = cache(() => {
-  const zivoeDb = mongoClient.db('ZivoeMainnet');
-
-  return {
-    daily: zivoeDb.collection<DailyData>('Daily'),
-    safelist: zivoeDb.collection<SafelistEntry>('Safelist')
-  };
-});
-
-export type Db = ReturnType<typeof getDb>;
+export const db = createDatabase(client);
+export type Db = typeof db;

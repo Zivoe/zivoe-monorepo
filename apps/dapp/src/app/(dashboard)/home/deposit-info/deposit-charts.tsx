@@ -10,7 +10,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/cor
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
 
-import { type DepositDailyData } from '@/server/data';
+import { type DepositDailySnapshot } from '@/server/data';
 
 import { customNumber } from '@/lib/utils';
 
@@ -20,12 +20,12 @@ const CHART_TYPES = ['Index price', 'TVL'] as const;
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
-export default function DepositCharts({ dailyData }: { dailyData: Array<DepositDailyData> }) {
+export default function DepositCharts({ snapshots }: { snapshots: Array<DepositDailySnapshot> }) {
   const isMobile = useIsMobile();
 
   const [selectedChartType, setSelectedChartType] = useState<Key>(0);
 
-  const chart = parseChartData({ dailyData, typeIndex: selectedChartType });
+  const chart = parseChartData({ snapshots, typeIndex: selectedChartType });
   if (!chart) return null;
 
   return (
@@ -123,11 +123,11 @@ export default function DepositCharts({ dailyData }: { dailyData: Array<DepositD
   );
 }
 
-const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDailyData>; typeIndex: Key }) => {
+const parseChartData = ({ snapshots, typeIndex }: { snapshots: Array<DepositDailySnapshot>; typeIndex: Key }) => {
   const type = CHART_TYPES[Number(typeIndex)];
   if (!type) return undefined;
 
-  const data = dailyData.map((item) => {
+  const data = snapshots.map((item) => {
     const date = new Date(item.timestamp);
     const day = date.getUTCDate();
     const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
@@ -144,13 +144,13 @@ const parseChartData = ({ dailyData, typeIndex }: { dailyData: Array<DepositDail
     };
   });
 
-  const currentDailyData = dailyData[dailyData.length - 1];
-  if (!currentDailyData) return undefined;
+  const currentProtocolDailySnapshot = snapshots[snapshots.length - 1];
+  if (!currentProtocolDailySnapshot) return undefined;
 
   let currentValue: number | undefined;
-  if (type === 'Index price') currentValue = currentDailyData.indexPrice;
-  else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentDailyData.tvl.total)));
-  else currentValue = currentDailyData.apy;
+  if (type === 'Index price') currentValue = currentProtocolDailySnapshot.indexPrice;
+  else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentProtocolDailySnapshot.tvl.total)));
+  else currentValue = currentProtocolDailySnapshot.apy;
 
   let domain: [number, number];
   let ticks: Array<number> | undefined;

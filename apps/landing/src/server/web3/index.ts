@@ -6,38 +6,38 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { getDb } from '../clients/db';
+import { getLatestProtocolDailySnapshot } from '@zivoe/database';
 
-export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
+import { db } from '../clients/db';
 
-const getCurrentDailyData = reactCache(
+export const PROTOCOL_DAILY_SNAPSHOT_TAG = 'protocol-daily-snapshot';
+
+const getCurrentDailySnapshot = reactCache(
   nextCache(
     async () => {
       try {
-        const client = getDb();
+        const latest = await getLatestProtocolDailySnapshot(db);
+        if (!latest) throw new Error('Error getting protocol daily snapshot');
 
-        const [latest] = await client.daily.find().sort({ timestamp: -1 }).limit(1).toArray();
-        if (!latest) throw new Error('Error getting daily data');
-
-        return latest;
+        // unstable_cache serializes the result to JSON, so a Date would come
+        // back as a string on cache hits — serialize it explicitly instead.
+        return { ...latest, timestamp: latest.timestamp.toUTCString() };
       } catch (error) {
         Sentry.captureException(error, { tags: { source: 'SERVER' } });
       }
     },
     undefined,
-    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+    { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
   )
 );
 
 const getRevenue = nextCache(
   async () => {
     try {
-      const db = getDb();
+      const latestSnapshot = await getLatestProtocolDailySnapshot(db);
+      if (!latestSnapshot?.loansRevenue) return null;
 
-      const latestData = await db.daily.findOne({}, { sort: { timestamp: -1 } });
-      if (!latestData?.loansRevenue) return null;
-
-      const { portfolioA, portfolioB } = latestData.loansRevenue;
+      const { portfolioA, portfolioB } = latestSnapshot.loansRevenue;
       if (portfolioA === null || portfolioB === null) return null;
 
       const totalRevenue = BigInt(portfolioA) + BigInt(portfolioB);
@@ -47,10 +47,10 @@ const getRevenue = nextCache(
     }
   },
   undefined,
-  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
 );
 
 export const web3 = {
-  getCurrentDailyData,
+  getCurrentDailySnapshot,
   getRevenue
 };

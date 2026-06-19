@@ -7,10 +7,10 @@ import { z } from 'zod';
 
 import { CONTRACTS } from '@zivoe/contracts';
 
-import { getDb } from '@/server/clients/db';
 import { getPonder } from '@/server/clients/ponder';
 import { redis } from '@/server/clients/redis';
 import { getWeb3Client } from '@/server/clients/web3';
+import { listProtocolIndexPrices } from '@/server/data/protocol-daily-snapshot';
 import { web3 } from '@/server/web3';
 
 import { addressSchema } from '@/lib/schemas';
@@ -67,7 +67,6 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
 
   const { address } = parsedQuery.data;
   const ponder = getPonder();
-  const db = getDb();
   const web3Client = getWeb3Client();
 
   const snapshotsReq = handlePromise(
@@ -85,7 +84,7 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     })
   );
 
-  const dailyReq = handlePromise(db.daily.find({}, { projection: { timestamp: 1, indexPrice: 1 } }).toArray());
+  const dailyReq = handlePromise(listProtocolIndexPrices());
   const currentIndexPriceReq = handlePromise(
     web3.getIndexPrice({ client: web3Client, contracts: CONTRACTS, blockNumber: undefined })
   );
@@ -100,7 +99,7 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     throw new ApiError({ message: 'Error getting snapshots', exception: snapshotsRes.err });
 
   if (dailyRes.err || !dailyRes.res)
-    throw new ApiError({ message: 'Error getting daily data', exception: dailyRes.err });
+    throw new ApiError({ message: 'Error getting protocol daily snapshots', exception: dailyRes.err });
 
   if (currentIndexPriceRes.err || !currentIndexPriceRes.res)
     throw new ApiError({ message: 'Error getting current index price', exception: currentIndexPriceRes.err });

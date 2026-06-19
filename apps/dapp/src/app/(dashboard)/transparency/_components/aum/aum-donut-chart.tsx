@@ -6,29 +6,29 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { type CurrentDailyData } from '@/server/data';
+import { type CurrentDailySnapshot } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
-const CATEGORIES: Array<{ key: Exclude<keyof CurrentDailyData['tvl'], 'total'>; label: string; color: string }> = [
+const CATEGORIES: Array<{ key: Exclude<keyof CurrentDailySnapshot['tvl'], 'total'>; label: string; color: string }> = [
   { key: 'stablecoins', label: 'Stablecoins', color: 'hsl(var(--primary-800))' },
   { key: 'treasuryBills', label: 'Treasury Bills', color: 'hsl(var(--primary-600))' },
   { key: 'deFi', label: 'DeFi Positions', color: 'hsl(var(--primary-400))' },
   { key: 'loans', label: 'Loans', color: 'hsl(var(--primary-500))' }
 ];
 
-export default function AUMDonutChart({ data, className }: { data: CurrentDailyData['tvl']; className?: string }) {
+export default function AUMDonutChart({ data, className }: { data: CurrentDailySnapshot['tvl']; className?: string }) {
   const [activeIndex, setActiveIndex] = useState<number>(-1);
 
   const chartData = [...CATEGORIES]
     .sort((a, b) => data[b.key].percentage - data[a.key].percentage)
     .map(({ key, label, color }) => {
-      const dailyData = data[key];
+      const category = data[key];
 
       return {
         label,
-        total: formatBigIntToReadable(dailyData.total, 18),
-        percentage: dailyData.percentage,
+        total: formatBigIntToReadable(category.total, 18),
+        percentage: category.percentage,
         color
       };
     })

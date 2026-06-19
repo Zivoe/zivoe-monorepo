@@ -1,0 +1,7 @@
+{
+  "extends": "@zivoe/ts-config/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "drizzle.config.ts"]
+}

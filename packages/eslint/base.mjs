@@ -22,6 +22,8 @@ export const BASE_RULES = {
     'warn',
     {
       argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      ignoreRestSiblings: true,
     },
   ],
   '@typescript-eslint/require-await': 'off',

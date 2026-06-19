@@ -2,9 +2,14 @@ import 'server-only';
 
 import { eq, sql } from 'drizzle-orm';
 
-import { authDb } from '@/server/clients/auth-db';
-import { user, userEmailPreferences } from '@/server/db/schema';
-import { type UnsubscribeBucket, doesUnsubscribeTokenMatchEmail, verifyUnsubscribeToken } from '@/server/utils/unsubscribe';
+import { user, userEmailPreferences } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
+import {
+  type UnsubscribeBucket,
+  doesUnsubscribeTokenMatchEmail,
+  verifyUnsubscribeToken
+} from '@/server/utils/unsubscribe';
 
 import { getUser } from './auth';
 
@@ -43,7 +48,7 @@ export async function resolveUnsubscribeActor({
     const payload = verifyUnsubscribeToken(token);
     if (!payload) return { status: 'invalid_token' };
 
-    const result = await authDb
+    const result = await db
       .select({ id: user.id, email: user.email })
       .from(user)
       .where(eq(user.id, payload.sub))
@@ -79,7 +84,7 @@ export async function resolveUnsubscribeActor({
 }
 
 export async function getAppEmailPreferences({ userId }: { userId: string }): Promise<AppEmailPreferences> {
-  const result = await authDb
+  const result = await db
     .select({
       productTips: userEmailPreferences.productTipsEnabled,
       transactionReceipts: userEmailPreferences.transactionReceiptsEnabled
@@ -105,7 +110,7 @@ export async function saveAppEmailPreferences({
 
   if (Object.keys(valuesToSet).length === 0) return getAppEmailPreferences({ userId });
 
-  const result = await authDb
+  const result = await db
     .insert(userEmailPreferences)
     .values({
       userId,
@@ -150,7 +155,7 @@ export async function isEmailPreferenceEnabled({
   userId: string;
   bucket: LocalEmailPreferenceBucket;
 }) {
-  const result = await authDb
+  const result = await db
     .select({
       productTips: userEmailPreferences.productTipsEnabled,
       transactionReceipts: userEmailPreferences.transactionReceiptsEnabled

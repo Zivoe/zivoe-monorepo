@@ -107,10 +107,10 @@ export default function TransparencyPage() {
 }
 
 async function AssetsUnderManagement() {
-  const currentDailyData = await data.getCurrentDailyData();
-  if (!currentDailyData) return null;
+  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
+  if (!currentProtocolDailySnapshot) return null;
 
-  const tvl = currentDailyData.tvl;
+  const tvl = currentProtocolDailySnapshot.tvl;
 
   return (
     <div className="flex w-full flex-col items-center gap-12 lg:flex-row">

@@ -3,9 +3,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { count, eq, isNull, lt, or, sql } from 'drizzle-orm';
 
-import { authDb } from '@/server/clients/auth-db';
+import { walletConnection, walletHoldings } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 import { MAX_ACCOUNTS_PER_QUERY, fetchPortfolios } from '@/server/clients/zapper';
-import { walletConnection, walletHoldings } from '@/server/db/schema';
 
 import { withQstashSignature } from '@/lib/qstash';
 import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
@@ -35,16 +36,16 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
     // Only fetch holdings that haven't been updated in STALE_DAYS
     const staleThreshold = sql`now() - ${STALE_DAYS} * interval '1 day'`;
     const [staleHoldingsList, missingHoldingsList, [countResult]] = await Promise.all([
-      authDb
+      db
         .select({ address: walletHoldings.address })
         .from(walletHoldings)
         .where(or(isNull(walletHoldings.holdingsUpdatedAt), lt(walletHoldings.holdingsUpdatedAt, staleThreshold))),
-      authDb
+      db
         .select({ address: walletConnection.address })
         .from(walletConnection)
         .leftJoin(walletHoldings, eq(walletConnection.address, walletHoldings.address))
         .where(isNull(walletHoldings.address)),
-      authDb.select({ totalCount: count() }).from(walletHoldings)
+      db.select({ totalCount: count() }).from(walletHoldings)
     ]);
     const totalCount = countResult?.totalCount ?? 0;
 
@@ -150,7 +151,7 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
         }));
 
         if (values.length > 0) {
-          await authDb
+          await db
             .insert(walletHoldings)
             .values(values)
             .onConflictDoUpdate({
