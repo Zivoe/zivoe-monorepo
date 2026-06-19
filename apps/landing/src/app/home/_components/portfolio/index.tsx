@@ -63,10 +63,10 @@ function LoanPortfolioSkeleton() {
 }
 
 async function LoanPortfolio() {
-  const currentDailyData = await web3.getCurrentDailyData();
-  if (!currentDailyData) return null;
+  const currentDailySnapshot = await web3.getCurrentDailySnapshot();
+  if (!currentDailySnapshot) return null;
 
-  const loanPortfolio = currentDailyData.tvl.loans.total;
+  const loanPortfolio = currentDailySnapshot.tvl.loans.total;
 
   return (
     <LoanPortfolioSection

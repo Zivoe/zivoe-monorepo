@@ -3,8 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { authDb } from '@/server/clients/auth-db';
-import { profile } from '@/server/db/schema';
+import { profile } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
 import { withQstashSignature } from '@/lib/qstash';
@@ -27,7 +28,7 @@ const handler = async (req: NextRequest) => {
   // * Implement Redis-based idempotency using Upstash-Message-Id header
 
   const { err: profileErr, res: profileRes } = await handlePromise(
-    authDb
+    db
       .select({ id: profile.id, createdAt: profile.createdAt })
       .from(profile)
       .where(eq(profile.id, parsedBody.data.userId))

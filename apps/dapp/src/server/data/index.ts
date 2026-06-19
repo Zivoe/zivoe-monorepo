@@ -8,26 +8,28 @@ import * as Sentry from '@sentry/nextjs';
 import { erc20Abi } from 'viem';
 
 import { CONTRACTS } from '@zivoe/contracts';
+import { getLatestProtocolDailySnapshot } from '@zivoe/database';
 
+import { db } from '../clients/db';
 import { getWeb3Client } from '../clients/web3';
-import { getLatestDailyData, listDepositDailyData } from './daily-data';
+import { listDepositDailySnapshots } from './protocol-daily-snapshot';
 
-export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
+export const PROTOCOL_DAILY_SNAPSHOT_TAG = 'protocol-daily-snapshot';
 
 const toPercentage = (value: string, total: number) => {
   if (!Number.isFinite(total) || total <= 0) return 0;
   return (Number(value) / total) * 100;
 };
 
-const getDepositDailyData = reactCache(
+const getDepositDailySnapshots = reactCache(
   nextCache(
     async () => {
       try {
-        const data = await listDepositDailyData();
+        const snapshots = await listDepositDailySnapshots();
 
-        if (data.length === 0) throw new Error('No daily data found');
+        if (snapshots.length === 0) throw new Error('No protocol daily snapshots found');
 
-        return data.map((item) => ({
+        return snapshots.map((item) => ({
           ...item,
           timestamp: item.timestamp.toUTCString()
         }));
@@ -36,22 +38,22 @@ const getDepositDailyData = reactCache(
       }
     },
     undefined,
-    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+    { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
   )
 );
 
-export type DepositDailyData = NonNullable<Awaited<ReturnType<typeof getDepositDailyData>>>[number];
+export type DepositDailySnapshot = NonNullable<Awaited<ReturnType<typeof getDepositDailySnapshots>>>[number];
 
-const getCurrentDailyData = async () => {
-  const dailyData = await getDepositDailyData();
-  const currentDailyData = dailyData?.[dailyData.length - 1];
-  if (!currentDailyData) return null;
+const getCurrentDailySnapshot = async () => {
+  const snapshots = await getDepositDailySnapshots();
+  const currentSnapshot = snapshots?.[snapshots.length - 1];
+  if (!currentSnapshot) return null;
 
-  const { total, loans, stablecoins, treasuryBills, deFi } = currentDailyData.tvl;
+  const { total, loans, stablecoins, treasuryBills, deFi } = currentSnapshot.tvl;
   const totalNumber = Number(total);
 
   return {
-    ...currentDailyData,
+    ...currentSnapshot,
     tvl: {
       total: BigInt(total),
       loans: {
@@ -83,15 +85,15 @@ const getCurrentDailyData = async () => {
   };
 };
 
-export type CurrentDailyData = NonNullable<Awaited<ReturnType<typeof getCurrentDailyData>>>;
+export type CurrentDailySnapshot = NonNullable<Awaited<ReturnType<typeof getCurrentDailySnapshot>>>;
 
 const getRevenue = nextCache(
   async () => {
     try {
-      const latestData = await getLatestDailyData();
-      if (!latestData?.loansRevenue) return null;
+      const latestSnapshot = await getLatestProtocolDailySnapshot(db);
+      if (!latestSnapshot?.loansRevenue) return null;
 
-      const { portfolioA, portfolioB } = latestData.loansRevenue;
+      const { portfolioA, portfolioB } = latestSnapshot.loansRevenue;
       if (portfolioA === null || portfolioB === null) return null;
 
       const totalRevenue = BigInt(portfolioA) + BigInt(portfolioB);
@@ -101,15 +103,15 @@ const getRevenue = nextCache(
     }
   },
   undefined,
-  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
 );
 
 const getLiquidity = async () => {
   try {
     const client = getWeb3Client();
 
-    const [currentDailyData, uniswap] = await Promise.all([
-      getCurrentDailyData(),
+    const [currentSnapshot, uniswap] = await Promise.all([
+      getCurrentDailySnapshot(),
 
       CONTRACTS.UNISWAP_V3_POOL
         ? client.readContract({
@@ -121,12 +123,12 @@ const getLiquidity = async () => {
         : Promise.resolve(0n)
     ]);
 
-    if (!currentDailyData) return null;
+    if (!currentSnapshot) return null;
 
-    const redeemUSDC = currentDailyData.tvl.stablecoins.usdcInOCRCycleV2;
-    const days3Raw = currentDailyData.tvl.stablecoins.total - currentDailyData.tvl.stablecoins.total30Days - redeemUSDC;
+    const redeemUSDC = currentSnapshot.tvl.stablecoins.usdcInOCRCycleV2;
+    const days3Raw = currentSnapshot.tvl.stablecoins.total - currentSnapshot.tvl.stablecoins.total30Days - redeemUSDC;
     const days3 = days3Raw > 0n ? days3Raw : 0n;
-    const days30 = currentDailyData.tvl.stablecoins.total30Days;
+    const days30 = currentSnapshot.tvl.stablecoins.total30Days;
 
     return {
       redeemUSDC,
@@ -145,20 +147,20 @@ const getTransparencyLoansData = reactCache(
   nextCache(
     async () => {
       try {
-        const latestData = await getLatestDailyData();
-        if (!latestData?.loansRevenue) return null;
+        const latestSnapshot = await getLatestProtocolDailySnapshot(db);
+        if (!latestSnapshot?.loansRevenue) return null;
 
-        const { portfolioA: portfolioAInterest, portfolioB: portfolioBInterest } = latestData.loansRevenue;
+        const { portfolioA: portfolioAInterest, portfolioB: portfolioBInterest } = latestSnapshot.loansRevenue;
         if (portfolioAInterest === null || portfolioBInterest === null) return null;
 
         return {
           portfolioA: {
             interest: portfolioAInterest,
-            invested: latestData.tvl.loans.portfolioA
+            invested: latestSnapshot.tvl.loans.portfolioA
           },
           portfolioB: {
             interest: portfolioBInterest,
-            invested: latestData.tvl.loans.portfolioB
+            invested: latestSnapshot.tvl.loans.portfolioB
           }
         };
       } catch (error) {
@@ -166,13 +168,13 @@ const getTransparencyLoansData = reactCache(
       }
     },
     undefined,
-    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+    { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
   )
 );
 
 export const data = {
-  getDepositDailyData,
-  getCurrentDailyData,
+  getDepositDailySnapshots,
+  getCurrentDailySnapshot,
   getRevenue,
   getLiquidity,
   getTransparencyLoansData

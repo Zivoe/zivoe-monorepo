@@ -42,24 +42,27 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  const dailyData = await data.getDepositDailyData();
-  if (!dailyData) return null;
+  const snapshots = await data.getDepositDailySnapshots();
+  if (!snapshots) return null;
 
-  return <DepositCharts dailyData={dailyData} />;
+  return <DepositCharts snapshots={snapshots} />;
 }
 
 async function DepositStatsComponent() {
-  const [currentDailyData, revenue] = await Promise.all([data.getCurrentDailyData(), data.getRevenue()]);
-  if (!currentDailyData || !revenue) return null;
+  const [currentProtocolDailySnapshot, revenue] = await Promise.all([
+    data.getCurrentDailySnapshot(),
+    data.getRevenue()
+  ]);
+  if (!currentProtocolDailySnapshot || !revenue) return null;
 
-  return <DepositStats tvl={currentDailyData.tvl.total} revenue={BigInt(revenue)} />;
+  return <DepositStats tvl={currentProtocolDailySnapshot.tvl.total} revenue={BigInt(revenue)} />;
 }
 
 async function DepositAllocationComponent() {
-  const currentDailyData = await data.getCurrentDailyData();
-  if (!currentDailyData) return null;
+  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
+  if (!currentProtocolDailySnapshot) return null;
 
-  return <DepositAllocation {...currentDailyData.tvl} />;
+  return <DepositAllocation {...currentProtocolDailySnapshot.tvl} />;
 }
 
 function DiamondSeparator() {

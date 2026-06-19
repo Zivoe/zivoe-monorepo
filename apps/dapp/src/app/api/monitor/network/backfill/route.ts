@@ -5,14 +5,14 @@ import { z } from 'zod';
 import { CONTRACTS } from '@zivoe/contracts';
 
 import { getWeb3Client } from '@/server/clients/web3';
-import { upsertManyDailyData } from '@/server/data/daily-data';
+import { upsertManyProtocolDailySnapshots } from '@/server/data/protocol-daily-snapshot';
 
 import { ApiError, getEndOfDayUTC, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
 import { type ApiResponse } from '../../../utils';
-import { collectDailyData } from '../shared';
+import { collectProtocolDailySnapshot } from '../shared';
 
 const BackfillSchema = z.object({
   startDate: z.string().date(),
@@ -94,7 +94,7 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
         nextDayMidnight.setUTCDate(nextDayMidnight.getUTCDate() + 1);
         nextDayMidnight.setUTCHours(0, 0, 0, 0);
 
-        return collectDailyData({
+        return collectProtocolDailySnapshot({
           client,
           contracts: CONTRACTS,
           blockTimestamp: nextDayMidnight,
@@ -103,10 +103,10 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
       })
     );
 
-    const upsertRes = await handlePromise(upsertManyDailyData(batchResults));
+    const upsertRes = await handlePromise(upsertManyProtocolDailySnapshots(batchResults));
     if (upsertRes.err) {
       throw new ApiError({
-        message: 'Failed to write daily data',
+        message: 'Failed to write protocol daily snapshots',
         status: 500,
         exception: upsertRes.err
       });
@@ -125,4 +125,4 @@ const handler = async (req: NextRequest): ApiResponse<BackfillResult> => {
   });
 };
 
-export const POST = withErrorHandler('Error during daily data backfill', handler);
+export const POST = withErrorHandler('Error during protocol daily snapshot backfill', handler);

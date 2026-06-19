@@ -5,7 +5,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { DisclosureArrowIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { type CurrentDailyData } from '@/server/data';
+import { type CurrentDailySnapshot } from '@/server/data';
 
 import { formatBigIntToReadable } from '@/lib/utils';
 
@@ -29,7 +29,7 @@ function PanelItem({ label, value }: { label: string; value: bigint }) {
   );
 }
 
-export default function AUMAccordion({ data }: { data: CurrentDailyData['tvl'] }) {
+export default function AUMAccordion({ data }: { data: CurrentDailySnapshot['tvl'] }) {
   const sortedCategories = [...CATEGORIES].sort((a, b) => data[b.key].percentage - data[a.key].percentage);
 
   return (

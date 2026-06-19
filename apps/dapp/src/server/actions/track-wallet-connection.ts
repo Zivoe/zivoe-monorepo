@@ -5,10 +5,11 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { sql } from 'drizzle-orm';
 import { isAddress } from 'viem';
 
-import { authDb } from '@/server/clients/auth-db';
+import { walletConnection } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
 import { redis } from '@/server/clients/redis';
-import { walletConnection } from '@/server/db/schema';
 import { captureServerEvent } from '@/server/utils/analytics';
 import { BASE_URL } from '@/server/utils/base-url';
 
@@ -52,7 +53,7 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
   const normalizedAddress = wallet.address.toLowerCase();
 
   const { res, err: dbErr } = await handlePromise(
-    authDb
+    db
       .insert(walletConnection)
       .values({
         userId: user.id,

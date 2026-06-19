@@ -22,8 +22,8 @@ export const env = createEnv({
     BEEHIIV_PUBLICATION_ID: z.string(),
     BEEHIIV_API_KEY: z.string(),
 
-    // Auth
-    AUTH_DATABASE_URL: z.string(),
+    // Database/Auth
+    DATABASE_URL: z.string(),
     BETTER_AUTH_SECRET: z.string().min(32),
     APP_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string(),
@@ -87,8 +87,8 @@ export const env = createEnv({
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
 
-    // Auth
-    AUTH_DATABASE_URL: process.env.AUTH_DATABASE_URL,
+    // Database/Auth
+    DATABASE_URL: process.env.DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     APP_URL: process.env.APP_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,

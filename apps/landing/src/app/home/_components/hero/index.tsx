@@ -67,12 +67,12 @@ function HeroButton(props: LinkProps) {
 }
 
 async function Statistics() {
-  const [currentDailyData, revenue] = await Promise.all([web3.getCurrentDailyData(), web3.getRevenue()]);
+  const [currentDailySnapshot, revenue] = await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      {currentDailyData?.tvl ? (
-        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailyData.tvl.total))} />
+      {currentDailySnapshot?.tvl ? (
+        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailySnapshot.tvl.total))} />
       ) : null}
 
       <Statistic label="Target Net APY" value="10%+" />

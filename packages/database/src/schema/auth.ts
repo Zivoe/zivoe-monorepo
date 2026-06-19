@@ -65,8 +65,8 @@ export const verification = pgTable(
       .default(sql`gen_random_uuid()`)
       .primaryKey()
       .notNull(),
-    identifier: text('identifier').notNull(), // email address
-    value: text('value').notNull(), // OTP code
+    identifier: text('identifier').notNull(),
+    value: text('value').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull()

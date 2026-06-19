@@ -2,10 +2,11 @@ import 'server-only';
 
 import { and, asc, eq, gt, inArray, lte, or } from 'drizzle-orm';
 
-import { authDb } from '@/server/clients/auth-db';
+import { walletConnection } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 import { getPonder } from '@/server/clients/ponder';
 import { deposit, type redemption } from '@/server/clients/ponder/schema';
-import { walletConnection } from '@/server/db/schema';
 
 import { ApiError, handlePromise } from '@/lib/utils';
 
@@ -79,10 +80,7 @@ export async function getEventsAfterCursor<T extends typeof deposit | typeof red
 
 export async function hasUserDeposited(userId: string): Promise<boolean> {
   const { res: wallets, err } = await handlePromise(
-    authDb
-      .select({ address: walletConnection.address })
-      .from(walletConnection)
-      .where(eq(walletConnection.userId, userId))
+    db.select({ address: walletConnection.address }).from(walletConnection).where(eq(walletConnection.userId, userId))
   );
 
   if (err) {

@@ -3,8 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { authDb } from '@/server/clients/auth-db';
-import { profile, user, walletConnection, walletHoldings } from '@/server/db/schema';
+import { profile, user, walletConnection, walletHoldings } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 
 import { addressSchema } from '@/lib/schemas';
 import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
@@ -82,7 +83,7 @@ const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> =
   }
 
   if (address) {
-    const matchingUserIds = authDb
+    const matchingUserIds = db
       .selectDistinct({ userId: walletConnection.userId })
       .from(walletConnection)
       .where(eq(walletConnection.address, address.toLowerCase()));
@@ -90,7 +91,7 @@ const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> =
     condition = inArray(user.id, matchingUserIds);
   }
 
-  const wallets = await authDb
+  const wallets = await db
     .select({
       address: walletConnection.address,
       walletType: walletConnection.walletType,

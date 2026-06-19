@@ -3,9 +3,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { isAddress } from 'viem';
 
-import { authDb } from '@/server/clients/auth-db';
+import { walletHoldings } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 import { fetchPortfolios } from '@/server/clients/zapper';
-import { walletHoldings } from '@/server/db/schema';
 
 import { withQstashSignature } from '@/lib/qstash';
 import { roundTo4, withErrorHandler } from '@/lib/utils';
@@ -29,7 +30,7 @@ const handler = async (req: NextRequest): ApiResponse<FetchResult> => {
   const normalizedAddress = address.toLowerCase();
 
   // Check if holdings already exist (idempotency for QStash retries)
-  const [existing] = await authDb
+  const [existing] = await db
     .select({ totalValueUsd: walletHoldings.totalValueUsd })
     .from(walletHoldings)
     .where(eq(walletHoldings.address, normalizedAddress));
@@ -59,7 +60,7 @@ const handler = async (req: NextRequest): ApiResponse<FetchResult> => {
     holdingsUpdatedAt: sql`now()`
   };
 
-  await authDb
+  await db
     .insert(walletHoldings)
     .values({ address: normalizedAddress, ...holdingsData })
     .onConflictDoUpdate({

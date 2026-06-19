@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm run generate:importmap && next build",
     "dev": "pnpm run generate:importmap && next dev --turbo -p 3001",
-    "db:studio": "pnpm -C ../dapp exec drizzle-kit studio --config=../cms/drizzle-studio.config.mjs",
+    "db:studio": "drizzle-kit studio --config=drizzle-studio.config.mjs",
     "db:migrate": "payload migrate",
     "db:migrate:create": "payload migrate:create",
     "db:migrate:status": "payload migrate:status",
@@ -46,6 +46,7 @@
     "@zivoe/prettier-config": "workspace:*",
     "@zivoe/ts-config": "workspace:*",
     "autoprefixer": "^10.4.20",
+    "drizzle-kit": "^0.30.6",
     "eslint": "^9.21.0",
     "postcss": "^8.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

@@ -2,9 +2,10 @@ import 'server-only';
 
 import { and, eq, sql } from 'drizzle-orm';
 
-import { authDb } from '@/server/clients/auth-db';
-import { transactionEmailSent, transactionMonitorCursor, user, walletConnection } from '@/server/db/schema';
-import type { TransactionEventType } from '@/server/db/schema';
+import { transactionEmailSent, transactionMonitorCursor, user, walletConnection } from '@zivoe/database/schema';
+import type { TransactionEventType } from '@zivoe/database/schema';
+
+import { db } from '@/server/clients/db';
 
 import { ApiError, escapeHtml, handlePromise } from '@/lib/utils';
 
@@ -31,7 +32,7 @@ type TelegramEmailRecord = {
 
 export async function getMonitorCursor(flow: TransactionEventType) {
   const { res, err } = await handlePromise(
-    authDb
+    db
       .select({
         lastBlockNumber: transactionMonitorCursor.lastBlockNumber,
         lastLogIndex: transactionMonitorCursor.lastLogIndex
@@ -63,7 +64,7 @@ export async function getMonitorCursor(flow: TransactionEventType) {
 
 export async function updateMonitorCursor(flow: TransactionEventType, cursor: MonitorCursor): Promise<void> {
   const { err } = await handlePromise(
-    authDb
+    db
       .insert(transactionMonitorCursor)
       .values({
         flow,
@@ -99,7 +100,7 @@ export async function updateMonitorCursor(flow: TransactionEventType, cursor: Mo
 
 export async function getUsersForWallet(address: string) {
   const { res, err } = await handlePromise(
-    authDb
+    db
       .select({
         userId: walletConnection.userId,
         email: user.email,
@@ -141,7 +142,7 @@ export function formatTelegramEmailLine(users: Array<TelegramEmailRecord>) {
 
 export async function wasEmailSent({ eventId, userId }: { eventId: string; userId: string }) {
   const { res, err } = await handlePromise(
-    authDb
+    db
       .select({ id: transactionEmailSent.id })
       .from(transactionEmailSent)
       .where(and(eq(transactionEmailSent.eventId, eventId), eq(transactionEmailSent.userId, userId)))
@@ -175,7 +176,7 @@ export async function recordEmailSent({
   eventType: TransactionEventType;
 }) {
   const { err } = await handlePromise(
-    authDb
+    db
       .insert(transactionEmailSent)
       .values({
         eventId,

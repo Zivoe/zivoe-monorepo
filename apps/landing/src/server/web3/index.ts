@@ -6,16 +6,18 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { getLatestDailyData } from '../data/daily-data';
+import { getLatestProtocolDailySnapshot } from '@zivoe/database';
 
-export const DEPOSIT_DAILY_DATA_TAG = 'deposit-daily-data';
+import { db } from '../clients/db';
 
-const getCurrentDailyData = reactCache(
+export const PROTOCOL_DAILY_SNAPSHOT_TAG = 'protocol-daily-snapshot';
+
+const getCurrentDailySnapshot = reactCache(
   nextCache(
     async () => {
       try {
-        const latest = await getLatestDailyData();
-        if (!latest) throw new Error('Error getting daily data');
+        const latest = await getLatestProtocolDailySnapshot(db);
+        if (!latest) throw new Error('Error getting protocol daily snapshot');
 
         return latest;
       } catch (error) {
@@ -23,17 +25,17 @@ const getCurrentDailyData = reactCache(
       }
     },
     undefined,
-    { tags: [DEPOSIT_DAILY_DATA_TAG] }
+    { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
   )
 );
 
 const getRevenue = nextCache(
   async () => {
     try {
-      const latestData = await getLatestDailyData();
-      if (!latestData?.loansRevenue) return null;
+      const latestSnapshot = await getLatestProtocolDailySnapshot(db);
+      if (!latestSnapshot?.loansRevenue) return null;
 
-      const { portfolioA, portfolioB } = latestData.loansRevenue;
+      const { portfolioA, portfolioB } = latestSnapshot.loansRevenue;
       if (portfolioA === null || portfolioB === null) return null;
 
       const totalRevenue = BigInt(portfolioA) + BigInt(portfolioB);
@@ -43,10 +45,10 @@ const getRevenue = nextCache(
     }
   },
   undefined,
-  { tags: [DEPOSIT_DAILY_DATA_TAG] }
+  { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
 );
 
 export const web3 = {
-  getCurrentDailyData,
+  getCurrentDailySnapshot,
   getRevenue
 };

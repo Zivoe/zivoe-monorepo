@@ -8,6 +8,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, emailOTP } from 'better-auth/plugins';
 
+import * as schema from '@zivoe/database/schema';
+
 import { WITH_TURNSTILE } from '@/types/constants';
 
 import { captureServerEvent } from '@/server/utils/analytics';
@@ -20,10 +22,9 @@ import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import { authDb } from './clients/auth-db';
+import { db } from './clients/db';
 import { qstash } from './clients/qstash';
 import { redis } from './clients/redis';
-import * as schema from './db/schema';
 
 type DappAuthSession = {
   user: {
@@ -48,7 +49,7 @@ export const auth: DappAuth = betterAuth({
     errorURL: '/sign-in'
   },
 
-  database: drizzleAdapter(authDb, {
+  database: drizzleAdapter(db, {
     provider: 'pg',
     schema
   }),

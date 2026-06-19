@@ -23,8 +23,8 @@ export default function Home({ initialView }: { initialView: DepositPageView }) 
 async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
   let apy: number | null = null;
 
-  const currentDailyData = await data.getCurrentDailyData();
-  if (currentDailyData) apy = currentDailyData.apy;
+  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
+  if (currentProtocolDailySnapshot) apy = currentProtocolDailySnapshot.apy;
 
   return <Deposit apy={apy} initialView={initialView} />;
 }

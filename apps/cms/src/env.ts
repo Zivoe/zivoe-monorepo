@@ -5,7 +5,7 @@ export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']),
     SERVER_URL: z.string().url().optional(),
-    DATABASE_URL: z.string().min(1),
+    CMS_DATABASE_URL: z.string().min(1),
     PAYLOAD_SECRET: z.string().min(1),
     INSIGHTS_PREVIEW_SECRET: z.string().min(1),
     LANDING_PREVIEW_URL: z.string().url(),
@@ -24,7 +24,7 @@ export const env = createEnv({
     SERVER_URL: process.env.SERVER_URL,
     VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
     VERCEL_URL: process.env.VERCEL_URL,
-    DATABASE_URL: process.env.DATABASE_URL,
+    CMS_DATABASE_URL: process.env.CMS_DATABASE_URL,
     PAYLOAD_SECRET: process.env.PAYLOAD_SECRET,
     INSIGHTS_PREVIEW_SECRET: process.env.INSIGHTS_PREVIEW_SECRET,
     LANDING_PREVIEW_URL: process.env.LANDING_PREVIEW_URL,

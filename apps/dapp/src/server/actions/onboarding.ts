@@ -6,16 +6,18 @@ import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 
+import { profile } from '@zivoe/database/schema';
+
 import { auth } from '@/server/auth';
-import { authDb } from '@/server/clients/auth-db';
+import { db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
-import { profile } from '@/server/db/schema';
 import { captureServerEvent } from '@/server/utils/analytics';
-import { BASE_URL } from '@/server/utils/base-url';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { type OnboardingFormData, onboardingSchema } from '@/lib/schemas/onboarding';
 import { handlePromise } from '@/lib/utils';
+
+import { BASE_URL } from '../utils/base-url';
 
 export async function completeOnboarding(data: OnboardingFormData) {
   const session = await auth.api.getSession({
@@ -53,7 +55,7 @@ export async function completeOnboarding(data: OnboardingFormData) {
         };
 
   const { err, res } = await handlePromise(
-    authDb.insert(profile).values(insertData).onConflictDoNothing({ target: profile.id }).returning()
+    db.insert(profile).values(insertData).onConflictDoNothing({ target: profile.id }).returning()
   );
 
   if (err) {

@@ -10,7 +10,7 @@ import { CONTRACTS } from '@zivoe/contracts';
 import { getPonder } from '@/server/clients/ponder';
 import { redis } from '@/server/clients/redis';
 import { getWeb3Client } from '@/server/clients/web3';
-import { listDailyIndexPrices } from '@/server/data/daily-data';
+import { listProtocolIndexPrices } from '@/server/data/protocol-daily-snapshot';
 import { web3 } from '@/server/web3';
 
 import { addressSchema } from '@/lib/schemas';
@@ -84,7 +84,7 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     })
   );
 
-  const dailyReq = handlePromise(listDailyIndexPrices());
+  const dailyReq = handlePromise(listProtocolIndexPrices());
   const currentIndexPriceReq = handlePromise(
     web3.getIndexPrice({ client: web3Client, contracts: CONTRACTS, blockNumber: undefined })
   );
@@ -99,7 +99,7 @@ const handler = async (req: NextRequest): ApiResponse<PortfolioData> => {
     throw new ApiError({ message: 'Error getting snapshots', exception: snapshotsRes.err });
 
   if (dailyRes.err || !dailyRes.res)
-    throw new ApiError({ message: 'Error getting daily data', exception: dailyRes.err });
+    throw new ApiError({ message: 'Error getting protocol daily snapshots', exception: dailyRes.err });
 
   if (currentIndexPriceRes.err || !currentIndexPriceRes.res)
     throw new ApiError({ message: 'Error getting current index price', exception: currentIndexPriceRes.err });

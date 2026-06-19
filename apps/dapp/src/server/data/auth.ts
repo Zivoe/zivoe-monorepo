@@ -8,9 +8,10 @@ import { redirect } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 
+import * as schema from '@zivoe/database/schema';
+
 import { auth } from '@/server/auth';
-import { authDb } from '@/server/clients/auth-db';
-import * as schema from '@/server/db/schema';
+import { db } from '@/server/clients/db';
 
 import { ApiError, AppError, handlePromise } from '@/lib/utils';
 
@@ -33,7 +34,7 @@ export const getOnboardedStatus = cache(async () => {
   const { user } = await verifySession();
 
   const { err, res } = await handlePromise(
-    authDb
+    db
       .select({ id: schema.profile.id, createdAt: schema.profile.createdAt })
       .from(schema.profile)
       .where(eq(schema.profile.id, user.id))
@@ -63,7 +64,7 @@ export const verifyOnboarded = async () => {
 
 export const getUserEmailProfile = async (userId: string) => {
   const { err, res } = await handlePromise(
-    authDb
+    db
       .select({
         email: schema.user.email,
         firstName: schema.profile.firstName,
@@ -88,7 +89,7 @@ export const getUserMenuData = async () => {
   const { user } = await verifyOnboarded();
 
   const { err, res } = await handlePromise(
-    authDb
+    db
       .select({
         firstName: schema.profile.firstName,
         lastName: schema.profile.lastName,

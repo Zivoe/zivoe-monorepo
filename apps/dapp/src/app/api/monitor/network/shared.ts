@@ -1,23 +1,22 @@
 import { type PublicClient } from 'viem';
 
 import { type Contracts } from '@zivoe/contracts';
+import { type ProtocolDailySnapshot } from '@zivoe/database/schema';
 
 import { web3 } from '@/server/web3';
 
 import { ApiError, handlePromise } from '@/lib/utils';
 
-import { type DailyData } from '@/types';
-
 import { getLastBlockByDate } from '../../utils';
 
 /**
- * Unified function to collect daily data at a specific block.
+ * Unified function to collect a Protocol Daily Snapshot at a specific block.
  * Handles both historical backfill and live hourly modes.
  *
  * @param blockTimestamp - The time at which to find the block (EthDater finds block BEFORE this time)
  * @param recordTimestamp - The timestamp to store in DB (end-of-day for the target day)
  */
-export async function collectDailyData({
+export async function collectProtocolDailySnapshot({
   client,
   contracts,
   blockTimestamp,
@@ -58,7 +57,7 @@ export async function collectDailyData({
   if (loansRevenueRes.err || loansRevenueRes.res === undefined)
     throw new ApiError({ message: 'Failed to get loans revenue', exception: loansRevenueRes.err });
 
-  const data: DailyData = {
+  const data: ProtocolDailySnapshot = {
     timestamp: recordTimestamp,
     blockNumber: blockNumber.toString(),
     indexPrice: indexPriceRes.res.indexPrice,
