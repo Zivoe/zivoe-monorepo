@@ -8,13 +8,19 @@ import type {
   SerializedBlockNode,
   SerializedLinkNode,
   SerializedListNode,
+  SerializedParagraphNode,
   SerializedQuoteNode,
   SerializedUploadNode
 } from '@payloadcms/richtext-lexical';
 import { type JSXConvertersFunction, RichText } from '@payloadcms/richtext-lexical/react';
 
 import type { InsightsEmbedBlockFields } from '@zivoe/cms-types/insights-embeds';
-import { INSIGHTS_RICH_TEXT_LINK_SIZES, INSIGHTS_RICH_TEXT_LINK_VARIANTS } from '@zivoe/cms-types/insights-rich-text';
+import {
+  INSIGHTS_RICH_TEXT_LINK_SIZES,
+  INSIGHTS_RICH_TEXT_LINK_VARIANTS,
+  INSIGHTS_RICH_TEXT_PARAGRAPH_STYLES,
+  type InsightsRichTextParagraphStyle
+} from '@zivoe/cms-types/insights-rich-text';
 import type { Media } from '@zivoe/cms-types/payload-types';
 import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
@@ -25,12 +31,29 @@ import { LinkedInPostEmbed, TwitterPostEmbed, YouTubeVideoEmbed } from './rich-t
 type RichTextNode = DefaultNodeTypes | SerializedBlockNode<InsightsEmbedBlockFields>;
 type RichTextLinkNode = SerializedAutoLinkNode | SerializedLinkNode;
 type RichTextListNode = SerializedListNode;
+type RichTextParagraphNode = SerializedParagraphNode & {
+  $?: {
+    insightsParagraphStyle?: unknown;
+  };
+};
 type RichTextQuoteNode = SerializedQuoteNode;
 type RichTextUploadNode = SerializedUploadNode;
 
 const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 const LINK_VARIANTS = new Set(INSIGHTS_RICH_TEXT_LINK_VARIANTS);
 const LINK_SIZES = new Set(INSIGHTS_RICH_TEXT_LINK_SIZES);
+const PARAGRAPH_STYLES = new Set(INSIGHTS_RICH_TEXT_PARAGRAPH_STYLES);
+const headingClassNames = {
+  h2: 'font-heading text-[2rem] leading-[2.75rem] text-primary',
+  h3: 'font-heading text-[1.625rem] leading-[2.25rem] text-primary',
+  h4: 'font-heading text-[1.25rem] leading-[1.75rem] text-primary'
+} as const;
+const paragraphClassNames = {
+  body: 'text-regular leading-[1.875rem] text-secondary',
+  footnote: 'text-extraSmall leading-[1rem] text-tertiary',
+  lead: 'text-leading leading-[1.875rem] text-primary',
+  note: 'text-small leading-[1.5rem] text-tertiary'
+} as const satisfies Record<InsightsRichTextParagraphStyle, string>;
 
 const jsxConverters: JSXConvertersFunction<RichTextNode> = ({ defaultConverters }) => ({
   ...defaultConverters,
@@ -38,27 +61,19 @@ const jsxConverters: JSXConvertersFunction<RichTextNode> = ({ defaultConverters 
   link: ({ node, nodesToJSX }) => renderLink(node, nodesToJSX),
   heading: ({ node, nodesToJSX }) => {
     const children = nodesToJSX({ nodes: node.children });
-    const Tag = node.tag === 'h3' ? 'h3' : 'h2';
+    const Tag = isSupportedHeadingTag(node.tag) ? node.tag : 'h2';
 
-    return (
-      <Tag
-        className={
-          Tag === 'h2'
-            ? 'font-heading text-[2rem] leading-[2.75rem] text-primary'
-            : 'font-heading text-[1.625rem] leading-[2.25rem] text-primary'
-        }
-      >
-        {children}
-      </Tag>
-    );
+    return <Tag className={headingClassNames[Tag]}>{children}</Tag>;
   },
   list: ({ node, nodesToJSX }) => renderList(node, nodesToJSX),
   listitem: ({ node, nodesToJSX }) => <li>{nodesToJSX({ nodes: node.children })}</li>,
   paragraph: ({ node, nodesToJSX }) => {
     const children = nodesToJSX({ nodes: node.children });
-    return <p>{children?.length ? children : <br />}</p>;
+    const style = readParagraphStyle(node);
+
+    return <p className={paragraphClassNames[style]}>{children?.length ? children : <br />}</p>;
   },
-  horizontalrule: () => <hr className="my-4 border-0 border-t border-default" />,
+  horizontalrule: () => <hr className="border-default my-4 border-0 border-t" />,
   quote: ({ node, nodesToJSX }) => renderQuote(node, nodesToJSX),
   upload: ({ node }) => renderUpload(node),
   blocks: {
@@ -80,7 +95,7 @@ export function InsightsRichText({ document }: { document: InsightsRichTextDocum
     <RichText
       data={document}
       converters={jsxConverters}
-      className="flex flex-col gap-6 text-regular leading-[1.875rem] text-secondary"
+      className="text-regular text-secondary flex flex-col gap-6 leading-[1.875rem]"
     />
   );
 }
@@ -108,8 +123,21 @@ function isRichTextMedia(value: RichTextUploadNode['value']): value is Media {
   return typeof value === 'object' && value !== null && 'alt' in value;
 }
 
+function isParagraphStyle(value: string): value is InsightsRichTextParagraphStyle {
+  return PARAGRAPH_STYLES.has(value as InsightsRichTextParagraphStyle);
+}
+
+function isSupportedHeadingTag(value: string): value is keyof typeof headingClassNames {
+  return value in headingClassNames;
+}
+
 function readCaption(fields: { caption?: unknown }) {
   return typeof fields.caption === 'string' && fields.caption.trim().length > 0 ? fields.caption : null;
+}
+
+function readParagraphStyle(node: RichTextParagraphNode): InsightsRichTextParagraphStyle {
+  const paragraphStyle = node.$?.insightsParagraphStyle;
+  return typeof paragraphStyle === 'string' && isParagraphStyle(paragraphStyle) ? paragraphStyle : 'body';
 }
 
 function renderLink(
@@ -133,7 +161,7 @@ function renderLink(
       target={node.fields.newTab ? '_blank' : undefined}
       variant={variant}
       size={size}
-      className="decoration-current underline underline-offset-4"
+      className="underline decoration-current underline-offset-4"
     >
       {nodesToJSX({ nodes: node.children })}
     </Link>
@@ -158,7 +186,7 @@ function renderQuote(
   nodesToJSX: (args: { nodes: RichTextQuoteNode['children'] }) => Array<ReactNode>
 ) {
   return (
-    <blockquote className="border-l-2 border-default pl-4 italic text-primary">
+    <blockquote className="border-default text-primary border-l-2 pl-4 italic">
       {nodesToJSX({ nodes: node.children })}
     </blockquote>
   );
@@ -175,7 +203,7 @@ function renderUpload(node: RichTextUploadNode) {
 
   return (
     <figure className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-[8px] bg-surface-base-soft">
+      <div className="bg-surface-base-soft overflow-hidden rounded-[8px]">
         <Image
           src={imageUrl}
           alt={media.alt}

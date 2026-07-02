@@ -1,23 +1,24 @@
-import type { Field } from 'payload';
-
 import {
-  BoldFeature,
   BlockquoteFeature,
   BlocksFeature,
+  BoldFeature,
   FixedToolbarFeature,
   HeadingFeature,
   HorizontalRuleFeature,
   InlineToolbarFeature,
-  lexicalEditor,
   LinkFeature,
   OrderedListFeature,
   ParagraphFeature,
   UnorderedListFeature,
-  UploadFeature
+  UploadFeature,
+  lexicalEditor
 } from '@payloadcms/richtext-lexical';
+import type { Field } from 'payload';
+
 import { INSIGHTS_RICH_TEXT_LINK_SIZES, INSIGHTS_RICH_TEXT_LINK_VARIANTS } from '@zivoe/cms-types/insights-rich-text';
 
 import { insightsEmbedBlocks } from './insights-embed-blocks';
+import { ParagraphStyleFeature } from './paragraph-style-feature';
 
 const linkVariantField: Field = {
   name: 'variant',
@@ -51,7 +52,8 @@ export const insightsRichTextEditor = lexicalEditor({
   features: [
     BoldFeature(),
     ParagraphFeature(),
-    HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }),
+    ParagraphStyleFeature(),
+    HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
     UnorderedListFeature(),
     OrderedListFeature(),
     BlockquoteFeature(),
