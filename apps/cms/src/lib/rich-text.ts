@@ -5,6 +5,7 @@ import {
   FixedToolbarFeature,
   HeadingFeature,
   HorizontalRuleFeature,
+  ItalicFeature,
   InlineToolbarFeature,
   LinkFeature,
   OrderedListFeature,
@@ -51,6 +52,7 @@ const uploadCaptionField: Field = {
 export const insightsRichTextEditor = lexicalEditor({
   features: [
     BoldFeature(),
+    ItalicFeature(),
     ParagraphFeature(),
     ParagraphStyleFeature(),
     HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
