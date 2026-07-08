@@ -119,7 +119,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 aria-label={typeof pendingContent === 'string' ? pendingContent : 'Loading'}
                 className="animate-spin"
               />
-              {pendingContent ?? children}
+              {pendingContent}
             </>
           ) : (
             children
