@@ -1,7 +1,8 @@
 /* source(none) disables automatic content detection — only the @source roots below are scanned */
 @import 'tailwindcss' source(none);
 
-@plugin 'tailwindcss-animate';
+@import 'tw-animate-css';
+
 @plugin 'tailwindcss-react-aria-components';
 @plugin 'tailwind-scrollbar';
 
@@ -311,7 +312,7 @@
   --breakpoint-sm: 600px;
   --breakpoint-3xl: 1920px;
 
-  --animate-caret-blink: caret-blink 1.2s ease-out infinite;
+  --animate-caret-blink: caret-blink 1s ease-out infinite;
 
   @keyframes caret-blink {
     0%,
