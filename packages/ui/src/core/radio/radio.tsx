@@ -36,7 +36,7 @@ const radioVariants = tv({
 const cardRadioVariants = tv({
   slots: {
     container: [
-      'group flex h-14 w-full items-center justify-between overflow-hidden rounded-xs p-4',
+      'group flex h-14 w-full items-center justify-between overflow-hidden rounded-sm p-4',
       'border-default bg-surface-base border transition-colors',
       /* Hover */
       'hover:bg-surface-elevated hover:cursor-pointer',

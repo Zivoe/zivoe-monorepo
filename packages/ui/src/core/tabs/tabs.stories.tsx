@@ -170,13 +170,13 @@ export const Controlled: Story = {
         </Tabs>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={() => setSelectedKey('tab1')} className="bg-element-primary rounded-xs px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab1')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 1
           </button>
-          <button onClick={() => setSelectedKey('tab2')} className="bg-element-primary rounded-xs px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab2')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 2
           </button>
-          <button onClick={() => setSelectedKey('tab3')} className="bg-element-primary rounded-xs px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab3')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 3
           </button>
         </div>

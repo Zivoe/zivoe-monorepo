@@ -44,7 +44,7 @@ const InputOTPSlot = React.forwardRef<
       data-active={isActive}
       ref={ref}
       className={cn(
-        'bg-surface-base-soft text-subheading text-primary relative flex size-12 flex-1 items-center justify-center rounded-xs border transition-all sm:size-14 xl:size-16',
+        'bg-surface-base-soft text-subheading text-primary relative flex size-12 flex-1 items-center justify-center rounded-sm border transition-all sm:size-14 xl:size-16',
         isActive && 'border-active z-10 shadow-[0px_0px_4px_0px_var(--color-primary-400)]',
         char && !isActive && 'border-active',
         !char && !isActive && 'border-default',

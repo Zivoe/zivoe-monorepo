@@ -302,7 +302,7 @@ const SearchInputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ cl
 
 const inputGroupStyles = tv({
   base: [
-    'border-default flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-xs border',
+    'border-default flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border',
     /* Hover */
     'hover:border-contrast',
     /* Focus Within */
