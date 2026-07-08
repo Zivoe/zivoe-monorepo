@@ -57,7 +57,9 @@ export default function NewsletterForm() {
 
   return (
     <>
+      {/* noValidate: zod owns validation — otherwise the browser blocks submit on type="email" before react-hook-form runs */}
       <form
+        noValidate
         className="flex w-full flex-col justify-center gap-4 sm:w-fit xl:flex-row xl:gap-2"
         onSubmit={form.handleSubmit(handleSubmit)}
       >

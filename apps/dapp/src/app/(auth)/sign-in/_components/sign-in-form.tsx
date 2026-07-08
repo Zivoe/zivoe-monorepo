@@ -197,7 +197,8 @@ function EmailStepForm({
 
   return (
     <>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-8">
+      {/* noValidate: zod owns validation — otherwise the browser blocks submit on type="email" before react-hook-form runs */}
+      <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-8">
         <Controller
           control={form.control}
           name="email"
