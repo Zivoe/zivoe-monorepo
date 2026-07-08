@@ -198,6 +198,7 @@
   --text-color-brand-secondary-subtle: hsl(var(--secondary-600));
   --text-color-success: hsl(var(--success-900));
   --text-color-success-subtle: hsl(var(--success-700));
+  --text-color-success-contrast: hsl(var(--success-600));
   --text-color-warning: hsl(var(--warning-900));
   --text-color-warning-subtle: hsl(var(--warning-700));
   --text-color-alert: hsl(var(--alert-900));

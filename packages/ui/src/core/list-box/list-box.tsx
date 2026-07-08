@@ -42,7 +42,7 @@ const ListBoxItem = <T extends object>({
       {composeRenderProps(children, (children, { isSelected }) => (
         <>
           <span className="flex flex-1 items-center gap-2">{children}</span>
-          {showCheckmark && isSelected && <CheckIcon className="text-success-600 ml-2 size-4 shrink-0" />}
+          {showCheckmark && isSelected && <CheckIcon className="text-success-contrast ml-2 size-4 shrink-0" />}
         </>
       ))}
     </AriaListBoxItem>
