@@ -66,6 +66,8 @@ export default function NewsletterForm() {
           name="email"
           render={({ field, fieldState: { invalid, error } }) => (
             <Input
+              label="Email address"
+              labelClassName="sr-only"
               type="email"
               isRequired
               placeholder="Your email address"

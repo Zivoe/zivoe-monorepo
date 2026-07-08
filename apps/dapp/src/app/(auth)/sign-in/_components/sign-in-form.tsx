@@ -78,7 +78,7 @@ export default function SignInForm() {
               title="Verify Your Email"
               description={
                 <p className="text-regular text-secondary">
-                  We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
+                  We've sent an OTP code to <span className="text-primary break-all">{email}</span>.
                 </p>
               }
             >
@@ -96,7 +96,7 @@ export default function SignInForm() {
       {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
 
       {WITH_TURNSTILE && (
-        <div className="absolute bottom-0 right-0 z-50">
+        <div className="absolute right-0 bottom-0 z-50">
           <Turnstile
             options={{ execution: 'execute', appearance: 'execute', size: 'normal' }}
             siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -232,6 +232,7 @@ function EmailStepForm({
 
       <div className="flex gap-6">
         <Button
+          aria-label="Sign in with Google"
           type="button"
           variant="border-light"
           fullWidth
@@ -240,10 +241,11 @@ function EmailStepForm({
           isDisabled={form.formState.isSubmitting || isTwitterLoading}
           className="[&_svg]:!size-6"
         >
-          <GoogleIcon />
+          <GoogleIcon aria-hidden="true" />
         </Button>
 
         <Button
+          aria-label="Sign in with X"
           type="button"
           variant="border-light"
           fullWidth
@@ -252,7 +254,7 @@ function EmailStepForm({
           isDisabled={form.formState.isSubmitting || isGoogleLoading}
           className="[&_svg]:!size-6"
         >
-          <TwitterIcon />
+          <TwitterIcon aria-hidden="true" />
         </Button>
       </div>
     </>
@@ -397,7 +399,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       />
 
       {!isExhausted && (
-        <div className="flex items-center gap-1 text-regular text-secondary">
+        <div className="text-regular text-secondary flex items-center gap-1">
           <span>Didn&apos;t receive an email?</span>
           <Button variant="link-primary" size="m" onPress={handleResendCode} isDisabled={isLoading || !canResend}>
             {isResending

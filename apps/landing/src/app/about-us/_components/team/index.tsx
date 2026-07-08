@@ -38,6 +38,7 @@ export default function Team() {
 
       <Dialog isOpen={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
+          aria-label={selected ? `${selected.name} profile` : 'Team member profile'}
           isFullScreen
           showFullScreenHeader={false}
           isDismissable={false}
@@ -46,17 +47,17 @@ export default function Team() {
           {selected && (
             <div className="relative mx-auto w-full max-w-[120rem] flex-1">
               {/* Background accents */}
-              <div className="pointer-events-none fixed right-0 top-0 z-0 h-[8rem] w-[12rem] bg-[#038788] md:left-0 md:right-auto md:h-[20rem] md:w-[28rem]" />
-              <div className="pointer-events-none fixed bottom-0 left-0 z-0 h-[6rem] w-[12rem] bg-[#F08F48] md:left-auto md:right-0 md:h-[7.5rem] md:w-[20rem]" />
+              <div className="pointer-events-none fixed top-0 right-0 z-0 h-[8rem] w-[12rem] bg-[#038788] md:right-auto md:left-0 md:h-[20rem] md:w-[28rem]" />
+              <div className="pointer-events-none fixed bottom-0 left-0 z-0 h-[6rem] w-[12rem] bg-[#F08F48] md:right-0 md:left-auto md:h-[7.5rem] md:w-[20rem]" />
 
               {/* Content */}
-              <div className="relative z-10 mt-3 flex w-full min-w-0 max-w-[90rem] flex-col gap-10 px-2 py-6 sm:px-6 md:mt-20 md:flex-row md:items-start md:gap-16 lg:-ml-[8em] lg:mt-20 xl:-ml-[8em]">
+              <div className="relative z-10 mt-3 flex w-full max-w-[90rem] min-w-0 flex-col gap-10 px-2 py-6 sm:px-6 md:mt-20 md:flex-row md:items-start md:gap-16 lg:mt-20 lg:-ml-[8em] xl:-ml-[8em]">
                 <div className="relative mx-auto w-full max-w-[21rem] shrink-0 rounded-lg md:ml-0 lg:ml-[-2rem] xl:ml-[-4rem]">
                   {/* Mobile: small close inside image corner */}
                   <button
                     aria-label="Close team member"
                     onClick={() => setIsOpen(false)}
-                    className="absolute right-2 top-2 top-[-40px] z-20 text-h3 text-base md:hidden"
+                    className="text-h3 absolute top-2 top-[-40px] right-2 z-20 text-base md:hidden"
                   >
                     ×
                   </button>
@@ -65,7 +66,7 @@ export default function Team() {
                     <button
                       aria-label="Close"
                       onClick={() => setIsOpen(false)}
-                      className="text-white text-h5 leading-none hover:opacity-80 focus-visible:outline-none"
+                      className="text-h5 leading-none text-white hover:opacity-80 focus-visible:outline-hidden"
                     >
                       ×
                     </button>
@@ -81,15 +82,15 @@ export default function Team() {
 
                 <div className="flex w-full max-w-full flex-col gap-6 text-base md:flex-[1.2] md:basis-[44rem] md:pt-2 lg:min-w-[30rem] lg:basis-[60rem] xl:min-w-[30rem] xl:basis-[70rem]">
                   {/* Row 1: Name */}
-                  <p className="hyphens-auto text-balance text-h4 leading-tight sm:text-h3 lg:text-h2">
+                  <p className="text-h4 sm:text-h3 lg:text-h2 leading-tight text-balance hyphens-auto">
                     {selected.name}
                   </p>
                   {/* Row 2: Description */}
                   {selected.title ? (
-                    <p className="hyphens-auto text-pretty text-regular opacity-80">{selected.title}</p>
+                    <p className="text-regular text-pretty hyphens-auto opacity-80">{selected.title}</p>
                   ) : null}
                   {/* Row 3: Bio */}
-                  <p className="hyphens-auto text-pretty break-words text-leading opacity-90">
+                  <p className="text-leading text-pretty break-words hyphens-auto opacity-90">
                     {selected.bio ?? 'Bio coming soon.'}
                   </p>
 
@@ -99,10 +100,11 @@ export default function Team() {
                         <Link
                           href={selected.x}
                           target="_blank"
+                          aria-label={`${selected.name} on X`}
                           hideExternalLinkIcon
                           variant="link-base"
                           size="m"
-                          className="text-white grid size-12 place-items-center rounded-[10px] bg-[#038788]"
+                          className="grid size-12 place-items-center rounded-[10px] bg-[#038788] text-white"
                         >
                           <XIcon color="currentColor" />
                         </Link>
@@ -111,10 +113,11 @@ export default function Team() {
                         <Link
                           href={selected.linkedIn}
                           target="_blank"
+                          aria-label={`${selected.name} on LinkedIn`}
                           hideExternalLinkIcon
                           variant="link-base"
                           size="m"
-                          className="grid size-12 place-items-center rounded-[10px] bg-element-neutral-contrast-subtle"
+                          className="bg-element-neutral-contrast-subtle grid size-12 place-items-center rounded-[10px]"
                         >
                           <LinkedInIcon color="white" />
                         </Link>
@@ -184,15 +187,15 @@ function TeamMember({
   return (
     <button
       onClick={onOpen}
-      className="group flex h-full max-w-[262px] cursor-pointer flex-col text-left outline-none"
+      className="group flex h-full max-w-[262px] cursor-pointer flex-col text-left outline-hidden"
       aria-label={`Open profile for ${name}`}
     >
       <div className="relative overflow-hidden">
         {children}
-        <div className="pointer-events-none absolute inset-0 bg-element-primary/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        <div className="bg-element-primary/20 pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       </div>
 
-      <div className="flex flex-grow flex-col gap-2 bg-surface-elevated px-6 py-5">
+      <div className="bg-surface-elevated flex flex-grow flex-col gap-2 px-6 py-5">
         <p className="text-subheading text-primary">{name}</p>
         <p className="text-regular text-primary">{title}</p>
       </div>

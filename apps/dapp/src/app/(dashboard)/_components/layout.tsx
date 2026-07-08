@@ -42,7 +42,7 @@ export function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="h-[3.5rem] text-base current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active"
+            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-14 text-base"
             href={href}
             aria-current={isCurrent}
             isDisabled={isDisabled}
@@ -102,11 +102,11 @@ type User = {
 };
 
 const avatarButtonStyles = tv({
-  base: 'flex shrink-0 items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-0',
+  base: 'focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex shrink-0 items-center justify-center transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2',
   variants: {
     hasImage: {
-      true: 'size-10 rounded-full hover:ring-4 hover:ring-default hover:ring-offset-0',
-      false: 'size-12 rounded-[4px] bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast'
+      true: 'hover:ring-default size-10 rounded-full hover:ring-4 hover:ring-offset-0',
+      false: 'bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast size-12 rounded-[4px]'
     }
   }
 });
@@ -155,8 +155,8 @@ export function UserMenu({ user }: { user: User }) {
             </div>
 
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-regular font-medium text-primary">{user.name}</span>
-              <span className="truncate text-small text-secondary">{user.email}</span>
+              <span className="text-regular text-primary truncate font-medium">{user.name}</span>
+              <span className="text-small text-secondary truncate">{user.email}</span>
             </div>
           </div>
 
@@ -171,7 +171,7 @@ export function UserMenu({ user }: { user: User }) {
             fullWidth
             onPress={handleSignOut}
             isPending={isPending}
-            className="justify-start text-alert-contrast"
+            className="text-alert-contrast justify-start"
             pendingContent="Logging out..."
           >
             <LogoutIcon className="!size-4" />
@@ -187,12 +187,14 @@ function UserAvatar({ user }: { user: User }) {
   const avatarSrc = getAvatarSrc(user.image);
 
   if (avatarSrc) {
-    return <Image src={avatarSrc} alt={user.name} width={40} height={40} className="size-10 rounded-full object-cover" />;
+    return (
+      <Image src={avatarSrc} alt={user.name} width={40} height={40} className="size-10 rounded-full object-cover" />
+    );
   }
 
   const initials = getInitials({ user });
 
-  return <span className="text-regular font-medium text-secondary">{initials}</span>;
+  return <span className="text-regular text-secondary font-medium">{initials}</span>;
 }
 
 const ALLOWED_AVATAR_HOSTS = new Set(['lh3.googleusercontent.com', 'pbs.twimg.com', 'abs.twimg.com']);

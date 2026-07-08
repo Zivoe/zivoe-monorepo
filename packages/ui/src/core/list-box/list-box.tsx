@@ -11,13 +11,13 @@ import { tv } from '../../lib/tw-utils';
 
 const listBoxItemVariants = tv({
   base: [
-    'relative flex cursor-default select-none items-center justify-between rounded-[4px] px-3 py-[10px] text-small outline-none transition-colors',
+    'text-small relative flex cursor-default items-center justify-between rounded-[4px] px-3 py-[10px] outline-hidden transition-colors select-none',
     /* Disabled */
     'disabled:pointer-events-none disabled:opacity-60',
     /* Focused */
     'focus:bg-element-neutral-light',
     /* Hovered */
-    'hover:cursor-pointer hover:bg-element-neutral-light'
+    'hover:bg-element-neutral-light hover:cursor-pointer'
   ]
 });
 
@@ -31,11 +31,13 @@ const ListBoxItem = <T extends object>({
   showCheckmark = true,
   ...props
 }: ListBoxItemProps<T>) => {
+  const textValue = props.textValue ?? (typeof children === 'string' ? children : undefined);
+
   return (
     <AriaListBoxItem
-      textValue={props.textValue ?? (typeof children === 'string' ? children : undefined)}
-      className={composeRenderProps(className, (className) => listBoxItemVariants({ className }))}
       {...props}
+      textValue={textValue}
+      className={composeRenderProps(className, (className) => listBoxItemVariants({ className }))}
     >
       {composeRenderProps(children, (children, { isSelected }) => (
         <>

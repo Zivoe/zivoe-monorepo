@@ -18,6 +18,9 @@ const Modal = Aria.Modal;
 type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'children' | 'isDismissable'> & {
   children?: Aria.DialogProps['children'];
   role?: Aria.DialogProps['role'];
+  'aria-label'?: Aria.DialogProps['aria-label'];
+  'aria-labelledby'?: Aria.DialogProps['aria-labelledby'];
+  'aria-describedby'?: Aria.DialogProps['aria-describedby'];
   logoType?: 'dark' | 'light';
   dialogClassName?: string;
   showCloseButton?: boolean;
@@ -36,7 +39,10 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       showCloseButton = true,
       isFullScreen = false,
       showFullScreenHeader = true,
-      role: _role,
+      role,
+      'aria-label': ariaLabel,
+      'aria-labelledby': ariaLabelledBy,
+      'aria-describedby': ariaDescribedBy,
       logoType = 'dark',
       ...props
     }: DialogContentProps,
@@ -46,32 +52,36 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
       className={cn(
-        'fixed inset-0 z-50 grid w-screen place-items-center items-center bg-surface-contrast/40 backdrop-blur-[4px]',
+        'bg-surface-contrast/40 fixed inset-0 z-50 grid w-screen place-items-center items-center backdrop-blur-xs',
         !isFullScreen && 'px-2 py-6',
         /* Entering */
-        'data-[entering]:animate-in data-[entering]:fade-in-0',
+        'entering:animate-in entering:fade-in-0',
         /* Exiting */
-        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0',
-        'h-[var(--visual-viewport-height)]'
+        'exiting:animate-out exiting:fade-out-0 exiting:duration-300',
+        'h-(--visual-viewport-height)'
       )}
     >
       <Aria.Modal
         className={composeRenderProps(className, (className) =>
           cn(
             nativeScrollAreaStyles(),
-            'relative z-50 w-full overflow-auto bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
-            isFullScreen ? 'h-full' : 'max-h-full max-w-[33.75rem] rounded-2xl',
+            'bg-surface-elevated relative z-50 w-full overflow-auto p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+            isFullScreen ? 'h-full' : 'max-h-full max-w-135 rounded-2xl',
             /* Entering */
             'data-[entering]:animate-in data-[entering]:fade-in-0 data-[entering]:zoom-in-75',
             /* Exiting */
-            'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0 data-[exiting]:zoom-out-75',
+            'data-[exiting]:animate-out data-[exiting]:fade-out-0 data-[exiting]:zoom-out-75 data-exiting:duration-300',
             className
           )
         )}
         {...props}
       >
         <Aria.Dialog
-          className={cn('flex flex-col items-center gap-4 outline-none', isFullScreen && 'h-full')}
+          role={role}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          aria-describedby={ariaDescribedBy}
+          className={cn('flex flex-col items-center gap-4 outline-hidden', isFullScreen && 'h-full')}
           ref={ref}
         >
           {composeRenderProps(children, (children, { close }) => (
@@ -80,15 +90,21 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
                 <div className="flex w-full items-center justify-between gap-6">
                   <ZivoeLogo type={logoType} />
 
-                  <Button size="m" variant="border-light" onPress={close} className="z-10">
-                    <CloseIcon />
+                  <Button aria-label="Close dialog" size="m" variant="border-light" onPress={close} className="z-10">
+                    <CloseIcon aria-hidden="true" />
                   </Button>
                 </div>
               ) : (
                 isDismissable &&
                 showCloseButton && (
-                  <Button size="m" variant="border-light" onPress={close} className="absolute right-4 top-4">
-                    <CloseIcon />
+                  <Button
+                    aria-label="Close dialog"
+                    size="m"
+                    variant="border-light"
+                    onPress={close}
+                    className="absolute top-4 right-4"
+                  >
+                    <CloseIcon aria-hidden="true" />
                   </Button>
                 )
               )}
@@ -114,7 +130,7 @@ const DialogContentBox = ({ children, className, ...props }: React.HTMLAttribute
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+        'bg-surface-base flex flex-col gap-4 rounded-2xl p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
         className
       )}
       {...props}

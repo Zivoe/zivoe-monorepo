@@ -6,11 +6,14 @@ import * as RechartsPrimitive from 'recharts';
 
 import { cn } from '../../lib/tw-utils';
 
-export type ChartConfig = Record<string, {
+export type ChartConfig = Record<
+  string,
+  {
     label?: React.ReactNode;
     icon?: React.ComponentType;
     color?: string;
-  }>;
+  }
+>;
 
 type ChartContextProps = {
   config: ChartConfig;
@@ -44,7 +47,7 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-extraSmall [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          "text-extraSmall [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 flex aspect-video justify-center [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
           className
         )}
         {...props}
@@ -97,10 +100,7 @@ const ChartTooltipContent = React.forwardRef<
       const [item] = payload;
       const key = `${labelKey ?? item?.dataKey ?? item?.name ?? 'value'}`;
       const itemConfig = getPayloadConfigFromPayload(config, item, key);
-      const value =
-        !labelKey && typeof label === 'string'
-          ? config[label]?.label ?? label
-          : itemConfig?.label;
+      const value = !labelKey && typeof label === 'string' ? (config[label]?.label ?? label) : itemConfig?.label;
 
       if (labelFormatter) {
         return <div className={cn('font-medium', labelClassName)}>{labelFormatter(value, payload)}</div>;
@@ -123,7 +123,7 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          'text-xs grid min-w-[12rem] items-start gap-1.5 rounded-lg bg-surface-base px-3 py-2 shadow-[0px_1px_3px_0px_rgba(16,24,40,0.10),0px_1px_2px_0px_rgba(16,24,40,0.06)]',
+          'bg-surface-base grid min-w-48 items-start gap-1.5 rounded-lg px-3 py-2 text-xs shadow-[0px_1px_3px_0px_rgba(16,24,40,0.10),0px_1px_2px_0px_rgba(16,24,40,0.06)]',
           className
         )}
       >
@@ -149,7 +149,7 @@ const ChartTooltipContent = React.forwardRef<
                       !hideIndicator && (
                         <div
                           className={cn(
-                            'shrink-0 rounded-[2px] bg-[--color-bg]',
+                            'shrink-0 rounded-[2px] bg-(--color-bg)',
                             indicator === 'dot' && 'h-2.5 w-2.5',
                             indicator === 'line' && 'w-1',
                             indicator === 'dashed' && 'w-0 border-[1.5px] border-dashed bg-transparent',
@@ -173,7 +173,7 @@ const ChartTooltipContent = React.forwardRef<
                         {nestLabel ? tooltipLabel : null}
                         <span className="font-heading text-primary">{itemConfig?.label ?? item.name}</span>
                       </div>
-                      {item.value && <span className="tabular-nums text-secondary">{item.value.toLocaleString()}</span>}
+                      {item.value && <span className="text-secondary tabular-nums">{item.value.toLocaleString()}</span>}
                     </div>
                   </>
                 )}
@@ -200,13 +200,13 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   let configLabelKey: string = key;
 
   if (key in payload && typeof payload[key as keyof typeof payload] === 'string') {
-    configLabelKey = payload[key as keyof typeof payload] as string;
+    configLabelKey = payload[key as keyof typeof payload];
   } else if (
     payloadPayload &&
     key in payloadPayload &&
     typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
   ) {
-    configLabelKey = payloadPayload[key as keyof typeof payloadPayload] as string;
+    configLabelKey = payloadPayload[key as keyof typeof payloadPayload];
   }
 
   return configLabelKey in config ? config[configLabelKey] : config[key];

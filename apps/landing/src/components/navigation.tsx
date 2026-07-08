@@ -14,9 +14,9 @@ import Container from './container';
 
 export default function NavigationSection() {
   return (
-    <Container className="z-10 flex-row items-center justify-between pt-4 lg:pl-[6.25rem] lg:pr-8 lg:pt-8">
-      <NextLink href="/">
-        <ZivoeLogo />
+    <Container className="z-10 flex-row items-center justify-between pt-4 lg:pt-8 lg:pr-8 lg:pl-[6.25rem]">
+      <NextLink href="/" aria-label="Zivoe home">
+        <ZivoeLogo aria-hidden="true" />
       </NextLink>
       <Navigation />
     </Container>
@@ -34,7 +34,7 @@ function Navigation() {
 
 function Desktop() {
   return (
-    <div className="hidden items-center gap-6 rounded-lg bg-surface-base shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
+    <div className="bg-surface-base hidden items-center gap-6 rounded-lg shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
       <div className="ml-5 flex gap-6">
         <NavigationItems />
       </div>
@@ -56,8 +56,8 @@ function Desktop() {
 function Mobile() {
   return (
     <Dialog>
-      <Button variant="border-light" size="m" className="shadow-none lg:hidden">
-        <HamburgerIcon />
+      <Button aria-label="Open navigation menu" variant="border-light" size="m" className="shadow-none lg:hidden">
+        <HamburgerIcon aria-hidden="true" />
       </Button>
 
       <NavigationMobileDialog>
@@ -80,7 +80,7 @@ function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="h-[3.5rem] text-base current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active"
+            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-[3.5rem] text-base"
             href={href}
             target={target}
             aria-current={isCurrent}

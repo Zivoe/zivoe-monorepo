@@ -12,7 +12,7 @@ const PopoverTrigger = Aria.DialogTrigger;
 
 const popoverVariants = tv({
   base: [
-    'z-50 max-w-xs rounded-md border border-default bg-element-base px-3 py-2 text-small text-secondary shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)]',
+    'border-default bg-element-base text-small text-secondary z-50 max-w-xs rounded-md border px-3 py-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)]',
     /* Entering */
     'entering:animate-in entering:fade-in-0 entering:zoom-in-90',
     /* Exiting */
@@ -48,7 +48,7 @@ const BasePopover = forwardRef<HTMLDivElement, BasePopoverProps>(
 const Popover = forwardRef<HTMLDivElement, BasePopoverProps>(({ children, ...props }, ref) => (
   <BasePopover {...props} ref={ref}>
     {composeRenderProps(children, (children) => (
-      <Aria.Dialog className="outline-none">{children}</Aria.Dialog>
+      <Aria.Dialog className="outline-hidden">{children}</Aria.Dialog>
     ))}
   </BasePopover>
 ));

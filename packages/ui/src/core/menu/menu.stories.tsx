@@ -183,7 +183,7 @@ const SingleSelectionComponent = () => {
         </MenuPopover>
       </MenuTrigger>
 
-      <p className="text-sm text-secondary">Selected: {Array.from(selected).join(', ')}</p>
+      <p className="text-secondary text-sm">Selected: {Array.from(selected).join(', ')}</p>
     </div>
   );
 };
@@ -225,14 +225,14 @@ const MultipleSelectionsComponent = () => {
             selectedKeys={selected}
             onSelectionChange={setSelected}
             className="w-72"
-            scrollAreaClassName="h-[10rem]"
+            scrollAreaClassName="h-40"
           >
             {(country) => <MenuItem id={country.id}>{country.label}</MenuItem>}
           </Menu>
         </MenuPopover>
       </MenuTrigger>
 
-      <p className="text-sm text-secondary">Selected: {Array.from(selected).join(', ')}</p>
+      <p className="text-secondary text-sm">Selected: {Array.from(selected).join(', ')}</p>
     </div>
   );
 };

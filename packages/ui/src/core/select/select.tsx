@@ -23,7 +23,7 @@ const SelectItem = ListBoxItem;
 const SelectValue = <T extends object>({ className, ...props }: AriaSelectValueProps<T>) => (
   <AriaSelectValue
     className={composeRenderProps(className, (className) =>
-      cn('line-clamp-1 data-[placeholder]:text-tertiary [&>[slot=description]]:hidden', className)
+      cn('data-placeholder:text-tertiary line-clamp-1 *:[[slot=description]]:hidden', className)
     )}
     {...props}
   />
@@ -45,14 +45,14 @@ const SelectTrigger = ({
     variant={variant}
     size={size}
     className={composeRenderProps(className, (className) =>
-      cn(className, isInvalid && '!shadow-[0_0_0_1px_theme(colors.alert.600),0_0_4px_1px_theme(colors.alert.600)]')
+      cn(className, isInvalid && 'shadow-[0_0_0_1px_var(--color-alert-600),0_0_4px_1px_var(--color-alert-600)]!')
     )}
     {...props}
   >
     {composeRenderProps(children, (children) => (
       <>
         {children}
-        <ChevronDownIcon aria-hidden="true" className="size-4 text-icon-default" />
+        <ChevronDownIcon aria-hidden="true" className="text-icon-default size-4" />
       </>
     ))}
   </Button>
@@ -78,7 +78,7 @@ const SelectPopover = ({
     shouldFlip={shouldFlip}
     showOverlayArrow={false}
     className={composeRenderProps(className, (className) =>
-      cn('p-0', matchTriggerWidth && 'w-[--trigger-width] max-w-none', className)
+      cn('p-0', matchTriggerWidth && 'w-(--trigger-width) max-w-none', className)
     )}
     {...props}
   />
@@ -92,7 +92,7 @@ const SelectListBox = <T extends object>({
   <AriaListBox
     className={composeRenderProps(className, (className) =>
       cn(
-        'max-h-[inherit] space-y-1 overflow-auto p-2 outline-none [clipPath:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
+        'max-h-[inherit] space-y-1 overflow-auto p-2 outline-hidden [clipPath:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
         className
       )
     )}

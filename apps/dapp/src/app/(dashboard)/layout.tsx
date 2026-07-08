@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <Header />
 
-      <div className="flex h-full flex-col justify-between bg-surface-base">
+      <div className="bg-surface-base flex h-full flex-col justify-between">
         {children}
         <Footer />
       </div>
@@ -35,10 +35,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 function Header() {
   return (
     <>
-      <div className="flex min-h-[6.25rem] w-full items-center justify-between bg-surface-base px-4 lg:px-10">
+      <div className="bg-surface-base flex min-h-[6.25rem] w-full items-center justify-between px-4 lg:px-10">
         <div className="flex items-center gap-10">
-          <NextLink href="/">
-            <ZivoeLogo className="-ml-3 h-6" />
+          <NextLink href="/" aria-label="Zivoe home">
+            <ZivoeLogo aria-hidden="true" className="-ml-3 h-6" />
           </NextLink>
 
           <DesktopNavigation />
@@ -76,8 +76,8 @@ function DesktopNavigation() {
 function MobileNavigation() {
   return (
     <Dialog>
-      <Button variant="border-light" className="lg:hidden">
-        <HamburgerIcon />
+      <Button aria-label="Open navigation menu" variant="border-light" className="lg:hidden">
+        <HamburgerIcon aria-hidden="true" />
       </Button>
 
       <NavigationMobileDialog>
