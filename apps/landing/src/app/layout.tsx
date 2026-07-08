@@ -5,7 +5,7 @@ import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 
 import { Analytics } from '@vercel/analytics/next';
 
-import '@zivoe/ui/globals.css';
+import './globals.css';
 
 import { SITE_DESCRIPTION, SITE_IMAGE, SITE_ORIGIN, SITE_TITLE } from '@/lib/seo';
 
