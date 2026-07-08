@@ -343,6 +343,16 @@
   }
 }
 
+/*
+  Each text-* font-size utility also sets its font family (paragraph sizes ->
+  --font-paragraph, heading sizes -> --font-heading). These rules are emitted
+  after font-paragraph/font-heading in the utilities layer, so on an element
+  that combines both, the text-* size class wins. To force a different family
+  next to a size class, use the important form: font-heading! / font-paragraph!.
+
+  Unlike the Tailwind v3 setup, this also applies at responsive variants
+  (e.g. sm:text-h3 switches the font family at sm), which is intended.
+*/
 @utility text-tiny {
   @apply font-paragraph;
 }
