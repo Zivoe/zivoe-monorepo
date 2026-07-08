@@ -283,12 +283,5 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     image: '/team/alex.png',
     bio: 'Full-stack developer with 4+ years of experience building applications that integrate on-chain components.',
     linkedIn: 'https://www.linkedin.com/in/alexsserban/'
-  },
-  {
-    name: 'Bo Zhang',
-    title: 'Advisor',
-    image: '/team/bo.png',
-    bio: "Former Multi-Strategy Portfolio Manager at JP Morgan's Chief Investment Office. Currently Head of Investments at Fyde, advising on $800M+ in capital.",
-    linkedIn: 'https://www.linkedin.com/in/bozhang7940'
   }
 ];
