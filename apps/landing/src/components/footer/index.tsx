@@ -82,8 +82,8 @@ export default function Footer() {
 
 function FooterSection({ title, links }: { title: string; links: Array<FooterSectionLink> }) {
   return (
-    <div className="flex w-[9.6875rem] flex-col gap-6 lg:w-[12.5rem]">
-      <p className="!font-heading text-regular text-tertiary">{title}</p>
+    <div className="flex w-38.75 flex-col gap-6 lg:w-50">
+      <p className="font-heading! text-regular text-tertiary">{title}</p>
 
       <div className="flex flex-col gap-3">
         {links.map(({ href, label, target }) => (

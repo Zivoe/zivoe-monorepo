@@ -149,7 +149,7 @@ const ChartTooltipContent = React.forwardRef<
                       !hideIndicator && (
                         <div
                           className={cn(
-                            'shrink-0 rounded-[2px] bg-(--color-bg)',
+                            'shrink-0 rounded-xs bg-(--color-bg)',
                             indicator === 'dot' && 'h-2.5 w-2.5',
                             indicator === 'line' && 'w-1',
                             indicator === 'dashed' && 'w-0 border-[1.5px] border-dashed bg-transparent',

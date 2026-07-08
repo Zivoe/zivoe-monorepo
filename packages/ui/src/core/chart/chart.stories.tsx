@@ -21,7 +21,7 @@ const chartData = [
 
 export const Area: Story = {
   render: () => (
-    <div className="min-h-[240px] max-w-[770px]">
+    <div className="min-h-60 max-w-192.5">
       <ChartContainer config={{}}>
         <AreaChart accessibilityLayer data={chartData} margin={{ left: 0, right: 0, top: 0, bottom: 20 }}>
           <CartesianGrid vertical={false} />

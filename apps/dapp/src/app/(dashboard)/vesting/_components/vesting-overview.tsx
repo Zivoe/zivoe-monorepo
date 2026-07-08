@@ -97,7 +97,7 @@ export function VestingOverviewSkeleton() {
 
 function InfoCardContainer({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-surface-base flex h-full min-h-24 flex-col justify-between rounded-[4px] p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+    <div className="bg-surface-base flex h-full min-h-24 flex-col justify-between rounded-sm p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
       {children}
     </div>
   );

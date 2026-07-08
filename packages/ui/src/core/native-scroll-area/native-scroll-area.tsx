@@ -5,7 +5,7 @@ import { tv } from '../../lib/tw-utils';
 type NativeScrollAreaProps = { className?: string; children: React.ReactNode };
 
 const nativeScrollAreaStyles = tv({
-  base: 'scrollbar-thumb-rounded-full scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent overflow-auto px-[2px] py-px'
+  base: 'scrollbar-thumb-rounded-full scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent overflow-auto px-0.5 py-px'
 });
 
 const NativeScrollArea = React.forwardRef<HTMLDivElement, NativeScrollAreaProps>(({ className, children }, ref) => (

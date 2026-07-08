@@ -67,7 +67,7 @@ export function InsightsSearchForm({ categorySlug, search }: InsightsSearchFormP
         value={value}
         onChange={handleChange}
         placeholder="Search articles"
-        startContent={<SearchIcon className="!size-5 shrink-0 text-icon-default" />}
+        startContent={<SearchIcon className="size-5! shrink-0 text-icon-default" />}
         isClearable
         clearButtonAriaLabel="Clear search"
         clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"

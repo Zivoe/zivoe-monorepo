@@ -239,7 +239,7 @@ function EmailStepForm({
           onPress={() => handleSocialSignIn({ provider: 'google' })}
           isPending={isGoogleLoading}
           isDisabled={form.formState.isSubmitting || isTwitterLoading}
-          className="[&_svg]:!size-6"
+          className="[&_svg]:size-6!"
         >
           <GoogleIcon aria-hidden="true" />
         </Button>
@@ -252,7 +252,7 @@ function EmailStepForm({
           onPress={() => handleSocialSignIn({ provider: 'twitter' })}
           isPending={isTwitterLoading}
           isDisabled={form.formState.isSubmitting || isGoogleLoading}
-          className="[&_svg]:!size-6"
+          className="[&_svg]:size-6!"
         >
           <TwitterIcon aria-hidden="true" />
         </Button>
@@ -372,7 +372,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
         control={form.control}
         name="otp"
         render={({ field: { value, onChange, ref }, fieldState: { error } }) => (
-          <div className="flex w-full max-w-[32rem] flex-col gap-2">
+          <div className="flex w-full max-w-lg flex-col gap-2">
             <InputOTP
               autoFocus
               ref={ref}

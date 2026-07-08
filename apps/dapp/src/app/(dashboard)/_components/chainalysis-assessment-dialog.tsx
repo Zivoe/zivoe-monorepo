@@ -45,7 +45,7 @@ export default function ChainalysisAssessmentDialog() {
               <LockIcon className="text-alert-contrast size-8" />
             </div>
 
-            <div className="flex max-w-[28rem] flex-col items-center gap-3 text-center">
+            <div className="flex max-w-md flex-col items-center gap-3 text-center">
               <p className="text-h5 text-primary">Wallet Connection Denied</p>
 
               <p className="text-regular text-secondary">

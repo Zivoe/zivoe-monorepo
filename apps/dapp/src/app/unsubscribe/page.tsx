@@ -29,7 +29,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   if (actorResult.status === 'invalid_token') {
     return (
       <ManageNotificationsLayout description="This unsubscribe link is invalid or has expired.">
-        <div className="bg-surface-elevated mx-auto max-w-[39.375rem] rounded-2xl p-2">
+        <div className="bg-surface-elevated mx-auto max-w-157.5 rounded-2xl p-2">
           <div className="bg-surface-base rounded-xl p-6 shadow-xs md:p-8">
             <p className="text-regular text-primary">
               Open a newer Zivoe email to use its unsubscribe link, or sign in to manage your email preferences
@@ -78,7 +78,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
 function ManageNotificationsLayout({ description, children }: { description: ReactNode; children: ReactNode }) {
   return (
     <div className="bg-surface-base flex min-h-screen flex-col">
-      <header className="border-subtle bg-element-tertiary relative overflow-hidden border-b px-6 pt-8 pb-14 md:min-h-[25rem] md:px-10 md:pt-12 md:pb-[9.5625rem]">
+      <header className="border-subtle bg-element-tertiary relative overflow-hidden border-b px-6 pt-8 pb-14 md:min-h-100 md:px-10 md:pt-12 md:pb-38.25">
         <UnsubscribeHeaderPattern />
 
         <div className="relative z-10">
@@ -88,12 +88,12 @@ function ManageNotificationsLayout({ description, children }: { description: Rea
 
           <div className="mt-10 flex flex-col items-center text-center md:mt-12">
             <h1 className="text-h3 text-brand">Manage Notifications</h1>
-            <p className="text-leading text-brand mt-3 max-w-[500px]">{description}</p>
+            <p className="text-leading text-brand mt-3 max-w-125">{description}</p>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-[4.5rem] md:px-10">{children}</main>
+      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-18 md:px-10">{children}</main>
 
       <Footer />
     </div>

@@ -9,10 +9,10 @@ import { Step1Icon, Step2Icon, Step3Icon } from './assets';
 
 export default function HowItWorks() {
   return (
-    <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:py-[10rem] 2xl:px-[12rem]">
+    <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:py-40 2xl:px-48">
       <div className="flex w-full flex-col gap-10 sm:items-center sm:gap-16 xl:gap-20">
         <div className="flex flex-col gap-8 sm:items-center">
-          <p className="!font-heading text-small text-primary sm:text-leading">
+          <p className="font-heading! text-small text-primary sm:text-leading">
             Built For Institutions, Perfect For Retail
           </p>
 
@@ -79,7 +79,7 @@ function Card({
     <div className="shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] sm:max-w-full">
       <div
         className={cn(
-          'flex h-[12.5rem] items-center justify-center rounded-t-xl bg-element-neutral-subtle sm:h-[18.75rem]',
+          'flex h-50 items-center justify-center rounded-t-xl bg-element-neutral-subtle sm:h-75',
           className
         )}
       >
@@ -88,11 +88,11 @@ function Card({
         </div>
       </div>
       <div className="flex flex-col gap-6 rounded-b-xl bg-element-neutral-light px-8 py-10 sm:gap-8">
-        <p className="!font-heading text-small text-primary sm:text-regular">{label}</p>
+        <p className="font-heading! text-small text-primary sm:text-regular">{label}</p>
 
         <div className="flex flex-col gap-3">
-          <p className="!font-heading text-subheading text-primary">{title}</p>
-          <p className="max-w-[17.5rem] text-regular text-secondary sm:text-leading">{description}</p>
+          <p className="font-heading! text-subheading text-primary">{title}</p>
+          <p className="max-w-70 text-regular text-secondary sm:text-leading">{description}</p>
         </div>
       </div>
     </div>

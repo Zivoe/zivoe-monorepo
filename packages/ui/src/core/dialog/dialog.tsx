@@ -68,9 +68,9 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
             'bg-surface-elevated relative z-50 w-full overflow-auto p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
             isFullScreen ? 'h-full' : 'max-h-full max-w-135 rounded-2xl',
             /* Entering */
-            'data-[entering]:animate-in data-[entering]:fade-in-0 data-[entering]:zoom-in-75',
+            'entering:animate-in entering:fade-in-0 entering:zoom-in-75',
             /* Exiting */
-            'data-[exiting]:animate-out data-[exiting]:fade-out-0 data-[exiting]:zoom-out-75 data-exiting:duration-300',
+            'exiting:animate-out exiting:fade-out-0 exiting:zoom-out-75 exiting:duration-300',
             className
           )
         )}

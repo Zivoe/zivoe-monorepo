@@ -5,7 +5,7 @@ import { type VariantProps } from 'tailwind-variants';
 import { tv } from '../../lib/tw-utils';
 
 export const badgeVariants = tv({
-  base: 'inline-flex items-center gap-2 rounded-[4px] px-1.5 py-1 text-small font-medium [&_svg]:size-4',
+  base: 'inline-flex items-center gap-2 rounded-sm px-1.5 py-1 text-small font-medium [&_svg]:size-4',
 
   variants: {
     variant: {

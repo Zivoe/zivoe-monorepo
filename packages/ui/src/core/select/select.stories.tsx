@@ -26,7 +26,7 @@ export const Default: Story = {
   render: () => {
     return (
       <>
-        <Select className="w-[200px]" placeholder="Select an animal" defaultSelectedKey={0}>
+        <Select className="w-50" placeholder="Select an animal" defaultSelectedKey={0}>
           <SelectTrigger>
             <ChartIcon className="size-4 text-icon-default" />
             <SelectValue />

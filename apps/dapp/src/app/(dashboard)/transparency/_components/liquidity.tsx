@@ -34,7 +34,7 @@ export default function Liquidity({ data }: { data: Liquidity }) {
       </div>
 
       <div className={cn('-mx-6 overflow-x-auto', nativeScrollAreaStyles())}>
-        <div className="w-[580px] px-6 md:w-full lg:w-[580px] xl:w-full">
+        <div className="w-145 px-6 md:w-full lg:w-145 xl:w-full">
           <Row className="h-auto bg-surface-elevated">
             <Header>Venue</Header>
             <Header>Liquidity</Header>
@@ -126,7 +126,7 @@ function Row({ children, className }: { children: ReactNode; className?: string 
   return (
     <div
       className={cn(
-        'group grid h-[4.375rem] grid-cols-[140px_110px_150px_180px] hover:bg-surface-elevated md:grid-cols-4 lg:grid-cols-[140px_110px_150px_180px] xl:grid-cols-4',
+        'group grid h-17.5 grid-cols-[140px_110px_150px_180px] hover:bg-surface-elevated md:grid-cols-4 lg:grid-cols-[140px_110px_150px_180px] xl:grid-cols-4',
         className
       )}
     >

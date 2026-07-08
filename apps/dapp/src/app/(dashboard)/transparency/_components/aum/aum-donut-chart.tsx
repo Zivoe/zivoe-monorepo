@@ -46,7 +46,7 @@ export default function AUMDonutChart({ data, className }: { data: CurrentDailyS
 
   return (
     <div className={cn('flex flex-col items-center', className)}>
-      <div className="relative size-[300px]">
+      <div className="relative size-75">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -88,7 +88,7 @@ export default function AUMDonutChart({ data, className }: { data: CurrentDailyS
 
 export function AUMDonutChartSkeleton() {
   return (
-    <div className="relative size-[300px]">
+    <div className="relative size-75">
       <svg width="300" height="300" viewBox="0 0 300 300">
         <g transform="translate(150, 150)">
           <circle

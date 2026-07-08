@@ -50,10 +50,10 @@ const buttonVariants = tv({
     },
 
     size: {
-      l: 'text-regular h-12 gap-2 rounded-[4px] px-4 py-3 [&_svg]:size-4',
-      m: 'text-regular h-10 gap-2 rounded-[4px] px-3 py-2 [&_svg]:size-4',
-      s: 'text-small h-8 gap-1 rounded-[2px] px-3 py-2 [&_svg]:size-4',
-      xs: 'text-extraSmall h-6 gap-1 rounded-[2px] px-2 py-[10px] [&_svg]:size-3'
+      l: 'text-regular h-12 gap-2 rounded-sm px-4 py-3 [&_svg]:size-4',
+      m: 'text-regular h-10 gap-2 rounded-sm px-3 py-2 [&_svg]:size-4',
+      s: 'text-small h-8 gap-1 rounded-xs px-3 py-2 [&_svg]:size-4',
+      xs: 'text-extraSmall h-6 gap-1 rounded-xs px-2 py-2.5 [&_svg]:size-3'
     },
 
     fullWidth: { true: 'w-full' }

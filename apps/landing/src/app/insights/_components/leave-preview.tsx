@@ -9,7 +9,7 @@ export function LeavePreviewBanner({ message, redirectTo }: LeavePreviewBannerPr
   const leavePreviewAction = leaveInsightsPreview.bind(null, redirectTo);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] bg-element-warning-light px-4 py-3 text-small text-warning">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-element-warning-light px-4 py-3 text-small text-warning">
       <span>{message}</span>
       <form action={leavePreviewAction}>
         <button

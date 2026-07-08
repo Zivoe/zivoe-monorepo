@@ -207,7 +207,7 @@ function DesktopTimelineItem({ milestone, isLast, shouldShowTealLine }: DesktopT
 function CardBody({ children, className }: { children?: ReactNode; className?: string }) {
   return (
     <div
-      className={cn('rounded-[4px] bg-surface-base px-6 py-8 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]', className)}
+      className={cn('rounded-sm bg-surface-base px-6 py-8 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]', className)}
     >
       {children}
     </div>
@@ -219,7 +219,7 @@ export function VestingScheduleSkeleton() {
     <Card>
       <Card.Header title="Schedule" />
 
-      <CardBody className="h-[10rem] animate-pulse" />
+      <CardBody className="h-40 animate-pulse" />
     </Card>
   );
 }

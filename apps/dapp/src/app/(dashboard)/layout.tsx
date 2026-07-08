@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 function Header() {
   return (
     <>
-      <div className="bg-surface-base flex min-h-[6.25rem] w-full items-center justify-between px-4 lg:px-10">
+      <div className="bg-surface-base flex min-h-25 w-full items-center justify-between px-4 lg:px-10">
         <div className="flex items-center gap-10">
           <NextLink href="/" aria-label="Zivoe home">
             <ZivoeLogo aria-hidden="true" className="-ml-3 h-6" />
@@ -47,7 +47,7 @@ function Header() {
         <div className="flex items-center gap-2">
           <Wallet />
 
-          <Suspense fallback={<Skeleton className="size-12 rounded-[4px]" />}>
+          <Suspense fallback={<Skeleton className="size-12 rounded-sm" />}>
             <UserMenuWrapper />
           </Suspense>
 

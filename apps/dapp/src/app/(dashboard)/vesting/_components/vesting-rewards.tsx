@@ -77,7 +77,7 @@ export function VestingRewards() {
             <VestedChart hasSchedule={hasSchedule} vestedAmount={vestedAmount} totalVesting={totalVesting} />
 
             <div className="-mt-28 flex w-full flex-col gap-4">
-              <div className="border-default bg-surface-base flex w-full items-center justify-between rounded-[4px] border px-6 py-4">
+              <div className="border-default bg-surface-base flex w-full items-center justify-between rounded-sm border px-6 py-4">
                 <div className="flex items-center gap-2 py-2">
                   <p className="text-leading text-primary font-medium">Claimable Now</p>
                 </div>
@@ -131,7 +131,7 @@ export function VestingRewards() {
 
 function CardBody({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-surface-base flex h-[25rem] flex-col items-center justify-between gap-10 rounded-[4px] p-4">
+    <div className="bg-surface-base flex h-100 flex-col items-center justify-between gap-10 rounded-sm p-4">
       {children}
     </div>
   );
@@ -139,7 +139,7 @@ function CardBody({ children }: { children: ReactNode }) {
 
 function EmptyState({ children, title, description }: { children: ReactNode; title: string; description: string }) {
   return (
-    <div className="flex min-h-[25rem] flex-col justify-between gap-4">
+    <div className="flex min-h-100 flex-col justify-between gap-4">
       <div></div>
 
       <div className="flex flex-col items-center gap-2 py-10">
@@ -164,7 +164,7 @@ function VestedChart({
   const percentage = hasSchedule ? Math.min((Number(vestedAmount) / Number(totalVesting)) * 100, 100) : 0;
 
   return (
-    <div className="relative h-[300px] w-full">
+    <div className="relative h-75 w-full">
       <ChartContainer
         config={{}}
         className="mx-auto aspect-square h-full w-full [&_.recharts-radial-bar-background-sector]:fill-[#EEF0F5]"
@@ -228,10 +228,10 @@ export function VestingRewardsSkeleton() {
       <Card.Header title="Vesting rewards" />
 
       <CardBody>
-        <Skeleton className="mt-[1.875rem] h-[16.875rem] w-[15.625rem] rounded-md" />
+        <Skeleton className="mt-7.5 h-67.5 w-62.5 rounded-md" />
         <div className="flex w-full flex-col gap-4">
-          <Skeleton className="h-[4.5rem] w-full rounded-[4px]" />
-          <Skeleton className="h-12 w-full rounded-[4px]" />
+          <Skeleton className="h-18 w-full rounded-sm" />
+          <Skeleton className="h-12 w-full rounded-sm" />
         </div>
       </CardBody>
     </Card>

@@ -43,7 +43,7 @@ function HeaderSkeleton() {
   return (
     <HeaderContainer>
       <Skeleton className="h-10 w-44 rounded-md" />
-      <Skeleton className="h-6 w-[8.75rem] rounded-md" />
+      <Skeleton className="h-6 w-35 rounded-md" />
     </HeaderContainer>
   );
 }

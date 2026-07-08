@@ -17,7 +17,7 @@ const switchVariants = tv({
       /* Disabled */
       'group-data-disabled:bg-surface-elevated-contrast group-data-disabled:cursor-not-allowed',
       /* Selected */
-      'group-data-selected:bg-element-primary-subtle group-data-disabled:group-data-selected:bg-element-primary',
+      'group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-primary',
       /* Readonly */
       'group-data-readonly:cursor-auto',
       /* Resets */
@@ -25,7 +25,7 @@ const switchVariants = tv({
     ],
 
     thumb:
-      'bg-surface-base group-data-disabled:bg-surface-elevated-high-contrast group-data-disabled:group-data-selected:bg-element-primary-contrast pointer-events-none block size-5 translate-x-1 rounded-full shadow-lg ring-0 transition-transform group-data-selected:translate-x-6'
+      'bg-surface-base group-data-disabled:bg-surface-elevated-high-contrast group-data-disabled:group-selected:bg-element-primary-contrast pointer-events-none block size-5 translate-x-1 rounded-full shadow-lg ring-0 transition-transform group-selected:translate-x-6'
   }
 });
 

@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Example tabs">
           <Tab id="deposit">Deposit</Tab>
@@ -58,7 +58,7 @@ export const Vertical: Story = {
     orientation: 'vertical'
   },
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Vertical tabs">
           <Tab id="overview">Overview</Tab>
@@ -101,7 +101,7 @@ export const Vertical: Story = {
 
 export const WithDisabledTab: Story = {
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Tabs with disabled">
           <Tab id="active">Active</Tab>
@@ -135,7 +135,7 @@ export const Controlled: Story = {
     const [selectedKey, setSelectedKey] = useState('tab1');
 
     return (
-      <div className="w-[600px]">
+      <div className="w-150">
         <div className="mb-4">
           <p className="text-secondary text-sm">Current tab: {selectedKey}</p>
         </div>
@@ -195,7 +195,7 @@ export const DynamicTabs: Story = {
     ];
 
     return (
-      <div className="w-[600px]">
+      <div className="w-150">
         <Tabs>
           <TabList aria-label="Dynamic tabs">
             {tabsData.map((tab) => (

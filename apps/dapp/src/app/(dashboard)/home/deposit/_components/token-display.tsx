@@ -15,7 +15,7 @@ export function TokenDisplay({ symbol }: { symbol: TokenSymbol }) {
   return (
     <div className="flex items-center gap-2 [&_svg]:size-6">
       {icon}
-      <p className="text-small !font-medium text-primary">{symbol}</p>
+      <p className="text-small font-medium! text-primary">{symbol}</p>
     </div>
   );
 }

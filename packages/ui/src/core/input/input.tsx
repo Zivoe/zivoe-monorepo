@@ -319,7 +319,7 @@ const inputGroupStyles = tv({
     variant: {
       default: 'bg-surface-base-soft text-small h-12 px-4',
       amount: 'bg-surface-base text-h6 h-24 pr-4 pl-6',
-      search: 'bg-surface-base text-regular hover:border-default h-14 rounded-[6px] px-5 focus-within:shadow-none'
+      search: 'bg-surface-base text-regular hover:border-default h-14 rounded-md px-5 focus-within:shadow-none'
     },
 
     hasNormalStyleIfDisabled: {

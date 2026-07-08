@@ -95,7 +95,7 @@ export function InsightsRichText({ document }: { document: InsightsRichTextDocum
     <RichText
       data={document}
       converters={jsxConverters}
-      className="text-regular text-secondary flex flex-col gap-6 leading-[1.875rem]"
+      className="text-regular text-secondary flex flex-col gap-6 leading-7.5"
     />
   );
 }
@@ -203,7 +203,7 @@ function renderUpload(node: RichTextUploadNode) {
 
   return (
     <figure className="flex flex-col gap-3">
-      <div className="bg-surface-base-soft overflow-hidden rounded-[8px]">
+      <div className="bg-surface-base-soft overflow-hidden rounded-lg">
         <Image
           src={imageUrl}
           alt={media.alt}

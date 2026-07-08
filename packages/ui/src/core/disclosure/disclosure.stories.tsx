@@ -35,7 +35,7 @@ export const WithLongContent: Story = {
 
 export const Group: Story = {
   render: () => (
-    <div className="w-[500px]">
+    <div className="w-125">
       <DisclosureGroup>
         <Disclosure>
           <DisclosureHeader>Section 1</DisclosureHeader>

@@ -11,7 +11,7 @@ import { tv } from '../../lib/tw-utils';
 
 const listBoxItemVariants = tv({
   base: [
-    'text-small relative flex cursor-default items-center justify-between rounded-[4px] px-3 py-[10px] outline-hidden transition-colors select-none',
+    'text-small relative flex cursor-default items-center justify-between rounded-sm px-3 py-2.5 outline-hidden transition-colors select-none',
     /* Disabled */
     'disabled:pointer-events-none disabled:opacity-60',
     /* Focused */

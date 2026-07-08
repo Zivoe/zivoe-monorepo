@@ -74,11 +74,11 @@ export default async function InsightsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <Container className="gap-10 px-4 pb-20 pt-12 sm:px-10 lg:flex-row lg:items-start lg:gap-12 lg:pt-16 xl:px-[8.5rem]">
+      <Container className="gap-10 px-4 pb-20 pt-12 sm:px-10 lg:flex-row lg:items-start lg:gap-12 lg:pt-16 xl:px-34">
         <aside className="flex w-full flex-col gap-6 lg:sticky lg:top-28 lg:max-w-[18rem]">
           <div className="flex flex-col gap-3">
-            <h1 className="font-heading text-[3rem] leading-[3.5rem] text-primary">Insights</h1>
-            <p className="text-regular leading-[1.75rem] text-primary">
+            <h1 className="font-heading text-[3rem] leading-14 text-primary">Insights</h1>
+            <p className="text-regular leading-7 text-primary">
               Learn more about Zivoe, our approach and company updates.
             </p>
           </div>
@@ -106,17 +106,17 @@ export default async function InsightsPage({ searchParams }: PageProps) {
             })}
           </div>
 
-          <div className="relative overflow-hidden rounded-[8px] bg-[#fb9943] px-5 py-6 text-base">
-            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(30deg,rgba(255,255,255,0.18)_12%,transparent_12.5%,transparent_87%,rgba(255,255,255,0.18)_87.5%,rgba(255,255,255,0.18)),linear-gradient(150deg,rgba(255,255,255,0.18)_12%,transparent_12.5%,transparent_87%,rgba(255,255,255,0.18)_87.5%,rgba(255,255,255,0.18)),linear-gradient(90deg,rgba(255,255,255,0.12)_2%,transparent_2.5%,transparent_97%,rgba(255,255,255,0.12)_97.5%,rgba(255,255,255,0.12))] [background-position:0_0,0_0,33px_19px] [background-size:66px_38px]" />
+          <div className="relative overflow-hidden rounded-lg bg-[#fb9943] px-5 py-6 text-base">
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(30deg,rgba(255,255,255,0.18)_12%,transparent_12.5%,transparent_87%,rgba(255,255,255,0.18)_87.5%,rgba(255,255,255,0.18)),linear-gradient(150deg,rgba(255,255,255,0.18)_12%,transparent_12.5%,transparent_87%,rgba(255,255,255,0.18)_87.5%,rgba(255,255,255,0.18)),linear-gradient(90deg,rgba(255,255,255,0.12)_2%,transparent_2.5%,transparent_97%,rgba(255,255,255,0.12)_97.5%,rgba(255,255,255,0.12))] bg-position-[0_0,0_0,33px_19px] bg-size-[66px_38px]" />
             <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-              <p className="text-white min-w-0 font-heading text-[1.5rem] leading-[1.75rem] sm:text-[1.625rem] sm:leading-[1.875rem]">
+              <p className="text-white min-w-0 font-heading text-[1.5rem] leading-7 sm:text-[1.625rem] sm:leading-7.5">
                 Have any
                 <br />
                 questions?
               </p>
               <a
                 href={`mailto:${EMAILS.INVESTORS}`}
-                className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-[2px] border border-[#e7e7e7] bg-[#fafafa] px-3 text-[0.625rem] font-medium leading-none text-primary shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-opacity hover:opacity-95"
+                className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-xs border border-[#e7e7e7] bg-[#fafafa] px-3 text-[0.625rem] font-medium leading-none text-primary shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-opacity hover:opacity-95"
               >
                 Contact us
               </a>
@@ -132,11 +132,11 @@ export default async function InsightsPage({ searchParams }: PageProps) {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-[8px] border border-dashed border-default bg-surface-base-soft px-6 text-center">
-              <h2 className="font-heading text-[2rem] leading-[2.5rem] text-primary">
+            <div className="flex min-h-96 flex-col items-center justify-center rounded-lg border border-dashed border-default bg-surface-base-soft px-6 text-center">
+              <h2 className="font-heading text-[2rem] leading-10 text-primary">
                 No insights matched your filters.
               </h2>
-              <p className="mt-3 max-w-[30rem] text-regular leading-[1.75rem] text-secondary">
+              <p className="mt-3 max-w-120 text-regular leading-7 text-secondary">
                 Try a different search term or reset the category filter to explore the latest updates from Zivoe.
               </p>
             </div>

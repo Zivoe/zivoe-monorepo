@@ -22,14 +22,14 @@ const radioVariants = tv({
       /* Disabled */
       'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
       /* Selected */
-      'group-data-selected:border-primary-subtle group-data-disabled:group-data-selected:border-default group-data-selected:bg-element-primary-subtle group-data-disabled:group-data-selected:bg-element-neutral',
+      'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
       /* Invalid */
-      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-data-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-data-selected:group-data-invalid:bg-element-alert',
+      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
       'focus:outline-hidden focus-visible:outline-hidden'
     ],
 
-    circle: 'bg-element-base size-2.5 rounded-full group-data-disabled:group-data-selected:bg-neutral-500'
+    circle: 'bg-element-base size-2.5 rounded-full group-data-disabled:group-selected:bg-neutral-500'
   }
 });
 
@@ -41,7 +41,7 @@ const cardRadioVariants = tv({
       /* Hover */
       'hover:bg-surface-elevated hover:cursor-pointer',
       /* Selected */
-      'data-selected:border-active data-selected:bg-element-primary-light',
+      'selected:border-active selected:bg-element-primary-light',
       /* Focus */
       'data-focus-visible:ring-default data-focus-visible:ring-2 data-focus-visible:ring-offset-1',
       /* Disabled */
@@ -54,7 +54,7 @@ const cardRadioVariants = tv({
 
     indicator: [
       'flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-400 transition-colors',
-      'group-data-selected:bg-element-primary-soft group-data-selected:border-transparent group-data-selected:text-base'
+      'group-selected:bg-element-primary-soft group-selected:border-transparent group-selected:text-base'
     ]
   }
 });

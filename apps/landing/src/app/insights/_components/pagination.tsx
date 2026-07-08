@@ -64,7 +64,7 @@ export function InsightsPagination({
             key={page}
             href={buildPageHref({ category, page, search })}
             className={cn(
-              'flex size-8 items-center justify-center rounded-[2px] text-regular transition-colors',
+              'flex size-8 items-center justify-center rounded-xs text-regular transition-colors',
               page === currentPage ? 'bg-element-neutral text-primary' : 'text-secondary hover:bg-element-neutral-light'
             )}
             aria-current={page === currentPage ? 'page' : undefined}
@@ -98,7 +98,7 @@ function PaginationArrow({
 }) {
   if (disabled) {
     return (
-      <span className="flex size-8 items-center justify-center rounded-[2px] text-tertiary" aria-disabled="true">
+      <span className="flex size-8 items-center justify-center rounded-xs text-tertiary" aria-disabled="true">
         {children}
       </span>
     );
@@ -108,7 +108,7 @@ function PaginationArrow({
     <NextLink
       href={href}
       aria-label={label}
-      className="flex size-8 items-center justify-center rounded-[2px] text-secondary transition-colors hover:bg-element-neutral-light hover:text-primary"
+      className="flex size-8 items-center justify-center rounded-xs text-secondary transition-colors hover:bg-element-neutral-light hover:text-primary"
     >
       {children}
     </NextLink>

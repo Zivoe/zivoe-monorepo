@@ -31,11 +31,11 @@ import { TowerRightTabletIcon } from './assets/tower-right-tablet';
 export default function Experience() {
   return (
     <div className="relative overflow-clip bg-surface-elevated-low-emphasis">
-      <Container className="w-full pt-20 sm:px-10 sm:pt-[7rem] md:w-[35rem] md:px-0 xl:w-auto xl:px-[8.75rem] xl:pt-[10rem]">
-        <div className="z-10 mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-[7.5rem] xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
-          <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-[40rem]">
+      <Container className="w-full pt-20 sm:px-10 sm:pt-28 md:w-140 md:px-0 xl:w-auto xl:px-35 xl:pt-40">
+        <div className="z-10 mb-20 flex flex-col items-center justify-between gap-16 sm:gap-20 xl:mb-30 xl:flex-row xl:items-start 2xl:gap-[13.2rem]">
+          <div className="flex flex-col gap-8 sm:gap-10 xl:mt-8 xl:max-w-160">
             <div className="flex flex-col gap-6">
-              <h2 className="!font-heading text-subheading text-primary sm:text-h4 xl:text-h3">
+              <h2 className="font-heading! text-subheading text-primary sm:text-h4 xl:text-h3">
                 Driven by Experience. Powered by Collaboration.
               </h2>
 
@@ -54,7 +54,7 @@ export default function Experience() {
             </Link>
           </div>
 
-          <div className="flex w-full flex-col gap-14 sm:gap-20 xl:max-w-[30rem] 2xl:max-w-[42.75rem]">
+          <div className="flex w-full flex-col gap-14 sm:gap-20 xl:max-w-120 2xl:max-w-171">
             <Section
               title="Experienced Leadership"
               description="Our team combines expertise from leading financial institutions and DeFi protocols."
@@ -142,7 +142,7 @@ export default function Experience() {
           </div>
         </div>
 
-        <div className="z-10 flex h-[45rem] w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-[35rem] xl:pt-[7.5rem]">
+        <div className="z-10 flex h-180 w-full justify-center pt-10 sm:h-[74.2rem] sm:pt-20 xl:h-140 xl:pt-30">
           <div className="flex w-full flex-col items-center gap-6 sm:w-fit sm:gap-14">
             <NewsletterHeader className="w-full sm:w-fit" />
             <NewsletterForm />
@@ -150,7 +150,7 @@ export default function Experience() {
         </div>
       </Container>
 
-      <div className={'absolute bottom-0 left-0 w-[321px] sm:w-[640px] xl:w-[858px]'}>
+      <div className={'absolute bottom-0 left-0 w-80.25 sm:w-160 xl:w-214.5'}>
         <TowerLeftIcon />
       </div>
 
@@ -178,7 +178,7 @@ function Section({
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
-          <p className="text-smallSubheading !font-medium text-brand-subtle sm:text-subheading">{title}</p>
+          <p className="text-smallSubheading font-medium! text-brand-subtle sm:text-subheading">{title}</p>
           <p className="text-regular text-primary sm:text-leading">{description}</p>
         </div>
 

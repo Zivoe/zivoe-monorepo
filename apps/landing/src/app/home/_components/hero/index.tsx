@@ -20,11 +20,11 @@ import { HeroClouds } from './clouds';
 
 export default function Hero() {
   return (
-    <div className="relative z-0 h-[55rem] overflow-clip bg-element-tertiary sm:h-[75rem] lg:h-[61.25rem]">
+    <div className="relative z-0 h-220 overflow-clip bg-element-tertiary sm:h-300 lg:h-245">
       <NavigationSection />
 
-      <Container className="mt-[3.125rem] sm:px-10 md:px-[6.25rem] lg:my-[7.5rem]">
-        <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-[33rem] sm:gap-16 lg:max-w-[41.25rem] lg:gap-[12.5rem]">
+      <Container className="mt-12.5 sm:px-10 md:px-25 lg:my-30">
+        <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-132 sm:gap-16 lg:max-w-165 lg:gap-50">
           <div>
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
               <h1 className="text-h4 text-primary sm:text-h2">Your Portal to Private Credit</h1>
@@ -52,7 +52,7 @@ export default function Hero() {
 
       <HeroClouds
         aria-hidden="true"
-        className="absolute -left-[150px] bottom-1/4 -z-20 w-[433px] rotate-[15deg] sm:bottom-1/3 lg:-bottom-[100px] lg:w-[866px]"
+        className="absolute -left-37.5 bottom-1/4 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
       />
     </div>
   );

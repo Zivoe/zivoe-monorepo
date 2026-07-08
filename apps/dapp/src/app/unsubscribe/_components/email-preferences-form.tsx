@@ -113,7 +113,7 @@ export default function EmailPreferencesForm({
         </div>
       </div>
 
-      <p className="text-small text-tertiary mx-auto mt-4 max-w-[400px] text-center">
+      <p className="text-small text-tertiary mx-auto mt-4 max-w-100 text-center">
         Looking to unsubscribe from all email notifications? Turn off every available toggle above and click save.
       </p>
     </div>

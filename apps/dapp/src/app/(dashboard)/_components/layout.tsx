@@ -106,7 +106,7 @@ const avatarButtonStyles = tv({
   variants: {
     hasImage: {
       true: 'hover:ring-default size-10 rounded-full hover:ring-4 hover:ring-offset-0',
-      false: 'bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast size-12 rounded-[4px]'
+      false: 'bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast size-12 rounded-sm'
     }
   }
 });
@@ -174,7 +174,7 @@ export function UserMenu({ user }: { user: User }) {
             className="text-alert-contrast justify-start"
             pendingContent="Logging out..."
           >
-            <LogoutIcon className="!size-4" />
+            <LogoutIcon className="size-4!" />
             Logout
           </Button>
         </div>

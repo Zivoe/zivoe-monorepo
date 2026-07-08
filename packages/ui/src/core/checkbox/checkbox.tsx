@@ -22,11 +22,11 @@ const checkboxVariants = tv({
       /* Disabled */
       'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
       /* Selected */
-      'group-data-selected:border-primary-subtle group-data-disabled:group-data-selected:border-default group-data-selected:bg-element-primary-subtle group-data-disabled:group-data-selected:bg-element-neutral',
+      'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
       /* Indeterminate */
       'group-data-indeterminate:border-primary-subtle group-data-disabled:group-data-indeterminate:border-default group-data-indeterminate:bg-element-primary-subtle group-data-disabled:group-data-indeterminate:bg-element-neutral',
       /* Invalid */
-      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-data-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-data-selected:group-data-invalid:bg-element-alert',
+      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
       'focus:outline-hidden focus-visible:outline-hidden'
     ],

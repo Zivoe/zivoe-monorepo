@@ -14,7 +14,7 @@ import Container from './container';
 
 export default function NavigationSection() {
   return (
-    <Container className="z-10 flex-row items-center justify-between pt-4 lg:pt-8 lg:pr-8 lg:pl-[6.25rem]">
+    <Container className="z-10 flex-row items-center justify-between pt-4 lg:pt-8 lg:pr-8 lg:pl-25">
       <NextLink href="/" aria-label="Zivoe home">
         <ZivoeLogo aria-hidden="true" />
       </NextLink>
@@ -45,7 +45,7 @@ function Desktop() {
         hideExternalLinkIcon
         variant="primary"
         size="m"
-        className="my-[10px] mr-[10px]"
+        className="my-2.5 mr-2.5"
       >
         Start Earning
       </Link>
@@ -80,7 +80,7 @@ function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-[3.5rem] text-base"
+            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-14 text-base"
             href={href}
             target={target}
             aria-current={isCurrent}

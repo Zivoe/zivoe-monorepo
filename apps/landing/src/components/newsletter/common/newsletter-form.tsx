@@ -73,7 +73,7 @@ export default function NewsletterForm() {
               placeholder="Your email address"
               errorMessage={error?.message}
               isInvalid={invalid}
-              className="w-full sm:w-[30rem] xl:w-[17.5rem]"
+              className="w-full sm:w-120 xl:w-70"
               {...field}
             />
           )}
