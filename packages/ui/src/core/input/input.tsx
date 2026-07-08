@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, type Ref, forwardRef, useContext, useRef } from 'react';
+import { type ReactNode, forwardRef, useContext, useRef } from 'react';
 
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
@@ -69,6 +69,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const amountRegex = getAmountRegex(decimalPlaces);
     const usesSearchField = variant === 'search' || isClearable;
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (value: string) => {
       if (variant === 'amount' && !amountRegex.test(value)) return;
@@ -86,156 +87,65 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       onChange: handleChange
     };
 
+    const renderContent = (clearValue?: () => void) => (
+      <>
+        {label && <Label className={labelClassName}>{label}</Label>}
+
+        <InputGroup variant={variant} hasNormalStyleIfDisabled={hasNormalStyleIfDisabled} className={groupClassName}>
+          <div className="flex w-full items-center gap-3">
+            {startContent}
+
+            <InputElement
+              variant={variant}
+              hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
+              className={inputClassName}
+              placeholder={parsedPlaceholder}
+              type={parsedType}
+              ref={(node) => {
+                inputRef.current = node;
+
+                if (typeof ref === 'function') {
+                  ref(node);
+                } else if (ref) {
+                  ref.current = node;
+                }
+              }}
+            />
+
+            {endContent}
+
+            {isClearable && !isReadOnly && (
+              <InputButton
+                className={clearButtonClassName}
+                onPress={() => {
+                  clearValue?.();
+                  inputRef.current?.focus();
+                }}
+                aria-label={clearButtonAriaLabel}
+              >
+                <CloseIcon aria-hidden="true" />
+              </InputButton>
+            )}
+          </div>
+
+          {variant === 'amount' && subContent}
+        </InputGroup>
+
+        {errorMessage && <FieldError>{errorMessage}</FieldError>}
+      </>
+    );
+
     if (usesSearchField) {
       return (
         <SearchInputField {...fieldProps} onClear={onClear} onSubmit={onSubmit}>
-          {({ state }) => (
-            <InputContent
-              label={label}
-              labelClassName={labelClassName}
-              variant={variant}
-              hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-              groupClassName={groupClassName}
-              startContent={startContent}
-              inputClassName={inputClassName}
-              inputPlaceholder={parsedPlaceholder}
-              inputType={parsedType}
-              inputRef={ref}
-              endContent={endContent}
-              isClearable={isClearable}
-              isReadOnly={isReadOnly}
-              clearButtonClassName={clearButtonClassName}
-              clearButtonAriaLabel={clearButtonAriaLabel}
-              clearValue={() => state.setValue('')}
-              subContent={subContent}
-              errorMessage={errorMessage}
-            />
-          )}
+          {({ state }) => renderContent(() => state.setValue(''))}
         </SearchInputField>
       );
     }
 
-    return (
-      <TextInputField {...fieldProps}>
-        {() => (
-          <InputContent
-            label={label}
-            labelClassName={labelClassName}
-            variant={variant}
-            hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-            groupClassName={groupClassName}
-            startContent={startContent}
-            inputClassName={inputClassName}
-            inputPlaceholder={parsedPlaceholder}
-            inputType={parsedType}
-            inputRef={ref}
-            endContent={endContent}
-            isClearable={isClearable}
-            isReadOnly={isReadOnly}
-            clearButtonClassName={clearButtonClassName}
-            clearButtonAriaLabel={clearButtonAriaLabel}
-            subContent={subContent}
-            errorMessage={errorMessage}
-          />
-        )}
-      </TextInputField>
-    );
+    return <TextInputField {...fieldProps}>{renderContent()}</TextInputField>;
   }
 );
-
-interface InputContentProps extends Pick<
-  InputProps,
-  | 'label'
-  | 'labelClassName'
-  | 'variant'
-  | 'hasNormalStyleIfDisabled'
-  | 'groupClassName'
-  | 'startContent'
-  | 'inputClassName'
-  | 'endContent'
-  | 'isClearable'
-  | 'isReadOnly'
-  | 'clearButtonClassName'
-  | 'clearButtonAriaLabel'
-  | 'subContent'
-  | 'errorMessage'
-> {
-  inputPlaceholder?: string;
-  inputType?: string;
-  inputRef: Ref<HTMLInputElement>;
-  clearValue?: () => void;
-}
-
-function InputContent({
-  label,
-  labelClassName,
-  variant,
-  hasNormalStyleIfDisabled,
-  groupClassName,
-  startContent,
-  inputClassName,
-  inputPlaceholder,
-  inputType,
-  inputRef: forwardedInputRef,
-  endContent,
-  isClearable,
-  isReadOnly,
-  clearButtonClassName,
-  clearButtonAriaLabel,
-  clearValue,
-  subContent,
-  errorMessage
-}: InputContentProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <>
-      {label && <Label className={labelClassName}>{label}</Label>}
-
-      <InputGroup variant={variant} hasNormalStyleIfDisabled={hasNormalStyleIfDisabled} className={groupClassName}>
-        <div className="flex w-full items-center gap-3">
-          {startContent}
-
-          <InputElement
-            variant={variant}
-            hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-            className={inputClassName}
-            placeholder={inputPlaceholder}
-            type={inputType}
-            ref={(node) => {
-              inputRef.current = node;
-
-              if (typeof forwardedInputRef === 'function') {
-                forwardedInputRef(node);
-              } else if (forwardedInputRef) {
-                forwardedInputRef.current = node;
-              }
-            }}
-          />
-
-          {endContent}
-
-          {isClearable && !isReadOnly && (
-            <InputButton
-              className={clearButtonClassName}
-              onPress={() => {
-                clearValue?.();
-                inputRef.current?.focus();
-              }}
-              aria-label={clearButtonAriaLabel}
-            >
-              <CloseIcon aria-hidden="true" />
-            </InputButton>
-          )}
-        </div>
-
-        {variant === 'amount' && subContent}
-      </InputGroup>
-
-      {errorMessage && <FieldError>{errorMessage}</FieldError>}
-    </>
-  );
-}
 
 const getAmountRegex = (decimalPlaces: number) => new RegExp(`^\\d{0,9}(\\.\\d{0,${decimalPlaces}})?$`);
 
