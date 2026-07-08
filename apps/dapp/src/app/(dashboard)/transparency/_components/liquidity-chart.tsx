@@ -103,7 +103,7 @@ export default function LiquidityChart({ data }: { data: Liquidity }) {
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="text-extraSmall font-medium text-secondary">{dataPoint.timeframe}</span>
-                        <span className="font-heading text-regular text-primary">${formattedValue}</span>
+                        <span className="font-heading! text-regular text-primary">${formattedValue}</span>
                       </div>
                     );
                   }}

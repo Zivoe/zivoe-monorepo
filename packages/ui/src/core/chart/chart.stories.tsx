@@ -50,7 +50,7 @@ export const Area: Story = {
 
                   return (
                     <div className="flex flex-col gap-1">
-                      <span className="font-heading text-regular tabular-nums text-primary">
+                      <span className="font-heading! text-regular tabular-nums text-primary">
                         ${price.toLocaleString()}
                       </span>
                       <span className="text-small text-secondary">{date}</span>
