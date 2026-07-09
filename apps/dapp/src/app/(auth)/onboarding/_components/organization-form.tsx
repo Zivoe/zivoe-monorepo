@@ -251,7 +251,7 @@ function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
 
                     <FieldError>{error?.message}</FieldError>
 
-                    <SelectPopover shouldFlip={false} matchTriggerWidth>
+                    <SelectPopover matchTriggerWidth>
                       <SelectListBox items={COUNTRIES}>
                         {(item) => (
                           <SelectItem id={item.value} textValue={item.label}>
