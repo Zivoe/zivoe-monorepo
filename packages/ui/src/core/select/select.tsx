@@ -78,7 +78,7 @@ const SelectPopover = ({
     shouldFlip={shouldFlip}
     showOverlayArrow={false}
     className={composeRenderProps(className, (className) =>
-      cn('p-0', matchTriggerWidth && 'w-(--trigger-width) max-w-none', className)
+      cn('border-0 bg-transparent p-0 shadow-none', matchTriggerWidth && 'w-(--trigger-width) max-w-none', className)
     )}
     {...props}
   />
@@ -91,7 +91,10 @@ const SelectListBox = <T extends object>({
 }: AriaListBoxProps<T> & { scrollAreaClassName?: string }) => (
   <AriaListBox
     className={composeRenderProps(className, (className) =>
-      cn('max-h-[inherit] min-h-14 space-y-1 overflow-auto p-2 outline-hidden md:max-h-80', className)
+      cn(
+        'border-default bg-element-base max-h-[inherit] min-h-14 space-y-1 overflow-auto rounded-md border p-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] outline-hidden md:max-h-80',
+        className
+      )
     )}
     {...props}
   />
