@@ -10,6 +10,8 @@ import {
   type Abi,
   BaseError,
   type ContractEventName,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
   ContractFunctionRevertedError,
   type Hash,
   type SimulateContractParameters,
@@ -41,11 +43,25 @@ type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHas
 type TxContext = { address: Address | undefined };
 
 /** Contract-call params that are both simulatable and writeable, so one build feeds simulate and send. */
-export type TxParams = SimulateContractParameters & WriteContractParameters;
+export type TxParams<
+  TAbi extends Abi = Abi,
+  TFunctionName extends ContractFunctionName<TAbi, 'nonpayable' | 'payable'> = ContractFunctionName<
+    TAbi,
+    'nonpayable' | 'payable'
+  >
+> = SimulateContractParameters<
+  TAbi,
+  TFunctionName,
+  ContractFunctionArgs<TAbi, 'nonpayable' | 'payable', TFunctionName>,
+  undefined,
+  undefined,
+  Address | undefined
+> &
+  WriteContractParameters<TAbi, TFunctionName>;
 
-export type TxConfig<TVariables> = {
+export type TxConfig<TVariables, TParams extends TxParams> = {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
-  buildParams: (vars: TVariables, ctx: TxContext) => TxParams | Promise<TxParams>;
+  buildParams: (vars: TVariables, ctx: TxContext) => TParams | Promise<TParams>;
   /** Analytics choreography for the transaction flow; omit for un-instrumented transactions. */
   analytics?: {
     flow: TxAnalyticsFlow;
@@ -145,7 +161,7 @@ export function parseReceiptEvent<TAbi extends Abi, TEventName extends ContractE
  * transaction dialog -> query refetches. Everything transaction-specific
  * comes in through the config.
  */
-export default function useTx<TVariables = void>(config: TxConfig<TVariables>) {
+export default function useTx<TVariables, TParams extends TxParams>(config: TxConfig<TVariables, TParams>) {
   const publicClient = usePublicClient();
   const { mutateAsync: writeContract } = useWriteContract();
   const { address } = useAccount();
@@ -155,7 +171,7 @@ export default function useTx<TVariables = void>(config: TxConfig<TVariables>) {
 
   const [isTxPending, setIsTxPending] = useState(false);
 
-  const simulateTx = async (params: SimulateContractParameters) => {
+  const simulateTx = async (params: TParams) => {
     if (!publicClient) throw new Error('Public client not found');
 
     const { err } = await handlePromise(publicClient.simulateContract({ ...params, account: address }));
@@ -175,7 +191,7 @@ export default function useTx<TVariables = void>(config: TxConfig<TVariables>) {
     throw new AppError({ message: 'Simulation error', exception: err });
   };
 
-  const sendTx = async (params: TxParams) => {
+  const sendTx = async (params: TParams) => {
     const { err, res: hash } = await handlePromise(writeContract(params));
 
     if (err || !hash) {

@@ -1,6 +1,4 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi, zivoeVaultAbi } from '@zivoe/contracts/abis';
@@ -10,22 +8,22 @@ import { type DepositToken } from '@/types/constants';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 export type VaultDepositToken = Extract<DepositToken, 'zSTT'>;
-export type VaultDepositParams = WriteContractParameters<typeof zivoeVaultAbi, 'deposit'>;
+export type VaultDepositParams = TxParams<typeof zivoeVaultAbi, 'deposit'>;
 
 type VaultDepositVariables = { stableCoinName: VaultDepositToken; amount?: bigint };
 
 export const useVaultDeposit = () => {
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  return useTx<VaultDepositVariables>({
+  return useTx<VaultDepositVariables, VaultDepositParams>({
     buildParams: ({ amount }, { address }) => {
       if (!address) throw new AppError({ message: 'Wallet not connected' });
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
-      const params: VaultDepositParams & SimulateContractParameters = {
+      const params: VaultDepositParams = {
         abi: zivoeVaultAbi,
         address: CONTRACTS.zVLT,
         functionName: 'deposit',

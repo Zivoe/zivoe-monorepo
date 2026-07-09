@@ -1,6 +1,4 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
@@ -10,21 +8,21 @@ import { type DepositToken } from '@/types/constants';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 export type RouterDepositToken = Extract<DepositToken, 'USDT'>;
-export type RouterDepositParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositVault'>;
+export type RouterDepositParams = TxParams<typeof zivoeRouterAbi, 'depositVault'>;
 
 type RouterDepositVariables = { stableCoinName: RouterDepositToken; amount?: bigint };
 
 export const useRouterDeposit = () => {
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  return useTx<RouterDepositVariables>({
+  return useTx<RouterDepositVariables, RouterDepositParams>({
     buildParams: ({ stableCoinName, amount }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
 
-      const params: RouterDepositParams & SimulateContractParameters = {
+      const params: RouterDepositParams = {
         abi: zivoeRouterAbi,
         address: CONTRACTS.zRTR,
         functionName: 'depositVault',

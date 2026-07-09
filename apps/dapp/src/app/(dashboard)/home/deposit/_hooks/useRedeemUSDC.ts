@@ -1,6 +1,4 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleV2Abi } from '@zivoe/contracts/abis';
@@ -9,22 +7,22 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData, depositDialogAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 import { availableLiquidityQueryKey } from './useAvailableLiquidity';
 
-export type RedeemUSDCParams = WriteContractParameters<typeof ocrCycleV2Abi, 'redeemUSDC'>;
+export type RedeemUSDCParams = TxParams<typeof ocrCycleV2Abi, 'redeemUSDC'>;
 
 type RedeemUSDCVariables = { amount?: bigint };
 
 export const useRedeemUSDC = () => {
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  return useTx<RedeemUSDCVariables>({
+  return useTx<RedeemUSDCVariables, RedeemUSDCParams>({
     buildParams: ({ amount }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to redeem' });
 
-      const params: RedeemUSDCParams & SimulateContractParameters = {
+      const params: RedeemUSDCParams = {
         abi: ocrCycleV2Abi,
         address: CONTRACTS.OCR_CycleV2,
         functionName: 'redeemUSDC',

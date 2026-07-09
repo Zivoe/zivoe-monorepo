@@ -1,6 +1,5 @@
-import { type SimulateContractParameters, type erc20Abi } from 'viem';
+import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { type tetherTokenAbi, type zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
 
@@ -10,10 +9,10 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from './useTx';
+import useTx, { parseReceiptEvent, type TxParams } from './useTx';
 
 export type ApproveTokenAbi = typeof tetherTokenAbi | typeof zivoeTrancheTokenAbi | typeof erc20Abi;
-export type ApproveTokenParams = WriteContractParameters<ApproveTokenAbi, 'approve'>;
+export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
 
 type ApproveSpendingVariables = {
   contract: Address;
@@ -26,11 +25,11 @@ type ApproveSpendingVariables = {
 };
 
 export const useApproveSpending = () => {
-  return useTx<ApproveSpendingVariables>({
+  return useTx<ApproveSpendingVariables, ApproveTokenParams>({
     buildParams: ({ contract, spender, amount, abi }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
 
-      const params: ApproveTokenParams & SimulateContractParameters = {
+      const params: ApproveTokenParams = {
         abi,
         address: contract,
         functionName: 'approve',

@@ -1,6 +1,4 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi } from '@zivoe/contracts/abis';
@@ -9,20 +7,20 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData, unstakeDialogAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
-export type UnstakeStSTTParams = WriteContractParameters<typeof zivoeRewardsAbi, 'withdraw'>;
+export type UnstakeStSTTParams = TxParams<typeof zivoeRewardsAbi, 'withdraw'>;
 
 type UnstakeStSTTVariables = { amount?: bigint };
 
 export const useUnstakeStSTT = () => {
   const setIsUnstakeDialogOpen = useSetAtom(unstakeDialogAtom);
 
-  return useTx<UnstakeStSTTVariables>({
+  return useTx<UnstakeStSTTVariables, UnstakeStSTTParams>({
     buildParams: ({ amount }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to unstake' });
 
-      const params: UnstakeStSTTParams & SimulateContractParameters = {
+      const params: UnstakeStSTTParams = {
         abi: zivoeRewardsAbi,
         address: CONTRACTS.stSTT,
         functionName: 'withdraw',

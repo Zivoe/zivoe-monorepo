@@ -1,20 +1,17 @@
-import { type SimulateContractParameters } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
-
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
-export type ClaimVestingParams = WriteContractParameters<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
+export type ClaimVestingParams = TxParams<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
 
 export const useClaimVesting = () => {
-  return useTx({
+  return useTx<void, ClaimVestingParams>({
     buildParams: () => {
-      const params: ClaimVestingParams & SimulateContractParameters = {
+      const params: ClaimVestingParams = {
         abi: zivoeRewardsVestingAbi,
         address: CONTRACTS.vestZVE,
         functionName: 'fullWithdraw',

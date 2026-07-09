@@ -1,10 +1,9 @@
 import { useState } from 'react';
 
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, hexToNumber, slice } from 'viem';
+import { hexToNumber, slice } from 'viem';
 import { mainnet } from 'viem/chains';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
@@ -16,10 +15,10 @@ import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, handlePromise } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent } from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 export type RouterDepositPermitToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;
-export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositWithPermit'>;
+export type RouterDepositPermitParams = TxParams<typeof zivoeRouterAbi, 'depositWithPermit'>;
 
 type RouterDepositPermitVariables = { stableCoinName: RouterDepositPermitToken; amount?: bigint };
 
@@ -31,7 +30,7 @@ export const useRouterDepositPermit = () => {
 
   const [isPermitPending, setIsPermitPending] = useState(false);
 
-  const tx = useTx<RouterDepositPermitVariables>({
+  const tx = useTx<RouterDepositPermitVariables, RouterDepositPermitParams>({
     buildParams: async ({ stableCoinName, amount }, { address }) => {
       if (!walletClient || !publicClient || !address) throw new AppError({ message: 'Client or address not found' });
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
@@ -123,7 +122,7 @@ export const useRouterDepositPermit = () => {
       const r = slice(signature, 0, 32);
       const s = slice(signature, 32, 64);
 
-      const params: RouterDepositPermitParams & SimulateContractParameters = {
+      const params: RouterDepositPermitParams = {
         abi: zivoeRouterAbi,
         address: CONTRACTS.zRTR,
         functionName: 'depositWithPermit',
