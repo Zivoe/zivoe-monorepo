@@ -65,7 +65,7 @@ interface SelectPopoverProps extends AriaPopoverProps {
 const SelectPopover = ({
   offset = 4,
   placement = 'bottom',
-  maxHeight = 320,
+  maxHeight,
   shouldFlip = true,
   matchTriggerWidth = false,
   className,
@@ -91,10 +91,7 @@ const SelectListBox = <T extends object>({
 }: AriaListBoxProps<T> & { scrollAreaClassName?: string }) => (
   <AriaListBox
     className={composeRenderProps(className, (className) =>
-      cn(
-        'max-h-[inherit] space-y-1 overflow-auto p-2 outline-hidden',
-        className
-      )
+      cn('max-h-[inherit] space-y-1 overflow-auto p-2 outline-hidden md:max-h-80', className)
     )}
     {...props}
   />
