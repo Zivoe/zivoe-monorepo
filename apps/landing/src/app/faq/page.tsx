@@ -25,7 +25,7 @@ export default function FAQPage() {
   return (
     <>
       <JsonLd data={faqJsonLd} />
-      <div className="bg-surface-base lg:h-[5.75rem]">
+      <div className="bg-surface-base lg:h-23">
         <NavigationSection />
       </div>
 
@@ -40,8 +40,8 @@ export default function FAQPage() {
 function Faq() {
   return (
     <div className="relative">
-      <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-[7rem] lg:pt-[10rem] xl:gap-[7.5rem] xl:px-[10.75rem]">
-        <div className="flex w-full flex-col gap-4 lg:max-w-[27.5rem]">
+      <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-28 lg:pt-40 xl:gap-30 xl:px-43">
+        <div className="flex w-full flex-col gap-4 lg:max-w-110">
           <h1 className="text-h4 text-primary lg:text-h2">Your Questions, Answered</h1>
           <p className="text-regular text-primary lg:text-leading">
             Here you can find answers to common questions about Zivoe, our features, and services.
@@ -58,7 +58,7 @@ function Faq() {
         </DisclosureGroup>
       </Container>
 
-      <div className="absolute -bottom-[5.5rem] left-0 hidden w-[600px] lg:block">
+      <div className="absolute -bottom-22 left-0 hidden w-150 lg:block">
         <TowerLeftIcon />
       </div>
     </div>

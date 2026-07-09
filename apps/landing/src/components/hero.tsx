@@ -7,7 +7,7 @@ import { HeroElement2Tablet } from '@/app/home/_components/hero/elemet-02-tablet
 
 export function HeroElemet1Component() {
   return (
-    <div className="absolute -right-[12%] -top-[18%] -z-20 hidden h-full w-full grid-cols-2 items-end gap-4 lg:grid xl:-right-[10%] 2xl:-right-[8%]">
+    <div className="absolute right-[-12%] top-[-18%] -z-20 hidden h-full w-full grid-cols-2 items-end gap-4 lg:grid xl:right-[-10%] 2xl:right-[-8%]">
       <div></div>
       <div className="flex w-full justify-end">
         <HeroElement1 aria-hidden="true" className="-z-20" />
@@ -21,7 +21,7 @@ export function HeroElemet2Component() {
     <div className="absolute bottom-0 left-0 -z-10 hidden h-full w-full grid-cols-3 items-end gap-4 lg:grid">
       <div></div>
       <div className="col-span-2 flex w-full justify-end">
-        <HeroElement2 aria-hidden="true" className="mt-[20px] xl:mt-[0px]" />
+        <HeroElement2 aria-hidden="true" className="mt-5 xl:mt-0" />
       </div>
     </div>
   );

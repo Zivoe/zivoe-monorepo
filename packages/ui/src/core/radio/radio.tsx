@@ -16,45 +16,45 @@ const radioVariants = tv({
     container: 'group flex items-center gap-x-2 hover:cursor-pointer',
 
     element: [
-      'flex aspect-square size-5 items-center justify-center rounded-full border border-default transition-colors',
+      'border-default flex aspect-square size-5 items-center justify-center rounded-full border transition-colors',
       /* Focused */
-      'group-data-[focus-visible]:border-active group-data-[focus-visible]:ring-2 group-data-[focus-visible]:ring-default group-data-[focus-visible]:ring-offset-[1px] group-data-[focus-visible]:ring-offset-neutral-0',
+      'group-data-focus-visible:border-active group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
       /* Disabled */
-      'group-data-[disabled]:cursor-not-allowed group-data-[disabled]:border-default group-data-[disabled]:bg-element-neutral',
+      'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
       /* Selected */
-      'group-data-[selected]:border-primary-subtle group-data-[selected]:group-data-[disabled]:border-default group-data-[selected]:bg-element-primary-subtle group-data-[selected]:group-data-[disabled]:bg-element-neutral',
+      'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
       /* Invalid */
-      'group-data-[invalid]:border-alert group-data-[invalid]:group-data-[indeterminate]:border-alert group-data-[invalid]:group-data-[selected]:border-alert group-data-[invalid]:group-data-[indeterminate]:bg-element-alert group-data-[invalid]:group-data-[selected]:bg-element-alert',
+      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
-      'focus:outline-none focus-visible:outline-none'
+      'focus:outline-hidden focus-visible:outline-hidden'
     ],
 
-    circle: 'size-2.5 rounded-full bg-element-base group-data-[selected]:group-data-[disabled]:bg-neutral-500'
+    circle: 'bg-element-base size-2.5 rounded-full group-data-disabled:group-selected:bg-neutral-500'
   }
 });
 
 const cardRadioVariants = tv({
   slots: {
     container: [
-      'group flex h-14 w-full items-center justify-between overflow-hidden rounded p-4',
-      'border border-default bg-surface-base transition-colors',
+      'group flex h-14 w-full items-center justify-between overflow-hidden rounded-sm p-4',
+      'border-default bg-surface-base border transition-colors',
       /* Hover */
-      'hover:cursor-pointer hover:bg-surface-elevated',
+      'hover:bg-surface-elevated hover:cursor-pointer',
       /* Selected */
-      'data-[selected]:border-active data-[selected]:bg-element-primary-light',
+      'selected:border-active selected:bg-element-primary-light',
       /* Focus */
-      'data-[focus-visible]:ring-2 data-[focus-visible]:ring-default data-[focus-visible]:ring-offset-1',
+      'data-focus-visible:ring-default data-focus-visible:ring-2 data-focus-visible:ring-offset-1',
       /* Disabled */
-      'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60',
+      'data-disabled:cursor-not-allowed data-disabled:opacity-60',
       /* Invalid */
-      'data-[invalid]:border-alert data-[invalid]:shadow-[0px_0px_4px_0px_theme(colors.alert.600)]'
+      'data-invalid:border-alert data-invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]'
     ],
 
-    content: 'flex items-center gap-2 text-regular font-medium text-primary',
+    content: 'text-regular text-primary flex items-center gap-2 font-medium',
 
     indicator: [
       'flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-400 transition-colors',
-      'group-data-[selected]:border-transparent group-data-[selected]:bg-element-primary-soft group-data-[selected]:text-base'
+      'group-selected:bg-element-primary-soft group-selected:border-transparent group-selected:text-base'
     ]
   }
 });
@@ -95,7 +95,7 @@ const Radio = forwardRef<HTMLLabelElement, RadioProps>(
         {composeRenderProps(children, (children, renderProps) => (
           <>
             <span className={element()}>{renderProps.isSelected && <div className={circle()} />}</span>
-            <div className="flex items-center gap-4 text-regular font-normal text-primary">{children}</div>
+            <div className="text-regular text-primary flex items-center gap-4 font-normal">{children}</div>
           </>
         ))}
       </Aria.Radio>

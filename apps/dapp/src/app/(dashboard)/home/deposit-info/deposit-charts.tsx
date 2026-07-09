@@ -97,7 +97,7 @@ export default function DepositCharts({ snapshots }: { snapshots: Array<DepositD
 
                     return (
                       <div className="flex flex-col gap-1">
-                        <span className="font-heading text-regular tabular-nums text-primary">
+                        <span className="font-heading! text-regular tabular-nums text-primary">
                           ${customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
                         </span>
                         <span className="text-small text-secondary">{date}</span>

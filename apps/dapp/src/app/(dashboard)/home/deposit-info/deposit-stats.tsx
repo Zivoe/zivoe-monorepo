@@ -26,7 +26,7 @@ function Box({ title, icon, value }: { title: string; icon: ReactNode; value: st
         <p className="whitespace-nowrap text-regular text-secondary">{title}</p>
       </div>
 
-      <p className="whitespace-nowrap !font-heading text-h6 text-primary xl:text-h5">{value}</p>
+      <p className="whitespace-nowrap font-heading! text-h6 text-primary xl:text-h5">{value}</p>
     </div>
   );
 }

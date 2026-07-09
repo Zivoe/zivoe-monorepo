@@ -28,11 +28,11 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
           className={cn(
             'rounded-md',
             isDesktop
-              ? 'flex gap-3 bg-element-primary-light px-6 py-4'
-              : 'flex items-center gap-2 bg-element-primary-gentle p-1.5'
+              ? 'bg-element-primary-light flex gap-3 px-6 py-4'
+              : 'bg-element-primary-gentle flex items-center gap-2 p-1.5'
           )}
         >
-          <ZapIcon className={cn('flex-shrink-0', isDesktop ? 'size-6 text-primary-subtle' : 'size-4 text-brand')} />
+          <ZapIcon className={cn('shrink-0', isDesktop ? 'text-primary-subtle size-6' : 'text-brand size-4')} />
 
           <div className="flex flex-col gap-1">
             <p className={cn('font-medium', isDesktop ? 'text-leading text-primary-subtle' : 'text-small text-brand')}>
@@ -48,11 +48,11 @@ export default function AvailableLiquidity({ type }: { type: 'desktop' | 'mobile
       {/* Looking to redeem */}
       <div
         className={cn(
-          'flex rounded-md bg-element-warning-light text-warning',
+          'bg-element-warning-light text-warning flex rounded-md',
           isDesktop ? 'gap-3 px-6 py-4' : 'items-center gap-2 p-1.5'
         )}
       >
-        <InfoIcon className={cn('flex-shrink-0', isDesktop ? 'size-6' : 'size-4')} />
+        <InfoIcon className={cn('shrink-0', isDesktop ? 'size-6' : 'size-4')} />
 
         <div className={cn('flex flex-col', isDesktop && 'gap-1')}>
           {isDesktop && <p className="text-leading font-medium">Looking to redeem?</p>}

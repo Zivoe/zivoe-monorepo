@@ -1,0 +1,4 @@
+@import '@zivoe/ui/globals.css';
+
+/* Storybook stories are scanned for the shared stylesheet but never render in this app */
+@source not '../../../../packages/ui/src/**/*.stories.tsx';

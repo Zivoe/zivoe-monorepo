@@ -49,7 +49,7 @@ function EmbedFigure({ caption, children }: { caption?: null | string; children:
 
 export function EmbedFallback({ href, provider }: { href: string; provider: string }) {
   return (
-    <div className="rounded-[8px] border border-default bg-surface-base-soft p-4">
+    <div className="rounded-lg border border-default bg-surface-base-soft p-4">
       <Link href={href} rel="noopener noreferrer" target="_blank" variant="link-primary" size="l">
         View on {provider}
       </Link>
@@ -59,13 +59,13 @@ export function EmbedFallback({ href, provider }: { href: string; provider: stri
 
 function LinkedInEmbedFrame({ parsed }: { parsed: ParsedLinkedInEmbed }) {
   return (
-    <div className="overflow-hidden rounded-[8px] bg-surface-base-soft">
+    <div className="overflow-hidden rounded-lg bg-surface-base-soft">
       <iframe
         src={parsed.embedUrl}
         title="Embedded LinkedIn post"
         loading="lazy"
         allowFullScreen
-        className="h-[34rem] w-full border-0 sm:h-[38rem]"
+        className="h-136 w-full border-0 sm:h-152"
       />
     </div>
   );
@@ -73,7 +73,7 @@ function LinkedInEmbedFrame({ parsed }: { parsed: ParsedLinkedInEmbed }) {
 
 function YouTubeEmbedFrame({ parsed }: { parsed: ParsedYouTubeEmbed }) {
   return (
-    <div className="aspect-video overflow-hidden rounded-[8px] bg-surface-base-soft">
+    <div className="aspect-video overflow-hidden rounded-lg bg-surface-base-soft">
       <iframe
         src={`${parsed.embedUrl}?rel=0`}
         title="Embedded YouTube video"

@@ -11,7 +11,9 @@ import { cn } from '../../lib/tw-utils';
 import { FieldError } from '../field/field-error';
 import { Label } from '../field/label';
 
-interface InputProps extends Aria.SearchFieldProps, VariantProps<typeof inputGroupStyles> {
+type InputFieldProps = Omit<Aria.TextFieldProps, 'children'> & Pick<Aria.SearchFieldProps, 'onClear' | 'onSubmit'>;
+
+interface InputProps extends InputFieldProps, VariantProps<typeof inputGroupStyles> {
   label?: ReactNode;
   placeholder?: string;
   errorMessage?: string;
@@ -48,6 +50,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       variant,
       autoComplete,
       onChange,
+      onClear,
+      onSubmit,
       decimalPlaces = 18,
       hasNormalStyleIfDisabled = false,
       subContent,
@@ -64,73 +68,82 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     });
 
     const amountRegex = getAmountRegex(decimalPlaces);
+    const usesSearchField = variant === 'search' || isClearable;
     const inputRef = useRef<HTMLInputElement>(null);
 
-    return (
-      <InputField
-        {...props}
-        value={parsedValue}
-        autoComplete={parsedAutoComplete}
-        validationBehavior="aria"
-        data-readonly={isReadOnly}
-        onChange={(value) => {
-          if (variant === 'amount' && !amountRegex.test(value)) return;
-          else return onChange?.(value);
-        }}
-      >
-        {({ state }) => (
-          <>
-            {label && <Label className={labelClassName}>{label}</Label>}
+    const handleChange = (value: string) => {
+      if (variant === 'amount' && !amountRegex.test(value)) return;
 
-            <InputGroup
+      return onChange?.(value);
+    };
+
+    const fieldProps = {
+      ...props,
+      value: parsedValue,
+      autoComplete: parsedAutoComplete,
+      validationBehavior: 'aria' as const,
+      'data-readonly': isReadOnly ? true : undefined,
+      isReadOnly,
+      onChange: handleChange
+    };
+
+    const renderContent = (clearValue?: () => void) => (
+      <>
+        {label && <Label className={labelClassName}>{label}</Label>}
+
+        <InputGroup variant={variant} hasNormalStyleIfDisabled={hasNormalStyleIfDisabled} className={groupClassName}>
+          <div className="flex w-full items-center gap-3">
+            {startContent}
+
+            <InputElement
               variant={variant}
               hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-              className={groupClassName}
-            >
-              <div className="flex w-full items-center gap-3">
-                {startContent}
+              className={inputClassName}
+              placeholder={parsedPlaceholder}
+              type={parsedType}
+              ref={(node) => {
+                inputRef.current = node;
 
-                <InputElement
-                  variant={variant}
-                  hasNormalStyleIfDisabled={hasNormalStyleIfDisabled}
-                  className={inputClassName}
-                  placeholder={parsedPlaceholder}
-                  type={parsedType}
-                  ref={(node) => {
-                    inputRef.current = node;
+                if (typeof ref === 'function') {
+                  ref(node);
+                } else if (ref) {
+                  ref.current = node;
+                }
+              }}
+            />
 
-                    if (typeof ref === 'function') {
-                      ref(node);
-                    } else if (ref) {
-                      ref.current = node;
-                    }
-                  }}
-                />
+            {endContent}
 
-                {endContent}
+            {isClearable && !isReadOnly && (
+              <InputButton
+                className={clearButtonClassName}
+                onPress={() => {
+                  clearValue?.();
+                  inputRef.current?.focus();
+                }}
+                aria-label={clearButtonAriaLabel}
+              >
+                <CloseIcon aria-hidden="true" />
+              </InputButton>
+            )}
+          </div>
 
-                {isClearable && !isReadOnly && (
-                  <InputButton
-                    className={clearButtonClassName}
-                    onPress={() => {
-                      state.setValue('');
-                      inputRef.current?.focus();
-                    }}
-                    aria-label={clearButtonAriaLabel}
-                  >
-                    <CloseIcon />
-                  </InputButton>
-                )}
-              </div>
+          {variant === 'amount' && subContent}
+        </InputGroup>
 
-              {variant === 'amount' && subContent}
-            </InputGroup>
-
-            {errorMessage && <FieldError>{errorMessage}</FieldError>}
-          </>
-        )}
-      </InputField>
+        {errorMessage && <FieldError>{errorMessage}</FieldError>}
+      </>
     );
+
+    if (usesSearchField) {
+      return (
+        <SearchInputField {...fieldProps} onClear={onClear} onSubmit={onSubmit}>
+          {({ state }) => renderContent(() => state.setValue(''))}
+        </SearchInputField>
+      );
+    }
+
+    return <TextInputField {...fieldProps}>{renderContent()}</TextInputField>;
   }
 );
 
@@ -161,14 +174,33 @@ const parseFields = ({
     parsedType ??= 'text';
   }
 
+  if (variant === 'search') {
+    parsedAutoComplete ??= 'off';
+    parsedType ??= 'search';
+  }
+
+  if (variant === 'default') {
+    parsedType ??= 'text';
+  }
+
   return { parsedPlaceholder, parsedValue, parsedAutoComplete, parsedType };
 };
 
 const inputFieldStyles = tv({
-  base: 'group flex flex-col gap-3 group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed'
+  base: 'group flex flex-col gap-3 group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed'
 });
 
-const InputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ className, ...props }, ref) => {
+const TextInputField = forwardRef<HTMLDivElement, Aria.TextFieldProps>(({ className, ...props }, ref) => {
+  return (
+    <Aria.TextField
+      className={composeRenderProps(className, (className) => inputFieldStyles({ className }))}
+      {...props}
+      ref={ref}
+    />
+  );
+});
+
+const SearchInputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ className, ...props }, ref) => {
   return (
     <Aria.SearchField
       className={composeRenderProps(className, (className) => inputFieldStyles({ className }))}
@@ -180,24 +212,24 @@ const InputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ classNam
 
 const inputGroupStyles = tv({
   base: [
-    'flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded border border-default',
+    'border-default flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border',
     /* Hover */
     'hover:border-contrast',
     /* Focus Within */
-    'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_theme(colors.primary.400)] focus-within:outline-none',
+    'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus-within:outline-hidden',
     /* Disabled */
-    'group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
+    'group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
     /* Invalid */
-    'invalid:!border-alert invalid:!shadow-[0px_0px_4px_0px_theme(colors.alert.600)]',
+    'invalid:border-alert! invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]!',
     /* SVG */
-    '[&_svg]:size-4 [&_svg]:text-icon-default'
+    '[&_svg]:text-icon-default [&_svg]:size-4'
   ],
 
   variants: {
     variant: {
-      default: 'h-12 bg-surface-base-soft px-4 text-small',
-      amount: 'h-24 bg-surface-base pl-6 pr-4 text-h6',
-      search: 'h-14 rounded-[6px] bg-surface-base px-5 text-regular focus-within:shadow-none hover:border-default'
+      default: 'bg-surface-base-soft text-small h-12 px-4',
+      amount: 'bg-surface-base text-h6 h-24 pr-4 pl-6',
+      search: 'bg-surface-base text-regular hover:border-default h-14 rounded-md px-5 focus-within:shadow-none'
     },
 
     hasNormalStyleIfDisabled: {
@@ -239,7 +271,7 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
 
 const inputElementStyles = tv({
   base: [
-    'min-w-0 flex-1 text-primary outline outline-0 placeholder:text-tertiary group-data-[readonly]:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-search-cancel-button]:hidden'
+    'text-primary placeholder:text-tertiary min-w-0 flex-1 outline-0 outline-solid group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-search-cancel-button]:hidden'
   ],
 
   variants: {
@@ -284,9 +316,9 @@ const InputButton = forwardRef<HTMLButtonElement, Aria.ButtonProps>(({ className
           /* Hover */
           'hover:opacity-100',
           /* Disabled */
-          'group-data-[readonly]:pointer-events-none disabled:pointer-events-none',
+          'group-data-readonly:pointer-events-none disabled:pointer-events-none',
           /* Empty */
-          'group-data-[empty]:invisible',
+          'group-data-empty:invisible',
           className
         )
       )}
@@ -297,7 +329,8 @@ const InputButton = forwardRef<HTMLButtonElement, Aria.ButtonProps>(({ className
 });
 
 Input.displayName = 'ZivoeUI.Input';
-InputField.displayName = 'ZivoeUI.InputField';
+TextInputField.displayName = 'ZivoeUI.TextInputField';
+SearchInputField.displayName = 'ZivoeUI.SearchInputField';
 InputGroup.displayName = 'ZivoeUI.InputGroup';
 InputElement.displayName = 'ZivoeUI.InputElement';
 InputButton.displayName = 'ZivoeUI.InputButton';

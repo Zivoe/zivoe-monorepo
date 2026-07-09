@@ -10,7 +10,7 @@ import { EMAILS } from '@/lib/utils';
 
 function Container({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex w-full max-w-[37rem] flex-1 flex-col items-center">
+    <div className="flex w-full max-w-148 flex-1 flex-col items-center">
       {/* Top spacer for small height screens */}
       <div className="min-h-11 flex-1" />
 

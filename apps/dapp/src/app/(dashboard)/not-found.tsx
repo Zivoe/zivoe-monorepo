@@ -12,10 +12,10 @@ export default function NotFoundPage() {
 
   return (
     <>
-      <div className="h-[1px] bg-element-neutral-subtle" />
+      <div className="h-px bg-element-neutral-subtle" />
 
       <Page className="flex h-full items-center justify-center">
-        <div className="w-full max-w-[33.75rem] rounded-2xl bg-surface-elevated p-2">
+        <div className="w-full max-w-135 rounded-2xl bg-surface-elevated p-2">
           <div className="flex flex-col items-center gap-4 rounded-xl bg-surface-base p-4 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
             <div className="flex flex-col items-center gap-6 py-3">
               <div className="flex size-12 items-center justify-center rounded-md bg-element-alert-light">

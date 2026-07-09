@@ -29,7 +29,7 @@ export default function Deposit({ apy, initialView }: { apy: number | null; init
 
   return (
     <>
-      <EarnBox apy={apy} initialView={initialView} className="hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]" />
+      <EarnBox apy={apy} initialView={initialView} className="hidden lg:block lg:min-w-120 xl:min-w-157.5" />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -102,7 +102,7 @@ function EarnBox({
   };
 
   return (
-    <div className={cn('sticky top-14 hidden lg:block lg:min-w-[30rem] xl:min-w-[39.375rem]', className)}>
+    <div className={cn('sticky top-14 hidden lg:block lg:min-w-120 xl:min-w-157.5', className)}>
       <div className="rounded-2xl bg-surface-elevated p-2">
         {withTitle && (
           <div className="p-4">

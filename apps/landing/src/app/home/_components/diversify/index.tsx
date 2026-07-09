@@ -8,9 +8,9 @@ import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './
 
 export default function Diversify() {
   return (
-    <Container className="w-fit justify-between gap-20 pb-10 pt-16 sm:px-10 sm:py-20 md:w-[35rem] md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-[6.5rem] xl:pb-[7.5rem] xl:pt-[12.5rem] 2xl:px-[12rem]">
-      <div className="flex flex-col gap-6 sm:gap-8 xl:sticky xl:top-16 xl:mt-16 xl:max-w-[30.5rem]">
-        <p className="!font-heading text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
+    <Container className="w-fit justify-between gap-20 pb-10 pt-16 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pb-30 xl:pt-50 2xl:px-48">
+      <div className="flex flex-col gap-6 sm:gap-8 xl:sticky xl:top-16 xl:mt-16 xl:max-w-122">
+        <p className="font-heading! text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
 
         <div className="flex flex-col gap-4">
           <h2 className="text-h6 text-primary sm:text-h4 xl:text-h2">Tap into an Institutional-Grade Asset Class</h2>
@@ -32,15 +32,15 @@ export default function Diversify() {
         </Card>
 
         <Card label="For maximum growth" title="Autocompounding">
-          <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:bottom-0 sm:right-8 sm:-ml-0 sm:w-auto" />
+          <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:bottom-0 sm:right-8 sm:ml-0 sm:w-auto" />
         </Card>
 
         <Card label="Via Direct Redemptions" title="Flexible Liquidity">
-          <LiquidityIcon className="w-[7.1875rem] sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
+          <LiquidityIcon className="w-28.75 sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
         </Card>
 
         <Card label="On Ethereum" title="Live now">
-          <EthereumIcon className="w-[7.1875rem] sm:absolute sm:bottom-[4.5rem] sm:right-16 sm:w-auto" />
+          <EthereumIcon className="w-28.75 sm:absolute sm:bottom-18 sm:right-16 sm:w-auto" />
         </Card>
       </div>
     </Container>
@@ -49,9 +49,9 @@ export default function Diversify() {
 
 function Card({ label, title, children }: { label: string; title: string; children?: ReactNode }) {
   return (
-    <div className="h-[17.5rem] w-full overflow-clip rounded-xl bg-element-neutral p-5 sm:relative sm:p-8 xl:h-80 xl:w-[32.5rem] xl:max-w-full">
+    <div className="h-70 w-full overflow-clip rounded-xl bg-element-neutral p-5 sm:relative sm:p-8 xl:h-80 xl:w-130 xl:max-w-full">
       <div className="flex flex-col gap-1 xl:gap-2">
-        <p className="!font-heading text-smallSubheading text-primary xl:text-subheading">{title}</p>
+        <p className="font-heading! text-smallSubheading text-primary xl:text-subheading">{title}</p>
         <p className="text-regular text-secondary xl:text-leading">{label}</p>
       </div>
 

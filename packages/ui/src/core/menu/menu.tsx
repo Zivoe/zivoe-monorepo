@@ -17,7 +17,7 @@ const MenuTrigger = Aria.MenuTrigger;
 
 const MenuSubTrigger = Aria.SubmenuTrigger;
 
-const MenuSection = Aria.ListBoxSection;
+const MenuSection = Aria.MenuSection;
 
 const MenuCollection = Aria.Collection;
 
@@ -43,7 +43,7 @@ function MenuComponent<T extends { id: string; label: string }>(
   return (
     <div className={className}>
       <ScrollArea className={cn('-m-2', scrollAreaClassName)}>
-        <Aria.Menu className="space-y-1 p-2 outline-none" ref={ref} items={items} {...props} />
+        <Aria.Menu className="space-y-1 p-2 outline-hidden" ref={ref} items={items} {...props} />
         <ScrollBar orientation="vertical" />
       </ScrollArea>
     </div>
@@ -52,13 +52,13 @@ function MenuComponent<T extends { id: string; label: string }>(
 
 const menuItemVariants = tv({
   base: [
-    'relative flex cursor-default select-none items-center rounded-[4px] px-3 py-[10px] text-small outline-none transition-colors',
+    'text-small relative flex cursor-default items-center rounded-sm px-3 py-2.5 outline-hidden transition-colors select-none',
     /* Disabled */
     'disabled:pointer-events-none disabled:opacity-60',
     /* Focused */
     'focus:bg-element-neutral-light',
     /* Hovered */
-    'hover:cursor-pointer hover:bg-element-neutral-light'
+    'hover:bg-element-neutral-light hover:cursor-pointer'
   ],
 
   variants: {
@@ -81,16 +81,17 @@ const MenuItem = ({
 }: MenuItemProps) => {
   usePrefetch({ href: props.href, target, enabled: prefetch });
   const rel = target === '_blank' ? (providedRel ?? 'noopener noreferrer') : providedRel;
+  const textValue = props.textValue ?? (typeof children === 'string' ? children : undefined);
 
   return (
     <Aria.MenuItem
+      {...props}
       target={target}
       rel={rel}
-      textValue={props.textValue ?? (typeof children === 'string' ? children : undefined)}
+      textValue={textValue}
       className={composeRenderProps(className, (className, { isSelected }) =>
         menuItemVariants({ className, isSelected })
       )}
-      {...props}
     >
       {composeRenderProps(children, (children, { hasSubmenu }) => (
         <>
@@ -103,7 +104,7 @@ const MenuItem = ({
 };
 
 const MenuSeparator = ({ className, ...props }: Aria.SeparatorProps) => (
-  <Aria.Separator className={cn('my-1 h-px bg-element-neutral-light', className)} {...props} />
+  <Aria.Separator className={cn('bg-element-neutral-light my-1 h-px', className)} {...props} />
 );
 
 const MenuButton = ({ className, isCurrent: _isCurrent, ...props }: ButtonProps & { isCurrent?: boolean }) => {

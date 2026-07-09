@@ -57,7 +57,9 @@ export default function NewsletterForm() {
 
   return (
     <>
+      {/* noValidate: zod owns validation — otherwise the browser blocks submit on type="email" before react-hook-form runs */}
       <form
+        noValidate
         className="flex w-full flex-col justify-center gap-4 sm:w-fit xl:flex-row xl:gap-2"
         onSubmit={form.handleSubmit(handleSubmit)}
       >
@@ -66,12 +68,14 @@ export default function NewsletterForm() {
           name="email"
           render={({ field, fieldState: { invalid, error } }) => (
             <Input
+              label="Email address"
+              labelClassName="sr-only"
               type="email"
               isRequired
               placeholder="Your email address"
               errorMessage={error?.message}
               isInvalid={invalid}
-              className="w-full sm:w-[30rem] xl:w-[17.5rem]"
+              className="w-full sm:w-120 xl:w-70"
               {...field}
             />
           )}

@@ -78,7 +78,7 @@ export default function SignInForm() {
               title="Verify Your Email"
               description={
                 <p className="text-regular text-secondary">
-                  We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
+                  We've sent an OTP code to <span className="text-primary break-all">{email}</span>.
                 </p>
               }
             >
@@ -96,7 +96,7 @@ export default function SignInForm() {
       {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
 
       {WITH_TURNSTILE && (
-        <div className="absolute bottom-0 right-0 z-50">
+        <div className="absolute right-0 bottom-0 z-50">
           <Turnstile
             options={{ execution: 'execute', appearance: 'execute', size: 'normal' }}
             siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
@@ -197,7 +197,8 @@ function EmailStepForm({
 
   return (
     <>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-8">
+      {/* noValidate: zod owns validation — otherwise the browser blocks submit on type="email" before react-hook-form runs */}
+      <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-8">
         <Controller
           control={form.control}
           name="email"
@@ -232,27 +233,29 @@ function EmailStepForm({
 
       <div className="flex gap-6">
         <Button
+          aria-label="Sign in with Google"
           type="button"
           variant="border-light"
           fullWidth
           onPress={() => handleSocialSignIn({ provider: 'google' })}
           isPending={isGoogleLoading}
           isDisabled={form.formState.isSubmitting || isTwitterLoading}
-          className="[&_svg]:!size-6"
+          className="[&_svg]:size-6!"
         >
-          <GoogleIcon />
+          <GoogleIcon aria-hidden="true" />
         </Button>
 
         <Button
+          aria-label="Sign in with X"
           type="button"
           variant="border-light"
           fullWidth
           onPress={() => handleSocialSignIn({ provider: 'twitter' })}
           isPending={isTwitterLoading}
           isDisabled={form.formState.isSubmitting || isGoogleLoading}
-          className="[&_svg]:!size-6"
+          className="[&_svg]:size-6!"
         >
-          <TwitterIcon />
+          <TwitterIcon aria-hidden="true" />
         </Button>
       </div>
     </>
@@ -370,7 +373,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
         control={form.control}
         name="otp"
         render={({ field: { value, onChange, ref }, fieldState: { error } }) => (
-          <div className="flex w-full max-w-[32rem] flex-col gap-2">
+          <div className="flex w-full max-w-lg flex-col gap-2">
             <InputOTP
               autoFocus
               ref={ref}
@@ -397,7 +400,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       />
 
       {!isExhausted && (
-        <div className="flex items-center gap-1 text-regular text-secondary">
+        <div className="text-regular text-secondary flex items-center gap-1">
           <span>Didn&apos;t receive an email?</span>
           <Button variant="link-primary" size="m" onPress={handleResendCode} isDisabled={isLoading || !canResend}>
             {isResending

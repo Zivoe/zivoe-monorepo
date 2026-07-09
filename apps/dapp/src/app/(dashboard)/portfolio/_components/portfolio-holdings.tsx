@@ -53,7 +53,7 @@ function HoldingsContainer() {
 
   if (account.isDisconnected)
     return (
-      <div className="flex h-[8.5rem] flex-col items-center justify-center gap-2 text-center">
+      <div className="flex h-34 flex-col items-center justify-center gap-2 text-center">
         <h3 className="text-h7 text-primary">Connect Wallet</h3>
         <p className="text-regular text-secondary">Your holdings will appear here once you connect your wallet</p>
       </div>
@@ -107,7 +107,7 @@ function HoldingsContainer() {
 
 function HoldingsContent({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(320px,_1fr)_minmax(140px,_1fr)_minmax(140px,_1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,_1fr)_minmax(200px,_1fr)_minmax(200px,_1fr)_1fr] xl:grid-cols-[minmax(360px,_1fr)_minmax(360px,_1fr)_minmax(360px,_1fr)_1fr]">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(320px,1fr)_minmax(140px,1fr)_minmax(140px,1fr)_1fr] md:gap-0 lg:grid-cols-[minmax(360px,1fr)_minmax(200px,1fr)_minmax(200px,1fr)_1fr] xl:grid-cols-[minmax(360px,1fr)_minmax(360px,1fr)_minmax(360px,1fr)_1fr]">
       <TableHeader title="Asset" />
       <TableHeader title="Balance" />
       <TableHeader title="Value" />
@@ -160,12 +160,12 @@ function AssetInfo(
 
               <div className="flex flex-col gap-1 py-0.5">
                 <Skeleton className="h-5 w-11 rounded-md" />
-                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+                <Skeleton className="h-4 w-23 rounded-md" />
               </div>
             </>
           ) : (
             <>
-              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
+              <span className="[&_svg]:size-8 [&_svg]:shrink-0">{info.icon}</span>
 
               <div>
                 <p className="text-regular text-primary">{info.label}</p>
@@ -189,7 +189,7 @@ function AssetInfo(
       </TableElement>
 
       {/* Mobile View */}
-      <div className="flex flex-col gap-4 rounded-xl border border-default p-5 md:hidden">
+      <div className="border-default flex flex-col gap-4 rounded-xl border p-5 md:hidden">
         <div className="flex items-center gap-3">
           {!info ? (
             <>
@@ -197,15 +197,15 @@ function AssetInfo(
 
               <div className="flex flex-col gap-1 py-0.5">
                 <Skeleton className="h-6 w-11 rounded-md" />
-                <Skeleton className="h-4 w-[5.75rem] rounded-md" />
+                <Skeleton className="h-4 w-23 rounded-md" />
               </div>
             </>
           ) : (
             <>
-              <span className="[&_svg]:size-8 [&_svg]:flex-shrink-0">{info.icon}</span>
+              <span className="[&_svg]:size-8 [&_svg]:shrink-0">{info.icon}</span>
 
               <div>
-                <p className="text-smallSubheading font-medium text-primary">{info.label}</p>
+                <p className="text-smallSubheading text-primary font-medium">{info.label}</p>
                 <p className="text-small text-secondary">{info.description}</p>
               </div>
             </>
@@ -236,12 +236,12 @@ function AssetInfoSkeleton({ className }: { className?: string }) {
 
 function TableHeader({ title }: { title: string }) {
   return (
-    <div className="hidden bg-surface-elevated px-4 py-2 md:block">
+    <div className="bg-surface-elevated hidden px-4 py-2 md:block">
       <p className="text-small text-secondary">{title}</p>
     </div>
   );
 }
 
 function TableElement({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn('hidden h-[5.25rem] items-center px-4 md:flex', className)}>{children}</div>;
+  return <div className={cn('hidden h-21 items-center px-4 md:flex', className)}>{children}</div>;
 }

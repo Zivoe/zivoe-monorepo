@@ -24,13 +24,13 @@ export function InsightCard({
       href={`/insights/${post.slug}`}
       className={cn(
         'group flex h-full flex-col border border-default bg-surface-base transition-shadow duration-200 hover:shadow-[0px_8px_20px_rgba(16,24,40,0.05)]',
-        isCompact ? 'min-h-[25rem] gap-0 p-3' : 'min-h-[32.5rem] gap-2 p-2'
+        isCompact ? 'min-h-100 gap-0 p-3' : 'min-h-130 gap-2 p-2'
       )}
     >
       <div
         className={cn(
-          'aspect-[16/9] overflow-hidden rounded-[8px] bg-surface-base-soft',
-          isCompact && 'rounded-[4px]'
+          'aspect-video overflow-hidden rounded-lg bg-surface-base-soft',
+          isCompact && 'rounded-sm'
         )}
       >
         {imageUrl ? (
@@ -54,7 +54,7 @@ export function InsightCard({
 
       <div className={cn('flex flex-1 flex-col', isCompact ? 'gap-5 px-1 pb-1 pt-4' : 'gap-6 px-3 pb-3 pt-1')}>
         <div className={cn('flex flex-1 flex-col', isCompact ? 'gap-3' : 'gap-4')}>
-          <Badge variant="primary" className={cn('w-fit', isCompact && 'rounded-[3px] px-2 py-1 text-[0.6875rem] leading-[1rem]')}>
+          <Badge variant="primary" className={cn('w-fit', isCompact && 'rounded-[3px] px-2 py-1 text-[0.6875rem] leading-4')}>
             {post.category.title}
           </Badge>
 
@@ -63,19 +63,19 @@ export function InsightCard({
               className={cn(
                 'font-heading text-primary transition-colors group-hover:text-brand',
                 isCompact
-                  ? 'line-clamp-2 text-[1.625rem] leading-[2rem]'
-                  : 'text-[2rem] leading-[2.75rem]'
+                  ? 'line-clamp-2 text-[1.625rem] leading-8'
+                  : 'text-[2rem] leading-11'
               )}
             >
               {post.title}
             </h3>
-            <p className={cn(isCompact ? 'line-clamp-3 text-[0.9375rem] leading-[1.5rem] text-secondary' : 'text-regular leading-[1.75rem] text-secondary')}>
+            <p className={cn(isCompact ? 'line-clamp-3 text-[0.9375rem] leading-6 text-secondary' : 'text-regular leading-7 text-secondary')}>
               {post.excerpt}
             </p>
           </div>
         </div>
 
-        <p className={cn(isCompact ? 'text-[0.75rem] leading-[1rem] text-tertiary' : 'text-small text-tertiary')}>
+        <p className={cn(isCompact ? 'text-[0.75rem] leading-4 text-tertiary' : 'text-small text-tertiary')}>
           {formatInsightDate(post.publishedAt)}
         </p>
       </div>

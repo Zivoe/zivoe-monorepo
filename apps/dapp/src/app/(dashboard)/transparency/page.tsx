@@ -68,8 +68,8 @@ export default function TransparencyPage() {
               <Suspense
                 fallback={
                   <>
-                    <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
-                    <Card.Body className="h-[38rem] animate-pulse sm:h-[28.25rem]" />
+                    <Card.Body className="h-152 animate-pulse sm:h-113" />
+                    <Card.Body className="h-152 animate-pulse sm:h-113" />
                   </>
                 }
               >

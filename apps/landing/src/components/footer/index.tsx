@@ -15,13 +15,19 @@ export default function Footer() {
       <Container className="py-10 sm:px-10 xl:pt-20">
         <div className="flex w-full flex-col gap-20 lg:flex-row lg:justify-between lg:gap-14 xl:gap-20">
           <div className="flex flex-col gap-8">
-            <NextLink href="/">
-              <ZivoeLogo type="light" />
+            <NextLink href="/" aria-label="Zivoe home">
+              <ZivoeLogo aria-hidden="true" type="light" />
             </NextLink>
 
             <div className="flex items-center gap-6">
-              {SOCIALS.map(({ href, icon }) => (
-                <NextLink key={href} href={href} target="_blank" className="text-base opacity-50 hover:opacity-100">
+              {SOCIALS.map(({ href, label, icon }) => (
+                <NextLink
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  aria-label={label}
+                  className="text-base opacity-50 hover:opacity-100"
+                >
                   {icon}
                 </NextLink>
               ))}
@@ -61,7 +67,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <p className="mt-12 text-extraSmall text-disabled lg:mt-20">
+        <p className="text-extraSmall text-disabled mt-12 lg:mt-20">
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on
@@ -76,8 +82,8 @@ export default function Footer() {
 
 function FooterSection({ title, links }: { title: string; links: Array<FooterSectionLink> }) {
   return (
-    <div className="flex w-[9.6875rem] flex-col gap-6 lg:w-[12.5rem]">
-      <p className="!font-heading text-regular text-tertiary">{title}</p>
+    <div className="flex w-38.75 flex-col gap-6 lg:w-50">
+      <p className="font-heading! text-regular text-tertiary">{title}</p>
 
       <div className="flex flex-col gap-3">
         {links.map(({ href, label, target }) => (
@@ -113,25 +119,30 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
   }
 ];
 
-const SOCIALS: Array<{ href: string; icon: ReactNode }> = [
+const SOCIALS: Array<{ href: string; label: string; icon: ReactNode }> = [
   {
     href: 'https://x.com/zivoeprotocol',
+    label: 'Zivoe on X',
     icon: <XIcon />
   },
   {
     href: 'https://t.me/zivoeprotocol',
+    label: 'Zivoe on Telegram',
     icon: <TelegramIcon />
   },
   {
     href: 'https://www.linkedin.com/company/zivoe-finance/',
+    label: 'Zivoe on LinkedIn',
     icon: <LinkedInIcon />
   },
   {
     href: 'https://www.youtube.com/@Zivoe',
+    label: 'Zivoe on YouTube',
     icon: <YoutubeIcon />
   },
   {
     href: 'https://github.com/Zivoe',
+    label: 'Zivoe on GitHub',
     icon: <GithubIcon />
   }
 ];

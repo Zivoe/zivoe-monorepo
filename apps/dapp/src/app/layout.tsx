@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
 import { cookieToInitialState } from 'wagmi';
 
-import '@zivoe/ui/globals.css';
+import './globals.css';
 
 import { env } from '@/env';
 

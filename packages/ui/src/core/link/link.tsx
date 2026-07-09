@@ -1,6 +1,6 @@
 'use client';
 
-import { type HTMLAttributeAnchorTarget, type ReactNode, forwardRef } from 'react';
+import { type AnchorHTMLAttributes, type HTMLAttributeAnchorTarget, type ReactNode, forwardRef } from 'react';
 
 import NextLinkComponent, { type LinkProps as NextLinkComponentProps } from 'next/link';
 
@@ -64,14 +64,15 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
   }
 );
 
-type NextLinkProps = NextLinkComponentProps & {
-  href: string;
-  prefetch?: boolean;
-  className?: string;
-  target?: HTMLAttributeAnchorTarget;
-  rel?: string;
-  children?: ReactNode;
-};
+type NextLinkProps = NextLinkComponentProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof NextLinkComponentProps | 'href'> & {
+    href: string;
+    prefetch?: boolean;
+    className?: string;
+    target?: HTMLAttributeAnchorTarget;
+    rel?: string;
+    children?: ReactNode;
+  };
 
 const NextLink = forwardRef<HTMLAnchorElement, NextLinkProps>(
   ({ target = '_self', prefetch = true, rel: providedRel, ...props }, ref) => {

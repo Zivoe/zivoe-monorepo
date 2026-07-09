@@ -129,8 +129,8 @@ export default async function InsightPostPage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={articleJsonLd} />
-      <Container className="px-4 pb-20 pt-10 sm:px-10 xl:px-[8.5rem]">
-        <div className="mx-auto flex w-full max-w-[57rem] flex-col gap-8">
+      <Container className="px-4 pb-20 pt-10 sm:px-10 xl:px-34">
+        <div className="mx-auto flex w-full max-w-228 flex-col gap-8">
           {previewSession.isEnabled ? <InsightsLivePreview serverURL={getInsightsCmsOrigin()} /> : null}
 
           <NextLink
@@ -141,7 +141,7 @@ export default async function InsightPostPage({ params }: PageProps) {
             Back
           </NextLink>
 
-          <div className="overflow-hidden rounded-[8px] bg-surface-base-soft">
+          <div className="overflow-hidden rounded-lg bg-surface-base-soft">
             {(post.featuredImage.heroUrl ?? post.featuredImage.url) ? (
               <Image
                 src={post.featuredImage.heroUrl ?? post.featuredImage.url ?? ''}
@@ -150,10 +150,10 @@ export default async function InsightPostPage({ params }: PageProps) {
                 height={post.featuredImage.height ?? 900}
                 sizes="(min-width: 1280px) 912px, (min-width: 640px) calc(100vw - 5rem), calc(100vw - 2rem)"
                 priority
-                className="aspect-[16/9] w-full object-cover"
+                className="aspect-video w-full object-cover"
               />
             ) : (
-              <div className="flex aspect-[16/9] items-center justify-center text-secondary">Placeholder</div>
+              <div className="flex aspect-video items-center justify-center text-secondary">Placeholder</div>
             )}
           </div>
 
@@ -174,7 +174,7 @@ export default async function InsightPostPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-col gap-6">
-            <h1 className="font-heading text-[2.25rem] leading-[2.75rem] text-primary sm:text-[2.375rem] sm:leading-[2.875rem] lg:text-[3.25rem] lg:leading-[3.75rem]">
+            <h1 className="font-heading text-[2.25rem] leading-11 text-primary sm:text-[2.375rem] sm:leading-11.5 lg:text-[3.25rem] lg:leading-15">
               {post.title}
             </h1>
             <InsightsRichText document={post.body} />
@@ -187,7 +187,7 @@ export default async function InsightPostPage({ params }: PageProps) {
 
         {relatedPosts.length ? (
           <div className="mt-16 flex w-full flex-col gap-5 lg:mt-20">
-            <h2 className="font-heading text-[1.875rem] leading-[2.25rem] text-primary sm:text-[2rem] sm:leading-[2.375rem]">
+            <h2 className="font-heading text-[1.875rem] leading-9 text-primary sm:text-[2rem] sm:leading-9.5">
               Related Articles
             </h2>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -234,7 +234,7 @@ function AuthorMetaCell({
         width={40}
         height={40}
         sizes="40px"
-        className="row-span-2 size-10 self-center rounded-[4px] object-cover"
+        className="row-span-2 size-10 self-center rounded-sm object-cover"
       />
       <p className="text-tertiary">Author</p>
       <p className="text-primary">{name}</p>

@@ -5,7 +5,7 @@ import NavigationSection from '@/components/navigation';
 export default function InsightsLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <div className="bg-surface-base lg:h-[5.75rem]">
+      <div className="bg-surface-base lg:h-23">
         <NavigationSection />
       </div>
       {children}

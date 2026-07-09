@@ -19,7 +19,7 @@ type Story = StoryObj<typeof toast>;
 
 export const Default: Story = {
   render: (props) => (
-    <div className="h-[500px]">
+    <div className="h-125">
       <ToastButton {...props} />
       <Toaster />
     </div>
@@ -33,7 +33,7 @@ export const Default: Story = {
 export const Variants: Story = {
   render: () => (
     <>
-      <div className="flex h-[500px] flex-wrap items-center gap-2">
+      <div className="flex h-125 flex-wrap items-center gap-2">
         <ToastButton type="success" title="Success" description="This is a success toast">
           Success
         </ToastButton>
@@ -53,7 +53,7 @@ export const Variants: Story = {
 export const VariantsWithoutDescription: Story = {
   render: () => (
     <>
-      <div className="flex h-[500px] flex-wrap items-center gap-2">
+      <div className="flex h-125 flex-wrap items-center gap-2">
         <ToastButton type="success" title="Success">
           Success
         </ToastButton>
@@ -72,7 +72,7 @@ export const VariantsWithoutDescription: Story = {
 
 export const LongText: Story = {
   render: () => (
-    <div className="h-[500px]">
+    <div className="h-125">
       <ToastButton
         type="success"
         title="Lorem ipsum dolor sit amet, consectetur adipiscing elit."

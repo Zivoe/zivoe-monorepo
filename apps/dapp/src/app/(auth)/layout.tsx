@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="flex flex-1 flex-col">
         {/* Mobile header  */}
         <div className="xl:hidden">
-          <div className="flex h-full min-h-[6.25rem] items-center px-6">
+          <div className="flex h-full min-h-25 items-center px-6">
             <ZivoeLogo className="w-[5.3rem]" />
           </div>
 

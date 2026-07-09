@@ -76,20 +76,25 @@ export default function EmailPreferencesForm({
   ];
 
   return (
-    <div className="mx-auto max-w-[39.375rem]">
-      <div className="rounded-2xl bg-surface-elevated p-2">
-        <div className="rounded-xl bg-surface-base p-4 shadow-sm">
+    <div className="mx-auto max-w-157.5">
+      <div className="bg-surface-elevated rounded-2xl p-2">
+        <div className="bg-surface-base rounded-xl p-4 shadow-xs">
           <div className="flex flex-col">
             {rows.map((row, index) => (
               <div key={row.title}>
                 <div className="flex items-center justify-between gap-4 py-4">
                   <div className="flex-1">
-                    <p className="text-leading font-medium text-primary">{row.title}</p>
+                    <p className="text-leading text-primary font-medium">{row.title}</p>
                     <p className="text-small text-secondary">{row.description}</p>
                   </div>
-                  <Switch isSelected={row.selected} isDisabled={row.isDisabled} onChange={row.onChange} />
+                  <Switch
+                    aria-label={row.title}
+                    isSelected={row.selected}
+                    isDisabled={row.isDisabled}
+                    onChange={row.onChange}
+                  />
                 </div>
-                {index < rows.length - 1 && <div className="border-t border-default" />}
+                {index < rows.length - 1 && <div className="border-default border-t" />}
               </div>
             ))}
 
@@ -108,7 +113,7 @@ export default function EmailPreferencesForm({
         </div>
       </div>
 
-      <p className="mx-auto mt-4 max-w-[400px] text-center text-small text-tertiary">
+      <p className="text-small text-tertiary mx-auto mt-4 max-w-100 text-center">
         Looking to unsubscribe from all email notifications? Turn off every available toggle above and click save.
       </p>
     </div>

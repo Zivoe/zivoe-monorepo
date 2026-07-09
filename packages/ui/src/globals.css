@@ -1,6 +1,428 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* source(none) disables automatic content detection — only the @source roots below are scanned */
+@import 'tailwindcss' source(none);
+
+@import 'tw-animate-css';
+
+@plugin 'tailwindcss-react-aria-components';
+@plugin 'tailwind-scrollbar';
+
+@source './';
+@source '../../../apps/dapp/src';
+@source '../../../apps/landing/src';
+@source '../../../apps/storybook/.storybook';
+
+@theme {
+  --text-*: initial;
+
+  --text-tiny: 0.625rem;
+  --text-tiny--line-height: 1rem;
+  --text-tiny--letter-spacing: 0;
+
+  --text-extraSmall: 0.75rem;
+  --text-extraSmall--line-height: 1rem;
+  --text-extraSmall--letter-spacing: 0;
+
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.25rem;
+  --text-small--letter-spacing: 0;
+
+  --text-regular: 1rem;
+  --text-regular--line-height: 1.5rem;
+  --text-regular--letter-spacing: 0;
+
+  --text-leading: 1.125rem;
+  --text-leading--line-height: 1.5rem;
+  --text-leading--letter-spacing: 0;
+
+  --text-smallSubheading: 1.25rem;
+  --text-smallSubheading--line-height: 1.75rem;
+  --text-smallSubheading--letter-spacing: 0;
+
+  --text-subheading: 1.5rem;
+  --text-subheading--line-height: 2rem;
+  --text-subheading--letter-spacing: 0;
+
+  --text-h7: 1.25rem;
+  --text-h7--line-height: 1.5rem;
+  --text-h7--letter-spacing: 0;
+
+  --text-h6: 1.5rem;
+  --text-h6--line-height: 2rem;
+  --text-h6--letter-spacing: 0;
+
+  --text-h5: 2rem;
+  --text-h5--line-height: 2.25rem;
+  --text-h5--letter-spacing: 0;
+
+  --text-h4: 2.25rem;
+  --text-h4--line-height: 2.5rem;
+  --text-h4--letter-spacing: 0;
+
+  --text-h3: 2.5rem;
+  --text-h3--line-height: 3rem;
+  --text-h3--letter-spacing: 0;
+
+  --text-h2: 3rem;
+  --text-h2--line-height: 3.5rem;
+  --text-h2--letter-spacing: 0;
+
+  --text-h1: 3.75rem;
+  --text-h1--line-height: 4.25rem;
+  --text-h1--letter-spacing: 0;
+
+  --text-medium: 4rem;
+  --text-medium--line-height: 4.5rem;
+  --text-medium--letter-spacing: 0;
+
+  --text-large: 4.5rem;
+  --text-large--line-height: 5rem;
+  --text-large--letter-spacing: 0;
+
+  --text-extraLarge: 6rem;
+  --text-extraLarge--line-height: 6.5rem;
+  --text-extraLarge--letter-spacing: 0;
+
+  --font-*: initial;
+  --font-paragraph:
+    var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-heading: var(--font-libre-baskerville), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-gray-200: #e5e7eb;
+
+  --color-neutral-0: hsl(var(--neutral-0));
+  --color-neutral-25: hsl(var(--neutral-25));
+  --color-neutral-50: hsl(var(--neutral-50));
+  --color-neutral-100: hsl(var(--neutral-100));
+  --color-neutral-200: hsl(var(--neutral-200));
+  --color-neutral-300: hsl(var(--neutral-300));
+  --color-neutral-400: hsl(var(--neutral-400));
+  --color-neutral-500: hsl(var(--neutral-500));
+  --color-neutral-600: hsl(var(--neutral-600));
+  --color-neutral-700: hsl(var(--neutral-700));
+  --color-neutral-800: hsl(var(--neutral-800));
+  --color-neutral-900: hsl(var(--neutral-900));
+  --color-neutral-950: hsl(var(--neutral-950));
+
+  --color-primary-50: hsl(var(--primary-50));
+  --color-primary-100: hsl(var(--primary-100));
+  --color-primary-200: hsl(var(--primary-200));
+  --color-primary-300: hsl(var(--primary-300));
+  --color-primary-400: hsl(var(--primary-400));
+  --color-primary-500: hsl(var(--primary-500));
+  --color-primary-600: hsl(var(--primary-600));
+  --color-primary-700: hsl(var(--primary-700));
+  --color-primary-800: hsl(var(--primary-800));
+  --color-primary-900: hsl(var(--primary-900));
+  --color-primary-950: hsl(var(--primary-950));
+
+  --color-secondary-50: hsl(var(--secondary-50));
+  --color-secondary-100: hsl(var(--secondary-100));
+  --color-secondary-200: hsl(var(--secondary-200));
+  --color-secondary-300: hsl(var(--secondary-300));
+  --color-secondary-400: hsl(var(--secondary-400));
+  --color-secondary-500: hsl(var(--secondary-500));
+  --color-secondary-600: hsl(var(--secondary-600));
+  --color-secondary-700: hsl(var(--secondary-700));
+  --color-secondary-800: hsl(var(--secondary-800));
+  --color-secondary-900: hsl(var(--secondary-900));
+  --color-secondary-950: hsl(var(--secondary-950));
+
+  --color-tertiary-50: hsl(var(--tertiary-50));
+  --color-tertiary-100: hsl(var(--tertiary-100));
+  --color-tertiary-200: hsl(var(--tertiary-200));
+  --color-tertiary-300: hsl(var(--tertiary-300));
+  --color-tertiary-400: hsl(var(--tertiary-400));
+  --color-tertiary-500: hsl(var(--tertiary-500));
+  --color-tertiary-600: hsl(var(--tertiary-600));
+  --color-tertiary-700: hsl(var(--tertiary-700));
+  --color-tertiary-800: hsl(var(--tertiary-800));
+  --color-tertiary-900: hsl(var(--tertiary-900));
+  --color-tertiary-950: hsl(var(--tertiary-950));
+
+  --color-success-50: hsl(var(--success-50));
+  --color-success-100: hsl(var(--success-100));
+  --color-success-200: hsl(var(--success-200));
+  --color-success-300: hsl(var(--success-300));
+  --color-success-400: hsl(var(--success-400));
+  --color-success-500: hsl(var(--success-500));
+  --color-success-600: hsl(var(--success-600));
+  --color-success-700: hsl(var(--success-700));
+  --color-success-800: hsl(var(--success-800));
+  --color-success-900: hsl(var(--success-900));
+  --color-success-950: hsl(var(--success-950));
+
+  --color-warning-50: hsl(var(--warning-50));
+  --color-warning-100: hsl(var(--warning-100));
+  --color-warning-200: hsl(var(--warning-200));
+  --color-warning-300: hsl(var(--warning-300));
+  --color-warning-400: hsl(var(--warning-400));
+  --color-warning-500: hsl(var(--warning-500));
+  --color-warning-600: hsl(var(--warning-600));
+  --color-warning-700: hsl(var(--warning-700));
+  --color-warning-800: hsl(var(--warning-800));
+  --color-warning-900: hsl(var(--warning-900));
+  --color-warning-950: hsl(var(--warning-950));
+
+  --color-alert-50: hsl(var(--alert-50));
+  --color-alert-100: hsl(var(--alert-100));
+  --color-alert-200: hsl(var(--alert-200));
+  --color-alert-300: hsl(var(--alert-300));
+  --color-alert-400: hsl(var(--alert-400));
+  --color-alert-500: hsl(var(--alert-500));
+  --color-alert-600: hsl(var(--alert-600));
+  --color-alert-700: hsl(var(--alert-700));
+  --color-alert-800: hsl(var(--alert-800));
+  --color-alert-900: hsl(var(--alert-900));
+  --color-alert-950: hsl(var(--alert-950));
+
+  --color-icon-default: hsl(var(--neutral-500));
+  --color-icon-subtle: hsl(var(--neutral-400));
+  --color-icon-contrast: hsl(var(--neutral-950));
+  --color-icon-base: hsl(var(--neutral-0));
+  --color-icon-brand: hsl(var(--primary-900));
+  --color-icon-brand-subtle: hsl(var(--primary-600));
+
+  --text-color-*: initial;
+  --text-color-primary: hsl(var(--neutral-950));
+  --text-color-primary-subtle: hsl(var(--primary-800));
+  --text-color-secondary: hsl(var(--neutral-600));
+  --text-color-tertiary: hsl(var(--neutral-500));
+  --text-color-disabled: hsl(var(--neutral-400));
+  --text-color-brand: hsl(var(--primary-950));
+  --text-color-brand-subtle: hsl(var(--primary-700));
+  --text-color-brand-light: hsl(var(--primary-400));
+  --text-color-brand-secondary: hsl(var(--secondary-900));
+  --text-color-brand-secondary-subtle: hsl(var(--secondary-600));
+  --text-color-success: hsl(var(--success-900));
+  --text-color-success-subtle: hsl(var(--success-700));
+  --text-color-success-contrast: hsl(var(--success-600));
+  --text-color-warning: hsl(var(--warning-900));
+  --text-color-warning-subtle: hsl(var(--warning-700));
+  --text-color-alert: hsl(var(--alert-900));
+  --text-color-alert-subtle: hsl(var(--alert-700));
+  --text-color-alert-contrast: hsl(var(--alert-600));
+  --text-color-base: hsl(var(--neutral-0));
+
+  --text-color-neutral-300: hsl(var(--neutral-300));
+  --text-color-neutral-600: hsl(var(--neutral-600));
+  --text-color-neutral-900: hsl(var(--neutral-900));
+
+  --text-color-secondary-contrast: hsl(var(--secondary-700));
+
+  --text-color-icon-default: hsl(var(--neutral-500));
+
+  --background-color-*: initial;
+  --background-color-transparent: transparent;
+
+  --background-color-surface-base: hsl(var(--neutral-0));
+  --background-color-surface-base-soft: hsl(var(--neutral-25));
+  --background-color-surface-elevated: hsl(var(--neutral-50));
+  --background-color-surface-elevated-low-emphasis: hsl(var(--neutral-100));
+  --background-color-surface-elevated-emphasis: hsl(var(--neutral-200));
+  --background-color-surface-elevated-contrast: hsl(var(--neutral-300));
+  --background-color-surface-elevated-high-contrast: hsl(var(--neutral-400));
+  --background-color-surface-contrast-subtle: hsl(var(--neutral-700));
+  --background-color-surface-contrast: hsl(var(--neutral-950));
+  --background-color-surface-brand: hsl(var(--primary-900));
+
+  --background-color-element-base: hsl(var(--neutral-0));
+  --background-color-element-neutral: hsl(var(--neutral-100));
+  --background-color-element-neutral-light: hsl(var(--neutral-50));
+  --background-color-element-neutral-subtle: hsl(var(--neutral-200));
+  --background-color-element-neutral-emphasis: hsl(var(--neutral-300));
+  --background-color-element-neutral-contrast-subtle: hsl(var(--neutral-800));
+  --background-color-element-neutral-contrast: hsl(var(--neutral-950));
+  --background-color-element-primary: hsl(var(--primary-900));
+  --background-color-element-primary-light: hsl(var(--primary-50));
+  --background-color-element-primary-gentle: hsl(var(--primary-100));
+  --background-color-element-primary-soft: hsl(var(--primary-600));
+  --background-color-element-primary-subtle: hsl(var(--primary-700));
+  --background-color-element-primary-contrast: hsl(var(--primary-800));
+  --background-color-element-secondary: hsl(var(--secondary-600));
+  --background-color-element-secondary-light: hsl(var(--secondary-50));
+  --background-color-element-secondary-gentle: hsl(var(--secondary-100));
+  --background-color-element-secondary-soft: hsl(var(--secondary-400));
+  --background-color-element-secondary-subtle: hsl(var(--secondary-500));
+  --background-color-element-secondary-contrast: hsl(var(--secondary-700));
+  --background-color-element-tertiary: hsl(var(--tertiary-400));
+  --background-color-element-tertiary-light: hsl(var(--tertiary-50));
+  --background-color-element-tertiary-gentle: hsl(var(--tertiary-100));
+  --background-color-element-tertiary-soft: hsl(var(--tertiary-200));
+  --background-color-element-tertiary-subtle: hsl(var(--tertiary-300));
+  --background-color-element-tertiary-contrast: hsl(var(--tertiary-700));
+  --background-color-element-success: hsl(var(--success-500));
+  --background-color-element-success-light: hsl(var(--success-50));
+  --background-color-element-success-gentle: hsl(var(--success-100));
+  --background-color-element-success-soft: hsl(var(--success-300));
+  --background-color-element-success-subtle: hsl(var(--success-400));
+  --background-color-element-success-contrast: hsl(var(--success-700));
+  --background-color-element-warning: hsl(var(--warning-600));
+  --background-color-element-warning-light: hsl(var(--warning-50));
+  --background-color-element-warning-gentle: hsl(var(--warning-100));
+  --background-color-element-warning-soft: hsl(var(--warning-400));
+  --background-color-element-warning-subtle: hsl(var(--warning-500));
+  --background-color-element-warning-contrast: hsl(var(--warning-700));
+  --background-color-element-alert: hsl(var(--alert-500));
+  --background-color-element-alert-light: hsl(var(--alert-50));
+  --background-color-element-alert-gentle: hsl(var(--alert-100));
+  --background-color-element-alert-soft: hsl(var(--alert-300));
+  --background-color-element-alert-subtle: hsl(var(--alert-400));
+  --background-color-element-alert-contrast: hsl(var(--alert-600));
+
+  --background-color-neutral-500: hsl(var(--neutral-500));
+
+  --background-color-tertiary-100: hsl(var(--tertiary-100));
+  --background-color-tertiary-500: hsl(var(--tertiary-500));
+  --background-color-tertiary-600: hsl(var(--tertiary-600));
+
+  --background-color-primary-400: hsl(var(--primary-400));
+  --background-color-primary-500: hsl(var(--primary-500));
+  --background-color-primary-600: hsl(var(--primary-600));
+  --background-color-primary-800: hsl(var(--primary-800));
+
+  --border-color-*: initial;
+  --border-color-transparent: transparent;
+  --border-color-default: hsl(var(--neutral-300));
+  --border-color-subtle: hsl(var(--neutral-200));
+  --border-color-contrast: hsl(var(--neutral-950));
+  --border-color-active: hsl(var(--primary-600));
+  --border-color-brand: hsl(var(--primary-900));
+  --border-color-alert: hsl(var(--alert-500));
+  --border-color-base: hsl(var(--neutral-0));
+  --border-color-primary-subtle: hsl(var(--primary-700));
+
+  --border-color-neutral-100: hsl(var(--neutral-100));
+  --border-color-neutral-400: hsl(var(--neutral-400));
+
+  --box-shadow-color-*: initial;
+  --box-shadow-color-default: hsl(var(--neutral-300));
+  --box-shadow-color-subtle: hsl(var(--neutral-200));
+  --box-shadow-color-contrast: hsl(var(--neutral-950));
+  --box-shadow-color-active: hsl(var(--primary-600));
+  --box-shadow-color-brand: hsl(var(--primary-900));
+  --box-shadow-color-alert: hsl(var(--alert-500));
+  --box-shadow-color-base: hsl(var(--neutral-0));
+  --box-shadow-color-secondary: hsl(var(--secondary-600));
+
+  --ring-color-*: initial;
+  --ring-color-default: hsl(var(--primary-200));
+
+  --breakpoint-sm: 600px;
+  --breakpoint-3xl: 1920px;
+
+  --animate-caret-blink: caret-blink 1s ease-out infinite;
+
+  @keyframes caret-blink {
+    0%,
+    70%,
+    100% {
+      opacity: 1;
+    }
+    20%,
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/*
+  Each text-* font-size utility also sets its font family (paragraph sizes ->
+  --font-paragraph, heading sizes -> --font-heading). These rules are emitted
+  after font-paragraph/font-heading in the utilities layer, so on an element
+  that combines both, the text-* size class wins. To force a different family
+  next to a size class, use the important form: font-heading! / font-paragraph!.
+
+  Unlike the Tailwind v3 setup, this also applies at responsive variants
+  (e.g. sm:text-h3 switches the font family at sm), which is intended.
+*/
+@utility text-tiny {
+  @apply font-paragraph;
+}
+
+@utility text-extraSmall {
+  @apply font-paragraph;
+}
+
+@utility text-small {
+  @apply font-paragraph;
+}
+
+@utility text-regular {
+  @apply font-paragraph;
+}
+
+@utility text-leading {
+  @apply font-paragraph;
+}
+
+@utility text-smallSubheading {
+  @apply font-paragraph;
+}
+
+@utility text-subheading {
+  @apply font-paragraph;
+}
+
+@utility text-h7 {
+  @apply font-heading;
+}
+
+@utility text-h6 {
+  @apply font-heading;
+}
+
+@utility text-h5 {
+  @apply font-heading;
+}
+
+@utility text-h4 {
+  @apply font-heading;
+}
+
+@utility text-h3 {
+  @apply font-heading;
+}
+
+@utility text-h2 {
+  @apply font-heading;
+}
+
+@utility text-h1 {
+  @apply font-heading;
+}
+
+@utility text-medium {
+  @apply font-heading;
+}
+
+@utility text-large {
+  @apply font-heading;
+}
+
+@utility text-extraLarge {
+  @apply font-heading;
+}
 
 :root {
   --neutral-0: 0 0% 100%;
@@ -118,30 +540,5 @@
 
   h6 {
     @apply text-h6;
-  }
-}
-
-@layer components {
-  .text-tiny,
-  .text-extraSmall,
-  .text-small,
-  .text-regular,
-  .text-leading,
-  .text-smallSubheading,
-  .text-subheading {
-    @apply font-paragraph;
-  }
-
-  .text-h7,
-  .text-h6,
-  .text-h5,
-  .text-h4,
-  .text-h3,
-  .text-h2,
-  .text-h1,
-  .text-medium,
-  .text-large,
-  .text-extraLarge {
-    @apply font-heading;
   }
 }

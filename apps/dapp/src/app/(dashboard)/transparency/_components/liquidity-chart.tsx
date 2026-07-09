@@ -63,7 +63,7 @@ export default function LiquidityChart({ data }: { data: Liquidity }) {
       <div className="h-full w-full">
         <ChartContainer
           config={{}}
-          className="h-[320px] w-full [&>div]:!aspect-auto [&>div]:h-full [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-100"
+          className="h-80 w-full [&>div]:aspect-auto! [&>div]:h-full [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-100"
         >
           <BarChart
             accessibilityLayer
@@ -103,7 +103,7 @@ export default function LiquidityChart({ data }: { data: Liquidity }) {
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="text-extraSmall font-medium text-secondary">{dataPoint.timeframe}</span>
-                        <span className="font-heading text-regular text-primary">${formattedValue}</span>
+                        <span className="font-heading! text-regular text-primary">${formattedValue}</span>
                       </div>
                     );
                   }}

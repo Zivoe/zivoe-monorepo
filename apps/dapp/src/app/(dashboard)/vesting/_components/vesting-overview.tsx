@@ -61,8 +61,8 @@ export function VestingOverview() {
               '-'
             ) : (
               <div className="flex items-center gap-2">
-                <span className="[&_svg]:size-6 [&_svg]:flex-shrink-0">{TOKEN_INFO.zVLT.icon}</span>
-                <p className="text-smallSubheading font-medium text-primary">
+                <span className="[&_svg]:size-6 [&_svg]:shrink-0">{TOKEN_INFO.zVLT.icon}</span>
+                <p className="text-smallSubheading text-primary font-medium">
                   {formatBigIntWithCommas({ value: vestingSchedule.totalWithdrawn, showUnderZero: true })}
                 </p>
               </div>
@@ -97,7 +97,7 @@ export function VestingOverviewSkeleton() {
 
 function InfoCardContainer({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full min-h-24 flex-col justify-between rounded-[4px] bg-surface-base p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+    <div className="bg-surface-base flex h-full min-h-24 flex-col justify-between rounded-sm p-5 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
       {children}
     </div>
   );
@@ -115,7 +115,7 @@ function InfoCard({
   return (
     <InfoCardContainer>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-small font-medium text-secondary">{title}</p>
+        <p className="text-small text-secondary font-medium">{title}</p>
 
         <ContextualHelp variant="info">
           <ContextualHelpTitle>{tooltip.title}</ContextualHelpTitle>

@@ -28,7 +28,7 @@ export default function InfoSection({
 
 export function InfoSectionIcon({ children }: { children: ReactNode }) {
   return (
-    <div className="flex w-fit items-center justify-center rounded-[4px] bg-element-primary-gentle p-[5px] [&_svg]:size-4 [&_svg]:text-brand">
+    <div className="flex w-fit items-center justify-center rounded-sm bg-element-primary-gentle p-1.25 [&_svg]:size-4 [&_svg]:text-brand">
       {children}
     </div>
   );

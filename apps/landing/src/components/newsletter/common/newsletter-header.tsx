@@ -9,7 +9,7 @@ export default function NewsletterHeader({
 }) {
   return (
     <div className={cn('flex flex-col items-start gap-2 sm:items-center sm:gap-4 xl:gap-6', className)}>
-      <p className={cn('!font-heading text-h5 sm:text-h2', type === 'dark' ? 'text-primary' : 'text-base')}>
+      <p className={cn('font-heading! text-h5 sm:text-h2', type === 'dark' ? 'text-primary' : 'text-base')}>
         Join Our Newsletter
       </p>
 

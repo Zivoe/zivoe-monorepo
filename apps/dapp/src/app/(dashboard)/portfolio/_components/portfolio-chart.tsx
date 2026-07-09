@@ -27,7 +27,7 @@ export function PortfolioChart() {
   if (!portfolio || portfolio.snapshots.length === 0) return <ChartSkeleton type="empty" />;
 
   return (
-    <div className="h-[288px] w-full [&>div]:!aspect-auto [&>div]:h-full">
+    <div className="h-72 w-full [&>div]:aspect-auto! [&>div]:h-full">
       <ChartContainer config={{}}>
         <AreaChart accessibilityLayer data={portfolio.snapshots} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} />
@@ -75,7 +75,7 @@ export function PortfolioChart() {
 
                   return (
                     <div className="flex flex-col gap-1">
-                      <span className="font-heading text-regular tabular-nums text-primary">
+                      <span className="font-heading! text-regular tabular-nums text-primary">
                         ${formatBigIntWithCommas({ value: balance })}
                       </span>
 
@@ -113,7 +113,7 @@ function ChartSkeleton({ type }: { type: 'loading' | 'disconnected' | 'empty' })
   const color = type === 'loading' ? 'hsl(var(--neutral-300))' : 'hsl(var(--neutral-200))';
 
   return (
-    <div className="relative h-[288px] w-full overflow-hidden">
+    <div className="relative h-72 w-full overflow-hidden">
       <svg className="h-full w-full" viewBox="0 0 800 288" preserveAspectRatio="none">
         <defs>
           <linearGradient id="skeleton-gradient" x1="0" y1="0" x2="0" y2="1">

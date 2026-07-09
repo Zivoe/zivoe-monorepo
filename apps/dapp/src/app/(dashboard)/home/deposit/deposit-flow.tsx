@@ -395,7 +395,7 @@ function DepositTokenDialog({
     <Dialog>
       <SelectTrigger
         variant="border-light"
-        className="hidden w-[7.4375rem] justify-between gap-2 lg:flex"
+        className="hidden w-29.75 justify-between gap-2 lg:flex"
         isDisabled={isDisabled}
       >
         <div className="flex items-center gap-2 [&_svg]:size-4">
@@ -419,13 +419,13 @@ function DepositTokenDialog({
                     onSelectionChange(item.id);
                     close();
                   }}
-                  className="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-none hover:bg-surface-elevated focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-[1px] focus-visible:ring-offset-neutral-0"
+                  className="hover:bg-surface-elevated focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-hidden"
                 >
                   <div className="flex items-center gap-2 [&_svg]:size-8">
                     {item.icon}
 
                     <div className="flex flex-col items-start">
-                      <p className="text-regular font-medium text-primary">{item.label}</p>
+                      <p className="text-regular text-primary font-medium">{item.label}</p>
                       <p className="text-extraSmall text-tertiary">{item.name}</p>
                     </div>
                   </div>
@@ -433,7 +433,7 @@ function DepositTokenDialog({
                   {account.address && (
                     <p className="text-small text-tertiary">
                       Balance:{' '}
-                      <span className="font-medium text-primary">
+                      <span className="text-primary font-medium">
                         {formatBigIntToReadable(depositBalances.data?.[item.id] ?? 0n, DEPOSIT_TOKEN_DECIMALS[item.id])}
                       </span>
                     </p>
@@ -468,7 +468,7 @@ function DepositTokenSelect({
       onChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
-      <SelectTrigger variant="border-light" className="w-[7.4375rem] justify-between gap-2 lg:hidden">
+      <SelectTrigger variant="border-light" className="w-29.75 justify-between gap-2 lg:hidden">
         <SelectValue className="flex items-center gap-2 [&_svg]:size-4" />
       </SelectTrigger>
 
@@ -506,7 +506,7 @@ function EstimatedAnnualReturn({ depositAmount, apy }: { depositAmount: string; 
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
+    <div className="border-default bg-surface-elevated flex flex-col gap-3 rounded-md border p-6">
       <p className="text-regular text-secondary">Estimated Annual Return</p>
       <p className="text-h6 text-primary">
         {valueFormatted === '-' ? '-' : `$${valueFormatted === '0.00' ? '<0.01' : valueFormatted}`}

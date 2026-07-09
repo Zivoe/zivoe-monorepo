@@ -70,6 +70,7 @@ export function TransactionReceiptLayout({
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="font-sans bg-surface-elevated py-10">
+          {/* Email clients like Outlook ignore rem — keep email sizes as arbitrary px values */}
           <Container className="mx-auto w-full max-w-[600px] border border-subtle bg-surface-base">
             <Section className="border-b border-subtle p-6">
               <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" />

@@ -18,6 +18,7 @@ export function EmailLayout({
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="bg-neutral-50 font-sans">
+          {/* Email clients like Outlook ignore rem — keep email sizes as arbitrary px values */}
           <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
             <Section className="mb-8 text-center">
               <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" className="mx-auto" />

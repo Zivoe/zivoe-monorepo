@@ -53,7 +53,7 @@ export function TransactionDialog() {
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent aria-label={transaction.title} showCloseButton={false}>
         <DialogContentBox className="p-4">
           <div className="flex flex-col items-center gap-6 py-3">
             <div
@@ -63,16 +63,16 @@ export function TransactionDialog() {
               )}
             >
               {transaction.type === 'SUCCESS' ? (
-                <CheckCircleIcon className="size-8 text-primary" />
+                <CheckCircleIcon className="text-primary size-8" />
               ) : (
-                <CloseCircleIcon className="size-8 text-alert-contrast" />
+                <CloseCircleIcon className="text-alert-contrast size-8" />
               )}
             </div>
 
             <div className="flex flex-col items-center gap-4">
               <div className="flex flex-col items-center gap-2">
                 <p className="text-h5 text-primary">{transaction.title}</p>
-                <p className="text-center text-regular text-secondary">{transaction.description}</p>
+                <p className="text-regular text-secondary text-center">{transaction.description}</p>
               </div>
 
               <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
@@ -101,7 +101,7 @@ export function TransactionDialog() {
                 icon={TOKEN_ICON[transaction.meta.deposit.token]}
               />
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+              <ArrowRightIcon className="text-icon-default size-4" />
 
               <TransactionDialogToken
                 token="zVLT"
@@ -121,7 +121,7 @@ export function TransactionDialog() {
                 icon={<ZVltLogo />}
               />
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+              <ArrowRightIcon className="text-icon-default size-4" />
 
               <TransactionDialogToken
                 token="USDC"
@@ -141,7 +141,7 @@ export function TransactionDialog() {
                 icon={<ZsttIcon />}
               />
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+              <ArrowRightIcon className="text-icon-default size-4" />
 
               <TransactionDialogToken
                 token="zSTT"
@@ -189,7 +189,7 @@ export function TransactionDialog() {
 
 function TransactionDialogTokensSection({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
+    <div className="border-subtle bg-surface-elevated flex h-14 w-full items-center justify-center gap-4 rounded-md">
       {children}
     </div>
   );

@@ -29,8 +29,8 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   if (actorResult.status === 'invalid_token') {
     return (
       <ManageNotificationsLayout description="This unsubscribe link is invalid or has expired.">
-        <div className="mx-auto max-w-[39.375rem] rounded-2xl bg-surface-elevated p-2">
-          <div className="rounded-xl bg-surface-base p-6 shadow-sm md:p-8">
+        <div className="bg-surface-elevated mx-auto max-w-157.5 rounded-2xl p-2">
+          <div className="bg-surface-base rounded-xl p-6 shadow-xs md:p-8">
             <p className="text-regular text-primary">
               Open a newer Zivoe email to use its unsubscribe link, or sign in to manage your email preferences
               directly.
@@ -77,23 +77,23 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
 
 function ManageNotificationsLayout({ description, children }: { description: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-surface-base">
-      <header className="relative overflow-hidden border-b border-subtle bg-element-tertiary px-6 pb-14 pt-8 md:min-h-[25rem] md:px-10 md:pb-[9.5625rem] md:pt-12">
+    <div className="bg-surface-base flex min-h-screen flex-col">
+      <header className="border-subtle bg-element-tertiary relative overflow-hidden border-b px-6 pt-8 pb-14 md:min-h-100 md:px-10 md:pt-12 md:pb-38.25">
         <UnsubscribeHeaderPattern />
 
         <div className="relative z-10">
-          <NextLink href="/">
-            <ZivoeLogo className="h-8 text-base md:h-10" />
+          <NextLink href="/" aria-label="Zivoe home">
+            <ZivoeLogo aria-hidden="true" className="h-8 text-base md:h-10" />
           </NextLink>
 
           <div className="mt-10 flex flex-col items-center text-center md:mt-12">
             <h1 className="text-h3 text-brand">Manage Notifications</h1>
-            <p className="mt-3 max-w-[500px] text-leading text-brand">{description}</p>
+            <p className="text-leading text-brand mt-3 max-w-125">{description}</p>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-[4.5rem] md:px-10">{children}</main>
+      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-18 md:px-10">{children}</main>
 
       <Footer />
     </div>

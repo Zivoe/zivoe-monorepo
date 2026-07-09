@@ -98,7 +98,7 @@ export const LongContent: Story = {
               <DialogTitle>Lorem ipsum</DialogTitle>
             </DialogHeader>
 
-            <Content className="h-[1000px]" />
+            <Content className="h-250" />
 
             <DialogFooter>
               <Button onPress={close}>Got it</Button>
@@ -140,7 +140,7 @@ function Content({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-[200px] items-center justify-center rounded-lg bg-element-primary-gentle p-4 text-primary',
+        'flex h-50 items-center justify-center rounded-lg bg-element-primary-gentle p-4 text-primary',
         className
       )}
     >

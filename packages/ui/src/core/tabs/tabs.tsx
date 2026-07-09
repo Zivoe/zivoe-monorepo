@@ -11,7 +11,7 @@ const Tabs = forwardRef<HTMLDivElement, Aria.TabsProps>(({ className, ...props }
   return (
     <Aria.Tabs
       className={composeRenderProps(className, (className) =>
-        cn('flex gap-4', 'data-[orientation=vertical]:flex-row data-[orientation=horizontal]:flex-col', className)
+        cn('flex gap-4', 'orientation-horizontal:flex-col orientation-vertical:flex-row', className)
       )}
       {...props}
       ref={ref}
@@ -24,9 +24,9 @@ const TabList = <T extends object>({ className, ...props }: Aria.TabListProps<T>
     <Aria.TabList
       className={composeRenderProps(className, (className) =>
         cn(
-          'flex rounded-lg bg-surface-elevated p-1',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
-          'data-[orientation=horizontal]:flex-row data-[orientation=vertical]:flex-col',
+          'bg-surface-elevated flex rounded-lg p-1',
+          'focus-visible:ring-default focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+          'orientation-horizontal:flex-row orientation-vertical:flex-col',
           className
         )
       )}
@@ -44,12 +44,12 @@ const Tab = forwardRef<HTMLDivElement, TabProps>(({ className, ...props }, ref) 
     <Aria.Tab
       className={composeRenderProps(className, (className) =>
         cn(
-          'flex flex-1 cursor-pointer items-center justify-center rounded-[6px] px-4 py-2',
-          'text-small font-medium text-secondary transition-all',
+          'flex flex-1 cursor-pointer items-center justify-center rounded-md px-4 py-2',
+          'text-small text-secondary font-medium transition-all',
           'hover:text-primary',
-          'selected:bg-surface-base selected:text-primary selected:shadow-sm',
+          'selected:bg-surface-base selected:text-primary selected:shadow-xs',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
+          'focus-visible:ring-default focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
           'pressed:scale-[0.98]',
           className
         )
@@ -69,8 +69,8 @@ const TabPanel = forwardRef<HTMLDivElement, TabPanelProps>(({ className, ...prop
     <Aria.TabPanel
       className={composeRenderProps(className, (className) =>
         cn(
-          'flex flex-col gap-4 rounded-[4px]',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2',
+          'flex flex-col gap-4 rounded-sm',
+          'focus-visible:ring-default focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
           className
         )
       )}

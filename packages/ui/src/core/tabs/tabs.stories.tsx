@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Example tabs">
           <Tab id="deposit">Deposit</Tab>
@@ -34,7 +34,7 @@ export const Default: Story = {
         <TabPanel id="deposit">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Deposit Content</h3>
-            <p className="mt-2 text-secondary">
+            <p className="text-secondary mt-2">
               This is the content for the deposit tab. You can add forms, information, or any other content here.
             </p>
           </div>
@@ -43,7 +43,7 @@ export const Default: Story = {
         <TabPanel id="redeem">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Redeem Content</h3>
-            <p className="mt-2 text-secondary">
+            <p className="text-secondary mt-2">
               This is the content for the redeem tab. You can add forms, information, or any other content here.
             </p>
           </div>
@@ -58,7 +58,7 @@ export const Vertical: Story = {
     orientation: 'vertical'
   },
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Vertical tabs">
           <Tab id="overview">Overview</Tab>
@@ -70,28 +70,28 @@ export const Vertical: Story = {
         <TabPanel id="overview" className="ml-4">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Overview</h3>
-            <p className="mt-2 text-secondary">Dashboard overview and key metrics.</p>
+            <p className="text-secondary mt-2">Dashboard overview and key metrics.</p>
           </div>
         </TabPanel>
 
         <TabPanel id="analytics" className="ml-4">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Analytics</h3>
-            <p className="mt-2 text-secondary">Detailed analytics and insights.</p>
+            <p className="text-secondary mt-2">Detailed analytics and insights.</p>
           </div>
         </TabPanel>
 
         <TabPanel id="reports" className="ml-4">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Reports</h3>
-            <p className="mt-2 text-secondary">Generate and view reports.</p>
+            <p className="text-secondary mt-2">Generate and view reports.</p>
           </div>
         </TabPanel>
 
         <TabPanel id="settings" className="ml-4">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Settings</h3>
-            <p className="mt-2 text-secondary">Configure your preferences.</p>
+            <p className="text-secondary mt-2">Configure your preferences.</p>
           </div>
         </TabPanel>
       </Tabs>
@@ -101,7 +101,7 @@ export const Vertical: Story = {
 
 export const WithDisabledTab: Story = {
   render: (args) => (
-    <div className="w-[600px]">
+    <div className="w-150">
       <Tabs {...args}>
         <TabList aria-label="Tabs with disabled">
           <Tab id="active">Active</Tab>
@@ -115,14 +115,14 @@ export const WithDisabledTab: Story = {
         <TabPanel id="active">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Active Tab</h3>
-            <p className="mt-2 text-secondary">This tab is active and clickable.</p>
+            <p className="text-secondary mt-2">This tab is active and clickable.</p>
           </div>
         </TabPanel>
 
         <TabPanel id="another">
           <div className="p-4">
             <h3 className="text-lg font-semibold">Another Tab</h3>
-            <p className="mt-2 text-secondary">This is another active tab.</p>
+            <p className="text-secondary mt-2">This is another active tab.</p>
           </div>
         </TabPanel>
       </Tabs>
@@ -135,9 +135,9 @@ export const Controlled: Story = {
     const [selectedKey, setSelectedKey] = useState('tab1');
 
     return (
-      <div className="w-[600px]">
+      <div className="w-150">
         <div className="mb-4">
-          <p className="text-sm text-secondary">Current tab: {selectedKey}</p>
+          <p className="text-secondary text-sm">Current tab: {selectedKey}</p>
         </div>
 
         <Tabs selectedKey={selectedKey} onSelectionChange={(key) => setSelectedKey(key as string)}>
@@ -150,33 +150,33 @@ export const Controlled: Story = {
           <TabPanel id="tab1">
             <div className="p-4">
               <h3 className="text-lg font-semibold">Tab 1 Content</h3>
-              <p className="mt-2 text-secondary">This is controlled tab 1.</p>
+              <p className="text-secondary mt-2">This is controlled tab 1.</p>
             </div>
           </TabPanel>
 
           <TabPanel id="tab2">
             <div className="p-4">
               <h3 className="text-lg font-semibold">Tab 2 Content</h3>
-              <p className="mt-2 text-secondary">This is controlled tab 2.</p>
+              <p className="text-secondary mt-2">This is controlled tab 2.</p>
             </div>
           </TabPanel>
 
           <TabPanel id="tab3">
             <div className="p-4">
               <h3 className="text-lg font-semibold">Tab 3 Content</h3>
-              <p className="mt-2 text-secondary">This is controlled tab 3.</p>
+              <p className="text-secondary mt-2">This is controlled tab 3.</p>
             </div>
           </TabPanel>
         </Tabs>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={() => setSelectedKey('tab1')} className="rounded bg-element-primary px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab1')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 1
           </button>
-          <button onClick={() => setSelectedKey('tab2')} className="rounded bg-element-primary px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab2')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 2
           </button>
-          <button onClick={() => setSelectedKey('tab3')} className="rounded bg-element-primary px-3 py-1 text-base">
+          <button onClick={() => setSelectedKey('tab3')} className="bg-element-primary rounded-sm px-3 py-1 text-base">
             Go to Tab 3
           </button>
         </div>
@@ -195,7 +195,7 @@ export const DynamicTabs: Story = {
     ];
 
     return (
-      <div className="w-[600px]">
+      <div className="w-150">
         <Tabs>
           <TabList aria-label="Dynamic tabs">
             {tabsData.map((tab) => (
@@ -209,7 +209,7 @@ export const DynamicTabs: Story = {
             <TabPanel key={tab.id} id={tab.id}>
               <div className="p-4">
                 <h3 className="text-lg font-semibold">{tab.label}</h3>
-                <p className="mt-2 text-secondary">{tab.content}</p>
+                <p className="text-secondary mt-2">{tab.content}</p>
               </div>
             </TabPanel>
           ))}
