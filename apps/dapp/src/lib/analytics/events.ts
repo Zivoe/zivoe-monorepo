@@ -35,9 +35,9 @@ type AnalyticsPropertyValue = string | number | boolean | null | undefined | Arr
 
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | Record<string, unknown>>;
 
-type TransactionFlow = 'deposit' | 'redeem' | 'approval' | 'permit';
+export type TransactionFlow = 'deposit' | 'redeem' | 'approval' | 'permit';
 
-type TransactionAnalyticsInput = {
+export type TransactionAnalyticsInput = {
   flow: TransactionFlow;
   step: string;
   walletAddress?: string | null;

@@ -61,7 +61,7 @@ export type CronRunWideEvent = {
 };
 
 function createRunId(flow: CronFlow): string {
-  const prefix = flow === 'deposits-cron' ? 'dep' : 'red';
+  const prefix = flow.slice(0, 3);
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
