@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
+import { type SimulateContractParameters, hexToNumber, slice } from 'viem';
 import { mainnet } from 'viem/chains';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { type WriteContractParameters } from 'wagmi/actions';
@@ -16,7 +16,7 @@ import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches, handlePromise } from '@/lib/utils';
 
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent } from '@/hooks/useTx';
 
 export type RouterDepositPermitToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;
 export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositWithPermit'>;
@@ -152,18 +152,14 @@ export const useRouterDepositPermit = () => {
         stableCoinName,
         receipt,
         getDepositAmount: () => {
-          let depositAmount: bigint | undefined;
-
-          const seniorDepositLogs = parseEventLogs({
+          const seniorDepositLog = parseReceiptEvent({
+            receipt,
             abi: zivoeTranchesAbi,
             eventName: 'SeniorDeposit',
-            logs: receipt.logs
+            sentryFlow: 'router-deposit-permit'
           });
 
-          const seniorDepositLog = seniorDepositLogs[0];
-          if (seniorDepositLog) depositAmount = seniorDepositLog.args.amount;
-
-          return depositAmount;
+          return seniorDepositLog?.args.amount;
         }
       }),
 

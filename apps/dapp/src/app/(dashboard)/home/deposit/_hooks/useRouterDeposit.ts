@@ -1,5 +1,5 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, parseEventLogs } from 'viem';
+import { type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
@@ -10,7 +10,7 @@ import { type DepositToken } from '@/types/constants';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches } from '@/lib/utils';
 
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent } from '@/hooks/useTx';
 
 export type RouterDepositToken = Extract<DepositToken, 'USDT'>;
 export type RouterDepositParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositVault'>;
@@ -53,18 +53,14 @@ export const useRouterDeposit = () => {
         stableCoinName,
         receipt,
         getDepositAmount: () => {
-          let depositAmount: bigint | undefined;
-
-          const seniorDepositLogs = parseEventLogs({
+          const seniorDepositLog = parseReceiptEvent({
+            receipt,
             abi: zivoeTranchesAbi,
             eventName: 'SeniorDeposit',
-            logs: receipt.logs
+            sentryFlow: 'router-deposit'
           });
 
-          const seniorDepositLog = seniorDepositLogs[0];
-          if (seniorDepositLog) depositAmount = seniorDepositLog.args.amount;
-
-          return depositAmount;
+          return seniorDepositLog?.args.amount;
         }
       }),
 

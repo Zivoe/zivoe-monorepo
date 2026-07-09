@@ -1,5 +1,5 @@
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, parseEventLogs } from 'viem';
+import { type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
@@ -10,7 +10,7 @@ import { type DepositToken } from '@/types/constants';
 import { depositDialogAtom } from '@/lib/store';
 import { AppError, getDepositTransactionData, handleDepositRefetches } from '@/lib/utils';
 
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent } from '@/hooks/useTx';
 
 export type VaultDepositToken = Extract<DepositToken, 'zSTT'>;
 export type VaultDepositParams = WriteContractParameters<typeof zivoeVaultAbi, 'deposit'>;
@@ -54,18 +54,14 @@ export const useVaultDeposit = () => {
         stableCoinName,
         receipt,
         getDepositAmount: () => {
-          let depositAmount: bigint | undefined;
-
-          const rewardsStakedLogs = parseEventLogs({
+          const stakedLog = parseReceiptEvent({
+            receipt,
             abi: zivoeRewardsAbi,
             eventName: 'Staked',
-            logs: receipt.logs
+            sentryFlow: 'vault-deposit'
           });
 
-          const rewardsStakedLog = rewardsStakedLogs[0];
-          if (rewardsStakedLog) depositAmount = rewardsStakedLog.args.amount;
-
-          return depositAmount;
+          return stakedLog?.args.amount;
         }
       }),
 
