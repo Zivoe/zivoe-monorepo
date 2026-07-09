@@ -17,8 +17,8 @@ import {
   parseEventLogs
 } from 'viem';
 import { type Address } from 'viem';
-import { type WriteContractParameters } from 'viem';
 import { usePublicClient, useWriteContract } from 'wagmi';
+import { type WriteContractParameters } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
@@ -40,9 +40,12 @@ type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHas
 
 type TxContext = { address: Address | undefined };
 
+/** Contract-call params that are both simulatable and writeable, so one build feeds simulate and send. */
+export type TxParams = SimulateContractParameters & WriteContractParameters;
+
 export type TxConfig<TVariables> = {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
-  buildParams: (vars: TVariables, ctx: TxContext) => SimulateContractParameters | Promise<SimulateContractParameters>;
+  buildParams: (vars: TVariables, ctx: TxContext) => TxParams | Promise<TxParams>;
   /** Analytics choreography for the transaction flow; omit for un-instrumented transactions. */
   analytics?: {
     flow: TxAnalyticsFlow;
@@ -172,8 +175,8 @@ export default function useTx<TVariables = void>(config: TxConfig<TVariables>) {
     throw new AppError({ message: 'Simulation error', exception: err });
   };
 
-  const sendTx = async (params: SimulateContractParameters) => {
-    const { err, res: hash } = await handlePromise(writeContract(params as WriteContractParameters));
+  const sendTx = async (params: TxParams) => {
+    const { err, res: hash } = await handlePromise(writeContract(params));
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
