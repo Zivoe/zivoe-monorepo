@@ -395,7 +395,7 @@ function DepositTokenDialog({
     <Dialog>
       <SelectTrigger
         variant="border-light"
-        className="hidden w-[7.4375rem] justify-between gap-2 lg:flex"
+        className="hidden w-29.75 justify-between gap-2 lg:flex"
         isDisabled={isDisabled}
       >
         <div className="flex items-center gap-2 [&_svg]:size-4">
@@ -419,7 +419,7 @@ function DepositTokenDialog({
                     onSelectionChange(item.id);
                     close();
                   }}
-                  className="hover:bg-surface-elevated focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-[1px] focus-visible:outline-none"
+                  className="hover:bg-surface-elevated focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-hidden"
                 >
                   <div className="flex items-center gap-2 [&_svg]:size-8">
                     {item.icon}
@@ -468,7 +468,7 @@ function DepositTokenSelect({
       onChange={(value) => onSelectionChange(value as DepositToken)}
       isDisabled={isDisabled}
     >
-      <SelectTrigger variant="border-light" className="w-[7.4375rem] justify-between gap-2 lg:hidden">
+      <SelectTrigger variant="border-light" className="w-29.75 justify-between gap-2 lg:hidden">
         <SelectValue className="flex items-center gap-2 [&_svg]:size-4" />
       </SelectTrigger>
 

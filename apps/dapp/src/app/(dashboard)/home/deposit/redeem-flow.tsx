@@ -239,7 +239,7 @@ export default function RedeemFlow() {
       />
 
       {redemption.data && receive.fee && redeem ? (
-        <div className="border-default bg-surface-elevated flex flex-wrap justify-between gap-2 rounded-[4px] border p-4">
+        <div className="flex flex-wrap justify-between gap-2 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-secondary">
             Redemption Fee ({formatBigIntWithCommas({ value: redemption.data?.redemptionFeeBIPS, tokenDecimals: 2 })}%)
           </p>
