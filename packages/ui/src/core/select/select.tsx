@@ -92,7 +92,7 @@ const SelectListBox = <T extends object>({
   <AriaListBox
     className={composeRenderProps(className, (className) =>
       cn(
-        'border-default bg-element-base max-h-[inherit] min-h-14 space-y-1 overflow-auto rounded-md border p-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] outline-hidden md:max-h-80',
+        'border-default bg-element-base max-h-[inherit] min-h-32 space-y-1 overflow-auto rounded-md border p-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] outline-hidden md:max-h-80',
         className
       )
     )}
