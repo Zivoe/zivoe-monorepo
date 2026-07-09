@@ -91,7 +91,7 @@ const SelectListBox = <T extends object>({
 }: AriaListBoxProps<T> & { scrollAreaClassName?: string }) => (
   <AriaListBox
     className={composeRenderProps(className, (className) =>
-      cn('max-h-[inherit] space-y-1 overflow-auto p-2 outline-hidden md:max-h-80', className)
+      cn('max-h-[inherit] min-h-14 space-y-1 overflow-auto p-2 outline-hidden md:max-h-80', className)
     )}
     {...props}
   />
