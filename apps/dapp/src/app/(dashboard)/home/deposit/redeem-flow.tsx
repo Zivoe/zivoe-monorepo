@@ -17,9 +17,9 @@ import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
 import { useApproveSpending } from '@/hooks/useApproveSpending';
+import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useRedemption } from '@/hooks/useRedemption';
@@ -50,7 +50,7 @@ export default function RedeemFlow() {
 
   const liquidity = useAvailableLiquidity();
   const zvltAllowance = useAllowance({ contract: CONTRACTS.zVLT, spender: CONTRACTS.OCR_CycleV2 });
-  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
+  const zvltBalance = useBalance({ tokenAddress: CONTRACTS.zVLT });
 
   const depositBalances = useDepositBalances();
 
@@ -239,7 +239,7 @@ export default function RedeemFlow() {
       />
 
       {redemption.data && receive.fee && redeem ? (
-        <div className="flex flex-wrap justify-between gap-2 rounded-sm border border-default bg-surface-elevated p-4">
+        <div className="border-default bg-surface-elevated flex flex-wrap justify-between gap-2 rounded-[4px] border p-4">
           <p className="text-regular text-secondary">
             Redemption Fee ({formatBigIntWithCommas({ value: redemption.data?.redemptionFeeBIPS, tokenDecimals: 2 })}%)
           </p>
