@@ -22,6 +22,12 @@ _Avoid_: cron run, tick
 The per-kind `(blockNumber, logIndex)` watermark marking the last processed event. Only ever moves forward — concurrent passes (QStash retries) cannot rewind it.
 _Avoid_: checkpoint, offset
 
+### Client transactions
+
+**Transaction Hook**:
+A client module that drives one on-chain transaction through the shared lifecycle in `useTx` — guards → simulate → send → receipt toast → transaction dialog → refetches — via a declarative config. Seven exist: vault/router/permit deposits, redeem, unstake, claim, approve.
+_Avoid_: mutation hook (server-action mutations are not Transaction Hooks)
+
 ## Example dialogue
 
 > **Dev**: The redemptions cron missed an event yesterday.

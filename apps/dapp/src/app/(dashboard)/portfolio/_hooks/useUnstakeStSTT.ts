@@ -1,30 +1,25 @@
-import * as Sentry from '@sentry/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, parseEventLogs } from 'viem';
+import { type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { type TransactionData, transactionAtom, unstakeDialogAtom } from '@/lib/store';
-import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
+import { type TransactionData, unstakeDialogAtom } from '@/lib/store';
+import { AppError } from '@/lib/utils';
 
-import { useAccount } from '@/hooks/useAccount';
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent } from '@/hooks/useTx';
 
 export type UnstakeStSTTParams = WriteContractParameters<typeof zivoeRewardsAbi, 'withdraw'>;
 
+type UnstakeStSTTVariables = { amount?: bigint };
+
 export const useUnstakeStSTT = () => {
-  const { address } = useAccount();
-  const queryClient = useQueryClient();
-  const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
-  const setTransaction = useSetAtom(transactionAtom);
   const setIsUnstakeDialogOpen = useSetAtom(unstakeDialogAtom);
 
-  const mutationInfo = useMutation({
-    mutationFn: async ({ amount }: { amount?: bigint }) => {
+  return useTx<UnstakeStSTTVariables>({
+    buildParams: ({ amount }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to unstake' });
 
       const params: UnstakeStSTTParams & SimulateContractParameters = {
@@ -34,41 +29,22 @@ export const useUnstakeStSTT = () => {
         args: [amount]
       };
 
-      await simulateTx(params);
-
-      const { hash } = await sendTx(params);
-
-      const receipt = await waitForTxReceipt({
-        hash,
-        messages: { pending: 'Unstaking stSTT...' }
-      });
-
-      return { receipt, amount };
+      return params;
     },
 
-    onError: (err, variables) => {
-      onTxError({
-        err,
-        defaultToastMsg: 'Error Unstaking stSTT',
-        sentry: { flow: 'unstake-ststt', extras: variables }
+    pendingToast: () => 'Unstaking stSTT...',
+    errorToast: () => 'Error Unstaking stSTT',
+    sentryFlow: 'unstake-ststt',
+
+    transactionData: (receipt) => {
+      const withdrawnLog = parseReceiptEvent({
+        receipt,
+        abi: zivoeRewardsAbi,
+        eventName: 'Withdrawn',
+        sentryFlow: 'unstake-ststt'
       });
-    },
 
-    onSuccess: ({ receipt }) => {
-      let amount: bigint | undefined;
-
-      try {
-        const withdrawnLogs = parseEventLogs({
-          abi: zivoeRewardsAbi,
-          eventName: 'Withdrawn',
-          logs: receipt.logs
-        });
-
-        const withdrawnLog = withdrawnLogs[0];
-        if (withdrawnLog) amount = withdrawnLog.args.amount;
-      } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'unstake-ststt' } });
-      }
+      const amount = withdrawnLog?.args.amount;
 
       let meta: TransactionData['meta'] = undefined;
       if (amount) {
@@ -77,29 +53,25 @@ export const useUnstakeStSTT = () => {
         };
       }
 
-      const transactionData: TransactionData =
-        receipt.status === 'success'
-          ? {
-              type: 'SUCCESS',
-              title: 'Unstake Successful',
-              description: 'Your unstake has been completed.',
-              hash: receipt.transactionHash,
-              meta
-            }
-          : {
-              type: 'ERROR',
-              title: 'Unstake Failed',
-              description: 'There was an error unstaking your stSTT',
-              hash: receipt.transactionHash
-            };
-
-      setTransaction(transactionData);
-      if (transactionData.type === 'SUCCESS') setIsUnstakeDialogOpen(false);
+      return receipt.status === 'success'
+        ? {
+            type: 'SUCCESS',
+            title: 'Unstake Successful',
+            description: 'Your unstake has been completed.',
+            hash: receipt.transactionHash,
+            meta
+          }
+        : {
+            type: 'ERROR',
+            title: 'Unstake Failed',
+            description: 'There was an error unstaking your stSTT',
+            hash: receipt.transactionHash
+          };
     },
 
-    onSettled: (_, err) => {
-      if (skipTxSettled(err)) return;
+    onSuccessClose: () => setIsUnstakeDialogOpen(false),
 
+    invalidate: ({ queryClient, address }) => {
       // Refetch stSTT balance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.balanceOf({
@@ -114,9 +86,4 @@ export const useUnstakeStSTT = () => {
       });
     }
   });
-
-  return {
-    isTxPending,
-    ...mutationInfo
-  };
 };

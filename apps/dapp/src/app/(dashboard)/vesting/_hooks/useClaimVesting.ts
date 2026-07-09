@@ -1,29 +1,19 @@
-import * as Sentry from '@sentry/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, parseEventLogs } from 'viem';
+import { type SimulateContractParameters } from 'viem';
 import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 
 import { queryKeys } from '@/lib/query-keys';
-import { type TransactionData, transactionAtom } from '@/lib/store';
-import { onTxError, skipTxSettled } from '@/lib/utils';
+import { type TransactionData } from '@/lib/store';
 
-import { useAccount } from '@/hooks/useAccount';
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent } from '@/hooks/useTx';
 
 export type ClaimVestingParams = WriteContractParameters<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
 
 export const useClaimVesting = () => {
-  const { address } = useAccount();
-  const queryClient = useQueryClient();
-  const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
-  const setTransaction = useSetAtom(transactionAtom);
-
-  const mutationInfo = useMutation({
-    mutationFn: async () => {
+  return useTx({
+    buildParams: () => {
       const params: ClaimVestingParams & SimulateContractParameters = {
         abi: zivoeRewardsVestingAbi,
         address: CONTRACTS.vestZVE,
@@ -31,42 +21,23 @@ export const useClaimVesting = () => {
         args: []
       };
 
-      await simulateTx(params);
-
-      const { hash } = await sendTx(params);
-
-      const receipt = await waitForTxReceipt({
-        hash,
-        messages: { pending: 'Claiming...' },
-        delay: 2000
-      });
-
-      return { receipt };
+      return params;
     },
 
-    onError: (err) => {
-      onTxError({
-        err,
-        defaultToastMsg: 'Error claiming',
-        sentry: { flow: 'claim-vesting', extras: {} }
+    pendingToast: () => 'Claiming...',
+    receiptDelay: 2000,
+    errorToast: () => 'Error claiming',
+    sentryFlow: 'claim-vesting',
+
+    transactionData: (receipt) => {
+      const withdrawnLog = parseReceiptEvent({
+        receipt,
+        abi: zivoeRewardsVestingAbi,
+        eventName: 'Withdrawn',
+        sentryFlow: 'claim-vesting'
       });
-    },
 
-    onSuccess: ({ receipt }) => {
-      let amount: bigint | undefined;
-
-      try {
-        const withdrawnLogs = parseEventLogs({
-          abi: zivoeRewardsVestingAbi,
-          eventName: 'Withdrawn',
-          logs: receipt.logs
-        });
-
-        const withdrawnLog = withdrawnLogs[0];
-        if (withdrawnLog) amount = withdrawnLog.args.amount;
-      } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'claim-vesting' } });
-      }
+      const amount = withdrawnLog?.args.amount;
 
       let meta: TransactionData['meta'] = undefined;
       if (amount) {
@@ -75,28 +46,23 @@ export const useClaimVesting = () => {
         };
       }
 
-      const transactionData: TransactionData =
-        receipt.status === 'success'
-          ? {
-              type: 'SUCCESS',
-              title: 'Claim Successful',
-              description: 'You have claimed all vested tokens',
-              hash: receipt.transactionHash,
-              meta
-            }
-          : {
-              type: 'ERROR',
-              title: 'Claim Failed',
-              description: 'There was an error claiming your vested ZVE',
-              hash: receipt.transactionHash
-            };
-
-      setTransaction(transactionData);
+      return receipt.status === 'success'
+        ? {
+            type: 'SUCCESS',
+            title: 'Claim Successful',
+            description: 'You have claimed all vested tokens',
+            hash: receipt.transactionHash,
+            meta
+          }
+        : {
+            type: 'ERROR',
+            title: 'Claim Failed',
+            description: 'There was an error claiming your vested ZVE',
+            hash: receipt.transactionHash
+          };
     },
 
-    onSettled: (_, err) => {
-      if (skipTxSettled(err)) return;
-
+    invalidate: ({ queryClient, address }) => {
       // Refetch vesting schedule
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
@@ -113,9 +79,4 @@ export const useClaimVesting = () => {
       });
     }
   });
-
-  return {
-    isTxPending,
-    ...mutationInfo
-  };
 };
