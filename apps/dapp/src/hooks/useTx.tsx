@@ -61,7 +61,7 @@ export type TxConfig<TVariables> = {
   /** Runs when the transaction dialog payload is a SUCCESS (e.g. close the triggering dialog). */
   onSuccessClose?: () => void;
   /** Query invalidations after the transaction settles; skipped for no-refetch rejections. */
-  invalidate?: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
+  invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
 
 type TxAnalyticsStep = { event: AnalyticsEvent; step: string };
@@ -283,7 +283,7 @@ export default function useTx<TVariables = void>(config: TxConfig<TVariables>) {
 
     onSettled: (_, err, vars) => {
       if (skipTxSettled(err)) return;
-      config.invalidate?.({ queryClient, address, vars });
+      config.invalidate({ queryClient, address, vars });
     }
   });
 
