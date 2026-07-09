@@ -37,9 +37,15 @@ import {
 } from './observability';
 import type { CronFlow } from './observability';
 
-export type MonitorTable = typeof deposit | typeof redemption;
+type MonitorTableByEventType = {
+  deposit: typeof deposit;
+  redemption: typeof redemption;
+};
 
-type MonitorEvent<TTable extends MonitorTable> = TTable['$inferSelect'];
+export type MonitorTable<TEventType extends TransactionEventType = TransactionEventType> =
+  MonitorTableByEventType[TEventType];
+
+type MonitorEvent<TEventType extends TransactionEventType> = MonitorTable<TEventType>['$inferSelect'];
 
 export type MonitorWalletUser = Awaited<ReturnType<typeof getUsersForWallet>>[number];
 
@@ -62,20 +68,20 @@ type MonitorAnalytics = Pick<
   'flow' | 'tokenIn' | 'tokenOut' | 'amountInRaw' | 'amountOutRaw'
 > & { event: AnalyticsEvent };
 
-export type TransactionMonitorKind<TTable extends MonitorTable, TPrepared> = {
+export type TransactionMonitorKind<TEventType extends TransactionEventType, TPrepared> = {
   slug: CronFlow;
   routePath: string;
   /** Keys the Monitor Cursor row, the dedupe record, and the ponder table name. */
-  eventType: TransactionEventType;
+  eventType: TEventType;
   /** Plural noun for the run summary, e.g. "deposits". */
   eventNoun: string;
-  table: TTable;
+  table: MonitorTable<TEventType>;
   /** Derives kind-specific details for one event before any notification side effect; throw ApiError to fail the pass. */
-  prepare: (event: MonitorEvent<TTable>) => TPrepared;
-  analytics: (event: MonitorEvent<TTable>, prepared: TPrepared) => MonitorAnalytics;
-  telegramItem: (input: { event: MonitorEvent<TTable>; prepared: TPrepared; emailLine: string }) => string;
+  prepare: (event: MonitorEvent<TEventType>) => TPrepared;
+  analytics: (event: MonitorEvent<TEventType>, prepared: TPrepared) => MonitorAnalytics;
+  telegramItem: (input: { event: MonitorEvent<TEventType>; prepared: TPrepared; emailLine: string }) => string;
   sendConfirmationEmail: (input: {
-    event: MonitorEvent<TTable>;
+    event: MonitorEvent<TEventType>;
     prepared: TPrepared;
     user: MonitorWalletUser;
   }) => Promise<void>;
@@ -86,8 +92,8 @@ export type TransactionMonitorKind<TTable extends MonitorTable, TPrepared> = {
  * safe block, fan out notifications (analytics, Telegram, confirmation emails with
  * dedupe), and move the cursor forward. Returns the run summary for the response.
  */
-export async function runTransactionMonitor<TTable extends MonitorTable, TPrepared>(
-  kind: TransactionMonitorKind<TTable, TPrepared>,
+export async function runTransactionMonitor<TEventType extends TransactionEventType, TPrepared>(
+  kind: TransactionMonitorKind<TEventType, TPrepared>,
   qstash: QstashRunMeta
 ): Promise<string> {
   const startTime = Date.now();

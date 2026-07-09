@@ -49,7 +49,7 @@ function resolveInputDetailsFromIndexedDeposit(deposit: typeof depositTable.$inf
   };
 }
 
-export const depositsMonitor: TransactionMonitorKind<typeof depositTable, IndexedInputDetails> = {
+export const depositsMonitor: TransactionMonitorKind<'deposit', IndexedInputDetails> = {
   slug: 'deposits-cron',
   routePath: '/api/monitor/deposits',
   eventType: 'deposit',
@@ -119,7 +119,7 @@ export const depositsMonitor: TransactionMonitorKind<typeof depositTable, Indexe
   }
 };
 
-export const redemptionsMonitor: TransactionMonitorKind<typeof redemptionTable, undefined> = {
+export const redemptionsMonitor: TransactionMonitorKind<'redemption', undefined> = {
   slug: 'redemptions-cron',
   routePath: '/api/monitor/redemptions',
   eventType: 'redemption',
