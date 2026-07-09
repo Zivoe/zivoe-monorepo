@@ -15,7 +15,7 @@ import { unstakeDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useAccountBalance } from '@/hooks/useAccountBalance';
+import { useBalance } from '@/hooks/useBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import InfoSection from '@/components/info-section';
@@ -36,7 +36,7 @@ function HoldingsContainer() {
   const account = useAccount();
   const { data: portfolio, isFetching } = usePortfolio();
   const depositBalances = useDepositBalances();
-  const stSTTBalance = useAccountBalance({ address: CONTRACTS.stSTT });
+  const stSTTBalance = useBalance({ tokenAddress: CONTRACTS.stSTT });
   const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useAtom(unstakeDialogAtom);
 
   const hasZVLTBalance = !!portfolio?.zVLTBalance && portfolio.zVLTBalance > 0n;

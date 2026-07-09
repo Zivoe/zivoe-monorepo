@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } fr
 import { Input } from '@zivoe/ui/core/input';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useAccountBalance } from '@/hooks/useAccountBalance';
+import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 
@@ -35,7 +35,7 @@ export function UnstakeDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpe
   const account = useAccount();
   const chainalysis = useChainalysis();
 
-  const stSTTBalance = useAccountBalance({ address: CONTRACTS.stSTT });
+  const stSTTBalance = useBalance({ tokenAddress: CONTRACTS.stSTT });
   const depositBalances = useDepositBalances();
 
   const form = useForm<UnstakeForm>({

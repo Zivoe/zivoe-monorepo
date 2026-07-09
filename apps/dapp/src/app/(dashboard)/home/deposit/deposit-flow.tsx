@@ -22,9 +22,9 @@ import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useAccountBalance } from '@/hooks/useAccountBalance';
 import { checkHasEnoughAllowance } from '@/hooks/useAllowance';
 import { type ApproveTokenAbi, useApproveSpending } from '@/hooks/useApproveSpending';
+import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 import { useVault } from '@/hooks/useVault';
@@ -54,7 +54,7 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   const allowances = useDepositAllowances();
   const depositBalances = useDepositBalances();
 
-  const zvltBalance = useAccountBalance({ address: CONTRACTS.zVLT });
+  const zvltBalance = useBalance({ tokenAddress: CONTRACTS.zVLT });
 
   const vault = useVault();
 
