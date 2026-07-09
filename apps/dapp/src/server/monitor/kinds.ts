@@ -90,7 +90,7 @@ export const depositsMonitor: TransactionMonitorKind<typeof depositTable, Indexe
       })
     )} zVLT\nTx: ${event.txHash}`;
   },
-  sendConfirmationEmail: ({ event, prepared, user }) => {
+  sendConfirmationEmail: async ({ event, prepared, user }) => {
     const inputAmount = `${formatBigIntWithCommas({
       value: prepared.amountRaw,
       tokenDecimals: prepared.decimals,
@@ -105,7 +105,7 @@ export const depositsMonitor: TransactionMonitorKind<typeof depositTable, Indexe
       showUnderZero: true
     })} zVLT`;
 
-    return sendDepositConfirmationEmail({
+    await sendDepositConfirmationEmail({
       to: user.email,
       userId: user.userId,
       inputAmount,
@@ -157,7 +157,7 @@ export const redemptionsMonitor: TransactionMonitorKind<typeof redemptionTable, 
         showUnderZero: true
       })
     )}\nTx: ${event.txHash}`,
-  sendConfirmationEmail: ({ event, user }) => {
+  sendConfirmationEmail: async ({ event, user }) => {
     const zVLTRedeemed = `${formatBigIntWithCommas({
       value: event.zVLTBurned,
       tokenDecimals: 18,
@@ -179,7 +179,7 @@ export const redemptionsMonitor: TransactionMonitorKind<typeof redemptionTable, 
       showUnderZero: true
     })} USDC`;
 
-    return sendRedemptionConfirmationEmail({
+    await sendRedemptionConfirmationEmail({
       to: user.email,
       userId: user.userId,
       zVLTRedeemed,

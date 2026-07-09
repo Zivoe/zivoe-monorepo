@@ -78,7 +78,7 @@ export type TransactionMonitorKind<TTable extends MonitorTable, TPrepared> = {
     event: MonitorEvent<TTable>;
     prepared: TPrepared;
     user: MonitorWalletUser;
-  }) => Promise<unknown>;
+  }) => Promise<void>;
 };
 
 /**
