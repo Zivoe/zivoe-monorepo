@@ -1,122 +1,61 @@
-import * as Sentry from '@sentry/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, parseEventLogs } from 'viem';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { ocrCycleV2Abi } from '@zivoe/contracts/abis';
 
-import { createTransactionProperties, getAnalyticsErrorType } from '@/lib/analytics/events';
-import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { queryKeys } from '@/lib/query-keys';
-import { type TransactionData, depositDialogAtom, transactionAtom } from '@/lib/store';
-import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
+import { type TransactionData, depositDialogAtom } from '@/lib/store';
+import { AppError } from '@/lib/utils';
 
-import { useAccount } from '@/hooks/useAccount';
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 import { availableLiquidityQueryKey } from './useAvailableLiquidity';
 
-export type RedeemUSDCParams = WriteContractParameters<typeof ocrCycleV2Abi, 'redeemUSDC'>;
+export type RedeemUSDCParams = TxParams<typeof ocrCycleV2Abi, 'redeemUSDC'>;
+
+type RedeemUSDCVariables = { amount?: bigint };
 
 export const useRedeemUSDC = () => {
-  const { address } = useAccount();
-  const analytics = useAnalytics();
-  const queryClient = useQueryClient();
-  const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
-  const setTransaction = useSetAtom(transactionAtom);
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  const mutationInfo = useMutation({
-    mutationFn: async ({ amount }: { amount?: bigint }) => {
+  return useTx<RedeemUSDCVariables, RedeemUSDCParams>({
+    buildParams: ({ amount }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to redeem' });
 
-      const baseAnalyticsInput = {
-        flow: 'redeem',
-        step: 'submitted',
-        walletAddress: address,
-        tokenIn: 'zVLT',
-        tokenOut: 'USDC',
-        amountInRaw: amount
-      } as const;
-
-      const params: RedeemUSDCParams & SimulateContractParameters = {
+      const params: RedeemUSDCParams = {
         abi: ocrCycleV2Abi,
         address: CONTRACTS.OCR_CycleV2,
         functionName: 'redeemUSDC',
         args: [amount]
       };
 
-      let txHash: `0x${string}` | undefined;
-
-      try {
-        await simulateTx(params);
-
-        const { hash } = await sendTx(params);
-        txHash = hash;
-        analytics.capture('tx:redeem_submitted', createTransactionProperties({ ...baseAnalyticsInput, txHash }));
-
-        const receipt = await waitForTxReceipt({
-          hash,
-          messages: { pending: 'Redeeming zVLT...' }
-        });
-
-        analytics.capture(
-          receipt.status === 'success' ? 'tx:redeem_receipt' : 'tx:redeem_failed',
-          createTransactionProperties({
-            ...baseAnalyticsInput,
-            step: receipt.status === 'success' ? 'receipt' : 'failed',
-            txHash: receipt.transactionHash,
-            receiptStatus: receipt.status
-          })
-        );
-
-        return { receipt, amount };
-      } catch (err) {
-        const errorType = getAnalyticsErrorType(err);
-
-        analytics.capture(
-          errorType === 'user_rejected' ? 'tx:redeem_signature_rejected' : 'tx:redeem_failed',
-          createTransactionProperties({
-            ...baseAnalyticsInput,
-            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
-            txHash,
-            error_type: errorType
-          })
-        );
-
-        throw err;
-      }
+      return params;
     },
 
-    onError: (err, variables) => {
-      onTxError({
-        err,
-        defaultToastMsg: 'Error Redeeming zVLT',
-        sentry: { flow: 'redeem', extras: variables }
+    analytics: {
+      flow: 'redeem',
+      input: ({ amount }, { address }) => ({
+        walletAddress: address,
+        tokenIn: 'zVLT',
+        tokenOut: 'USDC',
+        amountInRaw: amount
+      })
+    },
+
+    pendingToast: () => 'Redeeming zVLT...',
+    errorToast: () => 'Error Redeeming zVLT',
+    sentryFlow: 'redeem',
+
+    transactionData: (receipt, { amount }) => {
+      const redeemLog = parseReceiptEvent({
+        receipt,
+        abi: ocrCycleV2Abi,
+        eventName: 'zVLTBurnedForUSDC',
+        sentryFlow: 'redeem'
       });
-    },
 
-    onSuccess: ({ receipt, amount }) => {
-      let depositAmount: bigint | undefined;
-      let receiveAmount: bigint | undefined;
-
-      try {
-        const redeemLogs = parseEventLogs({
-          abi: ocrCycleV2Abi,
-          eventName: 'zVLTBurnedForUSDC',
-          logs: receipt.logs
-        });
-
-        const redeemLog = redeemLogs[0];
-        if (redeemLog) {
-          depositAmount = redeemLog.args.zVLTBurned;
-          receiveAmount = redeemLog.args.USDCRedeemed;
-        }
-      } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'redeem' } });
-      }
+      const depositAmount = redeemLog?.args.zVLTBurned;
+      const receiveAmount = redeemLog?.args.USDCRedeemed;
 
       let meta: TransactionData['meta'] = undefined;
       if (amount && depositAmount && receiveAmount) {
@@ -128,29 +67,25 @@ export const useRedeemUSDC = () => {
         };
       }
 
-      const transactionData: TransactionData =
-        receipt.status === 'success'
-          ? {
-              type: 'SUCCESS',
-              title: 'zVLT Redeemed',
-              description: 'Your zVLT has been redeemed for USDC',
-              hash: receipt.transactionHash,
-              meta
-            }
-          : {
-              type: 'ERROR',
-              title: 'Redemption Failed',
-              description: 'There was an error redeeming your zVLT',
-              hash: receipt.transactionHash
-            };
-
-      setTransaction(transactionData);
-      if (transactionData.type === 'SUCCESS') setIsDepositDialogOpen(false);
+      return receipt.status === 'success'
+        ? {
+            type: 'SUCCESS',
+            title: 'zVLT Redeemed',
+            description: 'Your zVLT has been redeemed for USDC',
+            hash: receipt.transactionHash,
+            meta
+          }
+        : {
+            type: 'ERROR',
+            title: 'Redemption Failed',
+            description: 'There was an error redeeming your zVLT',
+            hash: receipt.transactionHash
+          };
     },
 
-    onSettled: (_, err) => {
-      if (skipTxSettled(err)) return;
+    onSuccessClose: () => setIsDepositDialogOpen(false),
 
+    invalidate: ({ queryClient, address }) => {
       // Refetch allowance for zVLT
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
@@ -179,9 +114,4 @@ export const useRedeemUSDC = () => {
       });
     }
   });
-
-  return {
-    isTxPending,
-    ...mutationInfo
-  };
 };

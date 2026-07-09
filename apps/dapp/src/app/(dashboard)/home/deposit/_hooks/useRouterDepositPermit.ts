@@ -1,11 +1,9 @@
 import { useState } from 'react';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
-import { type SimulateContractParameters, hexToNumber, parseEventLogs, slice } from 'viem';
+import { hexToNumber, slice } from 'viem';
 import { mainnet } from 'viem/chains';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { type WriteContractParameters } from 'wagmi/actions';
 
 import { CONTRACTS } from '@zivoe/contracts';
 import { erc20PermitAbi, zivoeRouterAbi, zivoeTranchesAbi } from '@zivoe/contracts/abis';
@@ -14,48 +12,28 @@ import { type DepositToken } from '@/types/constants';
 
 import { createTransactionProperties, getAnalyticsErrorType } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
-import { depositDialogAtom, transactionAtom } from '@/lib/store';
-import {
-  AppError,
-  getDepositTransactionData,
-  handleDepositRefetches,
-  handlePromise,
-  onTxError,
-  skipTxSettled
-} from '@/lib/utils';
+import { depositDialogAtom } from '@/lib/store';
+import { AppError, getDepositTransactionData, handleDepositRefetches, handlePromise } from '@/lib/utils';
 
-import { useAccount } from '@/hooks/useAccount';
-import useTx from '@/hooks/useTx';
+import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
 
 export type RouterDepositPermitToken = Extract<DepositToken, 'USDC' | 'frxUSD'>;
-export type RouterDepositPermitParams = WriteContractParameters<typeof zivoeRouterAbi, 'depositWithPermit'>;
+export type RouterDepositPermitParams = TxParams<typeof zivoeRouterAbi, 'depositWithPermit'>;
+
+type RouterDepositPermitVariables = { stableCoinName: RouterDepositPermitToken; amount?: bigint };
 
 export const useRouterDepositPermit = () => {
   const publicClient = usePublicClient();
   const analytics = useAnalytics();
   const { data: walletClient } = useWalletClient({ query: { retry: 0, meta: { skipErrorToast: true } } });
-  const queryClient = useQueryClient();
-  const setTransaction = useSetAtom(transactionAtom);
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
-  const { address } = useAccount();
-
-  const { simulateTx, sendTx, waitForTxReceipt, isTxPending } = useTx();
   const [isPermitPending, setIsPermitPending] = useState(false);
 
-  const mutationInfo = useMutation({
-    mutationFn: async ({ stableCoinName, amount }: { stableCoinName: RouterDepositPermitToken; amount?: bigint }) => {
+  const tx = useTx<RouterDepositPermitVariables, RouterDepositPermitParams>({
+    buildParams: async ({ stableCoinName, amount }, { address }) => {
       if (!walletClient || !publicClient || !address) throw new AppError({ message: 'Client or address not found' });
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to deposit' });
-
-      const depositAnalyticsInput = {
-        flow: 'deposit',
-        step: 'submitted',
-        walletAddress: address,
-        tokenIn: stableCoinName,
-        tokenOut: 'zVLT',
-        amountInRaw: amount
-      } as const;
 
       const permitAnalyticsInput = {
         flow: 'permit',
@@ -144,96 +122,60 @@ export const useRouterDepositPermit = () => {
       const r = slice(signature, 0, 32);
       const s = slice(signature, 32, 64);
 
-      const params: RouterDepositPermitParams & SimulateContractParameters = {
+      const params: RouterDepositPermitParams = {
         abi: zivoeRouterAbi,
         address: CONTRACTS.zRTR,
         functionName: 'depositWithPermit',
         args: [address, CONTRACTS[stableCoinName], amount, deadline, v, r, s]
       };
 
-      let txHash: `0x${string}` | undefined;
-
-      try {
-        await simulateTx(params);
-
-        const { hash } = await sendTx(params);
-        txHash = hash;
-        analytics.capture('tx:deposit_submitted', createTransactionProperties({ ...depositAnalyticsInput, txHash }));
-
-        const receipt = await waitForTxReceipt({
-          hash,
-          messages: { pending: `Depositing ${stableCoinName}...` }
-        });
-
-        analytics.capture(
-          receipt.status === 'success' ? 'tx:deposit_receipt' : 'tx:deposit_failed',
-          createTransactionProperties({
-            ...depositAnalyticsInput,
-            step: receipt.status === 'success' ? 'receipt' : 'failed',
-            txHash: receipt.transactionHash,
-            receiptStatus: receipt.status
-          })
-        );
-
-        return { receipt };
-      } catch (err) {
-        const errorType = getAnalyticsErrorType(err);
-
-        analytics.capture(
-          errorType === 'user_rejected' ? 'tx:deposit_signature_rejected' : 'tx:deposit_failed',
-          createTransactionProperties({
-            ...depositAnalyticsInput,
-            step: errorType === 'user_rejected' ? 'signature_rejected' : 'failed',
-            txHash,
-            error_type: errorType
-          })
-        );
-
-        throw err;
-      }
+      return params;
     },
 
-    onError: (err, variables) =>
-      onTxError({
-        err,
-        defaultToastMsg: `Error Depositing ${variables.stableCoinName}`,
-        sentry: { flow: 'router-deposit-permit', extras: variables }
-      }),
+    analytics: {
+      flow: 'deposit',
+      input: ({ stableCoinName, amount }, { address }) => ({
+        walletAddress: address,
+        tokenIn: stableCoinName,
+        tokenOut: 'zVLT',
+        amountInRaw: amount
+      })
+    },
 
-    onSuccess: ({ receipt }, { stableCoinName }) => {
-      const transactionData = getDepositTransactionData({
+    pendingToast: ({ stableCoinName }) => `Depositing ${stableCoinName}...`,
+    errorToast: ({ stableCoinName }) => `Error Depositing ${stableCoinName}`,
+    sentryFlow: 'router-deposit-permit',
+
+    transactionData: (receipt, { stableCoinName }) =>
+      getDepositTransactionData({
         stableCoinName,
         receipt,
         getDepositAmount: () => {
-          let depositAmount: bigint | undefined;
-
-          const seniorDepositLogs = parseEventLogs({
+          const seniorDepositLog = parseReceiptEvent({
+            receipt,
             abi: zivoeTranchesAbi,
             eventName: 'SeniorDeposit',
-            logs: receipt.logs
+            sentryFlow: 'router-deposit-permit'
           });
 
-          const seniorDepositLog = seniorDepositLogs[0];
-          if (seniorDepositLog) depositAmount = seniorDepositLog.args.amount;
-
-          return depositAmount;
+          return seniorDepositLog?.args.amount;
         }
-      });
+      }),
 
-      setTransaction(transactionData);
-      if (transactionData.type === 'SUCCESS') setIsDepositDialogOpen(false);
-    },
+    onSuccessClose: () => setIsDepositDialogOpen(false),
 
-    onSettled: (_, err, { stableCoinName }) => {
-      if (skipTxSettled(err)) return;
-      handleDepositRefetches({ queryClient, address, stableCoinName, allowanceSpender: undefined });
-    }
+    invalidate: ({ queryClient, address, vars }) =>
+      handleDepositRefetches({
+        queryClient,
+        address,
+        stableCoinName: vars.stableCoinName,
+        allowanceSpender: undefined
+      })
   });
 
   return {
-    isTxPending,
-    isPermitPending,
-    ...mutationInfo
+    ...tx,
+    isPermitPending
   };
 };
 
