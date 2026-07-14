@@ -1,9 +1,9 @@
 'use client';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 import { useChainalysis } from '@/hooks/useChainalysis';
 
+import { useBlockchainTimestamp } from '../_hooks/useBlockchainTimestamp';
 import { useClaimableAmount } from '../_hooks/useClaimableAmount';
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 import { VestingOverview, VestingOverviewSkeleton } from './vesting-overview';
