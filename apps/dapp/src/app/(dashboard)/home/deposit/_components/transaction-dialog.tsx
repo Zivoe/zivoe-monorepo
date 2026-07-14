@@ -152,28 +152,16 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
-          {transaction.meta?.claim && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token="ZVE"
-                amount={transaction.meta.claim.amount}
-                decimals={18}
-                icon={<ZVltLogo />}
-              />
-            </TransactionDialogTokensSection>
-          )}
-
           <div className="flex gap-4">
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
             </Button>
 
-            {transaction.type === 'SUCCESS' &&
-              (transaction.meta?.deposit ?? transaction.meta?.redeem ?? transaction.meta?.claim) && (
-                <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
-                  View Portfolio
-                </Link>
-              )}
+            {transaction.type === 'SUCCESS' && (transaction.meta?.deposit ?? transaction.meta?.redeem) && (
+              <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
+                View Portfolio
+              </Link>
+            )}
 
             {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
               <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
@@ -201,7 +189,7 @@ function TransactionDialogToken({
   decimals,
   icon
 }: {
-  token: DepositToken | 'zVLT' | 'stSTT' | 'ZVE';
+  token: DepositToken | 'zVLT' | 'stSTT';
   amount: bigint;
   decimals: number;
   icon: ReactNode;
