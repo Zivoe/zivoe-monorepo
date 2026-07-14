@@ -1,6 +1,6 @@
 import { type ReactNode, Suspense } from 'react';
 
-import { Link } from '@zivoe/ui/core/link';
+// import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { CalendarIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -45,9 +45,12 @@ export default function Portfolio() {
             </Card>
           </div>
 
+          {/*
+          TODO: Add this back once the NAV dashboard is released.
           <Link variant="primary-light" href="https://app.zivoe.com/transparency" target="_blank" hideExternalLinkIcon>
             View Portfolio
           </Link>
+          */}
         </div>
 
         <Globe />
