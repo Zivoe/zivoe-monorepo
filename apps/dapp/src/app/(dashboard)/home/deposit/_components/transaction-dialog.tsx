@@ -157,12 +157,6 @@ export function TransactionDialog() {
               Close
             </Button>
 
-            {transaction.type === 'SUCCESS' && (transaction.meta?.deposit ?? transaction.meta?.redeem) && (
-              <Link variant="primary" fullWidth href="/portfolio" onPress={() => setTransaction(undefined)}>
-                View Portfolio
-              </Link>
-            )}
-
             {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
               <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
                 Deposit zSTT
