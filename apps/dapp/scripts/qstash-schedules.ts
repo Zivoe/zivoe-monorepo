@@ -32,22 +32,6 @@ const SCHEDULES: Array<ScheduleConfig> = [
     retries: 1,
     failureCallback: '/api/qstash/failure',
     label: QSTASH_JOB_LABELS.monitorRefreshHoldings
-  },
-  {
-    destination: '/api/monitor/deposits',
-    scheduleId: 'deposits-5min',
-    cron: '*/5 * * * *', // Every 5 minutes
-    retries: 1,
-    failureCallback: '/api/qstash/failure',
-    label: QSTASH_JOB_LABELS.monitorDeposits
-  },
-  {
-    destination: '/api/monitor/redemptions',
-    scheduleId: 'redemptions-5min',
-    cron: '*/5 * * * *', // Every 5 minutes
-    retries: 1,
-    failureCallback: '/api/qstash/failure',
-    label: QSTASH_JOB_LABELS.monitorRedemptions
   }
 ];
 
