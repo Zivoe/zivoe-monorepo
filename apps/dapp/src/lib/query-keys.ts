@@ -16,9 +16,7 @@ const account = {
     spender
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
-  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  vestingSchedule: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'VESTING_SCHEDULE'],
-  claimableVesting: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CLAIMABLE_VESTING']
+  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO']
 };
 
 const app = {
