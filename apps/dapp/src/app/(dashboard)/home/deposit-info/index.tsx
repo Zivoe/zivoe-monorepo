@@ -4,7 +4,6 @@ import { DiamondIcon } from '@zivoe/ui/icons';
 import { data } from '@/server/data';
 
 import DepositAbout from './deposit-about';
-import DepositAllocation from './deposit-allocation';
 import DepositCharts from './deposit-charts';
 import DepositContact from './deposit-contact';
 import DepositDetails from './deposit-details';
@@ -30,9 +29,6 @@ export default async function DepositInfo() {
       <DepositDetails />
       <DiamondSeparator />
 
-      <DepositAllocationComponent />
-      <DiamondSeparator />
-
       <Documents />
       <DiamondSeparator />
 
@@ -56,13 +52,6 @@ async function DepositStatsComponent() {
   if (!currentProtocolDailySnapshot || !revenue) return null;
 
   return <DepositStats tvl={currentProtocolDailySnapshot.tvl.total} revenue={BigInt(revenue)} />;
-}
-
-async function DepositAllocationComponent() {
-  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
-  if (!currentProtocolDailySnapshot) return null;
-
-  return <DepositAllocation {...currentProtocolDailySnapshot.tvl} />;
 }
 
 function DiamondSeparator() {

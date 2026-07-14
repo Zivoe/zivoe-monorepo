@@ -3,7 +3,7 @@ import { usePublicClient } from 'wagmi';
 
 import { queryKeys } from '@/lib/query-keys';
 
-import { useAccount } from './useAccount';
+import { useAccount } from '@/hooks/useAccount';
 
 export const useBlockchainTimestamp = () => {
   const web3 = usePublicClient();

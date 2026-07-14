@@ -143,39 +143,9 @@ const getLiquidity = async () => {
 
 export type Liquidity = NonNullable<Awaited<ReturnType<typeof getLiquidity>>>;
 
-const getTransparencyLoansData = reactCache(
-  nextCache(
-    async () => {
-      try {
-        const latestSnapshot = await getLatestProtocolDailySnapshot(db);
-        if (!latestSnapshot?.loansRevenue) return null;
-
-        const { portfolioA: portfolioAInterest, portfolioB: portfolioBInterest } = latestSnapshot.loansRevenue;
-        if (portfolioAInterest === null || portfolioBInterest === null) return null;
-
-        return {
-          portfolioA: {
-            interest: portfolioAInterest,
-            invested: latestSnapshot.tvl.loans.portfolioA
-          },
-          portfolioB: {
-            interest: portfolioBInterest,
-            invested: latestSnapshot.tvl.loans.portfolioB
-          }
-        };
-      } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'SERVER' } });
-      }
-    },
-    undefined,
-    { tags: [PROTOCOL_DAILY_SNAPSHOT_TAG] }
-  )
-);
-
 export const data = {
   getDepositDailySnapshots,
   getCurrentDailySnapshot,
   getRevenue,
-  getLiquidity,
-  getTransparencyLoansData
+  getLiquidity
 };

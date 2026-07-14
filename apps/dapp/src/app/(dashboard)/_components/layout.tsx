@@ -58,9 +58,7 @@ export function NavigationItems() {
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
   { title: 'Earn', href: '/' },
-  { title: 'Portfolio', href: '/portfolio' },
-  { title: 'Transparency', href: '/transparency' },
-  { title: 'Vesting', href: '/vesting' }
+  { title: 'Portfolio', href: '/portfolio' }
 ];
 
 export function Wallet() {

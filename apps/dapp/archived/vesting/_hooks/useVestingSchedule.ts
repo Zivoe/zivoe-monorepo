@@ -4,10 +4,11 @@ import { queryKeys } from '@/lib/query-keys';
 import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
 import { type ApiResponseError, type ApiResponseSuccess } from '@/app/api/utils';
 import { type VestingScheduleData } from '@/app/api/vesting/route';
+
+import { useBlockchainTimestamp } from './useBlockchainTimestamp';
 
 const DEFAULT_ERROR_MESSAGE = 'Failed to fetch vesting schedule';
 

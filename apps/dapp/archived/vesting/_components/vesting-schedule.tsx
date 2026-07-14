@@ -6,10 +6,10 @@ import { CheckIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
 import { Card } from '@/app/(dashboard)/transparency/_components/card';
 
+import { useBlockchainTimestamp } from '../_hooks/useBlockchainTimestamp';
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
 
 type MilestoneState = 'COMPLETED' | 'CURRENT' | 'UPCOMING';

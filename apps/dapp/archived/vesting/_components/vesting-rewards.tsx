@@ -14,7 +14,6 @@ import { toast } from '@zivoe/ui/core/sonner';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBlockchainTimestamp } from '@/hooks/useBlockchainTimestamp';
 
 import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
@@ -22,6 +21,7 @@ import { TOKEN_INFO } from '@/components/token-info';
 import { TransactionDialog } from '@/app/(dashboard)/home/deposit/_components/transaction-dialog';
 import { Card } from '@/app/(dashboard)/transparency/_components/card';
 
+import { useBlockchainTimestamp } from '../_hooks/useBlockchainTimestamp';
 import { useClaimVesting } from '../_hooks/useClaimVesting';
 import { useClaimableAmount } from '../_hooks/useClaimableAmount';
 import { useVestingSchedule } from '../_hooks/useVestingSchedule';
