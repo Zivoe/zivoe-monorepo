@@ -242,7 +242,7 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     title: 'Head of Risk',
     image: '/team/walt.png',
     bio: 'Credit risk leader with 20+ years of experience managing credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
-    linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
+    linkedIn: 'https://www.linkedin.com/in/henry-ramsey-109755/'
   },
   {
     name: 'Chad Deal',
