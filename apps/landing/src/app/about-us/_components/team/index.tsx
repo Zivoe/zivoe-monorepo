@@ -259,13 +259,6 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     linkedIn: 'https://www.linkedin.com/in/shannonwright9339/'
   },
   {
-    name: 'Stephanie Puzzo',
-    title: 'Head of Marketing',
-    image: '/team/stephanie.png',
-    bio: 'Marketing strategist with 10+ years in B2B and B2C marketing. Former marketing leader at Mercantile and Capital One.',
-    linkedIn: 'https://www.linkedin.com/in/stephaniepuzzo/'
-  },
-  {
     name: 'Dennis Baca',
     title: 'Head of Product',
     image: '/team/dennis.png',
