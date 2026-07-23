@@ -233,6 +233,19 @@ describe('fetchCurrentShareMetrics', () => {
     await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
   });
 
+  it('throws a validation error when the published share price is zero', async () => {
+    fakeIndexerResponse(
+      shareMetricsPayload({
+        tokenPrice: '0',
+        tokenPriceComputedAt: '1783595010000',
+        totalIssuance: '100000000000000000000',
+        decimals: 18
+      })
+    );
+
+    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
+  });
+
   it('throws a validation error on a non-JSON response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>')));
 

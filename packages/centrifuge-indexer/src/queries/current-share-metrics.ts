@@ -25,6 +25,7 @@ const CURRENT_SHARE_METRICS_QUERY = graphql(`
 `);
 
 const integerString = z.string().regex(/^\d+$/);
+const positiveIntegerString = z.string().regex(/^\d*[1-9]\d*$/);
 // The trailing yield can legitimately serialize negative (a Share Price decline
 // over the window); the other fields never do.
 const signedIntegerString = z.string().regex(/^-?\d+$/);
@@ -39,7 +40,7 @@ const dataSchema = z.object({
     items: z.array(
       z.object({
         token: z.object({
-          tokenPrice: integerString,
+          tokenPrice: positiveIntegerString,
           tokenPriceComputedAt: integerString,
           totalIssuance: integerString,
           decimals: z.number().int().nonnegative()
