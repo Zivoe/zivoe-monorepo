@@ -1,7 +1,7 @@
 'use client';
 
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { parseAbi } from 'viem';
+import { BaseError, ContractFunctionRevertedError, parseAbi } from 'viem';
 import { usePublicClient } from 'wagmi';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -21,7 +21,17 @@ export function useVaultCapacity() {
   });
 }
 
-const VAULT_PREVIEW_ABI = parseAbi(['function previewDeposit(uint256 assets) view returns (uint256 shares)']);
+const VAULT_PREVIEW_ABI = parseAbi([
+  'function previewDeposit(uint256 assets) view returns (uint256 shares)',
+  'error InvalidPrice()'
+]);
+
+/** True when a preview failed because the vault has no valid Share Price (deposits unavailable). */
+export function isPriceUnavailableError(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
+  return revert instanceof ContractFunctionRevertedError && revert.data?.errorName === 'InvalidPrice';
+}
 
 /**
  * The vault contract's own previewDeposit answer — the authoritative mint

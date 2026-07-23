@@ -20,7 +20,7 @@ import {
 } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DEPOSIT_TOKEN_DECIMALS, type DepositToken, TOKEN_DECIMALS, type Token } from '@/types/constants';
+import { DEPOSIT_TOKEN_DECIMALS, TOKEN_DECIMALS, type Token } from '@/types/constants';
 
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
@@ -184,7 +184,7 @@ function TransactionDialogToken({
   decimals,
   icon
 }: {
-  token: DepositToken | 'zVLT' | 'stSTT';
+  token: Token;
   amount: bigint;
   decimals: number;
   icon: ReactNode;
