@@ -68,12 +68,12 @@ const queryClient = new QueryClient({
 
   queryCache: new QueryCache({
     onError: (error, query) => {
+      Sentry.captureException(error, { tags: { source: 'QUERY' } });
+
       if (query.meta?.skipErrorToast) return;
 
       const title = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
       toast({ type: 'error', title });
-
-      Sentry.captureException(error, { tags: { source: 'QUERY' } });
     }
   })
 });

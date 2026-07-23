@@ -21,6 +21,7 @@ export function useVaultCapacity() {
 export function useDepositPreview({ assets }: { assets: bigint }) {
   return useQuery({
     queryKey: queryKeys.app.depositPreview({ assets }),
+    meta: { skipErrorToast: true },
     queryFn: assets <= 0n ? skipToken : async () => ({ shares: await readPreviewDeposit(assets) })
   });
 }
