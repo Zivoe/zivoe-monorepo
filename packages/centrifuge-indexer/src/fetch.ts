@@ -5,6 +5,12 @@ import { type TadaDocumentNode } from './graphql';
 
 export type CentrifugeIndexerErrorKind = 'network' | 'http' | 'graphql' | 'validation';
 
+/**
+ * A hung indexer must not stall render paths (hero / stats stream behind this
+ * fetch); callers can pass their own `fetchOptions.signal` to override.
+ */
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class CentrifugeIndexerError extends Error {
   public readonly kind: CentrifugeIndexerErrorKind;
   public readonly status?: number;
@@ -40,7 +46,8 @@ export async function fetchCentrifugeIndexer<TData, TResult, TVariables>({
     ...fetchOptions,
     method: 'POST',
     headers: { 'content-type': 'application/json', ...fetchOptions?.headers },
-    body: JSON.stringify({ query: print(query), variables })
+    body: JSON.stringify({ query: print(query), variables }),
+    signal: fetchOptions?.signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
   }).catch((error: unknown) => {
     throw new CentrifugeIndexerError({
       kind: 'network',

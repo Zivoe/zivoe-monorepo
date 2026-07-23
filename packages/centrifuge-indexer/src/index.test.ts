@@ -151,6 +151,39 @@ describe('fetchCurrentShareMetrics', () => {
     });
   });
 
+  it('applies a default timeout signal so a hung indexer cannot stall the caller', async () => {
+    const fetchMock = fakeIndexerResponse(
+      shareMetricsPayload({
+        tokenPrice: '1000000000000000000',
+        tokenPriceComputedAt: '1783595010000',
+        totalIssuance: '0',
+        decimals: 18
+      })
+    );
+
+    await fetchCurrentShareMetrics({ config: sepolia });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('prefers a caller-provided abort signal over the default timeout', async () => {
+    const fetchMock = fakeIndexerResponse(
+      shareMetricsPayload({
+        tokenPrice: '1000000000000000000',
+        tokenPriceComputedAt: '1783595010000',
+        totalIssuance: '0',
+        decimals: 18
+      })
+    );
+
+    const controller = new AbortController();
+    await fetchCurrentShareMetrics({ config: sepolia, fetchOptions: { signal: controller.signal } });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
+
   it('throws a network error when the request cannot be sent at all', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
@@ -260,6 +293,58 @@ describe('fetchDailyTokenSnapshots', () => {
         totalIssuance: 100000000000000000000n,
         yield30dComp365: null
       }
+    ]);
+  });
+
+  it("attributes a midnight NewPeriod row to the day it closes, superseding that day's intraday rows", async () => {
+    // The live indexer stamps NewPeriod snapshots exactly at UTC midnight with
+    // the state at rollover — the previous day's close.
+    fakeIndexerResponse({
+      data: {
+        tokenSnapshots: {
+          items: [
+            snapshotRow({ timestamp: day2, tokenPrice: '1070000000000000000' }),
+            snapshotRow({ timestamp: day1 + 14 * 60 * 60 * 1000, tokenPrice: '1050000000000000000' })
+          ]
+        }
+      }
+    });
+
+    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+
+    // Day 1's point is its close (the midnight row), and day 2 has no row yet.
+    expect(snapshots).toEqual([
+      {
+        dayStartSeconds: day1 / 1000,
+        tokenPrice: 1070000000000000000n,
+        totalIssuance: 100000000000000000000n,
+        yield30dComp365: null
+      }
+    ]);
+  });
+
+  it('buckets a run of midnight rows to their closing days, mirroring the live indexer feed', async () => {
+    const day3 = day2 + DAY_MS;
+
+    // Newest-first: NewPeriod at day-3 and day-2 midnights plus a price event
+    // during day 1 that the day-2 midnight row supersedes.
+    fakeIndexerResponse({
+      data: {
+        tokenSnapshots: {
+          items: [
+            snapshotRow({ timestamp: day3, tokenPrice: '1090000000000000000' }),
+            snapshotRow({ timestamp: day2, tokenPrice: '1070000000000000000' }),
+            snapshotRow({ timestamp: day1 + 11 * 60 * 60 * 1000, tokenPrice: '1000000000000000000' })
+          ]
+        }
+      }
+    });
+
+    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+
+    expect(snapshots.map((snapshot) => [snapshot.dayStartSeconds, snapshot.tokenPrice])).toEqual([
+      [day1 / 1000, 1070000000000000000n],
+      [day2 / 1000, 1090000000000000000n]
     ]);
   });
 

@@ -36,7 +36,7 @@ const dataSchema = z.object({
 }) satisfies z.ZodType<ResultOf<typeof DAILY_TOKEN_SNAPSHOTS_QUERY>>;
 
 export type DailyTokenSnapshot = {
-  /** UTC day start in seconds — the dedupe bucket key. */
+  /** UTC day start (seconds) of the day this row's state belongs to — the dedupe bucket key. */
   dayStartSeconds: number;
   /** Share Price in USD, 18 decimals. */
   tokenPrice: bigint;
@@ -60,7 +60,12 @@ export function getUtcDayStartSeconds(timestampMs: number): number {
 
 /**
  * Daily token snapshots deduped to the last priced row per UTC day, oldest
- * first. Fetched newest-first so hitting the indexer's page cap drops the
+ * first — where a row belongs to the day it *describes*: `NewPeriod` rows are
+ * stamped exactly at UTC midnight with the state at rollover (the previous
+ * day's close), so bucketing keys on the instant just before each snapshot.
+ * Each closed day therefore carries its closing state, and the current day has
+ * no row until it closes (intraday price-publication events do add same-day
+ * rows). Fetched newest-first so hitting the indexer's page cap drops the
  * oldest history instead of silently freezing the newest; `truncated` flags
  * that case so callers can alert and move to cursor pagination (`after` /
  * `pageInfo` exist on the endpoint) before history is actually lost.
@@ -87,7 +92,9 @@ export async function fetchDailyTokenSnapshots({
   for (const item of data.tokenSnapshots.items) {
     if (item.tokenPrice === null) continue;
 
-    const dayStartSeconds = getUtcDayStartSeconds(Number(item.timestamp));
+    // The instant just before the snapshot: a midnight-stamped NewPeriod row
+    // records the previous day's close, an intraday row stays on its own day.
+    const dayStartSeconds = getUtcDayStartSeconds(Number(item.timestamp) - 1);
     if (byDay.has(dayStartSeconds)) continue;
 
     byDay.set(dayStartSeconds, {
