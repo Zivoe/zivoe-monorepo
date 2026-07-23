@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import * as Sentry from '@sentry/nextjs';
 import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSetAtom } from 'jotai';
 import { toast as sonnerToast } from 'sonner';
@@ -136,7 +137,29 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
               if (status.type === 'TransactionConfirmed') confirmed = status.receipt;
             },
-            error: reject,
+            // The SDK throws instead of emitting a reverted receipt; resolving
+            // with that receipt routes on-chain failures to the transaction
+            // dialog, matching useTx.
+            error: (err) => {
+              const receipt = extractRevertedReceipt(err);
+              if (receipt) {
+                resolve(receipt);
+                return;
+              }
+
+              // The SDK's error can be displaced before it carries the receipt
+              // out (e.g. Next's dev log forwarder throws serializing the
+              // receipt the SDK console.errors), so once a hash is known the
+              // chain is the source of truth. Costs one read, only here.
+              if (!txHash) {
+                reject(err);
+                return;
+              }
+
+              void handlePromise(publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` })).then(
+                ({ res }) => (res ? resolve(res) : reject(err))
+              );
+            },
             complete: () =>
               confirmed ? resolve(confirmed) : reject(new Error('Transaction stream completed without a receipt'))
           });
@@ -147,6 +170,18 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           receiptStatus: receipt.status,
           ...config.analytics?.receiptInput?.(receipt, vars)
         });
+
+        // A reverted receipt resolves into the failure dialog (the mutation
+        // succeeds), so onError never sees it — capture here or the revert is
+        // invisible to Sentry.
+        if (receipt.status !== 'success')
+          Sentry.captureException(new Error('Transaction reverted on-chain'), {
+            tags: { source: 'MUTATION', flow: config.sentryFlow },
+            extra: {
+              ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+              txHash: receipt.transactionHash
+            }
+          });
 
         return { receipt };
       } catch (err) {
@@ -207,6 +242,18 @@ export function invalidateInvestmentQueries({
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.investment({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
+}
+
+/**
+ * The SDK's TransactionError (thrown on a reverted receipt instead of emitting
+ * TransactionConfirmed) is not exported, so it is recognized by the receipt it
+ * carries.
+ */
+function extractRevertedReceipt(err: unknown): TransactionReceipt | undefined {
+  if (!(err instanceof Error) || !('receipt' in err)) return undefined;
+
+  const receipt = err.receipt as TransactionReceipt | undefined;
+  return receipt?.status === 'reverted' && typeof receipt.transactionHash === 'string' ? receipt : undefined;
 }
 
 /**
