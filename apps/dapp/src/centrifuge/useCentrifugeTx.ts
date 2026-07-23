@@ -209,8 +209,22 @@ export function invalidateInvestmentQueries({
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
 }
 
+/**
+ * The SDK signs through a viem walletClient, whose transport wraps any error
+ * thrown by our simulation signer (TransactionExecutionError → UnknownRpcError
+ * → AppError), so the simulation's AppError surfaces on the cause chain, not
+ * as the top-level error.
+ */
+function findAppError(err: unknown): AppError | undefined {
+  for (let current = err, depth = 0; current instanceof Error && depth < 10; current = current.cause as Error, depth++) {
+    if (current instanceof AppError) return current;
+  }
+  return undefined;
+}
+
 function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, string>): unknown {
-  if (err instanceof AppError) return err;
+  const appError = findAppError(err);
+  if (appError) return appError;
 
   if (err instanceof Error && err.message.includes('User rejected the request'))
     return new AppError({
