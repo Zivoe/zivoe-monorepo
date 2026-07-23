@@ -80,7 +80,9 @@ export function DepositFlow({ apy }: { apy: number | null }) {
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
   const previewShares = hasDepositRaw && isPreviewCurrent ? preview.data?.shares : undefined;
-  const isPreviewFailed = hasDepositRaw && isPreviewCurrent && preview.isError;
+  // A retry in flight drops back into the loading presentation (skeleton +
+  // pending action) instead of keeping the stale error on screen.
+  const isPreviewFailed = hasDepositRaw && isPreviewCurrent && preview.isError && !preview.isFetching;
   const isPreviewLoading = hasDepositRaw && !isPreviewFailed && previewShares === undefined;
 
   const isPriceUnavailable = isPreviewFailed && isPriceUnavailableError(preview.error);
@@ -154,6 +156,9 @@ export function DepositFlow({ apy }: { apy: number | null }) {
   };
 
   const receiveValue = previewShares !== undefined ? formatUnits(previewShares, ZMCA.decimals) : '';
+  // Suppress the amount input's `0.0` ghost while the estimate is loading —
+  // it would otherwise read as "you receive 0.0" next to the skeleton.
+  const receivePlaceholder = isPreviewLoading ? '' : undefined;
   // The quote is at the current Share Price, so the estimated receive's dollar
   // value equals the entered USDC amount.
   const receiveDollarValue = previewShares !== undefined && depositRaw !== undefined ? depositRaw : deposit ? null : 0n;
@@ -204,22 +209,26 @@ export function DepositFlow({ apy }: { apy: number | null }) {
       <Input
         variant="amount"
         label="Estimated receive"
-        value={isPreviewFailed ? '—' : receiveValue}
+        value={receiveValue}
+        placeholder={receivePlaceholder}
         isDisabled
         hasNormalStyleIfDisabled={!isFormLocked}
         errorMessage={
-          isPreviewFailed
-            ? isPriceUnavailable
-              ? 'Deposits are currently unavailable.'
-              : 'Unable to estimate zMCA. Try again.'
-            : undefined
+          isPreviewFailed ? (
+            <>
+              {isPriceUnavailable ? 'Deposits are currently unavailable.' : 'Unable to estimate zMCA.'}{' '}
+              <Button variant="link-alert" size="s" onPress={() => void preview.refetch()}>
+                Retry
+              </Button>
+            </>
+          ) : undefined
         }
         isInvalid={isPreviewFailed}
         startContent={isPreviewLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
             decimals={USDC.decimals}
-            dollarValue={isPreviewFailed ? null : receiveDollarValue}
+            dollarValue={isPreviewFailed ? 0n : receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: zMcaBalance.data, isPending: zMcaBalance.isPending, decimals: ZMCA.decimals }}
           />
@@ -235,13 +244,15 @@ export function DepositFlow({ apy }: { apy: number | null }) {
             fullWidth
             onPress={() => void handleApprove()}
             isDisabled={isSubmitBlocked}
-            isPending={approveSpending.isPending}
+            isPending={approveSpending.isPending || isPreviewLoading}
             pendingContent={
-              approveSpending.isTxPending
-                ? 'Approving USDC...'
-                : approveSpending.isPending
-                  ? 'Signing Transaction...'
-                  : undefined
+              isPreviewLoading
+                ? 'Estimating zMCA...'
+                : approveSpending.isTxPending
+                  ? 'Approving USDC...'
+                  : approveSpending.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
             }
           >
             Approve
@@ -251,13 +262,15 @@ export function DepositFlow({ apy }: { apy: number | null }) {
             fullWidth
             onPress={() => void handleDeposit()}
             isDisabled={hasDepositRaw && isSubmitBlocked}
-            isPending={depositMutation.isPending}
+            isPending={depositMutation.isPending || isPreviewLoading}
             pendingContent={
-              depositMutation.isTxPending
-                ? 'Depositing USDC...'
-                : depositMutation.isPending
-                  ? 'Signing Transaction...'
-                  : undefined
+              isPreviewLoading
+                ? 'Estimating zMCA...'
+                : depositMutation.isTxPending
+                  ? 'Depositing USDC...'
+                  : depositMutation.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
             }
           >
             Deposit

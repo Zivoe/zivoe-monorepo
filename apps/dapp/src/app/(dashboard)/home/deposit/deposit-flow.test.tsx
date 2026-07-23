@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => ({
   capacity: 5_000000n,
   deposit: vi.fn(),
   isDebouncing: false,
+  previewError: undefined as string | undefined,
+  previewIsError: false,
+  previewIsFetching: false,
+  previewRefetch: vi.fn(),
   previewShares: 1_230000000000000000n,
   staleDebouncedValue: undefined as string | undefined,
   usdcBalance: 10_000000n
@@ -32,10 +36,13 @@ vi.mock('@/centrifuge', () => ({
   },
   useDeposit: () => ({ isPending: false, isTxPending: false, mutate: mocks.deposit }),
   useDepositPreview: ({ assets }: { assets: bigint }) => ({
-    data: assets > 0n ? { shares: mocks.previewShares } : undefined,
-    isError: false,
-    isFetching: false
+    data: assets > 0n && !mocks.previewIsError ? { shares: mocks.previewShares } : undefined,
+    error: mocks.previewError,
+    isError: mocks.previewIsError,
+    isFetching: mocks.previewIsFetching,
+    refetch: mocks.previewRefetch
   }),
+  isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
   useVaultCapacity: () => ({
     data: { maxDeposit: mocks.capacity },
     isFetching: false,
@@ -118,7 +125,7 @@ vi.mock('@zivoe/ui/core/input', () => ({
     value
   }: {
     endContent?: ReactNode;
-    errorMessage?: string;
+    errorMessage?: ReactNode;
     isDisabled?: boolean;
     label?: string;
     onChange?: (value: string) => void;
@@ -195,13 +202,16 @@ describe('DepositFlow', () => {
     mocks.allowance = 0n;
     mocks.capacity = 5_000000n;
     mocks.isDebouncing = false;
+    mocks.previewError = undefined;
+    mocks.previewIsError = false;
+    mocks.previewIsFetching = false;
     mocks.staleDebouncedValue = undefined;
     mocks.usdcBalance = 10_000000n;
   });
 
   it('never renders or enables an old quote during the debounce window', () => {
-    // The user typed 2 while the debounced value still says 1: the old quote
-    // must not render and the action stays disabled until the quote catches up.
+    // Typed 2 while the debounced value still says 1 — the stale quote and
+    // Approve must not surface.
     mocks.isDebouncing = true;
     mocks.staleDebouncedValue = '1';
     render(<DepositFlow apy={null} />);
@@ -210,6 +220,42 @@ describe('DepositFlow', () => {
 
     expect(getInput('Estimated receive').value).toBe('');
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
+    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+  });
+
+  it('shows a retry action when the estimate fails and refetches on press', async () => {
+    mocks.previewIsError = true;
+    render(<DepositFlow apy={null} />);
+    enterAmount('1');
+
+    expect(getInput('Estimated receive').value).toBe('');
+    expect(screen.getByText(/Unable to estimate zMCA/)).toBeTruthy();
+    expect(getButton('Approve').disabled).toBe(true);
+
+    await press('Retry');
+
+    expect(mocks.previewRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops back into the loading presentation while a retry is in flight', () => {
+    mocks.previewIsError = true;
+    mocks.previewIsFetching = true;
+    render(<DepositFlow apy={null} />);
+    enterAmount('1');
+
+    expect(screen.queryByText(/Unable to estimate zMCA/)).toBeNull();
+    expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
+    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+  });
+
+  it('shows the price-unavailable copy and still offers a retry', () => {
+    mocks.previewIsError = true;
+    mocks.previewError = 'price-unavailable';
+    render(<DepositFlow apy={null} />);
+    enterAmount('1');
+
+    expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
+    expect(getButton('Retry')).toBeTruthy();
     expect(getButton('Approve').disabled).toBe(true);
   });
 

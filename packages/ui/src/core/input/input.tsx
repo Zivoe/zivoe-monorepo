@@ -16,7 +16,8 @@ type InputFieldProps = Omit<Aria.TextFieldProps, 'children'> & Pick<Aria.SearchF
 interface InputProps extends InputFieldProps, VariantProps<typeof inputGroupStyles> {
   label?: ReactNode;
   placeholder?: string;
-  errorMessage?: string;
+  /** Accepts nodes so callers can pair the message with an action (e.g. a retry link). */
+  errorMessage?: ReactNode;
   startContent?: ReactNode;
   endContent?: ReactNode;
   isClearable?: boolean;
