@@ -151,7 +151,9 @@ export function DepositFlow({ apy }: { apy: number | null }) {
 
     depositMutation.mutate(
       { assets: depositRaw, previewShares },
-      { onSuccess: () => form.reset({ deposit: undefined }) }
+      // A reverted receipt also resolves as mutation success (it routes to the
+      // failure dialog) — keep the entered amount so the user can retry as-is.
+      { onSuccess: ({ receipt }) => receipt.status === 'success' && form.reset({ deposit: undefined }) }
     );
   };
 

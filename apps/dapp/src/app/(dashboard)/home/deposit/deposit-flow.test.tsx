@@ -294,11 +294,17 @@ describe('DepositFlow', () => {
       expect.objectContaining({ onSuccess: expect.any(Function) })
     );
 
-    // A failed transaction leaves the amount in place for a retry.
+    // A failed transaction leaves the amount in place for a retry. The
+    // mutation resolves reverted receipts as success too — only a confirmed
+    // receipt may clear the form.
     expect(getInput('Deposit').value).toBe('1');
 
-    const options = mocks.deposit.mock.calls[0]?.[1] as { onSuccess: () => void };
-    act(() => options.onSuccess());
+    const options = mocks.deposit.mock.calls[0]?.[1] as {
+      onSuccess: (data: { receipt: { status: 'success' | 'reverted' } }) => void;
+    };
+    act(() => options.onSuccess({ receipt: { status: 'reverted' } }));
+    expect(getInput('Deposit').value).toBe('1');
+    act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Deposit').value).toBe('');
   });
 
