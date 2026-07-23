@@ -1,0 +1,36 @@
+{
+  "name": "@zivoe/centrifuge-indexer",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint ./src/",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:pin": "gql-tada generate schema https://api-v3-test.cfg.embrio.tech --output ./schema.graphql",
+    "schema:generate": "gql-tada generate output",
+    "schema:check": "gql-tada check"
+  },
+  "dependencies": {
+    "@0no-co/graphql.web": "^1.3.2",
+    "gql.tada": "^1.11.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^22.13.5",
+    "@zivoe/eslint-config": "workspace:*",
+    "@zivoe/prettier-config": "workspace:*",
+    "@zivoe/ts-config": "workspace:*",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.2",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^3.2.4"
+  }
+}
