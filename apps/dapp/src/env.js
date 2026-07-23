@@ -51,9 +51,12 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
+    NEXT_PUBLIC_NETWORK: z.enum(['mainnet', 'sepolia']),
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: z.string(),
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: z.string().optional(),
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
     NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
@@ -62,8 +65,11 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY,
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY,
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY,
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY,
     PONDER_MAINNET_DATABASE_URL: process.env.PONDER_MAINNET_DATABASE_URL,
     QSTASH_URL: process.env.QSTASH_URL,
     QSTASH_TOKEN: process.env.QSTASH_TOKEN,

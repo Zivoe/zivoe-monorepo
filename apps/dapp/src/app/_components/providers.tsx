@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/nextjs';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
-import { mainnet } from 'viem/chains';
+import { mainnet, sepolia } from 'viem/chains';
 import { type State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
 import { Toaster, toast } from '@zivoe/ui/core/sonner';
@@ -20,6 +20,7 @@ import { Toaster, toast } from '@zivoe/ui/core/sonner';
 import { trackWalletConnection } from '@/server/actions/track-wallet-connection';
 
 import { authClient, useSession } from '@/lib/auth-client';
+import { NETWORK_CHAIN } from '@/lib/network';
 import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -38,7 +39,7 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
 };
 
 export const wagmiConfig = createConfig({
-  chains: [mainnet],
+  chains: [NETWORK_CHAIN],
   multiInjectedProviderDiscovery: false,
   ssr: true,
   storage: createStorage({
@@ -48,6 +49,10 @@ export const wagmiConfig = createConfig({
     [mainnet.id]: fallback([
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY)
+    ]),
+    [sepolia.id]: fallback([
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY),
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY)
     ])
   }
 });
@@ -63,12 +68,12 @@ const queryClient = new QueryClient({
 
   queryCache: new QueryCache({
     onError: (error, query) => {
+      Sentry.captureException(error, { tags: { source: 'QUERY' } });
+
       if (query.meta?.skipErrorToast) return;
 
       const title = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
       toast({ type: 'error', title });
-
-      Sentry.captureException(error, { tags: { source: 'QUERY' } });
     }
   })
 });
