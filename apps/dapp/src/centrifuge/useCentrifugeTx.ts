@@ -282,6 +282,14 @@ function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, st
       capture: false
     });
 
+  // The SDK's ChainMismatchError — flow-agnostic, so mapped here instead of in
+  // every flow's sdkErrorCopy.
+  if (err instanceof Error && err.message.includes('Refusing to submit to avoid sending funds on the wrong network'))
+    return new AppError({
+      message: 'Your wallet is connected to the wrong network. Switch networks and try again.',
+      exception: err
+    });
+
   if (err instanceof Error && sdkErrorCopy) {
     const match = Object.entries(sdkErrorCopy).find(([sdkMessage]) => err.message.includes(sdkMessage));
     if (match) return new AppError({ message: match[1], exception: err });
