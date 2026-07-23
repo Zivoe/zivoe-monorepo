@@ -1,5 +1,4 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
-import { parseAbi } from 'viem';
 
 import { NETWORK_RPC_URLS } from '@/lib/network';
 
@@ -42,23 +41,4 @@ async function resolveVault(): Promise<VaultEntity> {
   ]);
 
   return pool.vault(centrifugeId, new ShareClassId(CENTRIFUGE_CONFIG.scId), CENTRIFUGE_CONFIG.usdc.address);
-}
-
-const VAULT_PREVIEW_ABI = parseAbi(['function previewDeposit(uint256 assets) view returns (uint256 shares)']);
-
-/**
- * The vault contract's own previewDeposit answer — the authoritative mint
- * quote, including whatever rounding the contract applies at execution.
- */
-export async function readPreviewDeposit(assets: bigint): Promise<bigint> {
-  const centrifuge = getCentrifuge();
-  const centrifugeId = await centrifuge.id(CENTRIFUGE_CONFIG.chainId);
-  const publicClient = await centrifuge.getClient(centrifugeId);
-
-  return publicClient.readContract({
-    abi: VAULT_PREVIEW_ABI,
-    address: CENTRIFUGE_CONFIG.vaultAddress,
-    functionName: 'previewDeposit',
-    args: [assets]
-  });
 }

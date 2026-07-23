@@ -1,12 +1,15 @@
 'use client';
 
 import { skipToken, useQuery } from '@tanstack/react-query';
+import { parseAbi } from 'viem';
+import { usePublicClient } from 'wagmi';
 
 import { useAccount } from '@/hooks/useAccount';
 
 import { queryKeys } from '@/lib/query-keys';
 
-import { getVault, readPreviewDeposit } from './client';
+import { getVault } from './client';
+import { CENTRIFUGE_CONFIG } from './config';
 import { readInvestment, readVaultCapacity } from './reads';
 
 export function useVaultCapacity() {
@@ -18,11 +21,29 @@ export function useVaultCapacity() {
   });
 }
 
+const VAULT_PREVIEW_ABI = parseAbi(['function previewDeposit(uint256 assets) view returns (uint256 shares)']);
+
+/**
+ * The vault contract's own previewDeposit answer — the authoritative mint
+ * quote, including whatever rounding the contract applies at execution.
+ */
 export function useDepositPreview({ assets }: { assets: bigint }) {
+  const web3 = usePublicClient();
+
   return useQuery({
     queryKey: queryKeys.app.depositPreview({ assets }),
     meta: { skipErrorToast: true },
-    queryFn: assets <= 0n ? skipToken : async () => ({ shares: await readPreviewDeposit(assets) })
+    queryFn:
+      assets <= 0n || !web3
+        ? skipToken
+        : async () => ({
+            shares: await web3.readContract({
+              abi: VAULT_PREVIEW_ABI,
+              address: CENTRIFUGE_CONFIG.vaultAddress,
+              functionName: 'previewDeposit',
+              args: [assets]
+            })
+          })
   });
 }
 

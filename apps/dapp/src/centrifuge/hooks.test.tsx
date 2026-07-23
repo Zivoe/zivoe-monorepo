@@ -5,11 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDepositPreview, useInvestment, useVaultCapacity } from './index';
+import { CENTRIFUGE_CONFIG, useDepositPreview, useInvestment, useVaultCapacity } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
-const readPreviewDeposit = vi.hoisted(() => vi.fn());
-vi.mock('./client', () => ({ getVault, readPreviewDeposit }));
+vi.mock('./client', () => ({ getVault }));
+
+const readContract = vi.hoisted(() => vi.fn());
+vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -43,7 +45,7 @@ function createWrapper() {
 beforeEach(() => {
   vi.resetAllMocks();
   getVault.mockImplementation(() => Promise.resolve(fakeVault()));
-  readPreviewDeposit.mockResolvedValue(50_000000000000000000n);
+  readContract.mockResolvedValue(50_000000000000000000n);
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
 });
 
@@ -62,18 +64,24 @@ describe('useDepositPreview', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ shares: 50_000000000000000000n });
-    expect(readPreviewDeposit).toHaveBeenCalledWith(100_000000n);
+    expect(readContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: CENTRIFUGE_CONFIG.vaultAddress,
+        functionName: 'previewDeposit',
+        args: [100_000000n]
+      })
+    );
   });
 
   it('does not read for a non-positive amount', () => {
     const { result } = renderHook(() => useDepositPreview({ assets: 0n }), { wrapper: createWrapper() });
 
     expect(result.current.fetchStatus).toBe('idle');
-    expect(readPreviewDeposit).not.toHaveBeenCalled();
+    expect(readContract).not.toHaveBeenCalled();
   });
 
   it('surfaces a failed contract preview as a query error', async () => {
-    readPreviewDeposit.mockRejectedValue(new Error('execution reverted'));
+    readContract.mockRejectedValue(new Error('execution reverted'));
 
     const { result } = renderHook(() => useDepositPreview({ assets: 100_000000n }), { wrapper: createWrapper() });
 
