@@ -14,12 +14,15 @@ export type RedeemToken = 'zVLT';
 
 export type UnstakeToken = 'stSTT';
 
-export type Token = DepositToken | RedeemToken | UnstakeToken;
+export type ShareToken = 'zMCA';
+
+export type Token = DepositToken | RedeemToken | UnstakeToken | ShareToken;
 
 export const TOKEN_DECIMALS: Record<Token, number> = {
   ...DEPOSIT_TOKEN_DECIMALS,
   zVLT: 18,
-  stSTT: 18
+  stSTT: 18,
+  zMCA: 18
 };
 
 export const LINKS = {

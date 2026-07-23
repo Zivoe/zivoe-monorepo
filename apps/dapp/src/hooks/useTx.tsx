@@ -36,9 +36,9 @@ import { AppError, handlePromise, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
 
-type TxAnalyticsFlow = 'deposit' | 'redeem' | 'approval';
+export type TxAnalyticsFlow = 'deposit' | 'redeem' | 'approval';
 
-type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHash' | 'receiptStatus' | 'error_type'>;
+export type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHash' | 'receiptStatus' | 'error_type'>;
 
 type TxContext = { address: Address | undefined };
 
@@ -83,9 +83,9 @@ export type TxConfig<TVariables, TParams extends TxParams> = {
   invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
 
-type TxAnalyticsStep = { event: AnalyticsEvent; step: string };
+export type TxAnalyticsStep = { event: AnalyticsEvent; step: string };
 
-type TxAnalyticsChoreography = {
+export type TxAnalyticsChoreography = {
   /** Captured after guards pass, before simulation (approval flow only). */
   started?: TxAnalyticsStep;
   submitted: TxAnalyticsStep;
@@ -94,7 +94,7 @@ type TxAnalyticsChoreography = {
   failed: TxAnalyticsStep;
 };
 
-const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
+export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
   deposit: {
     submitted: { event: 'tx:deposit_submitted', step: 'submitted' },
     confirmed: {
@@ -268,6 +268,18 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
           txHash: receipt.transactionHash,
           receiptStatus: receipt.status
         });
+
+        // A reverted receipt resolves into the failure dialog (the mutation
+        // succeeds), so onError never sees it — capture here or the revert is
+        // invisible to Sentry.
+        if (receipt.status !== 'success')
+          Sentry.captureException(new Error('Transaction reverted on-chain'), {
+            tags: { source: 'MUTATION', flow: config.sentryFlow },
+            extra: {
+              ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+              txHash: receipt.transactionHash
+            }
+          });
 
         return { receipt };
       } catch (err) {

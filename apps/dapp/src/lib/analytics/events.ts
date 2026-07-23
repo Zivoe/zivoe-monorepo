@@ -1,6 +1,7 @@
 import { mainnet } from 'viem/chains';
 
-import { type DepositToken, type Token } from '@/types/constants';
+import { AppError } from '@/lib/utils';
+import { type Token } from '@/types/constants';
 
 export type AnalyticsEvent =
   | 'auth:sign-up'
@@ -42,8 +43,8 @@ export type TransactionAnalyticsInput = {
   step: string;
   walletAddress?: string | null;
   chainId?: number;
-  tokenIn?: DepositToken | Token | 'USDC' | 'zVLT' | null;
-  tokenOut?: DepositToken | Token | 'USDC' | 'zVLT' | null;
+  tokenIn?: Token | null;
+  tokenOut?: Token | null;
   amountInRaw?: bigint | string | number | null;
   amountOutRaw?: bigint | string | number | null;
   spender?: string | null;
@@ -87,6 +88,9 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
 export function getAnalyticsErrorType(error: unknown) {
   if (error instanceof Error && error.message.includes('Transaction rejected')) return 'user_rejected';
   if (error instanceof Error && error.message.includes('User rejected the request')) return 'user_rejected';
+  // Decoded simulation blocks carry friendly copy without the marker — the
+  // flag, not the message, is the signal (the legacy engine still prefixes it).
+  if (error instanceof AppError && error.simulation) return 'simulation_failed';
   if (error instanceof Error && error.message.includes('Simulation error')) return 'simulation_failed';
   return 'failed';
 }

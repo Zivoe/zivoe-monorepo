@@ -122,19 +122,23 @@ export class AppError extends Error {
   public readonly capture: boolean;
   public readonly exception?: unknown;
   public readonly type: AppErrorType;
+  /** True when the pre-sign simulation blocked the transaction — analytics classify these as simulation_failed, not failed. */
+  public readonly simulation: boolean;
 
   constructor({
     message,
     refetch = true,
     capture = true,
     exception,
-    type = 'error'
+    type = 'error',
+    simulation = false
   }: {
     message: string;
     refetch?: boolean;
     capture?: boolean;
     exception?: unknown;
     type?: AppErrorType;
+    simulation?: boolean;
   }) {
     super(message);
     this.name = 'AppError';
@@ -142,6 +146,7 @@ export class AppError extends Error {
     this.capture = capture;
     this.exception = exception;
     this.type = type;
+    this.simulation = simulation;
   }
 }
 
@@ -166,7 +171,9 @@ export const onTxError = ({
     refetch = err.refetch;
     capture = err.capture;
     toastMsg = err.message;
-    exception = err.exception ?? err.message;
+    // Fall back to the AppError itself (not its message) so guard failures
+    // reach Sentry with a stack and error class instead of a bare string.
+    exception = err.exception ?? err;
     type = err.type;
   }
 

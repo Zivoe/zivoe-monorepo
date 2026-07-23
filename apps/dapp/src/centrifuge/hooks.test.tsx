@@ -16,6 +16,10 @@ vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
 
+// The public entry also exports the transaction hooks, whose UI toast import
+// does not transform under vitest; these tests never render toasts.
+vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e';
 
 function balance(value: bigint, decimals = 18) {
