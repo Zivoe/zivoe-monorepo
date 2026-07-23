@@ -33,7 +33,8 @@ const TOKEN_ICON: Record<Token, ReactNode> = {
   frxUSD: <FrxUsdIcon />,
   zSTT: <ZsttIcon />,
   zVLT: <ZVltLogo />,
-  stSTT: <ZsttIcon />
+  stSTT: <ZsttIcon />,
+  zMCA: <ZVltLogo />
 };
 
 export function TransactionDialog() {

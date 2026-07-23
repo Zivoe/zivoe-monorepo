@@ -1,6 +1,6 @@
 import { mainnet } from 'viem/chains';
 
-import { type DepositToken, type Token } from '@/types/constants';
+import { type Token } from '@/types/constants';
 
 export type AnalyticsEvent =
   | 'auth:sign-up'
@@ -42,8 +42,8 @@ export type TransactionAnalyticsInput = {
   step: string;
   walletAddress?: string | null;
   chainId?: number;
-  tokenIn?: DepositToken | Token | 'USDC' | 'zVLT' | null;
-  tokenOut?: DepositToken | Token | 'USDC' | 'zVLT' | null;
+  tokenIn?: Token | null;
+  tokenOut?: Token | null;
   amountInRaw?: bigint | string | number | null;
   amountOutRaw?: bigint | string | number | null;
   spender?: string | null;

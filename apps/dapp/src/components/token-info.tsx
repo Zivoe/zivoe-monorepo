@@ -32,5 +32,10 @@ export const TOKEN_INFO: Record<Token, { label: string; description: string; ico
     label: 'stSTT',
     description: 'Staked Senior Tranche Token',
     icon: <ZsttIcon />
+  },
+  zMCA: {
+    label: 'zMCA',
+    description: 'Zivoe MCA',
+    icon: <ZVltLogo />
   }
 };

@@ -2,11 +2,14 @@ import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
 import { NETWORK_RPC_URLS } from '@/lib/network';
 
+import { AppError } from '@/lib/utils';
+
 import { CENTRIFUGE_CONFIG } from './config';
 import { type VaultEntity } from './entities';
 
 let client: Centrifuge | undefined;
 let vaultPromise: Promise<VaultEntity> | undefined;
+let signerInUse = false;
 
 function getCentrifuge(): Centrifuge {
   if (typeof window === 'undefined')
@@ -30,6 +33,25 @@ export function getVault(): Promise<VaultEntity> {
   });
 
   return vaultPromise;
+}
+
+/**
+ * Installs the signer for exactly one transaction and returns its release —
+ * call that in a finally block. The lock prevents overlapping transactions
+ * from racing the SDK's instance-level signer state; because release only
+ * exists for the transaction that acquired the signer, a contender that threw
+ * here cannot strip the in-flight transaction's signer or its lock.
+ */
+export function setTransactionSigner(signer: { request(...args: Array<never>): Promise<unknown> }): () => void {
+  if (signerInUse) throw new AppError({ message: 'Another transaction is already in progress' });
+
+  signerInUse = true;
+  getCentrifuge().setSigner(signer);
+
+  return () => {
+    signerInUse = false;
+    if (client) client.setSigner(null);
+  };
 }
 
 async function resolveVault(): Promise<VaultEntity> {
