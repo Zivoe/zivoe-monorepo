@@ -7,11 +7,14 @@ import { getDefaultStore } from 'jotai';
 import {
   RawContractError,
   type TransactionReceipt,
+  createWalletClient,
+  custom,
   encodeAbiParameters,
   encodeErrorResult,
   encodeEventTopics,
   parseAbi
 } from 'viem';
+import { sepolia } from 'viem/chains';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
@@ -31,9 +34,10 @@ const analyticsCapture = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: analyticsCapture }) }));
 
 const publicClientCall = vi.hoisted(() => vi.fn());
+const publicClientGetReceipt = vi.hoisted(() => vi.fn());
 vi.mock('wagmi', () => ({
   useConfig: () => ({}),
-  usePublicClient: () => ({ call: publicClientCall }),
+  usePublicClient: () => ({ call: publicClientCall, getTransactionReceipt: publicClientGetReceipt }),
   useWriteContract: () => ({ mutateAsync: vi.fn() })
 }));
 
@@ -104,6 +108,95 @@ function fakeVault({ receipt }: { receipt: TransactionReceipt }) {
             });
             observer.next({ type: 'TransactionPending', hash: TX_HASH });
             observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
+            observer.complete();
+          } catch (error) {
+            observer.error(error);
+          }
+        })();
+
+        return { unsubscribe: () => undefined };
+      }
+    })
+  };
+}
+
+/**
+ * Emits pending, then errors the stream the way the SDK's doTransaction does on
+ * a reverted receipt. With `errorCarriesReceipt: false` the error arrives
+ * receipt-less, like when the dev log forwarder displaces the SDK's throw.
+ */
+function fakeVaultRevertingOnChain({
+  receipt,
+  errorCarriesReceipt = true
+}: {
+  receipt: TransactionReceipt;
+  errorCarriesReceipt?: boolean;
+}) {
+  return {
+    syncDeposit: () => ({
+      then: () => {
+        throw new Error('SDK Transaction awaited directly — return it wrapped as { tx }');
+      },
+      subscribe: (observer: {
+        next: (status: { type: string; hash?: string }) => void;
+        error: (error: unknown) => void;
+      }) => {
+        observer.next({ type: 'TransactionPending', hash: receipt.transactionHash });
+        observer.error(
+          errorCarriesReceipt
+            ? Object.assign(new Error('Transaction reverted'), { receipt })
+            : new TypeError('Do not know how to serialize a BigInt')
+        );
+        return { unsubscribe: () => undefined };
+      }
+    })
+  };
+}
+
+/** Errors the stream with a plain SDK error, as thrown before signing. */
+function fakeVaultFailingWith(error: Error) {
+  return {
+    syncDeposit: () => ({
+      then: () => {
+        throw new Error('SDK Transaction awaited directly — return it wrapped as { tx }');
+      },
+      subscribe: (observer: { error: (error: unknown) => void }) => {
+        observer.error(error);
+        return { unsubscribe: () => undefined };
+      }
+    })
+  };
+}
+
+/**
+ * Sends through a real viem walletClient over the installed signer — the same
+ * custom(signer) transport the SDK uses, so signer rejections arrive with
+ * viem's production error wrapping.
+ */
+function fakeVaultThroughViemWallet() {
+  return {
+    syncDeposit: () => ({
+      then: () => {
+        throw new Error('SDK Transaction awaited directly — return it wrapped as { tx }');
+      },
+      subscribe: (observer: {
+        next: (status: { type: string; hash?: string; receipt?: TransactionReceipt }) => void;
+        error: (error: unknown) => void;
+        complete: () => void;
+      }) => {
+        void (async () => {
+          try {
+            const signer = setTransactionSigner.mock.calls[0]?.[0] as Parameters<typeof custom>[0];
+            const walletClient = createWalletClient({ account: INVESTOR, chain: sepolia, transport: custom(signer) });
+
+            observer.next({ type: 'SigningTransaction' });
+            const hash = await walletClient.sendTransaction({
+              to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+              data: '0xdeadbeef',
+              value: 0n
+            });
+            observer.next({ type: 'TransactionPending', hash });
+            observer.next({ type: 'TransactionConfirmed', hash, receipt: depositReceipt() });
             observer.complete();
           } catch (error) {
             observer.error(error);
@@ -286,5 +379,100 @@ describe('useDeposit', () => {
     // the in-flight transaction's signer and lock stay untouched.
     expect(releaseTransactionSigner).not.toHaveBeenCalled();
     expect(walletRequest).not.toHaveBeenCalled();
+  });
+
+  it('keeps the decoded copy when a real viem walletClient wraps the simulation error', async () => {
+    // custom(signer) transport buries the simulation's AppError in a
+    // TransactionExecutionError → UnknownRpcError cause chain.
+    getVault.mockResolvedValue(fakeVaultThroughViemWallet());
+    walletRequest.mockImplementation(({ method }: { method: string }) =>
+      Promise.resolve(method === 'eth_chainId' ? '0xaa36a7' : TX_HASH)
+    );
+    publicClientCall.mockRejectedValue(
+      new RawContractError({
+        data: encodeErrorResult({ abi: parseAbi(['error ExceedsMaxDeposit()']), errorName: 'ExceedsMaxDeposit' })
+      })
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit(), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // The wallet answered the chainId passthrough but never saw the send.
+    expect(walletRequest).not.toHaveBeenCalledWith(expect.objectContaining({ method: 'eth_sendTransaction' }));
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: "This vault can't accept that deposit right now. Try a smaller amount or try again later."
+    });
+  });
+
+  it('renders the failure dialog when the transaction reverts on-chain', async () => {
+    const revertedReceipt = { status: 'reverted', transactionHash: TX_HASH, logs: [] } as unknown as TransactionReceipt;
+    getVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit(), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(getDefaultStore().get(transactionAtom)).toEqual({
+      type: 'ERROR',
+      title: 'Deposit Failed',
+      description: 'Your deposit could not be completed.',
+      hash: TX_HASH
+    });
+    expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+    expect(analyticsCapture).toHaveBeenCalledWith(
+      'tx:deposit_failed',
+      expect.objectContaining({ receipt_status: 'reverted', tx_hash: TX_HASH })
+    );
+    // The receipt came off the error itself — no chain re-fetch needed.
+    expect(publicClientGetReceipt).not.toHaveBeenCalled();
+  });
+
+  it('recovers the reverted receipt from the chain when the SDK error loses it', async () => {
+    const revertedReceipt = { status: 'reverted', transactionHash: TX_HASH, logs: [] } as unknown as TransactionReceipt;
+    getVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt, errorCarriesReceipt: false }));
+    publicClientGetReceipt.mockResolvedValue(revertedReceipt);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit(), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(publicClientGetReceipt).toHaveBeenCalledWith({ hash: TX_HASH });
+    expect(getDefaultStore().get(transactionAtom)).toEqual({
+      type: 'ERROR',
+      title: 'Deposit Failed',
+      description: 'Your deposit could not be completed.',
+      hash: TX_HASH
+    });
+    expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+  });
+
+  it('maps wrong-network SDK errors to product copy', async () => {
+    getVault.mockResolvedValue(
+      fakeVaultFailingWith(
+        new Error(
+          'Wallet is connected to chainId=1 but transaction targets chainId=11155111. ' +
+            'Refusing to submit to avoid sending funds on the wrong network.'
+        )
+      )
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit(), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Your wallet is connected to the wrong network. Switch networks and try again.'
+    });
   });
 });
