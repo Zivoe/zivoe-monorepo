@@ -168,7 +168,9 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         capture(receipt.status === 'success' ? choreography?.confirmed.success : choreography?.confirmed.failed, {
           txHash: receipt.transactionHash,
           receiptStatus: receipt.status,
-          ...config.analytics?.receiptInput?.(receipt, vars)
+          // Reverted receipts carry no transfer events — decoding them would
+          // only fire a bogus failed-to-decode capture.
+          ...(receipt.status === 'success' ? config.analytics?.receiptInput?.(receipt, vars) : undefined)
         });
 
         // A reverted receipt resolves into the failure dialog (the mutation
