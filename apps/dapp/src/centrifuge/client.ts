@@ -1,7 +1,7 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 import { parseAbi } from 'viem';
 
-import { env } from '@/env';
+import { NETWORK_RPC_URLS } from '@/lib/network';
 
 import { CENTRIFUGE_CONFIG } from './config';
 import { type VaultEntity } from './entities';
@@ -13,21 +13,13 @@ function getCentrifuge(): Centrifuge {
   if (typeof window === 'undefined')
     throw new Error('The Centrifuge SDK client is client-only and must never be constructed on the server.');
 
-  if (!client) {
-    const rpcUrls = (
-      CENTRIFUGE_CONFIG.network === 'mainnet'
-        ? [env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY, env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY]
-        : [env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY, env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY]
-    ).filter((url): url is string => Boolean(url));
-
-    client = new Centrifuge({
-      environment: CENTRIFUGE_CONFIG.environment,
-      indexerUrl: CENTRIFUGE_CONFIG.indexerUrl,
-      ...(rpcUrls.length > 0 ? { rpcUrls: { [CENTRIFUGE_CONFIG.chainId]: rpcUrls } } : {}),
-      permitDisabled: true,
-      disableRepeatOnEvents: true
-    });
-  }
+  client ??= new Centrifuge({
+    environment: CENTRIFUGE_CONFIG.environment,
+    indexerUrl: CENTRIFUGE_CONFIG.indexerUrl,
+    ...(NETWORK_RPC_URLS.length > 0 ? { rpcUrls: { [CENTRIFUGE_CONFIG.chainId]: NETWORK_RPC_URLS } } : {}),
+    permitDisabled: true,
+    disableRepeatOnEvents: true
+  });
 
   return client;
 }
