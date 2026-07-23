@@ -25,10 +25,13 @@ export type SimulationClient = {
 // protocol/token error fragments missing from the generated ones.
 const EXTRA_ERROR_FRAGMENTS = parseAbi([
   'error RestrictionsFailed()',
+  'error TransferBlocked()',
   'error InsufficientReserve()',
   'error InsufficientBalance(address token, uint256 tokenId, uint256 value, uint256 balance)',
   'error InsufficientBalance()',
-  'error InsufficientAllowance()'
+  'error InsufficientAllowance()',
+  'error Paused()',
+  'error NotEnoughGas()'
 ]);
 
 const ERROR_ABI = [
