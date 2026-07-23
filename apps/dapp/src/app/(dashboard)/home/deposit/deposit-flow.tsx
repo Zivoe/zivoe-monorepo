@@ -416,7 +416,7 @@ function EstimatedAnnualizedReturn({ assets, apy }: { assets: bigint; apy: numbe
 
   return (
     <div className="border-default bg-surface-elevated flex flex-col gap-3 rounded-md border p-6">
-      <p className="text-regular text-secondary">Estimated annualized return</p>
+      <p className="text-regular text-secondary">Illustrative annualized return</p>
       <p className="text-h6 text-primary">{valueFormatted === null ? '—' : `$${valueFormatted}`}</p>
       <p className="text-extraSmall text-tertiary">Based on trailing 30-day performance; actual returns may differ.</p>
     </div>
