@@ -37,6 +37,7 @@
     "@upstash/redis": "^1.34.9",
     "@vercel/analytics": "^1.5.0",
     "@vercel/functions": "^2.1.0",
+    "@zivoe/centrifuge-indexer": "workspace:*",
     "@zivoe/database": "workspace:*",
     "@zivoe/ui": "workspace:*",
     "better-auth": "1.4.17",

@@ -16,13 +16,16 @@ const account = {
     spender
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
-  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO']
+  portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
+  investment: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'INVESTMENT']
 };
 
 const app = {
   vault: ['VAULT'],
   redemption: ['REDEMPTION'],
-  emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session']
+  emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
+  vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
+  depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()]
 };
 
 export const queryKeys = {

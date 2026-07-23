@@ -189,6 +189,9 @@ importers:
       '@vercel/functions':
         specifier: ^2.1.0
         version: 2.2.13(@aws-sdk/credential-provider-web-identity@3.972.34)
+      '@zivoe/centrifuge-indexer':
+        specifier: workspace:*
+        version: link:../../packages/centrifuge-indexer
       '@zivoe/database':
         specifier: workspace:*
         version: link:../../packages/database
