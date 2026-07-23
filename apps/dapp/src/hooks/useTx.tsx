@@ -269,6 +269,18 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
           receiptStatus: receipt.status
         });
 
+        // A reverted receipt resolves into the failure dialog (the mutation
+        // succeeds), so onError never sees it — capture here or the revert is
+        // invisible to Sentry.
+        if (receipt.status !== 'success')
+          Sentry.captureException(new Error('Transaction reverted on-chain'), {
+            tags: { source: 'MUTATION', flow: config.sentryFlow },
+            extra: {
+              ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+              txHash: receipt.transactionHash
+            }
+          });
+
         return { receipt };
       } catch (err) {
         const errorType = getAnalyticsErrorType(err);

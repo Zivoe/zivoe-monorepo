@@ -166,7 +166,9 @@ export const onTxError = ({
     refetch = err.refetch;
     capture = err.capture;
     toastMsg = err.message;
-    exception = err.exception ?? err.message;
+    // Fall back to the AppError itself (not its message) so guard failures
+    // reach Sentry with a stack and error class instead of a bare string.
+    exception = err.exception ?? err;
     type = err.type;
   }
 
