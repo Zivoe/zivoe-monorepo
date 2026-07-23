@@ -65,7 +65,14 @@ export async function fetchCentrifugeIndexer<TData, TResult, TVariables>({
   let body: { data?: unknown; errors?: Array<{ message?: string }> };
   try {
     body = (await response.json()) as typeof body;
-  } catch {
+  } catch (error) {
+    // The timeout signal also aborts a hung body read (headers arrived, body
+    // stalled) — surface that as the network timeout it is, not as malformed JSON.
+    if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError'))
+      throw new CentrifugeIndexerError({
+        kind: 'network',
+        message: `Centrifuge indexer response body read ${error.name === 'TimeoutError' ? 'timed out' : 'was aborted'}.`
+      });
     throw new CentrifugeIndexerError({
       kind: 'validation',
       message: 'Centrifuge indexer returned a non-JSON response.'
