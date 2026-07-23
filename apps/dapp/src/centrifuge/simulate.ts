@@ -92,12 +92,12 @@ async function simulateExactCall({
   const decoded = decodeRevert(err);
 
   if (decoded?.errorName === 'Error' && decoded.reason)
-    throw new AppError({ message: `Simulation error: ${decoded.reason}`, exception: err });
+    throw new AppError({ message: `Simulation error: ${decoded.reason}`, exception: err, simulation: true });
 
   const message = decoded && errorCopy[decoded.errorName];
-  if (message) throw new AppError({ message, exception: err });
+  if (message) throw new AppError({ message, exception: err, simulation: true });
 
-  throw new AppError({ message: 'Simulation error', exception: err });
+  throw new AppError({ message: 'Simulation error', exception: err, simulation: true });
 }
 
 function decodeRevert(error: unknown): { errorName: string; reason?: string } | undefined {
