@@ -29,12 +29,12 @@ export type TransactionEntity = {
 };
 
 export type VaultEntity = {
-  details(): PromiseLike<{ maxDeposit: BalanceLike }>;
+  details(): PromiseLike<{ maxDeposit: BalanceLike; isLinked: boolean }>;
   investment(investor: `0x${string}`): PromiseLike<{
-    shareBalance: BalanceLike;
     pendingRedeemShares: BalanceLike;
     claimableRedeemAssets: BalanceLike;
     claimableRedeemSharesEquivalent: BalanceLike;
   }>;
   syncDeposit(amount: BalanceLike): TransactionEntity;
+  asyncRedeem(sharesAmount: BalanceLike): TransactionEntity;
 };

@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
-import { mainnet } from 'viem/chains';
+import { mainnet, sepolia } from 'viem/chains';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
@@ -20,12 +20,16 @@ import {
 } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { CENTRIFUGE_CONFIG } from '@/centrifuge';
+
 import { DEPOSIT_TOKEN_DECIMALS, TOKEN_DECIMALS, type Token } from '@/types/constants';
 
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
-const EXPLORER_URL = mainnet.blockExplorers.default.url;
+import { env } from '@/env';
+
+const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia).blockExplorers.default.url;
 
 const TOKEN_ICON: Record<Token, ReactNode> = {
   USDC: <UsdcIcon />,
@@ -105,9 +109,9 @@ export function TransactionDialog() {
               <ArrowRightIcon className="text-icon-default size-4" />
 
               <TransactionDialogToken
-                token="zVLT"
+                token="zMCA"
                 amount={transaction.meta.deposit.receive}
-                decimals={18}
+                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
                 icon={<ZVltLogo />}
               />
             </TransactionDialogTokensSection>
@@ -116,9 +120,9 @@ export function TransactionDialog() {
           {transaction.meta?.redeem && (
             <TransactionDialogTokensSection>
               <TransactionDialogToken
-                token="zVLT"
+                token="zMCA"
                 amount={transaction.meta.redeem.amount}
-                decimals={18}
+                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
                 icon={<ZVltLogo />}
               />
 
@@ -127,8 +131,9 @@ export function TransactionDialog() {
               <TransactionDialogToken
                 token="USDC"
                 amount={transaction.meta.redeem.receive}
-                decimals={6}
+                decimals={CENTRIFUGE_CONFIG.usdc.decimals}
                 icon={<UsdcIcon />}
+                prefix="≈ "
               />
             </TransactionDialogTokensSection>
           )}
@@ -182,12 +187,14 @@ function TransactionDialogToken({
   token,
   amount,
   decimals,
-  icon
+  icon,
+  prefix
 }: {
   token: Token;
   amount: bigint;
   decimals: number;
   icon: ReactNode;
+  prefix?: string;
 }) {
   const amountFormatted = formatBigIntToReadable(amount, decimals);
 
@@ -196,6 +203,7 @@ function TransactionDialogToken({
       {icon}
 
       <p className="text-leading text-primary">
+        {prefix}
         {amountFormatted === '0.00' ? '<0.01' : amountFormatted} {token}
       </p>
     </div>
