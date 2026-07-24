@@ -52,7 +52,7 @@ async function DepositStatsComponent() {
   // days of performance history exist.
   if (!metrics) return null;
 
-  return <DepositStats nav={metrics.nav} apy={metrics.apy} />;
+  return <DepositStats nav={Number(metrics.navD18) / 1e18} apy={metrics.apy} />;
 }
 
 function DiamondSeparator() {

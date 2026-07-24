@@ -7,10 +7,12 @@ import { unstable_cache as nextCache } from 'next/cache';
 import * as Sentry from '@sentry/nextjs';
 
 import {
+  type ShareStatsPayload,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   getCentrifugeIndexerConfig,
-  rayToPercent
+  rayToPercent,
+  toShareStatsPayload
 } from '@zivoe/centrifuge-indexer';
 
 import { sharesToValueD18 } from '@/centrifuge/config';
@@ -99,36 +101,27 @@ export const getCentrifugeDailySnapshots = reactCache(
   }
 );
 
-async function fetchCurrentMetrics(): Promise<{ sharePrice: number; nav: number; apy: number | null }> {
+async function fetchCurrentMetrics(): Promise<ShareStatsPayload> {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
-  const metrics = await fetchCurrentShareMetrics({ config });
+  const { payload, negativeYield30d } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
 
-  let apy: number | null = null;
-  if (metrics.yield30dComp365 !== null) {
-    if (metrics.yield30dComp365 < 0n) reportNegativeYield({ yield30dComp365: metrics.yield30dComp365.toString() });
-    else apy = rayToPercent(metrics.yield30dComp365);
-  }
+  if (negativeYield30d !== null) reportNegativeYield({ yield30dComp365: negativeYield30d.toString() });
 
-  return {
-    sharePrice: Number(metrics.sharePrice) / 1e18,
-    nav: Number(metrics.nav) / 1e18,
-    apy
-  };
+  return payload;
 }
 
-const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics'], { revalidate: 60 });
+const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
 
 /**
- * Seconds-fresh current Share Price / NAV / 30-day Trailing APY from the shared
- * current-share-metrics query — never last-snapshot-stale. Same error contract
+ * Current Share Price / NAV / 30-day Trailing APY as the shared stats payload —
+ * the same projection the landing hero renders — behind a 30-second cache, the
+ * single current-metrics entry every dApp surface reads. Same error contract
  * as the daily snapshots: throw inside the cache, hide-and-capture outside.
  */
-export const getCurrentShareMetrics = reactCache(
-  async (): Promise<{ sharePrice: number; nav: number; apy: number | null } | undefined> => {
-    try {
-      return await cachedCurrentMetrics();
-    } catch (error) {
-      Sentry.captureException(error, { tags: { source: 'SERVER' } });
-    }
+export const getCurrentShareMetrics = reactCache(async (): Promise<ShareStatsPayload | undefined> => {
+  try {
+    return await cachedCurrentMetrics();
+  } catch (error) {
+    Sentry.captureException(error, { tags: { source: 'SERVER' } });
   }
-);
+});

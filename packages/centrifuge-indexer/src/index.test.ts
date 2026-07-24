@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CentrifugeIndexerError,
+  type CurrentShareMetrics,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   getCentrifugeIndexerConfig,
-  rayToPercent
+  rayToPercent,
+  toShareStatsPayload
 } from './index';
 
 const sepolia = getCentrifugeIndexerConfig('sepolia');
@@ -401,5 +403,42 @@ describe('rayToPercent', () => {
     expect(rayToPercent(50000000000000000000000000n)).toBe(5);
     expect(rayToPercent(-1250000000000000000000000n)).toBe(-0.125);
     expect(rayToPercent(0n)).toBe(0);
+  });
+});
+
+describe('toShareStatsPayload', () => {
+  const base: CurrentShareMetrics = {
+    sharePrice: 1070000000000000000n,
+    totalIssuance: 100000000000000000000n,
+    nav: 107000000000000000000n,
+    shareTokenDecimals: 18,
+    priceComputedAt: new Date(1783595010000),
+    yield30dComp365: null
+  };
+
+  it('projects D18 values as strings with a null yield passed through', () => {
+    const { payload, negativeYield30d } = toShareStatsPayload(base);
+
+    expect(payload).toEqual({
+      sharePriceD18: '1070000000000000000',
+      navD18: '107000000000000000000',
+      apy: null,
+      priceComputedAtMs: 1783595010000
+    });
+    expect(negativeYield30d).toBeNull();
+  });
+
+  it('converts a positive trailing yield to display percent', () => {
+    const { payload, negativeYield30d } = toShareStatsPayload({ ...base, yield30dComp365: 52500000000000000000000000n });
+
+    expect(payload.apy).toBe(5.25);
+    expect(negativeYield30d).toBeNull();
+  });
+
+  it('nulls an anomalous negative yield and surfaces the raw value for reporting', () => {
+    const { payload, negativeYield30d } = toShareStatsPayload({ ...base, yield30dComp365: -1n });
+
+    expect(payload.apy).toBeNull();
+    expect(negativeYield30d).toBe(-1n);
   });
 });

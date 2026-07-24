@@ -6,48 +6,44 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { fetchCurrentShareMetrics, getCentrifugeIndexerConfig, rayToPercent } from '@zivoe/centrifuge-indexer';
+import {
+  type ShareStatsPayload,
+  fetchCurrentShareMetrics,
+  getCentrifugeIndexerConfig,
+  toShareStatsPayload
+} from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
 
-type HeroMetrics = { navD18: string; sharePriceD18: string; apy: number | null };
-
-const fetchHeroMetrics = async (): Promise<HeroMetrics> => {
+const fetchHeroMetrics = async (): Promise<ShareStatsPayload> => {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
-  const metrics = await fetchCurrentShareMetrics({ config });
+  const { payload, negativeYield30d } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
 
-  // Mirrors the dApp: a negative trailing yield is technically possible but
-  // never expected for this pool — render the null state and ask a human to look.
-  let apy: number | null = null;
-  if (metrics.yield30dComp365 !== null) {
-    if (metrics.yield30dComp365 < 0n) {
-      Sentry.captureMessage('Centrifuge indexer reported a negative 30-day trailing yield', {
-        level: 'warning',
-        tags: { source: 'SERVER' },
-        extra: { yield30dComp365: metrics.yield30dComp365.toString() }
-      });
-    } else apy = rayToPercent(metrics.yield30dComp365);
+  // A negative trailing yield is technically possible but never expected for
+  // this pool — the shared projection nulls it; this alert asks a human to look.
+  if (negativeYield30d !== null) {
+    Sentry.captureMessage('Centrifuge indexer reported a negative 30-day trailing yield', {
+      level: 'warning',
+      tags: { source: 'SERVER' },
+      extra: { yield30dComp365: negativeYield30d.toString() }
+    });
   }
 
-  // unstable_cache serializes to JSON, so bigints travel as strings.
-  return {
-    navD18: metrics.nav.toString(),
-    sharePriceD18: metrics.sharePrice.toString(),
-    apy
-  };
+  return payload;
 };
 
-const cachedHeroMetrics = nextCache(fetchHeroMetrics, ['centrifuge-current-share-metrics'], { revalidate: 60 });
+const cachedHeroMetrics = nextCache(fetchHeroMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
 
 /**
- * Seconds-fresh Share Price / NAV / 30-day Trailing APY from the shared
- * Centrifuge current-share-metrics query — the same source the dApp reads.
- * Sentry-captured failure returns undefined so the hero hides the stats
- * instead of rendering wrong numbers. The fetch throws inside the cache
- * boundary on purpose: a failed background revalidation then keeps serving
- * the last good payload instead of caching `undefined` over it.
+ * Current Share Price / NAV / 30-day Trailing APY as the shared stats payload —
+ * the exact projection the dApp renders, so the two apps cannot drift on
+ * semantics (cache timing aside). Sentry-captured failure returns undefined so
+ * the hero hides the stats instead of rendering wrong numbers. The fetch
+ * throws inside the cache boundary on purpose: a failed background
+ * revalidation then keeps serving the last good payload instead of caching
+ * `undefined` over it.
  */
-const getCurrentShareMetrics = reactCache(async (): Promise<HeroMetrics | undefined> => {
+const getCurrentShareMetrics = reactCache(async (): Promise<ShareStatsPayload | undefined> => {
   try {
     return await cachedHeroMetrics();
   } catch (error) {
