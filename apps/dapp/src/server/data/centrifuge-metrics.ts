@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/nextjs';
 
 import {
   type ShareStatsPayload,
+  createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   getCentrifugeIndexerConfig,
@@ -132,21 +133,15 @@ export const getCentrifugeDailySnapshots = reactCache(
   }
 );
 
-// Per-instance dedupe for the 30-second live path: while the condition holds
-// it would otherwise re-fire on every revalidation (~2,880 events/day).
-let lastLiveNegativeYieldReportDay: string | undefined;
+const reportLiveNegativeYield = createDailyNegativeYieldReporter((negativeYield30d) =>
+  reportNegativeYield({ yield30dComp365: negativeYield30d.toString() })
+);
 
 async function fetchCurrentMetrics(): Promise<ShareStatsPayload> {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
   const { payload, negativeYield30d } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
 
-  if (negativeYield30d !== null) {
-    const utcDay = new Date().toISOString().slice(0, 10);
-    if (lastLiveNegativeYieldReportDay !== utcDay) {
-      lastLiveNegativeYieldReportDay = utcDay;
-      reportNegativeYield({ yield30dComp365: negativeYield30d.toString() });
-    }
-  }
+  reportLiveNegativeYield({ negativeYield30d });
 
   return payload;
 }

@@ -7,6 +7,7 @@ export {
 export { CentrifugeIndexerError, fetchCentrifugeIndexer, type CentrifugeIndexerErrorKind } from './fetch';
 export { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from './graphql';
 export {
+  createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   toShareStatsPayload,
   type CurrentShareMetrics,

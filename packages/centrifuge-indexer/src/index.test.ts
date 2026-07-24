@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CentrifugeIndexerError,
+  createDailyNegativeYieldReporter,
   type CurrentShareMetrics,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
@@ -440,5 +441,21 @@ describe('toShareStatsPayload', () => {
 
     expect(payload.apy).toBeNull();
     expect(negativeYield30d).toBe(-1n);
+  });
+});
+
+describe('createDailyNegativeYieldReporter', () => {
+  it('reports at most once per UTC day while the anomaly persists', () => {
+    const report = vi.fn();
+    const reportNegativeYield = createDailyNegativeYieldReporter(report);
+
+    reportNegativeYield({ negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
+    reportNegativeYield({ negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
+    reportNegativeYield({ negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
+    reportNegativeYield({ negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
+
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(report).toHaveBeenNthCalledWith(1, -1n);
+    expect(report).toHaveBeenNthCalledWith(2, -3n);
   });
 });
