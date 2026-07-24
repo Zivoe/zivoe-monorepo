@@ -90,10 +90,22 @@ export const parseChartData = ({
     // Guarantee visible headroom so the line never rides the top gridline.
     if (roundedMax - maxValue < 0.005) roundedMax = Math.round((roundedMax + 0.01) * 100) / 100;
 
-    domain = [0.99, roundedMax];
+    // Floor mirrors the ceiling: round down to the cent with visible footroom,
+    // capped at the familiar 0.99 par baseline. A hardcoded 0.99 floor would
+    // clip sub-par closes off-chart and invert the domain once every close
+    // sits below it.
+    const minValue = Math.min(...values);
+    let roundedMin = Math.floor(Math.round(minValue * 10000) / 100) / 100;
+    if (minValue - roundedMin < 0.005) roundedMin = Math.round((roundedMin - 0.01) * 100) / 100;
+    const floor = Math.min(0.99, roundedMin);
 
+    domain = [floor, roundedMax];
+
+    // One-cent ticks in the usual near-par band; widen the step when a
+    // drawdown stretches the axis so labels stay readable.
+    const stepCents = Math.max(1, Math.ceil(Math.round((roundedMax - floor) * 100) / 12));
     ticks = [];
-    for (let tick = 0.99; tick <= roundedMax; tick = Math.round((tick + 0.01) * 100) / 100) {
+    for (let tick = floor; tick <= roundedMax; tick = Math.round((tick + stepCents / 100) * 100) / 100) {
       ticks.push(tick);
     }
   } else if (values.length > 0) {
