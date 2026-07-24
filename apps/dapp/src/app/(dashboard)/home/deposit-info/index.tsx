@@ -11,7 +11,7 @@ import Documents from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
 import DepositStats from './deposit-stats';
 
-export default async function DepositInfo() {
+export default function DepositInfo() {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
       <DepositChartsComponent />
@@ -38,20 +38,21 @@ export default async function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  const snapshots = await data.getDepositDailySnapshots();
-  if (!snapshots) return null;
+  const snapshots = await data.getCentrifugeDailySnapshots();
+  if (!snapshots || snapshots.length === 0) return null;
 
   return <DepositCharts snapshots={snapshots} />;
 }
 
 async function DepositStatsComponent() {
-  const [currentProtocolDailySnapshot, revenue] = await Promise.all([
-    data.getCurrentDailySnapshot(),
-    data.getRevenue()
-  ]);
-  if (!currentProtocolDailySnapshot || !revenue) return null;
+  const metrics = await data.getCurrentShareMetrics();
 
-  return <DepositStats tvl={currentProtocolDailySnapshot.tvl.total} revenue={BigInt(revenue)} />;
+  // Indexer failure hides the stats rather than rendering wrong numbers. A
+  // successful fetch with a null APY is the young-pool case: fewer than 30
+  // days of performance history exist.
+  if (!metrics) return null;
+
+  return <DepositStats nav={metrics.nav} apy={metrics.apy} />;
 }
 
 function DiamondSeparator() {

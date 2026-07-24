@@ -79,6 +79,7 @@
     "@zivoe/ts-config": "workspace:*",
     "drizzle-kit": "^0.30.6",
     "eslint": "^9.21.0",
+    "gql.tada": "^1.11.2",
     "import-in-the-middle": "^1.14.2",
     "jsdom": "^26.1.0",
     "ponder": "^0.12.0",
