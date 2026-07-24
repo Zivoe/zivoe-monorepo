@@ -10,7 +10,7 @@ import { type DepositPageView } from './deposit/_utils';
 export default function Home({ initialView }: { initialView: DepositPageView }) {
   return (
     <div className="bg-surface-base">
-      <Hero title="zVLT" description="Gain exposure to private credit" />
+      <Hero title="zMCA" description="Gain exposure to private credit" />
 
       <Page className="flex gap-10 lg:flex-row">
         <DepositInfo />
@@ -21,10 +21,9 @@ export default function Home({ initialView }: { initialView: DepositPageView }) 
 }
 
 async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
-  let apy: number | null = null;
+  // 30-day Trailing APY from the shared current-share-metrics path; null until
+  // 30 days of history exist (or on indexer failure — the card shows a dash).
+  const metrics = await data.getCurrentShareMetrics();
 
-  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
-  if (currentProtocolDailySnapshot) apy = currentProtocolDailySnapshot.apy;
-
-  return <Deposit apy={apy} initialView={initialView} />;
+  return <Deposit apy={metrics?.apy ?? null} initialView={initialView} />;
 }

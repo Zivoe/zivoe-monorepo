@@ -4,38 +4,46 @@ import { useState } from 'react';
 
 import { type Key } from 'react-aria-components';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
-import { formatEther } from 'viem';
+
+import { type ShareStatsPayload, getUtcDayStartSeconds } from '@zivoe/centrifuge-indexer';
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
 
-import { type DepositDailySnapshot } from '@/server/data';
+import { type CentrifugeDailySnapshot } from '@/server/data';
 
 import { customNumber } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const CHART_TYPES = ['Index price', 'TVL'] as const;
+import { CHART_TYPES, formatChartValue, parseChartData } from './deposit-charts-data';
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
 
-export default function DepositCharts({ snapshots }: { snapshots: Array<DepositDailySnapshot> }) {
+export default function DepositCharts({
+  snapshots,
+  current
+}: {
+  snapshots: Array<CentrifugeDailySnapshot>;
+  current: ShareStatsPayload | null;
+}) {
   const isMobile = useIsMobile();
 
   const [selectedChartType, setSelectedChartType] = useState<Key>(0);
 
-  const chart = parseChartData({ snapshots, typeIndex: selectedChartType });
+  const chart = parseChartData({
+    snapshots,
+    current,
+    typeIndex: selectedChartType,
+    todayStartMs: getUtcDayStartSeconds(Date.now()) * 1000
+  });
   if (!chart) return null;
 
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex justify-between gap-2">
-        {chart.currentValue && (
-          <p className="text-h4 text-primary">
-            ${customNumber(chart.currentValue, chart.type === 'Index price' ? 3 : 2)}
-          </p>
-        )}
+        {chart.headline !== undefined && <p className="text-h4 text-primary">{chart.headline}</p>}
 
         <Select
           placeholder="Select"
@@ -82,7 +90,7 @@ export default function DepositCharts({ snapshots }: { snapshots: Array<DepositD
               scale="linear"
               domain={chart.domain}
               ticks={chart.ticks}
-              tickFormatter={(value) => (chart.type === 'TVL' ? customNumber(value) : value)}
+              tickFormatter={(value) => (chart.type === 'NAV' ? customNumber(value) : value)}
             />
 
             <ChartTooltip
@@ -92,13 +100,12 @@ export default function DepositCharts({ snapshots }: { snapshots: Array<DepositD
                   indicator="dot"
                   hideLabel
                   formatter={(value, _, item) => {
-                    const data = value;
                     const date = item.payload.day;
 
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="font-heading! text-regular tabular-nums text-primary">
-                          ${customNumber(Number(data), chart.type === 'Index price' ? 3 : 2)}
+                          {formatChartValue(chart.type, Number(value))}
                         </span>
                         <span className="text-small text-secondary">{date}</span>
                       </div>
@@ -122,61 +129,3 @@ export default function DepositCharts({ snapshots }: { snapshots: Array<DepositD
     </div>
   );
 }
-
-const parseChartData = ({ snapshots, typeIndex }: { snapshots: Array<DepositDailySnapshot>; typeIndex: Key }) => {
-  const type = CHART_TYPES[Number(typeIndex)];
-  if (!type) return undefined;
-
-  const data = snapshots.map((item) => {
-    const date = new Date(item.timestamp);
-    const day = date.getUTCDate();
-    const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-    const year = date.getUTCFullYear();
-
-    let data: number | undefined;
-    if (type === 'Index price') data = item.indexPrice;
-    else if (type === 'TVL') data = Number(formatEther(BigInt(item.tvl.total)));
-    else data = item.apy;
-
-    return {
-      day: `${day} ${month} ${year}`,
-      data
-    };
-  });
-
-  const currentProtocolDailySnapshot = snapshots[snapshots.length - 1];
-  if (!currentProtocolDailySnapshot) return undefined;
-
-  let currentValue: number | undefined;
-  if (type === 'Index price') currentValue = currentProtocolDailySnapshot.indexPrice;
-  else if (type === 'TVL') currentValue = Number(formatEther(BigInt(currentProtocolDailySnapshot.tvl.total)));
-  else currentValue = currentProtocolDailySnapshot.apy;
-
-  let domain: [number, number];
-  let ticks: Array<number> | undefined;
-
-  if (type === 'TVL') {
-    domain = [5_000_000, 10_000_000];
-  } else {
-    const values = data.map((d) => d.data).filter((d) => d !== undefined);
-    const maxValue = Math.max(...values);
-
-    // Round up to nearest 0.01
-    const roundedMax = Math.ceil(maxValue * 100) / 100;
-    domain = [0.99, roundedMax];
-
-    // Generate ticks at 0.01 intervals
-    ticks = [];
-    for (let tick = 0.99; tick <= roundedMax; tick = Math.round((tick + 0.01) * 100) / 100) {
-      ticks.push(tick);
-    }
-  }
-
-  return {
-    data,
-    currentValue,
-    type,
-    domain,
-    ticks
-  };
-};

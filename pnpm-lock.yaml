@@ -310,6 +310,9 @@ importers:
       eslint:
         specifier: ^9.21.0
         version: 9.39.4(jiti@2.7.0)
+      gql.tada:
+        specifier: ^1.11.2
+        version: 1.11.2(graphql@16.13.2)(typescript@5.7.3)
       import-in-the-middle:
         specifier: ^1.14.2
         version: 1.15.0
@@ -388,21 +391,18 @@ importers:
       '@vercel/analytics':
         specifier: ^1.5.0
         version: 1.6.1(next@15.6.0-canary.60(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.77.4))(react@19.2.5)
+      '@zivoe/centrifuge-indexer':
+        specifier: workspace:*
+        version: link:../../packages/centrifuge-indexer
       '@zivoe/cms-types':
         specifier: workspace:*
         version: link:../../packages/cms-types
-      '@zivoe/database':
-        specifier: workspace:*
-        version: link:../../packages/database
       '@zivoe/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
         specifier: 15.6.0-canary.60
         version: 15.6.0-canary.60(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.77.4)
-      postgres:
-        specifier: ^3.4.5
-        version: 3.4.9
       posthog-js:
         specifier: ^1.257.0
         version: 1.371.1

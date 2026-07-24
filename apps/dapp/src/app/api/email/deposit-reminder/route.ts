@@ -5,8 +5,9 @@ import { z } from 'zod';
 
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
+import { hasAnyInvestorTransaction } from '@/server/data/centrifuge-investor';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
-import { hasUserDeposited } from '@/server/data/ponder';
+import { getWalletAddressesForUser } from '@/server/data/wallets';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
@@ -39,8 +40,10 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
-  const hasDeposited = await hasUserDeposited(userId);
-  if (hasDeposited) return NextResponse.json({ success: true, data: 'User has already deposited, skipping reminder' });
+  const wallets = await getWalletAddressesForUser(userId);
+  const hasInvestorActivity = await hasAnyInvestorTransaction({ addresses: wallets });
+  if (hasInvestorActivity)
+    return NextResponse.json({ success: true, data: 'User already has investor activity, skipping reminder' });
 
   const isProductTipsEnabled = await isEmailPreferenceEnabled({
     userId,

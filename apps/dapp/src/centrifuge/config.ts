@@ -72,3 +72,11 @@ export function sharesToUsdc({ shares, sharePrice }: { shares: bigint; sharePric
     10n ** BigInt(18 - CENTRIFUGE_CONFIG.usdc.decimals)
   );
 }
+
+/**
+ * 18-decimal USD value of a zMCA amount at an 18-decimal Share Price. NAV is
+ * the same conversion applied to the class's total issuance.
+ */
+export function sharesToValueD18({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }): bigint {
+  return (shares * sharePrice) / 10n ** BigInt(CENTRIFUGE_CONFIG.shareToken.decimals);
+}

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { type CentrifugeIndexerConfig } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
+import { rayToPercent } from '../units';
 
 const CURRENT_SHARE_METRICS_QUERY = graphql(`
   query CurrentShareMetrics($shareTokenAddress: String!, $tokenId: String!) {
@@ -67,6 +68,67 @@ export type CurrentShareMetrics = {
    */
   yield30dComp365: bigint | null;
 };
+
+export type ShareStatsPayload = {
+  /** Manager-published Share Price in USD, 18 decimals, as a decimal string. */
+  sharePriceD18: string;
+  /** Share-class NAV in USD, 18 decimals, as a decimal string. */
+  navD18: string;
+  /** 30-day Trailing APY in percent; null until 30 days of history exist or when the yield is anomalous. */
+  apy: number | null;
+  /** When the manager last published the Share Price (ms since epoch) — the staleness signal. */
+  priceComputedAtMs: number;
+};
+
+/**
+ * The one JSON-plain projection of current share metrics that every stats
+ * surface (dApp and landing) renders from, so the apps cannot drift on
+ * semantics. D18 values travel as strings because Next's cache layers
+ * JSON-serialize payloads. A negative trailing yield (a Share Price decline
+ * over the window) is treated as anomalous: the payload carries a null APY
+ * and `negativeYield30d` carries the raw value so callers can report it.
+ */
+export function toShareStatsPayload(metrics: CurrentShareMetrics): {
+  payload: ShareStatsPayload;
+  negativeYield30d: bigint | null;
+} {
+  const isNegative = metrics.yield30dComp365 !== null && metrics.yield30dComp365 < 0n;
+
+  return {
+    payload: {
+      sharePriceD18: metrics.sharePrice.toString(),
+      navD18: metrics.nav.toString(),
+      apy: metrics.yield30dComp365 === null || isNegative ? null : rayToPercent(metrics.yield30dComp365),
+      priceComputedAtMs: metrics.priceComputedAt.getTime()
+    },
+    negativeYield30d: isNegative ? metrics.yield30dComp365 : null
+  };
+}
+
+/**
+ * Creates a per-process reporter for the live negative-yield anomaly. Current
+ * metrics revalidate frequently, so a persistent anomaly reports at most once
+ * per UTC day instead of on every fetch.
+ */
+export function createDailyNegativeYieldReporter(report: (negativeYield30d: bigint) => void) {
+  let lastReportedUtcDay: string | undefined;
+
+  return ({
+    negativeYield30d,
+    now = new Date()
+  }: {
+    negativeYield30d: bigint | null;
+    now?: Date;
+  }): void => {
+    if (negativeYield30d === null) return;
+
+    const utcDay = now.toISOString().slice(0, 10);
+    if (utcDay === lastReportedUtcDay) return;
+
+    lastReportedUtcDay = utcDay;
+    report(negativeYield30d);
+  };
+}
 
 export async function fetchCurrentShareMetrics({
   config,

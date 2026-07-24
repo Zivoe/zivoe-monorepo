@@ -3,9 +3,9 @@ import { Suspense } from 'react';
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
-import { web3 } from '@/server/web3';
+import { centrifuge } from '@/server/centrifuge';
 
-import { formatBigIntToReadable } from '@/lib/utils';
+import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -67,17 +67,19 @@ function HeroButton(props: LinkProps) {
 }
 
 async function Statistics() {
-  const [currentDailySnapshot, revenue] = await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
+  const metrics = await centrifuge.getCurrentShareMetrics();
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      {currentDailySnapshot?.tvl ? (
-        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailySnapshot.tvl.total))} />
+      {metrics ? (
+        <>
+          <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
+
+          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '—'} />
+        </>
       ) : null}
 
-      <Statistic label="Target Net APY" value="10%+" />
-
-      {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
+      <Statistic label="Revenue" value="–" />
     </div>
   );
 }
