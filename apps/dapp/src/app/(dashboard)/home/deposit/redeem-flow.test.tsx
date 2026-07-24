@@ -173,10 +173,16 @@ describe('RedeemFlow', () => {
       expect.objectContaining({ onSuccess: expect.any(Function) })
     );
 
-    // A failed request keeps the amount for a retry; success clears it.
+    // A failed request keeps the amount for a retry; success clears it. The
+    // mutation resolves reverted receipts as success too — only a confirmed
+    // receipt may clear the form.
     expect(getInput('Redeem').value).toBe('2');
-    const options = mocks.requestRedeem.mock.calls[0]?.[1] as { onSuccess: () => void };
-    act(() => options.onSuccess());
+    const options = mocks.requestRedeem.mock.calls[0]?.[1] as {
+      onSuccess: (data: { receipt: { status: 'success' | 'reverted' } }) => void;
+    };
+    act(() => options.onSuccess({ receipt: { status: 'reverted' } }));
+    expect(getInput('Redeem').value).toBe('2');
+    act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Redeem').value).toBe('');
   });
 
