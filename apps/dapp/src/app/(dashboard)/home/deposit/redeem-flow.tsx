@@ -97,8 +97,10 @@ export default function RedeemFlow() {
   const isFormLocked = isPrereqsLoading || requestRedeem.isPending || claimRedeem.isPending;
 
   // Page-level failure surfaces immediately; a retry in flight shows loading
-  // rather than the stale error.
-  const isEstimateFailed = metrics.isError && !metrics.isFetching;
+  // rather than the stale error. A fetched Share Price of 0 (pre-first-price
+  // row or upstream glitch) also fails the estimate — a truthiness pass-through
+  // would park the submit in a permanent 'Estimating USDC...' state instead.
+  const isEstimateFailed = (metrics.isError || (!metrics.isPending && !sharePrice)) && !metrics.isFetching;
   // Only manifests during an error retry — the initial metrics load already
   // locks the whole form through isPrereqsLoading.
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
