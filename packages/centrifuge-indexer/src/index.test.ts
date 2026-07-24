@@ -4,7 +4,8 @@ import {
   CentrifugeIndexerError,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
-  getCentrifugeIndexerConfig
+  getCentrifugeIndexerConfig,
+  rayToPercent
 } from './index';
 
 const sepolia = getCentrifugeIndexerConfig('sepolia');
@@ -392,5 +393,13 @@ describe('fetchDailyTokenSnapshots', () => {
 
     expect(truncated).toBe(true);
     expect(snapshots).toHaveLength(1000);
+  });
+});
+
+describe('rayToPercent', () => {
+  it('converts Ray-scale yields to display percent, preserving sign', () => {
+    expect(rayToPercent(50000000000000000000000000n)).toBe(5);
+    expect(rayToPercent(-1250000000000000000000000n)).toBe(-0.125);
+    expect(rayToPercent(0n)).toBe(0);
   });
 });

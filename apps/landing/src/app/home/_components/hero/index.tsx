@@ -5,7 +5,7 @@ import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
 import { centrifuge } from '@/server/centrifuge';
 
-import { formatBigIntToReadable } from '@/lib/utils';
+import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -71,9 +71,13 @@ async function Statistics() {
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      {metrics ? <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} /> : null}
+      {metrics ? (
+        <>
+          <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
 
-      <Statistic label="Target Net APY" value="10%+" />
+          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '—'} />
+        </>
+      ) : null}
 
       <Statistic label="Revenue" value="–" />
     </div>

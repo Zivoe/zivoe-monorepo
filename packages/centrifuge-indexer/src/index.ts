@@ -12,3 +12,4 @@ export {
   getUtcDayStartSeconds,
   type DailyTokenSnapshot
 } from './queries/daily-token-snapshots';
+export { rayToPercent } from './units';

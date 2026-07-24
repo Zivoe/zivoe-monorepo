@@ -9,15 +9,13 @@ import * as Sentry from '@sentry/nextjs';
 import {
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
-  getCentrifugeIndexerConfig
+  getCentrifugeIndexerConfig,
+  rayToPercent
 } from '@zivoe/centrifuge-indexer';
 
 import { sharesToValueD18 } from '@/centrifuge/config';
 
 import { env } from '@/env';
-
-// Ray (1e27) yields: dividing by 1e25 gives percent.
-const RAY_PER_PERCENT = 1e25;
 
 export type CentrifugeDailySnapshot = {
   timestampMs: number;
@@ -61,7 +59,7 @@ async function fetchDailySnapshots(): Promise<Array<CentrifugeDailySnapshot>> {
     let apy: number | null = null;
     if (snapshot.yield30dComp365 !== null) {
       if (snapshot.yield30dComp365 < 0n) negativeYieldDays += 1;
-      else apy = Number(snapshot.yield30dComp365) / RAY_PER_PERCENT;
+      else apy = rayToPercent(snapshot.yield30dComp365);
     }
 
     const navD18 = sharesToValueD18({ shares: snapshot.totalIssuance, sharePrice: snapshot.tokenPrice });
@@ -108,7 +106,7 @@ async function fetchCurrentMetrics(): Promise<{ sharePrice: number; nav: number;
   let apy: number | null = null;
   if (metrics.yield30dComp365 !== null) {
     if (metrics.yield30dComp365 < 0n) reportNegativeYield({ yield30dComp365: metrics.yield30dComp365.toString() });
-    else apy = Number(metrics.yield30dComp365) / RAY_PER_PERCENT;
+    else apy = rayToPercent(metrics.yield30dComp365);
   }
 
   return {
