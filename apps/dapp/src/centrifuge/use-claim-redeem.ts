@@ -9,7 +9,9 @@ import useCentrifugeTx, { invalidateInvestmentQueries } from './useCentrifugeTx'
 const CLAIM_REDEEM_SIMULATION_ERROR_COPY = {
   VaultNotLinked: 'Claims are temporarily unavailable for this vault.',
   TransferNotAllowed: "These proceeds can't be claimed to this wallet right now.",
+  TransferBlocked: "These proceeds can't be claimed to this wallet right now.",
   ExceedsRedeemLimits: 'Your claimable amount changed. Refresh and try again.',
+  ExceedsMaxRedeem: 'Your claimable amount changed. Refresh and try again.',
   InsufficientReserve: 'Redemption proceeds are temporarily unavailable. Try again later.',
   InsufficientBalance: 'Redemption proceeds are temporarily unavailable. Try again later.'
 };

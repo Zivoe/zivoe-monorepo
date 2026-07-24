@@ -13,7 +13,10 @@ const REQUEST_REDEEM_SIMULATION_ERROR_COPY = {
   CancellationIsPending: 'Wait for your cancellation to complete before requesting another redemption.',
   ZeroAmountNotAllowed: 'Enter an amount greater than zero.',
   VaultNotLinked: 'Redemption requests are temporarily unavailable for this vault.',
-  TransferNotAllowed: "This redemption request can't be submitted from this wallet right now."
+  TransferNotAllowed: "This redemption request can't be submitted from this wallet right now.",
+  TransferBlocked: "This redemption request can't be submitted from this wallet right now.",
+  Paused: 'Redemptions are temporarily paused. Try again later.',
+  NotEnoughGas: 'The network fee estimate changed. Try again.'
 };
 
 const REQUEST_REDEEM_SDK_ERROR_COPY = {

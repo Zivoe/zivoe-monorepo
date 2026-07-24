@@ -14,8 +14,10 @@ const DEPOSIT_SIMULATION_ERROR_COPY = {
   InsufficientBalance: "You don't have enough USDC for this deposit.",
   InsufficientAllowance: 'Your USDC approval is no longer sufficient. Approve the amount again and retry.',
   ExceedsMaxDeposit: "This vault can't accept that deposit right now. Try a smaller amount or try again later.",
+  ExceedsMaxMint: "This vault can't accept that deposit right now. Try a smaller amount or try again later.",
   InvalidPrice: 'The current deposit price is unavailable. Try again later.',
-  RestrictionsFailed: "This deposit can't be completed for this wallet right now."
+  RestrictionsFailed: "This deposit can't be completed for this wallet right now.",
+  TransferBlocked: "This deposit can't be completed for this wallet right now."
 };
 
 const DEPOSIT_SDK_ERROR_COPY = {
