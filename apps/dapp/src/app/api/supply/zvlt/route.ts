@@ -2,10 +2,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { ipAddress } from '@vercel/functions';
-import { formatUnits } from 'viem';
+import { erc20Abi, formatUnits } from 'viem';
 
-import { CONTRACTS } from '@zivoe/contracts';
-import { zivoeVaultAbi } from '@zivoe/contracts/abis';
+import { CENTRIFUGE_CONFIG } from '@/centrifuge/config';
 
 import { redis } from '@/server/clients/redis';
 import { getWeb3Client } from '@/server/clients/web3';
@@ -36,21 +35,21 @@ const handler = async (req: NextRequest) => {
   if (!rateLimit.res.success)
     throw new ApiError({ message: 'The request has been rate limited.', status: 429, headers });
 
-  // Get zVLT supply
+  // CoinGecko consumes this response shape — keep it stable.
   const client = getWeb3Client();
 
   const supply = await handlePromise(
     client.readContract({
-      address: CONTRACTS.zVLT,
-      abi: zivoeVaultAbi,
+      address: CENTRIFUGE_CONFIG.shareToken.address,
+      abi: erc20Abi,
       functionName: 'totalSupply'
     })
   );
 
   if (supply.err) throw new ApiError({ message: DEFAULT_ERROR_MESSAGE, exception: supply.err });
-  if (!supply.res) throw new ApiError({ message: DEFAULT_ERROR_MESSAGE, exception: 'No supply result' });
+  if (supply.res === undefined) throw new ApiError({ message: DEFAULT_ERROR_MESSAGE, exception: 'No supply result' });
 
-  const result = formatUnits(supply.res, 18);
+  const result = formatUnits(supply.res, CENTRIFUGE_CONFIG.shareToken.decimals);
   return NextResponse.json({ result });
 };
 
