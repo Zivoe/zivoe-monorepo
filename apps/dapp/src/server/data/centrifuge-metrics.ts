@@ -33,7 +33,10 @@ export type CentrifugeDailySnapshot = {
 /**
  * A negative trailing yield (a Share Price decline over the window) is
  * technically possible but never expected for this pool — the UI renders the
- * null state and this alert asks a human to look.
+ * null state and this alert asks a human to look. It must fire when the
+ * anomaly APPEARS, not on every revalidation while immutable negative history
+ * exists: the daily path alerts when a streak starts, and the live path at
+ * most once per instance per UTC day.
  */
 function reportNegativeYield(extra: Record<string, string | number>) {
   Sentry.captureMessage('Centrifuge indexer reported a negative 30-day trailing yield', {
@@ -42,6 +45,9 @@ function reportNegativeYield(extra: Record<string, string | number>) {
     extra
   });
 }
+
+const isNegativeYieldDay = (snapshot?: { yield30dComp365: bigint | null }): snapshot is { yield30dComp365: bigint } =>
+  snapshot !== undefined && snapshot.yield30dComp365 !== null && snapshot.yield30dComp365 < 0n;
 
 /**
  * Raw close rows, JSON-plain because unstable_cache serializes payloads to
@@ -64,11 +70,15 @@ async function fetchDailySnapshotRows(): Promise<Array<RawDailySnapshot>> {
       tags: { source: 'SERVER' }
     });
 
-  // Anomalies report at fetch time — once per revalidation, not per request.
-  const negativeYieldDays = snapshots.filter(
-    (snapshot) => snapshot.yield30dComp365 !== null && snapshot.yield30dComp365 < 0n
-  ).length;
-  if (negativeYieldDays > 0) reportNegativeYield({ negativeYieldDays });
+  // Closed rows are immutable, so any historical negative day would re-alert
+  // on every revalidation forever. Only the newest close starting a negative
+  // streak is news; snapshots arrive sorted ascending.
+  const latest = snapshots.at(-1);
+  if (isNegativeYieldDay(latest) && !isNegativeYieldDay(snapshots.at(-2)))
+    reportNegativeYield({
+      dayStartSeconds: latest.dayStartSeconds,
+      yield30dComp365: latest.yield30dComp365.toString()
+    });
 
   return snapshots.map((snapshot) => ({
     dayStartSeconds: snapshot.dayStartSeconds,
@@ -122,11 +132,21 @@ export const getCentrifugeDailySnapshots = reactCache(
   }
 );
 
+// Per-instance dedupe for the 30-second live path: while the condition holds
+// it would otherwise re-fire on every revalidation (~2,880 events/day).
+let lastLiveNegativeYieldReportDay: string | undefined;
+
 async function fetchCurrentMetrics(): Promise<ShareStatsPayload> {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
   const { payload, negativeYield30d } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
 
-  if (negativeYield30d !== null) reportNegativeYield({ yield30dComp365: negativeYield30d.toString() });
+  if (negativeYield30d !== null) {
+    const utcDay = new Date().toISOString().slice(0, 10);
+    if (lastLiveNegativeYieldReportDay !== utcDay) {
+      lastLiveNegativeYieldReportDay = utcDay;
+      reportNegativeYield({ yield30dComp365: negativeYield30d.toString() });
+    }
+  }
 
   return payload;
 }
