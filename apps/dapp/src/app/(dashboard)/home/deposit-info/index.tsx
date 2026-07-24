@@ -38,10 +38,12 @@ export default function DepositInfo() {
 }
 
 async function DepositChartsComponent() {
-  const snapshots = await data.getCentrifugeDailySnapshots();
+  // Both reads dedupe within the request (React cache), so the stats section
+  // and the chart overlay render the same current payload.
+  const [snapshots, current] = await Promise.all([data.getCentrifugeDailySnapshots(), data.getCurrentShareMetrics()]);
   if (!snapshots || snapshots.length === 0) return null;
 
-  return <DepositCharts snapshots={snapshots} />;
+  return <DepositCharts snapshots={snapshots} current={current ?? null} />;
 }
 
 async function DepositStatsComponent() {

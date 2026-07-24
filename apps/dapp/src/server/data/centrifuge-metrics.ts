@@ -20,6 +20,7 @@ import { sharesToValueD18 } from '@/centrifuge/config';
 import { env } from '@/env';
 
 export type CentrifugeDailySnapshot = {
+  /** UTC start (ms) of the day whose close this point records. */
   timestampMs: number;
   /** Share Price in USD. */
   sharePrice: number;
@@ -42,7 +43,18 @@ function reportNegativeYield(extra: Record<string, string | number>) {
   });
 }
 
-async function fetchDailySnapshots(): Promise<Array<CentrifugeDailySnapshot>> {
+/**
+ * Raw close rows, JSON-plain because unstable_cache serializes payloads to
+ * JSON — D18 values travel as strings.
+ */
+type RawDailySnapshot = {
+  dayStartSeconds: number;
+  tokenPriceD18: string;
+  totalIssuanceD18: string | null;
+  yield30dComp365Ray: string | null;
+};
+
+async function fetchDailySnapshotRows(): Promise<Array<RawDailySnapshot>> {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
   const { snapshots, truncated } = await fetchDailyTokenSnapshots({ config });
 
@@ -52,40 +64,31 @@ async function fetchDailySnapshots(): Promise<Array<CentrifugeDailySnapshot>> {
       tags: { source: 'SERVER' }
     });
 
-  let negativeYieldDays = 0;
-
-  const daily = snapshots.flatMap((snapshot): Array<CentrifugeDailySnapshot> => {
-    // NAV needs issuance; a priced row without it cannot chart.
-    if (snapshot.totalIssuance === null) return [];
-
-    let apy: number | null = null;
-    if (snapshot.yield30dComp365 !== null) {
-      if (snapshot.yield30dComp365 < 0n) negativeYieldDays += 1;
-      else apy = rayToPercent(snapshot.yield30dComp365);
-    }
-
-    const navD18 = sharesToValueD18({ shares: snapshot.totalIssuance, sharePrice: snapshot.tokenPrice });
-
-    return [
-      {
-        timestampMs: snapshot.dayStartSeconds * 1000,
-        sharePrice: Number(snapshot.tokenPrice) / 1e18,
-        nav: Number(navD18) / 1e18,
-        apy
-      }
-    ];
-  });
-
+  // Anomalies report at fetch time — once per revalidation, not per request.
+  const negativeYieldDays = snapshots.filter(
+    (snapshot) => snapshot.yield30dComp365 !== null && snapshot.yield30dComp365 < 0n
+  ).length;
   if (negativeYieldDays > 0) reportNegativeYield({ negativeYieldDays });
 
-  return daily;
+  return snapshots.map((snapshot) => ({
+    dayStartSeconds: snapshot.dayStartSeconds,
+    tokenPriceD18: snapshot.tokenPrice.toString(),
+    totalIssuanceD18: snapshot.totalIssuance === null ? null : snapshot.totalIssuance.toString(),
+    yield30dComp365Ray: snapshot.yield30dComp365 === null ? null : snapshot.yield30dComp365.toString()
+  }));
 }
 
-const cachedDailySnapshots = nextCache(fetchDailySnapshots, ['centrifuge-daily-snapshots'], { revalidate: 60 });
+/**
+ * Closed days are immutable (snapshot rows are append-only), so history
+ * revalidates far slower than the 30-second current-metrics entry — this TTL
+ * only bounds how quickly a new close appears after UTC midnight.
+ */
+const cachedDailySnapshotRows = nextCache(fetchDailySnapshotRows, ['centrifuge-daily-snapshots'], { revalidate: 900 });
 
 /**
- * Daily token snapshots deduped to the last row per UTC day, from pool creation
- * onward — the chart window starts at migration by design. Sentry-captured
+ * Daily close series from pool creation onward — one point per closed UTC day
+ * carrying that day's closing state. The current day is not in the series; the
+ * chart overlays it live from the current-metrics payload. Sentry-captured
  * failure returns undefined so consumers hide the affected surface. The fetch
  * throws inside the cache boundary on purpose: a failed background
  * revalidation then keeps serving the last good payload instead of caching
@@ -94,7 +97,25 @@ const cachedDailySnapshots = nextCache(fetchDailySnapshots, ['centrifuge-daily-s
 export const getCentrifugeDailySnapshots = reactCache(
   async (): Promise<Array<CentrifugeDailySnapshot> | undefined> => {
     try {
-      return await cachedDailySnapshots();
+      const rows = await cachedDailySnapshotRows();
+
+      return rows.flatMap((row): Array<CentrifugeDailySnapshot> => {
+        // NAV needs issuance; a priced row without it cannot chart.
+        if (row.totalIssuanceD18 === null) return [];
+
+        const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
+        const navD18 = sharesToValueD18({ shares: BigInt(row.totalIssuanceD18), sharePrice: BigInt(row.tokenPriceD18) });
+
+        return [
+          {
+            timestampMs: row.dayStartSeconds * 1000,
+            sharePrice: Number(row.tokenPriceD18) / 1e18,
+            nav: Number(navD18) / 1e18,
+            // The anomalous negative case renders as the null state.
+            apy: yieldRay === null || yieldRay < 0n ? null : rayToPercent(yieldRay)
+          }
+        ];
+      });
     } catch (error) {
       Sentry.captureException(error, { tags: { source: 'SERVER' } });
     }
