@@ -25,7 +25,8 @@ const app = {
   redemption: ['REDEMPTION'],
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
   vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
-  depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()]
+  depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()],
+  shareMetrics: ['CENTRIFUGE', 'SHARE_METRICS']
 };
 
 export const queryKeys = {

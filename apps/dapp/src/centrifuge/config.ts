@@ -59,3 +59,16 @@ export function getCentrifugeConfig(network: CentrifugeNetwork): CentrifugeConfi
 }
 
 export const CENTRIFUGE_CONFIG = getCentrifugeConfig(env.NEXT_PUBLIC_NETWORK);
+
+/**
+ * Indicative USDC (base units) for a zMCA amount at an 18-decimal Share Price.
+ * Lives beside the config because it is pure decimal math over it, and — like
+ * the config — is the only piece server code may import.
+ */
+export function sharesToUsdc({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }): bigint {
+  return (
+    (shares * sharePrice) /
+    10n ** BigInt(CENTRIFUGE_CONFIG.shareToken.decimals) /
+    10n ** BigInt(18 - CENTRIFUGE_CONFIG.usdc.decimals)
+  );
+}

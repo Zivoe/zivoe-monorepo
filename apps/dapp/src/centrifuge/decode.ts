@@ -17,7 +17,7 @@ function createVaultReceiptDecoder({
   flow,
   errorMessage
 }: {
-  eventName: 'Deposit';
+  eventName: 'Deposit' | 'Withdraw';
   flow: string;
   errorMessage: string;
 }) {
@@ -57,4 +57,10 @@ export const decodeSyncDepositReceipt = createVaultReceiptDecoder({
   eventName: 'Deposit',
   flow: 'deposit',
   errorMessage: 'Failed to decode sync deposit receipt'
+});
+
+export const decodeClaimRedeemReceipt = createVaultReceiptDecoder({
+  eventName: 'Withdraw',
+  flow: 'redeem-claim',
+  errorMessage: 'Failed to decode redeem claim receipt'
 });
