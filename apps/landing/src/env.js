@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']),
-    DATABASE_URL: z.string(),
     BEEHIIV_PUBLICATION_ID: z.string(),
     BEEHIIV_API_KEY: z.string(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
@@ -15,6 +14,7 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
+    NEXT_PUBLIC_NETWORK: z.enum(['mainnet', 'sepolia']),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
@@ -25,7 +25,7 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    DATABASE_URL: process.env.DATABASE_URL,
+    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,

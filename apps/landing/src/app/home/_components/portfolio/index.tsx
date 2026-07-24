@@ -5,10 +5,6 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { CalendarIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { web3 } from '@/server/web3';
-
-import { formatBigIntWithCommas } from '@/lib/utils';
-
 import Container from '@/components/container';
 
 import Globe from './globe';
@@ -65,17 +61,10 @@ function LoanPortfolioSkeleton() {
   );
 }
 
-async function LoanPortfolio() {
-  const currentDailySnapshot = await web3.getCurrentDailySnapshot();
-  if (!currentDailySnapshot) return null;
-
-  const loanPortfolio = currentDailySnapshot.tvl.loans.total;
-
-  return (
-    <LoanPortfolioSection
-      description={`$${formatBigIntWithCommas({ value: BigInt(loanPortfolio), tokenDecimals: 18, displayDecimals: 0 })}`}
-    />
-  );
+function LoanPortfolio() {
+  // The off-chain loan book has no Centrifuge source; placeholder until the
+  // team decides on a future source (same posture as the Revenue stat).
+  return <LoanPortfolioSection description="–" />;
 }
 
 function LoanPortfolioSection({ description }: { description: string | ReactNode }) {

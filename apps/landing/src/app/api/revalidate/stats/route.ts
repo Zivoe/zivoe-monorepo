@@ -1,9 +1,11 @@
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { PROTOCOL_DAILY_SNAPSHOT_TAG } from '@/server/web3';
-
 import { env } from '@/env';
+
+// Legacy cron-driven invalidation target; landing stats now use 60s time-based
+// revalidation. Kept inert until the daily-snapshot producer teardown.
+const PROTOCOL_DAILY_SNAPSHOT_TAG = 'protocol-daily-snapshot';
 
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('X-API-Key');
