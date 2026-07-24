@@ -10,8 +10,7 @@ import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Input } from '@zivoe/ui/core/input';
-
-import { CENTRIFUGE_CONFIG, sharesToUsdc, useInvestment, useRequestRedeem } from '@/centrifuge';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { createTransactionProperties } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
@@ -24,6 +23,8 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
+
+import { CENTRIFUGE_CONFIG, sharesToUsdc, useClaimRedeem, useInvestment, useRequestRedeem } from '@/centrifuge';
 
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -72,26 +73,43 @@ export default function RedeemFlow() {
 
   const estimatedAssets = hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice }) : undefined;
   const redeemDollarValue =
-    redeemRaw !== undefined && sharePrice ? (redeemRaw * sharePrice) / 10n ** BigInt(ZMCA.decimals) : redeem ? null : 0n;
+    redeemRaw !== undefined && sharePrice
+      ? (redeemRaw * sharePrice) / 10n ** BigInt(ZMCA.decimals)
+      : redeem
+        ? null
+        : 0n;
 
   const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
 
-  const isFetching =
+  // Balances/investment use isFetching so post-transaction invalidations keep
+  // the form locked until fresh data lands.
+  const isPrereqsLoading =
     account.isPending ||
     zMcaBalance.isFetching ||
     usdcBalance.isFetching ||
     chainalysis.isFetching ||
     investment.isFetching ||
+    // isPending on purpose: metrics refetch on a 5-minute interval, and
+    // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;
 
-  const isDisabled = isFetching || requestRedeem.isPending;
-  const isEstimateUnavailable = metrics.isError;
+  const isFormLocked = isPrereqsLoading || requestRedeem.isPending || claimRedeem.isPending;
+
+  // Page-level failure surfaces immediately; a retry in flight shows loading
+  // rather than the stale error.
+  const isEstimateFailed = metrics.isError && !metrics.isFetching;
+  // Only manifests during an error retry — the initial metrics load already
+  // locks the whole form through isPrereqsLoading.
+  const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isEstimateUnavailable) return;
+    if (!isValid || isEstimateFailed || isEstimateLoading) return;
+    // Narrowing only — validation guarantees redeemRaw and the estimate states
+    // cover every missing-estimate case.
     if (!redeemRaw || estimatedAssets === undefined) return;
 
     analytics.capture(
@@ -118,8 +136,46 @@ export default function RedeemFlow() {
     if (account.address) form.clearErrors();
   }, [account.address]);
 
+  const handleClaim = () => {
+    if (claimableAssets <= 0n) return;
+    claimRedeem.mutate({ claimableAssets });
+  };
+
+  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, USDC.decimals) : '';
+  // Suppress the amount input's `0.0` ghost while the estimate is loading —
+  // it would otherwise read as "you receive 0.0" next to the skeleton.
+  const receivePlaceholder = isEstimateLoading ? '' : undefined;
+  const receiveDollarValue = isEstimateFailed ? 0n : (estimatedAssets ?? (redeem ? null : 0n));
+
   return (
     <>
+      {claimableAssets > 0n && (
+        <div className="border-default bg-surface-elevated flex flex-wrap items-center justify-between gap-3 rounded-sm border p-4">
+          <p className="text-regular text-primary">
+            {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: USDC.decimals, displayDecimals: 2 })} USDC
+            ready to claim
+          </p>
+
+          <ConnectedAccount fullWidth={false} type="skeleton">
+            <Button
+              onPress={handleClaim}
+              size="s"
+              isDisabled={isPrereqsLoading || requestRedeem.isPending}
+              isPending={claimRedeem.isPending}
+              pendingContent={
+                claimRedeem.isTxPending
+                  ? 'Claiming USDC...'
+                  : claimRedeem.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
+              }
+            >
+              Claim USDC
+            </Button>
+          </ConnectedAccount>
+        </div>
+      )}
+
       {pendingShares > 0n && <RedemptionProcessingStrip pendingShares={pendingShares} sharePrice={sharePrice} />}
 
       <Controller
@@ -135,7 +191,7 @@ export default function RedeemFlow() {
             onChange={(value) => onChange(parseInput(value) || undefined)}
             errorMessage={error?.message}
             isInvalid={invalid}
-            isDisabled={isDisabled}
+            isDisabled={isFormLocked}
             decimalPlaces={ZMCA.decimals}
             subContent={
               <InputExtraInfo
@@ -150,7 +206,7 @@ export default function RedeemFlow() {
                   balance={zMcaBalance.data ?? 0n}
                   decimals={ZMCA.decimals}
                   onPress={(value) => onChange(value)}
-                  isDisabled={isDisabled}
+                  isDisabled={isFormLocked}
                 />
 
                 <div className="ml-3">
@@ -166,13 +222,27 @@ export default function RedeemFlow() {
         <Input
           variant="amount"
           label="Estimated receive"
-          value={isEstimateUnavailable ? '—' : estimatedAssets !== undefined ? formatUnits(estimatedAssets, USDC.decimals) : ''}
+          value={receiveValue}
+          placeholder={receivePlaceholder}
           isDisabled
-          hasNormalStyleIfDisabled={!isDisabled}
+          hasNormalStyleIfDisabled={!isFormLocked}
+          errorMessage={
+            isEstimateFailed ? (
+              <>
+                Unable to estimate USDC.{' '}
+                <Button variant="link-alert" size="s" onPress={() => void metrics.refetch()}>
+                  Retry
+                </Button>
+              </>
+            ) : undefined
+          }
+          isInvalid={isEstimateFailed}
+          startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
           subContent={
             <InputExtraInfo
               decimals={USDC.decimals}
-              dollarValue={estimatedAssets ?? (redeem ? null : 0n)}
+              dollarValue={receiveDollarValue}
+              isLoading={isEstimateLoading}
               balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending }}
             />
           }
@@ -185,20 +255,22 @@ export default function RedeemFlow() {
       </div>
 
       <ConnectedAccount>
-        {isFetching ? (
+        {isPrereqsLoading ? (
           <Button fullWidth isPending={true} pendingContent="Loading..." />
         ) : (
           <Button
             fullWidth
             onPress={() => void handleRequestRedeem()}
-            isDisabled={hasRedeemRaw && isEstimateUnavailable}
-            isPending={requestRedeem.isPending}
+            isDisabled={isEstimateFailed || claimRedeem.isPending}
+            isPending={requestRedeem.isPending || isEstimateLoading}
             pendingContent={
-              requestRedeem.isTxPending
-                ? 'Requesting redemption...'
-                : requestRedeem.isPending
-                  ? 'Signing Transaction...'
-                  : undefined
+              isEstimateLoading
+                ? 'Estimating USDC...'
+                : requestRedeem.isTxPending
+                  ? 'Requesting redemption...'
+                  : requestRedeem.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
             }
           >
             {hasPosition ? 'Add to redemption' : 'Request redemption'}
@@ -219,7 +291,7 @@ function RedemptionProcessingStrip({
   const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice }) : undefined;
 
   return (
-    <div className="rounded-sm border border-default bg-surface-elevated p-4">
+    <div className="border-default bg-surface-elevated rounded-sm border p-4">
       <p className="text-regular text-primary">
         {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA
         processing

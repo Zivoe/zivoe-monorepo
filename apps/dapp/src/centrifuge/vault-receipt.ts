@@ -7,7 +7,8 @@ import { CENTRIFUGE_CONFIG } from './config';
 // `readVaultReceiptEvents` so filtering and aggregation policy cannot drift
 // between the client decoders and the server Monitor.
 export const VAULT_LIFECYCLE_EVENTS_ABI = parseAbi([
-  'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)'
+  'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)',
+  'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'
 ]);
 
 export type VaultLifecycleEventName = ContractEventName<typeof VAULT_LIFECYCLE_EVENTS_ABI>;

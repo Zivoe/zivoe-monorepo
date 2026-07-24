@@ -13,7 +13,11 @@ const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
 const D18 = 10n ** 18n;
 
 const mocks = vi.hoisted(() => ({
+  claimRedeem: vi.fn(),
   claimableAssets: 0n,
+  metricsIsError: false,
+  metricsIsFetching: false,
+  metricsRefetch: vi.fn(),
   pendingShares: 0n,
   requestRedeem: vi.fn(),
   sharePrice: 1_070000000000000000n,
@@ -30,10 +34,10 @@ vi.mock('@/centrifuge', () => ({
   // Mirrors the module's unit math for the mocked 18/6 decimals above.
   sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
     (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
+  useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useInvestment: () => ({
     isFetching: false,
     data: {
-      shareBalance: mocks.zMcaBalance,
       pendingRedeemShares: mocks.pendingShares,
       claimableRedeemAssets: mocks.claimableAssets,
       claimableRedeemSharesEquivalent: 0n
@@ -42,7 +46,13 @@ vi.mock('@/centrifuge', () => ({
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
 vi.mock('@/hooks/useCurrentShareMetrics', () => ({
-  useCurrentShareMetrics: () => ({ isPending: false, isError: false, data: { sharePrice: mocks.sharePrice } })
+  useCurrentShareMetrics: () => ({
+    isPending: false,
+    isError: mocks.metricsIsError,
+    isFetching: mocks.metricsIsFetching,
+    refetch: mocks.metricsRefetch,
+    data: mocks.metricsIsError ? undefined : { sharePrice: mocks.sharePrice }
+  })
 }));
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
@@ -117,6 +127,7 @@ vi.mock('@zivoe/ui/core/input', () => ({
     </label>
   )
 }));
+vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
 
 import RedeemFlow from './redeem-flow';
 
@@ -138,6 +149,8 @@ describe('RedeemFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.claimableAssets = 0n;
+    mocks.metricsIsError = false;
+    mocks.metricsIsFetching = false;
     mocks.pendingShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
   });
@@ -167,6 +180,31 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('');
   });
 
+  it('shows a retry action when the estimate fails and refetches on press', () => {
+    mocks.metricsIsError = true;
+
+    render(<RedeemFlow />);
+
+    // Metrics are page-level, so the failure shows before any amount is typed.
+    expect(screen.getByText(/Unable to estimate USDC/)).toBeTruthy();
+    expect(getInput('Estimated receive').value).toBe('');
+    expect(getButton('Request redemption').disabled).toBe(true);
+
+    fireEvent.click(getButton('Retry'));
+    expect(mocks.metricsRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops back into the loading presentation while a retry is in flight', () => {
+    mocks.metricsIsError = true;
+    mocks.metricsIsFetching = true;
+
+    render(<RedeemFlow />);
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
+    expect(getButton('Estimating USDC...')).toBeTruthy();
+  });
+
   it('renders one aggregate pending position and adds to it without cancel controls', () => {
     mocks.pendingShares = 3n * D18;
 
@@ -177,4 +215,15 @@ describe('RedeemFlow', () => {
     expect(screen.queryByText(/cancel/i)).toBeNull();
   });
 
+  it('renders claimable proceeds first and claims all current partial fulfillments at once', () => {
+    mocks.pendingShares = 1n * D18;
+    mocks.claimableAssets = 2_000000n;
+
+    render(<RedeemFlow />);
+
+    expect(screen.getByText(/2\.00 USDC\s+ready to claim/)).toBeTruthy();
+
+    fireEvent.click(getButton('Claim USDC'));
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 2_000000n });
+  });
 });

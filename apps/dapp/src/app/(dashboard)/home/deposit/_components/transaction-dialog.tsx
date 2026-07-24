@@ -138,6 +138,26 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
+          {transaction.meta?.claimRedeem && (
+            <TransactionDialogTokensSection>
+              <TransactionDialogToken
+                token="zMCA"
+                amount={transaction.meta.claimRedeem.shares}
+                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
+                icon={<ZVltLogo />}
+              />
+
+              <ArrowRightIcon className="text-icon-default size-4" />
+
+              <TransactionDialogToken
+                token="USDC"
+                amount={transaction.meta.claimRedeem.assets}
+                decimals={CENTRIFUGE_CONFIG.usdc.decimals}
+                icon={<UsdcIcon />}
+              />
+            </TransactionDialogTokensSection>
+          )}
+
           {transaction.meta?.unstake && (
             <TransactionDialogTokensSection>
               <TransactionDialogToken

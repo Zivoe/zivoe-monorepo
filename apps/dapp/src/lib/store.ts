@@ -28,6 +28,13 @@ export type TransactionData = {
       amount: bigint;
       receive: bigint;
     };
+
+    claimRedeem?: {
+      /** Exact USDC received. */
+      assets: bigint;
+      /** Corresponding zMCA redeemed. */
+      shares: bigint;
+    };
   };
 };
 
