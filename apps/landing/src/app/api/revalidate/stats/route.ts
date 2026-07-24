@@ -3,8 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { env } from '@/env';
 
-// Legacy cron-driven invalidation target; landing stats now use 60s time-based
-// revalidation. Kept inert until the daily-snapshot producer teardown.
+// Legacy cron-driven invalidation target; landing stats now use time-based
+// revalidation (30s for current metrics — see server/centrifuge.ts). Kept
+// inert until the daily-snapshot producer teardown.
 const PROTOCOL_DAILY_SNAPSHOT_TAG = 'protocol-daily-snapshot';
 
 export async function POST(request: NextRequest) {
