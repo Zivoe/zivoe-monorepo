@@ -1,18 +1,11 @@
-import { UsdcIcon, ZMcaLogo } from '@zivoe/ui/icons';
+import { type Token } from '@/types/constants';
 
-type TokenSymbol = 'zMCA' | 'USDC';
+import { TOKEN_INFO } from '@/components/token-info';
 
-const TOKEN_ICONS: Record<TokenSymbol, React.ReactNode> = {
-  zMCA: <ZMcaLogo />,
-  USDC: <UsdcIcon />
-};
-
-export function TokenDisplay({ symbol }: { symbol: TokenSymbol }) {
-  const icon = TOKEN_ICONS[symbol];
-
+export function TokenDisplay({ symbol }: { symbol: Token }) {
   return (
     <div className="flex items-center gap-2 [&_svg]:size-6">
-      {icon}
+      {TOKEN_INFO[symbol].icon}
       <p className="text-small font-medium! text-primary">{symbol}</p>
     </div>
   );
