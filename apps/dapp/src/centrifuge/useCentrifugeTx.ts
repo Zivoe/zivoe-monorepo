@@ -159,12 +159,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
               // receipt the SDK console.errors), so once a hash is known the
               // chain is the source of truth. Costs one read, only here.
               if (!txHash) {
-                reject(err);
+                reject(toRejectionError(err));
                 return;
               }
 
               void handlePromise(publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` })).then(
-                ({ res }) => (res ? resolve(res) : reject(err))
+                ({ res }) => (res ? resolve(res) : reject(toRejectionError(err)))
               );
             },
             complete: () =>
@@ -267,6 +267,17 @@ function extractRevertedReceipt(err: unknown): TransactionReceipt | undefined {
 
   const receipt = err.receipt as TransactionReceipt | undefined;
   return receipt?.status === 'reverted' && typeof receipt.transactionHash === 'string' ? receipt : undefined;
+}
+
+/**
+ * The SDK's Observable types its error as `unknown`. That value has to reach
+ * normalizeCentrifugeError intact — findAppError walks its cause chain for the
+ * simulation's AppError, and the copy matching reads its message — so Errors
+ * pass straight through and only a non-Error is boxed, keeping the original as
+ * `cause`. Rejecting with the bare `unknown` would trip prefer-promise-reject-errors.
+ */
+function toRejectionError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err), { cause: err });
 }
 
 /**
