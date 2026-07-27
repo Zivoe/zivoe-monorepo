@@ -1,21 +1,43 @@
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+
 import { data } from '@/server/data';
 
 import Hero from '@/components/hero';
 import Page from '@/components/page';
 
+import { getQueryClient } from '@/lib/get-query-client';
+import { queryKeys } from '@/lib/query-keys';
+
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { type DepositPageView } from './deposit/_utils';
 
-export default function Home({ initialView }: { initialView: DepositPageView }) {
+export default async function Home({ initialView }: { initialView: DepositPageView }) {
+  // Seed the browser cache with the server's cached payload, so client
+  // consumers mount on hydrated data instead of re-fetching the document the
+  // RSCs just rendered. React cache dedupes this with the RSC reads below.
+  const queryClient = getQueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: queryKeys.app.shareMetrics,
+    queryFn: async () => {
+      const payload = await data.getCurrentShareMetrics();
+      // Throwing keeps a failed prefetch out of the dehydrated state, so the
+      // browser fetches fresh on mount instead of hydrating an empty success.
+      if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
+      return payload;
+    }
+  });
+
   return (
     <div className="bg-surface-base">
       <Hero title="zMCA" description="Gain exposure to private credit" />
 
-      <Page className="flex gap-10 lg:flex-row">
-        <DepositInfo />
-        <DepositWrapper initialView={initialView} />
-      </Page>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <Page className="flex gap-10 lg:flex-row">
+          <DepositInfo />
+          <DepositWrapper initialView={initialView} />
+        </Page>
+      </HydrationBoundary>
     </div>
   );
 }

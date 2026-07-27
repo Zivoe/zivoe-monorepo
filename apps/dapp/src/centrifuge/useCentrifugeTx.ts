@@ -233,7 +233,10 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   };
 }
 
-/** The queries every confirmed Centrifuge transaction refreshes: zMCA/USDC balances, the investment, and the portfolio. */
+/**
+ * Invalidated after every confirmed Centrifuge tx. Stats included: NAV moves
+ * with issuance as soon as the indexer processes the block.
+ */
 export function invalidateInvestmentQueries({
   queryClient,
   address
@@ -244,6 +247,7 @@ export function invalidateInvestmentQueries({
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.investment({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics });
 }
 
 /**
