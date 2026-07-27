@@ -20,8 +20,6 @@ const account = {
 };
 
 const app = {
-  vault: ['VAULT'],
-  redemption: ['REDEMPTION'],
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
   vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
   depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()],
