@@ -1,9 +1,11 @@
 'use client';
 
 import { type TransactionData } from '@/lib/store';
+import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_CONFIG } from './config';
 import { decodeClaimReturnedSharesReceipt } from './decode';
+import { readInvestment } from './reads';
 import useCentrifugeTx, { invalidateInvestmentQueries } from './useCentrifugeTx';
 
 const CLAIM_RETURNED_SHARES_SIMULATION_ERROR_COPY = {
@@ -30,10 +32,17 @@ type ClaimReturnedSharesVariables = {
  */
 export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: () => void } = {}) {
   return useCentrifugeTx<ClaimReturnedSharesVariables>({
-    // No investment/vault re-reads here: the SDK re-checks claimability itself
-    // ('No claimable funds' maps below), and the exact-call simulation is the
-    // authoritative pre-sign gate.
-    action: (_, { vault }) => ({ tx: vault.claim() }),
+    // Mirror of useClaimRedeem's bucket guard: the aggregate claim empties the
+    // Returned Shares bucket first, so a stale mount (shares already claimed)
+    // would otherwise claim redemption USDC under 'Claim zMCA' copy. Guard on
+    // a fresh read of the same state the SDK builds calldata from.
+    action: async (_, { vault, address }) => {
+      const investment = await readInvestment({ vault, investor: address });
+      if (investment.claimableCancelRedeemShares <= 0n)
+        throw new AppError({ message: 'No returned zMCA to claim. Refresh and try again.', capture: false });
+
+      return { tx: vault.claim() };
+    },
 
     simulationErrorCopy: CLAIM_RETURNED_SHARES_SIMULATION_ERROR_COPY,
     sdkErrorCopy: CLAIM_RETURNED_SHARES_SDK_ERROR_COPY,

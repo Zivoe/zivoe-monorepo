@@ -73,11 +73,23 @@ function claimReceipt({ withWithdrawLog = true }: { withWithdrawLog?: boolean } 
 
 const claimSpy = vi.fn();
 
+const balance = (value: bigint) => ({ toBigInt: () => value });
+
 function fakeVault({
   receipt = claimReceipt(),
-  claimError
-}: { receipt?: TransactionReceipt; claimError?: Error } = {}) {
+  claimError,
+  claimableCancelRedeemShares = 0n
+}: { receipt?: TransactionReceipt; claimError?: Error; claimableCancelRedeemShares?: bigint } = {}) {
   return {
+    // The bucket guard reads a fresh investment before building the claim.
+    investment: () =>
+      Promise.resolve({
+        pendingRedeemShares: balance(0n),
+        claimableRedeemAssets: balance(150_000000n),
+        claimableRedeemSharesEquivalent: balance(0n),
+        claimableCancelRedeemShares: balance(claimableCancelRedeemShares),
+        hasPendingCancelRedeemRequest: false
+      }),
     claim: (...args: Array<unknown>) => {
       claimSpy(...args);
 
@@ -184,6 +196,22 @@ describe('useClaimRedeem', () => {
       type: 'error',
       title: 'There are no redemption proceeds available to claim yet.'
     });
+  });
+
+  it('blocks the claim while Returned Shares are claimable, before any wallet interaction', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 60_000000000000000000n }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+
+    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // The aggregate claim would empty the Returned Shares bucket first — the
+    // guard must stop it before any claim build or wallet prompt.
+    expect(claimSpy).not.toHaveBeenCalled();
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zMCA first.' });
   });
 
   it('degrades to a generic USDC claimed result when the receipt cannot be decoded', async () => {

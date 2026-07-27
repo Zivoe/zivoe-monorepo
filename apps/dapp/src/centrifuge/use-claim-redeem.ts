@@ -1,9 +1,11 @@
 'use client';
 
 import { type TransactionData } from '@/lib/store';
+import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_CONFIG } from './config';
 import { decodeClaimRedeemReceipt } from './decode';
+import { readInvestment } from './reads';
 import useCentrifugeTx, { invalidateInvestmentQueries } from './useCentrifugeTx';
 
 const CLAIM_REDEEM_SIMULATION_ERROR_COPY = {
@@ -27,10 +29,20 @@ type ClaimRedeemVariables = {
 
 export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void } = {}) {
   return useCentrifugeTx<ClaimRedeemVariables>({
-    // No investment/vault re-reads here: the SDK re-checks claimability itself
-    // ('No claimable funds' maps below), and the exact-call simulation is the
-    // authoritative pre-sign gate (VaultNotLinked surfaces as decoded copy).
-    action: (_, { vault }) => ({ tx: vault.claim() }),
+    // The aggregate vault claim empties exactly ONE bucket per transaction, in
+    // the SDK's fixed priority: Returned Shares before redemption USDC. Guard
+    // on a fresh read (the same state the SDK builds calldata from) so a
+    // cancellation fulfillment landing between the UI's last poll and the
+    // click can't silently claim shares while this flow reports 'USDC
+    // claimed'. Every other claimability check stays with the SDK ('No
+    // claimable funds' maps below) and the exact-call simulation gate.
+    action: async (_, { vault, address }) => {
+      const investment = await readInvestment({ vault, investor: address });
+      if (investment.claimableCancelRedeemShares > 0n)
+        throw new AppError({ message: 'Claim your returned zMCA first.', capture: false });
+
+      return { tx: vault.claim() };
+    },
 
     simulationErrorCopy: CLAIM_REDEEM_SIMULATION_ERROR_COPY,
     sdkErrorCopy: CLAIM_REDEEM_SDK_ERROR_COPY,

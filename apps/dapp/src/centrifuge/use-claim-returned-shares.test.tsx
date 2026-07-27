@@ -68,11 +68,23 @@ function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) 
 
 const claimSpy = vi.fn();
 
+const balance = (value: bigint) => ({ toBigInt: () => value });
+
 function fakeVault({
   receipt = claimReceipt(),
-  claimError
-}: { receipt?: TransactionReceipt; claimError?: Error } = {}) {
+  claimError,
+  claimableCancelRedeemShares = 60_000000000000000000n
+}: { receipt?: TransactionReceipt; claimError?: Error; claimableCancelRedeemShares?: bigint } = {}) {
   return {
+    // The bucket guard reads a fresh investment before building the claim.
+    investment: () =>
+      Promise.resolve({
+        pendingRedeemShares: balance(0n),
+        claimableRedeemAssets: balance(0n),
+        claimableRedeemSharesEquivalent: balance(0n),
+        claimableCancelRedeemShares: balance(claimableCancelRedeemShares),
+        hasPendingCancelRedeemRequest: false
+      }),
     claim: (...args: Array<unknown>) => {
       claimSpy(...args);
 
@@ -179,6 +191,22 @@ describe('useClaimReturnedShares', () => {
       type: 'error',
       title: 'There is no returned zMCA available to claim yet.'
     });
+  });
+
+  it('blocks the claim when no Returned Shares are claimable, before any wallet interaction', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 0n }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+
+    act(() => result.current.mutate({ returnedShares: 0n }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // With an empty Returned Shares bucket the aggregate claim would fall
+    // through to redemption USDC under 'Claim zMCA' copy — the guard stops it.
+    expect(claimSpy).not.toHaveBeenCalled();
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zMCA to claim. Refresh and try again.' });
   });
 
   it('degrades to a generic zMCA claimed result when the receipt cannot be decoded', async () => {
