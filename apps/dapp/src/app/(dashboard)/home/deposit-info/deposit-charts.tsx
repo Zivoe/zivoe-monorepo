@@ -11,7 +11,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/cor
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
 
-import { type CentrifugeDailySnapshot } from '@/server/data';
+import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 

@@ -78,7 +78,7 @@ resource "posthog_insight" "zivoe_dapp_activation_all_deposits" {
 
 resource "posthog_insight" "zivoe_dapp_activation_approval_path" {
   name        = "Zivoe Dapp - Activation Funnel - Approval Path"
-  description = "Drop-off from sign-up through onboarding, wallet connection, token approval, deposit start, and UI deposit receipt for users who need ERC-20 approval. This excludes permit-only deposits and users with existing allowance."
+  description = "Drop-off from sign-up through onboarding, wallet connection, token approval, deposit start, and UI deposit receipt for users who need ERC-20 approval. This excludes users with existing allowance."
   tags        = ["terraform", "dapp", "activation", "approval"]
 
   query_json = jsonencode({
@@ -426,7 +426,7 @@ resource "posthog_insight" "zivoe_dapp_redemption_lifecycle" {
 
 resource "posthog_insight" "zivoe_dapp_confirmed_deposit_volume_by_token" {
   name        = "Zivoe Dapp - Confirmed Deposit Volume by Token"
-  description = "Sums confirmed deposit output volume in zVLT, broken down by input token."
+  description = "Sums confirmed deposit output volume in zMCA, broken down by input token."
   tags        = ["terraform", "dapp", "deposit", "volume"]
 
   query_json = jsonencode({
@@ -527,7 +527,7 @@ resource "posthog_insight" "zivoe_dapp_confirmed_redemption_volume" {
 
 resource "posthog_insight" "zivoe_dapp_authorization_friction" {
   name        = "Zivoe Dapp - Authorization Friction"
-  description = "Compares approval and permit starts, successes, signature rejections, and failures. Approval events can come from deposit or redemption allowance flows; permit events are deposit-only."
+  description = "Compares approval starts, successes, signature rejections, and failures. Approval events can come from deposit or redemption allowance flows. Permit flows were retired with the legacy protocol."
   tags        = ["terraform", "dapp", "authorization", "deposit", "redemption"]
 
   query_json = jsonencode({
@@ -578,34 +578,6 @@ resource "posthog_insight" "zivoe_dapp_authorization_friction" {
           event       = "tx:approval_failed"
           name        = "tx:approval_failed"
           custom_name = "Approval failed"
-          math        = "total"
-        },
-        {
-          kind        = "EventsNode"
-          event       = "tx:permit_started"
-          name        = "tx:permit_started"
-          custom_name = "Permit started"
-          math        = "total"
-        },
-        {
-          kind        = "EventsNode"
-          event       = "tx:permit_signed"
-          name        = "tx:permit_signed"
-          custom_name = "Permit signed"
-          math        = "total"
-        },
-        {
-          kind        = "EventsNode"
-          event       = "tx:permit_signature_rejected"
-          name        = "tx:permit_signature_rejected"
-          custom_name = "Permit signature rejected"
-          math        = "total"
-        },
-        {
-          kind        = "EventsNode"
-          event       = "tx:permit_failed"
-          name        = "tx:permit_failed"
-          custom_name = "Permit failed"
           math        = "total"
         },
       ]

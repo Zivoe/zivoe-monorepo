@@ -24,7 +24,7 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
       </Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        zVLT is a return-generating token providing on-chain access to short-duration private credit strategies,
+        zMCA is a return-generating token providing on-chain access to short-duration private credit strategies,
         primarily revenue-based financing for small and medium-sized businesses.
       </Text>
 

@@ -3,7 +3,6 @@ import { type ReactNode } from 'react';
 import { type Metadata } from 'next';
 
 import { Disclosure, DisclosureGroup, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
-import { Link } from '@zivoe/ui/core/link';
 
 import { JsonLd, SITE_ORIGIN } from '@/lib/seo';
 
@@ -88,12 +87,12 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      'Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit.'
+      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s net asset value and are reflected in the zMCA Share Price.'
   },
   {
     question: 'What are the fees?',
     answer:
-      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
+      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield accrues to zMCA holders through the pool’s Share Price.'
   },
   {
     question: 'Is there a minimum deposit amount?',
@@ -102,24 +101,10 @@ const FAQs: Array<{
   },
   {
     question: 'What is the lockup and liquidity policy?',
-    answer: (
-      <>
-        Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital
-        availability. To initiate a redemption, or if you have questions about the redemption process before depositing,
-        contact us at{' '}
-        <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
-          investors@zivoe.com
-        </Link>
-        .
-      </>
-    ),
-    jsonLdAnswer:
-      'Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital availability. To initiate a redemption, or if you have questions about the redemption process before depositing, contact us at investors@zivoe.com.'
-  },
-  {
-    question: 'How do I convert my tranche tokens to zVLT?',
     answer:
-      'Zivoe has transitioned from its original tranche-based system to a unified auto-compounding vault token called zVLT, which launched alongside our new dApp. Senior tranche token holders use their tokens in the new dApp to mint zVLT while junior tranche tokens holders will first need to visit our legacy dApp (a link to this can be found in the footer on this page) and convert their junior tranche tokens first to senior tranche tokens and then to zVLT.'
+      'Zivoe enforces no lockup period. You can submit a redemption request in the dApp at any time. Requests are processed periodically and remain subject to available liquidity; once processed, the USDC is ready to claim in the dApp.',
+    jsonLdAnswer:
+      'Zivoe enforces no lockup period. You can submit a redemption request in the dApp at any time. Requests are processed periodically and remain subject to available liquidity; once processed, the USDC is ready to claim in the dApp.'
   },
   {
     question: 'Has Zivoe been audited?',

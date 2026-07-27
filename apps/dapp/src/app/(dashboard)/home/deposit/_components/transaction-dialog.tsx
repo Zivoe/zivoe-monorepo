@@ -8,16 +8,7 @@ import { mainnet, sepolia } from 'viem/chains';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
-import { ZVltLogo } from '@zivoe/ui/icons';
-import {
-  ArrowRightIcon,
-  CheckCircleIcon,
-  CloseCircleIcon,
-  FrxUsdIcon,
-  UsdcIcon,
-  UsdtIcon,
-  ZsttIcon
-} from '@zivoe/ui/icons';
+import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
@@ -27,19 +18,11 @@ import { DEPOSIT_TOKEN_DECIMALS, TOKEN_DECIMALS, type Token } from '@/types/cons
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
+import { TOKEN_INFO } from '@/components/token-info';
+
 import { env } from '@/env';
 
 const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia).blockExplorers.default.url;
-
-const TOKEN_ICON: Record<Token, ReactNode> = {
-  USDC: <UsdcIcon />,
-  USDT: <UsdtIcon />,
-  frxUSD: <FrxUsdIcon />,
-  zSTT: <ZsttIcon />,
-  zVLT: <ZVltLogo />,
-  stSTT: <ZsttIcon />,
-  zMCA: <ZVltLogo />
-};
 
 export function TransactionDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -92,7 +75,7 @@ export function TransactionDialog() {
                 token={transaction.meta.approve.token}
                 amount={transaction.meta.approve.amount}
                 decimals={TOKEN_DECIMALS[transaction.meta.approve.token]}
-                icon={TOKEN_ICON[transaction.meta.approve.token]}
+                icon={TOKEN_INFO[transaction.meta.approve.token].icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -103,7 +86,7 @@ export function TransactionDialog() {
                 token={transaction.meta.deposit.token}
                 amount={transaction.meta.deposit.amount}
                 decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.deposit.token]}
-                icon={TOKEN_ICON[transaction.meta.deposit.token]}
+                icon={TOKEN_INFO[transaction.meta.deposit.token].icon}
               />
 
               <ArrowRightIcon className="text-icon-default size-4" />
@@ -112,7 +95,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.deposit.receive}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -123,7 +106,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.redeem.amount}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={TOKEN_INFO.zMCA.icon}
               />
 
               <ArrowRightIcon className="text-icon-default size-4" />
@@ -132,7 +115,7 @@ export function TransactionDialog() {
                 token="USDC"
                 amount={transaction.meta.redeem.receive}
                 decimals={CENTRIFUGE_CONFIG.usdc.decimals}
-                icon={<UsdcIcon />}
+                icon={TOKEN_INFO.USDC.icon}
                 prefix="≈ "
               />
             </TransactionDialogTokensSection>
@@ -144,7 +127,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.claimRedeem.shares}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={TOKEN_INFO.zMCA.icon}
               />
 
               <ArrowRightIcon className="text-icon-default size-4" />
@@ -153,27 +136,7 @@ export function TransactionDialog() {
                 token="USDC"
                 amount={transaction.meta.claimRedeem.assets}
                 decimals={CENTRIFUGE_CONFIG.usdc.decimals}
-                icon={<UsdcIcon />}
-              />
-            </TransactionDialogTokensSection>
-          )}
-
-          {transaction.meta?.unstake && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token="stSTT"
-                amount={transaction.meta.unstake.amount}
-                decimals={18}
-                icon={<ZsttIcon />}
-              />
-
-              <ArrowRightIcon className="text-icon-default size-4" />
-
-              <TransactionDialogToken
-                token="zSTT"
-                amount={transaction.meta.unstake.receive}
-                decimals={18}
-                icon={<ZsttIcon />}
+                icon={TOKEN_INFO.USDC.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -182,12 +145,6 @@ export function TransactionDialog() {
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
             </Button>
-
-            {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
-              <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
-                Deposit zSTT
-              </Link>
-            )}
           </div>
         </DialogContentBox>
       </DialogContent>

@@ -18,14 +18,6 @@ type ScheduleConfig = Required<
 
 const SCHEDULES: Array<ScheduleConfig> = [
   {
-    destination: '/api/monitor/network/live',
-    scheduleId: 'network-live-hourly',
-    cron: '0 * * * *', // Every hour at minute 0
-    retries: 3,
-    failureCallback: '/api/qstash/failure',
-    label: QSTASH_JOB_LABELS.monitorNetworkLive
-  },
-  {
     destination: '/api/monitor/refresh-holdings',
     scheduleId: 'wallet-holdings-refresh',
     cron: '0 */6 * * *', // Every 6 hours
@@ -75,7 +67,24 @@ async function sync() {
     console.log();
   }
 
-  console.log(`Done! ${SCHEDULES.length} schedule(s) synced.`);
+  // Reconcile: a schedule for this app that is no longer listed above would
+  // otherwise keep firing into a deleted route forever. Sentry cron monitors
+  // have no equivalent sweep — when a checking-in route is deleted, its
+  // monitor must be removed by hand in the Sentry UI or it flags missed
+  // check-ins indefinitely (the legacy producer's 'network-hourly-cron'
+  // monitor needs exactly that at cutover).
+  const managedIds = new Set<string>(SCHEDULES.map((schedule) => schedule.scheduleId));
+  const existing = await client.schedules.list();
+  const stale = existing.filter(
+    (schedule) => schedule.scheduleId && !managedIds.has(schedule.scheduleId) && schedule.destination.startsWith(baseUrl)
+  );
+
+  for (const schedule of stale) {
+    await client.schedules.delete(schedule.scheduleId);
+    console.log(`  Removed stale schedule: ${schedule.scheduleId} (${schedule.destination})`);
+  }
+
+  console.log(`Done! ${SCHEDULES.length} schedule(s) synced, ${stale.length} stale removed.`);
 }
 
 async function list() {

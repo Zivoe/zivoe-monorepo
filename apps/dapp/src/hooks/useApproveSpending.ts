@@ -1,8 +1,6 @@
 import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
 
-import { type tetherTokenAbi, type zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
-
 import { type Token } from '@/types/constants';
 
 import { queryKeys } from '@/lib/query-keys';
@@ -11,7 +9,7 @@ import { AppError } from '@/lib/utils';
 
 import useTx, { parseReceiptEvent, type TxParams } from './useTx';
 
-export type ApproveTokenAbi = typeof tetherTokenAbi | typeof zivoeTrancheTokenAbi | typeof erc20Abi;
+export type ApproveTokenAbi = typeof erc20Abi;
 export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
 
 type ApproveSpendingVariables = {

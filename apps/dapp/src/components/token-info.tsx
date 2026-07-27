@@ -1,41 +1,16 @@
-import { FrxUsdIcon, UsdcIcon, UsdtIcon, ZVltLogo, ZsttIcon } from '@zivoe/ui/icons';
+import { UsdcIcon, ZMcaLogo } from '@zivoe/ui/icons';
 
 import { type Token } from '@/types/constants';
 
 export const TOKEN_INFO: Record<Token, { label: string; description: string; icon: React.ReactNode }> = {
-  zVLT: {
-    label: 'zVLT',
-    description: 'Zivoe Vault',
-    icon: <ZVltLogo />
-  },
   USDC: {
     label: 'USDC',
     description: 'US Dollar Coin',
     icon: <UsdcIcon />
   },
-  USDT: {
-    label: 'USDT',
-    description: 'Tether USD',
-    icon: <UsdtIcon />
-  },
-  frxUSD: {
-    label: 'frxUSD',
-    description: 'Frax USD',
-    icon: <FrxUsdIcon />
-  },
-  zSTT: {
-    label: 'zSTT',
-    description: 'Senior Tranche Token',
-    icon: <ZsttIcon />
-  },
-  stSTT: {
-    label: 'stSTT',
-    description: 'Staked Senior Tranche Token',
-    icon: <ZsttIcon />
-  },
   zMCA: {
     label: 'zMCA',
     description: 'Zivoe MCA',
-    icon: <ZVltLogo />
+    icon: <ZMcaLogo />
   }
 };

@@ -51,7 +51,7 @@ vi.mock('@/hooks/useCurrentShareMetrics', () => ({
     isError: mocks.metricsIsError,
     isFetching: mocks.metricsIsFetching,
     refetch: mocks.metricsRefetch,
-    data: mocks.metricsIsError ? undefined : { sharePrice: mocks.sharePrice }
+    data: mocks.metricsIsError ? undefined : { sharePriceD18: mocks.sharePrice.toString() }
   })
 }));
 vi.mock('@/hooks/useAccount', () => ({

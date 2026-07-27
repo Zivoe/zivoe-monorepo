@@ -8,7 +8,6 @@ const account = {
   by: ({ accountAddress }: AccountProps) => ['ACCOUNT', accountAddress],
   balance: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'BALANCE'],
   balanceOf: ({ accountAddress, id }: AccountProps & { id: Address }) => [...account.balance({ accountAddress }), id],
-  depositBalances: ({ accountAddress }: AccountProps) => [...account.balance({ accountAddress }), 'DEPOSIT'],
   allowance: ({ accountAddress, contract, spender }: AccountProps & { contract: Address; spender: Address }) => [
     ...account.by({ accountAddress }),
     'ALLOWANCE',
@@ -21,8 +20,6 @@ const account = {
 };
 
 const app = {
-  vault: ['VAULT'],
-  redemption: ['REDEMPTION'],
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
   vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
   depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()],

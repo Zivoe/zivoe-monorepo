@@ -1,7 +1,7 @@
 import { Separator } from '@zivoe/ui/core/separator';
 import { DiamondIcon } from '@zivoe/ui/icons';
 
-import { data } from '@/server/data';
+import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
@@ -40,14 +40,14 @@ export default function DepositInfo() {
 async function DepositChartsComponent() {
   // Both reads dedupe within the request (React cache), so the stats section
   // and the chart overlay render the same current payload.
-  const [snapshots, current] = await Promise.all([data.getCentrifugeDailySnapshots(), data.getCurrentShareMetrics()]);
+  const [snapshots, current] = await Promise.all([getCentrifugeDailySnapshots(), getCurrentShareMetrics()]);
   if (!snapshots || snapshots.length === 0) return null;
 
   return <DepositCharts snapshots={snapshots} current={current ?? null} />;
 }
 
 async function DepositStatsComponent() {
-  const metrics = await data.getCurrentShareMetrics();
+  const metrics = await getCurrentShareMetrics();
 
   // Indexer failure hides the stats rather than rendering wrong numbers. A
   // successful fetch with a null APY is the young-pool case: fewer than 30

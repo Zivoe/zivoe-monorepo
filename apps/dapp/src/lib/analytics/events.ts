@@ -26,17 +26,13 @@ export type AnalyticsEvent =
   | 'tx:approval_signature_rejected'
   | 'tx:approval_submitted'
   | 'tx:approval_confirmed'
-  | 'tx:approval_failed'
-  | 'tx:permit_started'
-  | 'tx:permit_signature_rejected'
-  | 'tx:permit_signed'
-  | 'tx:permit_failed';
+  | 'tx:approval_failed';
 
 type AnalyticsPropertyValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
 
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | Record<string, unknown>>;
 
-export type TransactionFlow = 'deposit' | 'redeem' | 'approval' | 'permit';
+export type TransactionFlow = 'deposit' | 'redeem' | 'approval';
 
 export type TransactionAnalyticsInput = {
   flow: TransactionFlow;

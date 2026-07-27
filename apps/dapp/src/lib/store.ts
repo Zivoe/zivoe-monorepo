@@ -24,11 +24,6 @@ export type TransactionData = {
       receive: bigint;
     };
 
-    unstake?: {
-      amount: bigint;
-      receive: bigint;
-    };
-
     claimRedeem?: {
       /** Exact USDC received. */
       assets: bigint;

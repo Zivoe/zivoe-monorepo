@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']),
-    PONDER_MAINNET_DATABASE_URL: z.string(),
     QSTASH_URL: z.string().url().optional(),
     QSTASH_TOKEN: z.string(),
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
@@ -70,7 +69,6 @@ export const env = createEnv({
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY,
     NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY,
     NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY,
-    PONDER_MAINNET_DATABASE_URL: process.env.PONDER_MAINNET_DATABASE_URL,
     QSTASH_URL: process.env.QSTASH_URL,
     QSTASH_TOKEN: process.env.QSTASH_TOKEN,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,

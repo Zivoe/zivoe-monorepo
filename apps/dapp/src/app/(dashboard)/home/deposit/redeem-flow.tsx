@@ -47,7 +47,7 @@ export default function RedeemFlow() {
   const investment = useInvestment();
   const metrics = useCurrentShareMetrics();
 
-  const sharePrice = metrics.data?.sharePrice;
+  const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = investment.data?.pendingRedeemShares ?? 0n;
   const claimableAssets = investment.data?.claimableRedeemAssets ?? 0n;
   const hasPosition = pendingShares > 0n || claimableAssets > 0n;

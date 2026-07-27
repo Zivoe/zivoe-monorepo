@@ -2,7 +2,7 @@ import React from 'react';
 
 import { type IconProps } from './types';
 
-export const ZVltLogo = React.forwardRef<SVGSVGElement, IconProps>(
+export const ZMcaLogo = React.forwardRef<SVGSVGElement, IconProps>(
   ({ color: _color = 'currentColor', ...props }, forwardedRef) => {
     return (
       <svg

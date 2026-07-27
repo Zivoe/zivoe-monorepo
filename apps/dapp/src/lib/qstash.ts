@@ -11,7 +11,6 @@ export function withQstashSignature(handler: AppRouteHandler): AppRouteHandler {
 export const QSTASH_FAILURE_CALLBACK_PATH = '/api/qstash/failure';
 
 export const QSTASH_JOB_LABELS = {
-  monitorNetworkLive: 'monitor.network.live',
   monitorRefreshHoldings: 'monitor.refresh-holdings',
   monitorDlq: 'monitor.dlq',
   emailOnboardingReminder: 'email.onboarding-reminder',
