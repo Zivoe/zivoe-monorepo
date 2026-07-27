@@ -156,7 +156,7 @@ export default function RedeemFlow() {
 
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address]);
+  }, [account.address, form]);
 
   const handleClaim = () => {
     if (claimableAssets <= 0n) return;

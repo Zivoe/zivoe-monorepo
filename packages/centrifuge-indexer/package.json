@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "eslint ./src/",
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
-    "check-types": "tsc --noEmit",
+    "check-types": "gql-tada check && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "schema:pin": "gql-tada generate schema https://api-v3-test.cfg.embrio.tech --output ./schema.graphql",

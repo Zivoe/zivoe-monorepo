@@ -17,7 +17,9 @@
   },
   "pnpm": {
     "overrides": {
-      "kysely": "^0.28.5"
+      "kysely": "^0.28.5",
+      "import-in-the-middle": "^3.0.1",
+      "require-in-the-middle": "^8.0.1"
     }
   },
   "packageManager": "pnpm@10.4.1",

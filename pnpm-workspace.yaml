@@ -1,3 +1,26 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Keep these in sync with package.json#pnpm.overrides. pnpm 10 reads workspace
+# settings, while the pnpm 9 used by older Vercel projects reads the manifest.
+# The hook overrides collapse the OpenTelemetry/Sentry module hooks to one
+# version each, preventing Turbopack's conflicting serverExternalPackages warning.
+overrides:
+  kysely: ^0.28.5
+  import-in-the-middle: ^3.0.1
+  require-in-the-middle: ^8.0.1
+
+# pnpm 10 blocks dependency build scripts by default. These packages were
+# already blocked; listing them here suppresses repeated approval warnings.
+ignoredBuiltDependencies:
+  - '@reown/appkit'
+  - '@sentry/cli'
+  - bigint-buffer
+  - bufferutil
+  - core-js
+  - esbuild
+  - protobufjs
+  - sharp
+  - unrs-resolver
+  - utf-8-validate

@@ -1,4 +1,4 @@
-import { BASE_IGNORES, BASE_RULES } from './base.mjs';
+import { BASE_CONFIGS, BASE_IGNORES, BASE_PLUGINS, BASE_RULES } from './base.mjs';
 
 /**
  * Shared ESLint flat config for Next.js apps.
@@ -16,6 +16,7 @@ export function nextConfig({
     { ignores: [...BASE_IGNORES, ...extraIgnores] },
     ...tseslint.configs.recommendedTypeChecked,
     ...tseslint.configs.stylisticTypeChecked,
+    ...BASE_CONFIGS,
     {
       files: ['**/*.{ts,tsx}'],
       languageOptions: {
@@ -25,6 +26,7 @@ export function nextConfig({
         },
       },
       plugins: {
+        ...BASE_PLUGINS,
         '@next/next': nextPlugin,
       },
       rules: {
