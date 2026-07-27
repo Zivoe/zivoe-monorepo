@@ -147,7 +147,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.cancelRedeem.shares}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -158,7 +158,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.claimReturnedShares.shares}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}

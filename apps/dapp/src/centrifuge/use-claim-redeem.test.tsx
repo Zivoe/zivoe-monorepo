@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { type ReactNode } from 'react';
 
+import { ABI } from '@centrifuge/sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { getDefaultStore } from 'jotai';
-import { type TransactionReceipt, encodeAbiParameters, encodeEventTopics, parseAbi } from 'viem';
+import { type TransactionReceipt, encodeAbiParameters, encodeEventTopics, encodeFunctionData, parseAbi } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
@@ -46,6 +47,17 @@ const TX_HASH = '0x5555555555555555555555555555555555555555555555555555555555555
 const CLAIMABLE_ASSETS = 150_000000n;
 const CLAIMABLE_SHARES = 140_190000000000000000n;
 
+const CLAIM_REDEEM_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'claimRedeem',
+  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+});
+const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'claimCancelRedeemRequest',
+  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+});
+
 const WITHDRAW_EVENT_ABI = parseAbi([
   'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'
 ]);
@@ -78,8 +90,14 @@ const balance = (value: bigint) => ({ toBigInt: () => value });
 function fakeVault({
   receipt = claimReceipt(),
   claimError,
-  claimableCancelRedeemShares = 0n
-}: { receipt?: TransactionReceipt; claimError?: Error; claimableCancelRedeemShares?: bigint } = {}) {
+  claimableCancelRedeemShares = 0n,
+  claimData = CLAIM_REDEEM_DATA
+}: {
+  receipt?: TransactionReceipt;
+  claimError?: Error;
+  claimableCancelRedeemShares?: bigint;
+  claimData?: `0x${string}`;
+} = {}) {
   return {
     // The bucket guard reads a fresh investment before building the claim.
     investment: () =>
@@ -114,7 +132,16 @@ function fakeVault({
                 request: (args: { method: string; params?: unknown }) => Promise<unknown>;
               };
 
-              await signer.request({ method: 'eth_sendTransaction', params: [{ from: INVESTOR, data: '0x02' }] });
+              await signer.request({
+                method: 'eth_sendTransaction',
+                params: [
+                  {
+                    from: INVESTOR,
+                    to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+                    data: claimData
+                  }
+                ]
+              });
               observer.next({ type: 'TransactionPending', hash: TX_HASH });
               observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
               observer.complete();
@@ -214,7 +241,25 @@ describe('useClaimRedeem', () => {
     expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zMCA first.' });
   });
 
-  it('degrades to a generic USDC claimed result when the receipt cannot be decoded', async () => {
+  it('rejects an SDK bucket switch before the wallet can claim Returned Shares as USDC', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_RETURNED_SHARES_DATA }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+
+    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(claimSpy).toHaveBeenCalledOnce();
+    expect(publicClientCall).not.toHaveBeenCalled();
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Claimable balances changed. Claim your returned zMCA first.'
+    });
+  });
+
+  it('does not report a successful USDC claim when the receipt cannot be decoded', async () => {
     getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withWithdrawLog: false }) }));
 
     const { wrapper } = createWrapper();
@@ -224,11 +269,10 @@ describe('useClaimRedeem', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
-      type: 'SUCCESS',
-      title: 'USDC claimed',
-      description: 'USDC has been transferred to your wallet.',
+      type: 'ERROR',
+      title: 'Claim Could Not Be Verified',
+      description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      meta: undefined
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

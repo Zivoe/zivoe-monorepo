@@ -5,6 +5,7 @@ import {
   type Hex,
   decodeErrorResult,
   hexToBigInt,
+  isAddressEqual,
   isHex,
   parseAbi
 } from 'viem';
@@ -13,6 +14,12 @@ import { AppError, handlePromise } from '@/lib/utils';
 
 /** Maps decoded protocol error names to flow-specific product copy. */
 export type SimulationErrorCopy = Record<string, string>;
+
+export type ExpectedContractCall = {
+  to: Address;
+  data: Hex;
+  mismatchMessage: string;
+};
 
 export type WalletClientLike = { request(args: { method: string; params?: unknown }): Promise<unknown> };
 
@@ -52,22 +59,45 @@ const ERROR_ABI = [
 export function createSimulationSigner({
   walletClient,
   simulationClient,
-  errorCopy
+  errorCopy,
+  expectedCall
 }: {
   walletClient: WalletClientLike;
   simulationClient: SimulationClient;
   errorCopy: SimulationErrorCopy;
+  expectedCall?: ExpectedContractCall;
 }): WalletClientLike {
   return {
     request: async (args) => {
       if (args.method === 'eth_sendTransaction') {
         const [transaction] = args.params as [{ from?: Address; to?: Address; data?: Hex; value?: Hex | bigint }];
+        assertExpectedCall({ transaction, expectedCall });
         await simulateExactCall({ simulationClient, transaction, errorCopy });
       }
 
       return walletClient.request(args);
     }
   };
+}
+
+function assertExpectedCall({
+  transaction,
+  expectedCall
+}: {
+  transaction: { to?: Address; data?: Hex };
+  expectedCall?: ExpectedContractCall;
+}) {
+  if (!expectedCall) return;
+
+  const matchesAddress = transaction.to && isAddressEqual(transaction.to, expectedCall.to);
+  const matchesData = transaction.data?.toLowerCase() === expectedCall.data.toLowerCase();
+  if (matchesAddress && matchesData) return;
+
+  throw new AppError({
+    message: expectedCall.mismatchMessage,
+    simulation: true,
+    capture: false
+  });
 }
 
 async function simulateExactCall({

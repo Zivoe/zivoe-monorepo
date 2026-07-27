@@ -1,5 +1,8 @@
 'use client';
 
+import { ABI } from '@centrifuge/sdk';
+import { encodeFunctionData } from 'viem';
+
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
@@ -32,10 +35,9 @@ type ClaimReturnedSharesVariables = {
  */
 export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: () => void } = {}) {
   return useCentrifugeTx<ClaimReturnedSharesVariables>({
-    // Mirror of useClaimRedeem's bucket guard: the aggregate claim empties the
-    // Returned Shares bucket first, so a stale mount (shares already claimed)
-    // would otherwise claim redemption USDC under 'Claim zMCA' copy. Guard on
-    // a fresh read of the same state the SDK builds calldata from.
+    // Fail early when the Returned Shares bucket is already empty. The
+    // exact-call gate below closes the remaining race if the SDK's later read
+    // falls through to redemption USDC while building the aggregate claim.
     action: async (_, { vault, address }) => {
       const investment = await readInvestment({ vault, investor: address });
       if (investment.claimableCancelRedeemShares <= 0n)
@@ -43,6 +45,16 @@ export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: ()
 
       return { tx: vault.claim() };
     },
+
+    expectedCall: (_, { address }) => ({
+      to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+      data: encodeFunctionData({
+        abi: ABI.VaultRouter,
+        functionName: 'claimCancelRedeemRequest',
+        args: [CENTRIFUGE_CONFIG.vaultAddress, address, address]
+      }),
+      mismatchMessage: 'Claimable balances changed. Refresh and try again.'
+    }),
 
     simulationErrorCopy: CLAIM_RETURNED_SHARES_SIMULATION_ERROR_COPY,
     sdkErrorCopy: CLAIM_RETURNED_SHARES_SDK_ERROR_COPY,
@@ -75,12 +87,20 @@ export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: ()
         };
 
       const decoded = decodeClaimReturnedSharesReceipt(receipt);
+      if (!decoded)
+        return {
+          type: 'ERROR',
+          title: 'Claim Could Not Be Verified',
+          description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
+          hash: receipt.transactionHash
+        };
+
       const transactionData: TransactionData = {
         type: 'SUCCESS',
         title: 'zMCA claimed',
         description: 'Your zMCA has been returned to your wallet.',
         hash: receipt.transactionHash,
-        meta: decoded ? { claimReturnedShares: { shares: decoded.shares } } : undefined
+        meta: { claimReturnedShares: { shares: decoded.shares } }
       };
 
       return transactionData;

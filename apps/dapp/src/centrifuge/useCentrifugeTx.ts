@@ -27,7 +27,7 @@ import { useAccount } from '@/hooks/useAccount';
 
 import { getVault, setTransactionSigner } from './client';
 import { type TransactionEntity, type VaultEntity } from './entities';
-import { type SimulationErrorCopy, createSimulationSigner } from './simulate';
+import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
@@ -42,6 +42,11 @@ export type CentrifugeTxConfig<TVariables> = {
    * through an await would execute it to completion with no subscriber.
    */
   action: (vars: TVariables, ctx: CentrifugeTxContext) => { tx: TransactionEntity } | Promise<{ tx: TransactionEntity }>;
+  /**
+   * Optional final assertion over the SDK's fully built router call. Use when
+   * one SDK action can select between semantically different operations.
+   */
+  expectedCall?: (vars: TVariables, ctx: CentrifugeTxContext) => ExpectedContractCall;
   /** Decoded protocol error names mapped to flow-specific copy for the simulation block. */
   simulationErrorCopy: SimulationErrorCopy;
   /** SDK plain pre-signature error messages (matched by inclusion) mapped to product copy. */
@@ -107,6 +112,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
       try {
         const vault = await getVault();
+        const txContext = { address, vault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
         // transaction, so an account switch can never leave a stale signer.
@@ -116,11 +122,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         const signer = createSimulationSigner({
           walletClient,
           simulationClient: publicClient,
-          errorCopy: config.simulationErrorCopy
+          errorCopy: config.simulationErrorCopy,
+          expectedCall: config.expectedCall?.(vars, txContext)
         });
         releaseSigner = setTransactionSigner(signer);
 
-        const { tx: transaction } = await config.action(vars, { address, vault, publicClient });
+        const { tx: transaction } = await config.action(vars, txContext);
 
         const receipt = await new Promise<TransactionReceipt>((resolve, reject) => {
           let confirmed: TransactionReceipt | undefined;

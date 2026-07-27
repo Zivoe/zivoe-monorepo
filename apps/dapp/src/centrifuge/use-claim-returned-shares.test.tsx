@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { type ReactNode } from 'react';
 
+import { ABI } from '@centrifuge/sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { getDefaultStore } from 'jotai';
-import { type TransactionReceipt, encodeAbiParameters, encodeEventTopics, parseAbi } from 'viem';
+import { type TransactionReceipt, encodeAbiParameters, encodeEventTopics, encodeFunctionData, parseAbi } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
@@ -44,6 +45,17 @@ const TX_HASH = '0x7777777777777777777777777777777777777777777777777777777777777
 
 const RETURNED_SHARES = 4n * 10n ** 18n;
 
+const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'claimCancelRedeemRequest',
+  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+});
+const CLAIM_REDEEM_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'claimRedeem',
+  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+});
+
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
   'event CancelRedeemClaim(address indexed controller, address indexed receiver, uint256 indexed requestId, address sender, uint256 shares)'
 ]);
@@ -73,8 +85,14 @@ const balance = (value: bigint) => ({ toBigInt: () => value });
 function fakeVault({
   receipt = claimReceipt(),
   claimError,
-  claimableCancelRedeemShares = 60_000000000000000000n
-}: { receipt?: TransactionReceipt; claimError?: Error; claimableCancelRedeemShares?: bigint } = {}) {
+  claimableCancelRedeemShares = 60_000000000000000000n,
+  claimData = CLAIM_RETURNED_SHARES_DATA
+}: {
+  receipt?: TransactionReceipt;
+  claimError?: Error;
+  claimableCancelRedeemShares?: bigint;
+  claimData?: `0x${string}`;
+} = {}) {
   return {
     // The bucket guard reads a fresh investment before building the claim.
     investment: () =>
@@ -109,7 +127,16 @@ function fakeVault({
                 request: (args: { method: string; params?: unknown }) => Promise<unknown>;
               };
 
-              await signer.request({ method: 'eth_sendTransaction', params: [{ from: INVESTOR, data: '0x04' }] });
+              await signer.request({
+                method: 'eth_sendTransaction',
+                params: [
+                  {
+                    from: INVESTOR,
+                    to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+                    data: claimData
+                  }
+                ]
+              });
               observer.next({ type: 'TransactionPending', hash: TX_HASH });
               observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
               observer.complete();
@@ -209,7 +236,25 @@ describe('useClaimReturnedShares', () => {
     expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zMCA to claim. Refresh and try again.' });
   });
 
-  it('degrades to a generic zMCA claimed result when the receipt cannot be decoded', async () => {
+  it('rejects an SDK bucket switch before the wallet can claim USDC as Returned Shares', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_REDEEM_DATA }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+
+    act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(claimSpy).toHaveBeenCalledOnce();
+    expect(publicClientCall).not.toHaveBeenCalled();
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Claimable balances changed. Refresh and try again.'
+    });
+  });
+
+  it('does not report a successful zMCA claim when the receipt cannot be decoded', async () => {
     getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withClaimLog: false }) }));
 
     const { wrapper } = createWrapper();
@@ -219,11 +264,10 @@ describe('useClaimReturnedShares', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
-      type: 'SUCCESS',
-      title: 'zMCA claimed',
-      description: 'Your zMCA has been returned to your wallet.',
+      type: 'ERROR',
+      title: 'Claim Could Not Be Verified',
+      description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      meta: undefined
     });
     expect(sentryCapture).toHaveBeenCalled();
   });
