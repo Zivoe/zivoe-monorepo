@@ -160,13 +160,11 @@ function processAndFillSnapshots(
   while (currentTimestamp <= endTimestamp) {
     const timestampStr = currentTimestamp.toString();
 
-    // Update raw balance if we have a snapshot for this day
     const snapshotBalance = snapshotMap.get(timestampStr);
     if (snapshotBalance !== undefined) {
       lastRawBalance = snapshotBalance;
     }
 
-    // Get index price for this specific day
     const indexPrice =
       timestampStr === currentEndOfDayUTCInSeconds ? currentIndexPrice : indexPriceMap.get(timestampStr);
 
@@ -177,7 +175,6 @@ function processAndFillSnapshots(
       });
     }
 
-    // Calculate adjusted balance for this day
     const indexPriceWei = parseUnits(indexPrice.toFixed(6), 18);
     const adjustedBalance = (lastRawBalance * indexPriceWei) / BigInt(1e18);
 
@@ -186,7 +183,7 @@ function processAndFillSnapshots(
       balance: adjustedBalance.toString()
     });
 
-    currentTimestamp += DAY_IN_SECONDS; // Move to next day
+    currentTimestamp += DAY_IN_SECONDS;
   }
 
   return result;

@@ -124,11 +124,11 @@ function SentryContext({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// * Wallet connection tracking relies on connect-only mode where only one wallet
-// * is active at a time. If multi-wallet support is added, switch to tracking
-// * the connectedWallets array instead of primaryWallet.
 const MAX_WALLET_CACHE_SIZE = 100;
 
+// * Relies on connect-only mode, where only one wallet is active at a time. If
+// * multi-wallet support is added, track the connectedWallets array instead of
+// * primaryWallet.
 function WalletTracker() {
   const { address } = useAccount();
   const { primaryWallet } = useDynamicContext();
@@ -143,7 +143,7 @@ function WalletTracker() {
     const cacheKey = `${normalizedAddress}:${walletType}`;
     const storageKey = `wallets_${userId}`;
 
-    // Check localStorage cache to avoid unnecessary server calls
+    // Avoids a server call on every mount for a wallet already tracked.
     try {
       const cached = new Set(JSON.parse(localStorage.getItem(storageKey) ?? '[]'));
       if (cached.has(cacheKey)) return;

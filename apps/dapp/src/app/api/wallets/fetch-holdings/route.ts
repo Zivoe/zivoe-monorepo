@@ -29,7 +29,7 @@ const handler = async (req: NextRequest): ApiResponse<FetchResult> => {
 
   const normalizedAddress = address.toLowerCase();
 
-  // Check if holdings already exist (idempotency for QStash retries)
+  // Idempotency for QStash retries: an existing row means the fetch already ran.
   const [existing] = await db
     .select({ totalValueUsd: walletHoldings.totalValueUsd })
     .from(walletHoldings)

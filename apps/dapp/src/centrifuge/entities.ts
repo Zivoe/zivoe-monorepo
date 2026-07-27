@@ -1,6 +1,5 @@
 // Structural views of the SDK entities this module consumes — keeps SDK types
 // out of signatures and lets tests fake the client boundary with plain objects.
-
 import { type TransactionReceipt } from 'viem';
 
 export type BalanceLike = {

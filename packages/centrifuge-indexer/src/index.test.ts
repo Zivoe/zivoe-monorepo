@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CentrifugeIndexerError,
-  createDailyNegativeYieldReporter,
   type CurrentShareMetrics,
+  createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   getCentrifugeIndexerConfig,
@@ -430,7 +430,10 @@ describe('toShareStatsPayload', () => {
   });
 
   it('converts a positive trailing yield to display percent', () => {
-    const { payload, negativeYield30d } = toShareStatsPayload({ ...base, yield30dComp365: 52500000000000000000000000n });
+    const { payload, negativeYield30d } = toShareStatsPayload({
+      ...base,
+      yield30dComp365: 52500000000000000000000000n
+    });
 
     expect(payload.apy).toBe(5.25);
     expect(negativeYield30d).toBeNull();

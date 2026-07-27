@@ -4,7 +4,7 @@ import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 
-import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
+import useTx, { type TxParams, parseReceiptEvent } from '@/hooks/useTx';
 
 export type ClaimVestingParams = TxParams<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
 
@@ -60,17 +60,14 @@ export const useClaimVesting = () => {
     },
 
     invalidate: ({ queryClient, address }) => {
-      // Refetch vesting schedule
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
       });
 
-      // Refetch claimable amount
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
       });
 
-      // Refetch blockchain timestamp
       void queryClient.invalidateQueries({
         queryKey: queryKeys.app.blockchainTimestamp
       });

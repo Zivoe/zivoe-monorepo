@@ -106,7 +106,7 @@ export async function fetchPortfolios(addresses: Array<string>): Promise<Map<str
     return result;
   }
 
-  // Build a map of address -> balances from byAccount edges
+  // One account can appear across several edges, so balances are summed per address.
   const tokenBalancesByAddress = new Map<string, number>();
   const appBalancesByAddress = new Map<string, number>();
 
@@ -120,7 +120,6 @@ export async function fetchPortfolios(addresses: Array<string>): Promise<Map<str
     appBalancesByAddress.set(addr, (appBalancesByAddress.get(addr) ?? 0) + edge.node.balanceUSD);
   }
 
-  // Build result map — addresses not in response default to $0
   for (const address of addresses) {
     const normalizedAddress = address.toLowerCase();
     const portfolio: ZapperPortfolio = {

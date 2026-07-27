@@ -12,12 +12,9 @@ const PopoverTrigger = Aria.DialogTrigger;
 
 const popoverVariants = tv({
   base: [
-    'border-default bg-element-base text-small text-secondary z-50 max-w-xs rounded-md border px-3 py-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)]',
-    /* Entering */
+    'z-50 max-w-xs rounded-md border border-default bg-element-base px-3 py-2 text-small text-secondary shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)]',
     'entering:animate-in entering:fade-in-0 entering:zoom-in-90',
-    /* Exiting */
     'exiting:animate-out exiting:fade-out-0 exiting:zoom-out-90',
-    /* Placement */
     'placement-left:slide-in-from-right-2 placement-right:slide-in-from-left-2 placement-top:slide-in-from-bottom-2 placement-bottom:slide-in-from-top-2'
   ]
 });

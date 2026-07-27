@@ -264,7 +264,13 @@ describe('useDeposit', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['ACCOUNT', INVESTOR, 'ALLOWANCE', CENTRIFUGE_CONFIG.usdc.address, CENTRIFUGE_CONFIG.vaultRouterAddress]),
+        JSON.stringify([
+          'ACCOUNT',
+          INVESTOR,
+          'ALLOWANCE',
+          CENTRIFUGE_CONFIG.usdc.address,
+          CENTRIFUGE_CONFIG.vaultRouterAddress
+        ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
         JSON.stringify(['CENTRIFUGE', 'VAULT_CAPACITY']),
         JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT'])
@@ -364,7 +370,7 @@ describe('useDeposit', () => {
     expect(getWalletClient).toHaveBeenCalledTimes(2);
   });
 
-  it('cannot release another transaction\'s signer when the lock is already held', async () => {
+  it("cannot release another transaction's signer when the lock is already held", async () => {
     setTransactionSigner.mockImplementationOnce(() => {
       throw new AppError({ message: 'Another transaction is already in progress' });
     });

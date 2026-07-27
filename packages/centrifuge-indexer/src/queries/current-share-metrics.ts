@@ -113,13 +113,7 @@ export function toShareStatsPayload(metrics: CurrentShareMetrics): {
 export function createDailyNegativeYieldReporter(report: (negativeYield30d: bigint) => void) {
   let lastReportedUtcDay: string | undefined;
 
-  return ({
-    negativeYield30d,
-    now = new Date()
-  }: {
-    negativeYield30d: bigint | null;
-    now?: Date;
-  }): void => {
+  return ({ negativeYield30d, now = new Date() }: { negativeYield30d: bigint | null; now?: Date }): void => {
     if (negativeYield30d === null) return;
 
     const utcDay = now.toISOString().slice(0, 10);

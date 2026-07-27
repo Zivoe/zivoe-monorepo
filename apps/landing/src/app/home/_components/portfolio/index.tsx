@@ -87,7 +87,7 @@ function Card({
   description: string | ReactNode;
 }) {
   return (
-    <div className="flex w-full items-center gap-6 rounded-xl bg-element-primary px-6 py-4 sm:flex-col sm:items-start xl:flex-row xl:items-center xl:pb-4 xl:pt-6 2xl:w-55 2xl:flex-col 2xl:items-start">
+    <div className="flex w-full items-center gap-6 rounded-xl bg-element-primary px-6 py-4 sm:flex-col sm:items-start xl:flex-row xl:items-center xl:pt-6 xl:pb-4 2xl:w-55 2xl:flex-col 2xl:items-start">
       {children}
 
       <div className="flex flex-col gap-1">

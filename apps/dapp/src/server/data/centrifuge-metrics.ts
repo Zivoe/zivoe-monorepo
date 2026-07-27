@@ -16,9 +16,9 @@ import {
   toShareStatsPayload
 } from '@zivoe/centrifuge-indexer';
 
-import { sharesToValueD18 } from '@/centrifuge/config';
-
 import { env } from '@/env';
+
+import { sharesToValueD18 } from '@/centrifuge/config';
 
 export type CentrifugeDailySnapshot = {
   /** UTC start (ms) of the day whose close this point records. */
@@ -105,33 +105,31 @@ const cachedDailySnapshotRows = nextCache(fetchDailySnapshotRows, ['centrifuge-d
  * revalidation then keeps serving the last good payload instead of caching
  * `undefined` over it.
  */
-export const getCentrifugeDailySnapshots = reactCache(
-  async (): Promise<Array<CentrifugeDailySnapshot> | undefined> => {
-    try {
-      const rows = await cachedDailySnapshotRows();
+export const getCentrifugeDailySnapshots = reactCache(async (): Promise<Array<CentrifugeDailySnapshot> | undefined> => {
+  try {
+    const rows = await cachedDailySnapshotRows();
 
-      return rows.flatMap((row): Array<CentrifugeDailySnapshot> => {
-        // NAV needs issuance; a priced row without it cannot chart.
-        if (row.totalIssuanceD18 === null) return [];
+    return rows.flatMap((row): Array<CentrifugeDailySnapshot> => {
+      // NAV needs issuance; a priced row without it cannot chart.
+      if (row.totalIssuanceD18 === null) return [];
 
-        const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
-        const navD18 = sharesToValueD18({ shares: BigInt(row.totalIssuanceD18), sharePrice: BigInt(row.tokenPriceD18) });
+      const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
+      const navD18 = sharesToValueD18({ shares: BigInt(row.totalIssuanceD18), sharePrice: BigInt(row.tokenPriceD18) });
 
-        return [
-          {
-            timestampMs: row.dayStartSeconds * 1000,
-            sharePrice: Number(row.tokenPriceD18) / 1e18,
-            nav: Number(navD18) / 1e18,
-            // The anomalous negative case renders as the null state.
-            apy: yieldRay === null || yieldRay < 0n ? null : rayToPercent(yieldRay)
-          }
-        ];
-      });
-    } catch (error) {
-      Sentry.captureException(error, { tags: { source: 'SERVER' } });
-    }
+      return [
+        {
+          timestampMs: row.dayStartSeconds * 1000,
+          sharePrice: Number(row.tokenPriceD18) / 1e18,
+          nav: Number(navD18) / 1e18,
+          // The anomalous negative case renders as the null state.
+          apy: yieldRay === null || yieldRay < 0n ? null : rayToPercent(yieldRay)
+        }
+      ];
+    });
+  } catch (error) {
+    Sentry.captureException(error, { tags: { source: 'SERVER' } });
   }
-);
+});
 
 const reportLiveNegativeYield = createDailyNegativeYieldReporter((negativeYield30d) =>
   reportNegativeYield({ yield30dComp365: negativeYield30d.toString() })

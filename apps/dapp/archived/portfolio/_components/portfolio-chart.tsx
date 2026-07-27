@@ -75,7 +75,7 @@ export function PortfolioChart() {
 
                   return (
                     <div className="flex flex-col gap-1">
-                      <span className="font-heading! text-regular tabular-nums text-primary">
+                      <span className="font-heading! text-regular text-primary tabular-nums">
                         ${formatBigIntWithCommas({ value: balance })}
                       </span>
 

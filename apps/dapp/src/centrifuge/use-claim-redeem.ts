@@ -89,7 +89,8 @@ export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void
         return {
           type: 'ERROR',
           title: 'Claim Could Not Be Verified',
-          description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
+          description:
+            'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
           hash: receipt.transactionHash
         };
 

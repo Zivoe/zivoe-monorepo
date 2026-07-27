@@ -23,7 +23,7 @@ const SelectItem = ListBoxItem;
 const SelectValue = <T extends object>({ className, ...props }: AriaSelectValueProps<T>) => (
   <AriaSelectValue
     className={composeRenderProps(className, (className) =>
-      cn('data-placeholder:text-tertiary line-clamp-1 *:[[slot=description]]:hidden', className)
+      cn('line-clamp-1 data-placeholder:text-tertiary *:[[slot=description]]:hidden', className)
     )}
     {...props}
   />
@@ -52,7 +52,7 @@ const SelectTrigger = ({
     {composeRenderProps(children, (children) => (
       <>
         {children}
-        <ChevronDownIcon aria-hidden="true" className="text-icon-default size-4" />
+        <ChevronDownIcon aria-hidden="true" className="size-4 text-icon-default" />
       </>
     ))}
   </Button>
@@ -92,7 +92,7 @@ const SelectListBox = <T extends object>({
   <AriaListBox
     className={composeRenderProps(className, (className) =>
       cn(
-        'border-default bg-element-base max-h-[inherit] min-h-32 space-y-1 overflow-auto rounded-md border p-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] outline-hidden md:max-h-80',
+        'max-h-[inherit] min-h-32 space-y-1 overflow-auto rounded-md border border-default bg-element-base p-2 shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] outline-hidden md:max-h-80',
         className
       )
     )}

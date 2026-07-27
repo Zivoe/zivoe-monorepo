@@ -155,8 +155,8 @@ export default function Experience() {
       </div>
 
       <TowerRightDesktopIcon className="absolute -right-16 bottom-0 hidden xl:block 2xl:right-0" />
-      <TowerRightTabletIcon className="absolute bottom-0 right-0 hidden sm:block xl:hidden" />
-      <TowerRightMobileIcon className="absolute bottom-0 right-0 block sm:hidden" />
+      <TowerRightTabletIcon className="absolute right-0 bottom-0 hidden sm:block xl:hidden" />
+      <TowerRightMobileIcon className="absolute right-0 bottom-0 block sm:hidden" />
     </div>
   );
 }

@@ -222,7 +222,7 @@ export default function RedeemFlow() {
   return (
     <>
       {returnedShares > 0n && (
-        <div className="border-default bg-surface-elevated flex flex-wrap items-center justify-between gap-3 rounded-sm border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
             {formatBigIntWithCommas({ value: returnedShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA
             returned from cancellation
@@ -251,7 +251,7 @@ export default function RedeemFlow() {
       )}
 
       {claimableAssets > 0n && (
-        <div className="border-default bg-surface-elevated flex flex-col gap-1 rounded-sm border p-4">
+        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-regular text-primary">
               {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: USDC.decimals, displayDecimals: 2 })}{' '}
@@ -429,7 +429,7 @@ function RedemptionProcessingStrip({
   const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice }) : undefined;
 
   return (
-    <div className="border-default bg-surface-elevated flex flex-wrap items-center justify-between gap-3 rounded-sm border p-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">
         {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA
         processing
@@ -458,7 +458,7 @@ function RedemptionProcessingStrip({
 
 function CancellationProcessingStrip({ pendingShares }: { pendingShares: bigint }) {
   return (
-    <div className="border-default bg-surface-elevated flex flex-col gap-1 rounded-sm border p-4">
+    <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">
         Cancelling redemption request
         {pendingShares > 0n

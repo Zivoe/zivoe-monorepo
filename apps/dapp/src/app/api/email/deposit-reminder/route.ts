@@ -68,7 +68,7 @@ const handler = async (req: NextRequest) => {
   if (err)
     throw new ApiError({ message: 'Failed to send reminder email', status: 500, exception: err, capture: false });
 
-  // After sending reminder 1, schedule reminder 2 (7 days later = 10 days from onboarding)
+  // Reminder 2 lands 10 days after onboarding: 3 days to reminder 1, then 7 more.
   if (reminderNumber === 1) {
     const { err: scheduleErr } = await handlePromise(
       qstash.publishJSON({

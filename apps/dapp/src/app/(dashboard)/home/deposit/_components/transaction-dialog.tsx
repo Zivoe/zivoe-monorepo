@@ -11,8 +11,6 @@ import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { CENTRIFUGE_CONFIG } from '@/centrifuge';
-
 import { DEPOSIT_TOKEN_DECIMALS, TOKEN_DECIMALS, type Token } from '@/types/constants';
 
 import { transactionAtom } from '@/lib/store';
@@ -21,6 +19,8 @@ import { formatBigIntToReadable } from '@/lib/utils';
 import { TOKEN_INFO } from '@/components/token-info';
 
 import { env } from '@/env';
+
+import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 
 const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia).blockExplorers.default.url;
 
@@ -51,16 +51,16 @@ export function TransactionDialog() {
               )}
             >
               {transaction.type === 'SUCCESS' ? (
-                <CheckCircleIcon className="text-primary size-8" />
+                <CheckCircleIcon className="size-8 text-primary" />
               ) : (
-                <CloseCircleIcon className="text-alert-contrast size-8" />
+                <CloseCircleIcon className="size-8 text-alert-contrast" />
               )}
             </div>
 
             <div className="flex flex-col items-center gap-4">
               <div className="flex flex-col items-center gap-2">
                 <p className="text-h5 text-primary">{transaction.title}</p>
-                <p className="text-regular text-secondary text-center">{transaction.description}</p>
+                <p className="text-center text-regular text-secondary">{transaction.description}</p>
               </div>
 
               <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
@@ -89,7 +89,7 @@ export function TransactionDialog() {
                 icon={TOKEN_INFO[transaction.meta.deposit.token].icon}
               />
 
-              <ArrowRightIcon className="text-icon-default size-4" />
+              <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
                 token="zMCA"
@@ -109,7 +109,7 @@ export function TransactionDialog() {
                 icon={TOKEN_INFO.zMCA.icon}
               />
 
-              <ArrowRightIcon className="text-icon-default size-4" />
+              <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
                 token="USDC"
@@ -130,7 +130,7 @@ export function TransactionDialog() {
                 icon={TOKEN_INFO.zMCA.icon}
               />
 
-              <ArrowRightIcon className="text-icon-default size-4" />
+              <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
                 token="USDC"
@@ -176,7 +176,7 @@ export function TransactionDialog() {
 
 function TransactionDialogTokensSection({ children }: { children: ReactNode }) {
   return (
-    <div className="border-subtle bg-surface-elevated flex h-14 w-full items-center justify-center gap-4 rounded-md">
+    <div className="flex h-14 w-full items-center justify-center gap-4 rounded-md border-subtle bg-surface-elevated">
       {children}
     </div>
   );

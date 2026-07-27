@@ -33,7 +33,8 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
   });
 
   try {
-    // Only fetch holdings that haven't been updated in STALE_DAYS
+    // Holdings older than STALE_DAYS, plus connected wallets that have no
+    // holdings row at all.
     const staleThreshold = sql`now() - ${STALE_DAYS} * interval '1 day'`;
     const [staleHoldingsList, missingHoldingsList, [countResult]] = await Promise.all([
       db
@@ -66,7 +67,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
       level: 'info'
     });
 
-    // If no stale or missing holdings, we're done
     if (staleOrMissingCount === 0) {
       Sentry.captureCheckIn({
         checkInId: sentryCheckInId,
@@ -119,7 +119,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
     const failedBatches: Array<{ batchIndex: number; batchSize: number }> = [];
     const totalBatches = Math.ceil(addresses.length / MAX_ACCOUNTS_PER_QUERY);
 
-    // Process in batches
     for (let i = 0; i < addresses.length; i += MAX_ACCOUNTS_PER_QUERY) {
       const batchIndex = Math.floor(i / MAX_ACCOUNTS_PER_QUERY) + 1;
       const batch = addresses.slice(i, i + MAX_ACCOUNTS_PER_QUERY);
@@ -141,7 +140,6 @@ const handler = async (_req: NextRequest): ApiResponse<RefreshResult> => {
           level: 'info'
         });
 
-        // Build values for bulk upsert
         const values = [...portfolios.entries()].map(([address, portfolio]) => ({
           address,
           totalValueUsd: roundTo4(portfolio.tokenBalanceUSD + portfolio.appBalanceUSD),

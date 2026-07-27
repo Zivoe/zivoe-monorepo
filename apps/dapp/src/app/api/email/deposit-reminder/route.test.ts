@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { POST } from './route';
+
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('@/lib/qstash', () => ({
@@ -24,8 +26,6 @@ vi.mock('@/server/data/wallets', () => ({ getWalletAddressesForUser }));
 const sendFirstDepositReminderEmail = vi.hoisted(() => vi.fn());
 const sendSecondDepositReminderEmail = vi.hoisted(() => vi.fn());
 vi.mock('@/server/utils/send-email', () => ({ sendFirstDepositReminderEmail, sendSecondDepositReminderEmail }));
-
-import { POST } from './route';
 
 const USER_ID = '2c9a0f9e-5a1b-4a5d-9c1e-6a1c2b3d4e5f';
 const WALLET_A = '0xA28eF80d690844b586E192690D8FcDaECfD0281E';

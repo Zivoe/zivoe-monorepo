@@ -39,7 +39,7 @@ export default function FAQPage() {
 function Faq() {
   return (
     <div className="relative">
-      <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-28 lg:pt-40 xl:gap-30 xl:px-43">
+      <Container className="gap-10 px-4 pt-12 pb-2 sm:px-10 lg:flex-row lg:pt-40 lg:pb-28 xl:gap-30 xl:px-43">
         <div className="flex w-full flex-col gap-4 lg:max-w-110">
           <h1 className="text-h4 text-primary lg:text-h2">Your Questions, Answered</h1>
           <p className="text-regular text-primary lg:text-leading">

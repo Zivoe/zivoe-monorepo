@@ -34,7 +34,7 @@ function Navigation() {
 
 function Desktop() {
   return (
-    <div className="bg-surface-base hidden items-center gap-6 rounded-lg shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
+    <div className="hidden items-center gap-6 rounded-lg bg-surface-base shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
       <div className="ml-5 flex gap-6">
         <NavigationItems />
       </div>
@@ -80,7 +80,7 @@ function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-14 text-base"
+            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
             href={href}
             target={target}
             aria-current={isCurrent}

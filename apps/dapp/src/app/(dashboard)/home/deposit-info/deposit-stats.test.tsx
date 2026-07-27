@@ -34,6 +34,7 @@ describe('DepositStats', () => {
     render(<DepositStats nav={112000} apy={null} />);
 
     expect(screen.getByText('30-day Trailing APY')).toBeTruthy();
-    expect(screen.getByText('—')).toBeTruthy();
+    // APY and the always-empty Revenue box share the same placeholder character.
+    expect(screen.getAllByText('-')).toHaveLength(2);
   });
 });

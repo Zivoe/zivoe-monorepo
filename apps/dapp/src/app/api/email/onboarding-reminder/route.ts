@@ -26,7 +26,7 @@ const handler = async (req: NextRequest) => {
   const { userId } = parsedBody.data;
   const profile = await getUserEmailProfile(userId);
 
-  // User not found (deleted?)
+  // The reminder is scheduled a day ahead, so the user may have been deleted since.
   if (!profile) {
     Sentry.captureMessage('Signup reminder skipped: user not found', {
       level: 'warning',
@@ -37,7 +37,7 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'User not found, skipping signup reminder' });
   }
 
-  // User already onboarded - no need to send reminder
+  // A profile row is only created at onboarding, so its presence means they finished.
   if (profile.createdAt) {
     return NextResponse.json({ success: true, data: 'User already onboarded, skipping signup reminder' });
   }
@@ -51,7 +51,6 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'Product tips disabled, skipping signup reminder' });
   }
 
-  // User hasn't onboarded - send reminder
   const { err } = await handlePromise(
     sendOnboardingReminderEmail({
       to: profile.email,

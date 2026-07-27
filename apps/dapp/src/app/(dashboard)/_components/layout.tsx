@@ -42,7 +42,7 @@ export function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-14 text-base"
+            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
             href={href}
             aria-current={isCurrent}
             isDisabled={isDisabled}
@@ -56,9 +56,7 @@ export function NavigationItems() {
   );
 }
 
-const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Earn', href: '/' }
-];
+const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [{ title: 'Earn', href: '/' }];
 
 export function Wallet() {
   const { setShowDynamicUserProfile, primaryWallet } = useDynamicContext();
@@ -99,11 +97,11 @@ type User = {
 };
 
 const avatarButtonStyles = tv({
-  base: 'focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex shrink-0 items-center justify-center transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2',
+  base: 'flex shrink-0 items-center justify-center transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-0',
   variants: {
     hasImage: {
-      true: 'hover:ring-default size-10 rounded-full hover:ring-4 hover:ring-offset-0',
-      false: 'bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast size-12 rounded-sm'
+      true: 'size-10 rounded-full hover:ring-4 hover:ring-default hover:ring-offset-0',
+      false: 'size-12 rounded-sm bg-surface-elevated-low-emphasis text-secondary hover:bg-surface-elevated-contrast'
     }
   }
 });
@@ -152,8 +150,8 @@ export function UserMenu({ user }: { user: User }) {
             </div>
 
             <div className="flex min-w-0 flex-col">
-              <span className="text-regular text-primary truncate font-medium">{user.name}</span>
-              <span className="text-small text-secondary truncate">{user.email}</span>
+              <span className="truncate text-regular font-medium text-primary">{user.name}</span>
+              <span className="truncate text-small text-secondary">{user.email}</span>
             </div>
           </div>
 
@@ -168,7 +166,7 @@ export function UserMenu({ user }: { user: User }) {
             fullWidth
             onPress={handleSignOut}
             isPending={isPending}
-            className="text-alert-contrast justify-start"
+            className="justify-start text-alert-contrast"
             pendingContent="Logging out..."
           >
             <LogoutIcon className="size-4!" />
@@ -191,7 +189,7 @@ function UserAvatar({ user }: { user: User }) {
 
   const initials = getInitials({ user });
 
-  return <span className="text-regular text-secondary font-medium">{initials}</span>;
+  return <span className="text-regular font-medium text-secondary">{initials}</span>;
 }
 
 const ALLOWED_AVATAR_HOSTS = new Set(['lh3.googleusercontent.com', 'pbs.twimg.com', 'abs.twimg.com']);

@@ -2,11 +2,11 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
-import Hero from '@/components/hero';
-import Page from '@/components/page';
-
 import { getQueryClient } from '@/lib/get-query-client';
 import { queryKeys } from '@/lib/query-keys';
+
+import Hero from '@/components/hero';
+import Page from '@/components/page';
 
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';

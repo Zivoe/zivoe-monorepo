@@ -76,7 +76,8 @@ async function sync() {
   const managedIds = new Set<string>(SCHEDULES.map((schedule) => schedule.scheduleId));
   const existing = await client.schedules.list();
   const stale = existing.filter(
-    (schedule) => schedule.scheduleId && !managedIds.has(schedule.scheduleId) && schedule.destination.startsWith(baseUrl)
+    (schedule) =>
+      schedule.scheduleId && !managedIds.has(schedule.scheduleId) && schedule.destination.startsWith(baseUrl)
   );
 
   for (const schedule of stale) {
@@ -113,7 +114,6 @@ async function remove(scheduleId: string) {
   console.log(`Deleted schedule: ${scheduleId}`);
 }
 
-// CLI
 const command = process.argv[2];
 const arg = process.argv[3];
 

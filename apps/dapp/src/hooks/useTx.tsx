@@ -36,9 +36,18 @@ import { AppError, handlePromise, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
 
-export type TxAnalyticsFlow = 'deposit' | 'redeem' | 'redeem_claim' | 'redeem_cancel' | 'redeem_claim_returned' | 'approval';
+export type TxAnalyticsFlow =
+  | 'deposit'
+  | 'redeem'
+  | 'redeem_claim'
+  | 'redeem_cancel'
+  | 'redeem_claim_returned'
+  | 'approval';
 
-export type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHash' | 'receiptStatus' | 'error_type'>;
+export type TxAnalyticsInput = Omit<
+  TransactionAnalyticsInput,
+  'flow' | 'step' | 'txHash' | 'receiptStatus' | 'error_type'
+>;
 
 type TxContext = { address: Address | undefined };
 

@@ -7,7 +7,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent, type TxParams } from './useTx';
+import useTx, { type TxParams, parseReceiptEvent } from './useTx';
 
 export type ApproveTokenAbi = typeof erc20Abi;
 export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
@@ -86,7 +86,6 @@ export const useApproveSpending = () => {
     },
 
     invalidate: ({ queryClient, address, vars }) => {
-      // Refetch allowance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,

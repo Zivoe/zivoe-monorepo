@@ -68,7 +68,7 @@ export const parseChartData = ({
   // current: a current-but-null APY renders the explicit unavailable state,
   // and only a missing payload falls back to the newest plotted close.
   let headline: string | undefined;
-  if (type === 'APY' && current) headline = current.apy !== null ? formatChartValue(type, current.apy) : '—';
+  if (type === 'APY' && current) headline = current.apy !== null ? formatChartValue(type, current.apy) : '-';
   else if (currentValue !== undefined) headline = formatChartValue(type, currentValue);
   else {
     const lastPoint = data[data.length - 1];

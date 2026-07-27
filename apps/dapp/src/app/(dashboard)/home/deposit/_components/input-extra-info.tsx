@@ -35,7 +35,15 @@ export function InputExtraInfo({
   );
 }
 
-function BalanceDisplay({ decimals, value, isPending }: { decimals: number; value: bigint | undefined; isPending?: boolean }) {
+function BalanceDisplay({
+  decimals,
+  value,
+  isPending
+}: {
+  decimals: number;
+  value: bigint | undefined;
+  isPending?: boolean;
+}) {
   if (isPending || value === undefined) return null;
   return (
     <p className="text-extraSmall font-medium text-tertiary">Balance: {formatBigIntToReadable(value, decimals)}</p>

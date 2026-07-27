@@ -6,8 +6,10 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 
 ### Transaction monitoring
 
+> Archived with the Centrifuge migration — the module now lives at `apps/dapp/archived/transaction-monitor` and is excluded from typecheck and lint. The vocabulary is kept for reading that code and for whatever replaces it.
+
 **Transaction Monitor**:
-The module that watches finalized on-chain transaction events and fans out user notifications (analytics, Telegram, confirmation emails with dedupe). One orchestration; everything kind-specific lives in a Monitor Kind. Lives at `apps/dapp/src/server/monitor`.
+The module that watches finalized on-chain transaction events and fans out user notifications (analytics, Telegram, confirmation emails with dedupe). One orchestration; everything kind-specific lives in a Monitor Kind.
 _Avoid_: cron route, notification job
 
 **Monitor Kind**:
@@ -25,7 +27,7 @@ _Avoid_: checkpoint, offset
 ### Client transactions
 
 **Transaction Hook**:
-A client module that drives one on-chain transaction through the shared lifecycle in `useTx` — guards → simulate → send → receipt toast → transaction dialog → refetches — via a declarative config. Seven exist: vault/router/permit deposits, redeem, unstake, claim, approve.
+A client module that drives one on-chain transaction through the shared lifecycle — guards → simulate → send → receipt toast → transaction dialog → refetches — via a declarative config. Two drivers implement that lifecycle: `useTx` for direct viem contract calls (approve) and `useCentrifugeTx` for Centrifuge SDK actions (deposit, request redeem, cancel redeem, claim redeem, claim returned shares).
 _Avoid_: mutation hook (server-action mutations are not Transaction Hooks)
 
 ## Example dialogue

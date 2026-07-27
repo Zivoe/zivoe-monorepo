@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-import '@payloadcms/next/css';
 import configPromise from '@payload-config';
+import '@payloadcms/next/css';
 import { RootLayout, handleServerFunctions } from '@payloadcms/next/layouts';
 import type { ServerFunctionClient } from 'payload';
 

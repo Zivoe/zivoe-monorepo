@@ -67,7 +67,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <p className="text-extraSmall text-disabled mt-12 lg:mt-20">
+        <p className="mt-12 text-extraSmall text-disabled lg:mt-20">
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on

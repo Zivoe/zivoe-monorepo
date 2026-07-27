@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
 
   let event: ResendWebhookEvent;
 
-  // Verify the webhook signature
   try {
     const payload = await req.text();
 
@@ -60,12 +59,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid webhook signature' });
   }
 
-  // Process the verified event
   try {
     const { type, data } = event;
     const recipientEmail = data.to[0];
 
-    // Common extra data for all Sentry reports
     const sentryExtra = {
       svixId,
       emailId: data.email_id,
@@ -97,7 +94,6 @@ export async function POST(req: NextRequest) {
       }
 
       case 'email.complained': {
-        // Critical: User marked email as spam
         Sentry.captureException(new Error(`SPAM COMPLAINT: ${recipientEmail}`), {
           tags: {
             source: 'SERVER',
@@ -120,7 +116,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'email.failed': {
-        // Email failed to send (quota, domain issues, invalid recipient, etc.)
+        // Resend never handed the message off — quota, domain, or invalid recipient.
         const failReason = data.failed?.reason ?? 'unknown';
 
         Sentry.captureException(new Error(`Email send failed: ${recipientEmail} - ${failReason}`), {

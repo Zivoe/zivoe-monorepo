@@ -7,7 +7,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData, unstakeDialogAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
+import useTx, { type TxParams, parseReceiptEvent } from '@/hooks/useTx';
 
 export type UnstakeStSTTParams = TxParams<typeof zivoeRewardsAbi, 'withdraw'>;
 
@@ -70,7 +70,6 @@ export const useUnstakeStSTT = () => {
     onSuccessClose: () => setIsUnstakeDialogOpen(false),
 
     invalidate: ({ queryClient, address }) => {
-      // Refetch stSTT balance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.balanceOf({
           accountAddress: address,
@@ -78,7 +77,6 @@ export const useUnstakeStSTT = () => {
         })
       });
 
-      // Refetch zSTT balance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.depositBalances({ accountAddress: address })
       });

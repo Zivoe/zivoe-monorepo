@@ -9,7 +9,7 @@ export default function Documents() {
     <InfoSection title="Documents" icon={<DocumentIcon />}>
       <div>
         {Object.entries(LINKS).map(([title, href]) => (
-          <DocumentLink key={title} title={title} href={href} className="border-default border-b last:border-b-0" />
+          <DocumentLink key={title} title={title} href={href} className="border-b border-default last:border-b-0" />
         ))}
       </div>
     </InfoSection>
@@ -22,16 +22,16 @@ function DocumentLink({ title, href, className }: { title: string; href: string;
       href={href}
       target="_blank"
       className={cn(
-        'group hover:bg-element-neutral-light focus-visible:bg-element-neutral-subtle flex items-center justify-between gap-4 px-2 py-3 focus-visible:outline-hidden sm:px-3 sm:py-4',
+        'group flex items-center justify-between gap-4 px-2 py-3 hover:bg-element-neutral-light focus-visible:bg-element-neutral-subtle focus-visible:outline-hidden sm:px-3 sm:py-4',
         className
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="bg-element-primary-soft size-2 rounded-full" />
+        <div className="size-2 rounded-full bg-element-primary-soft" />
         <p className="text-regular text-primary sm:text-leading">{title}</p>
       </div>
 
-      <ExternalLinkIcon className="text-tertiary group-hover:text-primary group-focus-visible:text-primary size-5" />
+      <ExternalLinkIcon className="size-5 text-tertiary group-hover:text-primary group-focus-visible:text-primary" />
     </NextLink>
   );
 }
