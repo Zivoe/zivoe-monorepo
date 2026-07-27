@@ -1,24 +1,18 @@
 import { env } from '@/env';
 
-export const DEPOSIT_TOKENS = ['USDC', 'USDT', 'frxUSD', 'zSTT'] as const;
+export const DEPOSIT_TOKENS = ['USDC'] as const;
 export type DepositToken = (typeof DEPOSIT_TOKENS)[number];
 
 export const DEPOSIT_TOKEN_DECIMALS: Record<DepositToken, number> = {
-  USDC: 6,
-  USDT: 6,
-  frxUSD: 18,
-  zSTT: 18
+  USDC: 6
 };
-
-export type RedeemToken = 'zVLT';
 
 export type ShareToken = 'zMCA';
 
-export type Token = DepositToken | RedeemToken | ShareToken;
+export type Token = DepositToken | ShareToken;
 
 export const TOKEN_DECIMALS: Record<Token, number> = {
   ...DEPOSIT_TOKEN_DECIMALS,
-  zVLT: 18,
   zMCA: 18
 };
 
