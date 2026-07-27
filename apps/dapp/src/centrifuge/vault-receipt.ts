@@ -8,7 +8,8 @@ import { CENTRIFUGE_CONFIG } from './config';
 // between the client decoders and the server Monitor.
 export const VAULT_LIFECYCLE_EVENTS_ABI = parseAbi([
   'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)',
-  'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'
+  'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)',
+  'event CancelRedeemClaim(address indexed controller, address indexed receiver, uint256 indexed requestId, address sender, uint256 shares)'
 ]);
 
 export type VaultLifecycleEventName = ContractEventName<typeof VAULT_LIFECYCLE_EVENTS_ABI>;

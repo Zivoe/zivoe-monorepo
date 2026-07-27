@@ -63,6 +63,10 @@ export function useInvestment() {
   return useQuery({
     queryKey: queryKeys.account.investment({ accountAddress: address }),
     meta: { toastErrorMessage: 'Error fetching investment data' },
+    // Cancellation Processing resolves without any user transaction (the hub
+    // finishes the unwind), so the only wait state a user actively watches is
+    // polled; every other transition refreshes through invalidations/focus.
+    refetchInterval: ({ state }) => (state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false),
     queryFn: !address ? skipToken : async () => readInvestment({ vault: await getVault(), investor: address })
   });
 }

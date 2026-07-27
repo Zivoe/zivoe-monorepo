@@ -36,7 +36,7 @@ export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void
     sdkErrorCopy: CLAIM_REDEEM_SDK_ERROR_COPY,
 
     analytics: {
-      flow: 'redeem',
+      flow: 'redeem_claim',
       input: ({ claimableAssets }, { address }) => ({
         walletAddress: address,
         chainId: CENTRIFUGE_CONFIG.chainId,

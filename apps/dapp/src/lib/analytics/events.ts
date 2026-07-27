@@ -22,6 +22,21 @@ export type AnalyticsEvent =
   | 'tx:redeem_receipt'
   | 'tx:redeem_failed'
   | 'tx:redeem_confirmed'
+  | 'tx:redeem_claim_started'
+  | 'tx:redeem_claim_signature_rejected'
+  | 'tx:redeem_claim_submitted'
+  | 'tx:redeem_claim_receipt'
+  | 'tx:redeem_claim_failed'
+  | 'tx:redeem_cancel_started'
+  | 'tx:redeem_cancel_signature_rejected'
+  | 'tx:redeem_cancel_submitted'
+  | 'tx:redeem_cancel_receipt'
+  | 'tx:redeem_cancel_failed'
+  | 'tx:redeem_claim_returned_started'
+  | 'tx:redeem_claim_returned_signature_rejected'
+  | 'tx:redeem_claim_returned_submitted'
+  | 'tx:redeem_claim_returned_receipt'
+  | 'tx:redeem_claim_returned_failed'
   | 'tx:approval_started'
   | 'tx:approval_signature_rejected'
   | 'tx:approval_submitted'
@@ -32,7 +47,13 @@ type AnalyticsPropertyValue = string | number | boolean | null | undefined | Arr
 
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | Record<string, unknown>>;
 
-export type TransactionFlow = 'deposit' | 'redeem' | 'approval';
+export type TransactionFlow =
+  | 'deposit'
+  | 'redeem'
+  | 'redeem_claim'
+  | 'redeem_cancel'
+  | 'redeem_claim_returned'
+  | 'approval';
 
 export type TransactionAnalyticsInput = {
   flow: TransactionFlow;

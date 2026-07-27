@@ -34,9 +34,16 @@ export type VaultEntity = {
     pendingRedeemShares: BalanceLike;
     claimableRedeemAssets: BalanceLike;
     claimableRedeemSharesEquivalent: BalanceLike;
+    claimableCancelRedeemShares: BalanceLike;
+    hasPendingCancelRedeemRequest: boolean;
   }>;
   syncDeposit(amount: BalanceLike): TransactionEntity;
   asyncRedeem(sharesAmount: BalanceLike): TransactionEntity;
-  /** Aggregate claim: one transaction collects all currently claimable funds. */
+  /** Cancels the full remaining pending redeem amount — no partial decrease exists. */
+  cancelRedeemRequest(): TransactionEntity;
+  /**
+   * Claims exactly one bucket per transaction, in the SDK's fixed priority:
+   * Returned Shares before redemption USDC.
+   */
   claim(): TransactionEntity;
 };

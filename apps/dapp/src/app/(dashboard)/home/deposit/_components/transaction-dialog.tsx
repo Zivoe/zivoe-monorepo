@@ -141,6 +141,28 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
+          {transaction.meta?.cancelRedeem && (
+            <TransactionDialogTokensSection>
+              <TransactionDialogToken
+                token="zMCA"
+                amount={transaction.meta.cancelRedeem.shares}
+                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
+                icon={<ZVltLogo />}
+              />
+            </TransactionDialogTokensSection>
+          )}
+
+          {transaction.meta?.claimReturnedShares && (
+            <TransactionDialogTokensSection>
+              <TransactionDialogToken
+                token="zMCA"
+                amount={transaction.meta.claimReturnedShares.shares}
+                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
+                icon={<ZVltLogo />}
+              />
+            </TransactionDialogTokensSection>
+          )}
+
           <div className="flex gap-4">
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
