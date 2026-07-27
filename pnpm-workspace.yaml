@@ -1,3 +1,29 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# pnpm blocks dependency build scripts by default. These were already all
+# blocked before, so they stay blocked; listing them explicitly just stops pnpm
+# from re-prompting on every install. Flip one to `true` if it turns out to need
+# its postinstall (each of these ships prebuilt binaries today).
+allowBuilds:
+  '@reown/appkit': false
+  '@sentry/cli': false
+  bigint-buffer: false
+  bufferutil: false
+  core-js: false
+  esbuild: false
+  protobufjs: false
+  sharp: false
+  unrs-resolver: false
+  utf-8-validate: false
+
+overrides:
+  kysely: ^0.28.5
+  # Collapse the OpenTelemetry/Sentry module hooks to one version each. Without
+  # this, @prisma/instrumentation and @fastify/otel pull import-in-the-middle 2.x
+  # while @sentry/node-core pulls 3.x, and Turbopack warns on every compile that
+  # these serverExternalPackages resolve to a different version from the app dir
+  # than from the importing module. v3 only drops Node < 18; we require >= 22.
+  import-in-the-middle: ^3.0.1
+  require-in-the-middle: ^8.0.1
