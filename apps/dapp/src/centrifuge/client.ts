@@ -1,7 +1,6 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
 import { NETWORK_RPC_URLS } from '@/lib/network';
-
 import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_CONFIG } from './config';

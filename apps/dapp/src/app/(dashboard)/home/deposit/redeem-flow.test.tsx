@@ -5,6 +5,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import RedeemFlow from './redeem-flow';
+
 const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
   ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
@@ -136,8 +138,6 @@ vi.mock('@zivoe/ui/core/input', () => ({
   )
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
-
-import RedeemFlow from './redeem-flow';
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);

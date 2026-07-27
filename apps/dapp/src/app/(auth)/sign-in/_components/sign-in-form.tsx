@@ -78,7 +78,7 @@ export default function SignInForm() {
               title="Verify Your Email"
               description={
                 <p className="text-regular text-secondary">
-                  We've sent an OTP code to <span className="text-primary break-all">{email}</span>.
+                  We've sent an OTP code to <span className="break-all text-primary">{email}</span>.
                 </p>
               }
             >
@@ -400,7 +400,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       />
 
       {!isExhausted && (
-        <div className="text-regular text-secondary flex items-center gap-1">
+        <div className="flex items-center gap-1 text-regular text-secondary">
           <span>Didn&apos;t receive an email?</span>
           <Button variant="link-primary" size="m" onPress={handleResendCode} isDisabled={isLoading || !canResend}>
             {isResending

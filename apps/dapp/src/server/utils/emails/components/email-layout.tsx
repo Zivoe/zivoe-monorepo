@@ -17,16 +17,16 @@ export function EmailLayout({
       <Head />
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
-        <Body className="bg-neutral-50 font-sans">
+        <Body className="font-sans bg-neutral-50">
           {/* Email clients like Outlook ignore rem — keep email sizes as arbitrary px values */}
-          <Container className="border-neutral-200 bg-neutral-0 mx-auto my-10 max-w-[480px] rounded-xl border px-10 py-10">
+          <Container className="mx-auto my-10 max-w-[480px] rounded-xl border border-neutral-200 bg-neutral-0 px-10 py-10">
             <Section className="mb-8 text-center">
               <Img src={ZIVOE_LOGO_URL} width="112" height="33" alt="Zivoe" className="mx-auto" />
             </Section>
 
             {children}
 
-            <Hr className="border-neutral-200 my-8" />
+            <Hr className="my-8 border-neutral-200" />
 
             <EmailFooterRow
               leftContent="Zivoe - RWA Credit Protocol"

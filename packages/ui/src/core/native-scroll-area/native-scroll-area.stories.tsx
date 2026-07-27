@@ -20,7 +20,7 @@ type Story = StoryObj<typeof NativeScrollArea>;
 export const Default: Story = {
   render: () => (
     <NativeScrollArea className="h-75 w-50">
-      <div className="bg-neutral-200 h-250">Content</div>
+      <div className="h-250 bg-neutral-200">Content</div>
     </NativeScrollArea>
   )
 };
@@ -28,7 +28,7 @@ export const Default: Story = {
 export const Horizontal: Story = {
   render: () => (
     <NativeScrollArea className="w-50">
-      <div className="bg-neutral-200 h-75 w-250">Content</div>
+      <div className="h-75 w-250 bg-neutral-200">Content</div>
     </NativeScrollArea>
   )
 };

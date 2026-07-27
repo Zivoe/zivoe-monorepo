@@ -91,7 +91,8 @@ export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: ()
         return {
           type: 'ERROR',
           title: 'Claim Could Not Be Verified',
-          description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
+          description:
+            'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
           hash: receipt.transactionHash
         };
 

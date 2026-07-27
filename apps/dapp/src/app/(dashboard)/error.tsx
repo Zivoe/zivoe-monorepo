@@ -2,8 +2,9 @@
 
 import { startTransition, useEffect } from 'react';
 
-import * as Sentry from '@sentry/nextjs';
 import { useRouter } from 'next/navigation';
+
+import * as Sentry from '@sentry/nextjs';
 
 import { Button } from '@zivoe/ui/core/button';
 

@@ -1,0 +1,28 @@
+# Prettier reads only the ignore file next to the cwd it runs from, so this root file is
+# what `pnpm format` / `pnpm format:check` actually honour. It does not read .gitignore.
+
+# Build outputs
+.next/
+.turbo/
+.vercel/
+out/
+build/
+dist/
+coverage/
+apps/storybook/storybook-static/
+
+# Agent tooling (.claude/worktrees holds a full checkout of this repo)
+.claude/
+.agents/
+.scratch/
+
+# Generated. `zivoe-cms:check-types` regenerates these and asserts `git diff --exit-code`,
+# so formatting them would fail the build on the next run.
+packages/cms-types/src/payload-types.ts
+apps/cms/src/app/(payload)/importMap.ts
+apps/cms/src/migrations/
+packages/database/drizzle/
+
+# Lockfiles / terraform state
+pnpm-lock.yaml
+.terraform/

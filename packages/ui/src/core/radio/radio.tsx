@@ -16,16 +16,16 @@ const radioVariants = tv({
     container: 'group flex items-center gap-x-2 hover:cursor-pointer',
 
     element: [
-      'border-default flex aspect-square size-5 items-center justify-center rounded-full border transition-colors',
-      'group-data-focus-visible:border-active group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
-      'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
-      'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
-      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
+      'flex aspect-square size-5 items-center justify-center rounded-full border border-default transition-colors',
+      'group-data-focus-visible:border-active group-data-focus-visible:ring-2 group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-1 group-data-focus-visible:ring-offset-neutral-0',
+      'group-data-disabled:cursor-not-allowed group-data-disabled:border-default group-data-disabled:bg-element-neutral',
+      'group-selected:border-primary-subtle group-selected:bg-element-primary-subtle group-data-disabled:group-selected:border-default group-data-disabled:group-selected:bg-element-neutral',
+      'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:border-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
       'focus:outline-hidden focus-visible:outline-hidden'
     ],
 
-    circle: 'bg-element-base size-2.5 rounded-full group-data-disabled:group-selected:bg-neutral-500'
+    circle: 'size-2.5 rounded-full bg-element-base group-data-disabled:group-selected:bg-neutral-500'
   }
 });
 
@@ -33,19 +33,19 @@ const cardRadioVariants = tv({
   slots: {
     container: [
       'group flex h-14 w-full items-center justify-between overflow-hidden rounded-sm p-4',
-      'border-default bg-surface-base border transition-colors',
-      'hover:bg-surface-elevated hover:cursor-pointer',
+      'border border-default bg-surface-base transition-colors',
+      'hover:cursor-pointer hover:bg-surface-elevated',
       'selected:border-active selected:bg-element-primary-light',
-      'data-focus-visible:ring-default data-focus-visible:ring-2 data-focus-visible:ring-offset-1',
+      'data-focus-visible:ring-2 data-focus-visible:ring-default data-focus-visible:ring-offset-1',
       'data-disabled:cursor-not-allowed data-disabled:opacity-60',
       'data-invalid:border-alert data-invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]'
     ],
 
-    content: 'text-regular text-primary flex items-center gap-2 font-medium',
+    content: 'flex items-center gap-2 text-regular font-medium text-primary',
 
     indicator: [
       'flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-400 transition-colors',
-      'group-selected:bg-element-primary-soft group-selected:border-transparent group-selected:text-base'
+      'group-selected:border-transparent group-selected:bg-element-primary-soft group-selected:text-base'
     ]
   }
 });
@@ -86,7 +86,7 @@ const Radio = forwardRef<HTMLLabelElement, RadioProps>(
         {composeRenderProps(children, (children, renderProps) => (
           <>
             <span className={element()}>{renderProps.isSelected && <div className={circle()} />}</span>
-            <div className="text-regular text-primary flex items-center gap-4 font-normal">{children}</div>
+            <div className="flex items-center gap-4 text-regular font-normal text-primary">{children}</div>
           </>
         ))}
       </Aria.Radio>

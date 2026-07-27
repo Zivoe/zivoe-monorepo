@@ -4,9 +4,9 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { BaseError, ContractFunctionRevertedError, parseAbi } from 'viem';
 import { usePublicClient } from 'wagmi';
 
-import { useAccount } from '@/hooks/useAccount';
-
 import { queryKeys } from '@/lib/query-keys';
+
+import { useAccount } from '@/hooks/useAccount';
 
 import { getVault } from './client';
 import { CENTRIFUGE_CONFIG } from './config';

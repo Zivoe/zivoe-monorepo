@@ -85,8 +85,20 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
 
           <tr>
             <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
-              <Img className="receipt-mobile-arrow-right" src={RECEIPT_ARROW_RIGHT_GRAY_URL} width="16" height="16" alt="" />
-              <Img className="receipt-mobile-arrow-down" src={RECEIPT_ARROW_DOWN_GRAY_URL} width="16" height="16" alt="" />
+              <Img
+                className="receipt-mobile-arrow-right"
+                src={RECEIPT_ARROW_RIGHT_GRAY_URL}
+                width="16"
+                height="16"
+                alt=""
+              />
+              <Img
+                className="receipt-mobile-arrow-down"
+                src={RECEIPT_ARROW_DOWN_GRAY_URL}
+                width="16"
+                height="16"
+                alt=""
+              />
             </td>
           </tr>
 
@@ -215,7 +227,7 @@ export function ReceiptCtaButton({
               </td>
 
               <td style={{ verticalAlign: 'middle' }}>
-                <Text className="m-0 text-regular font-medium leading-5 text-brand">{label}</Text>
+                <Text className="m-0 text-regular leading-5 font-medium text-brand">{label}</Text>
               </td>
 
               <td style={{ width: '16px', minWidth: '16px', paddingLeft: '8px', verticalAlign: 'middle' }}>

@@ -1,7 +1,8 @@
 import { mainnet } from 'viem/chains';
 
-import { AppError } from '@/lib/utils';
 import { type Token } from '@/types/constants';
+
+import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =
   | 'auth:sign-up'

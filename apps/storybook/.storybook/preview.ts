@@ -1,8 +1,7 @@
 import { type Preview } from '@storybook/react';
 
-import '@zivoe/ui/globals.css';
-
 import '../fonts.css';
+import '@zivoe/ui/globals.css';
 
 const preview: Preview = {
   parameters: {},

@@ -1,8 +1,9 @@
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { env } from '@/env';
 import { INSIGHTS_TAG } from '@/server/insights';
+
+import { env } from '@/env';
 
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('X-API-Key');

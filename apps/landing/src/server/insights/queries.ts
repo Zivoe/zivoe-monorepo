@@ -117,11 +117,7 @@ function buildInsightsWhere({ categoryId, search }: { categoryId?: string; searc
   }
 
   if (search) {
-    where.or = [
-      { title: { like: search } },
-      { excerpt: { like: search } },
-      { searchBody: { like: search } }
-    ];
+    where.or = [{ title: { like: search } }, { excerpt: { like: search } }, { searchBody: { like: search } }];
   }
 
   return Object.keys(where).length > 0 ? (where as never) : undefined;

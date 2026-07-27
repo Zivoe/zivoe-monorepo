@@ -4,7 +4,7 @@ import { zivoeRewardsVestingAbi } from '@zivoe/contracts/abis';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 
-import useTx, { parseReceiptEvent, type TxParams } from '@/hooks/useTx';
+import useTx, { type TxParams, parseReceiptEvent } from '@/hooks/useTx';
 
 export type ClaimVestingParams = TxParams<typeof zivoeRewardsVestingAbi, 'fullWithdraw'>;
 

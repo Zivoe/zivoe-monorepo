@@ -213,19 +213,19 @@ const SearchInputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ cl
 
 const inputGroupStyles = tv({
   base: [
-    'border-default flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border',
+    'flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border border-default',
     'hover:border-contrast',
     'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus-within:outline-hidden',
     'group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
     'invalid:border-alert! invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]!',
-    '[&_svg]:text-icon-default [&_svg]:size-4'
+    '[&_svg]:size-4 [&_svg]:text-icon-default'
   ],
 
   variants: {
     variant: {
-      default: 'bg-surface-base-soft text-small h-12 px-4',
-      amount: 'bg-surface-base text-h6 h-24 pr-4 pl-6',
-      search: 'bg-surface-base text-regular hover:border-default h-14 rounded-md px-5 focus-within:shadow-none'
+      default: 'h-12 bg-surface-base-soft px-4 text-small',
+      amount: 'h-24 bg-surface-base pr-4 pl-6 text-h6',
+      search: 'h-14 rounded-md bg-surface-base px-5 text-regular focus-within:shadow-none hover:border-default'
     },
 
     hasNormalStyleIfDisabled: {
@@ -267,7 +267,7 @@ const InputGroup = forwardRef<HTMLDivElement, Aria.GroupProps & VariantProps<typ
 
 const inputElementStyles = tv({
   base: [
-    'text-primary placeholder:text-tertiary min-w-0 flex-1 outline-0 outline-solid group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-search-cancel-button]:hidden'
+    'min-w-0 flex-1 text-primary outline-0 outline-solid group-data-readonly:cursor-not-allowed placeholder:text-tertiary disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-search-cancel-button]:hidden'
   ],
 
   variants: {

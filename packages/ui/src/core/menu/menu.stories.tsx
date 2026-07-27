@@ -183,7 +183,7 @@ const SingleSelectionComponent = () => {
         </MenuPopover>
       </MenuTrigger>
 
-      <p className="text-secondary text-sm">Selected: {Array.from(selected).join(', ')}</p>
+      <p className="text-sm text-secondary">Selected: {Array.from(selected).join(', ')}</p>
     </div>
   );
 };
@@ -232,7 +232,7 @@ const MultipleSelectionsComponent = () => {
         </MenuPopover>
       </MenuTrigger>
 
-      <p className="text-secondary text-sm">Selected: {Array.from(selected).join(', ')}</p>
+      <p className="text-sm text-secondary">Selected: {Array.from(selected).join(', ')}</p>
     </div>
   );
 };

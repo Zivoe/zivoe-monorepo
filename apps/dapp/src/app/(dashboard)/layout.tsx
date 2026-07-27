@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <Header />
 
-      <div className="bg-surface-base flex h-full flex-col justify-between">
+      <div className="flex h-full flex-col justify-between bg-surface-base">
         {children}
         <Footer />
       </div>
@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 function Header() {
   return (
     <>
-      <div className="bg-surface-base flex min-h-25 w-full items-center justify-between px-4 lg:px-10">
+      <div className="flex min-h-25 w-full items-center justify-between bg-surface-base px-4 lg:px-10">
         <div className="flex items-center gap-10">
           <NextLink href="/" aria-label="Zivoe home">
             <ZivoeLogo aria-hidden="true" className="-ml-3 h-6" />

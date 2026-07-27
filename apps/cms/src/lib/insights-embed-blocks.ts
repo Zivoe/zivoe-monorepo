@@ -1,6 +1,6 @@
 import type { Block, Field } from 'payload';
 
-import { canonicalizeInsightsEmbedUrl, type InsightsEmbedBlockType } from '@zivoe/cms-types/insights-embeds';
+import { type InsightsEmbedBlockType, canonicalizeInsightsEmbedUrl } from '@zivoe/cms-types/insights-embeds';
 
 const EMBED_CONFIG: Record<InsightsEmbedBlockType, { invalidUrlMessage: string; provider: string }> = {
   twitterEmbed: { invalidUrlMessage: 'Enter a valid public X/Twitter post URL.', provider: 'X' },

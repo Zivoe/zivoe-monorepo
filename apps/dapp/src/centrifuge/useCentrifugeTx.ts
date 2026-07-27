@@ -22,8 +22,8 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData, transactionAtom } from '@/lib/store';
 import { AppError, handlePromise, onTxError, skipTxSettled } from '@/lib/utils';
 
-import { TX_ANALYTICS, type TxAnalyticsFlow, type TxAnalyticsInput, type TxAnalyticsStep } from '@/hooks/useTx';
 import { useAccount } from '@/hooks/useAccount';
+import { TX_ANALYTICS, type TxAnalyticsFlow, type TxAnalyticsInput, type TxAnalyticsStep } from '@/hooks/useTx';
 
 import { getVault, setTransactionSigner } from './client';
 import { type TransactionEntity, type VaultEntity } from './entities';
@@ -41,7 +41,10 @@ export type CentrifugeTxConfig<TVariables> = {
    * `{ tx }`: the SDK Transaction is also a PromiseLike, so returning it bare
    * through an await would execute it to completion with no subscriber.
    */
-  action: (vars: TVariables, ctx: CentrifugeTxContext) => { tx: TransactionEntity } | Promise<{ tx: TransactionEntity }>;
+  action: (
+    vars: TVariables,
+    ctx: CentrifugeTxContext
+  ) => { tx: TransactionEntity } | Promise<{ tx: TransactionEntity }>;
   /**
    * Optional final assertion over the SDK's fully built router call. Use when
    * one SDK action can select between semantically different operations.
@@ -287,7 +290,11 @@ function toRejectionError(err: unknown): Error {
  * as the top-level error.
  */
 function findAppError(err: unknown): AppError | undefined {
-  for (let current = err, depth = 0; current instanceof Error && depth < 10; current = current.cause as Error, depth++) {
+  for (
+    let current = err, depth = 0;
+    current instanceof Error && depth < 10;
+    current = current.cause as Error, depth++
+  ) {
     if (current instanceof AppError) return current;
   }
   return undefined;

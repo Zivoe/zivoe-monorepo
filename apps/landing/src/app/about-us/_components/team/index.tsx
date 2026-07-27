@@ -56,7 +56,7 @@ export default function Team() {
                   <button
                     aria-label="Close team member"
                     onClick={() => setIsOpen(false)}
-                    className="text-h3 absolute -top-10 right-2 z-20 text-base md:hidden"
+                    className="absolute -top-10 right-2 z-20 text-h3 text-base md:hidden"
                   >
                     ×
                   </button>
@@ -65,7 +65,7 @@ export default function Team() {
                     <button
                       aria-label="Close"
                       onClick={() => setIsOpen(false)}
-                      className="text-h5 leading-none text-white hover:opacity-80 focus-visible:outline-hidden"
+                      className="text-white text-h5 leading-none hover:opacity-80 focus-visible:outline-hidden"
                     >
                       ×
                     </button>
@@ -80,7 +80,7 @@ export default function Team() {
                 </div>
 
                 <div className="flex w-full max-w-full flex-col gap-6 text-base md:flex-[1.2] md:basis-176 md:pt-2 lg:min-w-120 lg:basis-240 xl:min-w-120 xl:basis-280">
-                  <p className="text-h4 sm:text-h3 lg:text-h2 leading-tight text-balance hyphens-auto">
+                  <p className="text-h4 leading-tight text-balance hyphens-auto sm:text-h3 lg:text-h2">
                     {selected.name}
                   </p>
                   {selected.title ? (
@@ -100,7 +100,7 @@ export default function Team() {
                           hideExternalLinkIcon
                           variant="link-base"
                           size="m"
-                          className="grid size-12 place-items-center rounded-[10px] bg-[#038788] text-white"
+                          className="text-white grid size-12 place-items-center rounded-[10px] bg-[#038788]"
                         >
                           <XIcon color="currentColor" />
                         </Link>
@@ -113,7 +113,7 @@ export default function Team() {
                           hideExternalLinkIcon
                           variant="link-base"
                           size="m"
-                          className="bg-element-neutral-contrast-subtle grid size-12 place-items-center rounded-[10px]"
+                          className="grid size-12 place-items-center rounded-[10px] bg-element-neutral-contrast-subtle"
                         >
                           <LinkedInIcon color="white" />
                         </Link>
@@ -188,10 +188,10 @@ function TeamMember({
     >
       <div className="relative overflow-hidden">
         {children}
-        <div className="bg-element-primary/20 pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        <div className="pointer-events-none absolute inset-0 bg-element-primary/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       </div>
 
-      <div className="bg-surface-elevated flex grow flex-col gap-2 px-6 py-5">
+      <div className="flex grow flex-col gap-2 bg-surface-elevated px-6 py-5">
         <p className="text-subheading text-primary">{name}</p>
         <p className="text-regular text-primary">{title}</p>
       </div>

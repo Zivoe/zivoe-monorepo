@@ -6,7 +6,6 @@ import { type Key } from 'react-aria-components';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 
 import { type ShareStatsPayload, getUtcDayStartSeconds } from '@zivoe/centrifuge-indexer';
-
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { ChartIcon } from '@zivoe/ui/icons';
@@ -104,7 +103,7 @@ export default function DepositCharts({
 
                     return (
                       <div className="flex flex-col gap-1">
-                        <span className="font-heading! text-regular tabular-nums text-primary">
+                        <span className="font-heading! text-regular text-primary tabular-nums">
                           {formatChartValue(chart.type, Number(value))}
                         </span>
                         <span className="text-small text-secondary">{date}</span>

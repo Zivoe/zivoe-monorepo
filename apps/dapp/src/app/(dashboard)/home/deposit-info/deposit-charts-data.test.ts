@@ -64,7 +64,7 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data.map((point) => point.data)).toEqual([5.2]);
-    expect(chart?.headline).toBe('—');
+    expect(chart?.headline).toBe('-');
   });
 
   it('headlines the current APY instead of an older non-null close', () => {

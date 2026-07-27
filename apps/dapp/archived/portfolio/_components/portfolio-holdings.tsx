@@ -189,7 +189,7 @@ function AssetInfo(
       </TableElement>
 
       {/* Mobile View */}
-      <div className="border-default flex flex-col gap-4 rounded-xl border p-5 md:hidden">
+      <div className="flex flex-col gap-4 rounded-xl border border-default p-5 md:hidden">
         <div className="flex items-center gap-3">
           {!info ? (
             <>
@@ -205,7 +205,7 @@ function AssetInfo(
               <span className="[&_svg]:size-8 [&_svg]:shrink-0">{info.icon}</span>
 
               <div>
-                <p className="text-smallSubheading text-primary font-medium">{info.label}</p>
+                <p className="text-smallSubheading font-medium text-primary">{info.label}</p>
                 <p className="text-small text-secondary">{info.description}</p>
               </div>
             </>
@@ -236,7 +236,7 @@ function AssetInfoSkeleton({ className }: { className?: string }) {
 
 function TableHeader({ title }: { title: string }) {
   return (
-    <div className="bg-surface-elevated hidden px-4 py-2 md:block">
+    <div className="hidden bg-surface-elevated px-4 py-2 md:block">
       <p className="text-small text-secondary">{title}</p>
     </div>
   );

@@ -52,10 +52,10 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
       className={cn(
-        'bg-surface-contrast/40 fixed inset-0 z-50 grid w-screen place-items-center items-center backdrop-blur-xs',
+        'fixed inset-0 z-50 grid w-screen place-items-center items-center bg-surface-contrast/40 backdrop-blur-xs',
         !isFullScreen && 'px-2 py-6',
         'entering:animate-in entering:fade-in-0',
-        'exiting:animate-out exiting:fade-out-0 exiting:duration-300',
+        'exiting:animate-out exiting:duration-300 exiting:fade-out-0',
         'h-(--visual-viewport-height)'
       )}
     >
@@ -63,10 +63,10 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         className={composeRenderProps(className, (className) =>
           cn(
             nativeScrollAreaStyles(),
-            'bg-surface-elevated relative z-50 w-full overflow-auto p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+            'relative z-50 w-full overflow-auto bg-surface-elevated p-2 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
             isFullScreen ? 'h-full' : 'max-h-full max-w-135 rounded-2xl',
             'entering:animate-in entering:fade-in-0 entering:zoom-in-75',
-            'exiting:animate-out exiting:fade-out-0 exiting:zoom-out-75 exiting:duration-300',
+            'exiting:animate-out exiting:duration-300 exiting:fade-out-0 exiting:zoom-out-75',
             className
           )
         )}
@@ -126,7 +126,7 @@ const DialogContentBox = ({ children, className, ...props }: React.HTMLAttribute
   return (
     <div
       className={cn(
-        'bg-surface-base flex flex-col gap-4 rounded-2xl p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+        'flex flex-col gap-4 rounded-2xl bg-surface-base p-6 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
         className
       )}
       {...props}

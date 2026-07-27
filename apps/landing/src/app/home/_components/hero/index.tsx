@@ -52,7 +52,7 @@ export default function Hero() {
 
       <HeroClouds
         aria-hidden="true"
-        className="absolute -left-37.5 bottom-1/4 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
+        className="absolute bottom-1/4 -left-37.5 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
       />
     </div>
   );
@@ -75,7 +75,7 @@ async function Statistics() {
         <>
           <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
 
-          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '—'} />
+          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '-'} />
         </>
       ) : null}
 
@@ -88,7 +88,7 @@ function Statistic({ label, value, description }: { label: string; value: string
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
       <div className="flex items-center">
-        <p className="whitespace-nowrap text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+        <p className="text-leading whitespace-nowrap text-primary/80 lg:text-smallSubheading">{label}</p>
 
         {description && (
           <ContextualHelp variant="info">
@@ -96,7 +96,7 @@ function Statistic({ label, value, description }: { label: string; value: string
           </ContextualHelp>
         )}
       </div>
-      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
+      <p className="text-h6 whitespace-nowrap sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
     </div>
   );
 }

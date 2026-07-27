@@ -21,7 +21,7 @@ export default function Infrastructure() {
           description="User assets are held in special purpose vehicles, ensuring user assets remain protected."
           className="bg-element-secondary-gentle"
         >
-          <BankruptcyIcon className="absolute right-0 -top-11 w-45 sm:right-0 sm:top-0 sm:w-fit" />
+          <BankruptcyIcon className="absolute -top-11 right-0 w-45 sm:top-0 sm:right-0 sm:w-fit" />
         </Card>
 
         <Card
@@ -29,7 +29,7 @@ export default function Infrastructure() {
           description="Zivoe will be integrating with industry-leading crypto custodians, offering an easy and secure way to deposit funds and manage positions."
           className="bg-element-primary-gentle"
         >
-          <CustodyIcon className="absolute right-0 -top-11 w-45 sm:right-0 sm:top-0 sm:w-fit" />
+          <CustodyIcon className="absolute -top-11 right-0 w-45 sm:top-0 sm:right-0 sm:w-fit" />
         </Card>
       </div>
     </Container>

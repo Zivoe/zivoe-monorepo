@@ -15,12 +15,12 @@ export function ContactCtaSection({
       <Section className="my-8 text-center">
         <Link
           href={ctaHref}
-          className="text-neutral-0 rounded-lg bg-primary-600 px-6 py-3 font-medium"
+          className="rounded-lg bg-primary-600 px-6 py-3 font-medium text-neutral-0"
           style={{ display: 'inline-block' }}
         >
           {ctaText}
         </Link>
-        <Text className="text-sm text-neutral-500 m-0 mt-3">
+        <Text className="text-sm m-0 mt-3 text-neutral-500">
           Or reach out on Telegram{' '}
           <Link href={`${BASE_URL}/telegram/thor`} className="text-primary-600 underline">
             @thorabbasi
@@ -36,8 +36,8 @@ export function ContactCtaSection({
             </td>
 
             <td>
-              <Text className="text-neutral-950 m-0 font-medium">Thor</Text>
-              <Text className="text-sm text-neutral-500 m-0">Onboarding, Zivoe</Text>
+              <Text className="m-0 font-medium text-neutral-950">Thor</Text>
+              <Text className="text-sm m-0 text-neutral-500">Onboarding, Zivoe</Text>
             </td>
           </tr>
         </table>

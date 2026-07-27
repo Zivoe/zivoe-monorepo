@@ -3,11 +3,12 @@ import { slugField } from 'payload';
 
 import { canonicalizeInsightsEmbedUrl, isInsightsEmbedBlockType } from '@zivoe/cms-types/insights-embeds';
 
-import { canReadPublishedInsights, isAdminOrEditor } from '@/access/users';
 import { extractPlainTextFromRichText } from '@/lib/extract-rich-text';
 import { buildInsightsPreviewUrl } from '@/lib/preview';
-import { insightsRichTextEditor } from '@/lib/rich-text';
 import { revalidateInsightsAfterChange, revalidateInsightsAfterDelete } from '@/lib/revalidate';
+import { insightsRichTextEditor } from '@/lib/rich-text';
+
+import { canReadPublishedInsights, isAdminOrEditor } from '@/access/users';
 
 const insightsSlugField = slugField({
   useAsSlug: 'title'
@@ -62,7 +63,12 @@ function canonicalizeInsightsEmbedUrls(document: unknown) {
     if (!nodes) return;
 
     for (const node of nodes) {
-      if (node.type === 'block' && node.fields && typeof node.fields.blockType === 'string' && isInsightsEmbedBlockType(node.fields.blockType)) {
+      if (
+        node.type === 'block' &&
+        node.fields &&
+        typeof node.fields.blockType === 'string' &&
+        isInsightsEmbedBlockType(node.fields.blockType)
+      ) {
         const currentUrl = node.fields.url;
         if (typeof currentUrl === 'string') {
           const canonicalUrl = canonicalizeInsightsEmbedUrl(node.fields.blockType, currentUrl);
@@ -160,7 +166,8 @@ export const InsightsPosts: CollectionConfig = {
         date: {
           pickerAppearance: 'dayAndTime'
         },
-        description: 'Leave blank to set automatically the first time this article is published, or set a publish date manually.',
+        description:
+          'Leave blank to set automatically the first time this article is published, or set a publish date manually.',
         readOnly: false
       }
     },

@@ -6,7 +6,7 @@ import { tv } from '../../lib/tw-utils';
 
 const labelVariants = tv({
   base: [
-    'break-all text-small font-medium leading-none text-primary',
+    'text-small leading-none font-medium break-all text-primary',
     'disabled:cursor-not-allowed disabled:opacity-60',
     'invalid:text-alert'
   ]

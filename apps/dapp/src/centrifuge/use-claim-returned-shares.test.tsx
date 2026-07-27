@@ -267,7 +267,7 @@ describe('useClaimReturnedShares', () => {
       type: 'ERROR',
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
-      hash: TX_HASH,
+      hash: TX_HASH
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

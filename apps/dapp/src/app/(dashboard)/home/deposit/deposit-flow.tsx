@@ -238,9 +238,7 @@ export function DepositFlow({ apy }: { apy: number | null }) {
         endContent={<TokenDisplay symbol="zMCA" />}
       />
 
-      <p className="text-extraSmall text-tertiary">
-        Estimated using the current Share Price. Final shares may differ.
-      </p>
+      <p className="text-extraSmall text-tertiary">Estimated using the current Share Price. Final shares may differ.</p>
 
       <ConnectedAccount>
         {isPrereqsLoading ? (
@@ -343,13 +341,13 @@ function UsdcTokenDialog({ isDisabled }: { isDisabled: boolean }) {
             <DialogContentBox className="gap-2 p-4">
               <Aria.Button
                 onPress={close}
-                className="hover:bg-surface-elevated focus-visible:ring-default focus-visible:ring-offset-neutral-0 flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-hidden"
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden"
               >
                 <div className="flex items-center gap-2 [&_svg]:size-8">
                   {USDC_SELECT_ITEM.icon}
 
                   <div className="flex flex-col items-start">
-                    <p className="text-regular text-primary font-medium">{USDC_SELECT_ITEM.label}</p>
+                    <p className="text-regular font-medium text-primary">{USDC_SELECT_ITEM.label}</p>
                     <p className="text-extraSmall text-tertiary">{USDC_SELECT_ITEM.name}</p>
                   </div>
                 </div>
@@ -357,7 +355,7 @@ function UsdcTokenDialog({ isDisabled }: { isDisabled: boolean }) {
                 {account.address && (
                   <p className="text-small text-tertiary">
                     Balance:{' '}
-                    <span className="text-primary font-medium">
+                    <span className="font-medium text-primary">
                       {formatBigIntToReadable(usdcBalance.data ?? 0n, USDC.decimals)}
                     </span>
                   </p>
@@ -415,9 +413,9 @@ function EstimatedAnnualizedReturn({ assets, apy }: { assets: bigint; apy: numbe
   }
 
   return (
-    <div className="border-default bg-surface-elevated flex flex-col gap-3 rounded-md border p-6">
+    <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
       <p className="text-regular text-secondary">Illustrative annualized return</p>
-      <p className="text-h6 text-primary">{valueFormatted === null ? '—' : `$${valueFormatted}`}</p>
+      <p className="text-h6 text-primary">{valueFormatted === null ? '-' : `$${valueFormatted}`}</p>
       <p className="text-extraSmall text-tertiary">Based on trailing 30-day performance; actual returns may differ.</p>
     </div>
   );

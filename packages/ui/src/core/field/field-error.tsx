@@ -6,7 +6,7 @@ import { cn } from '../../lib/tw-utils';
 
 const FieldError = forwardRef<HTMLSpanElement, Aria.FieldErrorProps & { className?: string }>(
   ({ className, ...props }, ref) => (
-    <Aria.FieldError className={cn('break-all text-small text-alert', className)} {...props} ref={ref} />
+    <Aria.FieldError className={cn('text-small break-all text-alert', className)} {...props} ref={ref} />
   )
 );
 

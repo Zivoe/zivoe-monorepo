@@ -8,7 +8,7 @@ import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './
 
 export default function Diversify() {
   return (
-    <Container className="w-fit justify-between gap-20 pb-10 pt-16 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pb-30 xl:pt-50 2xl:px-48">
+    <Container className="w-fit justify-between gap-20 pt-16 pb-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pt-50 xl:pb-30 2xl:px-48">
       <div className="flex flex-col gap-6 sm:gap-8 xl:sticky xl:top-16 xl:mt-16 xl:max-w-122">
         <p className="font-heading! text-small text-primary sm:text-leading">Diversify Your Portfolio</p>
 
@@ -28,19 +28,19 @@ export default function Diversify() {
 
       <div className="flex w-full flex-col gap-6 sm:gap-8 xl:w-auto">
         <Card label="Backed by Private Credit" title="Earn Real Yield">
-          <TargetIcon className="pt-5 sm:absolute sm:bottom-0 sm:right-16 sm:pt-0" />
+          <TargetIcon className="pt-5 sm:absolute sm:right-16 sm:bottom-0 sm:pt-0" />
         </Card>
 
         <Card label="For maximum growth" title="Autocompounding">
-          <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:bottom-0 sm:right-8 sm:ml-0 sm:w-auto" />
+          <AutocompoundingIcon className="-ml-10 w-[99%] sm:absolute sm:right-8 sm:bottom-0 sm:ml-0 sm:w-auto" />
         </Card>
 
         <Card label="Via Direct Redemptions" title="Flexible Liquidity">
-          <LiquidityIcon className="w-28.75 sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
+          <LiquidityIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-0 sm:w-auto" />
         </Card>
 
         <Card label="On Ethereum" title="Live now">
-          <EthereumIcon className="w-28.75 sm:absolute sm:bottom-18 sm:right-16 sm:w-auto" />
+          <EthereumIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-18 sm:w-auto" />
         </Card>
       </div>
     </Container>

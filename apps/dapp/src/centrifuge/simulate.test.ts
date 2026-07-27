@@ -17,7 +17,14 @@ const ERROR_COPY = {
 
 const SEND_TX = {
   method: 'eth_sendTransaction',
-  params: [{ from: '0xa28ef80d690844b586e192690d8fcdaecfd0281e', to: '0x792676c9b261b80bc3d7dd0f2d3a83d91a819bcd', data: '0xdeadbeef', value: '0x0' }]
+  params: [
+    {
+      from: '0xa28ef80d690844b586e192690d8fcdaecfd0281e',
+      to: '0x792676c9b261b80bc3d7dd0f2d3a83d91a819bcd',
+      data: '0xdeadbeef',
+      value: '0x0'
+    }
+  ]
 };
 
 const revertingWith = (data: `0x${string}`) => ({ call: vi.fn().mockRejectedValue(new RawContractError({ data })) });
@@ -82,7 +89,9 @@ describe('createSimulationSigner', () => {
   });
 
   it('fails closed with generic copy on an unknown selector', async () => {
-    const { signer, walletRequest } = signerWith(revertingWith(stringToHex('garbage-selector').slice(0, 10) as `0x${string}`));
+    const { signer, walletRequest } = signerWith(
+      revertingWith(stringToHex('garbage-selector').slice(0, 10) as `0x${string}`)
+    );
 
     await expect(signer.request(SEND_TX)).rejects.toMatchObject({ message: 'Simulation error' });
     expect(walletRequest).not.toHaveBeenCalled();

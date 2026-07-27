@@ -72,10 +72,7 @@ function claimReceipt({ withWithdrawLog = true }: { withWithdrawLog?: boolean } 
             eventName: 'Withdraw',
             args: { sender: INVESTOR, receiver: INVESTOR, owner: INVESTOR }
           }),
-          data: encodeAbiParameters(
-            [{ type: 'uint256' }, { type: 'uint256' }],
-            [CLAIMABLE_ASSETS, CLAIMABLE_SHARES]
-          )
+          data: encodeAbiParameters([{ type: 'uint256' }, { type: 'uint256' }], [CLAIMABLE_ASSETS, CLAIMABLE_SHARES])
         }
       ]
     : [];
@@ -272,7 +269,7 @@ describe('useClaimRedeem', () => {
       type: 'ERROR',
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
-      hash: TX_HASH,
+      hash: TX_HASH
     });
     expect(sentryCapture).toHaveBeenCalled();
   });
