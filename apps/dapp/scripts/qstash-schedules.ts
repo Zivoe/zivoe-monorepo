@@ -113,7 +113,6 @@ async function remove(scheduleId: string) {
   console.log(`Deleted schedule: ${scheduleId}`);
 }
 
-// CLI
 const command = process.argv[2];
 const arg = process.argv[3];
 

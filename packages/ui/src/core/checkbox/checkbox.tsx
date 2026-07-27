@@ -17,15 +17,10 @@ const checkboxVariants = tv({
 
     element: [
       'border-default flex size-5 shrink-0 items-center justify-center rounded-xs border transition-colors',
-      /*  Focus Visible */
       'group-data-focus-visible:border-active group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
-      /* Disabled */
       'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
-      /* Selected */
       'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
-      /* Indeterminate */
       'group-data-indeterminate:border-primary-subtle group-data-disabled:group-data-indeterminate:border-default group-data-indeterminate:bg-element-primary-subtle group-data-disabled:group-data-indeterminate:bg-element-neutral',
-      /* Invalid */
       'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
       'focus:outline-hidden focus-visible:outline-hidden'

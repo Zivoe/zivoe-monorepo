@@ -137,7 +137,7 @@ const useTurnstile = () => {
       turnstilePromiseRef.current = { resolve, reject };
 
       try {
-        // Turnstile token is valid only once so in the case of an error with the sign-up process, we need to reset before executing again
+        // Turnstile token is valid only once, so reset before executing again
         turnstileRef.current?.reset();
         turnstileRef.current?.execute();
       } catch (error) {

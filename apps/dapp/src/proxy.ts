@@ -19,6 +19,7 @@ export const config = {
      * - sign-in (public auth page)
      * - unsubscribe (public token-based preference page)
      * - api (API routes)
+     * - monitoring (Sentry tunnel route, see next.config.ts `tunnelRoute`)
      * - vd3asd (PostHog reverse proxy)
      * - _next/static (static files)
      * - _next/image (image optimization files)

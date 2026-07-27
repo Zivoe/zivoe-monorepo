@@ -70,7 +70,6 @@ export const useUnstakeStSTT = () => {
     onSuccessClose: () => setIsUnstakeDialogOpen(false),
 
     invalidate: ({ queryClient, address }) => {
-      // Refetch stSTT balance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.balanceOf({
           accountAddress: address,
@@ -78,7 +77,6 @@ export const useUnstakeStSTT = () => {
         })
       });
 
-      // Refetch zSTT balance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.depositBalances({ accountAddress: address })
       });

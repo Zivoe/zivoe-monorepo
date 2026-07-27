@@ -50,7 +50,6 @@ export default function Team() {
               <div className="pointer-events-none fixed top-0 right-0 z-0 h-32 w-48 bg-[#038788] md:right-auto md:left-0 md:h-80 md:w-md" />
               <div className="pointer-events-none fixed bottom-0 left-0 z-0 h-24 w-48 bg-[#F08F48] md:right-0 md:left-auto md:h-30 md:w-[20rem]" />
 
-              {/* Content */}
               <div className="relative z-10 mt-3 flex w-full max-w-360 min-w-0 flex-col gap-10 px-2 py-6 sm:px-6 md:mt-20 md:flex-row md:items-start md:gap-16 lg:mt-20 lg:ml-[-8em] xl:ml-[-8em]">
                 <div className="relative mx-auto w-full max-w-84 shrink-0 rounded-lg md:ml-0 lg:-ml-8 xl:-ml-16">
                   {/* Mobile: small close inside image corner */}
@@ -81,15 +80,12 @@ export default function Team() {
                 </div>
 
                 <div className="flex w-full max-w-full flex-col gap-6 text-base md:flex-[1.2] md:basis-176 md:pt-2 lg:min-w-120 lg:basis-240 xl:min-w-120 xl:basis-280">
-                  {/* Row 1: Name */}
                   <p className="text-h4 sm:text-h3 lg:text-h2 leading-tight text-balance hyphens-auto">
                     {selected.name}
                   </p>
-                  {/* Row 2: Description */}
                   {selected.title ? (
                     <p className="text-regular text-pretty hyphens-auto opacity-80">{selected.title}</p>
                   ) : null}
-                  {/* Row 3: Bio */}
                   <p className="text-leading text-pretty wrap-break-word hyphens-auto opacity-90">
                     {selected.bio ?? 'Bio coming soon.'}
                   </p>

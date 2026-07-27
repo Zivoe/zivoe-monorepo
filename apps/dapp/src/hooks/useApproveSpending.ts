@@ -86,7 +86,6 @@ export const useApproveSpending = () => {
     },
 
     invalidate: ({ queryClient, address, vars }) => {
-      // Refetch allowance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,

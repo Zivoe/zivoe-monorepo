@@ -214,15 +214,10 @@ const SearchInputField = forwardRef<HTMLDivElement, Aria.SearchFieldProps>(({ cl
 const inputGroupStyles = tv({
   base: [
     'border-default flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border',
-    /* Hover */
     'hover:border-contrast',
-    /* Focus Within */
     'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus-within:outline-hidden',
-    /* Disabled */
     'group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
-    /* Invalid */
     'invalid:border-alert! invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]!',
-    /* SVG */
     '[&_svg]:text-icon-default [&_svg]:size-4'
   ],
 
@@ -314,11 +309,8 @@ const InputButton = forwardRef<HTMLButtonElement, Aria.ButtonProps>(({ className
       className={composeRenderProps(className, (className) =>
         cn(
           'opacity-70 transition-opacity',
-          /* Hover */
           'hover:opacity-100',
-          /* Disabled */
           'group-data-readonly:pointer-events-none disabled:pointer-events-none',
-          /* Empty */
           'group-data-empty:invisible',
           className
         )

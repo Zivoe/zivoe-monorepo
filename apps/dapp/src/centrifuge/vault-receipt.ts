@@ -3,9 +3,9 @@ import { type ContractEventName, type TransactionReceipt, parseAbi, parseEventLo
 import { CENTRIFUGE_CONFIG } from './config';
 
 // The configured vault's own lifecycle events. Grows one event at a time as a
-// consumer needs it — every receipt reader in the app must go through
-// `readVaultReceiptEvents` so filtering and aggregation policy cannot drift
-// between the client decoders and the server Monitor.
+// consumer needs it — every receipt reader must go through
+// `readVaultReceiptEvents` so vault-address filtering and event aggregation
+// cannot drift between readers.
 export const VAULT_LIFECYCLE_EVENTS_ABI = parseAbi([
   'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)',
   'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)',

@@ -60,17 +60,14 @@ export const useClaimVesting = () => {
     },
 
     invalidate: ({ queryClient, address }) => {
-      // Refetch vesting schedule
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.vestingSchedule({ accountAddress: address })
       });
 
-      // Refetch claimable amount
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.claimableVesting({ accountAddress: address })
       });
 
-      // Refetch blockchain timestamp
       void queryClient.invalidateQueries({
         queryKey: queryKeys.app.blockchainTimestamp
       });

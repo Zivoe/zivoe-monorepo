@@ -17,13 +17,9 @@ const radioVariants = tv({
 
     element: [
       'border-default flex aspect-square size-5 items-center justify-center rounded-full border transition-colors',
-      /* Focused */
       'group-data-focus-visible:border-active group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
-      /* Disabled */
       'group-data-disabled:border-default group-data-disabled:bg-element-neutral group-data-disabled:cursor-not-allowed',
-      /* Selected */
       'group-selected:border-primary-subtle group-data-disabled:group-selected:border-default group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-neutral',
-      /* Invalid */
       'group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:border-alert group-selected:group-data-invalid:border-alert group-data-indeterminate:group-data-invalid:bg-element-alert group-selected:group-data-invalid:bg-element-alert',
       /* Resets */
       'focus:outline-hidden focus-visible:outline-hidden'
@@ -38,15 +34,10 @@ const cardRadioVariants = tv({
     container: [
       'group flex h-14 w-full items-center justify-between overflow-hidden rounded-sm p-4',
       'border-default bg-surface-base border transition-colors',
-      /* Hover */
       'hover:bg-surface-elevated hover:cursor-pointer',
-      /* Selected */
       'selected:border-active selected:bg-element-primary-light',
-      /* Focus */
       'data-focus-visible:ring-default data-focus-visible:ring-2 data-focus-visible:ring-offset-1',
-      /* Disabled */
       'data-disabled:cursor-not-allowed data-disabled:opacity-60',
-      /* Invalid */
       'data-invalid:border-alert data-invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]'
     ],
 

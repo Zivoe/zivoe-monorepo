@@ -24,8 +24,8 @@ const handler = async (req: NextRequest) => {
   const parsedBody = bodySchema.safeParse(body.res);
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
 
-  // * If we start getting duplicates QStash messages
-  // * Implement Redis-based idempotency using Upstash-Message-Id header
+  // * No idempotency guard: a QStash retry sends the Telegram message twice. If
+  // * duplicates start showing up, dedupe on the Upstash-Message-Id header in Redis.
 
   const { err: profileErr, res: profileRes } = await handlePromise(
     db

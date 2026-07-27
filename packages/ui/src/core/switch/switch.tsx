@@ -12,13 +12,9 @@ const switchVariants = tv({
   slots: {
     container: [
       'peer bg-surface-elevated-low-emphasis inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-none transition-colors',
-      /* Focus Visible */
       'group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
-      /* Disabled */
       'group-data-disabled:bg-surface-elevated-contrast group-data-disabled:cursor-not-allowed',
-      /* Selected */
       'group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-primary',
-      /* Readonly */
       'group-data-readonly:cursor-auto',
       /* Resets */
       'group-data-focus-visible:outline-hidden'
