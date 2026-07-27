@@ -30,6 +30,16 @@ export type TransactionData = {
       /** Corresponding zMCA redeemed. */
       shares: bigint;
     };
+
+    cancelRedeem?: {
+      /** Pending zMCA the Cancellation covers — snapshot at cancel time; the event carries no amount. */
+      shares: bigint;
+    };
+
+    claimReturnedShares?: {
+      /** Exact zMCA returned to the wallet. */
+      shares: bigint;
+    };
   };
 };
 

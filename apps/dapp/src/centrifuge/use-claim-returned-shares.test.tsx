@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { CENTRIFUGE_CONFIG, useClaimRedeem } from './index';
+import { CENTRIFUGE_CONFIG, useClaimReturnedShares } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
@@ -41,41 +41,36 @@ const sentryCapture = vi.hoisted(() => vi.fn());
 vi.mock('@sentry/nextjs', () => ({ captureException: sentryCapture }));
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e' as const;
-const TX_HASH = '0x5555555555555555555555555555555555555555555555555555555555555555';
+const TX_HASH = '0x7777777777777777777777777777777777777777777777777777777777777777';
 
-// Two partial fulfillments (60 + 90 USDC) aggregated into the position.
-const CLAIMABLE_ASSETS = 150_000000n;
-const CLAIMABLE_SHARES = 140_190000000000000000n;
+const RETURNED_SHARES = 4n * 10n ** 18n;
 
-const CLAIM_REDEEM_DATA = encodeFunctionData({
-  abi: ABI.VaultRouter,
-  functionName: 'claimRedeem',
-  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
-});
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
   args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
 });
+const CLAIM_REDEEM_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'claimRedeem',
+  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+});
 
-const WITHDRAW_EVENT_ABI = parseAbi([
-  'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'
+const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
+  'event CancelRedeemClaim(address indexed controller, address indexed receiver, uint256 indexed requestId, address sender, uint256 shares)'
 ]);
 
-function claimReceipt({ withWithdrawLog = true }: { withWithdrawLog?: boolean } = {}) {
-  const logs = withWithdrawLog
+function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) {
+  const logs = withClaimLog
     ? [
         {
           address: CENTRIFUGE_CONFIG.vaultAddress.toLowerCase(),
           topics: encodeEventTopics({
-            abi: WITHDRAW_EVENT_ABI,
-            eventName: 'Withdraw',
-            args: { sender: INVESTOR, receiver: INVESTOR, owner: INVESTOR }
+            abi: CANCEL_REDEEM_CLAIM_EVENT_ABI,
+            eventName: 'CancelRedeemClaim',
+            args: { controller: INVESTOR, receiver: INVESTOR, requestId: 0n }
           }),
-          data: encodeAbiParameters(
-            [{ type: 'uint256' }, { type: 'uint256' }],
-            [CLAIMABLE_ASSETS, CLAIMABLE_SHARES]
-          )
+          data: encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [INVESTOR, RETURNED_SHARES])
         }
       ]
     : [];
@@ -90,8 +85,8 @@ const balance = (value: bigint) => ({ toBigInt: () => value });
 function fakeVault({
   receipt = claimReceipt(),
   claimError,
-  claimableCancelRedeemShares = 0n,
-  claimData = CLAIM_REDEEM_DATA
+  claimableCancelRedeemShares = 60_000000000000000000n,
+  claimData = CLAIM_RETURNED_SHARES_DATA
 }: {
   receipt?: TransactionReceipt;
   claimError?: Error;
@@ -103,7 +98,7 @@ function fakeVault({
     investment: () =>
       Promise.resolve({
         pendingRedeemShares: balance(0n),
-        claimableRedeemAssets: balance(150_000000n),
+        claimableRedeemAssets: balance(0n),
         claimableRedeemSharesEquivalent: balance(0n),
         claimableCancelRedeemShares: balance(claimableCancelRedeemShares),
         hasPendingCancelRedeemRequest: false
@@ -179,12 +174,12 @@ beforeEach(() => {
   publicClientCall.mockResolvedValue({ data: '0x' });
 });
 
-describe('useClaimRedeem', () => {
-  it('collects all claimable USDC across partial fulfillments in one aggregate claim transaction', async () => {
+describe('useClaimReturnedShares', () => {
+  it('claims Returned Shares through the aggregate claim and decodes the exact zMCA', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
 
-    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     // One transaction, default receiver/controller (the investor).
@@ -194,10 +189,10 @@ describe('useClaimRedeem', () => {
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
-      title: 'USDC claimed',
-      description: 'USDC has been transferred to your wallet.',
+      title: 'zMCA claimed',
+      description: 'Your zMCA has been returned to your wallet.',
       hash: TX_HASH,
-      meta: { claimRedeem: { assets: CLAIMABLE_ASSETS, shares: CLAIMABLE_SHARES } }
+      meta: { claimReturnedShares: { shares: RETURNED_SHARES } }
     });
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
@@ -213,41 +208,41 @@ describe('useClaimRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ claimError: new Error('No claimable funds') }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
 
-    act(() => result.current.mutate({ claimableAssets: 0n }));
+    act(() => result.current.mutate({ returnedShares: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(walletRequest).not.toHaveBeenCalled();
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: 'There are no redemption proceeds available to claim yet.'
+      title: 'There is no returned zMCA available to claim yet.'
     });
   });
 
-  it('blocks the claim while Returned Shares are claimable, before any wallet interaction', async () => {
-    getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 60_000000000000000000n }));
+  it('blocks the claim when no Returned Shares are claimable, before any wallet interaction', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 0n }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
 
-    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    act(() => result.current.mutate({ returnedShares: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // The aggregate claim would empty the Returned Shares bucket first — the
-    // guard must stop it before any claim build or wallet prompt.
+    // With an empty Returned Shares bucket the aggregate claim would fall
+    // through to redemption USDC under 'Claim zMCA' copy — the guard stops it.
     expect(claimSpy).not.toHaveBeenCalled();
     expect(walletRequest).not.toHaveBeenCalled();
-    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zMCA first.' });
+    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zMCA to claim. Refresh and try again.' });
   });
 
-  it('rejects an SDK bucket switch before the wallet can claim Returned Shares as USDC', async () => {
-    getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_RETURNED_SHARES_DATA }));
+  it('rejects an SDK bucket switch before the wallet can claim USDC as Returned Shares', async () => {
+    getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_REDEEM_DATA }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
 
-    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(claimSpy).toHaveBeenCalledOnce();
@@ -255,23 +250,23 @@ describe('useClaimRedeem', () => {
     expect(walletRequest).not.toHaveBeenCalled();
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: 'Claimable balances changed. Claim your returned zMCA first.'
+      title: 'Claimable balances changed. Refresh and try again.'
     });
   });
 
-  it('does not report a successful USDC claim when the receipt cannot be decoded', async () => {
-    getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withWithdrawLog: false }) }));
+  it('does not report a successful zMCA claim when the receipt cannot be decoded', async () => {
+    getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withClaimLog: false }) }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
 
-    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'ERROR',
       title: 'Claim Could Not Be Verified',
-      description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
+      description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
     });
     expect(sentryCapture).toHaveBeenCalled();

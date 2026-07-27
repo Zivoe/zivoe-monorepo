@@ -1,9 +1,14 @@
 'use client';
 
+import { ABI } from '@centrifuge/sdk';
+import { encodeFunctionData } from 'viem';
+
 import { type TransactionData } from '@/lib/store';
+import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_CONFIG } from './config';
 import { decodeClaimRedeemReceipt } from './decode';
+import { readInvestment } from './reads';
 import useCentrifugeTx, { invalidateInvestmentQueries } from './useCentrifugeTx';
 
 const CLAIM_REDEEM_SIMULATION_ERROR_COPY = {
@@ -27,16 +32,32 @@ type ClaimRedeemVariables = {
 
 export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void } = {}) {
   return useCentrifugeTx<ClaimRedeemVariables>({
-    // No investment/vault re-reads here: the SDK re-checks claimability itself
-    // ('No claimable funds' maps below), and the exact-call simulation is the
-    // authoritative pre-sign gate (VaultNotLinked surfaces as decoded copy).
-    action: (_, { vault }) => ({ tx: vault.claim() }),
+    // Fail early when Returned Shares are already visible. The exact-call gate
+    // below closes the remaining race if the SDK's later read sees a different
+    // bucket while it builds the aggregate claim.
+    action: async (_, { vault, address }) => {
+      const investment = await readInvestment({ vault, investor: address });
+      if (investment.claimableCancelRedeemShares > 0n)
+        throw new AppError({ message: 'Claim your returned zMCA first.', capture: false });
+
+      return { tx: vault.claim() };
+    },
+
+    expectedCall: (_, { address }) => ({
+      to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+      data: encodeFunctionData({
+        abi: ABI.VaultRouter,
+        functionName: 'claimRedeem',
+        args: [CENTRIFUGE_CONFIG.vaultAddress, address, address]
+      }),
+      mismatchMessage: 'Claimable balances changed. Claim your returned zMCA first.'
+    }),
 
     simulationErrorCopy: CLAIM_REDEEM_SIMULATION_ERROR_COPY,
     sdkErrorCopy: CLAIM_REDEEM_SDK_ERROR_COPY,
 
     analytics: {
-      flow: 'redeem',
+      flow: 'redeem_claim',
       input: ({ claimableAssets }, { address }) => ({
         walletAddress: address,
         chainId: CENTRIFUGE_CONFIG.chainId,
@@ -64,12 +85,20 @@ export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void
         };
 
       const decoded = decodeClaimRedeemReceipt(receipt);
+      if (!decoded)
+        return {
+          type: 'ERROR',
+          title: 'Claim Could Not Be Verified',
+          description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
+          hash: receipt.transactionHash
+        };
+
       const transactionData: TransactionData = {
         type: 'SUCCESS',
         title: 'USDC claimed',
         description: 'USDC has been transferred to your wallet.',
         hash: receipt.transactionHash,
-        meta: decoded ? { claimRedeem: { assets: decoded.assets, shares: decoded.shares } } : undefined
+        meta: { claimRedeem: { assets: decoded.assets, shares: decoded.shares } }
       };
 
       return transactionData;

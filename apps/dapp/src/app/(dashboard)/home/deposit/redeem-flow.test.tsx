@@ -13,13 +13,17 @@ const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
 const D18 = 10n ** 18n;
 
 const mocks = vi.hoisted(() => ({
+  cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
+  claimReturnedShares: vi.fn(),
   claimableAssets: 0n,
+  hasPendingCancel: false,
   metricsIsError: false,
   metricsIsFetching: false,
   metricsRefetch: vi.fn(),
   pendingShares: 0n,
   requestRedeem: vi.fn(),
+  returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
   zMcaBalance: 10n * 10n ** 18n
 }));
@@ -34,13 +38,17 @@ vi.mock('@/centrifuge', () => ({
   // Mirrors the module's unit math for the mocked 18/6 decimals above.
   sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
     (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
+  useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
+  useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
   useInvestment: () => ({
     isFetching: false,
     data: {
       pendingRedeemShares: mocks.pendingShares,
       claimableRedeemAssets: mocks.claimableAssets,
-      claimableRedeemSharesEquivalent: 0n
+      claimableRedeemSharesEquivalent: 0n,
+      claimableCancelRedeemShares: mocks.returnedShares,
+      hasPendingCancelRedeemRequest: mocks.hasPendingCancel
     }
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
@@ -149,9 +157,11 @@ describe('RedeemFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.claimableAssets = 0n;
+    mocks.hasPendingCancel = false;
     mocks.metricsIsError = false;
     mocks.metricsIsFetching = false;
     mocks.pendingShares = 0n;
+    mocks.returnedShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
   });
 
@@ -211,14 +221,16 @@ describe('RedeemFlow', () => {
     expect(getButton('Estimating USDC...')).toBeTruthy();
   });
 
-  it('renders one aggregate pending position and adds to it without cancel controls', () => {
+  it('renders one aggregate pending position with a cancel control that cancels the full amount', () => {
     mocks.pendingShares = 3n * D18;
 
     render(<RedeemFlow />);
 
     expect(screen.getByText(/3\.00 zMCA\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
     expect(getButton('Add to redemption')).toBeTruthy();
-    expect(screen.queryByText(/cancel/i)).toBeNull();
+
+    fireEvent.click(getButton('Cancel request'));
+    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
 
   it('renders claimable proceeds first and claims all current partial fulfillments at once', () => {
@@ -231,5 +243,52 @@ describe('RedeemFlow', () => {
 
     fireEvent.click(getButton('Claim USDC'));
     expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 2_000000n });
+  });
+
+  it('locks the whole form during Cancellation Processing and hides the cancel control', () => {
+    mocks.pendingShares = 3n * D18;
+    mocks.hasPendingCancel = true;
+
+    render(<RedeemFlow />);
+
+    expect(screen.getByText(/Cancelling redemption request for 3\.00 zMCA/)).toBeTruthy();
+    expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
+
+    // A new request would revert on-chain (CancellationIsPending).
+    expect(getInput('Redeem').disabled).toBe(true);
+    expect(getButton('Cancellation in progress').disabled).toBe(true);
+  });
+
+  it('claims Returned Shares after a completed cancellation', () => {
+    mocks.returnedShares = 3n * D18;
+
+    render(<RedeemFlow />);
+
+    expect(screen.getByText(/3\.00 zMCA\s+returned from cancellation/)).toBeTruthy();
+
+    fireEvent.click(getButton('Claim zMCA'));
+    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 3n * D18 });
+
+    // No cancellation in flight: the form stays open for a fresh request.
+    expect(getInput('Redeem').disabled).toBe(false);
+    expect(getButton('Request redemption')).toBeTruthy();
+  });
+
+  it('gates the USDC claim behind the Returned Shares claim in a Split Outcome', () => {
+    mocks.claimableAssets = 2_000000n;
+    mocks.returnedShares = 1n * D18;
+
+    render(<RedeemFlow />);
+
+    // The vault claims Returned Shares before USDC in one shared transaction
+    // path, so the USDC button must wait its turn.
+    expect(getButton('Claim USDC').disabled).toBe(true);
+    expect(screen.getByText('Claim your returned zMCA first.')).toBeTruthy();
+    expect(getButton('Claim zMCA').disabled).toBe(false);
+
+    fireEvent.click(getButton('Claim zMCA'));
+    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
+    expect(mocks.claimRedeem).not.toHaveBeenCalled();
   });
 });

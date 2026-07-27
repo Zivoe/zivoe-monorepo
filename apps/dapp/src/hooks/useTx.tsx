@@ -36,7 +36,7 @@ import { AppError, handlePromise, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
 
-export type TxAnalyticsFlow = 'deposit' | 'redeem' | 'approval';
+export type TxAnalyticsFlow = 'deposit' | 'redeem' | 'redeem_claim' | 'redeem_cancel' | 'redeem_claim_returned' | 'approval';
 
 export type TxAnalyticsInput = Omit<TransactionAnalyticsInput, 'flow' | 'step' | 'txHash' | 'receiptStatus' | 'error_type'>;
 
@@ -112,6 +112,33 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     },
     rejected: { event: 'tx:redeem_signature_rejected', step: 'signature_rejected' },
     failed: { event: 'tx:redeem_failed', step: 'failed' }
+  },
+  redeem_claim: {
+    submitted: { event: 'tx:redeem_claim_submitted', step: 'submitted' },
+    confirmed: {
+      success: { event: 'tx:redeem_claim_receipt', step: 'receipt' },
+      failed: { event: 'tx:redeem_claim_failed', step: 'failed' }
+    },
+    rejected: { event: 'tx:redeem_claim_signature_rejected', step: 'signature_rejected' },
+    failed: { event: 'tx:redeem_claim_failed', step: 'failed' }
+  },
+  redeem_cancel: {
+    submitted: { event: 'tx:redeem_cancel_submitted', step: 'submitted' },
+    confirmed: {
+      success: { event: 'tx:redeem_cancel_receipt', step: 'receipt' },
+      failed: { event: 'tx:redeem_cancel_failed', step: 'failed' }
+    },
+    rejected: { event: 'tx:redeem_cancel_signature_rejected', step: 'signature_rejected' },
+    failed: { event: 'tx:redeem_cancel_failed', step: 'failed' }
+  },
+  redeem_claim_returned: {
+    submitted: { event: 'tx:redeem_claim_returned_submitted', step: 'submitted' },
+    confirmed: {
+      success: { event: 'tx:redeem_claim_returned_receipt', step: 'receipt' },
+      failed: { event: 'tx:redeem_claim_returned_failed', step: 'failed' }
+    },
+    rejected: { event: 'tx:redeem_claim_returned_signature_rejected', step: 'signature_rejected' },
+    failed: { event: 'tx:redeem_claim_returned_failed', step: 'failed' }
   },
   approval: {
     started: { event: 'tx:approval_started', step: 'started' },

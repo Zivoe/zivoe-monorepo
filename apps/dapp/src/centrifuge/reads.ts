@@ -19,6 +19,8 @@ export async function readInvestment({
   return {
     pendingRedeemShares: investment.pendingRedeemShares.toBigInt(),
     claimableRedeemAssets: investment.claimableRedeemAssets.toBigInt(),
-    claimableRedeemSharesEquivalent: investment.claimableRedeemSharesEquivalent.toBigInt()
+    claimableRedeemSharesEquivalent: investment.claimableRedeemSharesEquivalent.toBigInt(),
+    claimableCancelRedeemShares: investment.claimableCancelRedeemShares.toBigInt(),
+    hasPendingCancelRedeemRequest: investment.hasPendingCancelRedeemRequest
   };
 }

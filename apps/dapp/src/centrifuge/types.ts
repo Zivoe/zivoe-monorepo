@@ -12,4 +12,8 @@ export type Investment = {
   pendingRedeemShares: bigint;
   claimableRedeemAssets: bigint;
   claimableRedeemSharesEquivalent: bigint;
+  /** Returned Shares: cancelled zMCA waiting for the claim that restores the wallet balance. */
+  claimableCancelRedeemShares: bigint;
+  /** Cancellation Processing: the position is locked until Centrifuge finishes the unwind. */
+  hasPendingCancelRedeemRequest: boolean;
 };

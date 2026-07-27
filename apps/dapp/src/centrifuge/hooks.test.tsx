@@ -34,7 +34,9 @@ function fakeVault() {
         shareBalance: balance(101_000000000000000000n),
         pendingRedeemShares: balance(200_000000000000000000n),
         claimableRedeemAssets: balance(150_000000n, 6),
-        claimableRedeemSharesEquivalent: balance(140_000000000000000000n)
+        claimableRedeemSharesEquivalent: balance(140_000000000000000000n),
+        claimableCancelRedeemShares: balance(60_000000000000000000n),
+        hasPendingCancelRedeemRequest: false
       })
   };
 }
@@ -94,14 +96,16 @@ describe('useDepositPreview', () => {
 });
 
 describe('useInvestment', () => {
-  it('returns the three plain domain fields', async () => {
+  it('returns the plain domain fields', async () => {
     const { result } = renderHook(() => useInvestment(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({
       pendingRedeemShares: 200_000000000000000000n,
       claimableRedeemAssets: 150_000000n,
-      claimableRedeemSharesEquivalent: 140_000000000000000000n
+      claimableRedeemSharesEquivalent: 140_000000000000000000n,
+      claimableCancelRedeemShares: 60_000000000000000000n,
+      hasPendingCancelRedeemRequest: false
     });
   });
 
