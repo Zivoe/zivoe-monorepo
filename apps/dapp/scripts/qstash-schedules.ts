@@ -68,7 +68,11 @@ async function sync() {
   }
 
   // Reconcile: a schedule for this app that is no longer listed above would
-  // otherwise keep firing into a deleted route forever.
+  // otherwise keep firing into a deleted route forever. Sentry cron monitors
+  // have no equivalent sweep — when a checking-in route is deleted, its
+  // monitor must be removed by hand in the Sentry UI or it flags missed
+  // check-ins indefinitely (the legacy producer's 'network-hourly-cron'
+  // monitor needs exactly that at cutover).
   const managedIds = new Set<string>(SCHEDULES.map((schedule) => schedule.scheduleId));
   const existing = await client.schedules.list();
   const stale = existing.filter(
