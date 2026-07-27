@@ -7,7 +7,7 @@
     "build": "next build",
     "dev": "next dev --turbo",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit",
+    "check-types": "gql-tada check && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "next start",
