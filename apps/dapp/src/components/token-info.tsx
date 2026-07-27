@@ -1,4 +1,4 @@
-import { UsdcIcon, ZVltLogo } from '@zivoe/ui/icons';
+import { UsdcIcon, ZMcaLogo } from '@zivoe/ui/icons';
 
 import { type Token } from '@/types/constants';
 
@@ -11,6 +11,6 @@ export const TOKEN_INFO: Record<Token, { label: string; description: string; ico
   zMCA: {
     label: 'zMCA',
     description: 'Zivoe MCA',
-    icon: <ZVltLogo />
+    icon: <ZMcaLogo />
   }
 };

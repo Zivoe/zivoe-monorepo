@@ -8,7 +8,7 @@ import { mainnet, sepolia } from 'viem/chains';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
-import { ZVltLogo } from '@zivoe/ui/icons';
+import { ZMcaLogo } from '@zivoe/ui/icons';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon, UsdcIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -25,7 +25,7 @@ const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia)
 
 const TOKEN_ICON: Record<Token, ReactNode> = {
   USDC: <UsdcIcon />,
-  zMCA: <ZVltLogo />
+  zMCA: <ZMcaLogo />
 };
 
 export function TransactionDialog() {
@@ -99,7 +99,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.deposit.receive}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={<ZMcaLogo />}
               />
             </TransactionDialogTokensSection>
           )}
@@ -110,7 +110,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.redeem.amount}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={<ZMcaLogo />}
               />
 
               <ArrowRightIcon className="text-icon-default size-4" />
@@ -131,7 +131,7 @@ export function TransactionDialog() {
                 token="zMCA"
                 amount={transaction.meta.claimRedeem.shares}
                 decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={<ZVltLogo />}
+                icon={<ZMcaLogo />}
               />
 
               <ArrowRightIcon className="text-icon-default size-4" />

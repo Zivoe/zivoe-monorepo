@@ -31,7 +31,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit your stablecoins into Zivoe and receive zVLT."
+            description="Deposit USDC into Zivoe and receive zMCA."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -40,7 +40,7 @@ export default function HowItWorks() {
           <Card
             label="Step 2"
             title="Earn"
-            description="zVLT automatically grows in value as interest is earned."
+            description="zMCA grows in value as interest is earned."
             image={<Step2Icon />}
             className="w-full min-w-full flex-1 items-end justify-start"
             imageClassName="items-end pt-3 max-w-[20rem] sm:w-full sm:max-w-max w-full flex-1 sm:[&>svg]:w-full"
@@ -49,7 +49,7 @@ export default function HowItWorks() {
           <Card
             label="Step 3"
             title="Redeem"
-            description="Redeem your zVLT back for USDC, subject to liquidity availability."
+            description="Request to redeem your zMCA for USDC, subject to liquidity availability."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"
