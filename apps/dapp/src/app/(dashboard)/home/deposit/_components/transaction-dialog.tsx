@@ -37,7 +37,6 @@ const TOKEN_ICON: Record<Token, ReactNode> = {
   frxUSD: <FrxUsdIcon />,
   zSTT: <ZsttIcon />,
   zVLT: <ZVltLogo />,
-  stSTT: <ZsttIcon />,
   zMCA: <ZVltLogo />
 };
 
@@ -158,36 +157,10 @@ export function TransactionDialog() {
             </TransactionDialogTokensSection>
           )}
 
-          {transaction.meta?.unstake && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token="stSTT"
-                amount={transaction.meta.unstake.amount}
-                decimals={18}
-                icon={<ZsttIcon />}
-              />
-
-              <ArrowRightIcon className="text-icon-default size-4" />
-
-              <TransactionDialogToken
-                token="zSTT"
-                amount={transaction.meta.unstake.receive}
-                decimals={18}
-                icon={<ZsttIcon />}
-              />
-            </TransactionDialogTokensSection>
-          )}
-
           <div className="flex gap-4">
             <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
               Close
             </Button>
-
-            {transaction.type === 'SUCCESS' && transaction.meta?.unstake && (
-              <Link variant="primary" fullWidth href="/" onPress={() => setTransaction(undefined)}>
-                Deposit zSTT
-              </Link>
-            )}
           </div>
         </DialogContentBox>
       </DialogContent>

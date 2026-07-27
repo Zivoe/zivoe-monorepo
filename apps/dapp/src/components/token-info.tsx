@@ -28,11 +28,6 @@ export const TOKEN_INFO: Record<Token, { label: string; description: string; ico
     description: 'Senior Tranche Token',
     icon: <ZsttIcon />
   },
-  stSTT: {
-    label: 'stSTT',
-    description: 'Staked Senior Tranche Token',
-    icon: <ZsttIcon />
-  },
   zMCA: {
     label: 'zMCA',
     description: 'Zivoe MCA',

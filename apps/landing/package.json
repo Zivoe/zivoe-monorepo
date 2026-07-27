@@ -43,7 +43,6 @@
     "@types/node": "^22.13.5",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
-    "@zivoe/contracts": "workspace:*",
     "@zivoe/eslint-config": "workspace:*",
     "@zivoe/prettier-config": "workspace:*",
     "@zivoe/ts-config": "workspace:*",

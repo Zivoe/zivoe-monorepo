@@ -1,6 +1,6 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
-import { data } from '@/server/data';
+import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
 import Hero from '@/components/hero';
 import Page from '@/components/page';
@@ -20,7 +20,7 @@ export default async function Home({ initialView }: { initialView: DepositPageVi
   await queryClient.prefetchQuery({
     queryKey: queryKeys.app.shareMetrics,
     queryFn: async () => {
-      const payload = await data.getCurrentShareMetrics();
+      const payload = await getCurrentShareMetrics();
       // Throwing keeps a failed prefetch out of the dehydrated state, so the
       // browser fetches fresh on mount instead of hydrating an empty success.
       if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
@@ -45,7 +45,7 @@ export default async function Home({ initialView }: { initialView: DepositPageVi
 async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
   // 30-day Trailing APY from the shared current-share-metrics path; null until
   // 30 days of history exist (or on indexer failure — the card shows a dash).
-  const metrics = await data.getCurrentShareMetrics();
+  const metrics = await getCurrentShareMetrics();
 
   return <Deposit apy={metrics?.apy ?? null} initialView={initialView} />;
 }

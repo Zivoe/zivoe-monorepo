@@ -2,7 +2,7 @@ import { type Key } from 'react-aria-components';
 
 import { type ShareStatsPayload } from '@zivoe/centrifuge-indexer';
 
-import { type CentrifugeDailySnapshot } from '@/server/data';
+import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 
