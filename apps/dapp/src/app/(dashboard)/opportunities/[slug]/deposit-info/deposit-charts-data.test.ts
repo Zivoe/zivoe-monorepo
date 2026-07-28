@@ -13,7 +13,7 @@ const day2 = day1 + DAY_MS;
 const today = day1 + 2 * DAY_MS;
 
 const SHARE_PRICE = 0;
-const NAV = 1;
+const AUM = 1;
 const APY = 2;
 
 function close(timestampMs: number, { sharePrice = 1.07, nav = 100, apy = null as number | null } = {}) {
@@ -35,20 +35,20 @@ describe('parseChartData', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { nav: 100 }), close(day2, { nav: 104 })],
       current: payload(),
-      typeIndex: NAV,
+      typeIndex: AUM,
       todayStartMs: today
     });
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
     expect(chart?.data[2]?.day).toBe('3 Jul 2026');
-    expect(chart?.headline).toBe(formatChartValue('NAV', 105));
+    expect(chart?.headline).toBe(formatChartValue('AUM', 105));
   });
 
   it('supersedes a same-day price-event bucket with the live overlay', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { nav: 100 }), close(day2, { nav: 104 }), close(today, { nav: 104.5 })],
       current: payload(),
-      typeIndex: NAV,
+      typeIndex: AUM,
       todayStartMs: today
     });
 

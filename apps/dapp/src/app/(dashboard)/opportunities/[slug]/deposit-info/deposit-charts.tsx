@@ -89,7 +89,7 @@ export default function DepositCharts({
               scale="linear"
               domain={chart.domain}
               ticks={chart.ticks}
-              tickFormatter={(value) => (chart.type === 'NAV' ? customNumber(value) : value)}
+              tickFormatter={(value) => (chart.type === 'AUM' ? customNumber(value) : value)}
             />
 
             <ChartTooltip

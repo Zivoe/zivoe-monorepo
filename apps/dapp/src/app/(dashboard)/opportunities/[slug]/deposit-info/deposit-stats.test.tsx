@@ -20,10 +20,10 @@ vi.mock('@zivoe/ui/icons', () => ({
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders NAV and the 30-day Trailing APY with the revenue placeholder', () => {
+  it('renders AUM and the 30-day Trailing APY with the revenue placeholder', () => {
     render(<DepositStats nav={112000} apy={5.25} />);
 
-    expect(screen.getByText('NAV')).toBeTruthy();
+    expect(screen.getByText('AUM')).toBeTruthy();
     expect(screen.getByText('$112.00k')).toBeTruthy();
     expect(screen.getByText('30-day Trailing APY')).toBeTruthy();
     expect(screen.getByText('5.25%')).toBeTruthy();

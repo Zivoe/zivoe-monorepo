@@ -10,7 +10,7 @@ export default function DepositStats({ nav, apy }: { nav: number; apy: number | 
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
-        <Box title="NAV" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
+        <Box title="AUM" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
 
         <Box title="30-day Trailing APY" icon={<TrendingIcon />} value={apy !== null ? `${customNumber(apy)}%` : '-'} />
 

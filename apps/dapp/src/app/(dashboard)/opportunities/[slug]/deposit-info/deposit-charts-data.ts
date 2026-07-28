@@ -6,7 +6,7 @@ import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 
-export const CHART_TYPES = ['Share Price', 'NAV', 'APY'] as const;
+export const CHART_TYPES = ['Share Price', 'AUM', 'APY'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
 export function formatChartValue(type: ChartType, value: number) {
@@ -50,7 +50,7 @@ export const parseChartData = ({
     .map((item) => {
       let data: number | null;
       if (type === 'Share Price') data = item.sharePrice;
-      else if (type === 'NAV') data = item.nav;
+      else if (type === 'AUM') data = item.nav;
       else data = item.apy;
 
       return { day: formatDayLabel(item.timestampMs), data };

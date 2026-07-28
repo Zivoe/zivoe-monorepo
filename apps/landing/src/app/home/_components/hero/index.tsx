@@ -73,7 +73,7 @@ async function Statistics() {
     <div className="flex gap-6 lg:gap-16">
       {metrics ? (
         <>
-          <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
+          <Statistic label="AUM" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
 
           <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '-'} />
         </>
