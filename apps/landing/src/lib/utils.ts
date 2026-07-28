@@ -1,10 +1,10 @@
 import { formatUnits } from 'viem';
 
-export function customNumber(number: number) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
+export function customNumber(number: number, decimals = 2) {
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
   else {
-    return floorToDecimals(number);
+    return floorToDecimals(number, decimals);
   }
 }
 
@@ -42,8 +42,9 @@ export const formatBigIntWithCommas = ({
   });
 };
 
-const floorToDecimals = (num: number) => {
-  return (Math.floor(num * 100) / 100).toFixed(2);
+const floorToDecimals = (num: number, decimals = 2) => {
+  const multiplier = Math.pow(10, decimals);
+  return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
 };
 
 export function handlePromise<T>(promise: Promise<T>) {

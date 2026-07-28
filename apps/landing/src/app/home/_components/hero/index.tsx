@@ -5,7 +5,7 @@ import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
 import { centrifuge } from '@/server/centrifuge';
 
-import { formatBigIntToReadable } from '@/lib/utils';
+import { customNumber, formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -78,7 +78,11 @@ async function Statistics() {
 
       <Statistic label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
 
-      <Statistic label="Revenue" value="–" />
+      {/* Three decimals, matching the dapp — at roughly a dollar a token, cents
+          alone hide the price moves. */}
+      {metrics ? (
+        <Statistic label="Token Price" value={`$${customNumber(Number(metrics.sharePriceD18) / 1e18, 3)}`} />
+      ) : null}
     </div>
   );
 }
