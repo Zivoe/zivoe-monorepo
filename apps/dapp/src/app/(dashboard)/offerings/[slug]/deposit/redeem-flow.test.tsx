@@ -138,6 +138,9 @@ vi.mock('@zivoe/ui/core/input', () => ({
   )
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
+vi.mock('@zivoe/ui/core/callout', () => ({
+  Callout: ({ children }: { children: ReactNode }) => <div>{children}</div>
+}));
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);
