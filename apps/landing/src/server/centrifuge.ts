@@ -38,7 +38,7 @@ const fetchHeroMetrics = async (): Promise<ShareStatsPayload> => {
 const cachedHeroMetrics = nextCache(fetchHeroMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
 
 /**
- * Current Share Price / NAV / 30-day Trailing APY as the shared stats payload —
+ * Current Share Price / AUM / 30-day Trailing APY as the shared stats payload —
  * the exact projection the dApp renders, so the two apps cannot drift on
  * semantics (cache timing aside). Sentry-captured failure returns undefined so
  * the hero hides the stats instead of rendering wrong numbers. The fetch

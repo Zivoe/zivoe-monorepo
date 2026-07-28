@@ -72,7 +72,7 @@ const FAQs: Array<{
   {
     question: 'What is Zivoe?',
     answer:
-      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals, offering exposure to yield opportunities that were traditionally out of reach.'
+      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals through yield offerings that were traditionally out of reach.'
   },
   {
     question: 'How have these loans performed historically?',
@@ -87,12 +87,12 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s net asset value and are reflected in the zMCA Share Price.'
+      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s assets under management and are reflected in the zMCA Token Price.'
   },
   {
     question: 'What are the fees?',
     answer:
-      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield accrues to zMCA holders through the pool’s Share Price.'
+      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield accrues to zMCA holders through the pool’s Token Price.'
   },
   {
     question: 'Is there a minimum deposit amount?',

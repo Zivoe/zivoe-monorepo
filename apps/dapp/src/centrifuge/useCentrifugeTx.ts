@@ -244,7 +244,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 }
 
 /**
- * Invalidated after every settled Centrifuge tx. Stats included: NAV moves
+ * Invalidated after every settled Centrifuge tx. Stats included: AUM moves
  * with issuance as soon as the indexer processes the block.
  */
 export function invalidateInvestmentQueries({

@@ -25,7 +25,7 @@ export type CentrifugeDailySnapshot = {
   timestampMs: number;
   /** Share Price in USD. */
   sharePrice: number;
-  /** Share-class NAV in USD (price x issuance). */
+  /** Share-class AUM in USD (price x issuance). */
   nav: number;
   /** 30-day Trailing APY in percent; null until 30 days of history exist. */
   apy: number | null;
@@ -110,7 +110,7 @@ export const getCentrifugeDailySnapshots = reactCache(async (): Promise<Array<Ce
     const rows = await cachedDailySnapshotRows();
 
     return rows.flatMap((row): Array<CentrifugeDailySnapshot> => {
-      // NAV needs issuance; a priced row without it cannot chart.
+      // AUM needs issuance; a priced row without it cannot chart.
       if (row.totalIssuanceD18 === null) return [];
 
       const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
@@ -147,7 +147,7 @@ async function fetchCurrentMetrics(): Promise<ShareStatsPayload> {
 const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
 
 /**
- * Current Share Price / NAV / 30-day Trailing APY as the shared stats payload —
+ * Current Share Price / AUM / 30-day Trailing APY as the shared stats payload —
  * the same projection the landing hero renders — behind a 30-second cache, the
  * single current-metrics entry every dApp surface reads. Same error contract
  * as the daily snapshots: throw inside the cache, hide-and-capture outside.

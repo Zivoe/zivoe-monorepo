@@ -9,6 +9,7 @@ import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
+import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
@@ -378,10 +379,10 @@ export default function RedeemFlow() {
           endContent={<TokenDisplay symbol="USDC" />}
         />
 
-        <p className="text-extraSmall text-tertiary">
-          Redemptions are processed periodically. Your final USDC amount is determined using the Share Price when your
+        <Callout variant="warning">
+          Redemptions are processed periodically. Your final USDC amount is determined using the Token Price when your
           request is processed.
-        </p>
+        </Callout>
       </div>
 
       <ConnectedAccount>

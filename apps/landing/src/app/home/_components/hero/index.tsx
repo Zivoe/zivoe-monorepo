@@ -18,6 +18,9 @@ import NavigationSection from '@/components/navigation';
 
 import { HeroClouds } from './clouds';
 
+/** Published Target APY, in percent, while the trailing-yield read is disabled. */
+const TARGET_APY_PERCENT = 14;
+
 export default function Hero() {
   return (
     <div className="relative z-0 h-220 overflow-clip bg-element-tertiary sm:h-300 lg:h-245">
@@ -71,15 +74,13 @@ async function Statistics() {
 
   return (
     <div className="flex gap-6 lg:gap-16">
+      {metrics ? <Statistic label="AUM" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} /> : null}
+
+      <Statistic label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
+
       {metrics ? (
-        <>
-          <Statistic label="NAV" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
-
-          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '-'} />
-        </>
+        <Statistic label="Token Price" value={`$${customNumber(Number(metrics.sharePriceD18) / 1e18)}`} />
       ) : null}
-
-      <Statistic label="Revenue" value="–" />
     </div>
   );
 }

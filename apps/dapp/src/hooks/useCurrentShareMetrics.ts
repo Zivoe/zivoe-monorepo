@@ -30,7 +30,7 @@ async function fetchShareStatsPayload(): Promise<ShareStatsPayload> {
 export const useCurrentShareMetrics = () => {
   return useQuery({
     queryKey: queryKeys.app.shareMetrics,
-    meta: { toastErrorMessage: 'Error fetching Share Price' },
+    meta: { toastErrorMessage: 'Error fetching Token Price' },
     refetchInterval: 5 * 60 * 1000,
     queryFn: fetchShareStatsPayload
   });

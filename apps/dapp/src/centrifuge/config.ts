@@ -74,7 +74,7 @@ export function sharesToUsdc({ shares, sharePrice }: { shares: bigint; sharePric
 }
 
 /**
- * 18-decimal USD value of a zMCA amount at an 18-decimal Share Price. NAV is
+ * 18-decimal USD value of a zMCA amount at an 18-decimal Share Price. AUM is
  * the same conversion applied to the class's total issuance.
  */
 export function sharesToValueD18({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }): bigint {

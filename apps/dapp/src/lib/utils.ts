@@ -63,7 +63,11 @@ export const formatBigIntWithCommas = ({
 
 const floorToDecimals = (num: number, decimals = 2) => {
   const multiplier = Math.pow(10, decimals);
-  return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
+  // Scaling first introduces representation error (1.14 * 100 is
+  // 113.99999999999999), which floors a whole cent off the value. Round that
+  // noise away before flooring; it is ~1e-13 relative, far below the last
+  // shown digit, so genuine excess precision is still floored, not rounded up.
+  return (Math.floor(Math.round(num * multiplier * 1000) / 1000) / multiplier).toFixed(decimals);
 };
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;

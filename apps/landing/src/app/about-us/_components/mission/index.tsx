@@ -13,9 +13,9 @@ export default function Mission() {
           <p className="text-regular text-primary sm:text-center sm:text-leading">
             Zivoe (“z-eye-voh”) is a Balkan word meaning “to life,” reflecting our belief that finance should improve
             life, not limit it. We are modernizing private credit by connecting on-chain capital to real-world lending
-            opportunities with greater transparency, access, and efficiency. By building open financial infrastructure
-            that enables sustainable yield and expands credit access to underserved markets, Zivoe is reshaping how
-            capital moves across the global lending landscape.
+            offerings that provide greater transparency, access, and efficiency. By building open financial
+            infrastructure that enables sustainable yield and expands credit access to underserved markets, Zivoe is
+            reshaping how capital moves across the global lending landscape.
           </p>
         </div>
       </Container>
