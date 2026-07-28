@@ -17,7 +17,7 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="Flexible Liquidity"
-          description="Contact us at investors@zivo.com to initiate a redemption or with any questions about liquidity before depositing."
+          description="Contact us at investors@zivoe.com to initiate a redemption or with any questions about liquidity before depositing."
           className="bg-element-primary-gentle"
         />
 
