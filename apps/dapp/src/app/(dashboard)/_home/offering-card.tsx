@@ -47,10 +47,6 @@ export default function OfferingCard({
           <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
 
-          {/* The whole card is one anchor, so these name themselves with the
-              native title tooltip rather than a focusable tooltip trigger,
-              which would nest an interactive element inside the link. role=img
-              plus the label gives screen readers the same name. */}
           <Term
             label="Accepted stablecoins"
             value={
