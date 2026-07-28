@@ -7,7 +7,7 @@ import { useMediaQuery } from 'react-responsive';
 
 import { depositDialogAtom } from '@/lib/store';
 
-import { isOpportunityPath } from '@/opportunities';
+import { isOfferingPath } from '@/offerings';
 
 import { type DepositPageView } from '../_utils';
 
@@ -21,9 +21,9 @@ export function useTabNavigation() {
   const navigateToTab = (view: NonNullable<DepositPageView>) => {
     const url = view === 'deposit' ? pathname : `${pathname}?view=${view}`;
 
-    // Switching tabs on the Opportunity itself is not a navigation — only
+    // Switching tabs on the Offering itself is not a navigation — only
     // arriving from elsewhere should leave a history entry behind.
-    if (isOpportunityPath(pathname)) router.replace(url, { scroll: false });
+    if (isOfferingPath(pathname)) router.replace(url, { scroll: false });
     else router.push(url);
 
     if (isMobile) setIsDepositDialogOpen(true);

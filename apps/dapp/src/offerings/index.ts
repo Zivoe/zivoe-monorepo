@@ -8,16 +8,16 @@ import { type DepositToken, type ShareToken } from '@/types/constants';
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 
 /**
- * One Opportunity is one Centrifuge share class, exposed at /opportunities/<slug>.
+ * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
  *
  * Centrifuge's model is Pool > Share Class > Vault: a pool holds N share
  * classes (tranches, each with its own share token, price, NAV and yield
  * history), and a vault is one share class instantiated on one network for one
  * deposit asset. A route is therefore keyed by share class, not by vault — the
- * same class accepting a second stablecoin stays one Opportunity, which is also
- * why the URL says opportunities rather than vaults.
+ * same class accepting a second stablecoin stays one Offering, which is also
+ * why the URL says offerings rather than vaults.
  */
-export type Opportunity = {
+export type Offering = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
   name: string;
@@ -28,7 +28,7 @@ export type Opportunity = {
   description: string;
   /**
    * CSS `background` for the listing card's banner. A raw value rather than a
-   * token: each Opportunity gets its own multi-layer gradient so cards stay
+   * token: each Offering gets its own multi-layer gradient so cards stay
    * distinguishable at a glance, and that is data, not a design-system choice.
    */
   cardGradient: string;
@@ -43,10 +43,10 @@ export type Opportunity = {
   acceptedAssets: Array<DepositToken>;
 };
 
-export const OPPORTUNITIES: Array<Opportunity> = [
+export const OFFERINGS: Array<Offering> = [
   {
-    slug: 'global-mca-opportunities',
-    name: 'Global MCA Opportunities Fund',
+    slug: 'global-mca-offerings',
+    name: 'Global MCA Offerings Fund',
     Logo: ZMcaLogo,
     category: 'Merchant Cash Advance',
     description:
@@ -68,21 +68,21 @@ export const OPPORTUNITIES: Array<Opportunity> = [
 // unstable_cache keys). Until that is threaded per share class, a second entry
 // here would silently serve the first entry's charts, stats and vault under
 // its own URL — so fail at import time instead.
-if (OPPORTUNITIES.length > 1)
+if (OFFERINGS.length > 1)
   throw new Error(
-    'The Centrifuge data layer is still single-share-class. Parameterize CENTRIFUGE_CONFIG, the vault client, the query keys and the unstable_cache keys by share class before registering a second Opportunity.'
+    'The Centrifuge data layer is still single-share-class. Parameterize CENTRIFUGE_CONFIG, the vault client, the query keys and the unstable_cache keys by share class before registering a second Offering.'
   );
 
-export function getOpportunity(slug: string): Opportunity | undefined {
-  return OPPORTUNITIES.find((opportunity) => opportunity.slug === slug);
+export function getOffering(slug: string): Offering | undefined {
+  return OFFERINGS.find((offering) => offering.slug === slug);
 }
 
-export const OPPORTUNITY_PATH_PREFIX = '/opportunities';
+export const OFFERING_PATH_PREFIX = '/offerings';
 
-export function opportunityPath(opportunity: Pick<Opportunity, 'slug'>): string {
-  return `${OPPORTUNITY_PATH_PREFIX}/${opportunity.slug}`;
+export function offeringPath(offering: Pick<Offering, 'slug'>): string {
+  return `${OFFERING_PATH_PREFIX}/${offering.slug}`;
 }
 
-export function isOpportunityPath(pathname: string): boolean {
-  return pathname.startsWith(`${OPPORTUNITY_PATH_PREFIX}/`);
+export function isOfferingPath(pathname: string): boolean {
+  return pathname.startsWith(`${OFFERING_PATH_PREFIX}/`);
 }

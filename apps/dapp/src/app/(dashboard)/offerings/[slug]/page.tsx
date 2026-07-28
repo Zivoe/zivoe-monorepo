@@ -10,15 +10,15 @@ import { queryKeys } from '@/lib/query-keys';
 import Container from '@/components/container';
 import Page from '@/components/page';
 
-import { getOpportunity } from '@/opportunities';
+import { getOffering } from '@/offerings';
 
 import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { type DepositPageView, depositPageViewSchema } from './deposit/_utils';
-import OpportunityHeader from './opportunity-header';
+import OfferingHeader from './offering-header';
 
-export default async function OpportunityPage({
+export default async function OfferingPage({
   params,
   searchParams
 }: {
@@ -27,8 +27,8 @@ export default async function OpportunityPage({
 }) {
   const [{ slug }, { view }] = await Promise.all([params, searchParams]);
 
-  const opportunity = getOpportunity(slug);
-  if (!opportunity) notFound();
+  const offering = getOffering(slug);
+  if (!offering) notFound();
 
   const validatedView = depositPageViewSchema.safeParse(view);
 
@@ -53,7 +53,7 @@ export default async function OpportunityPage({
 
       <div className="bg-surface-base">
         <Container>
-          <OpportunityHeader opportunity={opportunity} />
+          <OfferingHeader offering={offering} />
         </Container>
 
         <HydrationBoundary state={dehydrate(queryClient)}>

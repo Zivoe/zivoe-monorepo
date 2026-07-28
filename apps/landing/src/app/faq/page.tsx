@@ -72,7 +72,7 @@ const FAQs: Array<{
   {
     question: 'What is Zivoe?',
     answer:
-      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals, offering exposure to yield opportunities that were traditionally out of reach.'
+      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals through yield offerings that were traditionally out of reach.'
   },
   {
     question: 'How have these loans performed historically?',
