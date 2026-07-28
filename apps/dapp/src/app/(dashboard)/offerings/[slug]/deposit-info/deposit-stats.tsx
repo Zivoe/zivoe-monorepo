@@ -16,9 +16,7 @@ export default function DepositStats({ nav, sharePrice }: { nav: number; sharePr
 
         <Box title="Target APY" icon={<TrendingIcon />} value={`${TARGET_APY_PERCENT}%`} />
 
-        {/* Three decimals, matching the chart headline — cents alone hide the
-            price moves this token actually makes. */}
-        <Box title="Token Price" icon={<MoneyIcon />} value={`$${customNumber(sharePrice, 3)}`} />
+        <Box title="Token Price" icon={<MoneyIcon />} value={`$${customNumber(sharePrice)}`} />
       </div>
     </InfoSection>
   );

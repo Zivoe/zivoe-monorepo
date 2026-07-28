@@ -78,10 +78,8 @@ async function Statistics() {
 
       <Statistic label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
 
-      {/* Three decimals, matching the dapp — at roughly a dollar a token, cents
-          alone hide the price moves. */}
       {metrics ? (
-        <Statistic label="Token Price" value={`$${customNumber(Number(metrics.sharePriceD18) / 1e18, 3)}`} />
+        <Statistic label="Token Price" value={`$${customNumber(Number(metrics.sharePriceD18) / 1e18)}`} />
       ) : null}
     </div>
   );

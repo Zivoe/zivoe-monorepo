@@ -1,10 +1,10 @@
 import { formatUnits } from 'viem';
 
-export function customNumber(number: number, decimals = 2) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
+export function customNumber(number: number) {
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
   else {
-    return floorToDecimals(number, decimals);
+    return floorToDecimals(number);
   }
 }
 
@@ -42,9 +42,12 @@ export const formatBigIntWithCommas = ({
   });
 };
 
-const floorToDecimals = (num: number, decimals = 2) => {
-  const multiplier = Math.pow(10, decimals);
-  return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
+const floorToDecimals = (num: number) => {
+  // Scaling first introduces representation error (1.14 * 100 is
+  // 113.99999999999999), which floors a whole cent off the value. Round that
+  // noise away before flooring; it is ~1e-13 relative, far below a cent, so
+  // genuine sub-cent precision is still floored rather than rounded up.
+  return (Math.floor(Math.round(num * 100 * 1000) / 1000) / 100).toFixed(2);
 };
 
 export function handlePromise<T>(promise: Promise<T>) {

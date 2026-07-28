@@ -30,7 +30,7 @@ describe('DepositStats', () => {
     expect(screen.getByText('Target APY')).toBeTruthy();
     expect(screen.getByText('14%')).toBeTruthy();
     expect(screen.getByText('Token Price')).toBeTruthy();
-    // Three decimals, floored — not the 2dp the other money boxes use.
-    expect(screen.getByText('$1.072')).toBeTruthy();
+    // Two decimals, floored — the same treatment AUM gets.
+    expect(screen.getByText('$1.07')).toBeTruthy();
   });
 });

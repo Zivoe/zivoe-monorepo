@@ -9,8 +9,8 @@ import { customNumber } from '@/lib/utils';
 export const CHART_TYPES = ['Token Price', 'AUM'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
-export function formatChartValue(type: ChartType, value: number) {
-  return `$${customNumber(value, type === 'Token Price' ? 3 : 2)}`;
+export function formatChartValue(value: number) {
+  return `$${customNumber(value)}`;
 }
 
 function formatDayLabel(timestampMs: number) {
@@ -59,10 +59,10 @@ export const parseChartData = ({
   // The headline is the current metric, never an older point restamped as
   // current — only a missing payload falls back to the newest plotted close.
   let headline: string | undefined;
-  if (currentValue !== undefined) headline = formatChartValue(type, currentValue);
+  if (currentValue !== undefined) headline = formatChartValue(currentValue);
   else {
     const lastPoint = data[data.length - 1];
-    if (lastPoint) headline = formatChartValue(type, lastPoint.data);
+    if (lastPoint) headline = formatChartValue(lastPoint.data);
   }
 
   let domain: [number, number];
