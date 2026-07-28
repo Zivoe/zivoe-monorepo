@@ -22,13 +22,15 @@ vi.mock('@zivoe/ui/icons', () => ({
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders AUM and the published Target APY with the revenue placeholder', () => {
-    render(<DepositStats nav={112000} />);
+  it('renders AUM, the published Target APY and the Token Price', () => {
+    render(<DepositStats nav={112000} sharePrice={1.0725} />);
 
     expect(screen.getByText('AUM')).toBeTruthy();
     expect(screen.getByText('$112.00k')).toBeTruthy();
     expect(screen.getByText('Target APY')).toBeTruthy();
     expect(screen.getByText('14%')).toBeTruthy();
-    expect(screen.getByText('Revenue')).toBeTruthy();
+    expect(screen.getByText('Token Price')).toBeTruthy();
+    // Three decimals, floored — not the 2dp the other money boxes use.
+    expect(screen.getByText('$1.072')).toBeTruthy();
   });
 });

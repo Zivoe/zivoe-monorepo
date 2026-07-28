@@ -8,7 +8,7 @@ import InfoSection from '@/components/info-section';
 
 import { TARGET_APY_PERCENT } from '@/offerings';
 
-export default function DepositStats({ nav }: { nav: number }) {
+export default function DepositStats({ nav, sharePrice }: { nav: number; sharePrice: number }) {
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
@@ -16,7 +16,9 @@ export default function DepositStats({ nav }: { nav: number }) {
 
         <Box title="Target APY" icon={<TrendingIcon />} value={`${TARGET_APY_PERCENT}%`} />
 
-        <Box title="Revenue" icon={<MoneyIcon />} value="-" />
+        {/* Three decimals, matching the chart headline — cents alone hide the
+            price moves this token actually makes. */}
+        <Box title="Token Price" icon={<MoneyIcon />} value={`$${customNumber(sharePrice, 3)}`} />
       </div>
     </InfoSection>
   );

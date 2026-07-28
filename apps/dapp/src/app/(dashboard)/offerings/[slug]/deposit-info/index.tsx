@@ -52,7 +52,7 @@ async function DepositStatsComponent() {
   // Indexer failure hides the stats rather than rendering wrong numbers.
   if (!metrics) return null;
 
-  return <DepositStats nav={Number(metrics.navD18) / 1e18} />;
+  return <DepositStats nav={Number(metrics.navD18) / 1e18} sharePrice={Number(metrics.sharePriceD18) / 1e18} />;
 }
 
 function DiamondSeparator() {
