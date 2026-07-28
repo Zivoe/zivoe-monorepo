@@ -8,7 +8,7 @@ import { customNumber } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { type Offering, offeringPath } from '@/offerings';
+import { type Offering, TARGET_APY_PERCENT, offeringPath } from '@/offerings';
 
 const NETWORK_ICONS: Record<Offering['networks'][number], ComponentType<IconProps>> = {
   Ethereum: EthereumIcon
@@ -16,12 +16,9 @@ const NETWORK_ICONS: Record<Offering['networks'][number], ComponentType<IconProp
 
 export default function OfferingCard({
   offering,
-  apy,
   aum
 }: {
   offering: Offering;
-  /** 30-day Trailing APY in percent; null until 30 days of history exist. */
-  apy: number | null;
   /** Share-class NAV in USD; null when the indexer read failed. */
   aum: number | null;
 }) {
@@ -47,7 +44,7 @@ export default function OfferingCard({
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Issuer" value={offering.issuer} />
-          <Term label="APY" value={apy !== null ? `${customNumber(apy)}%` : '—'} />
+          <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
 
           <Term

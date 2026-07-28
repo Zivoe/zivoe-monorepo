@@ -14,27 +14,21 @@ vi.mock('@zivoe/ui/icons', () => ({
   BankIcon: () => null,
   ChartIcon: () => null,
   MoneyIcon: () => null,
-  TrendingIcon: () => null
+  TrendingIcon: () => null,
+  // Pulled in by the Offerings registry, which carries the Target APY constant.
+  ZMcaLogo: () => null
 }));
 
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders AUM and the 30-day Trailing APY with the revenue placeholder', () => {
-    render(<DepositStats nav={112000} apy={5.25} />);
+  it('renders AUM and the published Target APY with the revenue placeholder', () => {
+    render(<DepositStats nav={112000} />);
 
     expect(screen.getByText('AUM')).toBeTruthy();
     expect(screen.getByText('$112.00k')).toBeTruthy();
-    expect(screen.getByText('30-day Trailing APY')).toBeTruthy();
-    expect(screen.getByText('5.25%')).toBeTruthy();
+    expect(screen.getByText('Target APY')).toBeTruthy();
+    expect(screen.getByText('14%')).toBeTruthy();
     expect(screen.getByText('Revenue')).toBeTruthy();
-  });
-
-  it('renders a dash while the pool is younger than 30 days', () => {
-    render(<DepositStats nav={112000} apy={null} />);
-
-    expect(screen.getByText('30-day Trailing APY')).toBeTruthy();
-    // APY and the always-empty Revenue box share the same placeholder character.
-    expect(screen.getAllByText('-')).toHaveLength(2);
   });
 });

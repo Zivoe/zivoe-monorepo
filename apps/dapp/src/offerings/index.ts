@@ -43,6 +43,13 @@ export type Offering = {
   acceptedAssets: Array<DepositToken>;
 };
 
+/**
+ * Published Target APY, in percent. A single constant rather than an Offering
+ * field while the trailing-yield read is disabled — it becomes per-Offering
+ * data once each share class publishes its own target.
+ */
+export const TARGET_APY_PERCENT = 14;
+
 export const OFFERINGS: Array<Offering> = [
   {
     slug: 'global-mca-offerings',

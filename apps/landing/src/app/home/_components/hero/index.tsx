@@ -5,7 +5,7 @@ import { Link, type LinkProps } from '@zivoe/ui/core/link';
 
 import { centrifuge } from '@/server/centrifuge';
 
-import { customNumber, formatBigIntToReadable } from '@/lib/utils';
+import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -17,6 +17,9 @@ import {
 import NavigationSection from '@/components/navigation';
 
 import { HeroClouds } from './clouds';
+
+/** Published Target APY, in percent, while the trailing-yield read is disabled. */
+const TARGET_APY_PERCENT = 14;
 
 export default function Hero() {
   return (
@@ -71,13 +74,9 @@ async function Statistics() {
 
   return (
     <div className="flex gap-6 lg:gap-16">
-      {metrics ? (
-        <>
-          <Statistic label="AUM" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} />
+      {metrics ? <Statistic label="AUM" value={'$' + formatBigIntToReadable(BigInt(metrics.navD18))} /> : null}
 
-          <Statistic label="30-day Trailing APY" value={metrics.apy !== null ? `${customNumber(metrics.apy)}%` : '-'} />
-        </>
-      ) : null}
+      <Statistic label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
 
       <Statistic label="Revenue" value="–" />
     </div>

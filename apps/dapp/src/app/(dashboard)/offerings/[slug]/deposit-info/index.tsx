@@ -49,12 +49,10 @@ async function DepositChartsComponent() {
 async function DepositStatsComponent() {
   const metrics = await getCurrentShareMetrics();
 
-  // Indexer failure hides the stats rather than rendering wrong numbers. A
-  // successful fetch with a null APY is the young-pool case: fewer than 30
-  // days of performance history exist.
+  // Indexer failure hides the stats rather than rendering wrong numbers.
   if (!metrics) return null;
 
-  return <DepositStats nav={Number(metrics.navD18) / 1e18} apy={metrics.apy} />;
+  return <DepositStats nav={Number(metrics.navD18) / 1e18} />;
 }
 
 function DiamondSeparator() {

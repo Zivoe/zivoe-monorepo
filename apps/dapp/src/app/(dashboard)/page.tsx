@@ -29,7 +29,7 @@ export default async function HomePage() {
               card's width instead of stretching across the row. */}
           <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-6">
             {OFFERINGS.map((offering) => (
-              <OfferingCard key={offering.slug} offering={offering} apy={metrics?.apy ?? null} aum={aum} />
+              <OfferingCard key={offering.slug} offering={offering} aum={aum} />
             ))}
           </div>
         </Page>
