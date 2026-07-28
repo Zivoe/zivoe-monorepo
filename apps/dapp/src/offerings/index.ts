@@ -11,7 +11,7 @@ import { CENTRIFUGE_CONFIG } from '@/centrifuge';
  * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
  *
  * Centrifuge's model is Pool > Share Class > Vault: a pool holds N share
- * classes (tranches, each with its own share token, price, NAV and yield
+ * classes (tranches, each with its own share token, price, AUM and yield
  * history), and a vault is one share class instantiated on one network for one
  * deposit asset. A route is therefore keyed by share class, not by vault — the
  * same class accepting a second stablecoin stays one Offering, which is also

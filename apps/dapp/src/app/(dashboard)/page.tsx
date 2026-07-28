@@ -9,7 +9,7 @@ import AumHeader from './_home/aum-header';
 import OfferingCard from './_home/offering-card';
 
 export default async function HomePage() {
-  // One share class exists, so its NAV is the whole book and its metrics are
+  // One share class exists, so its AUM is the whole book and its metrics are
   // every card's metrics. Both become per-Offering reads — AUM a sum — once
   // the Centrifuge module is parameterized by share class.
   const metrics = await getCurrentShareMetrics();

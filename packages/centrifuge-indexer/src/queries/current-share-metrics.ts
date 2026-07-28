@@ -56,7 +56,7 @@ export type CurrentShareMetrics = {
   sharePrice: bigint;
   /** Total share issuance in share-token base units. */
   totalIssuance: bigint;
-  /** Share-class NAV in USD, 18 decimals (sharePrice x totalIssuance). */
+  /** Share-class AUM in USD, 18 decimals (sharePrice x totalIssuance). */
   nav: bigint;
   shareTokenDecimals: number;
   /** When the manager last published the Share Price — the staleness signal. */
@@ -72,7 +72,7 @@ export type CurrentShareMetrics = {
 export type ShareStatsPayload = {
   /** Manager-published Share Price in USD, 18 decimals, as a decimal string. */
   sharePriceD18: string;
-  /** Share-class NAV in USD, 18 decimals, as a decimal string. */
+  /** Share-class AUM in USD, 18 decimals, as a decimal string. */
   navD18: string;
   /** 30-day Trailing APY in percent; null until 30 days of history exist or when the yield is anomalous. */
   apy: number | null;

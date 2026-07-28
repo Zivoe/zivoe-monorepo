@@ -42,7 +42,7 @@ export default function Portfolio() {
           </div>
 
           {/*
-          TODO: Add this back once the NAV dashboard is released.
+          TODO: Add this back once the AUM dashboard is released.
           <Link variant="primary-light" href="https://app.zivoe.com/transparency" target="_blank" hideExternalLinkIcon>
             View Portfolio
           </Link>

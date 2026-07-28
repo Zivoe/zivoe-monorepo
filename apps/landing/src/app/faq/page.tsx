@@ -87,7 +87,7 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s net asset value and are reflected in the zMCA Token Price.'
+      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s assets under management and are reflected in the zMCA Token Price.'
   },
   {
     question: 'What are the fees?',

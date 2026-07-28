@@ -19,7 +19,7 @@ export default function OfferingCard({
   aum
 }: {
   offering: Offering;
-  /** Share-class NAV in USD; null when the indexer read failed. */
+  /** Share-class AUM in USD; null when the indexer read failed. */
   aum: number | null;
 }) {
   // Both shadows are ones the rest of the app already uses, and the card rests
