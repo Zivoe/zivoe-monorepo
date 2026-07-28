@@ -15,7 +15,7 @@ import { getOffering } from '@/offerings';
 import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
-import { type DepositPageView, depositPageViewSchema } from './deposit/_utils';
+import { depositPageViewSchema } from './deposit/_utils';
 import OfferingHeader from './offering-header';
 
 export default async function OfferingPage({
@@ -59,7 +59,7 @@ export default async function OfferingPage({
         <HydrationBoundary state={dehydrate(queryClient)}>
           <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
             <DepositInfo />
-            <DepositWrapper initialView={validatedView.success ? validatedView.data : null} />
+            <Deposit initialView={validatedView.success ? validatedView.data : null} />
           </Page>
         </HydrationBoundary>
       </div>
@@ -67,10 +67,9 @@ export default async function OfferingPage({
   );
 }
 
-async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
-  // 30-day Trailing APY from the shared current-share-metrics path; null until
-  // 30 days of history exist (or on indexer failure — the card shows a dash).
-  const metrics = await getCurrentShareMetrics();
-
-  return <Deposit apy={metrics?.apy ?? null} initialView={initialView} />;
-}
+// TODO: re-add this APY read once the deposit flow projects returns again.
+// async function DepositWrapper({ initialView }: { initialView: DepositPageView }) {
+//   const metrics = await getCurrentShareMetrics();
+//
+//   return <Deposit apy={metrics?.apy ?? null} initialView={initialView} />;
+// }

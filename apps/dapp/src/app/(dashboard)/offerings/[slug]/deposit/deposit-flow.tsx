@@ -16,7 +16,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { createTransactionProperties } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
-import { formatBigIntToReadable, formatBigIntWithCommas } from '@/lib/utils';
+import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
@@ -46,7 +46,7 @@ const ZMCA = CENTRIFUGE_CONFIG.shareToken;
 
 type DepositForm = { deposit: string };
 
-export function DepositFlow({ apy }: { apy: number | null }) {
+export function DepositFlow() {
   const account = useAccount();
   const analytics = useAnalytics();
   const chainalysis = useChainalysis();
@@ -282,7 +282,9 @@ export function DepositFlow({ apy }: { apy: number | null }) {
         )}
       </ConnectedAccount>
 
-      {depositRaw ? <EstimatedAnnualizedReturn assets={depositRaw} apy={apy} /> : null}
+      {/* TODO: restore the illustrative annualized return once we publish an
+          APY to project it from. */}
+      {/* {depositRaw ? <EstimatedAnnualizedReturn assets={depositRaw} apy={apy} /> : null} */}
     </>
   );
 }
@@ -396,27 +398,30 @@ function UsdcTokenSelect({ isDisabled }: { isDisabled: boolean }) {
   );
 }
 
-function EstimatedAnnualizedReturn({ assets, apy }: { assets: bigint; apy: number | null }) {
-  let valueFormatted: string | null = null;
-
-  if (apy !== null && assets > 0n) {
-    // apy is a percent (e.g. 7.31); basis points keep the bigint math exact.
-    const apyBps = BigInt(Math.round(apy * 100));
-    const value = (assets * apyBps) / 10_000n;
-
-    valueFormatted = formatBigIntWithCommas({
-      value,
-      tokenDecimals: USDC.decimals,
-      displayDecimals: 2,
-      showUnderZero: true
-    });
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
-      <p className="text-regular text-secondary">Illustrative annualized return</p>
-      <p className="text-h6 text-primary">{valueFormatted === null ? '-' : `$${valueFormatted}`}</p>
-      <p className="text-extraSmall text-tertiary">Based on trailing 30-day performance; actual returns may differ.</p>
-    </div>
-  );
-}
+// TODO: restore alongside the card above once we publish an APY to project
+// from. The copy below still cites trailing 30-day performance and will need
+// rewording for whatever rate replaces it.
+// function EstimatedAnnualizedReturn({ assets, apy }: { assets: bigint; apy: number | null }) {
+//   let valueFormatted: string | null = null;
+//
+//   if (apy !== null && assets > 0n) {
+//     // apy is a percent (e.g. 7.31); basis points keep the bigint math exact.
+//     const apyBps = BigInt(Math.round(apy * 100));
+//     const value = (assets * apyBps) / 10_000n;
+//
+//     valueFormatted = formatBigIntWithCommas({
+//       value,
+//       tokenDecimals: USDC.decimals,
+//       displayDecimals: 2,
+//       showUnderZero: true
+//     });
+//   }
+//
+//   return (
+//     <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
+//       <p className="text-regular text-secondary">Illustrative annualized return</p>
+//       <p className="text-h6 text-primary">{valueFormatted === null ? '-' : `$${valueFormatted}`}</p>
+//       <p className="text-extraSmall text-tertiary">Based on trailing 30-day performance; actual returns may differ.</p>
+//     </div>
+//   );
+// }

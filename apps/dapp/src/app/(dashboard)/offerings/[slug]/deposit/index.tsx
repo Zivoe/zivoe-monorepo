@@ -22,13 +22,13 @@ import { type DepositPageTab, type DepositPageView, depositPageTabSchema, deposi
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
-export default function Deposit({ apy, initialView }: { apy: number | null; initialView: DepositPageView }) {
+export default function Deposit({ initialView }: { initialView: DepositPageView }) {
   const { navigateToTab } = useTabNavigation();
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
 
   return (
     <>
-      <EarnBox apy={apy} initialView={initialView} className="hidden lg:block lg:min-w-120 xl:min-w-157.5" />
+      <EarnBox initialView={initialView} className="hidden lg:block lg:min-w-120 xl:min-w-157.5" />
 
       <div className="fixed bottom-0 left-0 w-full border border-t border-default bg-surface-base p-4 lg:hidden">
         <ConnectedAccount>
@@ -50,13 +50,7 @@ export default function Deposit({ apy, initialView }: { apy: number | null; init
             <DialogTitle>Earn</DialogTitle>
           </DialogHeader>
 
-          <EarnBox
-            apy={apy}
-            initialView={initialView}
-            className="block p-0 lg:hidden"
-            withTitle={false}
-            boxClassName="p-4"
-          />
+          <EarnBox initialView={initialView} className="block p-0 lg:hidden" withTitle={false} boxClassName="p-4" />
         </DialogContent>
       </Dialog>
     </>
@@ -64,13 +58,11 @@ export default function Deposit({ apy, initialView }: { apy: number | null; init
 }
 
 function EarnBox({
-  apy,
   initialView,
   className,
   withTitle = true,
   boxClassName
 }: {
-  apy: number | null;
   initialView: DepositPageView;
   className?: string;
   withTitle?: boolean;
@@ -116,7 +108,7 @@ function EarnBox({
             </TabList>
 
             <TabPanel id="deposit">
-              <DepositFlow apy={apy} />
+              <DepositFlow />
             </TabPanel>
 
             <TabPanel id="redeem">

@@ -214,7 +214,7 @@ describe('DepositFlow', () => {
     // Approve must not surface.
     mocks.isDebouncing = true;
     mocks.staleDebouncedValue = '1';
-    render(<DepositFlow apy={null} />);
+    render(<DepositFlow />);
 
     enterAmount('2');
 
@@ -225,7 +225,7 @@ describe('DepositFlow', () => {
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {
     mocks.previewIsError = true;
-    render(<DepositFlow apy={null} />);
+    render(<DepositFlow />);
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('');
@@ -240,7 +240,7 @@ describe('DepositFlow', () => {
   it('drops back into the loading presentation while a retry is in flight', () => {
     mocks.previewIsError = true;
     mocks.previewIsFetching = true;
-    render(<DepositFlow apy={null} />);
+    render(<DepositFlow />);
     enterAmount('1');
 
     expect(screen.queryByText(/Unable to estimate zMCA/)).toBeNull();
@@ -251,7 +251,7 @@ describe('DepositFlow', () => {
   it('shows the price-unavailable copy and still offers a retry', () => {
     mocks.previewIsError = true;
     mocks.previewError = 'price-unavailable';
-    render(<DepositFlow apy={null} />);
+    render(<DepositFlow />);
     enterAmount('1');
 
     expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
@@ -260,7 +260,7 @@ describe('DepositFlow', () => {
   });
 
   it('approves the exact USDC amount for the VaultRouter before exposing deposit', async () => {
-    render(<DepositFlow apy={null} />);
+    render(<DepositFlow />);
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('1.23');
@@ -281,11 +281,8 @@ describe('DepositFlow', () => {
 
   it('deposits with the current quote, keeps failures retryable, and clears only on success', async () => {
     mocks.allowance = 2_000000n;
-    render(<DepositFlow apy={5} />);
+    render(<DepositFlow />);
     enterAmount('1');
-
-    // 1 USDC at 5% trailing APY → $0.05 estimated annualized return.
-    expect(screen.getByText('$0.05')).toBeTruthy();
 
     await press('Deposit');
 
@@ -309,14 +306,14 @@ describe('DepositFlow', () => {
   });
 
   it('caps Max at vault capacity and disables zero-capacity deposits', () => {
-    const { rerender } = render(<DepositFlow apy={null} />);
+    const { rerender } = render(<DepositFlow />);
 
     // Wallet holds 10 USDC but the vault only accepts 5 more.
     fireEvent.click(getButton('Max'));
     expect(getInput('Deposit').value).toBe('5');
 
     mocks.capacity = 0n;
-    rerender(<DepositFlow apy={null} />);
+    rerender(<DepositFlow />);
     expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
     expect(getButton('Approve').disabled).toBe(true);
   });
