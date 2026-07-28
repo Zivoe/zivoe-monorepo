@@ -6,11 +6,10 @@ import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 
-export const CHART_TYPES = ['Share Price', 'AUM', 'APY'] as const;
+export const CHART_TYPES = ['Share Price', 'AUM'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
 export function formatChartValue(type: ChartType, value: number) {
-  if (type === 'APY') return `${customNumber(value)}%`;
   return `$${customNumber(value, type === 'Share Price' ? 3 : 2)}`;
 }
 
@@ -25,9 +24,7 @@ function formatDayLabel(timestampMs: number) {
 /**
  * Chart series and headline for one metric: the daily close series plus a live
  * "today" point from the current payload, which hands off seamlessly at UTC
- * midnight (the overlay's last value becomes the arriving close row). APY gets
- * no overlay — the indexer only computes trailing yield per snapshot row, so a
- * today point would just restamp the newest close on a new date.
+ * midnight (the overlay's last value becomes the arriving close row).
  */
 export const parseChartData = ({
   snapshots,
@@ -47,29 +44,22 @@ export const parseChartData = ({
     // A same-day price event can leave a bucket for today; the live overlay
     // below supersedes it.
     .filter((item) => item.timestampMs < todayStartMs)
-    .map((item) => {
-      let data: number | null;
-      if (type === 'Share Price') data = item.sharePrice;
-      else if (type === 'AUM') data = item.nav;
-      else data = item.apy;
-
-      return { day: formatDayLabel(item.timestampMs), data };
-    })
+    .map((item) => ({
+      day: formatDayLabel(item.timestampMs),
+      data: type === 'Share Price' ? item.sharePrice : item.nav
+    }))
     .filter((item): item is { day: string; data: number } => item.data !== null);
 
-  const currentValue =
-    current && type !== 'APY'
-      ? Number(type === 'Share Price' ? current.sharePriceD18 : current.navD18) / 1e18
-      : undefined;
+  const currentValue = current
+    ? Number(type === 'Share Price' ? current.sharePriceD18 : current.navD18) / 1e18
+    : undefined;
 
   if (currentValue !== undefined) data.push({ day: formatDayLabel(todayStartMs), data: currentValue });
 
   // The headline is the current metric, never an older point restamped as
-  // current: a current-but-null APY renders the explicit unavailable state,
-  // and only a missing payload falls back to the newest plotted close.
+  // current — only a missing payload falls back to the newest plotted close.
   let headline: string | undefined;
-  if (type === 'APY' && current) headline = current.apy !== null ? formatChartValue(type, current.apy) : '-';
-  else if (currentValue !== undefined) headline = formatChartValue(type, currentValue);
+  if (currentValue !== undefined) headline = formatChartValue(type, currentValue);
   else {
     const lastPoint = data[data.length - 1];
     if (lastPoint) headline = formatChartValue(type, lastPoint.data);

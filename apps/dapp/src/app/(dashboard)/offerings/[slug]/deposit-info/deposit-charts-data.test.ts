@@ -14,7 +14,6 @@ const today = day1 + 2 * DAY_MS;
 
 const SHARE_PRICE = 0;
 const AUM = 1;
-const APY = 2;
 
 function close(timestampMs: number, { sharePrice = 1.07, nav = 100, apy = null as number | null } = {}) {
   return { timestampMs, sharePrice, nav, apy };
@@ -53,29 +52,6 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
-  });
-
-  it('gives APY no overlay and renders the unavailable state while the current yield is null', () => {
-    const chart = parseChartData({
-      snapshots: [close(day1, { apy: 5.2 }), close(day2, { apy: null })],
-      current: payload({ apy: null }),
-      typeIndex: APY,
-      todayStartMs: today
-    });
-
-    expect(chart?.data.map((point) => point.data)).toEqual([5.2]);
-    expect(chart?.headline).toBe('-');
-  });
-
-  it('headlines the current APY instead of an older non-null close', () => {
-    const chart = parseChartData({
-      snapshots: [close(day1, { apy: 5.2 })],
-      current: payload({ apy: 5.4 }),
-      typeIndex: APY,
-      todayStartMs: today
-    });
-
-    expect(chart?.headline).toBe(formatChartValue('APY', 5.4));
   });
 
   it('falls back to the newest plotted close when the current payload is unavailable', () => {
