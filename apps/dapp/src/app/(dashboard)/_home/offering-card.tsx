@@ -47,12 +47,22 @@ export default function OfferingCard({
           <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
 
+          {/* The whole card is one anchor, so these name themselves with the
+              native title tooltip rather than a focusable tooltip trigger,
+              which would nest an interactive element inside the link. role=img
+              plus the label gives screen readers the same name. */}
           <Term
             label="Accepted stablecoins"
             value={
               <div className="flex items-center gap-1.5">
                 {offering.acceptedAssets.map((asset) => (
-                  <span key={asset} className="[&_svg]:size-5">
+                  <span
+                    key={asset}
+                    role="img"
+                    title={TOKEN_INFO[asset].label}
+                    aria-label={TOKEN_INFO[asset].label}
+                    className="[&_svg]:size-5"
+                  >
                     {TOKEN_INFO[asset].icon}
                   </span>
                 ))}
@@ -66,7 +76,11 @@ export default function OfferingCard({
               <div className="flex items-center gap-1.5">
                 {offering.networks.map((network) => {
                   const NetworkIcon = NETWORK_ICONS[network];
-                  return <NetworkIcon key={network} className="size-5" aria-label={network} />;
+                  return (
+                    <span key={network} role="img" title={network} aria-label={network} className="[&_svg]:size-5">
+                      <NetworkIcon />
+                    </span>
+                  );
                 })}
               </div>
             }
