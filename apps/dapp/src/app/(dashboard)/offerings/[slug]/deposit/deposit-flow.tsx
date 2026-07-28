@@ -238,8 +238,6 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol="zMCA" />}
       />
 
-      <p className="text-extraSmall text-tertiary">Estimated using the current Share Price. Final shares may differ.</p>
-
       <ConnectedAccount>
         {isPrereqsLoading ? (
           <Button fullWidth isPending={true} pendingContent="Loading..." />
