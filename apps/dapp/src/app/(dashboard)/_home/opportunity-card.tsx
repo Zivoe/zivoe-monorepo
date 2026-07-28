@@ -31,18 +31,18 @@ export default function OpportunityCard({
   return (
     <NextLink
       href={opportunityPath(opportunity)}
-      className="group border-default bg-surface-base focus-visible:ring-default flex flex-col overflow-hidden rounded-2xl border shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] transition-shadow duration-300 ease-out hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-default bg-surface-base shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] transition-shadow duration-300 ease-out hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2 focus-visible:outline-hidden"
     >
       <div className="h-38" style={{ background: opportunity.cardGradient }} />
 
       <div className="flex flex-1 flex-col gap-4 p-6">
         <div className="flex flex-col gap-1.5">
-          <p className="text-small text-tertiary tracking-wider uppercase">{opportunity.category}</p>
+          <p className="text-small tracking-wider text-tertiary uppercase">{opportunity.category}</p>
           <p className="font-heading! text-h6 text-primary">{opportunity.name}</p>
           <p className="text-regular text-secondary">{opportunity.description}</p>
         </div>
 
-        <div className="bg-surface-elevated mt-auto rounded-xl px-4">
+        <div className="mt-auto rounded-xl bg-surface-elevated px-4">
           <Term label="Issuer" value={opportunity.issuer} />
           <Term label="APY" value={apy !== null ? `${customNumber(apy)}%` : '—'} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
@@ -73,7 +73,7 @@ export default function OpportunityCard({
           />
         </div>
 
-        <div className="text-regular text-brand-subtle flex items-center justify-end gap-1.5 font-medium">
+        <div className="flex items-center justify-end gap-1.5 text-regular font-medium text-brand-subtle">
           Invest now
           <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
         </div>
@@ -84,8 +84,8 @@ export default function OpportunityCard({
 
 function Term({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border-subtle flex min-h-11 items-center justify-between gap-4 border-b py-3 last:border-b-0">
-      <p className="text-small text-tertiary tracking-wide uppercase">{label}</p>
+    <div className="flex min-h-11 items-center justify-between gap-4 border-b border-subtle py-3 last:border-b-0">
+      <p className="text-small tracking-wide text-tertiary uppercase">{label}</p>
       {typeof value === 'string' ? <p className="text-regular text-primary">{value}</p> : value}
     </div>
   );

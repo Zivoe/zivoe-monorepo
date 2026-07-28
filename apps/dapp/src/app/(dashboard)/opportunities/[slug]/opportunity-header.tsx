@@ -10,9 +10,9 @@ export default function OpportunityHeader({ opportunity }: { opportunity: Opport
   return (
     <div className="w-full pt-7">
       <nav aria-label="Breadcrumb">
-        <ol className="text-small flex items-center gap-2">
+        <ol className="flex items-center gap-2 text-small">
           <li>
-            <NextLink href="/" className="text-secondary hover:text-primary transition-colors">
+            <NextLink href="/" className="text-secondary transition-colors hover:text-primary">
               Opportunities
             </NextLink>
           </li>
@@ -21,7 +21,7 @@ export default function OpportunityHeader({ opportunity }: { opportunity: Opport
             /
           </li>
 
-          <li className="text-primary font-medium" aria-current="page">
+          <li className="font-medium text-primary" aria-current="page">
             {opportunity.name}
           </li>
         </ol>
@@ -30,7 +30,7 @@ export default function OpportunityHeader({ opportunity }: { opportunity: Opport
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 pt-5.5 pb-1">
         <opportunity.Logo className="size-11" />
         <h1 className="font-heading! text-h6 text-primary lg:text-h5">{opportunity.name}</h1>
-        <span className="text-smallSubheading text-tertiary font-medium">{opportunity.shareClass.symbol}</span>
+        <span className="text-smallSubheading font-medium text-tertiary">{opportunity.shareClass.symbol}</span>
       </div>
     </div>
   );

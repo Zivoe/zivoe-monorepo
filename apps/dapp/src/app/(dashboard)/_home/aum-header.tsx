@@ -5,7 +5,7 @@ import { HeroAsset } from '@/components/hero/asset';
 
 export default function AumHeader({ aum }: { aum: number | null }) {
   return (
-    <div className="bg-element-primary relative">
+    <div className="relative bg-element-primary">
       <Container>
         <div className="flex flex-col gap-2 py-10 text-base lg:py-14">
           <p className="text-regular lg:text-leading">Assets Under Management</p>
