@@ -35,14 +35,17 @@ export default function OfferingCard({
     >
       <div className="h-38" style={{ background: offering.cardGradient }} />
 
-      <div className="flex flex-1 flex-col gap-4 p-6">
-        <div className="flex flex-col gap-1.5">
-          <p className="text-small tracking-wider text-tertiary uppercase">{offering.category}</p>
-          <p className="font-heading! text-h6 text-primary">{offering.name}</p>
+      <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-small tracking-wider text-tertiary uppercase">{offering.category}</p>
+            <p className="font-heading! text-h6 text-primary">{offering.name}</p>
+          </div>
+
           <p className="text-regular text-secondary">{offering.description}</p>
         </div>
 
-        <div className="mt-auto rounded-xl bg-surface-elevated px-4">
+        <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Issuer" value={offering.issuer} />
           <Term label="APY" value={apy !== null ? `${customNumber(apy)}%` : '—'} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
