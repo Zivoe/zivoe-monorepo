@@ -1,3 +1,8 @@
+import { type ComponentType } from 'react';
+
+import { ZMcaLogo } from '@zivoe/ui/icons';
+import { type IconProps } from '@zivoe/ui/icons/types';
+
 import { type ShareToken } from '@/types/constants';
 
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
@@ -15,6 +20,8 @@ import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 export type Opportunity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
+  name: string;
+  Logo: ComponentType<IconProps>;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     scId: `0x${string}`;
@@ -25,6 +32,8 @@ export type Opportunity = {
 export const OPPORTUNITIES: Array<Opportunity> = [
   {
     slug: 'global-mca-opportunities',
+    name: 'Global MCA Opportunities Fund',
+    Logo: ZMcaLogo,
     shareClass: { scId: CENTRIFUGE_CONFIG.scId, symbol: 'zMCA' }
   }
 ];

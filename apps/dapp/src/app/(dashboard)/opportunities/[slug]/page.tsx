@@ -7,7 +7,7 @@ import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 import { getQueryClient } from '@/lib/get-query-client';
 import { queryKeys } from '@/lib/query-keys';
 
-import Hero from '@/components/hero';
+import Container from '@/components/container';
 import Page from '@/components/page';
 
 import { getOpportunity } from '@/opportunities';
@@ -16,6 +16,7 @@ import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { type DepositPageView, depositPageViewSchema } from './deposit/_utils';
+import OpportunityHeader from './opportunity-header';
 
 export default async function OpportunityPage({
   params,
@@ -51,10 +52,12 @@ export default async function OpportunityPage({
       <OnboardingGuard />
 
       <div className="bg-surface-base">
-        <Hero title={opportunity.shareClass.symbol} description="Gain exposure to private credit" />
+        <Container>
+          <OpportunityHeader opportunity={opportunity} />
+        </Container>
 
         <HydrationBoundary state={dehydrate(queryClient)}>
-          <Page className="flex gap-10 lg:flex-row">
+          <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
             <DepositInfo />
             <DepositWrapper initialView={validatedView.success ? validatedView.data : null} />
           </Page>
