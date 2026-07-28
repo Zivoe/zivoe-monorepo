@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation';
+
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
@@ -8,11 +10,27 @@ import { queryKeys } from '@/lib/query-keys';
 import Hero from '@/components/hero';
 import Page from '@/components/page';
 
+import { getOpportunity } from '@/opportunities';
+
+import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
-import { type DepositPageView } from './deposit/_utils';
+import { type DepositPageView, depositPageViewSchema } from './deposit/_utils';
 
-export default async function Home({ initialView }: { initialView: DepositPageView }) {
+export default async function OpportunityPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const [{ slug }, { view }] = await Promise.all([params, searchParams]);
+
+  const opportunity = getOpportunity(slug);
+  if (!opportunity) notFound();
+
+  const validatedView = depositPageViewSchema.safeParse(view);
+
   // Seed the browser cache with the server's cached payload, so client
   // consumers mount on hydrated data instead of re-fetching the document the
   // RSCs just rendered. React cache dedupes this with the RSC reads below.
@@ -29,16 +47,20 @@ export default async function Home({ initialView }: { initialView: DepositPageVi
   });
 
   return (
-    <div className="bg-surface-base">
-      <Hero title="zMCA" description="Gain exposure to private credit" />
+    <>
+      <OnboardingGuard />
 
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <Page className="flex gap-10 lg:flex-row">
-          <DepositInfo />
-          <DepositWrapper initialView={initialView} />
-        </Page>
-      </HydrationBoundary>
-    </div>
+      <div className="bg-surface-base">
+        <Hero title={opportunity.shareClass.symbol} description="Gain exposure to private credit" />
+
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <Page className="flex gap-10 lg:flex-row">
+            <DepositInfo />
+            <DepositWrapper initialView={validatedView.success ? validatedView.data : null} />
+          </Page>
+        </HydrationBoundary>
+      </div>
+    </>
   );
 }
 

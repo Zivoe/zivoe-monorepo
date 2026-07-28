@@ -1,15 +1,13 @@
-import { OnboardingGuard } from './_components/onboarding-guard';
-import Home from './home';
-import { depositPageViewSchema } from './home/deposit/_utils';
+import { redirect } from 'next/navigation';
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const params = await searchParams;
-  const validatedView = depositPageViewSchema.safeParse(params.view);
+import { OPPORTUNITIES, opportunityPath } from '@/opportunities';
 
-  return (
-    <>
-      <OnboardingGuard />
-      <Home initialView={validatedView.success ? validatedView.data : null} />
-    </>
-  );
+/**
+ * `/` stays the app's generic entry point — deposit-reminder emails,
+ * post-onboarding and the landing site all point at it — and forwards to the
+ * only Opportunity. The registry is a literal with exactly one entry, so the
+ * index is safe.
+ */
+export default function HomePage() {
+  redirect(opportunityPath(OPPORTUNITIES[0]!));
 }
