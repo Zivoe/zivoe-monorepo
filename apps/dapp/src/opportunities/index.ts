@@ -3,7 +3,7 @@ import { type ComponentType } from 'react';
 import { ZMcaLogo } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
-import { type ShareToken } from '@/types/constants';
+import { type DepositToken, type ShareToken } from '@/types/constants';
 
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 
@@ -22,11 +22,25 @@ export type Opportunity = {
   slug: string;
   name: string;
   Logo: ComponentType<IconProps>;
+  /** Asset class, shown as the listing card's eyebrow. */
+  category: string;
+  /** The listing card's blurb — the page itself carries the long-form About. */
+  description: string;
+  /**
+   * CSS `background` for the listing card's banner. A raw value rather than a
+   * token: each Opportunity gets its own multi-layer gradient so cards stay
+   * distinguishable at a glance, and that is data, not a design-system choice.
+   */
+  cardGradient: string;
+  issuer: string;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     scId: `0x${string}`;
     symbol: ShareToken;
   };
+  /** Networks the share class is deployed to, for the listing card. */
+  networks: Array<'Ethereum'>;
+  acceptedAssets: Array<DepositToken>;
 };
 
 export const OPPORTUNITIES: Array<Opportunity> = [
@@ -34,7 +48,18 @@ export const OPPORTUNITIES: Array<Opportunity> = [
     slug: 'global-mca-opportunities',
     name: 'Global MCA Opportunities Fund',
     Logo: ZMcaLogo,
-    shareClass: { scId: CENTRIFUGE_CONFIG.scId, symbol: 'zMCA' }
+    category: 'Merchant Cash Advance',
+    description:
+      'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
+    cardGradient: [
+      'radial-gradient(120% 120% at 18% 22%, rgba(255, 216, 174, 0.95), transparent 55%)',
+      'radial-gradient(120% 130% at 86% 82%, rgba(224, 99, 143, 0.92), transparent 55%)',
+      'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
+    ].join(', '),
+    issuer: 'Zivoe',
+    shareClass: { scId: CENTRIFUGE_CONFIG.scId, symbol: 'zMCA' },
+    networks: ['Ethereum'],
+    acceptedAssets: ['USDC']
   }
 ];
 
