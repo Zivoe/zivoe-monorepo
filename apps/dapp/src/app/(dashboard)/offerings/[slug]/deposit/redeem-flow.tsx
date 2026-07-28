@@ -379,7 +379,7 @@ export default function RedeemFlow() {
         />
 
         <p className="text-extraSmall text-tertiary">
-          Redemptions are processed periodically. Your final USDC amount is determined using the Share Price when your
+          Redemptions are processed periodically. Your final USDC amount is determined using the Token Price when your
           request is processed.
         </p>
       </div>

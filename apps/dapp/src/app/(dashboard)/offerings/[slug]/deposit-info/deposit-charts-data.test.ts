@@ -12,7 +12,7 @@ const day1 = 1782864000000;
 const day2 = day1 + DAY_MS;
 const today = day1 + 2 * DAY_MS;
 
-const SHARE_PRICE = 0;
+const TOKEN_PRICE = 0;
 const AUM = 1;
 
 function close(timestampMs: number, { sharePrice = 1.07, nav = 100, apy = null as number | null } = {}) {
@@ -58,11 +58,11 @@ describe('parseChartData', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { sharePrice: 1.05 }), close(day2, { sharePrice: 1.07 })],
       current: null,
-      typeIndex: SHARE_PRICE,
+      typeIndex: TOKEN_PRICE,
       todayStartMs: today
     });
 
     expect(chart?.data).toHaveLength(2);
-    expect(chart?.headline).toBe(formatChartValue('Share Price', 1.07));
+    expect(chart?.headline).toBe(formatChartValue('Token Price', 1.07));
   });
 });

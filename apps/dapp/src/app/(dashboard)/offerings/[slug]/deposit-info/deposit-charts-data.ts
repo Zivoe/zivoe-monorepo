@@ -6,11 +6,11 @@ import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 
-export const CHART_TYPES = ['Share Price', 'AUM'] as const;
+export const CHART_TYPES = ['Token Price', 'AUM'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
 export function formatChartValue(type: ChartType, value: number) {
-  return `$${customNumber(value, type === 'Share Price' ? 3 : 2)}`;
+  return `$${customNumber(value, type === 'Token Price' ? 3 : 2)}`;
 }
 
 function formatDayLabel(timestampMs: number) {
@@ -46,12 +46,12 @@ export const parseChartData = ({
     .filter((item) => item.timestampMs < todayStartMs)
     .map((item) => ({
       day: formatDayLabel(item.timestampMs),
-      data: type === 'Share Price' ? item.sharePrice : item.nav
+      data: type === 'Token Price' ? item.sharePrice : item.nav
     }))
     .filter((item): item is { day: string; data: number } => item.data !== null);
 
   const currentValue = current
-    ? Number(type === 'Share Price' ? current.sharePriceD18 : current.navD18) / 1e18
+    ? Number(type === 'Token Price' ? current.sharePriceD18 : current.navD18) / 1e18
     : undefined;
 
   if (currentValue !== undefined) data.push({ day: formatDayLabel(todayStartMs), data: currentValue });
@@ -70,7 +70,7 @@ export const parseChartData = ({
 
   const values = data.map((d) => d.data);
 
-  if (type === 'Share Price' && values.length > 0) {
+  if (type === 'Token Price' && values.length > 0) {
     const maxValue = Math.max(...values);
 
     // Round up to the next cent; the 4-decimal pre-round keeps float noise

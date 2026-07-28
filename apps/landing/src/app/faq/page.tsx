@@ -87,12 +87,12 @@ const FAQs: Array<{
   {
     question: 'How do I earn yield?',
     answer:
-      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s net asset value and are reflected in the zMCA Share Price.'
+      'Depositors receive zMCA, the Centrifuge pool’s share token, by depositing USDC. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Interest and principal payments from those assets increase the pool’s net asset value and are reflected in the zMCA Token Price.'
   },
   {
     question: 'What are the fees?',
     answer:
-      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield accrues to zMCA holders through the pool’s Share Price.'
+      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield accrues to zMCA holders through the pool’s Token Price.'
   },
   {
     question: 'Is there a minimum deposit amount?',
