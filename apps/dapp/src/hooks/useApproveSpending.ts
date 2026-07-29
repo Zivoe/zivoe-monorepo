@@ -3,6 +3,7 @@ import { type Address } from 'viem/accounts';
 
 import { type Token } from '@/types/constants';
 
+import { NETWORK_CHAIN } from '@/lib/network';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
@@ -41,6 +42,7 @@ export const useApproveSpending = () => {
       flow: 'approval',
       input: ({ name, amount, spender }, { address }) => ({
         walletAddress: address,
+        chainId: NETWORK_CHAIN.id,
         tokenIn: name as Token,
         amountInRaw: amount,
         spender
