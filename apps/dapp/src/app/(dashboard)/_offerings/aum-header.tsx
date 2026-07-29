@@ -1,20 +1,15 @@
-import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { customNumber } from '@/lib/utils';
 
 import Container from '@/components/container';
 import { HeroAsset } from '@/components/hero/asset';
 
-import StreamedAum from './aum';
-
-export default function AumHeader() {
+export default function AumHeader({ aum }: { aum: number | null }) {
   return (
     <div className="relative bg-element-primary">
       <Container>
         <div className="flex flex-col gap-2 py-10 text-base lg:py-14">
           <p className="text-regular lg:text-leading">Assets Under Management</p>
-          {/* A div, not a p: the streaming fallback is a block element. */}
-          <div className="font-heading! text-h3 lg:text-h1">
-            <StreamedAum fallback={<Skeleton className="h-[1.2em] w-44 rounded-md" />} />
-          </div>
+          <p className="font-heading! text-h3 lg:text-h1">{aum !== null ? `$${customNumber(aum)}` : '—'}</p>
         </div>
       </Container>
 
