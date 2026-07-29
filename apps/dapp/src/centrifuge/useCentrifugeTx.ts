@@ -31,6 +31,15 @@ import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSi
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
+/**
+ * Bounds only the wait for a wallet signature. A request that never settles
+ * (e.g. a dead WalletConnect session) would otherwise hold the module-level
+ * signer lock until reload, bricking every other flow with "Another
+ * transaction is already in progress". Once a hash exists the chain settles
+ * the outcome, so confirmation itself is never timed out.
+ */
+const SIGNING_TIMEOUT_MS = 5 * 60_000;
+
 type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient: PublicClient };
 
 export type CentrifugeTxConfig<TVariables> = {
@@ -112,6 +121,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       let txHash: string | undefined;
       let pendingToastId: string | number | undefined;
       let releaseSigner: (() => void) | undefined;
+      let subscription: { unsubscribe(): void } | undefined;
+      let signingTimeout: ReturnType<typeof setTimeout> | undefined;
 
       try {
         const vault = await getVault();
@@ -135,15 +146,44 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         const receipt = await new Promise<TransactionReceipt>((resolve, reject) => {
           let confirmed: TransactionReceipt | undefined;
 
-          transaction.subscribe({
+          // Armed per signing step; a late timer is a no-op once a hash
+          // arrived, and a settled promise ignores the reject anyway. The
+          // timeout means "gave up waiting", not "did not happen": a wallet
+          // request cannot be cancelled, so a late approval may still
+          // broadcast — refetch stays on so balances self-correct, and the
+          // copy warns against blindly retrying.
+          const armSigningTimeout = () => {
+            clearTimeout(signingTimeout);
+            signingTimeout = setTimeout(() => {
+              if (!txHash)
+                reject(
+                  new AppError({
+                    message:
+                      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
+                    type: 'warning'
+                  })
+                );
+            }, SIGNING_TIMEOUT_MS);
+          };
+          armSigningTimeout();
+
+          subscription = transaction.subscribe({
             next: (status) => {
               // A multi-transaction action (e.g. the SDK's approve + invest)
               // reuses this observer: drop the previous step's hash as soon as
               // the next step starts signing, so the chain fallback below can
               // never resolve an earlier step's receipt as this action's outcome.
-              if (status.type === 'SigningTransaction') txHash = undefined;
+              if (status.type === 'SigningTransaction') {
+                txHash = undefined;
+                armSigningTimeout();
+              }
+
+              // Message signatures (the SDK's permit path, disabled today) can
+              // hang the same way a transaction signature can.
+              if (status.type === 'SigningMessage') armSigningTimeout();
 
               if (status.type === 'TransactionPending' && status.hash) {
+                clearTimeout(signingTimeout);
                 txHash = status.hash;
                 setIsTxPending(true);
                 if (pendingToastId !== undefined) sonnerToast.dismiss(pendingToastId);
@@ -217,6 +257,11 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
         throw normalized;
       } finally {
+        // Nothing outlives the mutation: not the timer, not the observer
+        // (unsubscribed before the lock frees, so no callback can race a
+        // successor transaction), not the signer lock.
+        clearTimeout(signingTimeout);
+        subscription?.unsubscribe();
         releaseSigner?.();
         setIsTxPending(false);
         if (pendingToastId !== undefined) sonnerToast.dismiss(pendingToastId);

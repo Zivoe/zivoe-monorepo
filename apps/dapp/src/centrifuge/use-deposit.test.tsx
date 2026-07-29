@@ -442,6 +442,35 @@ describe('useDeposit', () => {
     expect(getWalletClient).toHaveBeenCalledTimes(2);
   });
 
+  it('releases the signer lock when the wallet never answers the signing request', async () => {
+    vi.useFakeTimers();
+    try {
+      // A dead WalletConnect session: the send request neither resolves nor rejects.
+      walletRequest.mockReturnValue(new Promise(() => undefined));
+
+      const { wrapper, invalidateSpy } = createWrapper();
+      const { result } = renderHook(() => useDeposit(), { wrapper });
+
+      act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5 * 60_000);
+      });
+
+      expect(result.current.isError).toBe(true);
+      expect(releaseTransactionSigner).toHaveBeenCalledOnce();
+      expect(uiToast).toHaveBeenCalledWith({
+        type: 'warning',
+        title:
+          'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.'
+      });
+      // "Gave up waiting" is not "did not happen": a late approval can still
+      // broadcast, so the invalidations must run and let balances self-correct.
+      expect(invalidateSpy).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("cannot release another transaction's signer when the lock is already held", async () => {
     setTransactionSigner.mockImplementationOnce(() => {
       throw new AppError({ message: 'Another transaction is already in progress' });
