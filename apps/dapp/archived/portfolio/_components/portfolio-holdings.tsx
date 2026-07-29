@@ -1,8 +1,5 @@
 'use client';
 
-import { useAtom } from 'jotai';
-
-import { CONTRACTS } from '@zivoe/contracts';
 import { Button, type ButtonProps } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
@@ -11,18 +8,15 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { DEPOSIT_TOKENS, DEPOSIT_TOKEN_DECIMALS, type Token } from '@/types/constants';
 
-import { unstakeDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBalance } from '@/hooks/useBalance';
 import { useDepositBalances } from '@/hooks/useDepositBalances';
 
 import InfoSection from '@/components/info-section';
 import { TOKEN_INFO } from '@/components/token-info';
 
 import { usePortfolio } from '../_hooks/usePortfolio';
-import { UnstakeDialog } from './unstake-dialog';
 
 export function PortfolioHoldings() {
   return (
@@ -36,13 +30,10 @@ function HoldingsContainer() {
   const account = useAccount();
   const { data: portfolio, isFetching } = usePortfolio();
   const depositBalances = useDepositBalances();
-  const stSTTBalance = useBalance({ tokenAddress: CONTRACTS.stSTT });
-  const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useAtom(unstakeDialogAtom);
 
   const hasZVLTBalance = !!portfolio?.zVLTBalance && portfolio.zVLTBalance > 0n;
-  const hasStSTTBalance = !!stSTTBalance.data && stSTTBalance.data > 0n;
 
-  if (account.isPending || isFetching || depositBalances.isFetching || stSTTBalance.isFetching)
+  if (account.isPending || isFetching || depositBalances.isFetching)
     return (
       <HoldingsContent>
         <AssetInfo isLoading />
@@ -60,48 +51,35 @@ function HoldingsContainer() {
     );
 
   return (
-    <>
-      <HoldingsContent>
-        <></>
-        <AssetInfo
-          asset="zVLT"
-          balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
-          value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
-          action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
-        />
+    <HoldingsContent>
+      <></>
+      <AssetInfo
+        asset="zVLT"
+        balance={formatBigIntWithCommas({ value: portfolio?.zVLTBalance ?? 0n })}
+        value={`$${formatBigIntWithCommas({ value: portfolio?.value ?? 0n })}`}
+        action={hasZVLTBalance ? { text: 'Redeem', href: '/?view=redeem' } : { text: 'Deposit', href: '/' }}
+      />
 
-        {DEPOSIT_TOKENS.map((token) => {
-          const balance = depositBalances.data?.[token];
-          if (!balance || balance <= 0n) return null;
+      {DEPOSIT_TOKENS.map((token) => {
+        const balance = depositBalances.data?.[token];
+        if (!balance || balance <= 0n) return null;
 
-          const formattedBalance = formatBigIntWithCommas({
-            value: balance,
-            tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
-          });
+        const formattedBalance = formatBigIntWithCommas({
+          value: balance,
+          tokenDecimals: DEPOSIT_TOKEN_DECIMALS[token]
+        });
 
-          return (
-            <AssetInfo
-              key={token}
-              asset={token}
-              balance={formattedBalance}
-              value={`$${formattedBalance}`}
-              action={{ text: 'Deposit', href: '/' }}
-            />
-          );
-        })}
-
-        {hasStSTTBalance && (
+        return (
           <AssetInfo
-            asset="stSTT"
-            balance={formatBigIntWithCommas({ value: stSTTBalance.data ?? 0n })}
-            value={`$${formatBigIntWithCommas({ value: stSTTBalance.data ?? 0n })}`}
-            action={{ text: 'Unstake', onPress: () => setIsUnstakeDialogOpen(true) }}
+            key={token}
+            asset={token}
+            balance={formattedBalance}
+            value={`$${formattedBalance}`}
+            action={{ text: 'Deposit', href: '/' }}
           />
-        )}
-      </HoldingsContent>
-
-      <UnstakeDialog isOpen={isUnstakeDialogOpen} onOpenChange={setIsUnstakeDialogOpen} />
-    </>
+        );
+      })}
+    </HoldingsContent>
   );
 }
 

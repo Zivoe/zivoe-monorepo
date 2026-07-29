@@ -47,9 +47,4 @@ const transactionAtom = atom<TransactionData | undefined>(undefined);
 
 const depositDialogAtom = atom<boolean>(false);
 
-// Still exported on purpose: the stacked portfolio branch briefly restores its
-// consumers before deleting them — the atom dies up-stack with them, keeping
-// every commit in the stack typecheck-clean.
-const unstakeDialogAtom = atom<boolean>(false);
-
-export { transactionAtom, depositDialogAtom, unstakeDialogAtom };
+export { transactionAtom, depositDialogAtom };
