@@ -8,7 +8,6 @@ import * as Sentry from '@sentry/nextjs';
 
 import {
   type ShareStatsPayload,
-  createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   getCentrifugeIndexerConfig,
   toShareStatsPayload
@@ -16,21 +15,11 @@ import {
 
 import { env } from '@/env';
 
-const reportNegativeYield = createDailyNegativeYieldReporter((negativeYield30d) => {
-  Sentry.captureMessage('Centrifuge indexer reported a negative 30-day trailing yield', {
-    level: 'warning',
-    tags: { source: 'SERVER' },
-    extra: { yield30dComp365: negativeYield30d.toString() }
-  });
-});
-
 const fetchHeroMetrics = async (): Promise<ShareStatsPayload> => {
   const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
-  const { payload, negativeYield30d } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
-
-  // A negative trailing yield is technically possible but never expected for
-  // this pool — the shared projection nulls it; this alert asks a human to look.
-  reportNegativeYield({ negativeYield30d });
+  // negativeYield30d is deliberately not alerted on while APY is unrendered —
+  // the projection already nulls it; restore the daily reporter with APY.
+  const { payload } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
 
   return payload;
 };
