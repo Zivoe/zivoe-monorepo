@@ -137,6 +137,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
           transaction.subscribe({
             next: (status) => {
+              // A multi-transaction action (e.g. the SDK's approve + invest)
+              // reuses this observer: drop the previous step's hash as soon as
+              // the next step starts signing, so the chain fallback below can
+              // never resolve an earlier step's receipt as this action's outcome.
+              if (status.type === 'SigningTransaction') txHash = undefined;
+
               if (status.type === 'TransactionPending' && status.hash) {
                 txHash = status.hash;
                 setIsTxPending(true);
@@ -160,8 +166,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
               // The SDK's error can be displaced before it carries the receipt
               // out (e.g. Next's dev log forwarder throws serializing the
               // receipt the SDK console.errors), so once a hash is known the
-              // chain is the source of truth. Costs one read, only here.
-              if (!txHash) {
+              // chain is the source of truth. Costs one read, only here. But a
+              // hash pointing at an already-confirmed earlier step (the approve
+              // of a two-transaction action) proves the failing transaction is
+              // a different one — fetching that receipt would report this
+              // failure as a success.
+              if (!txHash || txHash === confirmed?.transactionHash) {
                 reject(toRejectionError(err));
                 return;
               }

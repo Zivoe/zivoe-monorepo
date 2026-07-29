@@ -53,6 +53,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: sentryCapture }));
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e' as const;
 const TX_HASH = '0x3333333333333333333333333333333333333333333333333333333333333333';
+const APPROVE_HASH = '0x4444444444444444444444444444444444444444444444444444444444444444';
 const ASSETS = 1_000_000000n;
 const DECODED_SHARES = 934_579439252336448598n;
 
@@ -147,6 +148,50 @@ function fakeVaultRevertingOnChain({
             ? Object.assign(new Error('Transaction reverted'), { receipt })
             : new TypeError('Do not know how to serialize a BigInt')
         );
+        return { unsubscribe: () => undefined };
+      }
+    })
+  };
+}
+
+/**
+ * Two-transaction action, the way the SDK's syncDeposit behaves when the
+ * on-chain allowance is short: an approve transaction signs and confirms
+ * first, then the invest step fails before reaching TransactionPending.
+ */
+function fakeVaultApproveThenFailingInvest() {
+  return {
+    syncDeposit: () => ({
+      then: () => {
+        throw new Error('SDK Transaction awaited directly — return it wrapped as { tx }');
+      },
+      subscribe: (observer: {
+        next: (status: { type: string; hash?: string; receipt?: TransactionReceipt }) => void;
+        error: (error: unknown) => void;
+        complete: () => void;
+      }) => {
+        void (async () => {
+          try {
+            const signer = setTransactionSigner.mock.calls[0]?.[0] as {
+              request: (args: { method: string; params?: unknown }) => Promise<unknown>;
+            };
+
+            observer.next({ type: 'SigningTransaction' });
+            await signer.request({ method: 'eth_sendTransaction', params: [{ from: INVESTOR }] });
+            observer.next({ type: 'TransactionPending', hash: APPROVE_HASH });
+            observer.next({
+              type: 'TransactionConfirmed',
+              hash: APPROVE_HASH,
+              receipt: { status: 'success', transactionHash: APPROVE_HASH, logs: [] } as unknown as TransactionReceipt
+            });
+
+            observer.next({ type: 'SigningTransaction' });
+            await signer.request({ method: 'eth_sendTransaction', params: [{ from: INVESTOR }] });
+          } catch (error) {
+            observer.error(error);
+          }
+        })();
+
         return { unsubscribe: () => undefined };
       }
     })
@@ -352,6 +397,33 @@ describe('useDeposit', () => {
       'tx:deposit_signature_rejected',
       expect.objectContaining({ error_type: 'user_rejected' })
     );
+  });
+
+  it('fails the action when a later step of a multi-transaction deposit is rejected, instead of resolving with the approve receipt', async () => {
+    getVault.mockResolvedValue(fakeVaultApproveThenFailingInvest());
+    walletRequest.mockResolvedValueOnce(APPROVE_HASH).mockRejectedValueOnce(new Error('User rejected the request'));
+    // If the chain fallback ran, it would find the confirmed approve receipt —
+    // the test must fail loudly on a false success, not on a missing mock.
+    publicClientGetReceipt.mockResolvedValue({
+      status: 'success',
+      transactionHash: APPROVE_HASH,
+      logs: []
+    });
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit(), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // The approve receipt never stands in for the failed invest step.
+    expect(publicClientGetReceipt).not.toHaveBeenCalled();
+    expect(getDefaultStore().get(transactionAtom)).toBeUndefined();
+    expect(uiToast).toHaveBeenCalledWith({ type: 'warning', title: 'Transaction rejected' });
+
+    const events = analyticsCapture.mock.calls.map(([event]) => event);
+    expect(events).not.toContain('tx:deposit_receipt');
+    expect(events).toContain('tx:deposit_signature_rejected');
   });
 
   it('resolves the signer lazily for every transaction', async () => {
