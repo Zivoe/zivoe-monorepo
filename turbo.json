@@ -73,7 +73,9 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
-    "test": {},
+    "test": {
+      "dependsOn": ["^test"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
