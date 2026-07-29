@@ -245,6 +245,11 @@ resource "posthog_insight" "insight_funnel_landing_page_connect_wallet_click_dep
           "kind"  = "EventsNode"
           "name"  = "Pageview"
           "event" = "$pageview"
+          # "Entered the app", not "reached the deposit box": the funnel is
+          # ordered, and users connect from the header on the listing as well
+          # as on a detail page — a detail-only match would break the sequence
+          # for whichever path connects first. The Deposit-click step carries
+          # the deposit semantics.
           "properties" = [
             {
               "key"  = "$current_url"
@@ -252,10 +257,10 @@ resource "posthog_insight" "insight_funnel_landing_page_connect_wallet_click_dep
               "value" = [
                 "https://app.zivoe.com/",
               ]
-              "operator" = "exact"
+              "operator" = "icontains"
             },
           ]
-          "custom_name" = "Deposit"
+          "custom_name" = "App"
         },
         {
           "kind"  = "EventsNode"
