@@ -1,27 +1,21 @@
 import { type ComponentType } from 'react';
 
 import { NextLink } from '@zivoe/ui/core/link';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { ArrowRightIcon, EthereumIcon } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
-
-import { customNumber } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
 import { type Offering, TARGET_APY_PERCENT, offeringPath } from '@/offerings';
 
+import StreamedAum from './aum';
+
 const NETWORK_ICONS: Record<Offering['networks'][number], ComponentType<IconProps>> = {
   Ethereum: EthereumIcon
 };
 
-export default function OfferingCard({
-  offering,
-  aum
-}: {
-  offering: Offering;
-  /** Share-class AUM in USD; null when the indexer read failed. */
-  aum: number | null;
-}) {
+export default function OfferingCard({ offering }: { offering: Offering }) {
   // Both shadows are ones the rest of the app already uses, and the card rests
   // on the lighter of the two — hover lifts it a step rather than conjuring a
   // shadow out of nothing.
@@ -45,7 +39,14 @@ export default function OfferingCard({
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Issuer" value={offering.issuer} />
           <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
-          <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
+          <Term
+            label="AUM"
+            value={
+              <div className="text-regular text-primary">
+                <StreamedAum fallback={<Skeleton className="h-4 w-20 rounded" />} />
+              </div>
+            }
+          />
 
           <Term
             label="Accepted stablecoins"

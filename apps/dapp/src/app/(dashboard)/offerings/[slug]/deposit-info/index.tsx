@@ -1,4 +1,7 @@
+import { Suspense } from 'react';
+
 import { Separator } from '@zivoe/ui/core/separator';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { DiamondIcon } from '@zivoe/ui/icons';
 
 import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
@@ -14,10 +17,15 @@ import DepositStats from './deposit-stats';
 export default function DepositInfo() {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
-      <DepositChartsComponent />
+      {/* The static sections below stream without waiting on the indexer. */}
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+        <DepositChartsComponent />
+      </Suspense>
       <DiamondSeparator />
 
-      <DepositStatsComponent />
+      <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
+        <DepositStatsComponent />
+      </Suspense>
       <DiamondSeparator />
 
       <DepositAbout />

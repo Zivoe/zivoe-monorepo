@@ -1,6 +1,10 @@
+import { type ComponentProps, Suspense } from 'react';
+
 import { notFound } from 'next/navigation';
 
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
@@ -32,6 +36,33 @@ export default async function OfferingPage({
 
   const validatedView = depositPageViewSchema.safeParse(view);
 
+  return (
+    <>
+      <OnboardingGuard />
+
+      <div className="bg-surface-base">
+        <Container>
+          <OfferingHeader offering={offering} />
+        </Container>
+
+        {/* The header streams immediately; only this section waits on the
+            indexer-backed prefetch. */}
+        <Suspense
+          fallback={
+            <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
+              <Skeleton className="h-160 w-full rounded-xl" />
+              <Skeleton className="hidden h-160 rounded-xl lg:block lg:min-w-120 xl:min-w-157.5" />
+            </Page>
+          }
+        >
+          <HydratedDepositSection initialView={validatedView.success ? validatedView.data : null} />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+async function HydratedDepositSection({ initialView }: { initialView: ComponentProps<typeof Deposit>['initialView'] }) {
   // Seed the browser cache with the server's cached payload, so client
   // consumers mount on hydrated data instead of re-fetching the document the
   // RSCs just rendered. React cache dedupes this with the RSC reads below.
@@ -48,22 +79,12 @@ export default async function OfferingPage({
   });
 
   return (
-    <>
-      <OnboardingGuard />
-
-      <div className="bg-surface-base">
-        <Container>
-          <OfferingHeader offering={offering} />
-        </Container>
-
-        <HydrationBoundary state={dehydrate(queryClient)}>
-          <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <DepositInfo />
-            <Deposit initialView={validatedView.success ? validatedView.data : null} />
-          </Page>
-        </HydrationBoundary>
-      </div>
-    </>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
+        <DepositInfo />
+        <Deposit initialView={initialView} />
+      </Page>
+    </HydrationBoundary>
   );
 }
 
