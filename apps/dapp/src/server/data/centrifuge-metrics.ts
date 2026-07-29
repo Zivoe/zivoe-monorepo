@@ -25,8 +25,8 @@ export type CentrifugeDailySnapshot = {
   timestampMs: number;
   /** Share Price in USD. */
   sharePrice: number;
-  /** Share-class AUM in USD (price x issuance). */
-  nav: number;
+  /** Share-class AUM in USD (price x issuance); null while the day's issuance is unpublished. */
+  nav: number | null;
   /** 30-day Trailing APY in percent; null until 30 days of history exist. */
   apy: number | null;
 };
@@ -109,22 +109,23 @@ export const getCentrifugeDailySnapshots = reactCache(async (): Promise<Array<Ce
   try {
     const rows = await cachedDailySnapshotRows();
 
-    return rows.flatMap((row): Array<CentrifugeDailySnapshot> => {
-      // AUM needs issuance; a priced row without it cannot chart.
-      if (row.totalIssuanceD18 === null) return [];
-
+    return rows.map((row): CentrifugeDailySnapshot => {
       const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
-      const navD18 = sharesToValueD18({ shares: BigInt(row.totalIssuanceD18), sharePrice: BigInt(row.tokenPriceD18) });
 
-      return [
-        {
-          timestampMs: row.dayStartSeconds * 1000,
-          sharePrice: Number(row.tokenPriceD18) / 1e18,
-          nav: Number(navD18) / 1e18,
-          // The anomalous negative case renders as the null state.
-          apy: yieldRay === null || yieldRay < 0n ? null : rayToPercent(yieldRay)
-        }
-      ];
+      // AUM needs issuance; a priced row without it still charts Token Price,
+      // so the day maps through with a null nav instead of being dropped.
+      const navD18 =
+        row.totalIssuanceD18 === null
+          ? null
+          : sharesToValueD18({ shares: BigInt(row.totalIssuanceD18), sharePrice: BigInt(row.tokenPriceD18) });
+
+      return {
+        timestampMs: row.dayStartSeconds * 1000,
+        sharePrice: Number(row.tokenPriceD18) / 1e18,
+        nav: navD18 === null ? null : Number(navD18) / 1e18,
+        // The anomalous negative case renders as the null state.
+        apy: yieldRay === null || yieldRay < 0n ? null : rayToPercent(yieldRay)
+      };
     });
   } catch (error) {
     Sentry.captureException(error, { tags: { source: 'SERVER' } });

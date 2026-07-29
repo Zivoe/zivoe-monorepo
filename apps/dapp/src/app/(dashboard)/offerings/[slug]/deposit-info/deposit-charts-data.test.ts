@@ -15,7 +15,10 @@ const today = day1 + 2 * DAY_MS;
 const TOKEN_PRICE = 0;
 const AUM = 1;
 
-function close(timestampMs: number, { sharePrice = 1.07, nav = 100, apy = null as number | null } = {}) {
+function close(
+  timestampMs: number,
+  { sharePrice = 1.07, nav = 100, apy = null }: { sharePrice?: number; nav?: number | null; apy?: number | null } = {}
+) {
   return { timestampMs, sharePrice, nav, apy };
 }
 
@@ -52,6 +55,16 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
+  });
+
+  it('keeps a priced day without issuance in the Token Price series but not in AUM', () => {
+    const snapshots = [close(day1, { sharePrice: 1.05, nav: null }), close(day2, { sharePrice: 1.07, nav: 104 })];
+
+    const price = parseChartData({ snapshots, current: null, typeIndex: TOKEN_PRICE, todayStartMs: today });
+    expect(price?.data.map((point) => point.data)).toEqual([1.05, 1.07]);
+
+    const aum = parseChartData({ snapshots, current: null, typeIndex: AUM, todayStartMs: today });
+    expect(aum?.data.map((point) => point.data)).toEqual([104]);
   });
 
   it('falls back to the newest plotted close when the current payload is unavailable', () => {
