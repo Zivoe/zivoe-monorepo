@@ -23,6 +23,11 @@ apps/cms/src/app/(payload)/importMap.ts
 apps/cms/src/migrations/
 packages/database/drizzle/
 
+# Rewritten by Next.js on every build, so formatting it never sticks. dapp and
+# landing gitignore theirs — which, per the header, prettier does not honour — so
+# without this line `format:check` fails for anyone who has run those apps.
+next-env.d.ts
+
 # Lockfiles / terraform state
 pnpm-lock.yaml
 .terraform/
