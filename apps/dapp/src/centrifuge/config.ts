@@ -23,6 +23,7 @@ const SDK_CONSTANTS: Record<
   CentrifugeNetwork,
   Omit<CentrifugeConfig, 'network' | 'chainId' | 'indexerUrl' | 'poolId' | 'scId' | 'shareToken'> & {
     shareToken: Omit<CentrifugeConfig['shareToken'], 'address'>;
+    deployable: boolean;
   }
 > = {
   sepolia: {
@@ -30,22 +31,31 @@ const SDK_CONSTANTS: Record<
     vaultAddress: '0x8D46D06C0D274F9e277e71606Db602e57A055644',
     vaultRouterAddress: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
     shareToken: { symbol: 'zMCA', decimals: 18 },
-    usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', decimals: 6 }
+    usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', decimals: 6 },
+    deployable: true
   },
   mainnet: {
-    // NON-DEPLOYABLE PLACEHOLDER: zero addresses fail loudly and the indexer guard
-    // throws for this network. Verify every entry (incl. VaultRouter) at mainnet cutover.
+    // NON-DEPLOYABLE PLACEHOLDER: the zero addresses do NOT fail loudly on
+    // their own (receipt decoding just matches nothing), so the guard below
+    // throws for this network independently of the indexer package's guard.
+    // Verify every entry (incl. VaultRouter) at mainnet cutover.
     environment: 'mainnet',
     vaultAddress: '0x0000000000000000000000000000000000000000',
     vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     shareToken: { symbol: 'zMCA', decimals: 18 },
-    usdc: { address: '0x0000000000000000000000000000000000000000', decimals: 6 }
+    usdc: { address: '0x0000000000000000000000000000000000000000', decimals: 6 },
+    deployable: false
   }
 };
 
 export function getCentrifugeConfig(network: CentrifugeNetwork): CentrifugeConfig {
   const indexer = getCentrifugeIndexerConfig(network);
-  const constants = SDK_CONSTANTS[network];
+  const { deployable, ...constants } = SDK_CONSTANTS[network];
+
+  if (!deployable)
+    throw new Error(
+      `Centrifuge SDK config for "${network}" is a non-deployable placeholder. Replace it with operator-verified values before deploying.`
+    );
 
   return {
     ...constants,
