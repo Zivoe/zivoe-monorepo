@@ -189,7 +189,7 @@ describe('useClaimReturnedShares', () => {
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
-      title: 'zMCA claimed',
+      title: 'zMCA Claimed',
       description: 'Your zMCA has been returned to your wallet.',
       hash: TX_HASH,
       meta: { claimReturnedShares: { shares: RETURNED_SHARES } }

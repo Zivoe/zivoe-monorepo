@@ -191,7 +191,7 @@ describe('useClaimRedeem', () => {
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
-      title: 'USDC claimed',
+      title: 'USDC Claimed',
       description: 'USDC has been transferred to your wallet.',
       hash: TX_HASH,
       meta: { claimRedeem: { assets: CLAIMABLE_ASSETS, shares: CLAIMABLE_SHARES } }

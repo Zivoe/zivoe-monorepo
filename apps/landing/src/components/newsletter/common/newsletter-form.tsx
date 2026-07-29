@@ -45,7 +45,7 @@ export default function NewsletterForm() {
       const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
 
       if (!token || tokenErr) {
-        toast({ type: 'error', title: 'Error verifying user' });
+        toast({ type: 'error', title: 'Error Verifying User' });
         return;
       }
 
@@ -92,7 +92,7 @@ export default function NewsletterForm() {
           siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
           onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-          onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify you are human to continue' })}
+          onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify You Are Human to Continue' })}
           ref={turnstileRef}
         />
       )}

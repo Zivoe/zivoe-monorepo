@@ -106,7 +106,7 @@ beforeEach(() => {
 });
 
 describe('useRequestRedeem', () => {
-  it('confirms a request with the Redemption requested result and refreshes balance, portfolio, and the Redemption Position', async () => {
+  it('confirms a request with the Redemption Requested result and refreshes balance, portfolio, and the Redemption Position', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const { result } = renderHook(() => useRequestRedeem(), { wrapper });
 
@@ -116,7 +116,7 @@ describe('useRequestRedeem', () => {
     const dialog = getDefaultStore().get(transactionAtom);
     expect(dialog).toEqual({
       type: 'SUCCESS',
-      title: 'Redemption requested',
+      title: 'Redemption Requested',
       description: 'Your final USDC amount is determined when your request is processed.',
       hash: TX_HASH,
       meta: { redeem: { amount: SHARES, receive: ESTIMATED_ASSETS } }

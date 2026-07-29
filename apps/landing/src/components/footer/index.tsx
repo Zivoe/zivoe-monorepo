@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';
+import { copyrightLine } from '@zivoe/ui/lib/copyright';
 
 import { EMAILS } from '@/lib/utils';
 
@@ -42,7 +43,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex w-full flex-col justify-between gap-8 lg:mt-14 lg:flex-row">
-          <p className="text-small text-base">©Zivoe 2025. All Right Reserved.</p>
+          <p className="text-small text-base">{copyrightLine()}</p>
 
           <div className="order-2 flex gap-8 lg:order-1">
             <Link
@@ -62,7 +63,7 @@ export default function Footer() {
               variant="link-base"
               size="s"
             >
-              Reg S Complicance
+              Reg S Compliance
             </Link>
           </div>
         </div>

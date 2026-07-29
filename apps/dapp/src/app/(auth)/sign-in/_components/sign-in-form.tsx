@@ -51,7 +51,7 @@ export default function SignInForm() {
       // Small delay to ensure toast provider is mounted after hydration
       setTimeout(() => {
         toast({
-          title: 'Sign in failed',
+          title: 'Sign In Failed',
           type: 'error'
         });
 
@@ -102,7 +102,7 @@ export default function SignInForm() {
             siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
             onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-            onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify you are human to continue' })}
+            onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify You Are Human to Continue' })}
             ref={turnstileRef}
           />
         </div>
@@ -141,7 +141,7 @@ function EmailStepForm({
 
     if (err) {
       toast({
-        title: 'Sign in failed',
+        title: 'Sign In Failed',
         description: err instanceof Error ? err.message : undefined,
         type: 'error'
       });
@@ -166,7 +166,7 @@ function EmailStepForm({
       const { res: token, err } = await handlePromise(executeTurnstile());
 
       if (!token || err) {
-        toast({ type: 'error', title: 'Verification failed. Please try again.' });
+        toast({ type: 'error', title: 'Human Verification Failed', description: 'Please try again.' });
         return;
       }
 
@@ -181,7 +181,7 @@ function EmailStepForm({
 
     if (error) {
       toast({
-        title: 'Failed to send verification code',
+        title: 'Failed to Send Verification Code',
         description: error.message,
         type: 'error'
       });
@@ -291,7 +291,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
     setIsLoading(true);
 
     const toastId = toast({
-      title: 'Verifying code...',
+      title: 'Verifying Code...',
       type: 'pending'
     });
 
@@ -301,7 +301,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
 
     if (error) {
       toast({
-        title: 'Error',
+        title: 'Invalid Verification Code',
         description: error.message,
         type: 'error'
       });
@@ -329,7 +329,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       const { res: token, err } = await handlePromise(executeTurnstile());
 
       if (!token || err) {
-        toast({ type: 'error', title: 'Verification failed. Please try again.' });
+        toast({ type: 'error', title: 'Human Verification Failed', description: 'Please try again.' });
         setIsResending(false);
         return;
       }
@@ -345,7 +345,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
 
     if (error) {
       toast({
-        title: 'Failed to resend code',
+        title: 'Failed to Resend Code',
         description: error.message,
         type: 'error'
       });
@@ -355,7 +355,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       analytics.capture('auth:otp_resent', { method: 'email_otp' });
 
       toast({
-        title: 'Code sent',
+        title: 'Code Sent',
         description: 'A new verification code has been sent to your email',
         type: 'success'
       });
