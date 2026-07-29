@@ -13,8 +13,6 @@ import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { createTransactionProperties } from '@/lib/analytics/events';
-import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
@@ -48,7 +46,6 @@ type DepositForm = { deposit: string };
 
 export function DepositFlow() {
   const account = useAccount();
-  const analytics = useAnalytics();
   const chainalysis = useChainalysis();
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
@@ -134,20 +131,6 @@ export function DepositFlow() {
     // Narrowing only — validation guarantees depositRaw and isSubmitBlocked
     // covers every missing-preview state.
     if (!depositRaw || previewShares === undefined) return;
-
-    analytics.capture(
-      'tx:deposit_started',
-      createTransactionProperties({
-        flow: 'deposit',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'USDC',
-        tokenOut: 'zMCA',
-        amountInRaw: depositRaw,
-        amountOutRaw: previewShares
-      })
-    );
 
     depositMutation.mutate(
       { assets: depositRaw, previewShares },

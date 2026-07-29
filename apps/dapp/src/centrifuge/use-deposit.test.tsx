@@ -323,7 +323,7 @@ describe('useDeposit', () => {
     );
 
     const events = analyticsCapture.mock.calls.map(([event]) => event);
-    expect(events).toEqual(['tx:deposit_submitted', 'tx:deposit_receipt']);
+    expect(events).toEqual(['tx:deposit_started', 'tx:deposit_submitted', 'tx:deposit_receipt']);
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:deposit_receipt',
       expect.objectContaining({

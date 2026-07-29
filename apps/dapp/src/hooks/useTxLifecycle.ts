@@ -37,7 +37,7 @@ export type TxContext = { address: Address | undefined };
 export type TxAnalyticsStep = { event: AnalyticsEvent; step: string };
 
 export type TxAnalyticsChoreography = {
-  /** Captured after guards pass, before simulation (approval flow only). */
+  /** Captured when the mutation begins, right after the prepare guards pass. */
   started?: TxAnalyticsStep;
   submitted: TxAnalyticsStep;
   confirmed: { success: TxAnalyticsStep; failed: TxAnalyticsStep };
@@ -47,6 +47,7 @@ export type TxAnalyticsChoreography = {
 
 export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
   deposit: {
+    started: { event: 'tx:deposit_started', step: 'started' },
     submitted: { event: 'tx:deposit_submitted', step: 'submitted' },
     confirmed: {
       success: { event: 'tx:deposit_receipt', step: 'receipt' },
@@ -56,6 +57,7 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     failed: { event: 'tx:deposit_failed', step: 'failed' }
   },
   redeem: {
+    started: { event: 'tx:redeem_started', step: 'started' },
     submitted: { event: 'tx:redeem_submitted', step: 'submitted' },
     confirmed: {
       success: { event: 'tx:redeem_receipt', step: 'receipt' },
@@ -65,6 +67,7 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     failed: { event: 'tx:redeem_failed', step: 'failed' }
   },
   redeem_claim: {
+    started: { event: 'tx:redeem_claim_started', step: 'started' },
     submitted: { event: 'tx:redeem_claim_submitted', step: 'submitted' },
     confirmed: {
       success: { event: 'tx:redeem_claim_receipt', step: 'receipt' },
@@ -74,6 +77,7 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     failed: { event: 'tx:redeem_claim_failed', step: 'failed' }
   },
   redeem_cancel: {
+    started: { event: 'tx:redeem_cancel_started', step: 'started' },
     submitted: { event: 'tx:redeem_cancel_submitted', step: 'submitted' },
     confirmed: {
       success: { event: 'tx:redeem_cancel_receipt', step: 'receipt' },
@@ -83,6 +87,7 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     failed: { event: 'tx:redeem_cancel_failed', step: 'failed' }
   },
   redeem_claim_returned: {
+    started: { event: 'tx:redeem_claim_returned_started', step: 'started' },
     submitted: { event: 'tx:redeem_claim_returned_submitted', step: 'submitted' },
     confirmed: {
       success: { event: 'tx:redeem_claim_returned_receipt', step: 'receipt' },
