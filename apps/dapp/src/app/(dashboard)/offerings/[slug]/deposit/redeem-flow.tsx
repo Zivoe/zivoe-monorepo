@@ -26,6 +26,7 @@ import ConnectedAccount from '@/components/connected-account';
 import {
   CENTRIFUGE_CONFIG,
   sharesToUsdc,
+  sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
@@ -81,11 +82,7 @@ export default function RedeemFlow() {
 
   const estimatedAssets = hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice }) : undefined;
   const redeemDollarValue =
-    redeemRaw !== undefined && sharePrice
-      ? (redeemRaw * sharePrice) / 10n ** BigInt(ZMCA.decimals)
-      : redeem
-        ? null
-        : 0n;
+    redeemRaw !== undefined && sharePrice ? sharesToValueD18({ shares: redeemRaw, sharePrice }) : redeem ? null : 0n;
 
   const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
   const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });

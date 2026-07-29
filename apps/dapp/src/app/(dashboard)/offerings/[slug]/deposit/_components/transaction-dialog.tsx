@@ -3,7 +3,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
-import { mainnet, sepolia } from 'viem/chains';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
@@ -13,16 +12,15 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { type Token } from '@/types/constants';
 
+import { NETWORK_CHAIN } from '@/lib/network';
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { env } from '@/env';
-
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 
-const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia).blockExplorers.default.url;
+const EXPLORER_URL = NETWORK_CHAIN.blockExplorers.default.url;
 
 // CENTRIFUGE_CONFIG is the single decimals authority for the vault's tokens —
 // a second hardcoded map here is how one leg of a receipt ends up mis-scaled.
