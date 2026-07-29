@@ -1,4 +1,5 @@
 import { ABI } from '@centrifuge/sdk';
+import * as Sentry from '@sentry/nextjs';
 import {
   type Address,
   BaseError,
@@ -51,6 +52,22 @@ const ERROR_ABI = [
   ...EXTRA_ERROR_FRAGMENTS
 ];
 
+// Methods that would move funds or sign something without passing the
+// simulate-before-sign gate. None are expected while permits are disabled and
+// viem sends via eth_sendTransaction — if one ever crosses the wrapper (a
+// wallet or SDK change), the gate has silently lost coverage: flag it, pass it
+// through, and let Sentry say so.
+const UNSIMULATED_WRITE_METHODS = new Set([
+  'eth_sign',
+  'eth_signTransaction',
+  'eth_signTypedData',
+  'eth_signTypedData_v3',
+  'eth_signTypedData_v4',
+  'eth_sendRawTransaction',
+  'personal_sign',
+  'wallet_sendCalls'
+]);
+
 /**
  * Wraps the wallet's EIP-1193 provider so the SDK's fully formed
  * eth_sendTransaction is `eth_call`ed first with the exact same
@@ -73,6 +90,12 @@ export function createSimulationSigner({
         const [transaction] = args.params as [{ from?: Address; to?: Address; data?: Hex; value?: Hex | bigint }];
         assertExpectedCall({ transaction, expectedCall });
         await simulateExactCall({ simulationClient, transaction, errorCopy });
+      } else if (UNSIMULATED_WRITE_METHODS.has(args.method)) {
+        Sentry.captureMessage('Centrifuge signer passed a write method through without simulation', {
+          level: 'warning',
+          tags: { source: 'MUTATION' },
+          extra: { method: args.method }
+        });
       }
 
       return walletClient.request(args);
