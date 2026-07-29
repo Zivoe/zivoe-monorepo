@@ -3,8 +3,8 @@ import Page from '@/components/page';
 import { OFFERINGS } from '@/offerings';
 
 import { OnboardingGuard } from './_components/onboarding-guard';
-import AumHeader from './_home/aum-header';
-import OfferingCard from './_home/offering-card';
+import AumHeader from './_offerings/aum-header';
+import OfferingCard from './_offerings/offering-card';
 
 // The listing itself is static registry data: the AUM figure streams in via
 // StreamedAum so an indexer slowdown never blanks the app's entry page.
