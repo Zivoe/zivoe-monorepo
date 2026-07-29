@@ -11,7 +11,7 @@ import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { DEPOSIT_TOKEN_DECIMALS, TOKEN_DECIMALS, type Token } from '@/types/constants';
+import { type Token } from '@/types/constants';
 
 import { transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
@@ -23,6 +23,13 @@ import { env } from '@/env';
 import { CENTRIFUGE_CONFIG } from '@/centrifuge';
 
 const EXPLORER_URL = (env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia).blockExplorers.default.url;
+
+// CENTRIFUGE_CONFIG is the single decimals authority for the vault's tokens —
+// a second hardcoded map here is how one leg of a receipt ends up mis-scaled.
+const TOKEN_DECIMALS: Record<Token, number> = {
+  USDC: CENTRIFUGE_CONFIG.usdc.decimals,
+  zMCA: CENTRIFUGE_CONFIG.shareToken.decimals
+};
 
 export function TransactionDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,7 +92,7 @@ export function TransactionDialog() {
               <TransactionDialogToken
                 token={transaction.meta.deposit.token}
                 amount={transaction.meta.deposit.amount}
-                decimals={DEPOSIT_TOKEN_DECIMALS[transaction.meta.deposit.token]}
+                decimals={TOKEN_DECIMALS[transaction.meta.deposit.token]}
                 icon={TOKEN_INFO[transaction.meta.deposit.token].icon}
               />
 
