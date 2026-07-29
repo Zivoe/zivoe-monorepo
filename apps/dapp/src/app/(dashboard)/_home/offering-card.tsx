@@ -48,6 +48,10 @@ export default function OfferingCard({ offering }: { offering: Offering }) {
             }
           />
 
+          {/* The whole card is one anchor, so these name themselves with the
+              native title tooltip rather than a focusable tooltip trigger,
+              which would nest an interactive element inside the link. role=img
+              plus the label gives screen readers the same name. */}
           <Term
             label="Accepted stablecoins"
             value={
