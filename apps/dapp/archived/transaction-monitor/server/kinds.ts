@@ -3,11 +3,11 @@ import 'server-only';
 import { CONTRACTS } from '@zivoe/contracts';
 
 import { deposit as depositTable, redemption as redemptionTable } from '@/server/clients/ponder/schema';
-import type { ReceiptTokenSymbol } from '@/server/utils/emails/receipt-config';
-import { sendDepositConfirmationEmail, sendRedemptionConfirmationEmail } from '@/server/utils/send-email';
 
 import { ApiError, escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
 
+import type { ReceiptTokenSymbol } from '../emails/receipt-config';
+import { sendDepositConfirmationEmail, sendRedemptionConfirmationEmail } from '../emails/send-receipt-emails';
 import type { TransactionMonitorKind } from './run';
 
 type IndexedInputDetails = {

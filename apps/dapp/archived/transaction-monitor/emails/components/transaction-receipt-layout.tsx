@@ -2,14 +2,15 @@ import { type ReactNode } from 'react';
 
 import { Body, Container, Head, Html, Img, Link, Preview, Section, Tailwind, Text } from '@react-email/components';
 
-import { ZIVOE_LOGO_URL, emailTailwindConfig } from '../config';
+import { EmailFooterRow } from '@/server/utils/emails/components/email-footer-row';
+import { ZIVOE_LOGO_URL, emailTailwindConfig } from '@/server/utils/emails/config';
+
 import {
   RECEIPT_COPYRIGHT_TEXT,
   RECEIPT_DISCLAIMER_TEXT,
   RECEIPT_INQUIRIES_EMAIL,
   RECEIPT_QUICK_LINKS
 } from '../receipt-config';
-import { EmailFooterRow } from './email-footer-row';
 
 export function TransactionReceiptLayout({
   preview,

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { LINKS } from '@/types/constants';
 
-import { BASE_URL } from '../base-url';
+import { BASE_URL } from '@/server/utils/base-url';
 
 export const RECEIPT_VIEW_IN_APP_URL = 'https://app.zivoe.com/portfolio';
 export const RECEIPT_INQUIRIES_EMAIL = 'investors@zivoe.com';
