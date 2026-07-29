@@ -96,7 +96,7 @@ export function useClaimRedeem({ onSuccessClose }: { onSuccessClose?: () => void
 
       const transactionData: TransactionData = {
         type: 'SUCCESS',
-        title: 'USDC claimed',
+        title: 'USDC Claimed',
         description: 'USDC has been transferred to your wallet.',
         hash: receipt.transactionHash,
         meta: { claimRedeem: { assets: decoded.assets, shares: decoded.shares } }

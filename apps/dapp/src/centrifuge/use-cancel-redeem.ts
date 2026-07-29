@@ -55,7 +55,7 @@ export function useCancelRedeem({ onSuccessClose }: { onSuccessClose?: () => voi
       })
     },
 
-    pendingToast: () => 'Cancelling redemption request...',
+    pendingToast: () => 'Cancelling Redemption Request...',
     errorToast: () => 'Error Cancelling Redemption',
     sentryFlow: 'redeem-cancel',
 
@@ -70,7 +70,7 @@ export function useCancelRedeem({ onSuccessClose }: { onSuccessClose?: () => voi
 
       const transactionData: TransactionData = {
         type: 'SUCCESS',
-        title: 'Cancellation requested',
+        title: 'Cancellation Requested',
         description:
           'Your zMCA will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
         hash: receipt.transactionHash,

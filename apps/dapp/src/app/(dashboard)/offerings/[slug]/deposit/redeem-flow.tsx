@@ -13,8 +13,6 @@ import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { createTransactionProperties } from '@/lib/analytics/events';
-import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
@@ -28,6 +26,7 @@ import ConnectedAccount from '@/components/connected-account';
 import {
   CENTRIFUGE_CONFIG,
   sharesToUsdc,
+  sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
@@ -47,7 +46,6 @@ type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
   const account = useAccount();
-  const analytics = useAnalytics();
   const chainalysis = useChainalysis();
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
@@ -84,11 +82,7 @@ export default function RedeemFlow() {
 
   const estimatedAssets = hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice }) : undefined;
   const redeemDollarValue =
-    redeemRaw !== undefined && sharePrice
-      ? (redeemRaw * sharePrice) / 10n ** BigInt(ZMCA.decimals)
-      : redeem
-        ? null
-        : 0n;
+    redeemRaw !== undefined && sharePrice ? sharesToValueD18({ shares: redeemRaw, sharePrice }) : redeem ? null : 0n;
 
   const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
   const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
@@ -133,20 +127,6 @@ export default function RedeemFlow() {
     // cover every missing-estimate case.
     if (!redeemRaw || estimatedAssets === undefined) return;
 
-    analytics.capture(
-      'tx:redeem_started',
-      createTransactionProperties({
-        flow: 'redeem',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'zMCA',
-        tokenOut: 'USDC',
-        amountInRaw: redeemRaw,
-        amountOutRaw: estimatedAssets
-      })
-    );
-
     requestRedeem.mutate(
       { shares: redeemRaw, estimatedAssets },
       // A reverted receipt also resolves as mutation success (it routes to the
@@ -162,54 +142,17 @@ export default function RedeemFlow() {
   const handleClaim = () => {
     if (claimableAssets <= 0n) return;
 
-    analytics.capture(
-      'tx:redeem_claim_started',
-      createTransactionProperties({
-        flow: 'redeem_claim',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'zMCA',
-        tokenOut: 'USDC',
-        amountOutRaw: claimableAssets
-      })
-    );
-
     claimRedeem.mutate({ claimableAssets });
   };
 
   const handleCancelRedeem = () => {
     if (pendingShares <= 0n) return;
 
-    analytics.capture(
-      'tx:redeem_cancel_started',
-      createTransactionProperties({
-        flow: 'redeem_cancel',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'zMCA',
-        amountInRaw: pendingShares
-      })
-    );
-
     cancelRedeem.mutate({ pendingShares });
   };
 
   const handleClaimReturnedShares = () => {
     if (returnedShares <= 0n) return;
-
-    analytics.capture(
-      'tx:redeem_claim_returned_started',
-      createTransactionProperties({
-        flow: 'redeem_claim_returned',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenOut: 'zMCA',
-        amountOutRaw: returnedShares
-      })
-    );
 
     claimReturnedShares.mutate({ returnedShares });
   };

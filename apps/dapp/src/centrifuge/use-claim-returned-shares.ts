@@ -98,7 +98,7 @@ export function useClaimReturnedShares({ onSuccessClose }: { onSuccessClose?: ()
 
       const transactionData: TransactionData = {
         type: 'SUCCESS',
-        title: 'zMCA claimed',
+        title: 'zMCA Claimed',
         description: 'Your zMCA has been returned to your wallet.',
         hash: receipt.transactionHash,
         meta: { claimReturnedShares: { shares: decoded.shares } }

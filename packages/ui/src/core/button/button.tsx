@@ -116,7 +116,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <>
               <Spinner
                 role="progressbar"
-                aria-label={typeof pendingContent === 'string' ? pendingContent : 'Loading'}
+                aria-label={typeof pendingContent === 'string' ? pendingContent : 'Loading...'}
                 className="animate-spin"
               />
               {pendingContent}

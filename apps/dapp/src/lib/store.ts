@@ -47,6 +47,4 @@ const transactionAtom = atom<TransactionData | undefined>(undefined);
 
 const depositDialogAtom = atom<boolean>(false);
 
-const unstakeDialogAtom = atom<boolean>(false);
-
-export { transactionAtom, depositDialogAtom, unstakeDialogAtom };
+export { transactionAtom, depositDialogAtom };

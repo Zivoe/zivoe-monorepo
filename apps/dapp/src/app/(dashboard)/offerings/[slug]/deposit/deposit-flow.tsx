@@ -13,8 +13,6 @@ import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { createTransactionProperties } from '@/lib/analytics/events';
-import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { depositDialogAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
@@ -39,7 +37,7 @@ import {
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
-import { parseInput } from './_utils';
+import { createAmountValidator, parseInput } from './_utils';
 
 const USDC = CENTRIFUGE_CONFIG.usdc;
 const ZMCA = CENTRIFUGE_CONFIG.shareToken;
@@ -48,7 +46,6 @@ type DepositForm = { deposit: string };
 
 export function DepositFlow() {
   const account = useAccount();
-  const analytics = useAnalytics();
   const chainalysis = useChainalysis();
   const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
 
@@ -62,7 +59,17 @@ export function DepositFlow() {
   const isCapacityUnavailable = capacity.isSuccess && capacity.data.maxDeposit <= 0n;
 
   const form = useForm<DepositForm>({
-    resolver: zodResolver(z.object({ deposit: createDepositAmountValidator({ balance, capacity: maxDeposit }) })),
+    resolver: zodResolver(
+      z.object({
+        deposit: createAmountValidator({
+          balance,
+          decimals: USDC.decimals,
+          requiredMessage: 'Deposit amount is required',
+          exceedsMessage: 'Deposit amount exceeds balance',
+          max: { value: maxDeposit, message: 'Deposit amount exceeds current vault capacity.' }
+        })
+      })
+    ),
     defaultValues: { deposit: undefined },
     mode: 'onChange'
   });
@@ -134,20 +141,6 @@ export function DepositFlow() {
     // Narrowing only — validation guarantees depositRaw and isSubmitBlocked
     // covers every missing-preview state.
     if (!depositRaw || previewShares === undefined) return;
-
-    analytics.capture(
-      'tx:deposit_started',
-      createTransactionProperties({
-        flow: 'deposit',
-        step: 'started',
-        walletAddress: account.address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'USDC',
-        tokenOut: 'zMCA',
-        amountInRaw: depositRaw,
-        amountOutRaw: previewShares
-      })
-    );
 
     depositMutation.mutate(
       { assets: depositRaw, previewShares },
@@ -286,24 +279,6 @@ export function DepositFlow() {
     </>
   );
 }
-
-const createDepositAmountValidator = ({ balance, capacity }: { balance: bigint; capacity: bigint | undefined }) => {
-  return z.string({ required_error: 'Deposit amount is required' }).superRefine((amount, ctx) => {
-    const parsedAmount = parseUnits(amount, USDC.decimals);
-
-    if (parsedAmount === 0n) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Deposit amount is required' });
-    }
-
-    if (parsedAmount > balance) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Deposit amount exceeds balance' });
-    }
-
-    if (capacity !== undefined && parsedAmount > capacity) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Deposit amount exceeds current vault capacity.' });
-    }
-  });
-};
 
 // USDC is the only input asset, but the selector stays as the interaction point
 // for future input assets. Everything else remains explicitly USDC-only.

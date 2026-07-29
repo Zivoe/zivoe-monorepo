@@ -5,8 +5,8 @@ import Page from '@/components/page';
 import { OFFERINGS } from '@/offerings';
 
 import { OnboardingGuard } from './_components/onboarding-guard';
-import AumHeader from './_home/aum-header';
-import OfferingCard from './_home/offering-card';
+import AumHeader from './_offerings/aum-header';
+import OfferingCard from './_offerings/offering-card';
 
 export default async function HomePage() {
   // One share class exists, so its AUM is the whole book and its metrics are

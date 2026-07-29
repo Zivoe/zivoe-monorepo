@@ -1,7 +1,6 @@
-import { mainnet } from 'viem/chains';
-
 import { type Token } from '@/types/constants';
 
+import { NETWORK_CHAIN } from '@/lib/network';
 import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =
@@ -88,7 +87,9 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
     flow: input.flow,
     step: input.step,
     wallet_address: input.walletAddress?.toLowerCase(),
-    chain_id: input.chainId ?? mainnet.id,
+    // Default to the deployment's configured chain — a hardcoded mainnet
+    // fallback mislabelled every event whose caller omitted chainId.
+    chain_id: input.chainId ?? NETWORK_CHAIN.id,
     token_in: input.tokenIn ?? undefined,
     token_out: input.tokenOut ?? undefined,
     amount_in_raw: toAnalyticsAmount(input.amountInRaw),

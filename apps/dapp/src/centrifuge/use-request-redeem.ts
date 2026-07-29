@@ -60,7 +60,7 @@ export function useRequestRedeem({ onSuccessClose }: { onSuccessClose?: () => vo
       })
     },
 
-    pendingToast: () => 'Requesting redemption...',
+    pendingToast: () => 'Requesting Redemption...',
     errorToast: () => 'Error Requesting Redemption',
     sentryFlow: 'redeem-request',
 
@@ -75,7 +75,7 @@ export function useRequestRedeem({ onSuccessClose }: { onSuccessClose?: () => vo
 
       const transactionData: TransactionData = {
         type: 'SUCCESS',
-        title: 'Redemption requested',
+        title: 'Redemption Requested',
         description: 'Your final USDC amount is determined when your request is processed.',
         hash: receipt.transactionHash,
         meta: { redeem: { amount: shares, receive: estimatedAssets } }

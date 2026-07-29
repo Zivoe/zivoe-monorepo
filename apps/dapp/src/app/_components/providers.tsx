@@ -36,7 +36,10 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   initialAuthenticationMode: 'connect-only',
   networkValidationMode: 'always',
   appName: 'Zivoe',
-  mobileExperience: 'redirect'
+  mobileExperience: 'redirect',
+  overrides: {
+    evmNetworks: (networks) => networks.filter((network) => Number(network.chainId) === NETWORK_CHAIN.id)
+  }
 };
 
 export const wagmiConfig = createConfig({

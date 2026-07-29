@@ -24,7 +24,7 @@ export default function ChainalysisAssessmentDialog() {
       await handleLogOut();
     } catch (error) {
       console.error(error);
-      toast({ type: 'error', title: 'Error disconnecting wallet' });
+      toast({ type: 'error', title: 'Error Disconnecting Wallet' });
     }
 
     setIsDialogOpen(false);

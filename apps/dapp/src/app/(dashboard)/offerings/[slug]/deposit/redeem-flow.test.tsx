@@ -40,6 +40,8 @@ vi.mock('@/centrifuge', () => ({
   // Mirrors the module's unit math for the mocked 18/6 decimals above.
   sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
     (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
+  sharesToValueD18: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
+    (shares * sharePrice) / 10n ** 18n,
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),

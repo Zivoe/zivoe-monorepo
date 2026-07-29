@@ -15,11 +15,11 @@ export const truncateAddress = (address: string | undefined) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export function customNumber(number: number, decimals = 2) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
+export function customNumber(number: number) {
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
   else {
-    return floorToDecimals(number, decimals);
+    return floorToDecimals(number);
   }
 }
 

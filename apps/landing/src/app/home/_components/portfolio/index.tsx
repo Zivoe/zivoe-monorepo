@@ -1,7 +1,6 @@
-import { type ReactNode, Suspense } from 'react';
+import { type ReactNode } from 'react';
 
 // import { Link } from '@zivoe/ui/core/link';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { CalendarIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -24,9 +23,7 @@ export default function Portfolio() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            <Suspense fallback={<LoanPortfolioSkeleton />}>
-              <LoanPortfolio />
-            </Suspense>
+            <LoanPortfolio />
 
             <Card title="Live Since" description="September 2024">
               <CardIcon className="bg-primary-400">
@@ -55,21 +52,13 @@ export default function Portfolio() {
   );
 }
 
-function LoanPortfolioSkeleton() {
-  return (
-    <LoanPortfolioSection description={<Skeleton className="h-7 w-32 rounded-md bg-element-primary-light/10" />} />
-  );
-}
-
 function LoanPortfolio() {
   // The off-chain loan book has no Centrifuge source; placeholder until the
   // team decides on a future source (same posture as the Revenue stat).
-  return <LoanPortfolioSection description="–" />;
-}
-
-function LoanPortfolioSection({ description }: { description: string | ReactNode }) {
+  // Synchronous on purpose — restore a Suspense boundary and skeleton when a
+  // real data source returns.
   return (
-    <Card title="Loan Portfolio" description={description}>
+    <Card title="Loan Portfolio" description="–">
       <CardIcon className="bg-element-secondary">
         <MoneyHandIcon />
       </CardIcon>

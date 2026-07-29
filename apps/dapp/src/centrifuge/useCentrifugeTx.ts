@@ -1,10 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
-import * as Sentry from '@sentry/nextjs';
-import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSetAtom } from 'jotai';
+import { type QueryClient } from '@tanstack/react-query';
 import { toast as sonnerToast } from 'sonner';
 import { type Address, type TransactionReceipt } from 'viem';
 import { useConfig, usePublicClient } from 'wagmi';
@@ -12,18 +8,10 @@ import { getWalletClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
-import {
-  type TransactionAnalyticsInput,
-  createTransactionProperties,
-  getAnalyticsErrorType
-} from '@/lib/analytics/events';
-import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { queryKeys } from '@/lib/query-keys';
-import { type TransactionData, transactionAtom } from '@/lib/store';
-import { AppError, handlePromise, onTxError, skipTxSettled } from '@/lib/utils';
+import { AppError, handlePromise } from '@/lib/utils';
 
-import { useAccount } from '@/hooks/useAccount';
-import { TX_ANALYTICS, type TxAnalyticsFlow, type TxAnalyticsInput, type TxAnalyticsStep } from '@/hooks/useTx';
+import useTxLifecycle, { type TxSharedConfig } from '@/hooks/useTxLifecycle';
 
 import { getVault, setTransactionSigner } from './client';
 import { type TransactionEntity, type VaultEntity } from './entities';
@@ -31,9 +19,21 @@ import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSi
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
+/**
+ * Bounds only the wait for a wallet signature. A request that never settles
+ * (e.g. a dead WalletConnect session) would otherwise hold the module-level
+ * signer lock until reload, bricking every other flow with "Another
+ * transaction is already in progress". Once a hash exists the chain settles
+ * the outcome, so confirmation itself is never timed out.
+ */
+const SIGNING_TIMEOUT_MS = 5 * 60_000;
+
 type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = {
+/** Wallet-connected clients resolved by the pre-started guards. */
+type CentrifugeClients = { address: Address; publicClient: PublicClient };
+
+export type CentrifugeTxConfig<TVariables> = TxSharedConfig<TVariables> & {
   /**
    * Re-runs guards and starts the SDK action; throw AppError for validation
    * failures. Runs with the lazily resolved, simulation-wrapped signer already
@@ -54,64 +54,43 @@ export type CentrifugeTxConfig<TVariables> = {
   simulationErrorCopy: SimulationErrorCopy;
   /** SDK plain pre-signature error messages (matched by inclusion) mapped to product copy. */
   sdkErrorCopy?: Record<string, string>;
-  analytics?: {
-    flow: TxAnalyticsFlow;
-    input: (vars: TVariables, ctx: { address: Address }) => TxAnalyticsInput;
-    /** Exact receipt-decoded amounts for the confirmed step. */
-    receiptInput?: (receipt: TransactionReceipt, vars: TVariables) => Partial<TransactionAnalyticsInput>;
-  };
-  pendingToast: (vars: TVariables) => string;
-  errorToast: (vars: TVariables) => string;
-  sentryFlow: string;
-  sentryExtras?: (vars: TVariables) => Record<string, unknown>;
-  transactionData: (receipt: TransactionReceipt, vars: TVariables) => TransactionData;
-  onSuccessClose?: () => void;
-  invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
 
 /**
- * Sibling of useTx for Centrifuge SDK actions: shares the guards -> simulate ->
- * send -> receipt toast -> transaction dialog -> refetches choreography, but
- * sends via the SDK action observed through its status Observable, with
- * simulate-before-sign enforced at the EIP-1193 signer boundary.
+ * Centrifuge SDK driver for the shared transaction lifecycle in
+ * useTxLifecycle: same choreography as useTx, but the receipt comes from the
+ * SDK action observed through its status Observable, with simulate-before-sign
+ * enforced at the EIP-1193 signer boundary.
  */
 export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<TVariables>) {
   const wagmiConfig = useConfig();
   const publicClient = usePublicClient();
-  const { address } = useAccount();
-  const analytics = useAnalytics();
-  const queryClient = useQueryClient();
-  const setTransaction = useSetAtom(transactionAtom);
 
-  const [isTxPending, setIsTxPending] = useState(false);
+  return useTxLifecycle({
+    ...config,
 
-  const mutationInfo = useMutation({
-    mutationFn: async (vars: TVariables) => {
+    normalizeError: (err) => normalizeCentrifugeError(err, config.sdkErrorCopy),
+
+    prepare: (_vars, { address }): CentrifugeClients => {
       if (!address) throw new AppError({ message: 'Wallet not connected' });
       if (!publicClient) throw new Error('Public client not found');
 
-      const choreography = config.analytics ? TX_ANALYTICS[config.analytics.flow] : undefined;
-      const analyticsInput = config.analytics ? config.analytics.input(vars, { address }) : undefined;
+      return { address, publicClient };
+    },
 
-      const capture = (entry: TxAnalyticsStep | undefined, extra?: Partial<TransactionAnalyticsInput>) => {
-        if (!config.analytics || !entry || !analyticsInput) return;
-
-        analytics.capture(
-          entry.event,
-          createTransactionProperties({
-            flow: config.analytics.flow,
-            step: entry.step,
-            ...analyticsInput,
-            ...extra
-          })
-        );
-      };
-
-      capture(choreography?.started);
-
+    send: async (vars, { address, publicClient }, { choreography, capture, onTxHash, setIsTxPending }) => {
       let txHash: string | undefined;
       let pendingToastId: string | number | undefined;
       let releaseSigner: (() => void) | undefined;
+      let subscription: { unsubscribe(): void } | undefined;
+      let signingTimeout: ReturnType<typeof setTimeout> | undefined;
+
+      // The lifecycle's failure captures must point at the same transaction
+      // the fallback logic below reasons about.
+      const updateTxHash = (hash: string | undefined) => {
+        txHash = hash;
+        onTxHash(hash);
+      };
 
       try {
         const vault = await getVault();
@@ -135,10 +114,45 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         const receipt = await new Promise<TransactionReceipt>((resolve, reject) => {
           let confirmed: TransactionReceipt | undefined;
 
-          transaction.subscribe({
+          // Armed per signing step; a late timer is a no-op once a hash
+          // arrived, and a settled promise ignores the reject anyway. The
+          // timeout means "gave up waiting", not "did not happen": a wallet
+          // request cannot be cancelled, so a late approval may still
+          // broadcast — refetch stays on so balances self-correct, and the
+          // copy warns against blindly retrying.
+          const armSigningTimeout = () => {
+            clearTimeout(signingTimeout);
+            signingTimeout = setTimeout(() => {
+              if (!txHash)
+                reject(
+                  new AppError({
+                    message:
+                      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
+                    type: 'warning'
+                  })
+                );
+            }, SIGNING_TIMEOUT_MS);
+          };
+          armSigningTimeout();
+
+          subscription = transaction.subscribe({
             next: (status) => {
+              // A multi-transaction action (e.g. the SDK's approve + invest)
+              // reuses this observer: drop the previous step's hash as soon as
+              // the next step starts signing, so the chain fallback below can
+              // never resolve an earlier step's receipt as this action's outcome.
+              if (status.type === 'SigningTransaction') {
+                updateTxHash(undefined);
+                armSigningTimeout();
+              }
+
+              // Message signatures (the SDK's permit path, disabled today) can
+              // hang the same way a transaction signature can.
+              if (status.type === 'SigningMessage') armSigningTimeout();
+
               if (status.type === 'TransactionPending' && status.hash) {
-                txHash = status.hash;
+                clearTimeout(signingTimeout);
+                updateTxHash(status.hash);
                 setIsTxPending(true);
                 if (pendingToastId !== undefined) sonnerToast.dismiss(pendingToastId);
                 pendingToastId = toast({ type: 'pending', title: config.pendingToast(vars) });
@@ -160,8 +174,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
               // The SDK's error can be displaced before it carries the receipt
               // out (e.g. Next's dev log forwarder throws serializing the
               // receipt the SDK console.errors), so once a hash is known the
-              // chain is the source of truth. Costs one read, only here.
-              if (!txHash) {
+              // chain is the source of truth. Costs one read, only here. But a
+              // hash pointing at an already-confirmed earlier step (the approve
+              // of a two-transaction action) proves the failing transaction is
+              // a different one — fetching that receipt would report this
+              // failure as a success.
+              if (!txHash || txHash === confirmed?.transactionHash) {
                 reject(toRejectionError(err));
                 return;
               }
@@ -175,72 +193,19 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           });
         });
 
-        capture(receipt.status === 'success' ? choreography?.confirmed.success : choreography?.confirmed.failed, {
-          txHash: receipt.transactionHash,
-          receiptStatus: receipt.status,
-          // Reverted receipts carry no transfer events — decoding them would
-          // only fire a bogus failed-to-decode capture.
-          ...(receipt.status === 'success' ? config.analytics?.receiptInput?.(receipt, vars) : undefined)
-        });
-
-        // A reverted receipt resolves into the failure dialog (the mutation
-        // succeeds), so onError never sees it — capture here or the revert is
-        // invisible to Sentry.
-        if (receipt.status !== 'success')
-          Sentry.captureException(new Error('Transaction reverted on-chain'), {
-            tags: { source: 'MUTATION', flow: config.sentryFlow },
-            extra: {
-              ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
-              txHash: receipt.transactionHash
-            }
-          });
-
-        return { receipt };
-      } catch (err) {
-        const normalized = normalizeCentrifugeError(err, config.sdkErrorCopy);
-        const errorType = getAnalyticsErrorType(normalized);
-
-        capture(errorType === 'user_rejected' ? choreography?.rejected : choreography?.failed, {
-          txHash,
-          error_type: errorType
-        });
-
-        throw normalized;
+        return receipt;
       } finally {
+        // Nothing outlives the mutation: not the timer, not the observer
+        // (unsubscribed before the lock frees, so no callback can race a
+        // successor transaction), not the signer lock.
+        clearTimeout(signingTimeout);
+        subscription?.unsubscribe();
         releaseSigner?.();
         setIsTxPending(false);
         if (pendingToastId !== undefined) sonnerToast.dismiss(pendingToastId);
       }
-    },
-
-    onError: (err, vars) => {
-      onTxError({
-        err,
-        defaultToastMsg: config.errorToast(vars),
-        sentry: {
-          flow: config.sentryFlow,
-          extras: config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)
-        }
-      });
-    },
-
-    onSuccess: ({ receipt }, vars) => {
-      const transactionData = config.transactionData(receipt, vars);
-
-      setTransaction(transactionData);
-      if (transactionData.type === 'SUCCESS') config.onSuccessClose?.();
-    },
-
-    onSettled: (_, err, vars) => {
-      if (skipTxSettled(err)) return;
-      config.invalidate({ queryClient, address, vars });
     }
   });
-
-  return {
-    isTxPending,
-    ...mutationInfo
-  };
 }
 
 /**
@@ -327,9 +292,4 @@ function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, st
   }
 
   return err;
-}
-
-function toSentryExtras(vars: unknown): Record<string, unknown> {
-  if (vars && typeof vars === 'object') return vars as Record<string, unknown>;
-  return {};
 }

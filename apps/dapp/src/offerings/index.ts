@@ -5,7 +5,9 @@ import { type IconProps } from '@zivoe/ui/icons/types';
 
 import { type DepositToken, type ShareToken } from '@/types/constants';
 
-import { CENTRIFUGE_CONFIG } from '@/centrifuge';
+// Deep path on purpose: this module is imported by server components, and
+// config.ts is the only piece of @/centrifuge server code may touch.
+import { CENTRIFUGE_CONFIG } from '@/centrifuge/config';
 
 /**
  * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.

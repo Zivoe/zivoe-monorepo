@@ -10,12 +10,15 @@ export const createAmountValidator = ({
   balance,
   decimals,
   requiredMessage,
-  exceedsMessage
+  exceedsMessage,
+  max
 }: {
   balance: bigint;
   decimals: number;
   requiredMessage: string;
   exceedsMessage: string;
+  /** Optional cap above the balance rule (e.g. vault capacity); skipped while its value is unknown. */
+  max?: { value: bigint | undefined; message: string };
 }) => {
   return z.string({ required_error: requiredMessage }).superRefine((amount, ctx) => {
     const parsedAmount = parseUnits(amount, decimals);
@@ -31,6 +34,13 @@ export const createAmountValidator = ({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: exceedsMessage
+      });
+    }
+
+    if (max?.value !== undefined && parsedAmount > max.value) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: max.message
       });
     }
   });

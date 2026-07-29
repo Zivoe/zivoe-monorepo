@@ -132,7 +132,7 @@ describe('useCancelRedeem', () => {
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
-      title: 'Cancellation requested',
+      title: 'Cancellation Requested',
       description:
         'Your zMCA will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
       hash: TX_HASH,
