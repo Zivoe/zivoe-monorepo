@@ -4,7 +4,7 @@ import { getAllInsightSlugs } from '@/server/insights';
 
 import { SITE_ORIGIN } from '@/lib/seo';
 
-const STATIC_PATHS = ['/', '/team', '/faq', '/insights'];
+const STATIC_PATHS = ['/', '/team', '/faq', '/insights', '/migration-update'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const insightEntries = await getAllInsightSlugs();
