@@ -16,7 +16,7 @@ import { depositDialogAtom } from '@/lib/store';
 
 import ConnectedAccount from '@/components/connected-account';
 
-import AvailableLiquidity from './_components/available-liquidity';
+import MigrationNotice from './_components/migration-notice';
 import { TransactionDialog } from './_components/transaction-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
@@ -49,7 +49,7 @@ export default function Deposit({ apy, initialView }: { apy: number | null; init
         <DialogContent dialogClassName="gap-0" showCloseButton={false}>
           <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>Earn</DialogTitle>
-            <AvailableLiquidity type="mobile" />
+            <MigrationNotice type="mobile" />
           </DialogHeader>
 
           <EarnBox
@@ -130,7 +130,7 @@ function EarnBox({
         <TransactionDialog />
       </div>
 
-      <AvailableLiquidity type="desktop" />
+      <MigrationNotice type="desktop" />
     </div>
   );
 }

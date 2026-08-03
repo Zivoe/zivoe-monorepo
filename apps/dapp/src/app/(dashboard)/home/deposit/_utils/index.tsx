@@ -1,6 +1,8 @@
 import { parseUnits } from 'viem';
 import { z } from 'zod';
 
+export const TRANSACTIONS_DISABLED = true;
+
 export const depositPageTabSchema = z.enum(['deposit', 'redeem']);
 export const depositPageViewSchema = depositPageTabSchema.nullable();
 export type DepositPageTab = z.infer<typeof depositPageTabSchema>;
