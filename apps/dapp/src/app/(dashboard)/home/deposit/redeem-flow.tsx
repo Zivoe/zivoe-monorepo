@@ -32,7 +32,7 @@ import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
 import { useAvailableLiquidity } from './_hooks/useAvailableLiquidity';
 import { useRedeemUSDC } from './_hooks/useRedeemUSDC';
-import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
+import { TRANSACTIONS_DISABLED, calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
 
 type RedeemForm = z.infer<z.ZodObject<{ redeem: ReturnType<typeof createAmountValidator> }>>;
 
@@ -250,41 +250,51 @@ export default function RedeemFlow() {
         </div>
       ) : null}
 
-      <ConnectedAccount>
-        {isFetching ? (
-          <Button fullWidth isPending={true} pendingContent="Loading..." />
-        ) : !hasRedeemRaw ? (
-          <Button fullWidth onPress={handleRedeem}>
-            Redeem
-          </Button>
-        ) : !hasEnoughAllowance ? (
-          <Button
-            fullWidth
-            onPress={handleApprove}
-            isPending={approveSpending.isPending}
-            pendingContent={
-              approveSpending.isTxPending
-                ? 'Approving zVLT...'
-                : approveSpending.isPending
-                  ? 'Signing Transaction...'
-                  : undefined
-            }
-          >
-            Approve
-          </Button>
-        ) : (
-          <Button
-            fullWidth
-            onPress={handleRedeem}
-            isPending={redeemUSDC.isPending}
-            pendingContent={
-              redeemUSDC.isTxPending ? 'Redeeming zVLT...' : redeemUSDC.isPending ? 'Signing Transaction...' : undefined
-            }
-          >
-            Redeem
-          </Button>
-        )}
-      </ConnectedAccount>
+      {TRANSACTIONS_DISABLED ? (
+        <Button fullWidth isDisabled>
+          Redeem
+        </Button>
+      ) : (
+        <ConnectedAccount>
+          {isFetching ? (
+            <Button fullWidth isPending={true} pendingContent="Loading..." />
+          ) : !hasRedeemRaw ? (
+            <Button fullWidth onPress={handleRedeem}>
+              Redeem
+            </Button>
+          ) : !hasEnoughAllowance ? (
+            <Button
+              fullWidth
+              onPress={handleApprove}
+              isPending={approveSpending.isPending}
+              pendingContent={
+                approveSpending.isTxPending
+                  ? 'Approving zVLT...'
+                  : approveSpending.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
+              }
+            >
+              Approve
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              onPress={handleRedeem}
+              isPending={redeemUSDC.isPending}
+              pendingContent={
+                redeemUSDC.isTxPending
+                  ? 'Redeeming zVLT...'
+                  : redeemUSDC.isPending
+                    ? 'Signing Transaction...'
+                    : undefined
+              }
+            >
+              Redeem
+            </Button>
+          )}
+        </ConnectedAccount>
+      )}
     </>
   );
 }

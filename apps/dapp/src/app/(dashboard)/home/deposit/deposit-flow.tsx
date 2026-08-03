@@ -39,7 +39,7 @@ import { useDepositAllowances } from './_hooks/useDepositAllowances';
 import { useRouterDeposit } from './_hooks/useRouterDeposit';
 import { useRouterDepositPermit } from './_hooks/useRouterDepositPermit';
 import { useVaultDeposit } from './_hooks/useVaultDeposit';
-import { calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
+import { TRANSACTIONS_DISABLED, calculateZVLTDollarValue, createAmountValidator, parseInput } from './_utils';
 
 type DepositForm = z.infer<z.ZodObject<{ deposit: ReturnType<typeof createAmountValidator> }>>;
 
@@ -261,79 +261,85 @@ export function DepositFlow({ apy }: { apy: number | null }) {
         endContent={<TokenDisplay symbol="zVLT" />}
       />
 
-      <ConnectedAccount>
-        {isFetching ? (
-          <Button fullWidth isPending={true} pendingContent="Loading..." />
-        ) : !hasDepositRaw ? (
-          <Button fullWidth onPress={() => handleDeposit({ token: depositToken })}>
-            Deposit
-          </Button>
-        ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
-          !hasEnoughAllowance ? (
-            <Button
-              fullWidth
-              onPress={() => handleApprove({ approveToken: depositToken })}
-              isPending={approveSpending.isPending}
-              pendingContent={
-                approveSpending.isTxPending
-                  ? `Approving ${depositToken}...`
-                  : approveSpending.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
-              }
-            >
-              Approve
+      {TRANSACTIONS_DISABLED ? (
+        <Button fullWidth isDisabled>
+          Deposit
+        </Button>
+      ) : (
+        <ConnectedAccount>
+          {isFetching ? (
+            <Button fullWidth isPending={true} pendingContent="Loading..." />
+          ) : !hasDepositRaw ? (
+            <Button fullWidth onPress={() => handleDeposit({ token: depositToken })}>
+              Deposit
             </Button>
-          ) : depositToken === 'USDT' ? (
+          ) : depositToken === 'USDT' || depositToken === 'zSTT' ? (
+            !hasEnoughAllowance ? (
+              <Button
+                fullWidth
+                onPress={() => handleApprove({ approveToken: depositToken })}
+                isPending={approveSpending.isPending}
+                pendingContent={
+                  approveSpending.isTxPending
+                    ? `Approving ${depositToken}...`
+                    : approveSpending.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+                }
+              >
+                Approve
+              </Button>
+            ) : depositToken === 'USDT' ? (
+              <Button
+                fullWidth
+                onPress={() => handleDeposit({ token: depositToken })}
+                isPending={routerDeposit.isPending}
+                pendingContent={
+                  routerDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : routerDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
+                }
+              >
+                Deposit
+              </Button>
+            ) : depositToken === 'zSTT' ? (
+              <Button
+                fullWidth
+                onPress={() => handleDeposit({ token: depositToken })}
+                isPending={vaultDeposit.isPending}
+                pendingContent={
+                  vaultDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : vaultDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
+                }
+              >
+                Deposit
+              </Button>
+            ) : null
+          ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
             <Button
               fullWidth
               onPress={() => handleDeposit({ token: depositToken })}
-              isPending={routerDeposit.isPending}
+              isPending={permitDeposit.isPending}
               pendingContent={
-                routerDeposit.isTxPending
-                  ? `Depositing ${depositToken}...`
-                  : routerDeposit.isPending
-                    ? `Signing Transaction...`
-                    : undefined
+                permitDeposit.isPermitPending
+                  ? `Signing Permit...`
+                  : permitDeposit.isTxPending
+                    ? `Depositing ${depositToken}...`
+                    : permitDeposit.isPending
+                      ? `Signing Transaction...`
+                      : undefined
               }
             >
               Deposit
             </Button>
-          ) : depositToken === 'zSTT' ? (
-            <Button
-              fullWidth
-              onPress={() => handleDeposit({ token: depositToken })}
-              isPending={vaultDeposit.isPending}
-              pendingContent={
-                vaultDeposit.isTxPending
-                  ? `Depositing ${depositToken}...`
-                  : vaultDeposit.isPending
-                    ? `Signing Transaction...`
-                    : undefined
-              }
-            >
-              Deposit
-            </Button>
-          ) : null
-        ) : depositToken === 'USDC' || depositToken === 'frxUSD' ? (
-          <Button
-            fullWidth
-            onPress={() => handleDeposit({ token: depositToken })}
-            isPending={permitDeposit.isPending}
-            pendingContent={
-              permitDeposit.isPermitPending
-                ? `Signing Permit...`
-                : permitDeposit.isTxPending
-                  ? `Depositing ${depositToken}...`
-                  : permitDeposit.isPending
-                    ? `Signing Transaction...`
-                    : undefined
-            }
-          >
-            Deposit
-          </Button>
-        ) : null}
-      </ConnectedAccount>
+          ) : null}
+        </ConnectedAccount>
+      )}
 
       {receive && apy !== null && deposit ? <EstimatedAnnualReturn depositAmount={deposit} apy={apy} /> : null}
     </>
