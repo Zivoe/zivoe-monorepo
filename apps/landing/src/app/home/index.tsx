@@ -15,8 +15,8 @@ export default function Home() {
       <Diversify />
       <Separator />
       <HowItWorks />
-      <Portfolio />
-      <Infrastructure />
+      {/* <Portfolio /> */}
+      {/* <Infrastructure /> */}
       <Experience />
       <Footer />
     </>

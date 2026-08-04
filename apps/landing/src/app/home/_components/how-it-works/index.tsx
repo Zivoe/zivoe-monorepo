@@ -13,17 +13,13 @@ export default function HowItWorks() {
       <div className="flex w-full flex-col gap-10 sm:items-center sm:gap-16 xl:gap-20">
         <div className="flex flex-col gap-8 sm:items-center">
           <p className="font-heading! text-small text-primary sm:text-leading">
-            Built For Institutions, Perfect For Retail
+            Simplified, For You
           </p>
 
           <div className="flex flex-col gap-4 sm:items-center">
             <h2 className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">
-              Earning Has Never Been Simpler
+              Get Started in Three Steps
             </h2>
-
-            <p className="text-leading text-secondary sm:text-center sm:text-smallSubheading">
-              Start earning steady, risk-adjusted returns today — just deposit USDC.
-            </p>
           </div>
         </div>
 
@@ -31,7 +27,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit your stablecoins into Zivoe and receive zVLT."
+            description="Deposit stablecoins through the Zivoe platform."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -39,8 +35,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 2"
-            title="Earn"
-            description="zVLT automatically grows in value as interest is earned."
+            title="Track"
+            description="Track your position and monitor historical performance."
             image={<Step2Icon />}
             className="w-full min-w-full flex-1 items-end justify-start"
             imageClassName="items-end pt-3 max-w-[20rem] sm:w-full sm:max-w-max w-full flex-1 sm:[&>svg]:w-full"
@@ -48,8 +44,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 3"
-            title="Redeem"
-            description="Redeem your zVLT back for USDC, subject to liquidity availability."
+            title="Grow"
+            description="Grow your position, request a redemption at any time."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"

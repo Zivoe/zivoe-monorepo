@@ -13,6 +13,7 @@ import { TowerLeftIcon } from '@/components/tower-left-icon';
 import NewsletterForm from '../../../../components/newsletter/common/newsletter-form';
 import {
   CapitalOneIcon,
+  CentrifugeIcon,
   ChainalysisIcon,
   CowSwapIcon,
   JPMorganIcon,
@@ -57,7 +58,7 @@ export default function Experience() {
           <div className="flex w-full flex-col gap-14 sm:gap-20 xl:max-w-120 2xl:max-w-171">
             <Section
               title="Experienced Leadership"
-              description="Our team combines expertise from leading financial institutions and DeFi protocols."
+              description="Our team combines expertise from leading financial institutions."
               extra={
                 <Link href="/about-us" variant="link-neutral-dark" size="m">
                   Meet the Team
@@ -85,37 +86,9 @@ export default function Experience() {
             </Section>
 
             <Section
-              title="Audited by Top Security Firms"
-              description="We work with industry-leading auditors to ensure our platform is secure and reliable."
-              extra={
-                <Link
-                  href="https://docs.zivoe.com/official-links/audits"
-                  target="_blank"
-                  hideExternalLinkIcon
-                  variant="link-neutral-dark"
-                  size="m"
-                >
-                  Review Our Audits
-                  <ArrowRightIcon />
-                </Link>
-              }
-            >
-              <Partner>
-                <RuntimeIcon />
-              </Partner>
-
-              <Partner>
-                <SherlockIcon />
-              </Partner>
-            </Section>
-
-            <Section
               title="Compliance-First Approach"
               description="We collaborate with Securitize and Chainalysis to ensure we meet the highest standards of regulatory compliance."
             >
-              <Partner>
-                <SecuritizeIcon />
-              </Partner>
 
               <Partner>
                 <ChainalysisIcon />
@@ -123,19 +96,15 @@ export default function Experience() {
             </Section>
 
             <Section
-              title="Collaborating with Industry Leaders"
-              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our users."
+              title="Infrastructure & Ecosystem Partners"
+              description="Zivoe works with specialized providers across the digital asset and private credit ecosystem."
             >
-              <Partner>
-                <CowSwapIcon />
-              </Partner>
               <div className="flex flex-wrap gap-4">
                 <Partner>
-                  <RwaioIcon />
+                  <CentrifugeIcon className="h-7 w-auto" />
                 </Partner>
-
                 <Partner>
-                  <M0Icon />
+                  <RwaioIcon />
                 </Partner>
               </div>
             </Section>
