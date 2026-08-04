@@ -42,7 +42,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex w-full flex-col justify-between gap-8 lg:mt-14 lg:flex-row">
-          <p className="text-small text-base">©Zivoe 2025. All Right Reserved.</p>
+          <p className="text-small text-base">©Zivoe 2026. All rights reserved</p>
 
           <div className="order-2 flex gap-8 lg:order-1">
             <Link
@@ -62,7 +62,7 @@ export default function Footer() {
               variant="link-base"
               size="s"
             >
-              Reg S Complicance
+              Reg S Compliance
             </Link>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function Footer() {
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on
-          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representation or warranties
+          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representations or warranties
           of any kind relating to the Protocol, and no developer or entity will be liable for claims or damages of any
           kind associated with use or inability to use the Protocol.
         </p>
