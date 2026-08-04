@@ -73,59 +73,106 @@ const FAQs: Array<{
   {
     question: 'What is Zivoe?',
     answer:
-      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals, offering exposure to yield opportunities that were traditionally out of reach.'
+      'Zivoe connects institutional and stablecoin capital with regional private credit through a standardized platform. We work with experienced originators and support strategy administration, portfolio reporting, compliance workflows, and participant access. The platform is designed to support additional private credit strategies and networks over time.'
   },
   {
-    question: 'How have these loans performed historically?',
-    answer:
-      'Private credit has shown consistent performance across market cycles, providing stable returns even when public markets experienced volatility. During the 2008 financial crisis, when traditional credit contracted sharply, many private lenders continued to perform, supported by disciplined underwriting and diversified borrower bases. This history underscores the resilience of private credit as an asset class.'
-  },
-  {
-    question: 'What are the risks?',
-    answer:
-      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination.'
-  },
-  {
-    question: 'How do I earn yield?',
-    answer:
-      'Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit.'
-  },
-  {
-    question: 'What are the fees?',
-    answer:
-      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
-  },
-  {
-    question: 'Is there a minimum deposit amount?',
-    answer:
-      'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
-  },
-  {
-    question: 'What is the lockup and liquidity policy?',
+    question: 'What strategy is currently available through Zivoe?',
     answer: (
       <>
-        Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital
-        availability. To initiate a redemption, or if you have questions about the redemption process before depositing,
-        contact us at{' '}
-        <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
-          investors@zivoe.com
-        </Link>
-        .
+        Zivoe currently supports one private credit strategy focused on lending to small and medium-sized businesses. The strategy operates on Ethereum and is being migrated to Centrifuge infrastructure as part of the platform's next phase.
+        <br />
+        <br />
+        Zivoe plans to support additional private credit strategies and blockchain networks over time, subject to completion of the necessary diligence, documentation, infrastructure, and approvals.
       </>
-    ),
-    jsonLdAnswer:
-      'Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital availability. To initiate a redemption, or if you have questions about the redemption process before depositing, contact us at investors@zivoe.com.'
+    )
   },
   {
-    question: 'How do I convert my tranche tokens to zVLT?',
+    question: 'How can a Zivoe position generate returns?',
     answer:
-      'Zivoe has transitioned from its original tranche-based system to a unified auto-compounding vault token called zVLT, which launched alongside our new dApp. Senior tranche token holders use their tokens in the new dApp to mint zVLT while junior tranche tokens holders will first need to visit our legacy dApp (a link to this can be found in the footer on this page) and convert their junior tranche tokens first to senior tranche tokens and then to zVLT.'
+      (
+      <>
+        The performance of a Zivoe position is linked to the applicable strategy and its underlying loans, subject to the strategy's terms. Those loans may generate income from interest and other borrower payments.
+        <br />
+        <br />
+        After applicable fees, expenses, and credit losses, performance is reflected in a participant’s position according to the strategy’s terms. Assets and sources of income may vary by strategy. Returns are not fixed or guaranteed, and participants may lose some or all of their capital.
+      </>
+    )
   },
   {
-    question: 'Has Zivoe been audited?',
+    question: 'Who can participate?',
     answer:
-      "Yes. Zivoe's smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards."
-  }
+      (
+      <>
+        Zivoe may be available to non-US persons who meet applicable eligibility requirements and accredited US investors, subject to the terms of the applicable offer.
+        <br />
+        <br />
+        Participants will need to complete the identity, eligibility, and compliance verification applicable to their jurisdiction and status.
+      </>
+    )
+  },
+  {
+    question: 'How do deposits and redemptions work?',
+    answer:
+      (
+      <>
+        Participants deposit supported stablecoins displayed on the platform. Once onboarding and applicable verification are complete, assets are allocated according to the strategy’s terms, and the participant receives a position in the strategy.
+        <br />
+        <br />
+        Redemption requests are processed on a scheduled basis rather than immediately, subject to available liquidity, processing requirements, and the applicable terms.
+      </>
+    )
+  },
+  {
+    question: 'What transparency and reporting will Zivoe provide?',
+    answer:
+      (
+      <>
+        At launch, participants will be able to review core information about their position and account activity through the Zivoe platform.
+        <br />
+        <br />
+        Zivoe is developing an expanded transparency page to provide greater visibility into portfolio composition, performance, repayments, cash activity, and risk. It is planned for release after the migration, and Zivoe will share timing when confirmed.
+        <br />
+        <br />
+        Information is updated as data is received and processed and may not be available in real time.
+      </>
+    )
+  },
+  {
+    question: 'What fees, liquidity limitations, and risks apply?',
+    answer:
+      (
+      <>
+        Applicable fees, expenses, liquidity terms, and material risks are disclosed in the applicable materials before participation.
+        <br />
+        <br />
+        Private credit involves risk, including borrower default, delayed repayment, limited liquidity, servicing, technology, and regulatory risks. Participants may lose some or all of their capital and should review the applicable documentation carefully.
+      </>
+    )
+  },
+  {
+    question: 'What does Zivoe offer institutions?',
+    answer:
+      (
+      <>
+        Zivoe gives eligible institutions a standardized way to access private credit and work with regional originators through consistent structures, administration, and reporting. The platform is designed to support additional lending markets and strategy types over time.
+        <br />
+        <br />
+        Zivoe works with allocators, treasuries, capital providers, and strategic partners across strategy access, origination relationships, and platform partnerships. Institutions can contact the Zivoe team through the For Institutions page.
+      </>
+    )
+  },
+  {
+    question: 'How does Zivoe work with originators?',
+    answer:
+      (
+      <>
+        Zivoe partners with experienced originators that source, underwrite, and service loans in their markets. Zivoe provides the platform infrastructure around those assets, supporting strategy setup, portfolio administration, net asset value (NAV) reporting, compliance workflows, and investor reporting.
+        <br />
+        <br />
+        The platform is designed to help originators connect with eligible capital without building the full operating stack themselves.
+      </>
+    )
+  },
 ];
 
 const faqJsonLd = {
