@@ -1,11 +1,9 @@
 import { Suspense } from 'react';
 
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
-import { Link, type LinkProps } from '@zivoe/ui/core/link';
+import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
 import { web3 } from '@/server/web3';
-
-import { formatBigIntToReadable } from '@/lib/utils';
 
 import Container from '@/components/container';
 import {
@@ -35,17 +33,17 @@ export default function Hero() {
               </div>
 
               <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>
-              <p className="text-smallSubheading text-primary sm:max-w-full">
+              <p className="max-w-120 text-smallSubheading text-primary">
                 Access institutional grade yield opportunities across private credit markets.
               </p>
             </div>
-
-            <MigrationNotice />
 
             <div className="mt-4 sm:mt-6">
               <HeroButton size="m" className="sm:hidden" />
               <HeroButton size="l" className="hidden sm:flex" />
             </div>
+
+            <MigrationNotice />
           </div>
 
           <Suspense>
@@ -67,31 +65,47 @@ export default function Hero() {
   );
 }
 
-function HeroButton(props: LinkProps) {
+function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
   return (
-    <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary" {...props}>
-      Start Earning
-    </Link>
+    <SplitCta href="https://app.zivoe.com" target="_blank" {...props}>
+      Launch App
+    </SplitCta>
   );
 }
 
 async function Statistics() {
-  const [currentDailySnapshot, revenue] = await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
+  // Leaving state here, not used, but will be re-implemented in future
+  await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
 
   return (
-    <div className="flex gap-6 lg:gap-16">
-      {currentDailySnapshot?.tvl ? (
-        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailySnapshot.tvl.total))} />
-      ) : null}
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-6 lg:gap-16 lg:-mt-20">
+        <Statistic label="Loans Funded" value="1,000+" isApproximate />
 
-      <Statistic label="Target Net APY" value="10%+" />
+        <Statistic label="Originations" value="$10M" isApproximate />
 
-      {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
+        <Statistic label="Distributions" value="$1.16M" isApproximate />
+      </div>
+
+      <p className="text-extraSmall text-secondary sm:text-small">
+        *Approximate figures from Zivoe&apos;s operating history. Values may change as portfolio and operating data are
+        updated.
+      </p>
     </div>
   );
 }
 
-function Statistic({ label, value, description }: { label: string; value: string; description?: string }) {
+function Statistic({
+  label,
+  value,
+  description,
+  isApproximate = false
+}: {
+  label: string;
+  value: string;
+  description?: string;
+  isApproximate?: boolean;
+}) {
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
       <div className="flex items-center">
@@ -103,7 +117,10 @@ function Statistic({ label, value, description }: { label: string; value: string
           </ContextualHelp>
         )}
       </div>
-      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
+      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">
+        {value}
+        {isApproximate ? <sup className="ml-0.5 align-super text-extraSmall sm:text-small">*</sup> : null}
+      </p>
     </div>
   );
 }
