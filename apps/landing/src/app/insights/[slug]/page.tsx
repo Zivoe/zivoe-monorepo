@@ -129,7 +129,7 @@ export default async function InsightPostPage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={articleJsonLd} />
-      <Container className="px-4 pb-20 pt-10 sm:px-10 xl:px-34">
+      <Container className="px-4 pt-10 pb-20 sm:px-10 xl:px-34">
         <div className="mx-auto flex w-full max-w-228 flex-col gap-8">
           {previewSession.isEnabled ? <InsightsLivePreview serverURL={getInsightsCmsOrigin()} /> : null}
 

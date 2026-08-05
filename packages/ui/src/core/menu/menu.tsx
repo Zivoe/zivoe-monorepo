@@ -52,13 +52,10 @@ function MenuComponent<T extends { id: string; label: string }>(
 
 const menuItemVariants = tv({
   base: [
-    'text-small relative flex cursor-default items-center rounded-sm px-3 py-2.5 outline-hidden transition-colors select-none',
-    /* Disabled */
+    'relative flex cursor-default items-center rounded-sm px-3 py-2.5 text-small outline-hidden transition-colors select-none',
     'disabled:pointer-events-none disabled:opacity-60',
-    /* Focused */
     'focus:bg-element-neutral-light',
-    /* Hovered */
-    'hover:bg-element-neutral-light hover:cursor-pointer'
+    'hover:cursor-pointer hover:bg-element-neutral-light'
   ],
 
   variants: {
@@ -104,7 +101,7 @@ const MenuItem = ({
 };
 
 const MenuSeparator = ({ className, ...props }: Aria.SeparatorProps) => (
-  <Aria.Separator className={cn('bg-element-neutral-light my-1 h-px', className)} {...props} />
+  <Aria.Separator className={cn('my-1 h-px bg-element-neutral-light', className)} {...props} />
 );
 
 const MenuButton = ({ className, isCurrent: _isCurrent, ...props }: ButtonProps & { isCurrent?: boolean }) => {

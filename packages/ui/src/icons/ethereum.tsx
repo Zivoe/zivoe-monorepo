@@ -1,0 +1,25 @@
+import React from 'react';
+
+import { type IconProps } from './types';
+
+export const EthereumIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+      ref={forwardedRef}
+    >
+      <rect width="32" height="32" rx="16" fill="#627EEA" />
+      <path d="M16.498 4v8.87l7.497 3.35L16.498 4Z" fill="white" fillOpacity="0.602" />
+      <path d="M16.498 4 9 16.22l7.498-3.35V4Z" fill="white" />
+      <path d="M16.498 21.968v6.027L24 17.616l-7.502 4.352Z" fill="white" fillOpacity="0.602" />
+      <path d="M16.498 27.995v-6.028L9 17.616l7.498 10.379Z" fill="white" />
+      <path d="M16.498 20.573l7.497-4.353-7.497-3.348v7.701Z" fill="white" fillOpacity="0.2" />
+      <path d="M9 16.22l7.498 4.353v-7.701L9 16.22Z" fill="white" fillOpacity="0.602" />
+    </svg>
+  );
+});

@@ -45,7 +45,7 @@ export default function NewsletterForm() {
       const { res: token, err: tokenErr } = await handlePromise(executeTurnstile());
 
       if (!token || tokenErr) {
-        toast({ type: 'error', title: 'Error verifying user' });
+        toast({ type: 'error', title: 'Error Verifying User' });
         return;
       }
 
@@ -92,7 +92,7 @@ export default function NewsletterForm() {
           siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
           onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-          onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify you are human to continue' })}
+          onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify You Are Human to Continue' })}
           ref={turnstileRef}
         />
       )}
@@ -137,7 +137,7 @@ const useTurnstile = () => {
       turnstilePromiseRef.current = { resolve, reject };
 
       try {
-        // Turnstile token is valid only once so in the case of an error with the sign-up process, we need to reset before executing again
+        // Turnstile token is valid only once, so reset before executing again
         turnstileRef.current?.reset();
         turnstileRef.current?.execute();
       } catch (error) {

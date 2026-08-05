@@ -1,7 +1,14 @@
 {
   "extends": "@zivoe/ts-config/nextjs.json",
   "compilerOptions": {
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      { "name": "next" },
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "../../packages/centrifuge-indexer/schema.graphql",
+        "tadaOutputLocation": "../../packages/centrifuge-indexer/src/graphql-env.d.ts"
+      }
+    ],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],

@@ -76,10 +76,9 @@ export async function trackWalletConnection(wallet: { address: string; walletTyp
     return { tracked: false };
   }
 
-  // Wallet already tracked (upsert updated existing row)
+  // Already tracked (the upsert hit an existing row), so skip the first-connection side effects.
   if (!res[0].isNew) return { tracked: true };
 
-  // Fetch initial holdings + capture analytics in parallel
   const [qstashResult, posthogResult] = await Promise.allSettled([
     qstash.publishJSON({
       url: `${BASE_URL}/api/wallets/fetch-holdings`,

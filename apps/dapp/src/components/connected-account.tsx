@@ -35,15 +35,13 @@ export default function ConnectedAccount({
       await handleLogOut();
     } catch (error) {
       console.error(error);
-      toast({ type: 'error', title: 'Error disconnecting wallet' });
+      toast({ type: 'error', title: 'Error Disconnecting Wallet' });
     }
   };
 
   if (isPending || (address && (assessment.isFetching || assessment.isPending))) {
     return type === 'skeleton' ? (
-      <Skeleton
-        className={cn('h-12 rounded-sm', fullWidth ? 'w-full' : 'w-36.25', connectSkeletonClassName)}
-      />
+      <Skeleton className={cn('h-12 rounded-sm', fullWidth ? 'w-full' : 'w-36.25', connectSkeletonClassName)} />
     ) : (
       <Button fullWidth={fullWidth} isPending pendingContent="Loading...">
         Pending

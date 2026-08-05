@@ -7,15 +7,16 @@ import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import DepositConfirmationEmail from './emails/deposit-confirmation-email';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
-import type { ReceiptTokenSymbol } from './emails/receipt-config';
-import RedemptionConfirmationEmail from './emails/redemption-confirmation-email';
 import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
 import WelcomeEmail from './emails/welcome-email';
 import { buildOneClickUnsubscribeUrl, buildUnsubscribeUrl } from './unsubscribe';
+
+// The transaction-receipt senders live with their only caller, the archived
+// transaction monitor (archived/transaction-monitor/emails/) — they return
+// here when the monitor is revived.
 
 const resend = new Resend(env.RESEND_API_KEY);
 const PRODUCT_TIPS_LIST_ID = 'Product Tips <product-tips.zivoe.com>';
@@ -140,107 +141,7 @@ export async function sendSecondDepositReminderEmail({
   );
 }
 
-export async function sendDepositConfirmationEmail({
-  to,
-  userId,
-  inputAmount,
-  inputTokenSymbol,
-  sharesReceived,
-  walletAddress,
-  txHash,
-  eventTimestamp,
-  eventId
-}: {
-  to: string;
-  userId: string;
-  inputAmount: string;
-  inputTokenSymbol: ReceiptTokenSymbol;
-  sharesReceived: string;
-  walletAddress: string;
-  txHash: string;
-  eventTimestamp: bigint;
-  eventId: string;
-}) {
-  const unsubscribeUrl = buildUnsubscribeUrl({ userId, email: to, bucket: 'transaction_receipts' });
-  const html = await render(
-    DepositConfirmationEmail({
-      inputAmount,
-      inputTokenSymbol,
-      sharesReceived,
-      walletAddress,
-      txHash,
-      eventTimestamp,
-      unsubscribeUrl
-    })
-  );
-
-  return handleIdempotentResult(
-    await resend.emails.send(
-      {
-        from: 'Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
-        to,
-        subject: 'Deposit Confirmed',
-        html
-      },
-      {
-        idempotencyKey: `deposit-confirmation/${eventId}/${userId}`
-      }
-    )
-  );
-}
-
-export async function sendRedemptionConfirmationEmail({
-  to,
-  userId,
-  zVLTRedeemed,
-  usdcReceived,
-  fee,
-  walletAddress,
-  txHash,
-  eventTimestamp,
-  eventId
-}: {
-  to: string;
-  userId: string;
-  zVLTRedeemed: string;
-  usdcReceived: string;
-  fee: string;
-  walletAddress: string;
-  txHash: string;
-  eventTimestamp: bigint;
-  eventId: string;
-}) {
-  const unsubscribeUrl = buildUnsubscribeUrl({ userId, email: to, bucket: 'transaction_receipts' });
-  const html = await render(
-    RedemptionConfirmationEmail({
-      zVLTRedeemed,
-      usdcReceived,
-      fee,
-      walletAddress,
-      txHash,
-      eventTimestamp,
-      unsubscribeUrl
-    })
-  );
-
-  return handleIdempotentResult(
-    await resend.emails.send(
-      {
-        from: 'Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
-        to,
-        subject: 'Redemption Complete',
-        html
-      },
-      {
-        idempotencyKey: `redemption-confirmation/${eventId}/${userId}`
-      }
-    )
-  );
-}
-
-function handleIdempotentResult<T>({
+export function handleIdempotentResult<T>({
   data,
   error
 }: {

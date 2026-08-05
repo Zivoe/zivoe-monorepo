@@ -1,4 +1,4 @@
-import { BASE_IGNORES, BASE_RULES } from './base.mjs';
+import { BASE_CONFIGS, BASE_IGNORES, BASE_PLUGINS, BASE_RULES } from './base.mjs';
 
 /**
  * Shared ESLint flat config for internal (non-Next.js) packages.
@@ -15,6 +15,7 @@ export function reactInternalConfig({
     { ignores: [...BASE_IGNORES, ...extraIgnores] },
     ...tseslint.configs.recommendedTypeChecked,
     ...tseslint.configs.stylisticTypeChecked,
+    ...BASE_CONFIGS,
     {
       files: ['**/*.{ts,tsx}'],
       languageOptions: {
@@ -22,6 +23,9 @@ export function reactInternalConfig({
           project: true,
           tsconfigRootDir,
         },
+      },
+      plugins: {
+        ...BASE_PLUGINS,
       },
       rules: {
         ...BASE_RULES,

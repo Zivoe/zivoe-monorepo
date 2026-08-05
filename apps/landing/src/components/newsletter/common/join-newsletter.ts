@@ -15,13 +15,11 @@ const bodySchema = z.object({
 });
 
 export async function joinNewsletter(data: { email: string; turnstileToken: string }) {
-  // Validate the body
   const parsedBody = bodySchema.safeParse(data);
   if (!parsedBody.success) return { error: 'Email is not valid' };
 
   const { email, turnstileToken } = parsedBody.data;
 
-  // Verify the turnstile token
   if (env.NEXT_PUBLIC_ENV === 'production') {
     const formData = new FormData();
     formData.append('secret', env.TURNSTILE_SECRET_KEY);
@@ -37,7 +35,6 @@ export async function joinNewsletter(data: { email: string; turnstileToken: stri
     if (turnstileDataError || !turnstileData.success) return { error: TURNSTILE_ERROR_MESSAGE };
   }
 
-  // Join the newsletter
   const beehiivResponse = await handlePromise(
     fetch(`https://api.beehiiv.com/v2/publications/${env.BEEHIIV_PUBLICATION_ID}/subscriptions`, {
       method: 'POST',

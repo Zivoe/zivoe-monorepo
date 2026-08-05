@@ -9,7 +9,7 @@ import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './
 
 export default function Diversify() {
   return (
-    <Container className="w-fit justify-between gap-20 pb-10 pt-16 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pb-30 xl:pt-50 2xl:px-48">
+    <Container className="w-fit justify-between gap-20 pt-16 pb-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pt-50 xl:pb-30 2xl:px-48">
       <div className="flex flex-col gap-6 sm:gap-8 xl:sticky xl:top-16 xl:mt-16 xl:max-w-122">
 
         <div className="flex flex-col gap-4">

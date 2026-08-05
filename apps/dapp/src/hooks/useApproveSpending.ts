@@ -1,17 +1,16 @@
 import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
 
-import { type tetherTokenAbi, type zivoeTrancheTokenAbi } from '@zivoe/contracts/abis';
-
 import { type Token } from '@/types/constants';
 
+import { NETWORK_CHAIN } from '@/lib/network';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import useTx, { parseReceiptEvent, type TxParams } from './useTx';
+import useTx, { type TxParams, parseReceiptEvent } from './useTx';
 
-export type ApproveTokenAbi = typeof tetherTokenAbi | typeof zivoeTrancheTokenAbi | typeof erc20Abi;
+export type ApproveTokenAbi = typeof erc20Abi;
 export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
 
 type ApproveSpendingVariables = {
@@ -43,6 +42,7 @@ export const useApproveSpending = () => {
       flow: 'approval',
       input: ({ name, amount, spender }, { address }) => ({
         walletAddress: address,
+        chainId: NETWORK_CHAIN.id,
         tokenIn: name as Token,
         amountInRaw: amount,
         spender
@@ -88,7 +88,6 @@ export const useApproveSpending = () => {
     },
 
     invalidate: ({ queryClient, address, vars }) => {
-      // Refetch allowance
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,

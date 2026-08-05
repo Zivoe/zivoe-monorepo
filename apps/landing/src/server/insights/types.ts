@@ -14,6 +14,7 @@ import type {
   SerializedUploadNode,
   TypedEditorState
 } from '@payloadcms/richtext-lexical';
+
 import type { InsightsEmbedBlockFields } from '@zivoe/cms-types/insights-embeds';
 import type { Author, Category, InsightsPost, Media } from '@zivoe/cms-types/payload-types';
 

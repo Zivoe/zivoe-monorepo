@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
-import { web3 } from '@/server/web3';
+import { centrifuge } from '@/server/centrifuge';
 
 import Container from '@/components/container';
 import {
@@ -17,6 +17,9 @@ import NavigationSection from '@/components/navigation';
 import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
 import MigrationNotice from './migration-notice';
+
+/** Published Target APY, in percent, while the trailing-yield read is disabled. */
+const TARGET_APY_PERCENT = 14;
 
 export default function Hero() {
   return (
@@ -59,7 +62,7 @@ export default function Hero() {
 
       <HeroClouds
         aria-hidden="true"
-        className="absolute -left-37.5 bottom-1/4 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
+        className="absolute bottom-1/4 -left-37.5 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
       />
     </div>
   );
@@ -109,7 +112,7 @@ function Statistic({
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
       <div className="flex items-center">
-        <p className="whitespace-nowrap text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+        <p className="text-leading whitespace-nowrap text-primary/80 lg:text-smallSubheading">{label}</p>
 
         {description && (
           <ContextualHelp variant="info">

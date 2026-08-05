@@ -13,6 +13,9 @@ const config = {
     '^(react/(.*)$)|^(react$)',
     '^(next/(.*)$)|^(next$)',
     '<THIRD_PARTY_MODULES>',
+    // Stylesheets get their own group so the sorter can't drift a global CSS import past a
+    // component import and silently reshuffle the cascade.
+    '\\.css$',
     '^@zivoe/(.*)$',
     '^@/types/(.*)$',
     '^@/server/(.*)$',

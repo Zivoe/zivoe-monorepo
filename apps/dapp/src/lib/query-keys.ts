@@ -8,7 +8,6 @@ const account = {
   by: ({ accountAddress }: AccountProps) => ['ACCOUNT', accountAddress],
   balance: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'BALANCE'],
   balanceOf: ({ accountAddress, id }: AccountProps & { id: Address }) => [...account.balance({ accountAddress }), id],
-  depositBalances: ({ accountAddress }: AccountProps) => [...account.balance({ accountAddress }), 'DEPOSIT'],
   allowance: ({ accountAddress, contract, spender }: AccountProps & { contract: Address; spender: Address }) => [
     ...account.by({ accountAddress }),
     'ALLOWANCE',
@@ -17,15 +16,14 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  vestingSchedule: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'VESTING_SCHEDULE'],
-  claimableVesting: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CLAIMABLE_VESTING']
+  investment: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'INVESTMENT']
 };
 
 const app = {
-  vault: ['VAULT'],
-  redemption: ['REDEMPTION'],
-  blockchainTimestamp: ['BLOCKCHAIN_TIMESTAMP'],
-  emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session']
+  emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
+  vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
+  depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()],
+  shareMetrics: ['CENTRIFUGE', 'SHARE_METRICS']
 };
 
 export const queryKeys = {

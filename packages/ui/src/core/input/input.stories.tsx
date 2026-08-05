@@ -84,7 +84,7 @@ export const States: Story = {
         label="Search articles"
         labelClassName="sr-only"
         placeholder="Search articles"
-        startContent={<SearchIcon className="text-icon-default size-5! shrink-0" />}
+        startContent={<SearchIcon className="size-5! shrink-0 text-icon-default" />}
         isClearable
         clearButtonAriaLabel="Clear search"
         clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
@@ -94,5 +94,5 @@ export const States: Story = {
 };
 
 function Icon() {
-  return <div className="bg-surface-brand size-4 rounded-full" />;
+  return <div className="size-4 rounded-full bg-surface-brand" />;
 }

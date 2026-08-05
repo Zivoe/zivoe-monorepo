@@ -1,22 +1,12 @@
 import { type ReactNode } from 'react';
 
-import { ArrowLeftIcon, ArrowRightIcon } from '@zivoe/ui/icons';
-
 import { NextLink } from '@zivoe/ui/core/link';
-
+import { ArrowLeftIcon, ArrowRightIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { INSIGHTS_PAGE_SIZE } from '@/server/insights/queries';
 
-function buildPageHref({
-  category,
-  page,
-  search
-}: {
-  category?: string;
-  page: number;
-  search?: string;
-}) {
+function buildPageHref({ category, page, search }: { category?: string; page: number; search?: string }) {
   const params = new URLSearchParams();
 
   if (category) params.set('category', category);

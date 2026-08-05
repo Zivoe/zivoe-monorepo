@@ -11,13 +11,11 @@ export function useOtpResendRateLimit() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derived state
   const isOnCooldown = remainingSeconds > 0;
   const isExhausted = resendCount >= MAX_RESENDS;
   const canResend = !isOnCooldown && !isExhausted;
   const attemptsRemaining = MAX_RESENDS - resendCount;
 
-  // Countdown timer effect
   const isCountingDown = remainingSeconds > 0;
 
   useEffect(() => {
