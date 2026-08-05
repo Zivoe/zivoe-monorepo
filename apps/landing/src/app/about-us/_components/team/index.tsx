@@ -238,7 +238,7 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     title: 'Head of Risk',
     image: '/team/walt.png',
     bio: 'Credit risk leader with 20+ years of experience managing credit portfolios at top financial institutions. Held senior risk roles at JP Morgan Chase, Lloyds Bank, Elevate, and Liberty Lending.',
-    linkedIn: 'https://www.linkedin.com/in/walt-ramsey-109755/'
+    linkedIn: 'https://www.linkedin.com/in/henry-ramsey-109755/'
   },
   {
     name: 'Chad Deal',
@@ -253,13 +253,6 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
     image: '/team/shannon.png',
     bio: 'Certified Public Accountant with corporate finance experience at USA Rare Earth, CONMED Corporation, and FIS.',
     linkedIn: 'https://www.linkedin.com/in/shannonwright9339/'
-  },
-  {
-    name: 'Stephanie Puzzo',
-    title: 'Head of Marketing',
-    image: '/team/stephanie.png',
-    bio: 'Marketing strategist with 10+ years in B2B and B2C marketing. Former marketing leader at Mercantile and Capital One.',
-    linkedIn: 'https://www.linkedin.com/in/stephaniepuzzo/'
   },
   {
     name: 'Dennis Baca',
