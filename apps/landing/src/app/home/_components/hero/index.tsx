@@ -42,8 +42,6 @@ export default function Hero() {
               <HeroButton size="m" className="sm:hidden" />
               <HeroButton size="l" className="hidden sm:flex" />
             </div>
-
-            <MigrationNotice />
           </div>
 
           <Suspense>
