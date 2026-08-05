@@ -87,7 +87,7 @@ export default function Experience() {
 
             <Section
               title="Compliance-First Approach"
-              description="We collaborate with Securitize and Chainalysis to ensure we meet the highest standards of regulatory compliance."
+              description="We leverage Chainalysis to ensure we meet the highest standards of regulatory compliance."
             >
 
               <Partner>
