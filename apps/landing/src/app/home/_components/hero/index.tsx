@@ -18,9 +18,6 @@ import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
 import MigrationNotice from './migration-notice';
 
-/** Published Target APY, in percent, while the trailing-yield read is disabled. */
-const TARGET_APY_PERCENT = 14;
-
 export default function Hero() {
   return (
     <div className="relative z-0 h-220 overflow-clip bg-element-tertiary sm:h-300 lg:h-245">
@@ -77,9 +74,6 @@ function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
 }
 
 async function Statistics() {
-  // Leaving state here, not used, but will be re-implemented in future
-  await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex gap-6 lg:gap-16 lg:-mt-20">
