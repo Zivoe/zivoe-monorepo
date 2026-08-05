@@ -17,6 +17,7 @@ import {
 import NavigationSection from '@/components/navigation';
 
 import { HeroClouds } from './clouds';
+import MigrationNotice from './migration-notice';
 
 /** Published Target APY, in percent, while the trailing-yield read is disabled. */
 const TARGET_APY_PERCENT = 14;
@@ -36,7 +37,9 @@ export default function Hero() {
               </p>
             </div>
 
-            <div className="mt-4 sm:mt-10">
+            <MigrationNotice />
+
+            <div className="mt-4 sm:mt-6">
               <HeroButton size="m" className="sm:hidden" />
               <HeroButton size="l" className="hidden sm:flex" />
             </div>
