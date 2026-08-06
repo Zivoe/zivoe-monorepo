@@ -5,7 +5,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import Container from '@/components/container';
 
-import { AutocompoundingIcon, EthereumIcon, LiquidityIcon, TargetIcon } from './assets';
+import { EthereumIcon, LiquidityIcon, TargetIcon } from './assets';
 
 export default function Diversify() {
   return (

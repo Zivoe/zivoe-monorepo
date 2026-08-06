@@ -3,8 +3,6 @@ import { Suspense } from 'react';
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
-import { centrifuge } from '@/server/centrifuge';
-
 import Container from '@/components/container';
 import {
   HeroElement2MobileComponent,

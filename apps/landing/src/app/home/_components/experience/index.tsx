@@ -15,14 +15,9 @@ import {
   CapitalOneIcon,
   CentrifugeIcon,
   ChainalysisIcon,
-  CowSwapIcon,
   JPMorganIcon,
-  M0Icon,
   MapleIcon,
-  RuntimeIcon,
   RwaioIcon,
-  SecuritizeIcon,
-  SherlockIcon,
   WellsFargoIcon
 } from './assets';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
