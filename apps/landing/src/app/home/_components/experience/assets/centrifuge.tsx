@@ -13,30 +13,17 @@ export const CentrifugeIcon = React.forwardRef<SVGSVGElement, IconProps>(
       ref={forwardedRef}
       {...props}
     >
-      <mask
-        id="centrifuge-logo-mask"
-        style={{ maskType: 'luminance' }}
-        maskUnits="userSpaceOnUse"
-        x="0"
-        y="0"
-        width="172"
-        height="138"
-      >
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M0.794617 0.460266H171.728V137.718H0.794617V0.460266Z"
-          fill="white"
-        />
-      </mask>
-      <g mask="url(#centrifuge-logo-mask)">
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M20.8098 132.621C15.7303 121.782 12.8931 109.689 12.8931 96.9363C12.8931 50.3143 50.8101 12.5199 97.5832 12.5199C123.627 12.5199 146.925 24.2386 162.46 42.6738L171.728 34.9222C153.973 13.8532 127.348 0.460266 97.5832 0.460266C44.1283 0.460266 0.794617 43.6541 0.794617 96.9363C0.794617 111.511 4.03702 125.331 9.8422 137.719L20.8098 132.621Z"
-          fill="#1F262F"
-        />
-      </g>
+      {/*
+        The Figma export wrapped this path in a luminance mask whose rect was just the path's own
+        bounding box, so it clipped nothing. Dropping it also drops the static `id`, which would
+        otherwise be duplicated in the DOM wherever this logo renders more than once per page.
+      */}
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M20.8098 132.621C15.7303 121.782 12.8931 109.689 12.8931 96.9363C12.8931 50.3143 50.8101 12.5199 97.5832 12.5199C123.627 12.5199 146.925 24.2386 162.46 42.6738L171.728 34.9222C153.973 13.8532 127.348 0.460266 97.5832 0.460266C44.1283 0.460266 0.794617 43.6541 0.794617 96.9363C0.794617 111.511 4.03702 125.331 9.8422 137.719L20.8098 132.621Z"
+        fill="#1F262F"
+      />
       <path
         fillRule="evenodd"
         clipRule="evenodd"
