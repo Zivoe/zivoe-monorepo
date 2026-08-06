@@ -43,6 +43,9 @@ const getCurrentShareMetrics = reactCache(async (): Promise<ShareStatsPayload | 
   }
 });
 
+// TODO: nothing reads this since the hero switched to hardcoded operating figures. Kept because the
+// post-migration transparency work is expected to render live AUM / share price again — revisit and
+// delete this module if that lands somewhere else.
 export const centrifuge = {
   getCurrentShareMetrics
 };
