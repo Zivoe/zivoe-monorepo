@@ -96,7 +96,7 @@ export default function Experience() {
             >
               <div className="flex flex-wrap gap-4">
                 <Partner>
-                  <CentrifugeIcon className="h-7 w-auto" />
+                  <CentrifugeIcon aria-label="Centrifuge" role="img" className="h-7 w-auto" />
                 </Partner>
                 <Partner>
                   <RwaioIcon />
