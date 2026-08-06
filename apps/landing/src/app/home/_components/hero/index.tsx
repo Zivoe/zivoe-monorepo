@@ -16,7 +16,6 @@ import NavigationSection from '@/components/navigation';
 
 import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
-import MigrationNotice from './migration-notice';
 
 export default function Hero() {
   return (
