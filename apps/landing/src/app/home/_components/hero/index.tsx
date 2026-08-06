@@ -1,6 +1,3 @@
-import { Suspense } from 'react';
-
-import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
 import Container from '@/components/container';
@@ -41,9 +38,7 @@ export default function Hero() {
             </div>
           </div>
 
-          <Suspense>
-            <Statistics />
-          </Suspense>
+          <Statistics />
         </div>
       </Container>
 
@@ -68,10 +63,12 @@ function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
   );
 }
 
-async function Statistics() {
+// TODO: these are hardcoded operating figures. Restore the live reads (`centrifuge.getCurrentShareMetrics`)
+// once the transparency data is available post-migration, and re-wrap this in <Suspense> when it does.
+function Statistics() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex gap-6 lg:gap-16 lg:-mt-20">
+      <div className="flex gap-6 lg:-mt-20 lg:gap-16">
         <Statistic label="Loans Funded" value="1,000+" isApproximate />
 
         <Statistic label="Originations" value="$10M" isApproximate />
@@ -87,29 +84,12 @@ async function Statistics() {
   );
 }
 
-function Statistic({
-  label,
-  value,
-  description,
-  isApproximate = false
-}: {
-  label: string;
-  value: string;
-  description?: string;
-  isApproximate?: boolean;
-}) {
+function Statistic({ label, value, isApproximate = false }: { label: string; value: string; isApproximate?: boolean }) {
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
-      <div className="flex items-center">
-        <p className="text-leading whitespace-nowrap text-primary/80 lg:text-smallSubheading">{label}</p>
+      <p className="text-leading whitespace-nowrap text-primary/80 lg:text-smallSubheading">{label}</p>
 
-        {description && (
-          <ContextualHelp variant="info">
-            <ContextualHelpDescription>{description}</ContextualHelpDescription>
-          </ContextualHelp>
-        )}
-      </div>
-      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">
+      <p className="text-h6 whitespace-nowrap sm:text-h3 md:text-h2 lg:text-h1">
         {value}
         {isApproximate ? <sup className="ml-0.5 align-super text-extraSmall sm:text-small">*</sup> : null}
       </p>
