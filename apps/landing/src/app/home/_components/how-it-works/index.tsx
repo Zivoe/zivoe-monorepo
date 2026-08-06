@@ -12,18 +12,10 @@ export default function HowItWorks() {
     <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:py-40 2xl:px-48">
       <div className="flex w-full flex-col gap-10 sm:items-center sm:gap-16 xl:gap-20">
         <div className="flex flex-col gap-8 sm:items-center">
-          <p className="font-heading! text-small text-primary sm:text-leading">
-            Built For Institutions, Perfect For Retail
-          </p>
+          <p className="font-heading! text-small text-primary sm:text-leading">Simplified, For You</p>
 
           <div className="flex flex-col gap-4 sm:items-center">
-            <h2 className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">
-              Earning Has Never Been Simpler
-            </h2>
-
-            <p className="text-leading text-secondary sm:text-center sm:text-smallSubheading">
-              Start earning steady, risk-adjusted returns today — just deposit USDC.
-            </p>
+            <h2 className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">Get Started in Three Steps</h2>
           </div>
         </div>
 
@@ -31,7 +23,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit USDC into Zivoe and receive zMCA."
+            description="Deposit stablecoins through the Zivoe platform."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -39,8 +31,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 2"
-            title="Earn"
-            description="zMCA grows in value as interest is earned."
+            title="Track"
+            description="Track your position and monitor historical performance."
             image={<Step2Icon />}
             className="w-full min-w-full flex-1 items-end justify-start"
             imageClassName="items-end pt-3 max-w-[20rem] sm:w-full sm:max-w-max w-full flex-1 sm:[&>svg]:w-full"
@@ -48,8 +40,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 3"
-            title="Redeem"
-            description="Request to redeem your zMCA for USDC, subject to liquidity availability."
+            title="Grow"
+            description="Grow your position, request a redemption at any time."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"

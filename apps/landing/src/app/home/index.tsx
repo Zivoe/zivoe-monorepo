@@ -5,8 +5,10 @@ import Diversify from './_components/diversify';
 import Experience from './_components/experience';
 import Hero from './_components/hero';
 import HowItWorks from './_components/how-it-works';
-import Infrastructure from './_components/infrastructure';
-import Portfolio from './_components/portfolio';
+
+// TODO: Portfolio and Infrastructure are hidden for the Centrifuge migration, not retired. Restore
+// them (and their imports) once the post-migration portfolio data is available, or delete the
+// sections outright if they are not coming back.
 
 export default function Home() {
   return (
@@ -15,8 +17,8 @@ export default function Home() {
       <Diversify />
       <Separator />
       <HowItWorks />
-      <Portfolio />
-      <Infrastructure />
+      {/* <Portfolio /> */}
+      {/* <Infrastructure /> */}
       <Experience />
       <Footer />
     </>

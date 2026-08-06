@@ -72,9 +72,9 @@ export default function Footer() {
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on
-          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representation or warranties
-          of any kind relating to the Protocol, and no developer or entity will be liable for claims or damages of any
-          kind associated with use or inability to use the Protocol.
+          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representations or
+          warranties of any kind relating to the Protocol, and no developer or entity will be liable for claims or
+          damages of any kind associated with use or inability to use the Protocol.
         </p>
       </Container>
     </div>
@@ -104,9 +104,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     title: 'Explore',
     links: [
       { href: '/insights', label: 'Insights' },
-      { href: 'https://docs.zivoe.com', label: 'Docs', target: '_blank' },
       { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub', target: '_blank' },
-      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits', target: '_blank' },
       { href: '/faq', label: 'FAQ' }
     ]
   },

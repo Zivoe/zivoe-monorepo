@@ -8,6 +8,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
 import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
+import { SplitCta } from '@zivoe/ui/core/split-cta';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
 import Container from './container';
@@ -39,16 +40,9 @@ function Desktop() {
         <NavigationItems />
       </div>
 
-      <Link
-        href="https://app.zivoe.com"
-        target="_blank"
-        hideExternalLinkIcon
-        variant="primary"
-        size="m"
-        className="my-2.5 mr-2.5"
-      >
-        Start Earning
-      </Link>
+      <SplitCta href="https://app.zivoe.com" target="_blank" size="m" className="my-2.5 mr-2.5">
+        Launch App
+      </SplitCta>
     </div>
   );
 }
@@ -97,6 +91,5 @@ const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: string }> 
   { title: 'Home', href: '/' },
   { title: 'Team', href: '/team' },
   { title: 'FAQ', href: '/faq' },
-  { title: 'Insights', href: '/insights' },
-  { title: 'Docs', href: 'https://docs.zivoe.com', target: '_blank' }
+  { title: 'Insights', href: '/insights' }
 ];
