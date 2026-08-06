@@ -64,6 +64,10 @@ function Faq() {
   );
 }
 
+/**
+ * `answer` is what the page renders; `jsonLdAnswer` is the plain-text equivalent for the FAQPage
+ * structured data and is required whenever `answer` is JSX. Keep the two in sync when editing copy.
+ */
 const FAQs: Array<{
   question: string;
   answer: ReactNode;
@@ -78,112 +82,145 @@ const FAQs: Array<{
     question: 'What strategy is currently available through Zivoe?',
     answer: (
       <>
-        Zivoe currently supports one private credit strategy focused on lending to small and medium-sized businesses. The strategy operates on Ethereum and is being migrated to Centrifuge infrastructure as part of the platform's next phase.
+        Zivoe currently supports one private credit strategy focused on lending to small and medium-sized businesses.
+        The strategy operates on Ethereum and is being migrated to Centrifuge infrastructure as part of the platform's
+        next phase.
         <br />
         <br />
-        Zivoe plans to support additional private credit strategies and blockchain networks over time, subject to completion of the necessary diligence, documentation, infrastructure, and approvals.
+        Zivoe plans to support additional private credit strategies and blockchain networks over time, subject to
+        completion of the necessary diligence, documentation, infrastructure, and approvals.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      "Zivoe currently supports one private credit strategy focused on lending to small and medium-sized businesses. The strategy operates on Ethereum and is being migrated to Centrifuge infrastructure as part of the platform's next phase. Zivoe plans to support additional private credit strategies and blockchain networks over time, subject to completion of the necessary diligence, documentation, infrastructure, and approvals."
   },
   {
     question: 'How can a Zivoe position generate returns?',
-    answer:
-      (
+    answer: (
       <>
-        The performance of a Zivoe position is linked to the applicable strategy and its underlying loans, subject to the strategy's terms. Those loans may generate income from interest and other borrower payments.
+        The performance of a Zivoe position is linked to the applicable strategy and its underlying loans, subject to
+        the strategy's terms. Those loans may generate income from interest and other borrower payments.
         <br />
         <br />
-        After applicable fees, expenses, and credit losses, performance is reflected in a participant’s position according to the strategy’s terms. Assets and sources of income may vary by strategy. Returns are not fixed or guaranteed, and participants may lose some or all of their capital.
+        After applicable fees, expenses, and credit losses, performance is reflected in a participant’s position
+        according to the strategy’s terms. Assets and sources of income may vary by strategy. Returns are not fixed or
+        guaranteed, and participants may lose some or all of their capital.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'The performance of a Zivoe position is linked to the applicable strategy and its underlying loans, subject to the strategy’s terms. Those loans may generate income from interest and other borrower payments. After applicable fees, expenses, and credit losses, performance is reflected in a participant’s position according to the strategy’s terms. Assets and sources of income may vary by strategy. Returns are not fixed or guaranteed, and participants may lose some or all of their capital.'
   },
   {
     question: 'Who can participate?',
-    answer:
-      (
+    answer: (
       <>
-        Zivoe may be available to non-US persons who meet applicable eligibility requirements and accredited US investors, subject to the terms of the applicable offer.
+        Zivoe may be available to non-US persons who meet applicable eligibility requirements and accredited US
+        investors, subject to the terms of the applicable offer.
         <br />
         <br />
-        Participants will need to complete the identity, eligibility, and compliance verification applicable to their jurisdiction and status.
+        Participants will need to complete the identity, eligibility, and compliance verification applicable to their
+        jurisdiction and status.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'Zivoe may be available to non-US persons who meet applicable eligibility requirements and accredited US investors, subject to the terms of the applicable offer. Participants will need to complete the identity, eligibility, and compliance verification applicable to their jurisdiction and status.'
   },
   {
     question: 'How do deposits and redemptions work?',
-    answer:
-      (
+    answer: (
       <>
-        Participants deposit supported stablecoins displayed on the platform. Once onboarding and applicable verification are complete, assets are allocated according to the strategy’s terms, and the participant receives a position in the strategy.
+        Participants deposit supported stablecoins displayed on the platform. Once onboarding and applicable
+        verification are complete, assets are allocated according to the strategy’s terms, and the participant receives
+        a position in the strategy.
         <br />
         <br />
-        Redemption requests are processed on a scheduled basis rather than immediately, subject to available liquidity, processing requirements, and the applicable terms.
+        Redemption requests are processed on a scheduled basis rather than immediately, subject to available liquidity,
+        processing requirements, and the applicable terms.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'Participants deposit supported stablecoins displayed on the platform. Once onboarding and applicable verification are complete, assets are allocated according to the strategy’s terms, and the participant receives a position in the strategy. Redemption requests are processed on a scheduled basis rather than immediately, subject to available liquidity, processing requirements, and the applicable terms.'
   },
   {
     question: 'What transparency and reporting will Zivoe provide?',
-    answer:
-      (
+    answer: (
       <>
-        At launch, participants will be able to review core information about their position and account activity through the Zivoe platform.
+        At launch, participants will be able to review core information about their position and account activity
+        through the Zivoe platform.
         <br />
         <br />
-        Zivoe is developing an expanded transparency page to provide greater visibility into portfolio composition, performance, repayments, cash activity, and risk. It is planned for release after the migration, and Zivoe will share timing when confirmed.
+        Zivoe is developing an expanded transparency page to provide greater visibility into portfolio composition,
+        performance, repayments, cash activity, and risk. It is planned for release after the migration, and Zivoe will
+        share timing when confirmed.
         <br />
         <br />
         Information is updated as data is received and processed and may not be available in real time.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'At launch, participants will be able to review core information about their position and account activity through the Zivoe platform. Zivoe is developing an expanded transparency page to provide greater visibility into portfolio composition, performance, repayments, cash activity, and risk. It is planned for release after the migration, and Zivoe will share timing when confirmed. Information is updated as data is received and processed and may not be available in real time.'
   },
   {
     question: 'What fees, liquidity limitations, and risks apply?',
-    answer:
-      (
+    answer: (
       <>
-        Applicable fees, expenses, liquidity terms, and material risks are disclosed in the applicable materials before participation.
+        Applicable fees, expenses, liquidity terms, and material risks are disclosed in the applicable materials before
+        participation.
         <br />
         <br />
-        Private credit involves risk, including borrower default, delayed repayment, limited liquidity, servicing, technology, and regulatory risks. Participants may lose some or all of their capital and should review the applicable documentation carefully.
+        Private credit involves risk, including borrower default, delayed repayment, limited liquidity, servicing,
+        technology, and regulatory risks. Participants may lose some or all of their capital and should review the
+        applicable documentation carefully.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'Applicable fees, expenses, liquidity terms, and material risks are disclosed in the applicable materials before participation. Private credit involves risk, including borrower default, delayed repayment, limited liquidity, servicing, technology, and regulatory risks. Participants may lose some or all of their capital and should review the applicable documentation carefully.'
   },
   {
     question: 'What does Zivoe offer institutions?',
-    answer:
-      (
+    answer: (
       <>
-        Zivoe gives eligible institutions a standardized way to access private credit and work with regional originators through consistent structures, administration, and reporting. The platform is designed to support additional lending markets and strategy types over time.
+        Zivoe gives eligible institutions a standardized way to access private credit and work with regional originators
+        through consistent structures, administration, and reporting. The platform is designed to support additional
+        lending markets and strategy types over time.
         <br />
         <br />
-        Zivoe works with allocators, treasuries, capital providers, and strategic partners across strategy access, origination relationships, and platform partnerships. Institutions can contact the Zivoe team through the For Institutions page.
+        Zivoe works with allocators, treasuries, capital providers, and strategic partners across strategy access,
+        origination relationships, and platform partnerships. Institutions can contact the Zivoe team through the For
+        Institutions page.
       </>
-    )
+    ),
+    jsonLdAnswer:
+      'Zivoe gives eligible institutions a standardized way to access private credit and work with regional originators through consistent structures, administration, and reporting. The platform is designed to support additional lending markets and strategy types over time. Zivoe works with allocators, treasuries, capital providers, and strategic partners across strategy access, origination relationships, and platform partnerships. Institutions can contact the Zivoe team through the For Institutions page.'
   },
   {
     question: 'How does Zivoe work with originators?',
-    answer:
-      (
+    answer: (
       <>
-        Zivoe partners with experienced originators that source, underwrite, and service loans in their markets. Zivoe provides the platform infrastructure around those assets, supporting strategy setup, portfolio administration, net asset value (NAV) reporting, compliance workflows, and investor reporting.
+        Zivoe partners with experienced originators that source, underwrite, and service loans in their markets. Zivoe
+        provides the platform infrastructure around those assets, supporting strategy setup, portfolio administration,
+        net asset value (NAV) reporting, compliance workflows, and investor reporting.
         <br />
         <br />
-        The platform is designed to help originators connect with eligible capital without building the full operating stack themselves.
+        The platform is designed to help originators connect with eligible capital without building the full operating
+        stack themselves.
       </>
-    )
-  },
+    ),
+    jsonLdAnswer:
+      'Zivoe partners with experienced originators that source, underwrite, and service loans in their markets. Zivoe provides the platform infrastructure around those assets, supporting strategy setup, portfolio administration, net asset value (NAV) reporting, compliance workflows, and investor reporting. The platform is designed to help originators connect with eligible capital without building the full operating stack themselves.'
+  }
 ];
 
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   '@id': `${SITE_ORIGIN}/faq#faq`,
-  mainEntity: FAQs.map(({ question, answer, jsonLdAnswer }) => ({
-    '@type': 'Question',
-    name: question,
-    acceptedAnswer: {
-      '@type': 'Answer',
-      text: jsonLdAnswer ?? (typeof answer === 'string' ? answer : '')
-    }
-  }))
+  // Skip any entry without plain text rather than emitting an empty acceptedAnswer, which would
+  // make the whole FAQPage schema invalid.
+  mainEntity: FAQs.flatMap(({ question, answer, jsonLdAnswer }) => {
+    const text = jsonLdAnswer ?? (typeof answer === 'string' ? answer : undefined);
+    if (!text) return [];
+
+    return [{ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text } }];
+  })
 };
