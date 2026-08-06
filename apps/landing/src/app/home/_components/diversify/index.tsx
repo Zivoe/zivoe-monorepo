@@ -11,12 +11,12 @@ export default function Diversify() {
   return (
     <Container className="w-fit justify-between gap-20 pt-16 pb-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:pt-50 xl:pb-30 2xl:px-48">
       <div className="flex flex-col gap-6 sm:gap-8 xl:sticky xl:top-16 xl:mt-16 xl:max-w-122">
-
         <div className="flex flex-col gap-4">
           <h2 className="text-h6 text-primary sm:text-h4 xl:text-h2">One Platform</h2>
 
           <p className="text-leading text-secondary">
-            Access strategy information, reporting, liquidity terms, and network details through one consistent platform experience.
+            Access strategy information, reporting, liquidity terms, and network details through one consistent platform
+            experience.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function Diversify() {
           label="Access curated yield opportunities through one unified platform."
           labelClassName="sm:w-1/2"
         >
-          <TargetIcon className="pt-5 sm:absolute sm:bottom-0 sm:right-16 sm:pt-0" />
+          <TargetIcon className="pt-5 sm:absolute sm:right-16 sm:bottom-0 sm:pt-0" />
         </Card>
 
         <Card
@@ -39,16 +39,15 @@ export default function Diversify() {
           label="Redemption timing and liquidity terms are defined for each strategy."
           labelClassName="sm:w-1/2"
         >
-          <LiquidityIcon className="w-28.75 sm:absolute sm:bottom-0 sm:right-16 sm:w-auto" />
+          <LiquidityIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-0 sm:w-auto" />
         </Card>
-
 
         <Card
           title="Network Roadmap"
           label="Available on Ethereum, with additional networks planned."
           labelClassName="sm:w-1/2"
         >
-          <EthereumIcon className="w-28.75 sm:absolute sm:bottom-18 sm:right-16 sm:w-auto" />
+          <EthereumIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-18 sm:w-auto" />
         </Card>
       </div>
     </Container>

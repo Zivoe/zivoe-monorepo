@@ -84,7 +84,6 @@ export default function Experience() {
               title="Compliance-First Approach"
               description="We leverage Chainalysis to ensure we meet the highest standards of regulatory compliance."
             >
-
               <Partner>
                 <ChainalysisIcon />
               </Partner>
