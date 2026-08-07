@@ -14,26 +14,24 @@ import { type IconProps } from '@zivoe/ui/icons/types';
  * below forces every module to fill exactly the authored rows.
  */
 export const OFFERING_DETAIL_LABELS = [
-  'Eligibility',
-  'Underlying Assets',
+  'Issuer',
+  'Ticker',
+  'Asset Type',
   'Geography',
-  'Legal Structure',
-  'Regulatory Compliance',
-  'Management Fee',
-  'Liquidity',
-  'Audits',
-  'Available Networks'
+  'Inception',
+  'Entry/exit fees',
+  'Redemptions',
+  'Eligibility',
+  'Accepted stablecoin',
+  'Accepted chains'
 ] as const;
 
 export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
 
-/** Rows derived from the catalog at render — never authored by a module. */
-export type DerivedDetailLabel = 'Available Networks';
+/** Rows derived from the catalog or the Offering's own fields at render — never authored in `details`. */
+export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted stablecoin' | 'Accepted chains';
 
 export type AuthoredDetailLabel = Exclude<OfferingDetailLabel, DerivedDetailLabel>;
-
-/** A Details row value: plain text, or an external link the section styles itself. */
-export type OfferingDetailValue = string | { href: string; label: string };
 
 /** The vault instantiating the share class for USDC on one network. */
 export type OfferingVault = {
@@ -109,7 +107,7 @@ export type OfferingPresentation = {
   /** About-section paragraphs, in render order — rich text with links allowed. */
   about: Array<ReactNode>;
   /** Details values for the AUTHORED rows only — a missing row fails to compile, a derived row cannot be written. */
-  details: Record<AuthoredDetailLabel, OfferingDetailValue>;
+  details: Record<AuthoredDetailLabel, string>;
   /** Documents-section links, in render order. */
   documents: Array<{ title: string; href: string }>;
 };

@@ -13,9 +13,9 @@ export default function DepositContact() {
         <Link
           variant="link-neutral-dark"
           className="underline underline-offset-8 hover:no-underline"
-          href={`mailto:${EMAILS.INVESTORS}`}
+          href={`mailto:${EMAILS.INQUIRE}`}
         >
-          {EMAILS.INVESTORS}
+          {EMAILS.INQUIRE}
         </Link>
         .
       </p>

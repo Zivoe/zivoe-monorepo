@@ -31,18 +31,15 @@ export const ZALT_OFFERING: Offering = {
   ],
 
   details: {
-    Eligibility: 'Institutions & Non-US Retail',
-    'Underlying Assets': 'Business & Consumer Loans',
-    Geography: 'Americas and EU',
-    'Legal Structure': 'SPV',
-    'Regulatory Compliance': 'Reg S Compliant Offering',
-    'Management Fee': '2.5% APR',
-    Liquidity: 'Available upon request',
-    Audits: { href: 'https://docs.zivoe.com/official-links/audits', label: 'View Reports' }
+    Geography: 'United States & Europe',
+    Inception: 'September 2025',
+    'Entry/exit fees': 'None',
+    Redemptions: 'Processed weekly',
+    Eligibility: 'U.S. Accredited & Non-US Investors'
   },
 
   documents: [
-    { title: 'Protocol Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
+    { title: 'Zivoe Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
     { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
   ]
 };

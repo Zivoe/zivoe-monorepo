@@ -14,7 +14,7 @@ import { ZSMB_OFFERING } from './zsmb';
 // The identity/presentation halves and the vault shape stay internal to
 // offering.ts — they document the serialization boundary there, and no
 // consumer composes with them directly.
-export { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailLabel, type OfferingDetailValue } from './offering';
+export { OFFERING_DETAIL_LABELS, type DerivedDetailLabel, type Offering, type OfferingDetailLabel } from './offering';
 export { offeringNetworkDisplays } from './network-display';
 export { ZALT_OFFERING } from './zalt';
 export { ZSMB_OFFERING } from './zsmb';
