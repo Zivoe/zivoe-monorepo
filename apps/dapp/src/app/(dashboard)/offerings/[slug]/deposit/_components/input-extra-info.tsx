@@ -2,22 +2,20 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { formatBigIntToReadable, formatBigIntWithCommas } from '@/lib/utils';
 
-type Balance = {
-  value: bigint | undefined;
-  isPending?: boolean;
-  /** Token decimals of the balance when they differ from the dollar value's `decimals`. */
-  decimals?: number;
-};
-
+/**
+ * The dollar line and the balance line each carry their own scale — the two
+ * routinely differ (an 18-decimal dollar value beside an 8-decimal share
+ * balance), and a shared default once hid exactly that mismatch.
+ */
 export function InputExtraInfo({
-  decimals,
+  dollarValueDecimals,
   dollarValue,
   balance,
   isLoading = false
 }: {
   dollarValue: bigint | null;
-  decimals: number;
-  balance: Balance;
+  dollarValueDecimals: number;
+  balance: { value: bigint | undefined; decimals: number; isPending?: boolean };
   isLoading?: boolean;
 }) {
   return (
@@ -26,11 +24,11 @@ export function InputExtraInfo({
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : dollarValue !== null ? (
-          `≈ $${formatBigIntWithCommas({ value: dollarValue, tokenDecimals: decimals, displayDecimals: 3 })}`
+          `≈ $${formatBigIntWithCommas({ value: dollarValue, tokenDecimals: dollarValueDecimals, displayDecimals: 3 })}`
         ) : null}
       </div>
 
-      <BalanceDisplay decimals={balance.decimals ?? decimals} value={balance.value} isPending={balance.isPending} />
+      <BalanceDisplay decimals={balance.decimals} value={balance.value} isPending={balance.isPending} />
     </div>
   );
 }

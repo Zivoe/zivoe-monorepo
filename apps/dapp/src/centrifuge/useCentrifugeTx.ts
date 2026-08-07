@@ -11,11 +11,12 @@ import { toast } from '@zivoe/ui/core/sonner';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxSharedConfig } from '@/hooks/useTxLifecycle';
+import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
 
 import { getVault, setTransactionSigner } from './client';
 import { type TransactionEntity, type VaultEntity } from './entities';
 import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
+import { type TransactionIdentity } from './types';
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
@@ -33,7 +34,15 @@ type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient:
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = TxSharedConfig<TVariables> & {
+export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'offeringSlug'> & {
+  /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
+  identity: TransactionIdentity;
+  /**
+   * Flow-specific invalidations beyond the driver's share-class-scoped set —
+   * every Centrifuge transaction already invalidates balances, redemption
+   * position, portfolio and share metrics for the transacted class.
+   */
+  invalidateExtra?: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
   /**
    * Re-runs guards and starts the SDK action; throw AppError for validation
    * failures. Runs with the lazily resolved, simulation-wrapped signer already
@@ -66,8 +75,38 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   const wagmiConfig = useConfig();
   const publicClient = usePublicClient();
 
+  const { identity, analytics } = config;
+
   return useTxLifecycle({
     ...config,
+
+    // The Offering slug rides every analytics event, and the lifecycle
+    // derives the Sentry tag/extra from `offeringSlug` below — the driver
+    // adds only what the lifecycle cannot know: the share-class key.
+    analytics: analytics && {
+      ...analytics,
+      input: (vars, ctx) => ({ ...analytics.input(vars, ctx), offeringSlug: identity.offeringSlug })
+    },
+    sentryExtras: (vars) => ({
+      ...(config.sentryExtras ?? toSentryExtras)(vars),
+      shareClassKey: identity.shareClass.key
+    }),
+
+    // The payload's slug is stamped by the lifecycle itself, uniformly for
+    // both drivers (approvals included) and for the fallback payload.
+    offeringSlug: identity.offeringSlug,
+
+    // Every Centrifuge transaction moves share-class-scoped state, so the
+    // driver owns the invalidation — stamped once here (like the slug above)
+    // instead of copy-pasted into every hook; hooks add flow extras only.
+    invalidate: (ctx) => {
+      invalidateAfterCentrifugeTx({
+        queryClient: ctx.queryClient,
+        address: ctx.address,
+        shareClassKey: identity.shareClass.key
+      });
+      config.invalidateExtra?.(ctx);
+    },
 
     normalizeError: (err) => normalizeCentrifugeError(err, config.sdkErrorCopy),
 
@@ -93,7 +132,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const vault = await getVault();
+        const vault = await getVault(identity.shareClass);
         const txContext = { address, vault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -209,20 +248,25 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 }
 
 /**
- * Invalidated after every settled Centrifuge tx. Stats included: AUM moves
- * with issuance as soon as the indexer processes the block.
+ * Invalidated after every settled Centrifuge tx, scoped to the transacted
+ * share class. Stats included: AUM moves with issuance as soon as the indexer
+ * processes the block.
  */
-export function invalidateInvestmentQueries({
+export function invalidateAfterCentrifugeTx({
   queryClient,
-  address
+  address,
+  shareClassKey
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
+  shareClassKey: string;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
-  void queryClient.invalidateQueries({ queryKey: queryKeys.account.investment({ accountAddress: address }) });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey })
+  });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
-  void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });
 }
 
 /**

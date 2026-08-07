@@ -5,6 +5,11 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
+import { OfferingIdentityProvider } from '../offering-provider';
+import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
 const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
@@ -13,6 +18,21 @@ const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
 }));
 
 const D18 = 10n ** 18n;
+
+// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// drift (an earlier fixture here used the share-token address as the vault's,
+// the exact conflation the registry invariants exist to catch).
+const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+
+function renderFlow(identity = TEST_IDENTITY) {
+  return render(
+    <OfferingIdentityProvider identity={identity}>
+      <EarnDialogProvider>
+        <RedeemFlow />
+      </EarnDialogProvider>
+    </OfferingIdentityProvider>
+  );
+}
 
 const mocks = vi.hoisted(() => ({
   cancelRedeem: vi.fn(),
@@ -24,6 +44,7 @@ const mocks = vi.hoisted(() => ({
   metricsIsFetching: false,
   metricsRefetch: vi.fn(),
   pendingShares: 0n,
+  positionIsError: false,
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
@@ -31,29 +52,48 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+// Pulled in by the Offering modules' logos and the token display map.
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@/centrifuge', () => ({
-  CENTRIFUGE_CONFIG: {
+  CENTRIFUGE_ENV: {
     chainId: 11155111,
-    shareToken: { address: ZMCA_ADDRESS, decimals: 18, symbol: 'zMCA' },
-    usdc: { address: USDC_ADDRESS, decimals: 6 }
+    usdc: { address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }
   },
-  // Mirrors the module's unit math for the mocked 18/6 decimals above.
-  sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
-    (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
-  sharesToValueD18: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
-    (shares * sharePrice) / 10n ** 18n,
+  // Mirrors the module's real unit math, including the share class's own
+  // decimals — hardcoding 18 here once hid a scaling bug from this suite.
+  sharesToUsdc: ({
+    shares,
+    sharePrice,
+    shareClass
+  }: {
+    shares: bigint;
+    sharePrice: bigint;
+    shareClass: { decimals: number };
+  }) => (shares * sharePrice) / 10n ** BigInt(shareClass.decimals) / 10n ** 12n,
+  sharesToValueD18: ({
+    shares,
+    sharePrice,
+    shareClass
+  }: {
+    shares: bigint;
+    sharePrice: bigint;
+    shareClass: { decimals: number };
+  }) => (shares * sharePrice) / 10n ** BigInt(shareClass.decimals),
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
-  useInvestment: () => ({
+  useRedemptionPosition: () => ({
+    isError: mocks.positionIsError,
     isFetching: false,
-    data: {
-      pendingRedeemShares: mocks.pendingShares,
-      claimableRedeemAssets: mocks.claimableAssets,
-      claimableRedeemSharesEquivalent: 0n,
-      claimableCancelRedeemShares: mocks.returnedShares,
-      hasPendingCancelRedeemRequest: mocks.hasPendingCancel
-    }
+    data: mocks.positionIsError
+      ? undefined
+      : {
+          pendingRedeemShares: mocks.pendingShares,
+          claimableRedeemAssets: mocks.claimableAssets,
+          claimableRedeemSharesEquivalent: 0n,
+          claimableCancelRedeemShares: mocks.returnedShares,
+          hasPendingCancelRedeemRequest: mocks.hasPendingCancel
+        }
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
@@ -79,7 +119,8 @@ vi.mock('@/hooks/useBalance', () => ({
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => ({ isFetching: false }) }));
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
-vi.mock('./_components/input-extra-info', () => ({ InputExtraInfo: () => null }));
+// InputExtraInfo stays real: the dollar line's decimal scaling is exactly what
+// this suite must be able to catch.
 vi.mock('./_components/max-button', () => ({
   MaxButton: ({ balance, decimals, onPress }: { balance: bigint; decimals: number; onPress: (v: string) => void }) => (
     <button type="button" onClick={() => onPress(formatUnits(balance, decimals))}>
@@ -166,12 +207,13 @@ describe('RedeemFlow', () => {
     mocks.metricsIsError = false;
     mocks.metricsIsFetching = false;
     mocks.pendingShares = 0n;
+    mocks.positionIsError = false;
     mocks.returnedShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
   });
 
   it('requests the first redemption with a correctly scaled estimate and clears only on success', async () => {
-    render(<RedeemFlow />);
+    renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
@@ -201,10 +243,32 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('');
   });
 
+  it('blocks a new request while the position read is failing', () => {
+    // A failed read renders like "no position"; requesting on top of state we
+    // cannot see must not be offered. The query-cache toast is the signal,
+    // and the hook's error-state polling recovers the form.
+    mocks.positionIsError = true;
+
+    renderFlow();
+
+    expect(getButton('Request redemption').disabled).toBe(true);
+  });
+
+  it('scales the dollar value independently of the share token decimals', () => {
+    // The 8-decimals fixture: 2 shares at a $1.07 Share Price is ≈ $2.14 on
+    // both rows. Formatting the redeem row's 18-decimal dollar value with the
+    // share token's 8 decimals instead would read ≈ $21,400,000,000.140.
+    renderFlow(FIXTURE_IDENTITY);
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(screen.getAllByText('≈ $2.140')).toHaveLength(2);
+  });
+
   it('shows a retry action when the estimate fails and refetches on press', () => {
     mocks.metricsIsError = true;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     // Metrics are page-level, so the failure shows before any amount is typed.
     expect(screen.getByText(/Unable to estimate USDC/)).toBeTruthy();
@@ -219,7 +283,7 @@ describe('RedeemFlow', () => {
     mocks.metricsIsError = true;
     mocks.metricsIsFetching = true;
 
-    render(<RedeemFlow />);
+    renderFlow();
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
     expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
@@ -229,7 +293,7 @@ describe('RedeemFlow', () => {
   it('renders one aggregate pending position with a cancel control that cancels the full amount', () => {
     mocks.pendingShares = 3n * D18;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     expect(screen.getByText(/3\.00 zMCA\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
     expect(getButton('Add to redemption')).toBeTruthy();
@@ -242,7 +306,7 @@ describe('RedeemFlow', () => {
     mocks.pendingShares = 1n * D18;
     mocks.claimableAssets = 2_000000n;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     expect(screen.getByText(/2\.00 USDC\s+ready to claim/)).toBeTruthy();
 
@@ -254,7 +318,7 @@ describe('RedeemFlow', () => {
     mocks.pendingShares = 3n * D18;
     mocks.hasPendingCancel = true;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     expect(screen.getByText(/Cancelling redemption request for 3\.00 zMCA/)).toBeTruthy();
     expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
@@ -268,7 +332,7 @@ describe('RedeemFlow', () => {
   it('claims Returned Shares after a completed cancellation', () => {
     mocks.returnedShares = 3n * D18;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     expect(screen.getByText(/3\.00 zMCA\s+returned from cancellation/)).toBeTruthy();
 
@@ -284,7 +348,7 @@ describe('RedeemFlow', () => {
     mocks.claimableAssets = 2_000000n;
     mocks.returnedShares = 1n * D18;
 
-    render(<RedeemFlow />);
+    renderFlow();
 
     // The vault claims Returned Shares before USDC in one shared transaction
     // path, so the USDC button must wait its turn.

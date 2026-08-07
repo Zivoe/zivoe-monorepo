@@ -1,8 +1,6 @@
 import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
 
-import { type Token } from '@/types/constants';
-
 import { NETWORK_CHAIN } from '@/lib/network';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
@@ -18,12 +16,20 @@ type ApproveSpendingVariables = {
   spender: Address;
   amount?: bigint;
   name: string;
+  /** Snapshotted onto the payload so the receipt dialog renders the approved token exactly. */
+  decimals: number;
   abi: ApproveTokenAbi;
   successMessage: string;
   errorMessage: string;
 };
 
-export const useApproveSpending = () => {
+/**
+ * The approval itself is deliberately cross-Offering (one router spender), but
+ * the deposit funnel segments per Offering — the initiating Offering's slug is
+ * hook-level identity so analytics AND Sentry captures carry it, same as
+ * useCentrifugeTx tags every transaction of the flows behind it.
+ */
+export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) => {
   return useTx<ApproveSpendingVariables, ApproveTokenParams>({
     buildParams: ({ contract, spender, amount, abi }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
@@ -43,7 +49,8 @@ export const useApproveSpending = () => {
       input: ({ name, amount, spender }, { address }) => ({
         walletAddress: address,
         chainId: NETWORK_CHAIN.id,
-        tokenIn: name as Token,
+        offeringSlug,
+        tokenIn: name,
         amountInRaw: amount,
         spender
       })
@@ -52,9 +59,11 @@ export const useApproveSpending = () => {
     pendingToast: ({ name }) => `Approving ${name}...`,
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
+    // The lifecycle derives the `offering` Sentry tag and extra from this.
+    offeringSlug,
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
-    transactionData: (receipt, { name, abi, successMessage, errorMessage }) => {
+    transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {
       let meta: TransactionData['meta'] = undefined;
 
       if (receipt.status === 'success') {
@@ -64,7 +73,7 @@ export const useApproveSpending = () => {
         if (amount) {
           meta = {
             approve: {
-              token: name as Token,
+              token: { symbol: name, decimals },
               amount
             }
           };

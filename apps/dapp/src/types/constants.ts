@@ -1,10 +1,14 @@
+import { type ShareClassSymbol } from '@zivoe/centrifuge-indexer';
+
 import { env } from '@/env';
 
 export const DEPOSIT_TOKENS = ['USDC'] as const;
 export type DepositToken = (typeof DEPOSIT_TOKENS)[number];
 
-export type ShareToken = 'zMCA';
+/** Every catalogued share token symbol — grows with the catalog, never by hand. */
+export type ShareToken = ShareClassSymbol;
 
+/** Any token the product displays — deposit assets and share tokens (the portfolio lists both). */
 export type Token = DepositToken | ShareToken;
 
 export const LINKS = {

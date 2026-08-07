@@ -154,7 +154,7 @@ export const onTxError = ({
   err: unknown;
   defaultToastMsg: string;
   onRefetch?: () => Promise<void>;
-  sentry: { flow: string; extras: Record<string, unknown> };
+  sentry: { flow: string; tags?: Record<string, string>; extras: Record<string, unknown> };
 }) => {
   let refetch = true;
   let capture = true;
@@ -179,7 +179,7 @@ export const onTxError = ({
 
   if (capture)
     Sentry.captureException(exception, {
-      tags: { source: 'MUTATION', flow: sentry.flow },
+      tags: { source: 'MUTATION', flow: sentry.flow, ...sentry.tags },
       extra: {
         ...sentry.extras,
         toastMsg

@@ -1,89 +1,82 @@
-import { type ComponentType } from 'react';
+import { SHARE_CLASS_CATALOG, type ShareClassKey, getShareClassIdentity } from '@zivoe/centrifuge-indexer';
 
-import { ZMcaLogo } from '@zivoe/ui/icons';
-import { type IconProps } from '@zivoe/ui/icons/types';
+import { env } from '@/env';
 
-import { type DepositToken, type ShareToken } from '@/types/constants';
+// Type-only on purpose: server components import this module, and runtime
+// @/centrifuge code beyond config.ts is client-only.
+import { type TransactionIdentity } from '@/centrifuge/types';
 
-// Deep path on purpose: this module is imported by server components, and
-// config.ts is the only piece of @/centrifuge server code may touch.
-import { CENTRIFUGE_CONFIG } from '@/centrifuge/config';
+import { assertOfferingRegistryInvariants } from './invariants';
+import { type Offering } from './offering';
+import { ZALT_OFFERING } from './zalt';
+import { ZMCA_OFFERING } from './zmca';
 
-/**
- * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
- *
- * Centrifuge's model is Pool > Share Class > Vault: a pool holds N share
- * classes (tranches, each with its own share token, price, AUM and yield
- * history), and a vault is one share class instantiated on one network for one
- * deposit asset. A route is therefore keyed by share class, not by vault — the
- * same class accepting a second stablecoin stays one Offering, which is also
- * why the URL says offerings rather than vaults.
- */
-export type Offering = {
-  /** Permanent public URL segment — it ends up in emails and external links. */
-  slug: string;
-  name: string;
-  Logo: ComponentType<IconProps>;
-  /** Asset class, shown as the listing card's eyebrow. */
-  category: string;
-  /** The listing card's blurb — the page itself carries the long-form About. */
-  description: string;
-  /**
-   * CSS `background` for the listing card's banner. A raw value rather than a
-   * token: each Offering gets its own multi-layer gradient so cards stay
-   * distinguishable at a glance, and that is data, not a design-system choice.
-   */
-  cardGradient: string;
-  issuer: string;
-  /** The Centrifuge share class this route reads and transacts against. */
-  shareClass: {
-    scId: `0x${string}`;
-    symbol: ShareToken;
-  };
-  /** Networks the share class is deployed to, for the listing card. */
-  networks: Array<'Ethereum'>;
-  acceptedAssets: Array<DepositToken>;
-};
+// The identity/presentation halves and the vault shape stay internal to
+// offering.ts — they document the serialization boundary there, and no
+// consumer composes with them directly.
+export { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailLabel, type OfferingDetailValue } from './offering';
+export { offeringNetworkDisplays } from './network-display';
+export { ZALT_OFFERING } from './zalt';
+export { ZMCA_OFFERING } from './zmca';
 
 /**
- * Published Target APY, in percent. A single constant rather than an Offering
- * field while the trailing-yield read is disabled — it becomes per-Offering
- * data once each share class publishes its own target.
+ * Every Offering module, keyed by its share class. `satisfies` over the
+ * catalog's key union makes the compiler demand a module for every catalog
+ * entry — a class cannot enter the catalog (and the aggregated AUM read)
+ * without the module that gives it a card, a route, and display info.
  */
-export const TARGET_APY_PERCENT = 14;
+const REGISTERED_OFFERINGS = {
+  zmca: ZMCA_OFFERING,
+  zalt: ZALT_OFFERING
+} satisfies Record<ShareClassKey, Offering>;
 
-export const OFFERINGS: Array<Offering> = [
-  {
-    slug: 'global-mca-offerings',
-    name: 'Global MCA Offerings Fund',
-    Logo: ZMcaLogo,
-    category: 'Merchant Cash Advance',
-    description:
-      'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
-    cardGradient: [
-      'radial-gradient(120% 120% at 18% 22%, rgba(255, 216, 174, 0.95), transparent 55%)',
-      'radial-gradient(120% 130% at 86% 82%, rgba(224, 99, 143, 0.92), transparent 55%)',
-      'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
-    ].join(', '),
-    issuer: 'Zivoe',
-    shareClass: { scId: CENTRIFUGE_CONFIG.scId, symbol: 'zMCA' },
-    networks: ['Ethereum'],
-    acceptedAssets: ['USDC']
-  }
-];
+const ALL_OFFERINGS: Array<Offering> = Object.values(REGISTERED_OFFERINGS);
 
-// Share-class identity is still a module-level singleton below the route
-// (CENTRIFUGE_CONFIG, the memoized vault, and the unparameterized query and
-// unstable_cache keys). Until that is threaded per share class, a second entry
-// here would silently serve the first entry's charts, stats and vault under
-// its own URL — so fail at import time instead.
-if (OFFERINGS.length > 1)
+// The invariants take the record itself, so record-key/module agreement is
+// checked in the same tested module as every other registration guard.
+assertOfferingRegistryInvariants({ offerings: REGISTERED_OFFERINGS });
+
+/**
+ * The Offerings this deployment serves: registered modules whose catalog
+ * entry and vault are both live on the active network. Half-claims and
+ * placeholder values under a deployable flag have already thrown in the
+ * invariants, so this filter expresses availability only — an Offering
+ * absent or staged on the network is simply not listed.
+ */
+export const OFFERINGS: Array<Offering> = ALL_OFFERINGS.filter((offering) => {
+  const network = env.NEXT_PUBLIC_NETWORK;
+  const catalogEntry = SHARE_CLASS_CATALOG[offering.shareClass.key].networks[network];
+  return Boolean(catalogEntry?.deployable && offering.vaults[network]?.deployable);
+});
+
+// The dApp's product IS its Offerings: a deployment serving none is a
+// misconfigured cutover (flags not flipped for the active network), not an
+// empty book — fail the build/boot loudly instead of rendering a shell.
+if (OFFERINGS.length === 0)
   throw new Error(
-    'The Centrifuge data layer is still single-share-class. Parameterize CENTRIFUGE_CONFIG, the vault client, the query keys and the unstable_cache keys by share class before registering a second Offering.'
+    `No Offering is live on "${env.NEXT_PUBLIC_NETWORK}". Flip the catalog and vault deployable flags for the network before deploying.`
   );
 
 export function getOffering(slug: string): Offering | undefined {
   return OFFERINGS.find((offering) => offering.slug === slug);
+}
+
+/**
+ * Resolves an Offering's transaction identity on the active network — what
+ * flows hand to every Centrifuge Module hook: the catalog identity joined
+ * with the Offering's own vault, plus the stable public identity for
+ * analytics and Sentry. Throws for a network the Offering is not live on.
+ */
+export function resolveTransactionIdentity(
+  offering: Pick<Offering, 'slug' | 'shareClass' | 'vaults'>
+): TransactionIdentity {
+  const network = env.NEXT_PUBLIC_NETWORK;
+  const identity = getShareClassIdentity({ network, key: offering.shareClass.key });
+  const vault = offering.vaults[network];
+
+  if (!vault?.deployable) throw new Error(`The "${offering.slug}" Offering has no deployable vault on "${network}".`);
+
+  return { offeringSlug: offering.slug, shareClass: { ...identity, vaultAddress: vault.address } };
 }
 
 export const OFFERING_PATH_PREFIX = '/offerings';

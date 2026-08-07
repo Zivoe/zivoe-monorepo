@@ -1,17 +1,26 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  CENTRIFUGE_NETWORK_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
+  assertShareClassCatalogInvariants,
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
-  getCentrifugeIndexerConfig,
+  fetchShareClassNavs,
+  getShareClassIdentity,
+  getShareClassNetworks,
+  listShareClassKeys,
   rayToPercent,
+  sumShareClassNavs,
   toShareStatsPayload
 } from './index';
 
-const sepolia = getCentrifugeIndexerConfig('sepolia');
+const sepolia = {
+  ...getShareClassIdentity({ network: 'sepolia', key: 'zmca' }),
+  indexerUrl: CENTRIFUGE_NETWORK_FACTS.sepolia.indexerUrl
+};
 
 function fakeIndexerResponse(body: unknown, init?: ResponseInit) {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), init));
@@ -32,20 +41,246 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('getCentrifugeIndexerConfig', () => {
-  it('returns the Sepolia constants', () => {
-    expect(sepolia).toEqual({
-      network: 'sepolia',
-      chainId: 11155111,
-      indexerUrl: 'https://api-v3-test.cfg.embrio.tech',
-      shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
+describe('share-class catalog', () => {
+  it('resolves a live entry to serializable identity', () => {
+    expect(getShareClassIdentity({ network: 'sepolia', key: 'zmca' })).toEqual({
+      key: 'zmca',
+      symbol: 'zMCA',
+      decimals: 18,
       poolId: '281474976720680',
-      scId: '0x00010000000027280000000000000001'
+      scId: '0x00010000000027280000000000000001',
+      shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
     });
   });
 
-  it('refuses to hand out the non-deployable mainnet placeholder', () => {
-    expect(() => getCentrifugeIndexerConfig('mainnet')).toThrow(/non-deployable placeholder/);
+  it('refuses to resolve a claimed placeholder entry', () => {
+    expect(() => getShareClassIdentity({ network: 'mainnet', key: 'zmca' })).toThrow(/non-deployable placeholder/);
+  });
+
+  it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
+    for (const key of ['toString', '__proto__', 'constructor']) {
+      expect(() => getShareClassIdentity({ network: 'sepolia', key })).toThrow(/not in the catalog/);
+    }
+  });
+
+  it('lists only live share classes and networks', () => {
+    // Synthetic catalog on purpose: enumerating the real book here made
+    // registering a share class break this file (it happened once).
+    const catalog = {
+      live: { networks: { sepolia: { deployable: true } } },
+      staged: { networks: { sepolia: { deployable: false }, mainnet: { deployable: false } } }
+    };
+
+    expect(listShareClassKeys('sepolia', catalog)).toEqual(['live']);
+    expect(listShareClassKeys('mainnet', catalog)).toEqual([]);
+    expect(getShareClassNetworks('live', catalog)).toEqual(['sepolia']);
+    expect(getShareClassNetworks('staged', catalog)).toEqual([]);
+    expect(() => getShareClassNetworks('toString', catalog)).toThrow(/not in the catalog/);
+  });
+
+  it('keeps the original class listed on its live network', () => {
+    // Membership only — the whole book is deliberately not asserted.
+    expect(listShareClassKeys('sepolia')).toContain('zmca');
+  });
+});
+
+describe('assertShareClassCatalogInvariants', () => {
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+  const ZERO_SC_ID = '0x00000000000000000000000000000000';
+
+  function entry({
+    symbol,
+    scId,
+    shareTokenAddress,
+    network = 'sepolia'
+  }: {
+    symbol: string;
+    scId: string;
+    shareTokenAddress: string;
+    network?: 'sepolia' | 'mainnet';
+  }) {
+    return { symbol, decimals: 18, networks: { [network]: { scId, shareTokenAddress } } };
+  }
+
+  const first = entry({
+    symbol: 'zAAA',
+    scId: '0x000100000000aaaa0000000000000001',
+    shareTokenAddress: '0xabababababababababababababababababababab'
+  });
+
+  it('accepts distinct entries, including shared placeholder zeros on staged networks', () => {
+    const staged = (base: ReturnType<typeof entry>) => ({
+      ...base,
+      networks: { ...base.networks, mainnet: { scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS } }
+    });
+
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: staged(first),
+        b: staged(
+          entry({
+            symbol: 'zBBB',
+            scId: '0x000100000000bbbb0000000000000001',
+            shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+          })
+        )
+      })
+    ).not.toThrow();
+  });
+
+  it('throws on implausible decimals', () => {
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(/implausible decimals/);
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
+  });
+
+  it('throws on a mixed-case scId — query sites send it verbatim', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000AAAA0000000000000001',
+          shareTokenAddress: '0xabababababababababababababababababababab'
+        })
+      })
+    ).toThrow(/lowercase/);
+  });
+
+  it('throws when two entries share a symbol, compared case-insensitively', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: first,
+        b: entry({
+          // Case-shifted on purpose: two case-variant symbols read as one product.
+          symbol: 'ZaAa',
+          scId: '0x000100000000bbbb0000000000000001',
+          shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+        })
+      })
+    ).toThrow(/symbol .* is claimed by two share classes/);
+  });
+
+  it('throws on a duplicate share-class id per network, including a non-active one', () => {
+    const onMainnet = (symbol: string, shareTokenAddress: string) =>
+      entry({ symbol, scId: '0x000100000000dddd0000000000000001', shareTokenAddress, network: 'mainnet' });
+
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: onMainnet('zAAA', '0xabababababababababababababababababababab'),
+        b: onMainnet('zBBB', '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc')
+      })
+    ).toThrow(/claimed by two catalog entries on "mainnet"/);
+  });
+
+  it('compares share-token addresses case-insensitively', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: first,
+        b: entry({
+          symbol: 'zBBB',
+          scId: '0x000100000000bbbb0000000000000001',
+          // Case-shifted on purpose: identity comparisons must be case-insensitive.
+          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase()
+        })
+      })
+    ).toThrow(/Share token .* is claimed by two share classes/);
+  });
+});
+
+describe('fetchShareClassNavs', () => {
+  it('maps each requested class to its own nav, filtering by all share token addresses', async () => {
+    const fetchMock = fakeIndexerResponse({
+      data: {
+        tokenInstances: {
+          items: [
+            {
+              address: sepolia.shareTokenAddress.toLowerCase(),
+              token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+            }
+          ]
+        }
+      }
+    });
+
+    const navs = await fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] });
+
+    expect(navs).toEqual({ zmca: '107000000000000000000' });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).variables).toEqual({
+      shareTokenAddresses: [sepolia.shareTokenAddress.toLowerCase()]
+    });
+  });
+
+  it('tolerates duplicate rows with identical payloads — one TokenInstance per spoke chain', async () => {
+    const row = {
+      address: sepolia.shareTokenAddress.toLowerCase(),
+      token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+    };
+    fakeIndexerResponse({ data: { tokenInstances: { items: [row, row] } } });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).resolves.toEqual({
+      zmca: '107000000000000000000'
+    });
+  });
+
+  it('fails the whole read when duplicate rows disagree, instead of letting one silently win', async () => {
+    const row = {
+      address: sepolia.shareTokenAddress.toLowerCase(),
+      token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+    };
+    const conflicting = { ...row, token: { ...row.token, tokenPrice: '9990000000000000000' } };
+    fakeIndexerResponse({ data: { tokenInstances: { items: [row, conflicting] } } });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('conflicting share-token rows')
+    });
+  });
+
+  it('fails the whole read when a requested class is missing, instead of returning a partial map', async () => {
+    fakeIndexerResponse({ data: { tokenInstances: { items: [] } } });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('is not indexed')
+    });
+  });
+
+  it('fails the whole read when any class is unpriced, instead of summing a partial book', async () => {
+    fakeIndexerResponse({
+      data: {
+        tokenInstances: {
+          items: [
+            {
+              address: sepolia.shareTokenAddress.toLowerCase(),
+              token: { tokenPrice: null, totalIssuance: '100000000000000000000', decimals: 18 }
+            }
+          ]
+        }
+      }
+    });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation'
+    });
+  });
+
+  it('returns an empty map without fetching when no classes are requested', async () => {
+    const fetchMock = fakeIndexerResponse({});
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: [] })).resolves.toEqual({});
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('sumShareClassNavs', () => {
+  it('sums every class into one book value as bigint', () => {
+    expect(sumShareClassNavs({ zmca: '107000000000000000000', other: '3000000000000000000' })).toBe(
+      110000000000000000000n
+    );
+  });
+
+  it('returns null for an empty book so no surface renders it as $0', () => {
+    expect(sumShareClassNavs({})).toBeNull();
   });
 });
 
@@ -60,7 +295,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics).toEqual({
       sharePrice: 1070000000000000000n,
@@ -85,7 +320,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBe(52500000000000000000000000n);
   });
@@ -103,7 +338,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBe(-52500000000000000000000000n);
     expect(metrics.nav).toBe(107000000000000000000n);
@@ -128,7 +363,7 @@ describe('fetchCurrentShareMetrics', () => {
       }
     });
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBeNull();
   });
@@ -143,7 +378,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ config: sepolia });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -165,7 +400,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ config: sepolia });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -182,7 +417,11 @@ describe('fetchCurrentShareMetrics', () => {
     );
 
     const controller = new AbortController();
-    await fetchCurrentShareMetrics({ config: sepolia, fetchOptions: { signal: controller.signal } });
+    await fetchCurrentShareMetrics({
+      network: 'sepolia',
+      shareClassKey: 'zmca',
+      fetchOptions: { signal: controller.signal }
+    });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBe(controller.signal);
@@ -191,7 +430,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a network error when the request cannot be sent at all', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'network',
       message: expect.stringContaining('fetch failed')
     });
@@ -200,7 +439,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws an http error when the indexer responds with a failure status', async () => {
     fakeIndexerResponse({}, { status: 502 });
 
-    const request = fetchCurrentShareMetrics({ config: sepolia });
+    const request = fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     await expect(request).rejects.toBeInstanceOf(CentrifugeIndexerError);
     await expect(request).rejects.toMatchObject({ kind: 'http', status: 502 });
@@ -209,7 +448,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a graphql error when the response carries GraphQL errors', async () => {
     fakeIndexerResponse({ errors: [{ message: 'Unknown field "tokenPrice"' }] });
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'graphql',
       message: expect.stringContaining('Unknown field "tokenPrice"')
     });
@@ -218,7 +457,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a validation error when the share token is not indexed', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] }, tokenSnapshots: { items: [] } } });
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('not indexed')
     });
@@ -234,7 +473,9 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+      kind: 'validation'
+    });
   });
 
   it('throws a validation error when the published share price is zero', async () => {
@@ -247,13 +488,15 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+      kind: 'validation'
+    });
   });
 
   it('throws a validation error on a non-JSON response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>')));
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('non-JSON')
     });
@@ -294,7 +537,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(truncated).toBe(false);
     expect(snapshots).toEqual([
@@ -327,7 +570,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     // Day 1's point is its close (the midnight row), and day 2 has no row yet.
     expect(snapshots).toEqual([
@@ -357,7 +600,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(snapshots.map((snapshot) => [snapshot.dayStartSeconds, snapshot.tokenPrice])).toEqual([
       [day1 / 1000, 1070000000000000000n],
@@ -377,7 +620,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]?.tokenPrice).toBe(1050000000000000000n);
@@ -392,7 +635,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(truncated).toBe(true);
     expect(snapshots).toHaveLength(1000);
@@ -452,13 +695,27 @@ describe('createDailyNegativeYieldReporter', () => {
     const report = vi.fn();
     const reportNegativeYield = createDailyNegativeYieldReporter(report);
 
-    reportNegativeYield({ negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
-    reportNegativeYield({ negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
-    reportNegativeYield({ negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
-    reportNegativeYield({ negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
 
     expect(report).toHaveBeenCalledTimes(2);
-    expect(report).toHaveBeenNthCalledWith(1, -1n);
-    expect(report).toHaveBeenNthCalledWith(2, -3n);
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zmca', negativeYield30d: -3n });
+  });
+
+  it('dedupes per share class, so one class cannot suppress another', () => {
+    const report = vi.fn();
+    const reportNegativeYield = createDailyNegativeYieldReporter(report);
+    const now = new Date('2026-07-22T12:00:00Z');
+
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now });
+    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
+    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
+
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zalt', negativeYield30d: -2n });
   });
 });

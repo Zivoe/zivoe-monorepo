@@ -5,18 +5,37 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+
+import { OfferingIdentityProvider } from '../offering-provider';
+import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { DepositFlow } from './deposit-flow';
 
-const { USDC_ADDRESS, ZMCA_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
   ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
   ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD'
 }));
 
+// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// drift (an earlier fixture here carried the router address as the vault's).
+const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+
+function renderFlow() {
+  return render(
+    <OfferingIdentityProvider identity={TEST_IDENTITY}>
+      <EarnDialogProvider>
+        <DepositFlow />
+      </EarnDialogProvider>
+    </OfferingIdentityProvider>
+  );
+}
+
 const mocks = vi.hoisted(() => ({
   allowance: 0n,
   approve: vi.fn(),
   capacity: 5_000000n,
+  capacityIsError: false,
   deposit: vi.fn(),
   isDebouncing: false,
   previewError: undefined as string | undefined,
@@ -30,11 +49,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 vi.mock('@/centrifuge', () => ({
-  CENTRIFUGE_CONFIG: {
+  CENTRIFUGE_ENV: {
     chainId: 11155111,
     vaultRouterAddress: ROUTER_ADDRESS,
-    shareToken: { address: ZMCA_ADDRESS, decimals: 18, symbol: 'zMCA' },
-    usdc: { address: USDC_ADDRESS, decimals: 6 }
+    usdc: { address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }
   },
   useDeposit: () => ({ isPending: false, isTxPending: false, mutate: mocks.deposit }),
   useDepositPreview: ({ assets }: { assets: bigint }) => ({
@@ -45,12 +63,10 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
-  useVaultCapacity: () => ({
-    data: { maxDeposit: mocks.capacity },
-    isFetching: false,
-    isPending: false,
-    isSuccess: true
-  })
+  useVaultCapacity: () =>
+    mocks.capacityIsError
+      ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
+      : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
 }));
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
@@ -170,7 +186,7 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectValue: () => null
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
-vi.mock('@zivoe/ui/icons', () => ({ UsdcIcon: () => null, InfoIcon: () => null }));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);
@@ -201,6 +217,7 @@ describe('DepositFlow', () => {
     vi.clearAllMocks();
     mocks.allowance = 0n;
     mocks.capacity = 5_000000n;
+    mocks.capacityIsError = false;
     mocks.isDebouncing = false;
     mocks.previewError = undefined;
     mocks.previewIsError = false;
@@ -214,7 +231,7 @@ describe('DepositFlow', () => {
     // Approve must not surface.
     mocks.isDebouncing = true;
     mocks.staleDebouncedValue = '1';
-    render(<DepositFlow />);
+    renderFlow();
 
     enterAmount('2');
 
@@ -223,9 +240,22 @@ describe('DepositFlow', () => {
     expect(getButton('Estimating zMCA...').disabled).toBe(true);
   });
 
+  it('blocks submission while the capacity read is failing', () => {
+    // A failed capacity read is how a misconfigured vault surfaces — the
+    // submit would only re-run the same failure inside the mutation. The
+    // query-cache toast is the user-facing signal, and the capacity interval
+    // recovers the form.
+    mocks.capacityIsError = true;
+
+    renderFlow();
+    fireEvent.change(getInput('Deposit'), { target: { value: '1' } });
+
+    expect(getButton('Approve').disabled).toBe(true);
+  });
+
   it('shows a retry action when the estimate fails and refetches on press', async () => {
     mocks.previewIsError = true;
-    render(<DepositFlow />);
+    renderFlow();
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('');
@@ -240,7 +270,7 @@ describe('DepositFlow', () => {
   it('drops back into the loading presentation while a retry is in flight', () => {
     mocks.previewIsError = true;
     mocks.previewIsFetching = true;
-    render(<DepositFlow />);
+    renderFlow();
     enterAmount('1');
 
     expect(screen.queryByText(/Unable to estimate zMCA/)).toBeNull();
@@ -251,7 +281,7 @@ describe('DepositFlow', () => {
   it('shows the price-unavailable copy and still offers a retry', () => {
     mocks.previewIsError = true;
     mocks.previewError = 'price-unavailable';
-    render(<DepositFlow />);
+    renderFlow();
     enterAmount('1');
 
     expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
@@ -260,7 +290,7 @@ describe('DepositFlow', () => {
   });
 
   it('approves the exact USDC amount for the VaultRouter before exposing deposit', async () => {
-    render(<DepositFlow />);
+    renderFlow();
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('1.23');
@@ -281,7 +311,7 @@ describe('DepositFlow', () => {
 
   it('deposits with the current quote, keeps failures retryable, and clears only on success', async () => {
     mocks.allowance = 2_000000n;
-    render(<DepositFlow />);
+    renderFlow();
     enterAmount('1');
 
     await press('Deposit');
@@ -306,14 +336,20 @@ describe('DepositFlow', () => {
   });
 
   it('caps Max at vault capacity and disables zero-capacity deposits', () => {
-    const { rerender } = render(<DepositFlow />);
+    const { rerender } = renderFlow();
 
     // Wallet holds 10 USDC but the vault only accepts 5 more.
     fireEvent.click(getButton('Max'));
     expect(getInput('Deposit').value).toBe('5');
 
     mocks.capacity = 0n;
-    rerender(<DepositFlow />);
+    rerender(
+      <OfferingIdentityProvider identity={TEST_IDENTITY}>
+        <EarnDialogProvider>
+          <DepositFlow />
+        </EarnDialogProvider>
+      </OfferingIdentityProvider>
+    );
     expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
     expect(getButton('Approve').disabled).toBe(true);
   });

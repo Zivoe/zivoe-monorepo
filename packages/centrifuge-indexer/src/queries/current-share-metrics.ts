@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
-import { type CentrifugeIndexerConfig } from '../config';
+import { getShareClassIdentity } from '../catalog';
+import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
-import { rayToPercent } from '../units';
+import { navD18, rayToPercent } from '../units';
 
 const CURRENT_SHARE_METRICS_QUERY = graphql(`
   query CurrentShareMetrics($shareTokenAddress: String!, $tokenId: String!) {
@@ -108,33 +109,48 @@ export function toShareStatsPayload(metrics: CurrentShareMetrics): {
 /**
  * Creates a per-process reporter for the live negative-yield anomaly. Current
  * metrics revalidate frequently, so a persistent anomaly reports at most once
- * per UTC day instead of on every fetch.
+ * per UTC day — per share class, so one class's anomaly can never suppress
+ * another's on a multi-class book.
  */
-export function createDailyNegativeYieldReporter(report: (negativeYield30d: bigint) => void) {
-  let lastReportedUtcDay: string | undefined;
+export function createDailyNegativeYieldReporter(
+  report: (ctx: { shareClassKey: string; negativeYield30d: bigint }) => void
+) {
+  const lastReportedUtcDayByClass = new Map<string, string>();
 
-  return ({ negativeYield30d, now = new Date() }: { negativeYield30d: bigint | null; now?: Date }): void => {
+  return ({
+    shareClassKey,
+    negativeYield30d,
+    now = new Date()
+  }: {
+    shareClassKey: string;
+    negativeYield30d: bigint | null;
+    now?: Date;
+  }): void => {
     if (negativeYield30d === null) return;
 
     const utcDay = now.toISOString().slice(0, 10);
-    if (utcDay === lastReportedUtcDay) return;
+    if (lastReportedUtcDayByClass.get(shareClassKey) === utcDay) return;
 
-    lastReportedUtcDay = utcDay;
-    report(negativeYield30d);
+    lastReportedUtcDayByClass.set(shareClassKey, utcDay);
+    report({ shareClassKey, negativeYield30d });
   };
 }
 
 export async function fetchCurrentShareMetrics({
-  config,
+  network,
+  shareClassKey,
   fetchOptions
 }: {
-  config: CentrifugeIndexerConfig;
+  network: CentrifugeNetwork;
+  shareClassKey: string;
   fetchOptions?: RequestInit;
 }): Promise<CurrentShareMetrics> {
+  const shareClass = getShareClassIdentity({ network, key: shareClassKey });
+
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: config.indexerUrl,
+    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
     query: CURRENT_SHARE_METRICS_QUERY,
-    variables: { shareTokenAddress: config.shareTokenAddress.toLowerCase(), tokenId: config.scId },
+    variables: { shareTokenAddress: shareClass.shareTokenAddress.toLowerCase(), tokenId: shareClass.scId },
     dataSchema,
     fetchOptions
   });
@@ -143,7 +159,7 @@ export async function fetchCurrentShareMetrics({
   if (!token)
     throw new CentrifugeIndexerError({
       kind: 'validation',
-      message: `Share token ${config.shareTokenAddress} is not indexed on ${config.network}.`
+      message: `Share token ${shareClass.shareTokenAddress} is not indexed on ${network}.`
     });
 
   const sharePrice = BigInt(token.tokenPrice);
@@ -153,7 +169,7 @@ export async function fetchCurrentShareMetrics({
   return {
     sharePrice,
     totalIssuance,
-    nav: (sharePrice * totalIssuance) / 10n ** BigInt(token.decimals),
+    nav: navD18({ tokenPrice: sharePrice, totalIssuance, decimals: token.decimals }),
     shareTokenDecimals: token.decimals,
     priceComputedAt: new Date(Number(token.tokenPriceComputedAt)),
     yield30dComp365: newestYield === null ? null : BigInt(newestYield)

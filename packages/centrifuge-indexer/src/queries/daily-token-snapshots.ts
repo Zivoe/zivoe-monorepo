@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { type CentrifugeIndexerConfig } from '../config';
+import { getShareClassIdentity } from '../catalog';
+import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
 
@@ -71,16 +72,20 @@ export function getUtcDayStartSeconds(timestampMs: number): number {
  * `pageInfo` exist on the endpoint) before history is actually lost.
  */
 export async function fetchDailyTokenSnapshots({
-  config,
+  network,
+  shareClassKey,
   fetchOptions
 }: {
-  config: CentrifugeIndexerConfig;
+  network: CentrifugeNetwork;
+  shareClassKey: string;
   fetchOptions?: RequestInit;
 }): Promise<{ snapshots: Array<DailyTokenSnapshot>; truncated: boolean }> {
+  const shareClass = getShareClassIdentity({ network, key: shareClassKey });
+
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: config.indexerUrl,
+    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
     query: DAILY_TOKEN_SNAPSHOTS_QUERY,
-    variables: { tokenId: config.scId, limit: MAX_PAGE_LIMIT },
+    variables: { tokenId: shareClass.scId, limit: MAX_PAGE_LIMIT },
     dataSchema,
     fetchOptions
   });

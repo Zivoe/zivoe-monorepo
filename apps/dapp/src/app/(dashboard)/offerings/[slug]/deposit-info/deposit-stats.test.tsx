@@ -10,20 +10,13 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null })
 vi.mock('@/components/info-section', () => ({
   default: ({ children }: { children: ReactNode }) => <section>{children}</section>
 }));
-vi.mock('@zivoe/ui/icons', () => ({
-  BankIcon: () => null,
-  ChartIcon: () => null,
-  MoneyIcon: () => null,
-  TrendingIcon: () => null,
-  // Pulled in by the Offerings registry, which carries the Target APY constant.
-  ZMcaLogo: () => null
-}));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders AUM, the published Target APY and the Token Price', () => {
-    render(<DepositStats nav={112000} sharePrice={1.0725} />);
+  it('renders AUM, the Offering Target APY and the Token Price', () => {
+    render(<DepositStats nav={112000} sharePrice={1.0725} targetApyPercent={14} />);
 
     expect(screen.getByText('AUM')).toBeTruthy();
     expect(screen.getByText('$112.00k')).toBeTruthy();

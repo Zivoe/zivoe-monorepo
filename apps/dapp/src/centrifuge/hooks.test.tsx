@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CENTRIFUGE_CONFIG, useDepositPreview, useInvestment, useVaultCapacity } from './index';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
+import { useDepositPreview, useRedemptionPosition, useVaultCapacity } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getVault }));
@@ -21,6 +23,8 @@ vi.mock('@/hooks/useAccount', () => ({ useAccount }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e';
+
+const SHARE_CLASS = FIXTURE_IDENTITY.shareClass;
 
 function balance(value: bigint, decimals = 18) {
   return { toBigInt: () => value, decimals };
@@ -43,9 +47,12 @@ function fakeVault() {
 
 function createWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return {
+    queryClient,
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+  };
 }
 
 beforeEach(() => {
@@ -56,31 +63,43 @@ beforeEach(() => {
 });
 
 describe('useVaultCapacity', () => {
-  it('returns the vault-level max deposit as a plain bigint', async () => {
-    const { result } = renderHook(() => useVaultCapacity(), { wrapper: createWrapper() });
+  it('reads the handed share class vault and caches under its key', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const { result } = renderHook(() => useVaultCapacity({ shareClass: SHARE_CLASS }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
+    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY'])).toEqual({
+      maxDeposit: 5_000_000000n
+    });
   });
 });
 
 describe('useDepositPreview', () => {
-  it('quotes shares from the vault contract previewDeposit for the exact amount', async () => {
-    const { result } = renderHook(() => useDepositPreview({ assets: 100_000000n }), { wrapper: createWrapper() });
+  it('quotes shares from the handed vault previewDeposit and caches under the share-class key', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const { result } = renderHook(() => useDepositPreview({ shareClass: SHARE_CLASS, assets: 100_000000n }), {
+      wrapper
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ shares: 50_000000000000000000n });
     expect(readContract).toHaveBeenCalledWith(
       expect.objectContaining({
-        address: CENTRIFUGE_CONFIG.vaultAddress,
+        address: SHARE_CLASS.vaultAddress,
         functionName: 'previewDeposit',
         args: [100_000000n]
       })
     );
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', '100000000'])).toEqual({
+      shares: 50_000000000000000000n
+    });
   });
 
   it('does not read for a non-positive amount', () => {
-    const { result } = renderHook(() => useDepositPreview({ assets: 0n }), { wrapper: createWrapper() });
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDepositPreview({ shareClass: SHARE_CLASS, assets: 0n }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(readContract).not.toHaveBeenCalled();
@@ -89,15 +108,19 @@ describe('useDepositPreview', () => {
   it('surfaces a failed contract preview as a query error', async () => {
     readContract.mockRejectedValue(new Error('execution reverted'));
 
-    const { result } = renderHook(() => useDepositPreview({ assets: 100_000000n }), { wrapper: createWrapper() });
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDepositPreview({ shareClass: SHARE_CLASS, assets: 100_000000n }), {
+      wrapper
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });
 
-describe('useInvestment', () => {
-  it('returns the plain domain fields', async () => {
-    const { result } = renderHook(() => useInvestment(), { wrapper: createWrapper() });
+describe('useRedemptionPosition', () => {
+  it('returns the plain domain fields under the account and share-class key', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({
@@ -107,12 +130,15 @@ describe('useInvestment', () => {
       claimableCancelRedeemShares: 60_000000000000000000n,
       hasPendingCancelRedeemRequest: false
     });
+    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])).toBeDefined();
   });
 
   it('does not read without a connected wallet', () => {
     useAccount.mockReturnValue({ isPending: false, isDisconnected: true, address: undefined });
 
-    const { result } = renderHook(() => useInvestment(), { wrapper: createWrapper() });
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(getVault).not.toHaveBeenCalled();

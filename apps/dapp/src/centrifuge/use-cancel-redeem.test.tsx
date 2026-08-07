@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
 import { useCancelRedeem } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
@@ -119,13 +121,14 @@ beforeEach(() => {
 describe('useCancelRedeem', () => {
   it('cancels the full pending amount and shows the snapshot in the success dialog', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useCancelRedeem(), { wrapper });
+    const { result } = renderHook(() => useCancelRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ pendingShares: PENDING_SHARES }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     // One transaction, no arguments — the Cancellation always covers the full
-    // remaining pending amount.
+    // remaining pending amount — against the vault of the identity parameter.
+    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
     expect(cancelSpy).toHaveBeenCalledOnce();
     expect(cancelSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();
@@ -134,17 +137,23 @@ describe('useCancelRedeem', () => {
       type: 'SUCCESS',
       title: 'Cancellation Requested',
       description:
-        'Your zMCA will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
+        'Your zFIX will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
       hash: TX_HASH,
-      meta: { cancelRedeem: { shares: PENDING_SHARES } }
+      offeringSlug: 'fixture-offering',
+      meta: { cancelRedeem: { share: { symbol: 'zFIX', decimals: 8 }, shares: PENDING_SHARES } }
     });
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
+    );
+
+    expect(analyticsCapture).toHaveBeenCalledWith(
+      'tx:redeem_cancel_submitted',
+      expect.objectContaining({ offering_slug: 'fixture-offering', token_in: 'zFIX' })
     );
   });
 
@@ -152,7 +161,7 @@ describe('useCancelRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ cancelError: new Error('No order to cancel') }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useCancelRedeem(), { wrapper });
+    const { result } = renderHook(() => useCancelRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ pendingShares: PENDING_SHARES }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -166,7 +175,7 @@ describe('useCancelRedeem', () => {
 
   it('rejects a zero pending snapshot before reaching the SDK', async () => {
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useCancelRedeem(), { wrapper });
+    const { result } = renderHook(() => useCancelRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ pendingShares: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));

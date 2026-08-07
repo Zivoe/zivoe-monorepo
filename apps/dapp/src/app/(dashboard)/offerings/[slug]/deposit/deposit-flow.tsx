@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSetAtom } from 'jotai';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { erc20Abi, formatUnits, parseUnits } from 'viem';
@@ -13,7 +12,6 @@ import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { depositDialogAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -26,33 +24,32 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
-import {
-  CENTRIFUGE_CONFIG,
-  isPriceUnavailableError,
-  useDeposit,
-  useDepositPreview,
-  useVaultCapacity
-} from '@/centrifuge';
+import { CENTRIFUGE_ENV, isPriceUnavailableError, useDeposit, useDepositPreview, useVaultCapacity } from '@/centrifuge';
 
+import { useOfferingIdentity } from '../offering-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
+import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
-const USDC = CENTRIFUGE_CONFIG.usdc;
-const ZMCA = CENTRIFUGE_CONFIG.shareToken;
+// The one deposit asset every Offering accepts — a network-level fact.
+const USDC = CENTRIFUGE_ENV.usdc;
 
 type DepositForm = { deposit: string };
 
 export function DepositFlow() {
+  const identity = useOfferingIdentity();
+  const share = identity.shareClass;
+
   const account = useAccount();
   const chainalysis = useChainalysis();
-  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
+  const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
-  const zMcaBalance = useBalance({ tokenAddress: ZMCA.address });
-  const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_CONFIG.vaultRouterAddress });
-  const capacity = useVaultCapacity();
+  const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
+  const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
+  const capacity = useVaultCapacity({ shareClass: share });
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -83,7 +80,7 @@ export function DepositFlow() {
   // amount's successful response renders.
   const { debouncedValue: debouncedDeposit, isDebouncing } = useDebouncedValue({ value: deposit });
   const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, USDC.decimals) : undefined;
-  const preview = useDepositPreview({ assets: debouncedRaw ?? 0n });
+  const preview = useDepositPreview({ shareClass: share, assets: debouncedRaw ?? 0n });
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
   const previewShares = hasDepositRaw && isPreviewCurrent ? preview.data?.shares : undefined;
@@ -96,15 +93,15 @@ export function DepositFlow() {
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
 
-  const approveSpending = useApproveSpending();
-  const depositMutation = useDeposit({ onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const approveSpending = useApproveSpending({ offeringSlug: identity.offeringSlug });
+  const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
 
   // Balances/allowance use isFetching so post-transaction invalidations keep
   // the form locked until fresh data lands.
   const isPrereqsLoading =
     account.isPending ||
     usdcBalance.isFetching ||
-    zMcaBalance.isFetching ||
+    shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
@@ -112,9 +109,11 @@ export function DepositFlow() {
     capacity.isPending;
 
   // isSubmitBlocked only gates approve/deposit, so inputs stay editable while
-  // a preview resolves or the vault is at capacity.
+  // a preview resolves or the vault is at capacity. A failed capacity read
+  // also blocks: it is how a misconfigured vault surfaces (resolution throws),
+  // and submitting would only re-run the same failure inside the mutation.
   const isFormLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable;
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable || capacity.isError;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
@@ -126,9 +125,10 @@ export function DepositFlow() {
 
     approveSpending.mutate({
       contract: USDC.address,
-      spender: CENTRIFUGE_CONFIG.vaultRouterAddress,
+      spender: CENTRIFUGE_ENV.vaultRouterAddress,
       amount: depositRaw,
       name: 'USDC',
+      decimals: USDC.decimals,
       abi: erc20Abi,
       successMessage: 'You can now deposit USDC.',
       errorMessage: 'There was an error approving USDC'
@@ -150,7 +150,7 @@ export function DepositFlow() {
     );
   };
 
-  const receiveValue = previewShares !== undefined ? formatUnits(previewShares, ZMCA.decimals) : '';
+  const receiveValue = previewShares !== undefined ? formatUnits(previewShares, share.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isPreviewLoading ? '' : undefined;
@@ -177,9 +177,9 @@ export function DepositFlow() {
             decimalPlaces={USDC.decimals}
             subContent={
               <InputExtraInfo
-                decimals={USDC.decimals}
+                dollarValueDecimals={USDC.decimals}
                 dollarValue={depositRaw ?? 0n}
-                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending }}
+                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
               />
             }
             endContent={
@@ -211,7 +211,7 @@ export function DepositFlow() {
         errorMessage={
           isPreviewFailed ? (
             <>
-              {isPriceUnavailable ? 'Deposits are currently unavailable.' : 'Unable to estimate zMCA.'}{' '}
+              {isPriceUnavailable ? 'Deposits are currently unavailable.' : `Unable to estimate ${share.symbol}.`}{' '}
               <Button variant="link-alert" size="s" onPress={() => void preview.refetch()}>
                 Retry
               </Button>
@@ -222,13 +222,13 @@ export function DepositFlow() {
         startContent={isPreviewLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            decimals={USDC.decimals}
+            dollarValueDecimals={USDC.decimals}
             dollarValue={isPreviewFailed ? 0n : receiveDollarValue}
             isLoading={isPreviewLoading}
-            balance={{ value: zMcaBalance.data, isPending: zMcaBalance.isPending, decimals: ZMCA.decimals }}
+            balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
           />
         }
-        endContent={<TokenDisplay symbol="zMCA" />}
+        endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
       <ConnectedAccount>
@@ -242,7 +242,7 @@ export function DepositFlow() {
             isPending={approveSpending.isPending || isPreviewLoading}
             pendingContent={
               isPreviewLoading
-                ? 'Estimating zMCA...'
+                ? `Estimating ${share.symbol}...`
                 : approveSpending.isTxPending
                   ? 'Approving USDC...'
                   : approveSpending.isPending
@@ -260,7 +260,7 @@ export function DepositFlow() {
             isPending={depositMutation.isPending || isPreviewLoading}
             pendingContent={
               isPreviewLoading
-                ? 'Estimating zMCA...'
+                ? `Estimating ${share.symbol}...`
                 : depositMutation.isTxPending
                   ? 'Depositing USDC...'
                   : depositMutation.isPending

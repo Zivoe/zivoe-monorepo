@@ -9,15 +9,15 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from '@/hooks/useAccount';
 
 import { getVault } from './client';
-import { CENTRIFUGE_CONFIG } from './config';
-import { readInvestment, readVaultCapacity } from './reads';
+import { readRedemptionPosition, readVaultCapacity } from './reads';
+import { type TransactedShareClass } from './types';
 
-export function useVaultCapacity() {
+export function useVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
   return useQuery({
-    queryKey: queryKeys.app.vaultCapacity,
+    queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
-    queryFn: async () => readVaultCapacity(await getVault())
+    queryFn: async () => readVaultCapacity(await getVault(shareClass))
   });
 }
 
@@ -37,11 +37,11 @@ export function isPriceUnavailableError(error: unknown): boolean {
  * The vault contract's own previewDeposit answer — the authoritative mint
  * quote, including whatever rounding the contract applies at execution.
  */
-export function useDepositPreview({ assets }: { assets: bigint }) {
+export function useDepositPreview({ shareClass, assets }: { shareClass: TransactedShareClass; assets: bigint }) {
   const web3 = usePublicClient();
 
   return useQuery({
-    queryKey: queryKeys.app.depositPreview({ assets }),
+    queryKey: queryKeys.app.depositPreview({ shareClassKey: shareClass.key, assets }),
     meta: { skipErrorToast: true },
     queryFn:
       assets <= 0n || !web3
@@ -49,7 +49,7 @@ export function useDepositPreview({ assets }: { assets: bigint }) {
         : async () => ({
             shares: await web3.readContract({
               abi: VAULT_PREVIEW_ABI,
-              address: CENTRIFUGE_CONFIG.vaultAddress,
+              address: shareClass.vaultAddress,
               functionName: 'previewDeposit',
               args: [assets]
             })
@@ -57,16 +57,21 @@ export function useDepositPreview({ assets }: { assets: bigint }) {
   });
 }
 
-export function useInvestment() {
+export function useRedemptionPosition({ shareClass }: { shareClass: TransactedShareClass }) {
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: queryKeys.account.investment({ accountAddress: address }),
-    meta: { toastErrorMessage: 'Error fetching investment data' },
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey: shareClass.key }),
+    meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
-    refetchInterval: ({ state }) => (state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false),
-    queryFn: !address ? skipToken : async () => readInvestment({ vault: await getVault(), investor: address })
+    // An errored read also polls: focus refetch is off app-wide and the error
+    // state blocks the redeem form, so it must be able to self-recover.
+    refetchInterval: ({ state }) =>
+      state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
+    queryFn: !address
+      ? skipToken
+      : async () => readRedemptionPosition({ vault: await getVault(shareClass), investor: address })
   });
 }

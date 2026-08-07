@@ -3,26 +3,38 @@
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_CONFIG } from './config';
-import useCentrifugeTx, { invalidateInvestmentQueries } from './useCentrifugeTx';
+import { CENTRIFUGE_ENV } from './config';
+import { type TransactionIdentity } from './types';
+import useCentrifugeTx from './useCentrifugeTx';
 
-const CANCEL_REDEEM_SIMULATION_ERROR_COPY = {
-  NoPendingRequest: 'There is no redemption request to cancel.',
-  CancellationIsPending: 'Your cancellation is already being processed.',
-  VaultNotLinked: 'Cancellations are temporarily unavailable for this vault.',
-  TransferNotAllowed: "This cancellation can't be submitted from this wallet right now.",
-  TransferBlocked: "This cancellation can't be submitted from this wallet right now.",
-  Paused: 'Redemptions are temporarily paused. Try again later.',
-  NotEnoughGas: 'The network fee estimate changed. Try again.'
-};
-
-const CANCEL_REDEEM_SDK_ERROR_COPY = {
-  'No order to cancel': 'There is no redemption request to cancel.'
-};
+/** All cancellation copy that names tokens, generated over the share/asset symbol pair. */
+function cancelRedeemCopy({ asset, share }: { asset: string; share: string }) {
+  return {
+    simulationErrors: {
+      NoPendingRequest: 'There is no redemption request to cancel.',
+      CancellationIsPending: 'Your cancellation is already being processed.',
+      VaultNotLinked: 'Cancellations are temporarily unavailable for this vault.',
+      TransferNotAllowed: "This cancellation can't be submitted from this wallet right now.",
+      TransferBlocked: "This cancellation can't be submitted from this wallet right now.",
+      Paused: 'Redemptions are temporarily paused. Try again later.',
+      NotEnoughGas: 'The network fee estimate changed. Try again.'
+    },
+    sdkErrors: {
+      'No order to cancel': 'There is no redemption request to cancel.'
+    },
+    pendingToast: 'Cancelling Redemption Request...',
+    errorToast: 'Error Cancelling Redemption',
+    success: {
+      title: 'Cancellation Requested',
+      description: `Your ${share} will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as ${asset}.`
+    },
+    failure: { title: 'Cancellation Failed', description: 'Your redemption request could not be cancelled.' }
+  };
+}
 
 type CancelRedeemVariables = {
   /**
-   * Pending zMCA at the moment of cancelling, in share-token base units. The
+   * Pending shares at the moment of cancelling, in share-token base units. The
    * Cancellation always covers the full remaining pending amount, and the
    * CancelRedeemRequest event carries no amount — this snapshot is what the
    * dialog and analytics can show.
@@ -30,9 +42,20 @@ type CancelRedeemVariables = {
   pendingShares: bigint;
 };
 
-export function useCancelRedeem({ onSuccessClose }: { onSuccessClose?: () => void } = {}) {
+export function useCancelRedeem({
+  identity,
+  onSuccessClose
+}: {
+  identity: TransactionIdentity;
+  onSuccessClose?: () => void;
+}) {
+  const { shareClass } = identity;
+  const copy = cancelRedeemCopy({ asset: CENTRIFUGE_ENV.usdc.symbol, share: shareClass.symbol });
+
   return useCentrifugeTx<CancelRedeemVariables>({
-    // No investment/vault re-reads here: the SDK re-checks the pending order
+    identity,
+
+    // No position/vault re-reads here: the SDK re-checks the pending order
     // itself ('No order to cancel' maps below), and the exact-call simulation
     // is the authoritative pre-sign gate (CancellationIsPending surfaces as
     // decoded copy if a second cancel races in).
@@ -42,46 +65,48 @@ export function useCancelRedeem({ onSuccessClose }: { onSuccessClose?: () => voi
       return { tx: vault.cancelRedeemRequest() };
     },
 
-    simulationErrorCopy: CANCEL_REDEEM_SIMULATION_ERROR_COPY,
-    sdkErrorCopy: CANCEL_REDEEM_SDK_ERROR_COPY,
+    simulationErrorCopy: copy.simulationErrors,
+    sdkErrorCopy: copy.sdkErrors,
 
     analytics: {
       flow: 'redeem_cancel',
       input: ({ pendingShares }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_CONFIG.chainId,
-        tokenIn: 'zMCA',
+        chainId: CENTRIFUGE_ENV.chainId,
+        tokenIn: shareClass.symbol,
         amountInRaw: pendingShares
       })
     },
 
-    pendingToast: () => 'Cancelling Redemption Request...',
-    errorToast: () => 'Error Cancelling Redemption',
+    pendingToast: () => copy.pendingToast,
+    errorToast: () => copy.errorToast,
     sentryFlow: 'redeem-cancel',
 
     transactionData: (receipt, { pendingShares }) => {
       if (receipt.status !== 'success')
         return {
           type: 'ERROR',
-          title: 'Cancellation Failed',
-          description: 'Your redemption request could not be cancelled.',
+          title: copy.failure.title,
+          description: copy.failure.description,
           hash: receipt.transactionHash
         };
 
       const transactionData: TransactionData = {
         type: 'SUCCESS',
-        title: 'Cancellation Requested',
-        description:
-          'Your zMCA will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
+        title: copy.success.title,
+        description: copy.success.description,
         hash: receipt.transactionHash,
-        meta: { cancelRedeem: { shares: pendingShares } }
+        meta: {
+          cancelRedeem: {
+            share: { symbol: shareClass.symbol, decimals: shareClass.decimals },
+            shares: pendingShares
+          }
+        }
       };
 
       return transactionData;
     },
 
-    onSuccessClose,
-
-    invalidate: invalidateInvestmentQueries
+    onSuccessClose
   });
 }

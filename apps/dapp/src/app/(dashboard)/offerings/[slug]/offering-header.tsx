@@ -1,3 +1,5 @@
+import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+
 import { NextLink } from '@zivoe/ui/core/link';
 
 import { type Offering } from '@/offerings';
@@ -32,7 +34,9 @@ export default function OfferingHeader({ offering }: { offering: Offering }) {
         <offering.Logo className="size-11 shrink-0" />
 
         <div className="flex flex-col gap-0.5">
-          <span className="text-small font-medium text-tertiary">{offering.shareClass.symbol}</span>
+          <span className="text-small font-medium text-tertiary">
+            {SHARE_CLASS_CATALOG[offering.shareClass.key].symbol}
+          </span>
           <h1 className="font-heading! text-h6 text-primary lg:text-h5">{offering.name}</h1>
         </div>
       </div>

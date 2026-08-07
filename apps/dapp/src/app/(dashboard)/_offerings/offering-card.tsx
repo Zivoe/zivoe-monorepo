@@ -1,18 +1,13 @@
-import { type ComponentType } from 'react';
-
 import { NextLink } from '@zivoe/ui/core/link';
-import { ArrowRightIcon, EthereumIcon } from '@zivoe/ui/icons';
-import { type IconProps } from '@zivoe/ui/icons/types';
+import { ArrowRightIcon } from '@zivoe/ui/icons';
+
+import { DEPOSIT_TOKENS } from '@/types/constants';
 
 import { customNumber } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { type Offering, TARGET_APY_PERCENT, offeringPath } from '@/offerings';
-
-const NETWORK_ICONS: Record<Offering['networks'][number], ComponentType<IconProps>> = {
-  Ethereum: EthereumIcon
-};
+import { type Offering, offeringNetworkDisplays, offeringPath } from '@/offerings';
 
 export default function OfferingCard({
   offering,
@@ -44,14 +39,14 @@ export default function OfferingCard({
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Issuer" value={offering.issuer} />
-          <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
+          <Term label="Target APY" value={`${offering.targetApyPercent}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
 
           <Term
             label="Accepted stablecoins"
             value={
               <div className="flex items-center gap-1.5">
-                {offering.acceptedAssets.map((asset) => (
+                {DEPOSIT_TOKENS.map((asset) => (
                   <span
                     key={asset}
                     role="img"
@@ -70,14 +65,11 @@ export default function OfferingCard({
             label="Available on"
             value={
               <div className="flex items-center gap-1.5">
-                {offering.networks.map((network) => {
-                  const NetworkIcon = NETWORK_ICONS[network];
-                  return (
-                    <span key={network} role="img" title={network} aria-label={network} className="[&_svg]:size-5">
-                      <NetworkIcon />
-                    </span>
-                  );
-                })}
+                {offeringNetworkDisplays(offering).map(({ label, Icon }) => (
+                  <span key={label} role="img" title={label} aria-label={label} className="[&_svg]:size-5">
+                    <Icon />
+                  </span>
+                ))}
               </div>
             }
           />

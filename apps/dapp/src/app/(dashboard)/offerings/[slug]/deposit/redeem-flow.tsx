@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSetAtom } from 'jotai';
 import { Controller, useForm } from 'react-hook-form';
 import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
@@ -13,7 +12,6 @@ import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { depositDialogAtom } from '@/lib/store';
 import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -24,49 +22,55 @@ import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 import ConnectedAccount from '@/components/connected-account';
 
 import {
-  CENTRIFUGE_CONFIG,
+  CENTRIFUGE_ENV,
+  type TransactedShareClass,
   sharesToUsdc,
   sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
-  useInvestment,
+  useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
 
+import { useOfferingIdentity } from '../offering-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
+import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
-const USDC = CENTRIFUGE_CONFIG.usdc;
-const ZMCA = CENTRIFUGE_CONFIG.shareToken;
+// The one deposit asset every Offering accepts — a network-level fact.
+const USDC = CENTRIFUGE_ENV.usdc;
 
 type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
+  const identity = useOfferingIdentity();
+  const share = identity.shareClass;
+
   const account = useAccount();
   const chainalysis = useChainalysis();
-  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
+  const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  const zMcaBalance = useBalance({ tokenAddress: ZMCA.address });
+  const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
-  const investment = useInvestment();
-  const metrics = useCurrentShareMetrics();
+  const position = useRedemptionPosition({ shareClass: share });
+  const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
-  const pendingShares = investment.data?.pendingRedeemShares ?? 0n;
-  const claimableAssets = investment.data?.claimableRedeemAssets ?? 0n;
-  const returnedShares = investment.data?.claimableCancelRedeemShares ?? 0n;
-  const isCancellationProcessing = investment.data?.hasPendingCancelRedeemRequest ?? false;
+  const pendingShares = position.data?.pendingRedeemShares ?? 0n;
+  const claimableAssets = position.data?.claimableRedeemAssets ?? 0n;
+  const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
+  const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
   const hasPosition = pendingShares > 0n || claimableAssets > 0n;
 
   const form = useForm<RedeemForm>({
     resolver: zodResolver(
       z.object({
         redeem: createAmountValidator({
-          balance: zMcaBalance.data ?? 0n,
-          decimals: ZMCA.decimals,
+          balance: shareBalance.data ?? 0n,
+          decimals: share.decimals,
           requiredMessage: 'Redeem amount is required',
           exceedsMessage: 'Redeem amount exceeds balance'
         })
@@ -77,28 +81,33 @@ export default function RedeemFlow() {
   });
 
   const redeem = form.watch('redeem');
-  const redeemRaw = redeem ? parseUnits(redeem, ZMCA.decimals) : undefined;
+  const redeemRaw = redeem ? parseUnits(redeem, share.decimals) : undefined;
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
 
-  const estimatedAssets = hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice }) : undefined;
+  const estimatedAssets =
+    hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice, shareClass: share }) : undefined;
   const redeemDollarValue =
-    redeemRaw !== undefined && sharePrice ? sharesToValueD18({ shares: redeemRaw, sharePrice }) : redeem ? null : 0n;
+    redeemRaw !== undefined && sharePrice
+      ? sharesToValueD18({ shares: redeemRaw, sharePrice, shareClass: share })
+      : redeem
+        ? null
+        : 0n;
 
-  const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const cancelRedeem = useCancelRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const claimReturnedShares = useClaimReturnedShares({ onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const requestRedeem = useRequestRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
+  const claimRedeem = useClaimRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
+  const cancelRedeem = useCancelRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
+  const claimReturnedShares = useClaimReturnedShares({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
 
-  // Balances/investment use isFetching so post-transaction invalidations keep
+  // Balances/position use isFetching so post-transaction invalidations keep
   // the form locked until fresh data lands. Cancellation Processing polls the
-  // investment, so it deliberately does NOT feed isPrereqsLoading — only the
+  // position, so it deliberately does NOT feed isPrereqsLoading — only the
   // initial load and post-transaction refetches do.
   const isPrereqsLoading =
     account.isPending ||
-    zMcaBalance.isFetching ||
+    shareBalance.isFetching ||
     usdcBalance.isFetching ||
     chainalysis.isFetching ||
-    (investment.isFetching && !isCancellationProcessing) ||
+    (position.isFetching && !isCancellationProcessing) ||
     // isPending on purpose: metrics refetch on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;
@@ -118,11 +127,18 @@ export default function RedeemFlow() {
   // locks the whole form through isPrereqsLoading.
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
+  // A failed position read renders like "no position" (the ?? 0n fallbacks
+  // above), so a new request must not be offered on top of state we cannot
+  // see — the read failing is also how a misconfigured vault surfaces. The
+  // query-cache toast is the user-facing signal, and the hook polls its
+  // error state so the form recovers without a reload.
+  const isPositionUnavailable = position.isError;
+
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isEstimateFailed || isEstimateLoading) return;
+    if (!isValid || isEstimateFailed || isEstimateLoading || isPositionUnavailable) return;
     // Narrowing only — validation guarantees redeemRaw and the estimate states
     // cover every missing-estimate case.
     if (!redeemRaw || estimatedAssets === undefined) return;
@@ -168,8 +184,8 @@ export default function RedeemFlow() {
       {returnedShares > 0n && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
-            {formatBigIntWithCommas({ value: returnedShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA
-            returned from cancellation
+            {formatBigIntWithCommas({ value: returnedShares, tokenDecimals: share.decimals, displayDecimals: 2 })}{' '}
+            {share.symbol} returned from cancellation
           </p>
 
           <ConnectedAccount fullWidth={false} type="skeleton">
@@ -182,13 +198,13 @@ export default function RedeemFlow() {
               isPending={claimReturnedShares.isPending}
               pendingContent={
                 claimReturnedShares.isTxPending
-                  ? 'Claiming zMCA...'
+                  ? `Claiming ${share.symbol}...`
                   : claimReturnedShares.isPending
                     ? 'Signing Transaction...'
                     : undefined
               }
             >
-              Claim zMCA
+              Claim {share.symbol}
             </Button>
           </ConnectedAccount>
         </div>
@@ -229,17 +245,20 @@ export default function RedeemFlow() {
             </ConnectedAccount>
           </div>
 
-          {returnedShares > 0n && <p className="text-extraSmall text-tertiary">Claim your returned zMCA first.</p>}
+          {returnedShares > 0n && (
+            <p className="text-extraSmall text-tertiary">Claim your returned {share.symbol} first.</p>
+          )}
         </div>
       )}
 
       {isCancellationProcessing ? (
-        <CancellationProcessingStrip pendingShares={pendingShares} />
+        <CancellationProcessingStrip pendingShares={pendingShares} shareClass={share} />
       ) : (
         pendingShares > 0n && (
           <RedemptionProcessingStrip
             pendingShares={pendingShares}
             sharePrice={sharePrice}
+            shareClass={share}
             cancel={{
               onPress: handleCancelRedeem,
               isDisabled:
@@ -265,25 +284,27 @@ export default function RedeemFlow() {
             errorMessage={error?.message}
             isInvalid={invalid}
             isDisabled={isFormLocked}
-            decimalPlaces={ZMCA.decimals}
+            decimalPlaces={share.decimals}
             subContent={
               <InputExtraInfo
-                decimals={ZMCA.decimals}
+                // sharesToValueD18 is 18-decimal whatever the share token's own
+                // decimals are; the balance carries the token's scale itself.
+                dollarValueDecimals={18}
                 dollarValue={redeemDollarValue}
-                balance={{ value: zMcaBalance.data, isPending: zMcaBalance.isPending }}
+                balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
               />
             }
             endContent={
               <div className="flex items-center">
                 <MaxButton
-                  balance={zMcaBalance.data ?? 0n}
-                  decimals={ZMCA.decimals}
+                  balance={shareBalance.data ?? 0n}
+                  decimals={share.decimals}
                   onPress={(value) => onChange(value)}
                   isDisabled={isFormLocked}
                 />
 
                 <div className="ml-3">
-                  <TokenDisplay symbol="zMCA" />
+                  <TokenDisplay symbol={share.symbol} />
                 </div>
               </div>
             }
@@ -313,10 +334,10 @@ export default function RedeemFlow() {
           startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
           subContent={
             <InputExtraInfo
-              decimals={USDC.decimals}
+              dollarValueDecimals={USDC.decimals}
               dollarValue={receiveDollarValue}
               isLoading={isEstimateLoading}
-              balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending }}
+              balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
             />
           }
           endContent={<TokenDisplay symbol="USDC" />}
@@ -340,7 +361,11 @@ export default function RedeemFlow() {
             fullWidth
             onPress={() => void handleRequestRedeem()}
             isDisabled={
-              isEstimateFailed || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending
+              isEstimateFailed ||
+              isPositionUnavailable ||
+              claimRedeem.isPending ||
+              cancelRedeem.isPending ||
+              claimReturnedShares.isPending
             }
             isPending={requestRedeem.isPending || isEstimateLoading}
             pendingContent={
@@ -364,19 +389,21 @@ export default function RedeemFlow() {
 function RedemptionProcessingStrip({
   pendingShares,
   sharePrice,
+  shareClass,
   cancel
 }: {
   pendingShares: bigint;
   sharePrice: bigint | undefined;
+  shareClass: TransactedShareClass;
   cancel: { onPress: () => void; isDisabled: boolean; isPending: boolean; isTxPending: boolean };
 }) {
-  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice }) : undefined;
+  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">
-        {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA
-        processing
+        {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
+        {shareClass.symbol} processing
         {pendingUsdc !== undefined
           ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: USDC.decimals, displayDecimals: 2 })} USDC`
           : ''}
@@ -400,19 +427,25 @@ function RedemptionProcessingStrip({
   );
 }
 
-function CancellationProcessingStrip({ pendingShares }: { pendingShares: bigint }) {
+function CancellationProcessingStrip({
+  pendingShares,
+  shareClass
+}: {
+  pendingShares: bigint;
+  shareClass: TransactedShareClass;
+}) {
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">
         Cancelling redemption request
         {pendingShares > 0n
-          ? ` for ${formatBigIntWithCommas({ value: pendingShares, tokenDecimals: ZMCA.decimals, displayDecimals: 2 })} zMCA`
+          ? ` for ${formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })} ${shareClass.symbol}`
           : ''}
       </p>
 
       <p className="text-extraSmall text-tertiary">
-        Your zMCA will be available to claim once the cancellation is processed. Any portion already approved still
-        executes as USDC.
+        Your {shareClass.symbol} will be available to claim once the cancellation is processed. Any portion already
+        approved still executes as USDC.
       </p>
     </div>
   );

@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { CENTRIFUGE_CONFIG, useClaimReturnedShares } from './index';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
+import { CENTRIFUGE_ENV, useClaimReturnedShares } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
@@ -48,12 +50,12 @@ const RETURNED_SHARES = 4n * 10n ** 18n;
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
 });
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
 });
 
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
@@ -64,7 +66,7 @@ function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) 
   const logs = withClaimLog
     ? [
         {
-          address: CENTRIFUGE_CONFIG.vaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase(),
           topics: encodeEventTopics({
             abi: CANCEL_REDEEM_CLAIM_EVENT_ABI,
             eventName: 'CancelRedeemClaim',
@@ -132,7 +134,7 @@ function fakeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+                    to: CENTRIFUGE_ENV.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -175,9 +177,9 @@ beforeEach(() => {
 });
 
 describe('useClaimReturnedShares', () => {
-  it('claims Returned Shares through the aggregate claim and decodes the exact zMCA', async () => {
+  it('claims Returned Shares through the aggregate claim and decodes the exact zFIX', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -187,19 +189,28 @@ describe('useClaimReturnedShares', () => {
     expect(claimSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();
 
+    // Identity follows the hook parameter: the fixture share class resolves
+    // the vault and the Offering slug rides the analytics captures.
+    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(analyticsCapture).toHaveBeenCalledWith(
+      'tx:redeem_claim_returned_receipt',
+      expect.objectContaining({ offering_slug: 'fixture-offering', token_out: 'zFIX' })
+    );
+
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
-      title: 'zMCA Claimed',
-      description: 'Your zMCA has been returned to your wallet.',
+      title: 'zFIX Claimed',
+      description: 'Your zFIX has been returned to your wallet.',
       hash: TX_HASH,
-      meta: { claimReturnedShares: { shares: RETURNED_SHARES } }
+      offeringSlug: 'fixture-offering',
+      meta: { claimReturnedShares: { share: { symbol: 'zFIX', decimals: 8 }, shares: RETURNED_SHARES } }
     });
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
   });
@@ -208,7 +219,7 @@ describe('useClaimReturnedShares', () => {
     getVault.mockResolvedValue(fakeVault({ claimError: new Error('No claimable funds') }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ returnedShares: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -216,7 +227,7 @@ describe('useClaimReturnedShares', () => {
     expect(walletRequest).not.toHaveBeenCalled();
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: 'There is no returned zMCA available to claim yet.'
+      title: 'There is no returned zFIX available to claim yet.'
     });
   });
 
@@ -224,23 +235,23 @@ describe('useClaimReturnedShares', () => {
     getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 0n }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ returnedShares: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     // With an empty Returned Shares bucket the aggregate claim would fall
-    // through to redemption USDC under 'Claim zMCA' copy — the guard stops it.
+    // through to redemption USDC under 'Claim zFIX' copy — the guard stops it.
     expect(claimSpy).not.toHaveBeenCalled();
     expect(walletRequest).not.toHaveBeenCalled();
-    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zMCA to claim. Refresh and try again.' });
+    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zFIX to claim. Refresh and try again.' });
   });
 
   it('rejects an SDK bucket switch before the wallet can claim USDC as Returned Shares', async () => {
     getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_REDEEM_DATA }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -254,11 +265,11 @@ describe('useClaimReturnedShares', () => {
     });
   });
 
-  it('does not report a successful zMCA claim when the receipt cannot be decoded', async () => {
+  it('does not report a successful zFIX claim when the receipt cannot be decoded', async () => {
     getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withClaimLog: false }) }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimReturnedShares(), { wrapper });
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -266,8 +277,9 @@ describe('useClaimReturnedShares', () => {
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'ERROR',
       title: 'Claim Could Not Be Verified',
-      description: 'The transaction was confirmed, but the zMCA claim could not be verified. Refresh your balances.',
-      hash: TX_HASH
+      description: 'The transaction was confirmed, but the zFIX claim could not be verified. Refresh your balances.',
+      hash: TX_HASH,
+      offeringSlug: 'fixture-offering'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });
