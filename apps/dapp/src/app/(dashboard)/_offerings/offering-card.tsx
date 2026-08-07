@@ -30,7 +30,8 @@ export default function OfferingCard({
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-small tracking-wider text-tertiary uppercase">
+            {/* No uppercase: the ticker is cased by the catalog — zSMB, not ZSMB. */}
+            <p className="text-small tracking-wider text-tertiary">
               {SHARE_CLASS_CATALOG[offering.shareClass.key].symbol}
             </p>
             {offering.status ? <Badge>{offering.status}</Badge> : null}
