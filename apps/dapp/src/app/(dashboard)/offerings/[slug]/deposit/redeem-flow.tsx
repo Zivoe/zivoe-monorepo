@@ -138,16 +138,19 @@ export default function RedeemFlow() {
   // escrow can use this form even when its share moves back are blocked.
   const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAllowlisted;
 
-  // Both states are presentation only. The estimate quotes a price that will
-  // not be the settlement price anyway — the callout below the row says as
-  // much — so it never gates the request; it only decides what the Estimated
-  // receive row shows. A retry in flight shows loading rather than the stale
-  // error, and a fetched Share Price of 0 (pre-first-price row or upstream
-  // glitch) counts as failed, so the row resolves instead of skeletoning
-  // forever.
-  // Both are scoped to an entered amount, matching the deposit tab: there is no
-  // estimate to fail until there is something to estimate, and a red row on an
-  // untouched form reads as a problem with the form.
+  // Named once, like the deposit tab's, so the button and its handler cannot
+  // drift apart. A sibling mutation blocks because all four share one write
+  // path — the request waits its turn rather than colliding.
+  const isSubmitBlocked =
+    isNotAllowlisted || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
+
+  // Both states are presentation only, and both are scoped to an entered amount
+  // to match the deposit tab. The estimate quotes a price that will not be the
+  // settlement price anyway — the callout below the row says as much — so it
+  // never gates the request; it only decides what the Estimated receive row
+  // shows. A retry in flight shows loading rather than the stale error, and a
+  // fetched Share Price of 0 (pre-first-price row or upstream glitch) counts as
+  // failed, so the row resolves instead of skeletoning forever.
   const isEstimateFailed =
     hasRedeemRaw && (metrics.isError || (!metrics.isPending && !sharePrice)) && !metrics.isFetching;
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
@@ -397,9 +400,7 @@ export default function RedeemFlow() {
           <Button
             fullWidth
             onPress={() => void handleRequestRedeem()}
-            isDisabled={
-              isNotAllowlisted || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending
-            }
+            isDisabled={isSubmitBlocked}
             isPending={requestRedeem.isPending}
             pendingContent={
               requestRedeem.isTxPending
