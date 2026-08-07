@@ -398,7 +398,11 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    // Metrics are page-level, so the failure shows before any amount is typed.
+    // Nothing to estimate yet, so nothing has failed yet.
+    expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
     expect(screen.getByText(/Unable to estimate USDC/)).toBeTruthy();
     expect(getInput('Estimated receive').value).toBe('');
 

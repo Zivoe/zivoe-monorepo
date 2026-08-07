@@ -145,7 +145,11 @@ export default function RedeemFlow() {
   // error, and a fetched Share Price of 0 (pre-first-price row or upstream
   // glitch) counts as failed, so the row resolves instead of skeletoning
   // forever.
-  const isEstimateFailed = (metrics.isError || (!metrics.isPending && !sharePrice)) && !metrics.isFetching;
+  // Both are scoped to an entered amount, matching the deposit tab: there is no
+  // estimate to fail until there is something to estimate, and a red row on an
+  // untouched form reads as a problem with the form.
+  const isEstimateFailed =
+    hasRedeemRaw && (metrics.isError || (!metrics.isPending && !sharePrice)) && !metrics.isFetching;
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
