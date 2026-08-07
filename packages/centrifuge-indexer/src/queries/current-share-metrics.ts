@@ -4,7 +4,7 @@ import { getShareClassIdentity } from '../catalog';
 import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
-import { rayToPercent } from '../units';
+import { navD18, rayToPercent } from '../units';
 
 const CURRENT_SHARE_METRICS_QUERY = graphql(`
   query CurrentShareMetrics($shareTokenAddress: String!, $tokenId: String!) {
@@ -169,7 +169,7 @@ export async function fetchCurrentShareMetrics({
   return {
     sharePrice,
     totalIssuance,
-    nav: (sharePrice * totalIssuance) / 10n ** BigInt(token.decimals),
+    nav: navD18({ tokenPrice: sharePrice, totalIssuance, decimals: token.decimals }),
     shareTokenDecimals: token.decimals,
     priceComputedAt: new Date(Number(token.tokenPriceComputedAt)),
     yield30dComp365: newestYield === null ? null : BigInt(newestYield)

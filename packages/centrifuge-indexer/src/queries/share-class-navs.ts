@@ -4,6 +4,7 @@ import { getShareClassIdentity } from '../catalog';
 import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
+import { navD18 } from '../units';
 
 const SHARE_CLASS_NAVS_QUERY = graphql(`
   query ShareClassNavs($shareTokenAddresses: [String]) {
@@ -88,7 +89,11 @@ export async function fetchShareClassNavs({
           message: `Share token ${identity.shareTokenAddress} is not indexed on ${network}.`
         });
 
-      const nav = (BigInt(token.tokenPrice) * BigInt(token.totalIssuance)) / 10n ** BigInt(token.decimals);
+      const nav = navD18({
+        tokenPrice: BigInt(token.tokenPrice),
+        totalIssuance: BigInt(token.totalIssuance),
+        decimals: token.decimals
+      });
       return [identity.key, nav.toString()];
     })
   );

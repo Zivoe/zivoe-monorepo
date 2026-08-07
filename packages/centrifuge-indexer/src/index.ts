@@ -34,4 +34,4 @@ export {
   type DailyTokenSnapshot
 } from './queries/daily-token-snapshots';
 export { fetchShareClassNavs, sumShareClassNavs } from './queries/share-class-navs';
-export { rayToPercent } from './units';
+export { navD18, rayToPercent } from './units';
