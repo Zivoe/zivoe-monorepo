@@ -1,33 +1,22 @@
 import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
-
-import { NextLink } from '@zivoe/ui/core/link';
+import { Link } from '@zivoe/ui/core/link';
+import { ArrowLeftIcon } from '@zivoe/ui/icons';
 
 import { type Offering } from '@/offerings';
 
 /**
- * Breadcrumb over an identity row — the mock's vault-page header, minus the
- * Standard/Identity/Dashboard switcher and the status pill.
+ * Back link over an identity row — the mock's vault-page header, minus the
+ * Standard/Identity/Dashboard switcher and the status pill. The link goes to
+ * the homepage, which is the Offerings list this page was reached from.
  */
 export default function OfferingHeader({ offering }: { offering: Offering }) {
   return (
     <div className="w-full pt-7">
-      <nav aria-label="Breadcrumb">
-        <ol className="flex items-center gap-2 text-small">
-          <li>
-            <NextLink href="/" className="text-secondary transition-colors hover:text-primary">
-              Offerings
-            </NextLink>
-          </li>
-
-          <li aria-hidden className="text-tertiary">
-            /
-          </li>
-
-          <li className="font-medium text-primary" aria-current="page">
-            {offering.name}
-          </li>
-        </ol>
-      </nav>
+      {/* -ml-3 cancels the button padding so the label lines up with the identity row below. */}
+      <Link href="/" variant="ghost" size="s" className="-ml-3">
+        <ArrowLeftIcon />
+        Back
+      </Link>
 
       <div className="flex items-center gap-3.5 pt-5.5 pb-1">
         {/* shrink-0 so a wrapping name squeezes its own column, not the logo. */}
