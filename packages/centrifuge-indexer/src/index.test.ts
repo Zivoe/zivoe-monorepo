@@ -128,12 +128,8 @@ describe('assertShareClassCatalogInvariants', () => {
   });
 
   it('throws on implausible decimals', () => {
-    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(
-      /implausible decimals/
-    );
-    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 180 } })).toThrow(
-      /implausible decimals/
-    );
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(/implausible decimals/);
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
   });
 
   it('throws on a mixed-case scId — query sites send it verbatim', () => {

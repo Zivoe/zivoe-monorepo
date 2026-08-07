@@ -6,7 +6,6 @@ import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
-
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { OfferingIdentityProvider } from '../offering-provider';

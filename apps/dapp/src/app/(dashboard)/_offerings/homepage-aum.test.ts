@@ -13,10 +13,7 @@ vi.mock('@/server/data/centrifuge-metrics', () => ({
   getCurrentShareMetrics: vi.fn()
 }));
 
-const { getCurrentShareMetrics, getShareClassNavs } = vi.mocked(
-  await import('@/server/data/centrifuge-metrics'),
-  true
-);
+const { getCurrentShareMetrics, getShareClassNavs } = vi.mocked(await import('@/server/data/centrifuge-metrics'), true);
 
 beforeEach(() => {
   vi.clearAllMocks();

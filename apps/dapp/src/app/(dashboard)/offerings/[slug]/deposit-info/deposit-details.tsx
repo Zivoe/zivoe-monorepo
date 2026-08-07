@@ -27,7 +27,11 @@ export default function DepositDetails({ offering }: { offering: Offering }) {
             className="border-b border-default last:border-b-0"
           />
         ))}
-        <Element title="Available Networks" value={availableNetworks} className="border-b border-default last:border-b-0" />
+        <Element
+          title="Available Networks"
+          value={availableNetworks}
+          className="border-b border-default last:border-b-0"
+        />
       </div>
     </InfoSection>
   );

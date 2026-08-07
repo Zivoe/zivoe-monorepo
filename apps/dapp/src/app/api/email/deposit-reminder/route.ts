@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 import { listShareClassKeys } from '@zivoe/centrifuge-indexer';
 
-import { env } from '@/env';
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
 import { hasAnyInvestorTransaction } from '@/server/data/centrifuge-investor';
@@ -16,6 +15,8 @@ import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
+
+import { env } from '@/env';
 
 const bodySchema = z.object({
   userId: z.string().uuid(),

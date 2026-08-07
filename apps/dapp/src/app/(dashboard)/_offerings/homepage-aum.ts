@@ -1,8 +1,8 @@
 import { sumShareClassNavs } from '@zivoe/centrifuge-indexer';
 
-import { OFFERINGS } from '@/offerings';
-
 import { getCurrentShareMetrics, getShareClassNavs } from '@/server/data/centrifuge-metrics';
+
+import { OFFERINGS } from '@/offerings';
 
 export type HomepageAum = {
   /** Whole-book AUM in USD — null hides the headline. */
