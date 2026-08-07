@@ -185,6 +185,7 @@ describe('two share classes side by side', () => {
 
   it('keeps the mutation-time identity when the hook re-renders under another Offering mid-flight', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
@@ -245,5 +246,11 @@ describe('two share classes side by side', () => {
       amount: ZMCA_AMOUNTS.assets,
       receive: ZMCA_AMOUNTS.shares
     });
+
+    // The invalidations are pinned the same way: they refetch the
+    // mutation-time class's scope, never the re-rendered one's.
+    const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
+    expect(invalidatedKeys.some((key) => key.includes(ZMCA_IDENTITY.shareClass.key))).toBe(true);
+    expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.shareClass.key))).toBe(false);
   });
 });

@@ -141,7 +141,12 @@ export type TxSharedConfig<TVariables> = {
   transactionData: (receipt: TransactionReceipt, vars: TVariables) => TransactionData;
   /** Runs when the transaction dialog payload is a SUCCESS (e.g. close the triggering dialog). */
   onSuccessClose?: () => void;
-  /** Query invalidations after the transaction settles; skipped for no-refetch rejections. */
+  /**
+   * Query invalidations after the transaction settles; skipped for no-refetch
+   * rejections. Runs inside the mutation — pinned, like transactionData, to
+   * the options the mutation started with, so a hook re-rendered under
+   * another identity mid-flight can never refetch the wrong scope.
+   */
   invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
 
@@ -275,6 +280,8 @@ export default function useTxLifecycle<TVariables, TPrepared>(
                 };
         }
 
+        config.invalidate({ queryClient, address, vars });
+
         return { receipt, transactionData };
       } catch (err) {
         const normalized = config.normalizeError ? config.normalizeError(err) : err;
@@ -284,6 +291,10 @@ export default function useTxLifecycle<TVariables, TPrepared>(
           txHash,
           error_type: errorType
         });
+
+        // Settled non-rejection failures still refetch — the chain may have
+        // moved (e.g. a late broadcast) even though this mutation failed.
+        if (!skipTxSettled(normalized)) config.invalidate({ queryClient, address, vars });
 
         throw normalized;
       }
@@ -304,11 +315,6 @@ export default function useTxLifecycle<TVariables, TPrepared>(
     onSuccess: ({ transactionData }) => {
       setTransaction(transactionData);
       if (transactionData.type === 'SUCCESS') config.onSuccessClose?.();
-    },
-
-    onSettled: (_, err, vars) => {
-      if (skipTxSettled(err)) return;
-      config.invalidate({ queryClient, address, vars });
     }
   });
 

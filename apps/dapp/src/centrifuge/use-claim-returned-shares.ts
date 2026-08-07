@@ -10,7 +10,7 @@ import { CENTRIFUGE_ENV } from './config';
 import { decodeClaimReturnedSharesReceipt } from './decode';
 import { readRedemptionPosition } from './reads';
 import { type TransactionIdentity } from './types';
-import useCentrifugeTx, { invalidateAfterCentrifugeTx } from './useCentrifugeTx';
+import useCentrifugeTx from './useCentrifugeTx';
 
 /** All Returned Shares claim copy that names tokens, generated over the share symbol. */
 function claimReturnedSharesCopy({ share }: { share: string }) {
@@ -139,9 +139,6 @@ export function useClaimReturnedShares({
       return transactionData;
     },
 
-    onSuccessClose,
-
-    invalidate: ({ queryClient, address }) =>
-      invalidateAfterCentrifugeTx({ queryClient, address, shareClassKey: shareClass.key })
+    onSuccessClose
   });
 }

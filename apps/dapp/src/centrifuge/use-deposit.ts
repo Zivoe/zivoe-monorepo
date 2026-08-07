@@ -9,7 +9,7 @@ import { AppError } from '@/lib/utils';
 import { CENTRIFUGE_ENV } from './config';
 import { decodeSyncDepositReceipt } from './decode';
 import { type TransactionIdentity } from './types';
-import useCentrifugeTx, { invalidateAfterCentrifugeTx } from './useCentrifugeTx';
+import useCentrifugeTx from './useCentrifugeTx';
 
 /** All deposit copy that names tokens, generated over the share/asset symbol pair. */
 function depositCopy({ asset, share }: { asset: string; share: string }) {
@@ -124,7 +124,7 @@ export function useDeposit({
 
     onSuccessClose,
 
-    invalidate: ({ queryClient, address }) => {
+    invalidateExtra: ({ queryClient, address }) => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
@@ -133,7 +133,6 @@ export function useDeposit({
         })
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key }) });
-      invalidateAfterCentrifugeTx({ queryClient, address, shareClassKey: shareClass.key });
     }
   });
 }

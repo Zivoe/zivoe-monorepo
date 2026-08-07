@@ -34,9 +34,15 @@ type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient:
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = TxSharedConfig<TVariables> & {
+export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate'> & {
   /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
   identity: TransactionIdentity;
+  /**
+   * Flow-specific invalidations beyond the driver's share-class-scoped set —
+   * every Centrifuge transaction already invalidates balances, redemption
+   * position, portfolio and share metrics for the transacted class.
+   */
+  invalidateExtra?: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
   /**
    * Re-runs guards and starts the SDK action; throw AppError for validation
    * failures. Runs with the lazily resolved, simulation-wrapped signer already
@@ -87,6 +93,18 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       offeringSlug: identity.offeringSlug,
       shareClassKey: identity.shareClass.key
     }),
+
+    // Every Centrifuge transaction moves share-class-scoped state, so the
+    // driver owns the invalidation — stamped once here (like the slug above)
+    // instead of copy-pasted into every hook; hooks add flow extras only.
+    invalidate: (ctx) => {
+      invalidateAfterCentrifugeTx({
+        queryClient: ctx.queryClient,
+        address: ctx.address,
+        shareClassKey: identity.shareClass.key
+      });
+      config.invalidateExtra?.(ctx);
+    },
 
     normalizeError: (err) => normalizeCentrifugeError(err, config.sdkErrorCopy),
 

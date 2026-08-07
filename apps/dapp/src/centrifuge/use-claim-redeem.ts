@@ -10,7 +10,7 @@ import { CENTRIFUGE_ENV } from './config';
 import { decodeClaimRedeemReceipt } from './decode';
 import { readRedemptionPosition } from './reads';
 import { type TransactionIdentity } from './types';
-import useCentrifugeTx, { invalidateAfterCentrifugeTx } from './useCentrifugeTx';
+import useCentrifugeTx from './useCentrifugeTx';
 
 /** All claim copy that names tokens, generated over the share/asset symbol pair. */
 function claimRedeemCopy({ asset, share }: { asset: string; share: string }) {
@@ -140,9 +140,6 @@ export function useClaimRedeem({
       return transactionData;
     },
 
-    onSuccessClose,
-
-    invalidate: ({ queryClient, address }) =>
-      invalidateAfterCentrifugeTx({ queryClient, address, shareClassKey: shareClass.key })
+    onSuccessClose
   });
 }

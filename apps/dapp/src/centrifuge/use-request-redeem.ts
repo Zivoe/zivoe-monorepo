@@ -7,7 +7,7 @@ import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_ENV } from './config';
 import { type TransactionIdentity } from './types';
-import useCentrifugeTx, { invalidateAfterCentrifugeTx } from './useCentrifugeTx';
+import useCentrifugeTx from './useCentrifugeTx';
 
 /** All redemption-request copy that names tokens, generated over the share/asset symbol pair. */
 function requestRedeemCopy({ asset, share }: { asset: string; share: string }) {
@@ -117,9 +117,6 @@ export function useRequestRedeem({
       return transactionData;
     },
 
-    onSuccessClose,
-
-    invalidate: ({ queryClient, address }) =>
-      invalidateAfterCentrifugeTx({ queryClient, address, shareClassKey: shareClass.key })
+    onSuccessClose
   });
 }
