@@ -11,6 +11,7 @@ import {
   type ShareStatsPayload,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
+  fetchShareClassNavs,
   getShareClassIdentity,
   rayToPercent,
   toShareStatsPayload
@@ -19,6 +20,7 @@ import {
 import { env } from '@/env';
 
 import { sharesToValueD18 } from '@/centrifuge/config';
+import { OFFERINGS } from '@/offerings';
 
 export type CentrifugeDailySnapshot = {
   /** UTC start (ms) of the day whose close this point records. */
@@ -117,6 +119,32 @@ export const getCentrifugeDailySnapshots = reactCache(
     }
   }
 );
+
+/** One multi-class query over the given share classes — the aggregated surfaces' single read. */
+async function fetchAggregatedNavRows(shareClassKeys: Array<string>): Promise<Record<string, string>> {
+  return fetchShareClassNavs({ network: env.NEXT_PUBLIC_NETWORK, shareClassKeys });
+}
+
+const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-share-class-navs'], { revalidate: 30 });
+
+/**
+ * AUM per listed share class, keyed by share-class key (18-decimal USD decimal
+ * strings). The keys come from the registry rather than the catalog so the
+ * headline is the sum of exactly the cards the page lists — a class the dApp
+ * does not serve cannot inflate the aggregate — and the array argument keys
+ * the cache, so a registry change starts a fresh entry. Fail-closed end to
+ * end: the fetch throws if any class is missing or unpriced, and a failed
+ * read returns undefined here so consumers hide the aggregate rather than
+ * rendering a partial sum. Same error contract as the other reads: throw
+ * inside the cache, hide-and-capture outside.
+ */
+export const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | undefined> => {
+  try {
+    return await cachedShareClassNavs(OFFERINGS.map((offering) => offering.shareClass.key));
+  } catch (error) {
+    Sentry.captureException(error, { tags: { source: 'SERVER' } });
+  }
+});
 
 async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareStatsPayload> {
   // negativeYield30d is deliberately not alerted on while APY is unrendered —

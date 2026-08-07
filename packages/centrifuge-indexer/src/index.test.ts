@@ -6,6 +6,7 @@ import {
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
+  fetchShareClassNavs,
   getCentrifugeIndexerConfig,
   getShareClassIdentity,
   getShareClassNetworks,
@@ -55,6 +56,66 @@ describe('share-class catalog', () => {
     expect(listShareClassKeys('sepolia')).toEqual(['zmca']);
     expect(listShareClassKeys('mainnet')).toEqual([]);
     expect(getShareClassNetworks('zmca')).toEqual(['sepolia']);
+  });
+});
+
+describe('fetchShareClassNavs', () => {
+  it('maps each requested class to its own nav, filtering by all share token addresses', async () => {
+    const fetchMock = fakeIndexerResponse({
+      data: {
+        tokenInstances: {
+          items: [
+            {
+              address: sepolia.shareTokenAddress.toLowerCase(),
+              token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+            }
+          ]
+        }
+      }
+    });
+
+    const navs = await fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] });
+
+    expect(navs).toEqual({ zmca: '107000000000000000000' });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).variables).toEqual({
+      shareTokenAddresses: [sepolia.shareTokenAddress.toLowerCase()]
+    });
+  });
+
+  it('fails the whole read when a requested class is missing, instead of returning a partial map', async () => {
+    fakeIndexerResponse({ data: { tokenInstances: { items: [] } } });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('is not indexed')
+    });
+  });
+
+  it('fails the whole read when any class is unpriced, instead of summing a partial book', async () => {
+    fakeIndexerResponse({
+      data: {
+        tokenInstances: {
+          items: [
+            {
+              address: sepolia.shareTokenAddress.toLowerCase(),
+              token: { tokenPrice: null, totalIssuance: '100000000000000000000', decimals: 18 }
+            }
+          ]
+        }
+      }
+    });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation'
+    });
+  });
+
+  it('returns an empty map without fetching when no classes are requested', async () => {
+    const fetchMock = fakeIndexerResponse({});
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: [] })).resolves.toEqual({});
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
