@@ -8,21 +8,22 @@ export const ZALT_OFFERING: Offering = {
   name: 'Zivoe Alternative Credit',
   Logo: ZAltLogo,
   category: 'Merchant Cash Advance',
+  status: 'Closed',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardGradient: [
-    'radial-gradient(120% 120% at 18% 22%, rgba(255, 216, 174, 0.95), transparent 55%)',
-    'radial-gradient(120% 130% at 86% 82%, rgba(224, 99, 143, 0.92), transparent 55%)',
-    'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
+    'radial-gradient(120% 120% at 18% 22%, rgba(180, 235, 228, 0.95), transparent 55%)',
+    'radial-gradient(120% 130% at 86% 82%, rgba(99, 118, 224, 0.92), transparent 55%)',
+    'linear-gradient(135deg, #5cc7c3, #489dd9 45%, #6b7ed9)'
   ].join(', '),
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },
   vaults: {
     sepolia: { address: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6', deployable: true },
-    mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
+    mainnet: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true }
   },
   shareTokenDescription: 'Zivoe Alternative Credit',
-  targetApyPercent: 14,
+  targetApyPercent: 10,
 
   about: [
     'zALT offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',
@@ -31,18 +32,15 @@ export const ZALT_OFFERING: Offering = {
   ],
 
   details: {
-    Eligibility: 'Institutions & Non-US Retail',
-    'Underlying Assets': 'Business & Consumer Loans',
-    Geography: 'Americas and EU',
-    'Legal Structure': 'SPV',
-    'Regulatory Compliance': 'Reg S Compliant Offering',
-    'Management Fee': '2.5% APR',
-    Liquidity: 'Available upon request',
-    Audits: { href: 'https://docs.zivoe.com/official-links/audits', label: 'View Reports' }
+    Geography: 'United States & Europe',
+    Inception: 'September 2025',
+    'Entry/exit fees': 'None',
+    Redemptions: 'Processed weekly',
+    Eligibility: 'U.S. Accredited & Non-US Investors'
   },
 
   documents: [
-    { title: 'Protocol Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
+    { title: 'Zivoe Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
     { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
   ]
 };

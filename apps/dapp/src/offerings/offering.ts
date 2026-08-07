@@ -14,26 +14,24 @@ import { type IconProps } from '@zivoe/ui/icons/types';
  * below forces every module to fill exactly the authored rows.
  */
 export const OFFERING_DETAIL_LABELS = [
-  'Eligibility',
-  'Underlying Assets',
+  'Issuer',
+  'Ticker',
+  'Asset Type',
   'Geography',
-  'Legal Structure',
-  'Regulatory Compliance',
-  'Management Fee',
-  'Liquidity',
-  'Audits',
-  'Available Networks'
+  'Inception',
+  'Entry/exit fees',
+  'Redemptions',
+  'Eligibility',
+  'Accepted stablecoin',
+  'Accepted chains'
 ] as const;
 
 export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
 
-/** Rows derived from the catalog at render — never authored by a module. */
-export type DerivedDetailLabel = 'Available Networks';
+/** Rows derived from the catalog or the Offering's own fields at render — never authored in `details`. */
+export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted stablecoin' | 'Accepted chains';
 
 export type AuthoredDetailLabel = Exclude<OfferingDetailLabel, DerivedDetailLabel>;
-
-/** A Details row value: plain text, or an external link the section styles itself. */
-export type OfferingDetailValue = string | { href: string; label: string };
 
 /** The vault instantiating the share class for USDC on one network. */
 export type OfferingVault = {
@@ -61,10 +59,24 @@ export type OfferingVault = {
  * server-rendered and may hold components and rich content. Component and
  * function fields must never cross into the identity half.
  */
+/**
+ * Subscription status. 'Closed' takes an Offering out of new deposits while
+ * its redemptions stay open, so this is a behavioral fact the deposit flow
+ * reads — not only the listing card's chip. Further statuses join the union
+ * here.
+ */
+export type OfferingStatus = 'Open' | 'Closed';
+
 export type OfferingIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
   name: string;
+  /**
+   * Required, not optional: it gates the deposit action, and an Offering with
+   * no declared status would leave "can this wallet still subscribe?"
+   * ambiguous. Lives in the identity half because the client tree reads it.
+   */
+  status: OfferingStatus;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     /**
@@ -86,9 +98,9 @@ export type OfferingIdentity = {
 
 export type OfferingPresentation = {
   Logo: ComponentType<IconProps>;
-  /** Asset class, shown as the listing card's eyebrow. */
+  /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
-  /** The listing card's blurb — the page itself carries the long-form About. */
+  /** Link-preview blurb for the Offering page — the card shows no excerpt. */
   description: string;
   /**
    * CSS `background` for the listing card's banner. A raw value rather than a
@@ -104,7 +116,7 @@ export type OfferingPresentation = {
   /** About-section paragraphs, in render order — rich text with links allowed. */
   about: Array<ReactNode>;
   /** Details values for the AUTHORED rows only — a missing row fails to compile, a derived row cannot be written. */
-  details: Record<AuthoredDetailLabel, OfferingDetailValue>;
+  details: Record<AuthoredDetailLabel, string>;
   /** Documents-section links, in render order. */
   documents: Array<{ title: string; href: string }>;
 };

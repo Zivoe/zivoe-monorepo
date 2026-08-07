@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
@@ -13,17 +13,17 @@ import { DepositFlow } from './deposit-flow';
 
 const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
+  ZSMB_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
   ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD'
 }));
 
-// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here carried the router address as the vault's).
-const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
-function renderFlow() {
+function renderFlow(status: 'Open' | 'Closed' = 'Open') {
   return render(
-    <OfferingIdentityProvider identity={TEST_IDENTITY}>
+    <OfferingIdentityProvider identity={TEST_IDENTITY} status={status}>
       <EarnDialogProvider>
         <DepositFlow />
       </EarnDialogProvider>
@@ -32,7 +32,10 @@ function renderFlow() {
 }
 
 const mocks = vi.hoisted(() => ({
+  address: '0x1234567890abcdef1234567890abcdef12345678',
   allowance: 0n,
+  allowlistIsAllowed: true,
+  allowlistIsError: false,
   approve: vi.fn(),
   capacity: 5_000000n,
   capacityIsError: false,
@@ -63,13 +66,22 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
+  useInvestorAllowlist: () =>
+    mocks.allowlistIsError
+      ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
+      : {
+          data: { canReceiveShares: mocks.allowlistIsAllowed, canRequestRedemption: mocks.allowlistIsAllowed },
+          isError: false,
+          isFetching: false,
+          isSuccess: true
+        },
   useVaultCapacity: () =>
     mocks.capacityIsError
       ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
       : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
 }));
 vi.mock('@/hooks/useAccount', () => ({
-  useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
+  useAccount: () => ({ isPending: false, isDisconnected: false, address: mocks.address })
 }));
 vi.mock('@/hooks/useAllowance', () => ({
   checkHasEnoughAllowance: ({ allowance, amount }: { allowance?: bigint; amount?: bigint }) =>
@@ -185,6 +197,9 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectValue: () => null
 }));
+vi.mock('@zivoe/ui/core/callout', () => ({
+  Callout: ({ children }: { children: ReactNode }) => <div>{children}</div>
+}));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
@@ -215,7 +230,10 @@ describe('DepositFlow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
     mocks.allowance = 0n;
+    mocks.allowlistIsAllowed = true;
+    mocks.allowlistIsError = false;
     mocks.capacity = 5_000000n;
     mocks.capacityIsError = false;
     mocks.isDebouncing = false;
@@ -237,20 +255,65 @@ describe('DepositFlow', () => {
 
     expect(getInput('Estimated receive').value).toBe('');
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
-    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+    expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
-  it('blocks submission while the capacity read is failing', () => {
-    // A failed capacity read is how a misconfigured vault surfaces — the
-    // submit would only re-run the same failure inside the mutation. The
-    // query-cache toast is the user-facing signal, and the capacity interval
-    // recovers the form.
+  it('offers no deposit action at all on a closed Offering', () => {
+    renderFlow('Closed');
+
+    expect(getButton('Deposits Disabled').disabled).toBe(true);
+    expect(screen.getByText('Deposits are currently disabled, redemptions are enabled.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    // Nothing to enter an amount for.
+    expect(getInput('Deposit').disabled).toBe(true);
+  });
+
+  it('names the wallet and blocks the action when the vault does not admit it', async () => {
+    mocks.allowlistIsAllowed = false;
+    renderFlow();
+    enterAmount('1');
+
+    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(getInput('Deposit').disabled).toBe(true);
+
+    await press('Wallet Not Allowlisted');
+
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.deposit).not.toHaveBeenCalled();
+  });
+
+  it('leaves the action live on a failed allow-list read', async () => {
+    // A fetch failure is not a verdict, so it neither names the wallet nor
+    // takes the action away. The exact-call simulation is the authoritative
+    // pre-sign gate and decodes the real revert if the vault does refuse.
+    mocks.allowlistIsError = true;
+    renderFlow();
+    enterAmount('1');
+
+    expect(getButton('Approve').disabled).toBe(false);
+    expect(getInput('Deposit').disabled).toBe(false);
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+
+    await press('Approve');
+
+    expect(mocks.approve).toHaveBeenCalled();
+  });
+
+  it('drops the capacity cap rather than the action when the capacity read fails', async () => {
+    // With no capacity there is nothing to validate against, so the cap simply
+    // stops applying — 7 USDC clears a form that a successful 5 USDC read
+    // would reject. ExceedsMaxDeposit still surfaces from the simulation.
     mocks.capacityIsError = true;
 
     renderFlow();
-    fireEvent.change(getInput('Deposit'), { target: { value: '1' } });
+    // The resolver is async: without the await the message has not had a chance
+    // to land, and asserting its absence would pass whatever the cap did.
+    await act(async () => enterAmount('7'));
 
-    expect(getButton('Approve').disabled).toBe(true);
+    expect(screen.queryByText(/exceeds current vault capacity/)).toBeNull();
+    expect(getButton('Approve').disabled).toBe(false);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {
@@ -259,7 +322,7 @@ describe('DepositFlow', () => {
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('');
-    expect(screen.getByText(/Unable to estimate zMCA/)).toBeTruthy();
+    expect(screen.getByText(/Unable to estimate zSMB/)).toBeTruthy();
     expect(getButton('Approve').disabled).toBe(true);
 
     await press('Retry');
@@ -273,9 +336,9 @@ describe('DepositFlow', () => {
     renderFlow();
     enterAmount('1');
 
-    expect(screen.queryByText(/Unable to estimate zMCA/)).toBeNull();
+    expect(screen.queryByText(/Unable to estimate zSMB/)).toBeNull();
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
-    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+    expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
   it('shows the price-unavailable copy and still offers a retry', () => {
@@ -335,22 +398,48 @@ describe('DepositFlow', () => {
     expect(getInput('Deposit').value).toBe('');
   });
 
-  it('caps Max at vault capacity and disables zero-capacity deposits', () => {
+  it("drops the previous wallet's validation error when the wallet changes", async () => {
+    // The balance rule is wallet-scoped, so its verdict must not outlive the
+    // wallet it was about — the redeem tab already behaves this way.
+    mocks.usdcBalance = 0n;
     const { rerender } = renderFlow();
+    // The resolver is async, so the message lands a microtask after the change.
+    await act(async () => enterAmount('1'));
 
-    // Wallet holds 10 USDC but the vault only accepts 5 more.
-    fireEvent.click(getButton('Max'));
-    expect(getInput('Deposit').value).toBe('5');
+    expect(screen.getByText('Deposit amount exceeds balance')).toBeTruthy();
 
-    mocks.capacity = 0n;
+    mocks.usdcBalance = 10_000000n;
+    mocks.address = '0xabcdef1234567890abcdef1234567890abcdef12';
     rerender(
-      <OfferingIdentityProvider identity={TEST_IDENTITY}>
+      <OfferingIdentityProvider identity={TEST_IDENTITY} status="Open">
         <EarnDialogProvider>
           <DepositFlow />
         </EarnDialogProvider>
       </OfferingIdentityProvider>
     );
-    expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
-    expect(getButton('Approve').disabled).toBe(true);
+
+    expect(screen.queryByText('Deposit amount exceeds balance')).toBeNull();
+  });
+
+  it('caps Max at vault capacity', () => {
+    renderFlow();
+
+    // Wallet holds 10 USDC but the vault only accepts 5 more.
+    fireEvent.click(getButton('Max'));
+    expect(getInput('Deposit').value).toBe('5');
+  });
+
+  it('offers no deposit action at all when the vault has no capacity', () => {
+    // An Offering-level fact, so it reads like one: a named action and a
+    // callout, not a validation error against an amount nobody has typed.
+    mocks.capacity = 0n;
+    renderFlow();
+
+    expect(getButton('Deposits Unavailable').disabled).toBe(true);
+    expect(screen.getByText('Deposits are currently unavailable, redemptions are enabled.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+    // Nothing to enter an amount for.
+    expect(getInput('Deposit').disabled).toBe(true);
   });
 });

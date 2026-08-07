@@ -426,7 +426,7 @@ resource "posthog_insight" "zivoe_dapp_redemption_lifecycle" {
 
 resource "posthog_insight" "zivoe_dapp_confirmed_deposit_volume_by_token" {
   name        = "Zivoe Dapp - Confirmed Deposit Volume by Token"
-  description = "Sums confirmed deposit output volume in zMCA, broken down by input token."
+  description = "Sums confirmed deposit output volume in zSMB, broken down by input token."
   tags        = ["terraform", "dapp", "deposit", "volume"]
 
   query_json = jsonencode({

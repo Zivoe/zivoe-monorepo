@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({ isMobile: true }));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('view=redeem'),
-  usePathname: () => '/offerings/global-mca-offerings',
+  usePathname: () => '/offerings/zivoe-smb-credit',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() })
 }));
 

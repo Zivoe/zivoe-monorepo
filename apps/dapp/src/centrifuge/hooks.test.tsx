@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { useDepositPreview, useRedemptionPosition, useVaultCapacity } from './index';
+import { useDepositPreview, useInvestorAllowlist, useRedemptionPosition, useVaultCapacity } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getVault }));
@@ -30,11 +30,15 @@ function balance(value: bigint, decimals = 18) {
   return { toBigInt: () => value, decimals };
 }
 
-function fakeVault() {
+// The allow-list fixture stays in the SDK's own deposit/redeem vocabulary —
+// the rename to canReceiveShares/canRequestRedemption happens in the read, and
+// a fixture written in domain terms would assert the mapping against itself.
+function fakeVault({ allowlist = { isAllowedToDeposit: true, isAllowedToRedeem: true } } = {}) {
   return {
     details: () => Promise.resolve({ maxDeposit: balance(5_000_000000n, 6) }),
     investment: () =>
       Promise.resolve({
+        ...allowlist,
         shareBalance: balance(101_000000000000000000n),
         pendingRedeemShares: balance(200_000000000000000000n),
         claimableRedeemAssets: balance(150_000000n, 6),
@@ -139,6 +143,55 @@ describe('useRedemptionPosition', () => {
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(getVault).not.toHaveBeenCalled();
+  });
+});
+
+describe('useInvestorAllowlist', () => {
+  it('returns both vault verdicts under the account and share-class key', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAllowlist({ shareClass: SHARE_CLASS }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true });
+    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_ALLOWLIST', 'zfix'])).toBeDefined();
+  });
+
+  it('reports a blocked wallet rather than throwing', async () => {
+    getVault.mockImplementation(() =>
+      Promise.resolve(fakeVault({ allowlist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }))
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAllowlist({ shareClass: SHARE_CLASS }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({ canReceiveShares: false, canRequestRedemption: false });
+  });
+
+  it('keeps the two directions apart rather than collapsing them into one verdict', async () => {
+    // The protocol answers these with different calls, and the redeem panel
+    // gates different actions on each — a swap here would silently move which
+    // buttons a de-listed wallet loses.
+    getVault.mockImplementation(() =>
+      Promise.resolve(fakeVault({ allowlist: { isAllowedToDeposit: true, isAllowedToRedeem: false } }))
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAllowlist({ shareClass: SHARE_CLASS }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: false });
+  });
+
+  it('does not read without a connected wallet', () => {
+    useAccount.mockReturnValue({ isPending: false, isDisconnected: true, address: undefined });
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAllowlist({ shareClass: SHARE_CLASS }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(getVault).not.toHaveBeenCalled();

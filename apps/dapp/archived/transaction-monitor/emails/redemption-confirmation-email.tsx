@@ -18,7 +18,7 @@ import {
 } from './receipt-formatters';
 
 interface RedemptionConfirmationEmailProps {
-  zMcaRedeemed: string; // Formatted string, e.g., "1,000.00 zMCA"
+  zSmbRedeemed: string; // Formatted string, e.g., "1,000.00 zSMB"
   usdcReceived: string; // Formatted string, e.g., "1,050.00 USDC"
   fee: string; // Formatted string, e.g., "10.50 USDC"
   walletAddress: string;
@@ -28,7 +28,7 @@ interface RedemptionConfirmationEmailProps {
 }
 
 export default function RedemptionConfirmationEmail({
-  zMcaRedeemed,
+  zSmbRedeemed,
   usdcReceived,
   fee,
   walletAddress,
@@ -48,14 +48,14 @@ export default function RedemptionConfirmationEmail({
       </Section>
 
       <ReceiptTokenFlowRow
-        from={{ symbol: 'zMCA', value: zMcaRedeemed }}
+        from={{ symbol: 'zSMB', value: zSmbRedeemed }}
         to={{ symbol: 'USDC', value: usdcReceived }}
       />
 
       <ReceiptDetailTable>
         <ReceiptDetailRow label="Status" value={<ReceiptSuccessBadge />} />
         <ReceiptDetailRow label="Date" value={formattedTimestamp} />
-        <ReceiptDetailRow label="Amount Redeemed" value={zMcaRedeemed} />
+        <ReceiptDetailRow label="Amount Redeemed" value={zSmbRedeemed} />
         <ReceiptDetailRow label="Fee" value={fee} />
         <ReceiptDetailRow
           label="Wallet"

@@ -35,7 +35,8 @@ export type TransactionData = {
       share: TransactionTokenSnapshot;
       asset: TransactionTokenSnapshot;
       amount: bigint;
-      receive: bigint;
+      /** Indicative only, and absent when the Share Price could not be read. */
+      receive?: bigint;
     };
 
     claimRedeem?: {

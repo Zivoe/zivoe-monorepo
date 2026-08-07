@@ -8,44 +8,17 @@ export const ZAltLogo = React.forwardRef<SVGSVGElement, IconProps>(
       <svg
         width="48"
         height="48"
-        viewBox="0 0 48 48"
+        viewBox="0 0 630 630"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         {...props}
         ref={forwardedRef}
       >
-        <rect width="48" height="48" rx="24" fill="#F08F48" />
-        <g clipPath="url(#clip0_zalt_logo)">
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M24.0922 30.4593L20.558 24.3066H13.4871L9.95288 30.4593L13.4871 36.6131H13.4883H13.4871L17.0225 30.4593H24.0922Z"
-            fill="#FEFEFE"
-          />
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M38.2316 30.4593L34.6974 24.3066H27.6277L24.0923 30.4593L27.6277 36.6131L31.162 30.4593H38.2316Z"
-            fill="#FEFEFE"
-          />
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M24.0925 18.1531L20.5582 12.0004H13.4874L9.95312 18.1531L13.4874 24.3069H13.4885H13.4874L17.0228 18.1531H24.0925Z"
-            fill="#FEFEFE"
-          />
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M38.2316 18.1527L34.6974 12.0001H27.6277L24.0923 18.1527L27.6277 24.3065L31.162 18.1527H38.2316Z"
-            fill="#FEFEFE"
-          />
-        </g>
-        <defs>
-          <clipPath id="clip0_zalt_logo">
-            <rect width="28.2787" height="24.6129" fill="white" transform="translate(9.95312 12)" />
-          </clipPath>
-        </defs>
+        <rect width="630" height="630" rx="315" fill="#F08F48" />
+        <path
+          d="M401.127 389.962L351.402 303.403H450.854L500.579 389.962L450.854 476.523H351.402L401.127 389.962ZM228.873 389.962H328.324L278.598 476.523H179.146L129.421 389.962L179.146 303.403L228.873 389.962ZM315 240.038L265.275 326.597L215.549 240.038L265.275 153.478H364.725L414.451 240.038H315Z"
+          fill="white"
+        />
       </svg>
     );
   }

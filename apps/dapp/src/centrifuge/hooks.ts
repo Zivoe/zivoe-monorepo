@@ -9,8 +9,27 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from '@/hooks/useAccount';
 
 import { getVault } from './client';
-import { readRedemptionPosition, readVaultCapacity } from './reads';
+import { readInvestorAllowlist, readRedemptionPosition, readVaultCapacity } from './reads';
 import { type TransactedShareClass } from './types';
+
+/**
+ * Whether this share class's vault admits the connected wallet. Every flow's
+ * action gates on it: the allow list lives in the vault's own configuration,
+ * so a blocked wallet's transaction reverts on-chain rather than failing any
+ * check the form could run. Skipped without a wallet — there is nothing to
+ * ask about until one connects.
+ */
+export function useInvestorAllowlist({ shareClass }: { shareClass: TransactedShareClass }) {
+  const { address } = useAccount();
+
+  return useQuery({
+    queryKey: queryKeys.account.investorAllowlist({ accountAddress: address, shareClassKey: shareClass.key }),
+    meta: { toastErrorMessage: 'Error checking wallet access' },
+    queryFn: !address
+      ? skipToken
+      : async () => readInvestorAllowlist({ vault: await getVault(shareClass), investor: address })
+  });
+}
 
 export function useVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
   return useQuery({
@@ -66,8 +85,9 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
-    // An errored read also polls: focus refetch is off app-wide and the error
-    // state blocks the redeem form, so it must be able to self-recover.
+    // An errored read also polls: focus refetch is off app-wide, and a failed
+    // read renders like "no position" — the strips a user needs to claim or
+    // cancel with are missing until it recovers on its own.
     refetchInterval: ({ state }) =>
       state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
     queryFn: !address

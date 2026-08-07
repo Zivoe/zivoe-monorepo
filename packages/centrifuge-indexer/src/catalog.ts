@@ -31,8 +31,8 @@ export type ShareClassCatalogEntry = {
  * entry hides the whole-book number on every surface until it is indexed.
  */
 export const SHARE_CLASS_CATALOG = {
-  zmca: {
-    symbol: 'zMCA',
+  zsmb: {
+    symbol: 'zSMB',
     decimals: 18,
     networks: {
       sepolia: {
@@ -41,12 +41,12 @@ export const SHARE_CLASS_CATALOG = {
         shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
         deployable: true
       },
+
       mainnet: {
-        // NON-DEPLOYABLE PLACEHOLDER: no mainnet deployment yet
-        poolId: '0',
-        scId: '0x00000000000000000000000000000000',
-        shareTokenAddress: '0x0000000000000000000000000000000000000000',
-        deployable: false
+        poolId: '281474976710674',
+        scId: '0x00010000000000120000000000000001',
+        shareTokenAddress: '0xCCE288D1F14A6290E7946b9786231AAb54bf1FEC',
+        deployable: true
       }
     }
   },
@@ -60,12 +60,12 @@ export const SHARE_CLASS_CATALOG = {
         shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
         deployable: true
       },
-      // NON-DEPLOYABLE PLACEHOLDER: no mainnet deployment yet.
+
       mainnet: {
-        poolId: '0',
-        scId: '0x00000000000000000000000000000000',
-        shareTokenAddress: '0x0000000000000000000000000000000000000000',
-        deployable: false
+        poolId: '281474976710674',
+        scId: '0x00010000000000120000000000000002',
+        shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+        deployable: true
       }
     }
   }

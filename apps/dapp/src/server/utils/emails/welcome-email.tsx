@@ -23,11 +23,11 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
         help answer.
       </Text>
 
-      {/* TODO: open product decision — this paragraph pitches zMCA specifically.
+      {/* TODO: open product decision — this paragraph pitches zSMB specifically.
           Decide the multi-Offering wording (per-product email vs platform-level
           copy) before the second Offering launches. */}
       <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        zMCA is a return-generating token providing on-chain access to short-duration private credit strategies,
+        zSMB is a return-generating token providing on-chain access to short-duration private credit strategies,
         primarily revenue-based financing for small and medium-sized businesses.
       </Text>
 

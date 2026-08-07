@@ -18,7 +18,7 @@ import {
 } from './index';
 
 const sepolia = {
-  ...getShareClassIdentity({ network: 'sepolia', key: 'zmca' }),
+  ...getShareClassIdentity({ network: 'sepolia', key: 'zsmb' }),
   indexerUrl: CENTRIFUGE_NETWORK_FACTS.sepolia.indexerUrl
 };
 
@@ -43,9 +43,9 @@ afterEach(() => {
 
 describe('share-class catalog', () => {
   it('resolves a live entry to serializable identity', () => {
-    expect(getShareClassIdentity({ network: 'sepolia', key: 'zmca' })).toEqual({
-      key: 'zmca',
-      symbol: 'zMCA',
+    expect(getShareClassIdentity({ network: 'sepolia', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
       decimals: 18,
       poolId: '281474976720680',
       scId: '0x00010000000027280000000000000001',
@@ -53,9 +53,10 @@ describe('share-class catalog', () => {
     });
   });
 
-  it('refuses to resolve a claimed placeholder entry', () => {
-    expect(() => getShareClassIdentity({ network: 'mainnet', key: 'zmca' })).toThrow(/non-deployable placeholder/);
-  });
+  // The non-deployable-placeholder branch of getShareClassIdentity has no test
+  // here: it takes no injectable catalog, and every real entry is now live on
+  // both networks. Restore this the next time a launch is staged — the branch
+  // is what stops a staged entry from resolving to zeros.
 
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
@@ -80,7 +81,7 @@ describe('share-class catalog', () => {
 
   it('keeps the original class listed on its live network', () => {
     // Membership only — the whole book is deliberately not asserted.
-    expect(listShareClassKeys('sepolia')).toContain('zmca');
+    expect(listShareClassKeys('sepolia')).toContain('zsmb');
   });
 });
 
@@ -201,9 +202,9 @@ describe('fetchShareClassNavs', () => {
       }
     });
 
-    const navs = await fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] });
+    const navs = await fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] });
 
-    expect(navs).toEqual({ zmca: '107000000000000000000' });
+    expect(navs).toEqual({ zsmb: '107000000000000000000' });
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string).variables).toEqual({
       shareTokenAddresses: [sepolia.shareTokenAddress.toLowerCase()]
@@ -217,8 +218,8 @@ describe('fetchShareClassNavs', () => {
     };
     fakeIndexerResponse({ data: { tokenInstances: { items: [row, row] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).resolves.toEqual({
-      zmca: '107000000000000000000'
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).resolves.toEqual({
+      zsmb: '107000000000000000000'
     });
   });
 
@@ -230,7 +231,7 @@ describe('fetchShareClassNavs', () => {
     const conflicting = { ...row, token: { ...row.token, tokenPrice: '9990000000000000000' } };
     fakeIndexerResponse({ data: { tokenInstances: { items: [row, conflicting] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('conflicting share-token rows')
     });
@@ -239,7 +240,7 @@ describe('fetchShareClassNavs', () => {
   it('fails the whole read when a requested class is missing, instead of returning a partial map', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('is not indexed')
     });
@@ -259,7 +260,7 @@ describe('fetchShareClassNavs', () => {
       }
     });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -274,7 +275,7 @@ describe('fetchShareClassNavs', () => {
 
 describe('sumShareClassNavs', () => {
   it('sums every class into one book value as bigint', () => {
-    expect(sumShareClassNavs({ zmca: '107000000000000000000', other: '3000000000000000000' })).toBe(
+    expect(sumShareClassNavs({ zsmb: '107000000000000000000', other: '3000000000000000000' })).toBe(
       110000000000000000000n
     );
   });
@@ -295,7 +296,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(metrics).toEqual({
       sharePrice: 1070000000000000000n,
@@ -320,7 +321,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBe(52500000000000000000000000n);
   });
@@ -338,7 +339,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBe(-52500000000000000000000000n);
     expect(metrics.nav).toBe(107000000000000000000n);
@@ -363,7 +364,7 @@ describe('fetchCurrentShareMetrics', () => {
       }
     });
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBeNull();
   });
@@ -378,7 +379,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -400,7 +401,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -419,7 +420,7 @@ describe('fetchCurrentShareMetrics', () => {
     const controller = new AbortController();
     await fetchCurrentShareMetrics({
       network: 'sepolia',
-      shareClassKey: 'zmca',
+      shareClassKey: 'zsmb',
       fetchOptions: { signal: controller.signal }
     });
 
@@ -430,7 +431,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a network error when the request cannot be sent at all', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'network',
       message: expect.stringContaining('fetch failed')
     });
@@ -439,7 +440,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws an http error when the indexer responds with a failure status', async () => {
     fakeIndexerResponse({}, { status: 502 });
 
-    const request = fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
+    const request = fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     await expect(request).rejects.toBeInstanceOf(CentrifugeIndexerError);
     await expect(request).rejects.toMatchObject({ kind: 'http', status: 502 });
@@ -448,7 +449,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a graphql error when the response carries GraphQL errors', async () => {
     fakeIndexerResponse({ errors: [{ message: 'Unknown field "tokenPrice"' }] });
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'graphql',
       message: expect.stringContaining('Unknown field "tokenPrice"')
     });
@@ -457,7 +458,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a validation error when the share token is not indexed', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] }, tokenSnapshots: { items: [] } } });
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('not indexed')
     });
@@ -473,7 +474,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -488,7 +489,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -496,7 +497,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a validation error on a non-JSON response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>')));
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('non-JSON')
     });
@@ -537,7 +538,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(truncated).toBe(false);
     expect(snapshots).toEqual([
@@ -570,7 +571,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     // Day 1's point is its close (the midnight row), and day 2 has no row yet.
     expect(snapshots).toEqual([
@@ -600,7 +601,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(snapshots.map((snapshot) => [snapshot.dayStartSeconds, snapshot.tokenPrice])).toEqual([
       [day1 / 1000, 1070000000000000000n],
@@ -620,7 +621,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]?.tokenPrice).toBe(1050000000000000000n);
@@ -635,7 +636,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
 
     expect(truncated).toBe(true);
     expect(snapshots).toHaveLength(1000);
@@ -695,14 +696,14 @@ describe('createDailyNegativeYieldReporter', () => {
     const report = vi.fn();
     const reportNegativeYield = createDailyNegativeYieldReporter(report);
 
-    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
-    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
-    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
-    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
+    reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
+    reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
+    reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
+    reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
 
     expect(report).toHaveBeenCalledTimes(2);
-    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
-    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zmca', negativeYield30d: -3n });
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zsmb', negativeYield30d: -1n });
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zsmb', negativeYield30d: -3n });
   });
 
   it('dedupes per share class, so one class cannot suppress another', () => {
@@ -710,12 +711,12 @@ describe('createDailyNegativeYieldReporter', () => {
     const reportNegativeYield = createDailyNegativeYieldReporter(report);
     const now = new Date('2026-07-22T12:00:00Z');
 
-    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now });
+    reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: -1n, now });
     reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
     reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
 
     expect(report).toHaveBeenCalledTimes(2);
-    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zsmb', negativeYield30d: -1n });
     expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zalt', negativeYield30d: -2n });
   });
 });

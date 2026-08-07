@@ -36,6 +36,11 @@ const account = {
     ...account.by({ accountAddress }),
     'REDEMPTION_POSITION',
     shareClassKey
+  ],
+  investorAllowlist: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+    ...account.by({ accountAddress }),
+    'INVESTOR_ALLOWLIST',
+    shareClassKey
   ]
 };
 

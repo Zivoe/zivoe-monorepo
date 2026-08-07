@@ -39,6 +39,10 @@ export type VaultEntity = {
     asset: { decimals: number };
   }>;
   investment(investor: `0x${string}`): PromiseLike<{
+    /** The vault's own `isPermissioned` answer for this wallet. */
+    isAllowedToDeposit: boolean;
+    /** The share token's transfer hook, checked against the escrow. */
+    isAllowedToRedeem: boolean;
     pendingRedeemShares: BalanceLike;
     claimableRedeemAssets: BalanceLike;
     claimableRedeemSharesEquivalent: BalanceLike;

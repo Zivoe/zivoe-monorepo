@@ -5,28 +5,28 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
-const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ZSMB_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
+  ZSMB_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
 }));
 
 const D18 = 10n ** 18n;
 
-// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here used the share-token address as the vault's,
 // the exact conflation the registry invariants exist to catch).
-const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
-    <OfferingIdentityProvider identity={identity}>
+    <OfferingIdentityProvider identity={identity} status="Open">
       <EarnDialogProvider>
         <RedeemFlow />
       </EarnDialogProvider>
@@ -35,6 +35,11 @@ function renderFlow(identity = TEST_IDENTITY) {
 }
 
 const mocks = vi.hoisted(() => ({
+  // Kept apart on purpose: the panel gates different controls on each, so a
+  // single "is allowlisted" switch could not express the states that matter.
+  canReceiveShares: true,
+  canRequestRedemption: true,
+  allowlistIsError: false,
   cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
@@ -48,7 +53,7 @@ const mocks = vi.hoisted(() => ({
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
-  zMcaBalance: 10n * 10n ** 18n
+  zSmbBalance: 10n * 10n ** 18n
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -82,6 +87,15 @@ vi.mock('@/centrifuge', () => ({
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
+  useInvestorAllowlist: () =>
+    mocks.allowlistIsError
+      ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
+      : {
+          data: { canReceiveShares: mocks.canReceiveShares, canRequestRedemption: mocks.canRequestRedemption },
+          isError: false,
+          isFetching: false,
+          isSuccess: true
+        },
   useRedemptionPosition: () => ({
     isError: mocks.positionIsError,
     isFetching: false,
@@ -111,7 +125,7 @@ vi.mock('@/hooks/useAccount', () => ({
 }));
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: tokenAddress === ZMCA_ADDRESS ? mocks.zMcaBalance : 0n,
+    data: tokenAddress === ZSMB_ADDRESS ? mocks.zSmbBalance : 0n,
     isFetching: false,
     isPending: false
   })
@@ -202,6 +216,9 @@ describe('RedeemFlow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.canReceiveShares = true;
+    mocks.canRequestRedemption = true;
+    mocks.allowlistIsError = false;
     mocks.claimableAssets = 0n;
     mocks.hasPendingCancel = false;
     mocks.metricsIsError = false;
@@ -212,12 +229,115 @@ describe('RedeemFlow', () => {
     mocks.sharePrice = 1_070000000000000000n;
   });
 
+  it('names the wallet and blocks the request when the vault does not admit it', async () => {
+    mocks.canRequestRedemption = false;
+    renderFlow();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(getInput('Redeem').disabled).toBe(true);
+
+    await act(async () => {
+      fireEvent.click(getButton('Wallet Not Allowlisted'));
+    });
+
+    expect(mocks.requestRedeem).not.toHaveBeenCalled();
+  });
+
+  it('still lets a de-listed wallet claim settled USDC while its share moves are blocked', async () => {
+    // The protocol exempts a redeem claim from the memberlist, so proceeds the
+    // wallet is already owed must stay reachable. This is the assertion that
+    // stops a future "block everything when not allowlisted" from stranding
+    // funds.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.claimableAssets = 150_000000n;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    expect(getButton('Claim USDC').disabled).toBe(false);
+    expect(getButton('Cancel request').disabled).toBe(true);
+    expect(screen.getByText('Requires an allowlisted wallet.')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim USDC'));
+    });
+
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 150_000000n });
+  });
+
+  it('blocks cancelling and claiming returned shares for a wallet that cannot receive shares', async () => {
+    // Both reduce on-chain to the same "may this wallet receive shares" check,
+    // so neither may be offered while it answers no.
+    mocks.canReceiveShares = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim zSMB'));
+    });
+    await act(async () => {
+      fireEvent.click(getButton('Cancel request'));
+    });
+
+    expect(getButton('Claim zSMB').disabled).toBe(true);
+    expect(getButton('Cancel request').disabled).toBe(true);
+    expect(mocks.claimReturnedShares).not.toHaveBeenCalled();
+    expect(mocks.cancelRedeem).not.toHaveBeenCalled();
+    expect(screen.getAllByText('Requires an allowlisted wallet.').length).toBe(2);
+    // The request form is untouched: this wallet may still send shares to
+    // escrow, it just cannot get them back.
+    expect(getInput('Redeem').disabled).toBe(false);
+  });
+
+  it('leaves share moves alone when only the redemption request is blocked', async () => {
+    // The mirror case: a member who may not send shares to escrow can still
+    // unwind a position it already has.
+    mocks.canRequestRedemption = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    expect(getButton('Claim zSMB').disabled).toBe(false);
+    expect(getButton('Cancel request').disabled).toBe(false);
+    expect(screen.queryByText('Requires an allowlisted wallet.')).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(getButton('Cancel request'));
+    });
+
+    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
+  });
+
+  it('leaves the request live on a failed allow-list read', async () => {
+    // A fetch failure is not a verdict, so it neither names the wallet nor
+    // takes the action away. The exact-call simulation is the authoritative
+    // pre-sign gate and decodes the real revert if the vault does refuse.
+    mocks.allowlistIsError = true;
+    renderFlow();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(false);
+    expect(getInput('Redeem').disabled).toBe(false);
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalled();
+  });
+
   it('requests the first redemption with a correctly scaled estimate and clears only on success', async () => {
     renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
-    // 2 zMCA at a $1.07 Share Price → 2.14 USDC, in 6-decimal base units. An
+    // 2 zSMB at a $1.07 Share Price → 2.14 USDC, in 6-decimal base units. An
     // 18-decimal USD value formatted as USDC would read in the trillions.
     expect(getInput('Estimated receive').value).toBe('2.14');
 
@@ -243,15 +363,23 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('');
   });
 
-  it('blocks a new request while the position read is failing', () => {
-    // A failed read renders like "no position"; requesting on top of state we
-    // cannot see must not be offered. The query-cache toast is the signal,
-    // and the hook's error-state polling recovers the form.
+  it('leaves the request live while the position read is failing', async () => {
+    // A failed read renders like "no position", but the one state it could be
+    // hiding that makes a request invalid — a cancellation already in flight —
+    // reverts at the simulation, which decodes CancellationIsPending.
     mocks.positionIsError = true;
 
     renderFlow();
 
-    expect(getButton('Request redemption').disabled).toBe(true);
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalled();
   });
 
   it('scales the dollar value independently of the share token decimals', () => {
@@ -270,13 +398,37 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    // Metrics are page-level, so the failure shows before any amount is typed.
+    // Nothing to estimate yet, so nothing has failed yet.
+    expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
     expect(screen.getByText(/Unable to estimate USDC/)).toBeTruthy();
     expect(getInput('Estimated receive').value).toBe('');
-    expect(getButton('Request redemption').disabled).toBe(true);
 
     fireEvent.click(getButton('Retry'));
     expect(mocks.metricsRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('still requests a redemption when the Share Price is unavailable', async () => {
+    // The estimate is indicative — the request settles at the price applying
+    // when it is processed — so an unreadable Share Price costs the receipt
+    // its estimate and nothing else.
+    mocks.metricsIsError = true;
+
+    renderFlow();
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalledWith(
+      { shares: 2n * D18, estimatedAssets: undefined },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
   });
 
   it('drops back into the loading presentation while a retry is in flight', () => {
@@ -286,8 +438,10 @@ describe('RedeemFlow', () => {
     renderFlow();
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
+    // The skeleton belongs to the estimate row; the request stays offered.
     expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
-    expect(getButton('Estimating USDC...')).toBeTruthy();
+    expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
+    expect(getButton('Request redemption').disabled).toBe(false);
   });
 
   it('renders one aggregate pending position with a cancel control that cancels the full amount', () => {
@@ -295,7 +449,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/3\.00 zMCA\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
+    expect(screen.getByText(/3\.00 zSMB\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
     expect(getButton('Add to redemption')).toBeTruthy();
 
     fireEvent.click(getButton('Cancel request'));
@@ -320,7 +474,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/Cancelling redemption request for 3\.00 zMCA/)).toBeTruthy();
+    expect(screen.getByText(/Cancelling redemption request for 3\.00 zSMB/)).toBeTruthy();
     expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
 
@@ -334,9 +488,9 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/3\.00 zMCA\s+returned from cancellation/)).toBeTruthy();
+    expect(screen.getByText(/3\.00 zSMB\s+returned from cancellation/)).toBeTruthy();
 
-    fireEvent.click(getButton('Claim zMCA'));
+    fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 3n * D18 });
 
     // No cancellation in flight: the form stays open for a fresh request.
@@ -353,10 +507,10 @@ describe('RedeemFlow', () => {
     // The vault claims Returned Shares before USDC in one shared transaction
     // path, so the USDC button must wait its turn.
     expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('Claim your returned zMCA first.')).toBeTruthy();
-    expect(getButton('Claim zMCA').disabled).toBe(false);
+    expect(screen.getByText('Claim your returned zSMB first.')).toBeTruthy();
+    expect(getButton('Claim zSMB').disabled).toBe(false);
 
-    fireEvent.click(getButton('Claim zMCA'));
+    fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
     expect(mocks.claimRedeem).not.toHaveBeenCalled();
   });

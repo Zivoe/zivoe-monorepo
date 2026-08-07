@@ -83,7 +83,7 @@ export default async function OfferingPage({
         <HydrationBoundary state={dehydrate(queryClient)}>
           {/* Keyed by slug so no component state can leak across Offerings. */}
           <Page key={offering.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <OfferingIdentityProvider identity={identity}>
+            <OfferingIdentityProvider identity={identity} status={offering.status}>
               <DepositInfo offering={offering} />
               <Deposit initialView={validatedView.success ? validatedView.data : null} />
             </OfferingIdentityProvider>

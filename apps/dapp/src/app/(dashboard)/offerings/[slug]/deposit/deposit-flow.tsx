@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
@@ -7,6 +9,7 @@ import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
+import { Callout } from '@zivoe/ui/core/callout';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
@@ -24,11 +27,19 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { CENTRIFUGE_ENV, isPriceUnavailableError, useDeposit, useDepositPreview, useVaultCapacity } from '@/centrifuge';
+import {
+  CENTRIFUGE_ENV,
+  isPriceUnavailableError,
+  useDeposit,
+  useDepositPreview,
+  useInvestorAllowlist,
+  useVaultCapacity
+} from '@/centrifuge';
 
-import { useOfferingIdentity } from '../offering-provider';
+import { useOfferingIdentity, useOfferingStatus } from '../offering-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
+import { NotAllowlistedCallout } from './_components/not-allowlisted-callout';
 import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
@@ -46,10 +57,19 @@ export function DepositFlow() {
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
+  // A closed Offering stops taking new deposits; its redemptions stay open.
+  const isDepositsClosed = useOfferingStatus() === 'Closed';
+
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
   const capacity = useVaultCapacity({ shareClass: share });
+  const allowlist = useInvestorAllowlist({ shareClass: share });
+
+  // Only a definitive `false` gates anything. A failed read is a fetch problem
+  // and not a verdict about this wallet, so it leaves the flow alone and lets
+  // the pre-sign simulation decode the real revert if the vault does refuse.
+  const isNotAllowlisted = allowlist.isSuccess && !allowlist.data.canReceiveShares;
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -104,18 +124,38 @@ export function DepositFlow() {
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
+    allowlist.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
 
-  // isSubmitBlocked only gates approve/deposit, so inputs stay editable while
-  // a preview resolves or the vault is at capacity. A failed capacity read
-  // also blocks: it is how a misconfigured vault surfaces (resolution throws),
-  // and submitting would only re-run the same failure inside the mutation.
-  const isFormLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable || capacity.isError;
+  // The two blocks differ in what they say about the future. A resolving or
+  // failed preview may still clear on its own, so it only gates the action
+  // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
+  // it clears is reasonable. A closed Offering, a vault with no capacity and a
+  // wallet the vault will not admit are settled answers, so they lock the form
+  // itself: there is no amount worth entering.
+  const isFormLocked =
+    isPrereqsLoading ||
+    approveSpending.isPending ||
+    depositMutation.isPending ||
+    isDepositsClosed ||
+    isCapacityUnavailable ||
+    isNotAllowlisted;
+
+  // Only the quote gates the action. The settled facts above are enforced one
+  // level up, where the ladder swaps this button for a named one — repeating
+  // them here would describe states this gate never sees.
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
+
+  // The balance and capacity rules are wallet-scoped, so a verdict about the
+  // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
+  // can afford the amount until the next keystroke revalidates.
+  useEffect(() => {
+    if (account.address) form.clearErrors();
+  }, [account.address, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 
@@ -155,8 +195,15 @@ export function DepositFlow() {
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isPreviewLoading ? '' : undefined;
   // The quote is at the current Share Price, so the estimated receive's dollar
-  // value equals the entered USDC amount.
-  const receiveDollarValue = previewShares !== undefined && depositRaw !== undefined ? depositRaw : deposit ? null : 0n;
+  // value equals the entered USDC amount. A failed estimate resolves it here
+  // rather than at the row, matching the redeem tab.
+  const receiveDollarValue = isPreviewFailed
+    ? 0n
+    : previewShares !== undefined && depositRaw !== undefined
+      ? depositRaw
+      : deposit
+        ? null
+        : 0n;
 
   return (
     <>
@@ -171,8 +218,8 @@ export function DepositFlow() {
             label="Deposit"
             value={value ?? ''}
             onChange={(value) => onChange(parseInput(value) || undefined)}
-            errorMessage={isCapacityUnavailable ? 'Deposits are currently unavailable.' : error?.message}
-            isInvalid={isCapacityUnavailable || invalid}
+            errorMessage={error?.message}
+            isInvalid={invalid}
             isDisabled={isFormLocked}
             decimalPlaces={USDC.decimals}
             subContent={
@@ -223,7 +270,7 @@ export function DepositFlow() {
         subContent={
           <InputExtraInfo
             dollarValueDecimals={USDC.decimals}
-            dollarValue={isPreviewFailed ? 0n : receiveDollarValue}
+            dollarValue={receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
           />
@@ -231,47 +278,75 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      <ConnectedAccount>
-        {isPrereqsLoading ? (
-          <Button fullWidth isPending={true} pendingContent="Loading..." />
-        ) : hasDepositRaw && !hasEnoughAllowance ? (
-          <Button
-            fullWidth
-            onPress={() => void handleApprove()}
-            isDisabled={isSubmitBlocked}
-            isPending={approveSpending.isPending || isPreviewLoading}
-            pendingContent={
-              isPreviewLoading
-                ? `Estimating ${share.symbol}...`
-                : approveSpending.isTxPending
-                  ? 'Approving USDC...'
-                  : approveSpending.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
-            }
-          >
-            Approve
-          </Button>
-        ) : (
-          <Button
-            fullWidth
-            onPress={() => void handleDeposit()}
-            isDisabled={hasDepositRaw && isSubmitBlocked}
-            isPending={depositMutation.isPending || isPreviewLoading}
-            pendingContent={
-              isPreviewLoading
-                ? `Estimating ${share.symbol}...`
-                : depositMutation.isTxPending
-                  ? 'Depositing USDC...'
-                  : depositMutation.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
-            }
-          >
-            Deposit
-          </Button>
-        )}
-      </ConnectedAccount>
+      {/* Outside ConnectedAccount on purpose: a closed Offering and a vault
+          with no capacity are both decided without reference to any wallet, so
+          prompting for one would only offer a connection that leads nowhere. */}
+      {isDepositsClosed ? (
+        <Button fullWidth isDisabled>
+          Deposits Disabled
+        </Button>
+      ) : isCapacityUnavailable ? (
+        <Button fullWidth isDisabled>
+          Deposits Unavailable
+        </Button>
+      ) : (
+        <ConnectedAccount>
+          {isPrereqsLoading ? (
+            <Button fullWidth isPending={true} pendingContent="Loading..." />
+          ) : isNotAllowlisted ? (
+            <Button fullWidth isDisabled>
+              Wallet Not Allowlisted
+            </Button>
+          ) : hasDepositRaw && !hasEnoughAllowance ? (
+            <Button
+              fullWidth
+              onPress={() => void handleApprove()}
+              isDisabled={isSubmitBlocked}
+              isPending={approveSpending.isPending || isPreviewLoading}
+              pendingContent={
+                isPreviewLoading
+                  ? `Estimating ${share.symbol}...`
+                  : approveSpending.isTxPending
+                    ? 'Approving USDC...'
+                    : approveSpending.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+              }
+            >
+              Approve
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              onPress={() => void handleDeposit()}
+              isDisabled={isSubmitBlocked}
+              isPending={depositMutation.isPending || isPreviewLoading}
+              pendingContent={
+                isPreviewLoading
+                  ? `Estimating ${share.symbol}...`
+                  : depositMutation.isTxPending
+                    ? 'Depositing USDC...'
+                    : depositMutation.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+              }
+            >
+              Deposit
+            </Button>
+          )}
+        </ConnectedAccount>
+      )}
+
+      {/* Why the action above is disabled. The closed status and the vault's
+          capacity are Offering facts, so they render whether or not a wallet is
+          connected; the allow-list verdict only exists once one is. */}
+      {isDepositsClosed ? (
+        <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
+      ) : isCapacityUnavailable ? (
+        <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
+      ) : isNotAllowlisted ? (
+        <NotAllowlistedCallout />
+      ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an
           APY to project it from. */}
