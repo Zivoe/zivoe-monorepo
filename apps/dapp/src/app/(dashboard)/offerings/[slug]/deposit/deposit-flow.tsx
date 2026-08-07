@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
@@ -145,6 +147,13 @@ export function DepositFlow() {
     isPreviewLoading || isPreviewFailed || isCapacityUnavailable || isDepositsClosed || isNotAllowlisted;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
+
+  // The balance and capacity rules are wallet-scoped, so a verdict about the
+  // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
+  // can afford the amount until the next keystroke revalidates.
+  useEffect(() => {
+    if (account.address) form.clearErrors();
+  }, [account.address, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 

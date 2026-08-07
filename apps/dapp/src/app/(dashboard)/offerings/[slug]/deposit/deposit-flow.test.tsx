@@ -32,6 +32,7 @@ function renderFlow(status: 'Open' | 'Closed' = 'Open') {
 }
 
 const mocks = vi.hoisted(() => ({
+  address: '0x1234567890abcdef1234567890abcdef12345678',
   allowance: 0n,
   allowlistIsAllowed: true,
   allowlistIsError: false,
@@ -80,7 +81,7 @@ vi.mock('@/centrifuge', () => ({
       : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
 }));
 vi.mock('@/hooks/useAccount', () => ({
-  useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
+  useAccount: () => ({ isPending: false, isDisconnected: false, address: mocks.address })
 }));
 vi.mock('@/hooks/useAllowance', () => ({
   checkHasEnoughAllowance: ({ allowance, amount }: { allowance?: bigint; amount?: bigint }) =>
@@ -229,6 +230,7 @@ describe('DepositFlow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
     mocks.allowance = 0n;
     mocks.allowlistIsAllowed = true;
     mocks.allowlistIsError = false;
@@ -394,6 +396,29 @@ describe('DepositFlow', () => {
     expect(getInput('Deposit').value).toBe('1');
     act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Deposit').value).toBe('');
+  });
+
+  it("drops the previous wallet's validation error when the wallet changes", async () => {
+    // The balance rule is wallet-scoped, so its verdict must not outlive the
+    // wallet it was about — the redeem tab already behaves this way.
+    mocks.usdcBalance = 0n;
+    const { rerender } = renderFlow();
+    // The resolver is async, so the message lands a microtask after the change.
+    await act(async () => enterAmount('1'));
+
+    expect(screen.getByText('Deposit amount exceeds balance')).toBeTruthy();
+
+    mocks.usdcBalance = 10_000000n;
+    mocks.address = '0xabcdef1234567890abcdef1234567890abcdef12';
+    rerender(
+      <OfferingIdentityProvider identity={TEST_IDENTITY} status="Open">
+        <EarnDialogProvider>
+          <DepositFlow />
+        </EarnDialogProvider>
+      </OfferingIdentityProvider>
+    );
+
+    expect(screen.queryByText('Deposit amount exceeds balance')).toBeNull();
   });
 
   it('caps Max at vault capacity', () => {
