@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
+import { CENTRIFUGE_ENV } from './config';
 import { type TransactedShareClass } from './types';
 
 const sdk = vi.hoisted(() => ({
@@ -40,15 +41,25 @@ const OTHER_SHARE_CLASS: TransactedShareClass = {
 function fakeSdkVault({
   address,
   isSyncDeposit = true,
-  isSyncRedeem = false
+  isSyncRedeem = false,
+  shareDecimals = SHARE_CLASS.decimals,
+  assetDecimals = CENTRIFUGE_ENV.usdc.decimals
 }: {
   address: string;
   isSyncDeposit?: boolean;
   isSyncRedeem?: boolean;
+  shareDecimals?: number;
+  assetDecimals?: number;
 }) {
   return {
     address,
-    details: () => Promise.resolve({ isSyncDeposit, isSyncRedeem })
+    details: () =>
+      Promise.resolve({
+        isSyncDeposit,
+        isSyncRedeem,
+        share: { decimals: shareDecimals },
+        asset: { decimals: assetDecimals }
+      })
   };
 }
 
@@ -122,5 +133,23 @@ describe('getVault', () => {
     const { getVault } = await loadClient();
 
     await expect(getVault(SHARE_CLASS)).rejects.toThrow(/sync-deposit\/async-redeem/);
+  });
+
+  it('fails loudly when the catalog decimals disagree with the share token on chain', async () => {
+    const vault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress, shareDecimals: SHARE_CLASS.decimals + 10 });
+    sdk.pool.mockResolvedValue(poolWithVaults({ [SHARE_CLASS.scId]: vault }));
+
+    const { getVault } = await loadClient();
+
+    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/Fix the catalog before transacting/);
+  });
+
+  it('fails loudly when the configured USDC decimals disagree with the vault asset on chain', async () => {
+    const vault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress, assetDecimals: 18 });
+    sdk.pool.mockResolvedValue(poolWithVaults({ [SHARE_CLASS.scId]: vault }));
+
+    const { getVault } = await loadClient();
+
+    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/Fix the environment config before transacting/);
   });
 });

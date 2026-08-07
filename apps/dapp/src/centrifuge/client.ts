@@ -91,5 +91,18 @@ async function resolveVault(shareClass: TransactedShareClass): Promise<VaultEnti
       `The vault for share class "${shareClass.key}" is not sync-deposit/async-redeem. The flows do not support this vault shape.`
     );
 
+  // Decimals are hand-entered configuration scaling every parseUnits and
+  // share→USDC conversion — the one money fact with no other guard, so both
+  // tokens are asserted against the chain's own answer in this same pass.
+  if (details.share.decimals !== shareClass.decimals)
+    throw new Error(
+      `Share class "${shareClass.key}" is configured with ${shareClass.decimals} decimals but its share token reports ${details.share.decimals}. Fix the catalog before transacting.`
+    );
+
+  if (details.asset.decimals !== CENTRIFUGE_ENV.usdc.decimals)
+    throw new Error(
+      `USDC is configured with ${CENTRIFUGE_ENV.usdc.decimals} decimals but the vault's asset reports ${details.asset.decimals}. Fix the environment config before transacting.`
+    );
+
   return vault;
 }
