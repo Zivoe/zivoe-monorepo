@@ -41,11 +41,11 @@ The shared serializable record of every Centrifuge share class Zivoe integrates 
 _Avoid_: config (that is the network singleton), token list
 
 **Share-Class Key**:
-The Share Class Catalog key naming one class (e.g. `zmca`) — the share-class dimension of query keys, caches, and vault resolution. It travels as a plain string through providers and caches; `getShareClassIdentity` is the runtime trust boundary that validates it.
+The Share Class Catalog key naming one class (e.g. `zSMB`) — the share-class dimension of query keys, caches, and vault resolution. It travels as a plain string through providers and caches; `getShareClassIdentity` is the runtime trust boundary that validates it.
 _Avoid_: scId (the on-chain id), symbol
 
 **Offering Module**:
-One Offering's registration in the dApp — identity (slug, Share-Class Key, per-network vaults) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/offerings/zmca.tsx`. Listed in `REGISTERED_OFFERINGS`; the registry invariants sweep every claimed network at import, so a misregistration fails the build, never production traffic.
+One Offering's registration in the dApp — identity (slug, Share-Class Key, per-network vaults) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/offerings/zsmb.tsx`. Listed in `REGISTERED_OFFERINGS`; the registry invariants sweep every claimed network at import, so a misregistration fails the build, never production traffic.
 _Avoid_: offering config
 
 **Transaction Identity**:
