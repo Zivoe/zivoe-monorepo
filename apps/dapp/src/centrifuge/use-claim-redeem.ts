@@ -92,7 +92,7 @@ export function useClaimRedeem({
         amountOutRaw: claimableAssets
       }),
       receiptInput: (receipt) => {
-        const decoded = decodeClaimRedeemReceipt({ receipt, vaultAddress: shareClass.vaultAddress });
+        const decoded = decodeClaimRedeemReceipt({ receipt, vaultAddress: shareClass.vaultAddress, offeringSlug: identity.offeringSlug });
         return decoded ? { amountInRaw: decoded.shares, amountOutRaw: decoded.assets } : {};
       }
     },
@@ -110,7 +110,7 @@ export function useClaimRedeem({
           hash: receipt.transactionHash
         };
 
-      const decoded = decodeClaimRedeemReceipt({ receipt, vaultAddress: shareClass.vaultAddress });
+      const decoded = decodeClaimRedeemReceipt({ receipt, vaultAddress: shareClass.vaultAddress, offeringSlug: identity.offeringSlug });
       if (!decoded)
         return {
           type: 'ERROR',

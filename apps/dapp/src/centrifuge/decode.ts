@@ -35,10 +35,13 @@ function createVaultReceiptDecoder<TEventName extends VaultLifecycleEventName, T
 
   return function decode({
     receipt,
-    vaultAddress
+    vaultAddress,
+    offeringSlug
   }: {
     receipt: TransactionReceipt;
     vaultAddress: Address;
+    /** Tagged on the failure capture — the one money-path capture that would otherwise lack it. */
+    offeringSlug: string;
   }): TAmounts | undefined {
     const byVault = decodedReceipts.get(receipt) ?? new Map<string, TAmounts | undefined>();
     const vaultKey = vaultAddress.toLowerCase();
@@ -58,7 +61,7 @@ function createVaultReceiptDecoder<TEventName extends VaultLifecycleEventName, T
 
     if (!amounts)
       Sentry.captureException(new Error(errorMessage), {
-        tags: { source: 'MUTATION', flow },
+        tags: { source: 'MUTATION', flow, offering: offeringSlug },
         extra: { txHash: receipt.transactionHash, vaultAddress }
       });
 
