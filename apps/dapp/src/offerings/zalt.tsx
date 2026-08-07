@@ -11,9 +11,9 @@ export const ZALT_OFFERING: Offering = {
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardGradient: [
-    'radial-gradient(120% 120% at 18% 22%, rgba(255, 216, 174, 0.95), transparent 55%)',
-    'radial-gradient(120% 130% at 86% 82%, rgba(224, 99, 143, 0.92), transparent 55%)',
-    'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
+    'radial-gradient(120% 120% at 18% 22%, rgba(180, 235, 228, 0.95), transparent 55%)',
+    'radial-gradient(120% 130% at 86% 82%, rgba(99, 118, 224, 0.92), transparent 55%)',
+    'linear-gradient(135deg, #5cc7c3, #489dd9 45%, #6b7ed9)'
   ].join(', '),
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },
