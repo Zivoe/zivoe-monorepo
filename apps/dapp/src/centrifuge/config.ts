@@ -10,6 +10,8 @@ import {
 
 import { env } from '@/env';
 
+import { type TransactionIdentity } from './types';
+
 /**
  * Facts of the deployment network itself, shared by every Offering: one chain,
  * one SDK environment, one indexer, one VaultRouter, one deposit asset. These
@@ -24,7 +26,8 @@ export type CentrifugeEnvironment = {
   indexerUrl: string;
   /** Deposits route through the VaultRouter — the USDC approval spender. */
   vaultRouterAddress: Address;
-  usdc: { address: Address; decimals: number };
+  /** The one deposit asset every Offering accepts — a global product assumption. */
+  usdc: { address: Address; symbol: string; decimals: number };
 };
 
 const ENVIRONMENT_CONSTANTS: Record<
@@ -34,7 +37,7 @@ const ENVIRONMENT_CONSTANTS: Record<
   sepolia: {
     environment: 'testnet',
     vaultRouterAddress: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
-    usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', decimals: 6 },
+    usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', symbol: 'USDC', decimals: 6 },
     deployable: true
   },
   mainnet: {
@@ -44,7 +47,7 @@ const ENVIRONMENT_CONSTANTS: Record<
     // cutover.
     environment: 'mainnet',
     vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: { address: '0x0000000000000000000000000000000000000000', decimals: 6 },
+    usdc: { address: '0x0000000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
     deployable: false
   }
 };
@@ -97,11 +100,16 @@ export function getShareClassConfig(key: ShareClassKey): ShareClassConfig {
 }
 
 /**
- * The zMCA share-class config — the identity every not-yet-parameterized
- * consumer still transacts against. Interim by design: it disappears as the
- * Transaction Hooks and flows take share-class identity explicitly.
+ * Resolves an Offering's transaction identity on the active network — what
+ * flows hand to every Centrifuge Module hook: the resolved share class plus
+ * the Offering's stable public identity for analytics and Sentry.
  */
-export const ZMCA_SHARE_CLASS = getShareClassConfig('zmca');
+export function resolveTransactionIdentity(offering: {
+  slug: string;
+  shareClass: { key: ShareClassKey };
+}): TransactionIdentity {
+  return { offeringSlug: offering.slug, shareClass: getShareClassConfig(offering.shareClass.key) };
+}
 
 export type CentrifugeConfig = {
   network: CentrifugeNetwork;

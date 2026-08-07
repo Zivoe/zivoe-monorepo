@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
 import { useRequestRedeem } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
@@ -40,7 +42,8 @@ vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e' as const;
 const TX_HASH = '0x4444444444444444444444444444444444444444444444444444444444444444';
-const SHARES = 200_000000000000000000n;
+// 200 shares in the fixture share class's 8-decimal base units.
+const SHARES = 200_00000000n;
 const ESTIMATED_ASSETS = 198_000000n;
 
 function fakeVault({ redeemError }: { redeemError?: Error } = {}) {
@@ -108,10 +111,12 @@ beforeEach(() => {
 describe('useRequestRedeem', () => {
   it('confirms a request with the Redemption Requested result and refreshes balance, portfolio, and the Redemption Position', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useRequestRedeem(), { wrapper });
+    const { result } = renderHook(() => useRequestRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
 
     const dialog = getDefaultStore().get(transactionAtom);
     expect(dialog).toEqual({
@@ -119,7 +124,15 @@ describe('useRequestRedeem', () => {
       title: 'Redemption Requested',
       description: 'Your final USDC amount is determined when your request is processed.',
       hash: TX_HASH,
-      meta: { redeem: { amount: SHARES, receive: ESTIMATED_ASSETS } }
+      offeringSlug: 'fixture-offering',
+      meta: {
+        redeem: {
+          share: { symbol: 'zFIX', decimals: 8 },
+          asset: { symbol: 'USDC', decimals: 6 },
+          amount: SHARES,
+          receive: ESTIMATED_ASSETS
+        }
+      }
     });
     expect(`${dialog?.title} ${dialog?.description}`).not.toContain('Redeemed');
 
@@ -127,13 +140,18 @@ describe('useRequestRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT', 'zmca'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_submitted',
-      expect.objectContaining({ token_in: 'zMCA', token_out: 'USDC', amount_in_raw: SHARES.toString() })
+      expect.objectContaining({
+        offering_slug: 'fixture-offering',
+        token_in: 'zFIX',
+        token_out: 'USDC',
+        amount_in_raw: SHARES.toString()
+      })
     );
   });
 
@@ -141,7 +159,7 @@ describe('useRequestRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ redeemError: new Error('Insufficient balance') }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useRequestRedeem(), { wrapper });
+    const { result } = renderHook(() => useRequestRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
     await waitFor(() => expect(result.current.isError).toBe(true));

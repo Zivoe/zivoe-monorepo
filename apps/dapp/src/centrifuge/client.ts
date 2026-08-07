@@ -1,15 +1,14 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
-import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
-
 import { NETWORK_RPC_URLS } from '@/lib/network';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV, type ShareClassConfig } from './config';
+import { CENTRIFUGE_ENV } from './config';
 import { type VaultEntity } from './entities';
+import { type TransactedShareClass } from './types';
 
 let client: Centrifuge | undefined;
-const vaultPromises = new Map<ShareClassKey, Promise<VaultEntity>>();
+const vaultPromises = new Map<string, Promise<VaultEntity>>();
 let signerInUse = false;
 
 function getCentrifuge(): Centrifuge {
@@ -28,12 +27,14 @@ function getCentrifuge(): Centrifuge {
 }
 
 /** Vault resolution is memoized per share class; a failed resolve retries on the next call. */
-export function getVault(shareClass: ShareClassConfig): Promise<VaultEntity> {
+export function getVault(shareClass: TransactedShareClass): Promise<VaultEntity> {
   const existing = vaultPromises.get(shareClass.key);
   if (existing) return existing;
 
   const vaultPromise = resolveVault(shareClass).catch((error: unknown) => {
-    vaultPromises.delete(shareClass.key);
+    // Guarded eviction: only this promise's own failure may evict, so a slow
+    // failure can never drop a newer retry already stored under the key.
+    if (vaultPromises.get(shareClass.key) === vaultPromise) vaultPromises.delete(shareClass.key);
     throw error;
   });
 
@@ -69,7 +70,7 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
  * misconfigured or async-deposit class fails loudly at first use instead of
  * breaking mid-transaction.
  */
-async function resolveVault(shareClass: ShareClassConfig): Promise<VaultEntity> {
+async function resolveVault(shareClass: TransactedShareClass): Promise<VaultEntity> {
   const centrifuge = getCentrifuge();
 
   const [centrifugeId, pool] = await Promise.all([

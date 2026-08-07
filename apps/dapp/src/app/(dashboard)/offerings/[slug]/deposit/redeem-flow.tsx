@@ -25,14 +25,16 @@ import ConnectedAccount from '@/components/connected-account';
 
 import {
   CENTRIFUGE_CONFIG,
+  resolveTransactionIdentity,
   sharesToUsdc,
   sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
-  useInvestment,
+  useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
+import { ZMCA_OFFERING } from '@/offerings';
 
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -41,6 +43,9 @@ import { createAmountValidator, parseInput } from './_utils';
 
 const USDC = CENTRIFUGE_CONFIG.usdc;
 const ZMCA = CENTRIFUGE_CONFIG.shareToken;
+
+// The one live Offering's identity, until the route provider hands it down.
+const ZMCA_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
 
 type RedeemForm = { redeem: string };
 
@@ -51,7 +56,7 @@ export default function RedeemFlow() {
 
   const zMcaBalance = useBalance({ tokenAddress: ZMCA.address });
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
-  const investment = useInvestment();
+  const investment = useRedemptionPosition({ shareClass: ZMCA_IDENTITY.shareClass });
   const metrics = useCurrentShareMetrics({ shareClassKey: CENTRIFUGE_CONFIG.shareClassKey });
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
@@ -89,10 +94,19 @@ export default function RedeemFlow() {
         ? null
         : 0n;
 
-  const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const cancelRedeem = useCancelRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
-  const claimReturnedShares = useClaimReturnedShares({ onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const requestRedeem = useRequestRedeem({
+    identity: ZMCA_IDENTITY,
+    onSuccessClose: () => setIsDepositDialogOpen(false)
+  });
+  const claimRedeem = useClaimRedeem({ identity: ZMCA_IDENTITY, onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const cancelRedeem = useCancelRedeem({
+    identity: ZMCA_IDENTITY,
+    onSuccessClose: () => setIsDepositDialogOpen(false)
+  });
+  const claimReturnedShares = useClaimReturnedShares({
+    identity: ZMCA_IDENTITY,
+    onSuccessClose: () => setIsDepositDialogOpen(false)
+  });
 
   // Balances/investment use isFetching so post-transaction invalidations keep
   // the form locked until fresh data lands. Cancellation Processing polls the

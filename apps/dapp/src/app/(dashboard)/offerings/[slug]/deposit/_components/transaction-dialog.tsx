@@ -10,25 +10,19 @@ import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { type Token } from '@/types/constants';
-
 import { NETWORK_CHAIN } from '@/lib/network';
-import { transactionAtom } from '@/lib/store';
+import { type TransactionTokenSnapshot, transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
-import { TOKEN_INFO } from '@/components/token-info';
-
-import { CENTRIFUGE_CONFIG } from '@/centrifuge';
+import { getTokenInfo } from '@/components/token-info';
 
 const EXPLORER_URL = NETWORK_CHAIN.blockExplorers.default.url;
 
-// CENTRIFUGE_CONFIG is the single decimals authority for the vault's tokens —
-// a second hardcoded map here is how one leg of a receipt ends up mis-scaled.
-const TOKEN_DECIMALS: Record<Token, number> = {
-  USDC: CENTRIFUGE_CONFIG.usdc.decimals,
-  zMCA: CENTRIFUGE_CONFIG.shareToken.decimals
-};
-
+/**
+ * Renders exclusively from the payload's token snapshots — never from the
+ * ambient page's configuration — so a transaction confirming after navigation
+ * to another Offering keeps its own labels, amounts, and decimals.
+ */
 export function TransactionDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [transaction, setTransaction] = useAtom(transactionAtom);
@@ -76,51 +70,32 @@ export function TransactionDialog() {
 
           {transaction.meta?.approve && (
             <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.approve.token}
-                amount={transaction.meta.approve.amount}
-                decimals={TOKEN_DECIMALS[transaction.meta.approve.token]}
-                icon={TOKEN_INFO[transaction.meta.approve.token].icon}
-              />
+              <TransactionDialogToken token={transaction.meta.approve.token} amount={transaction.meta.approve.amount} />
             </TransactionDialogTokensSection>
           )}
 
           {transaction.meta?.deposit && (
             <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.deposit.token}
-                amount={transaction.meta.deposit.amount}
-                decimals={TOKEN_DECIMALS[transaction.meta.deposit.token]}
-                icon={TOKEN_INFO[transaction.meta.deposit.token].icon}
-              />
+              <TransactionDialogToken token={transaction.meta.deposit.asset} amount={transaction.meta.deposit.amount} />
 
               <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
-                token="zMCA"
+                token={transaction.meta.deposit.share}
                 amount={transaction.meta.deposit.receive}
-                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}
 
           {transaction.meta?.redeem && (
             <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token="zMCA"
-                amount={transaction.meta.redeem.amount}
-                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={TOKEN_INFO.zMCA.icon}
-              />
+              <TransactionDialogToken token={transaction.meta.redeem.share} amount={transaction.meta.redeem.amount} />
 
               <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
-                token="USDC"
+                token={transaction.meta.redeem.asset}
                 amount={transaction.meta.redeem.receive}
-                decimals={CENTRIFUGE_CONFIG.usdc.decimals}
-                icon={TOKEN_INFO.USDC.icon}
                 prefix="≈ "
               />
             </TransactionDialogTokensSection>
@@ -129,19 +104,15 @@ export function TransactionDialog() {
           {transaction.meta?.claimRedeem && (
             <TransactionDialogTokensSection>
               <TransactionDialogToken
-                token="zMCA"
+                token={transaction.meta.claimRedeem.share}
                 amount={transaction.meta.claimRedeem.shares}
-                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={TOKEN_INFO.zMCA.icon}
               />
 
               <ArrowRightIcon className="size-4 text-icon-default" />
 
               <TransactionDialogToken
-                token="USDC"
+                token={transaction.meta.claimRedeem.asset}
                 amount={transaction.meta.claimRedeem.assets}
-                decimals={CENTRIFUGE_CONFIG.usdc.decimals}
-                icon={TOKEN_INFO.USDC.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -149,10 +120,8 @@ export function TransactionDialog() {
           {transaction.meta?.cancelRedeem && (
             <TransactionDialogTokensSection>
               <TransactionDialogToken
-                token="zMCA"
+                token={transaction.meta.cancelRedeem.share}
                 amount={transaction.meta.cancelRedeem.shares}
-                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -160,10 +129,8 @@ export function TransactionDialog() {
           {transaction.meta?.claimReturnedShares && (
             <TransactionDialogTokensSection>
               <TransactionDialogToken
-                token="zMCA"
+                token={transaction.meta.claimReturnedShares.share}
                 amount={transaction.meta.claimReturnedShares.shares}
-                decimals={CENTRIFUGE_CONFIG.shareToken.decimals}
-                icon={TOKEN_INFO.zMCA.icon}
               />
             </TransactionDialogTokensSection>
           )}
@@ -190,25 +157,21 @@ function TransactionDialogTokensSection({ children }: { children: ReactNode }) {
 function TransactionDialogToken({
   token,
   amount,
-  decimals,
-  icon,
   prefix
 }: {
-  token: Token;
+  token: TransactionTokenSnapshot;
   amount: bigint;
-  decimals: number;
-  icon: ReactNode;
   prefix?: string;
 }) {
-  const amountFormatted = formatBigIntToReadable(amount, decimals);
+  const amountFormatted = formatBigIntToReadable(amount, token.decimals);
 
   return (
     <div className="flex items-center gap-2 [&_svg]:size-6">
-      {icon}
+      {getTokenInfo(token.symbol)?.icon}
 
       <p className="text-leading text-primary">
         {prefix}
-        {amountFormatted === '0.00' ? '<0.01' : amountFormatted} {token}
+        {amountFormatted === '0.00' ? '<0.01' : amountFormatted} {token.symbol}
       </p>
     </div>
   );

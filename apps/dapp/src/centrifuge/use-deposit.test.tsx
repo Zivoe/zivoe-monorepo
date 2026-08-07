@@ -20,7 +20,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { transactionAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_CONFIG, useDeposit } from './index';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
+import { CENTRIFUGE_ENV, useDeposit } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 const releaseTransactionSigner = vi.hoisted(() => vi.fn());
@@ -65,7 +67,7 @@ function depositReceipt({ withDepositLog = true }: { withDepositLog?: boolean } 
   const logs = withDepositLog
     ? [
         {
-          address: CENTRIFUGE_CONFIG.vaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase(),
           topics: encodeEventTopics({
             abi: DEPOSIT_EVENT_ABI,
             eventName: 'Deposit',
@@ -105,7 +107,7 @@ function fakeVault({ receipt }: { receipt: TransactionReceipt }) {
             observer.next({ type: 'SigningTransaction' });
             await signer.request({
               method: 'eth_sendTransaction',
-              params: [{ from: INVESTOR, to: CENTRIFUGE_CONFIG.vaultRouterAddress, data: '0xdeadbeef', value: '0x0' }]
+              params: [{ from: INVESTOR, to: CENTRIFUGE_ENV.vaultRouterAddress, data: '0xdeadbeef', value: '0x0' }]
             });
             observer.next({ type: 'TransactionPending', hash: TX_HASH });
             observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
@@ -236,7 +238,7 @@ function fakeVaultThroughViemWallet() {
 
             observer.next({ type: 'SigningTransaction' });
             const hash = await walletClient.sendTransaction({
-              to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+              to: CENTRIFUGE_ENV.vaultRouterAddress,
               data: '0xdeadbeef',
               value: 0n
             });
@@ -279,7 +281,7 @@ beforeEach(() => {
 describe('useDeposit', () => {
   it('drives a deposit through simulate -> send -> receipt with the success dialog and exact decoded amounts', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -291,16 +293,27 @@ describe('useDeposit', () => {
     const sendOrder = walletRequest.mock.invocationCallOrder[0] ?? 0;
     expect(callOrder).toBeLessThan(sendOrder);
     expect(publicClientCall).toHaveBeenCalledWith(
-      expect.objectContaining({ account: INVESTOR, to: CENTRIFUGE_CONFIG.vaultRouterAddress, data: '0xdeadbeef' })
+      expect.objectContaining({ account: INVESTOR, to: CENTRIFUGE_ENV.vaultRouterAddress, data: '0xdeadbeef' })
     );
 
-    // Success dialog carries the exact decoded USDC-in / zMCA-out.
+    // The vault comes from the identity parameter, not any ambient config.
+    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+
+    // Success dialog carries the transacted identity and the exact decoded USDC-in / zFIX-out.
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
       title: 'Deposit Successful',
-      description: 'zMCA has been transferred to your wallet.',
+      description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
-      meta: { deposit: { token: 'USDC', amount: ASSETS, receive: DECODED_SHARES } }
+      offeringSlug: 'fixture-offering',
+      meta: {
+        deposit: {
+          asset: { symbol: 'USDC', decimals: 6 },
+          share: { symbol: 'zFIX', decimals: 8 },
+          amount: ASSETS,
+          receive: DECODED_SHARES
+        }
+      }
     });
 
     expect(setTransactionSigner).toHaveBeenCalledOnce();
@@ -313,12 +326,12 @@ describe('useDeposit', () => {
           'ACCOUNT',
           INVESTOR,
           'ALLOWANCE',
-          CENTRIFUGE_CONFIG.usdc.address,
-          CENTRIFUGE_CONFIG.vaultRouterAddress
+          CENTRIFUGE_ENV.usdc.address,
+          CENTRIFUGE_ENV.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['CENTRIFUGE', 'zmca', 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT', 'zmca'])
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
 
@@ -330,8 +343,9 @@ describe('useDeposit', () => {
         amount_in_raw: ASSETS.toString(),
         amount_out_raw: DECODED_SHARES.toString(),
         token_in: 'USDC',
-        token_out: 'zMCA',
-        chain_id: CENTRIFUGE_CONFIG.chainId,
+        token_out: 'zFIX',
+        offering_slug: 'fixture-offering',
+        chain_id: CENTRIFUGE_ENV.chainId,
         receipt_status: 'success'
       })
     );
@@ -345,7 +359,7 @@ describe('useDeposit', () => {
     );
 
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -366,7 +380,7 @@ describe('useDeposit', () => {
     getVault.mockResolvedValue(fakeVault({ receipt: depositReceipt({ withDepositLog: false }) }));
 
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -374,8 +388,9 @@ describe('useDeposit', () => {
     expect(getDefaultStore().get(transactionAtom)).toEqual({
       type: 'SUCCESS',
       title: 'Deposit Successful',
-      description: 'zMCA has been transferred to your wallet.',
+      description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
+      offeringSlug: 'fixture-offering',
       meta: undefined
     });
     expect(sentryCapture).toHaveBeenCalled();
@@ -386,7 +401,7 @@ describe('useDeposit', () => {
     walletRequest.mockRejectedValue(new Error('User rejected the request'));
 
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -411,7 +426,7 @@ describe('useDeposit', () => {
     });
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -428,7 +443,7 @@ describe('useDeposit', () => {
 
   it('resolves the signer lazily for every transaction', async () => {
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -449,7 +464,7 @@ describe('useDeposit', () => {
       walletRequest.mockReturnValue(new Promise(() => undefined));
 
       const { wrapper, invalidateSpy } = createWrapper();
-      const { result } = renderHook(() => useDeposit(), { wrapper });
+      const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
       act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
       await act(async () => {
@@ -477,7 +492,7 @@ describe('useDeposit', () => {
     });
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -502,7 +517,7 @@ describe('useDeposit', () => {
     );
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -520,7 +535,7 @@ describe('useDeposit', () => {
     getVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -529,7 +544,8 @@ describe('useDeposit', () => {
       type: 'ERROR',
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
-      hash: TX_HASH
+      hash: TX_HASH,
+      offeringSlug: 'fixture-offering'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     expect(analyticsCapture).toHaveBeenCalledWith(
@@ -546,7 +562,7 @@ describe('useDeposit', () => {
     publicClientGetReceipt.mockResolvedValue(revertedReceipt);
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -556,7 +572,8 @@ describe('useDeposit', () => {
       type: 'ERROR',
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
-      hash: TX_HASH
+      hash: TX_HASH,
+      offeringSlug: 'fixture-offering'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
   });
@@ -572,7 +589,7 @@ describe('useDeposit', () => {
     );
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDeposit(), { wrapper });
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isError).toBe(true));

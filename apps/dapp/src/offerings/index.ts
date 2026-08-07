@@ -9,6 +9,7 @@ export {
   type OfferingIdentity,
   type OfferingPresentation
 } from './offering';
+export { ZMCA_OFFERING } from './zmca';
 
 /**
  * The registry is a thin index of the per-Offering modules — content and

@@ -37,6 +37,18 @@ vi.mock('@/centrifuge', () => ({
     shareToken: { address: ZMCA_ADDRESS, decimals: 18, symbol: 'zMCA' },
     usdc: { address: USDC_ADDRESS, decimals: 6 }
   },
+  resolveTransactionIdentity: (offering: { slug: string }) => ({
+    offeringSlug: offering.slug,
+    shareClass: {
+      key: 'zmca',
+      symbol: 'zMCA',
+      decimals: 18,
+      poolId: '281474976720680',
+      scId: '0x00010000000027280000000000000001',
+      shareTokenAddress: ZMCA_ADDRESS,
+      vaultAddress: ROUTER_ADDRESS
+    }
+  }),
   useDeposit: () => ({ isPending: false, isTxPending: false, mutate: mocks.deposit }),
   useDepositPreview: ({ assets }: { assets: bigint }) => ({
     data: assets > 0n && !mocks.previewIsError ? { shares: mocks.previewShares } : undefined,
@@ -171,7 +183,7 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectValue: () => null
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
-vi.mock('@zivoe/ui/icons', () => ({ UsdcIcon: () => null, InfoIcon: () => null }));
+vi.mock('@zivoe/ui/icons', () => ({ UsdcIcon: () => null, InfoIcon: () => null, ZMcaLogo: () => null }));
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);

@@ -124,9 +124,20 @@ export type TxSharedConfig<TVariables> = {
   errorToast: (vars: TVariables) => string;
   /** `flow` tag for the Sentry capture and toast handling on failure. */
   sentryFlow: string;
+  /**
+   * Indexed Sentry tags merged into every capture (extras render but cannot
+   * be filtered or alerted on — identity worth triaging by belongs here).
+   */
+  sentryTags?: Record<string, string>;
   /** Extras attached to the Sentry capture; defaults to the mutation variables. */
   sentryExtras?: (vars: TVariables) => Record<string, unknown>;
-  /** Maps the confirmed receipt to the transaction dialog payload. */
+  /**
+   * Maps the confirmed receipt to the transaction dialog payload. Runs inside
+   * the mutation, so the payload snapshots the identity the hook was handed
+   * when the transaction started — the mutation observer re-syncs its
+   * callbacks to the latest render, and a payload built in onSuccess would
+   * take whatever identity that render happens to hold.
+   */
   transactionData: (receipt: TransactionReceipt, vars: TVariables) => TransactionData;
   /** Runs when the transaction dialog payload is a SUCCESS (e.g. close the triggering dialog). */
   onSuccessClose?: () => void;
@@ -228,14 +239,43 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         // invisible to Sentry.
         if (receipt.status !== 'success')
           Sentry.captureException(new Error('Transaction reverted on-chain'), {
-            tags: { source: 'MUTATION', flow: config.sentryFlow },
+            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
             extra: {
               ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
               txHash: receipt.transactionHash
             }
           });
 
-        return { receipt };
+        // A throw while building the payload must not fall into the catch
+        // below — it would classify a settled transaction as failed, and a
+        // confirmed on-chain transaction must never be displayed as failed.
+        // Fall back to a minimal payload and capture the construction error.
+        let transactionData: TransactionData;
+        try {
+          transactionData = config.transactionData(receipt, vars);
+        } catch (payloadError) {
+          Sentry.captureException(payloadError, {
+            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
+            extra: { txHash: receipt.transactionHash }
+          });
+
+          transactionData =
+            receipt.status === 'success'
+              ? {
+                  type: 'SUCCESS',
+                  title: 'Transaction Confirmed',
+                  description: 'Your transaction has been confirmed on-chain.',
+                  hash: receipt.transactionHash
+                }
+              : {
+                  type: 'ERROR',
+                  title: 'Transaction Failed',
+                  description: 'Your transaction could not be completed.',
+                  hash: receipt.transactionHash
+                };
+        }
+
+        return { receipt, transactionData };
       } catch (err) {
         const normalized = config.normalizeError ? config.normalizeError(err) : err;
         const errorType = getAnalyticsErrorType(normalized);
@@ -255,14 +295,13 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         defaultToastMsg: config.errorToast(vars),
         sentry: {
           flow: config.sentryFlow,
+          tags: config.sentryTags,
           extras: config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)
         }
       });
     },
 
-    onSuccess: ({ receipt }, vars) => {
-      const transactionData = config.transactionData(receipt, vars);
-
+    onSuccess: ({ transactionData }) => {
       setTransaction(transactionData);
       if (transactionData.type === 'SUCCESS') config.onSuccessClose?.();
     },
@@ -279,7 +318,8 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   };
 }
 
-function toSentryExtras(vars: unknown): Record<string, unknown> {
+/** The default Sentry extras: the mutation variables themselves. Exported so drivers can extend it. */
+export function toSentryExtras(vars: unknown): Record<string, unknown> {
   // Mutation variables are object literals (or undefined for void mutations).
   if (vars && typeof vars === 'object') return vars as Record<string, unknown>;
   return {};

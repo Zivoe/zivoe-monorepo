@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { CENTRIFUGE_CONFIG, useClaimRedeem } from './index';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
+import { CENTRIFUGE_ENV, useClaimRedeem } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
@@ -50,12 +52,12 @@ const CLAIMABLE_SHARES = 140_190000000000000000n;
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
 });
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [CENTRIFUGE_CONFIG.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
 });
 
 const WITHDRAW_EVENT_ABI = parseAbi([
@@ -66,7 +68,7 @@ function claimReceipt({ withWithdrawLog = true }: { withWithdrawLog?: boolean } 
   const logs = withWithdrawLog
     ? [
         {
-          address: CENTRIFUGE_CONFIG.vaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase(),
           topics: encodeEventTopics({
             abi: WITHDRAW_EVENT_ABI,
             eventName: 'Withdraw',
@@ -134,7 +136,7 @@ function fakeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: CENTRIFUGE_CONFIG.vaultRouterAddress,
+                    to: CENTRIFUGE_ENV.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -179,12 +181,14 @@ beforeEach(() => {
 describe('useClaimRedeem', () => {
   it('collects all claimable USDC across partial fulfillments in one aggregate claim transaction', async () => {
     const { wrapper, invalidateSpy } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // One transaction, default receiver/controller (the investor).
+    // One transaction against the parameterized share class's vault, default
+    // receiver/controller (the investor).
+    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
     expect(claimSpy).toHaveBeenCalledOnce();
     expect(claimSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();
@@ -194,14 +198,28 @@ describe('useClaimRedeem', () => {
       title: 'USDC Claimed',
       description: 'USDC has been transferred to your wallet.',
       hash: TX_HASH,
-      meta: { claimRedeem: { assets: CLAIMABLE_ASSETS, shares: CLAIMABLE_SHARES } }
+      offeringSlug: 'fixture-offering',
+      meta: {
+        claimRedeem: {
+          share: { symbol: 'zFIX', decimals: 8 },
+          asset: { symbol: 'USDC', decimals: 6 },
+          assets: CLAIMABLE_ASSETS,
+          shares: CLAIMABLE_SHARES
+        }
+      }
     });
+
+    expect(analyticsCapture).toHaveBeenCalledWith(
+      'tx:redeem_claim_receipt',
+      expect.objectContaining({ offering_slug: 'fixture-offering', token_in: 'zFIX', token_out: 'USDC' })
+    );
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT', 'zmca'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])
     );
   });
@@ -210,7 +228,7 @@ describe('useClaimRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ claimError: new Error('No claimable funds') }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ claimableAssets: 0n }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -226,7 +244,7 @@ describe('useClaimRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 60_000000000000000000n }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -235,14 +253,14 @@ describe('useClaimRedeem', () => {
     // guard must stop it before any claim build or wallet prompt.
     expect(claimSpy).not.toHaveBeenCalled();
     expect(walletRequest).not.toHaveBeenCalled();
-    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zMCA first.' });
+    expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zFIX first.' });
   });
 
   it('rejects an SDK bucket switch before the wallet can claim Returned Shares as USDC', async () => {
     getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_RETURNED_SHARES_DATA }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -252,7 +270,7 @@ describe('useClaimRedeem', () => {
     expect(walletRequest).not.toHaveBeenCalled();
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: 'Claimable balances changed. Claim your returned zMCA first.'
+      title: 'Claimable balances changed. Claim your returned zFIX first.'
     });
   });
 
@@ -260,7 +278,7 @@ describe('useClaimRedeem', () => {
     getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withWithdrawLog: false }) }));
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useClaimRedeem(), { wrapper });
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
 
     act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -269,7 +287,8 @@ describe('useClaimRedeem', () => {
       type: 'ERROR',
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
-      hash: TX_HASH
+      hash: TX_HASH,
+      offeringSlug: 'fixture-offering'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

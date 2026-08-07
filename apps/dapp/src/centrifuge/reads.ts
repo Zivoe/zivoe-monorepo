@@ -1,5 +1,5 @@
 import { type VaultEntity } from './entities';
-import { type Investment, type VaultCapacity } from './types';
+import { type RedemptionPosition, type VaultCapacity } from './types';
 
 export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapacity> {
   const details = await vault.details();
@@ -7,13 +7,14 @@ export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapaci
   return { maxDeposit: details.maxDeposit.toBigInt() };
 }
 
-export async function readInvestment({
+/** The SDK's `investment` vocabulary survives only here, at the SDK boundary. */
+export async function readRedemptionPosition({
   vault,
   investor
 }: {
   vault: VaultEntity;
   investor: `0x${string}`;
-}): Promise<Investment> {
+}): Promise<RedemptionPosition> {
   const investment = await vault.investment(investor);
 
   return {

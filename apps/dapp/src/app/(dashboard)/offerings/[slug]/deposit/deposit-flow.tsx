@@ -29,10 +29,12 @@ import { TOKEN_INFO } from '@/components/token-info';
 import {
   CENTRIFUGE_CONFIG,
   isPriceUnavailableError,
+  resolveTransactionIdentity,
   useDeposit,
   useDepositPreview,
   useVaultCapacity
 } from '@/centrifuge';
+import { ZMCA_OFFERING } from '@/offerings';
 
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -41,6 +43,9 @@ import { createAmountValidator, parseInput } from './_utils';
 
 const USDC = CENTRIFUGE_CONFIG.usdc;
 const ZMCA = CENTRIFUGE_CONFIG.shareToken;
+
+// The one live Offering's identity, until the route provider hands it down.
+const ZMCA_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
 
 type DepositForm = { deposit: string };
 
@@ -52,7 +57,7 @@ export function DepositFlow() {
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const zMcaBalance = useBalance({ tokenAddress: ZMCA.address });
   const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_CONFIG.vaultRouterAddress });
-  const capacity = useVaultCapacity();
+  const capacity = useVaultCapacity({ shareClass: ZMCA_IDENTITY.shareClass });
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -83,7 +88,7 @@ export function DepositFlow() {
   // amount's successful response renders.
   const { debouncedValue: debouncedDeposit, isDebouncing } = useDebouncedValue({ value: deposit });
   const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, USDC.decimals) : undefined;
-  const preview = useDepositPreview({ assets: debouncedRaw ?? 0n });
+  const preview = useDepositPreview({ shareClass: ZMCA_IDENTITY.shareClass, assets: debouncedRaw ?? 0n });
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
   const previewShares = hasDepositRaw && isPreviewCurrent ? preview.data?.shares : undefined;
@@ -97,7 +102,7 @@ export function DepositFlow() {
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
 
   const approveSpending = useApproveSpending();
-  const depositMutation = useDeposit({ onSuccessClose: () => setIsDepositDialogOpen(false) });
+  const depositMutation = useDeposit({ identity: ZMCA_IDENTITY, onSuccessClose: () => setIsDepositDialogOpen(false) });
 
   // Balances/allowance use isFetching so post-transaction invalidations keep
   // the form locked until fresh data lands.
@@ -129,6 +134,7 @@ export function DepositFlow() {
       spender: CENTRIFUGE_CONFIG.vaultRouterAddress,
       amount: depositRaw,
       name: 'USDC',
+      decimals: USDC.decimals,
       abi: erc20Abi,
       successMessage: 'You can now deposit USDC.',
       errorMessage: 'There was an error approving USDC'

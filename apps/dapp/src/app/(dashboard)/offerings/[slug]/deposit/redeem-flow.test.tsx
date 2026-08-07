@@ -31,6 +31,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+// Pulled in by the zMCA Offering module and the token display map.
+vi.mock('@zivoe/ui/icons', () => ({ UsdcIcon: () => null, ZMcaLogo: () => null }));
 vi.mock('@/centrifuge', () => ({
   CENTRIFUGE_CONFIG: {
     chainId: 11155111,
@@ -38,6 +40,18 @@ vi.mock('@/centrifuge', () => ({
     shareToken: { address: ZMCA_ADDRESS, decimals: 18, symbol: 'zMCA' },
     usdc: { address: USDC_ADDRESS, decimals: 6 }
   },
+  resolveTransactionIdentity: (offering: { slug: string }) => ({
+    offeringSlug: offering.slug,
+    shareClass: {
+      key: 'zmca',
+      symbol: 'zMCA',
+      decimals: 18,
+      poolId: '281474976720680',
+      scId: '0x00010000000027280000000000000001',
+      shareTokenAddress: ZMCA_ADDRESS,
+      vaultAddress: ZMCA_ADDRESS
+    }
+  }),
   // Mirrors the module's unit math for the mocked 18/6 decimals above.
   sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
     (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
@@ -46,7 +60,7 @@ vi.mock('@/centrifuge', () => ({
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
-  useInvestment: () => ({
+  useRedemptionPosition: () => ({
     isFetching: false,
     data: {
       pendingRedeemShares: mocks.pendingShares,

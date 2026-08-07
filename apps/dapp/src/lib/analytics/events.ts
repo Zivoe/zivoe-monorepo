@@ -1,5 +1,3 @@
-import { type Token } from '@/types/constants';
-
 import { NETWORK_CHAIN } from '@/lib/network';
 import { AppError } from '@/lib/utils';
 
@@ -60,8 +58,12 @@ export type TransactionAnalyticsInput = {
   step: string;
   walletAddress?: string | null;
   chainId?: number;
-  tokenIn?: Token | null;
-  tokenOut?: Token | null;
+  /** Stable product identity of the Offering transacted on. */
+  offeringSlug?: string | null;
+  // Symbols travel as plain strings: they come from the transacted identity
+  // object, and test fixtures are deliberately unregistered.
+  tokenIn?: string | null;
+  tokenOut?: string | null;
   amountInRaw?: bigint | string | number | null;
   amountOutRaw?: bigint | string | number | null;
   spender?: string | null;
@@ -90,6 +92,7 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
     // Default to the deployment's configured chain — a hardcoded mainnet
     // fallback mislabelled every event whose caller omitted chainId.
     chain_id: input.chainId ?? NETWORK_CHAIN.id,
+    offering_slug: input.offeringSlug ?? undefined,
     token_in: input.tokenIn ?? undefined,
     token_out: input.tokenOut ?? undefined,
     amount_in_raw: toAnalyticsAmount(input.amountInRaw),

@@ -1,6 +1,6 @@
 import { UsdcIcon } from '@zivoe/ui/icons';
 
-import { type DepositToken, type ShareToken, type Token } from '@/types/constants';
+import { type DepositToken, type ShareToken } from '@/types/constants';
 
 import { OFFERINGS } from '@/offerings';
 
@@ -15,14 +15,29 @@ const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
 };
 
 // One display entry per registered share token, derived from the Offering
-// modules so adding a class can never leave the map incomplete. The cast
-// asserts what the compiler cannot see across Object.fromEntries: every
-// ShareToken symbol comes from exactly one registered Offering.
-const SHARE_TOKEN_INFO = Object.fromEntries(
+// modules. Partial on purpose: OFFERINGS is filtered to the active network, so
+// a catalogued class not live here has no entry — share-symbol lookups must
+// stay null-safe (getTokenInfo) rather than assume catalog-wide completeness.
+const SHARE_TOKEN_INFO: Partial<Record<ShareToken, TokenInfo>> = Object.fromEntries(
   OFFERINGS.map((offering) => [
     offering.shareClass.symbol,
     { label: offering.shareClass.symbol, description: offering.shareTokenDescription, icon: <offering.Logo /> }
   ])
-) as Record<ShareToken, TokenInfo>;
+);
 
-export const TOKEN_INFO: Record<Token, TokenInfo> = { ...DEPOSIT_TOKEN_INFO, ...SHARE_TOKEN_INFO };
+export const TOKEN_INFO: Record<DepositToken, TokenInfo> & Partial<Record<ShareToken, TokenInfo>> = {
+  ...DEPOSIT_TOKEN_INFO,
+  ...SHARE_TOKEN_INFO
+};
+
+// Fresh literal so the union-keyed record widens to string keys.
+const TOKEN_INFO_BY_SYMBOL: Record<string, TokenInfo | undefined> = { ...TOKEN_INFO };
+
+/**
+ * Display info looked up by a runtime symbol — for surfaces rendering a
+ * transaction payload's token snapshot, where the symbol is a plain string.
+ * Undefined for symbols no registered Offering carries.
+ */
+export function getTokenInfo(symbol: string): TokenInfo | undefined {
+  return TOKEN_INFO_BY_SYMBOL[symbol];
+}

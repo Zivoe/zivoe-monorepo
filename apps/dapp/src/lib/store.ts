@@ -1,43 +1,61 @@
 import { atom } from 'jotai';
 
-import { type DepositToken, type Token } from '@/types/constants';
+/**
+ * Token identity snapshotted onto the payload at mutation time. The receipt
+ * dialog renders exclusively from these — never from the ambient page's
+ * configuration — so a transaction confirming after navigation to another
+ * Offering keeps its own labels and decimals.
+ */
+export type TransactionTokenSnapshot = {
+  symbol: string;
+  decimals: number;
+};
 
 export type TransactionData = {
   type: 'SUCCESS' | 'ERROR';
   title: string;
   description: string;
   hash: string;
+  /** Stable identity of the Offering transacted on. */
+  offeringSlug?: string;
   meta?: {
     approve?: {
-      token: Token;
+      token: TransactionTokenSnapshot;
       amount: bigint;
     };
 
     deposit?: {
-      token: DepositToken;
+      asset: TransactionTokenSnapshot;
+      share: TransactionTokenSnapshot;
       amount: bigint;
       receive: bigint;
     };
 
     redeem?: {
+      share: TransactionTokenSnapshot;
+      asset: TransactionTokenSnapshot;
       amount: bigint;
       receive: bigint;
     };
 
     claimRedeem?: {
+      share: TransactionTokenSnapshot;
+      asset: TransactionTokenSnapshot;
       /** Exact USDC received. */
       assets: bigint;
-      /** Corresponding zMCA redeemed. */
+      /** Corresponding shares redeemed. */
       shares: bigint;
     };
 
     cancelRedeem?: {
-      /** Pending zMCA the Cancellation covers — snapshot at cancel time; the event carries no amount. */
+      share: TransactionTokenSnapshot;
+      /** Pending shares the Cancellation covers — snapshot at cancel time; the event carries no amount. */
       shares: bigint;
     };
 
     claimReturnedShares?: {
-      /** Exact zMCA returned to the wallet. */
+      share: TransactionTokenSnapshot;
+      /** Exact shares returned to the wallet. */
       shares: bigint;
     };
   };

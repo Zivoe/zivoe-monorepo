@@ -11,12 +11,12 @@ import { toast } from '@zivoe/ui/core/sonner';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxSharedConfig } from '@/hooks/useTxLifecycle';
+import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
 
 import { getVault, setTransactionSigner } from './client';
-import { ZMCA_SHARE_CLASS } from './config';
 import { type TransactionEntity, type VaultEntity } from './entities';
 import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
+import { type TransactionIdentity } from './types';
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
@@ -35,6 +35,8 @@ type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient:
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
 export type CentrifugeTxConfig<TVariables> = TxSharedConfig<TVariables> & {
+  /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
+  identity: TransactionIdentity;
   /**
    * Re-runs guards and starts the SDK action; throw AppError for validation
    * failures. Runs with the lazily resolved, simulation-wrapped signer already
@@ -67,8 +69,24 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   const wagmiConfig = useConfig();
   const publicClient = usePublicClient();
 
+  const { identity, analytics } = config;
+
   return useTxLifecycle({
     ...config,
+
+    // The Offering slug rides every analytics event and Sentry capture as the
+    // stable product identity, stamped here once instead of in every hook —
+    // as an indexed tag, so triage can filter and alert per Offering.
+    analytics: analytics && {
+      ...analytics,
+      input: (vars, ctx) => ({ ...analytics.input(vars, ctx), offeringSlug: identity.offeringSlug })
+    },
+    sentryTags: { ...config.sentryTags, offering: identity.offeringSlug },
+    sentryExtras: (vars) => ({
+      ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+      offeringSlug: identity.offeringSlug,
+      shareClassKey: identity.shareClass.key
+    }),
 
     normalizeError: (err) => normalizeCentrifugeError(err, config.sdkErrorCopy),
 
@@ -94,7 +112,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const vault = await getVault(ZMCA_SHARE_CLASS);
+        const vault = await getVault(identity.shareClass);
         const txContext = { address, vault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -210,24 +228,25 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 }
 
 /**
- * Invalidated after every settled Centrifuge tx. Stats included: AUM moves
- * with issuance as soon as the indexer processes the block.
+ * Invalidated after every settled Centrifuge tx, scoped to the transacted
+ * share class. Stats included: AUM moves with issuance as soon as the indexer
+ * processes the block.
  */
-export function invalidateInvestmentQueries({
+export function invalidateAfterCentrifugeTx({
   queryClient,
-  address
+  address,
+  shareClassKey
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
+  shareClassKey: string;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.investment({ accountAddress: address, shareClassKey: ZMCA_SHARE_CLASS.key })
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey })
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeys.app.shareMetrics({ shareClassKey: ZMCA_SHARE_CLASS.key })
-  });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });
 }
 
 /**

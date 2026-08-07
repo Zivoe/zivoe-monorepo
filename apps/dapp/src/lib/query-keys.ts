@@ -1,13 +1,23 @@
 import { type Address } from 'viem';
 
-import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
-
 type AccountProps = {
   accountAddress?: Address;
 };
 
+/**
+ * Share-class dimension carried by every Centrifuge key, so no two classes
+ * can share a cache entry. A plain string (not the catalog union) — the key
+ * travels from resolved identity objects, and test fixtures are deliberately
+ * unregistered.
+ *
+ * The catalog key rather than the on-chain scId, by choice: it is the same
+ * handle vault memoization, invalidations, and server cache arguments use,
+ * the registry invariants pin it 1:1 to an scId per network, and keys are
+ * permanent once registered. Query caches are ephemeral besides — even a
+ * rename would cost one cold fetch, not correctness.
+ */
 type ShareClassProps = {
-  shareClassKey: ShareClassKey;
+  shareClassKey: string;
 };
 
 const account = {
@@ -22,13 +32,11 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  investment: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+  redemptionPosition: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
     ...account.by({ accountAddress }),
-    'INVESTMENT',
+    'REDEMPTION_POSITION',
     shareClassKey
-  ],
-  /** Every share class's investment state for the account — the invalidation prefix. */
-  investments: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'INVESTMENT']
+  ]
 };
 
 const app = {
