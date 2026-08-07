@@ -59,8 +59,10 @@ afterEach(() => {
 });
 
 describe('Deposit', () => {
-  // Regression: a global-atom reset effect used to race this auto-open on
-  // mount and win, leaving mobile deep links with the Earn sheet closed.
+  // Guards the hazard the provider-owned dialog state exists to avoid: with a
+  // global atom, a reset effect racing this auto-open on mount could win and
+  // leave mobile deep links with the Earn sheet closed. (No shipped build had
+  // the bug — the design was chosen over the atom before release.)
   it('auto-opens the Earn dialog for a mobile ?view= deep link', async () => {
     render(<Deposit initialView="redeem" />);
 

@@ -5,6 +5,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
@@ -16,18 +18,10 @@ const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
 
 const D18 = 10n ** 18n;
 
-const TEST_IDENTITY = {
-  offeringSlug: 'global-mca-offerings',
-  shareClass: {
-    key: 'zmca',
-    symbol: 'zMCA',
-    decimals: 18,
-    poolId: '281474976720680',
-    scId: '0x00010000000027280000000000000001' as const,
-    shareTokenAddress: ZMCA_ADDRESS as `0x${string}`,
-    vaultAddress: ZMCA_ADDRESS as `0x${string}`
-  }
-};
+// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// drift (an earlier fixture here used the share-token address as the vault's,
+// the exact conflation the registry invariants exist to catch).
+const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
 
 function renderFlow() {
   return render(

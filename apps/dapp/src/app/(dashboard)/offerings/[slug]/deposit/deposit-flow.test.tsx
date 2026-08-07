@@ -5,28 +5,21 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { DepositFlow } from './deposit-flow';
 
-const { USDC_ADDRESS, ZMCA_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
   ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
   ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD'
 }));
 
-const TEST_IDENTITY = {
-  offeringSlug: 'global-mca-offerings',
-  shareClass: {
-    key: 'zmca',
-    symbol: 'zMCA',
-    decimals: 18,
-    poolId: '281474976720680',
-    scId: '0x00010000000027280000000000000001' as const,
-    shareTokenAddress: ZMCA_ADDRESS as `0x${string}`,
-    vaultAddress: ROUTER_ADDRESS as `0x${string}`
-  }
-};
+// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// drift (an earlier fixture here carried the router address as the vault's).
+const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
 
 function renderFlow() {
   return render(
