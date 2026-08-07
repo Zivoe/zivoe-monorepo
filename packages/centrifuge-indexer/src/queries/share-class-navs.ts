@@ -71,6 +71,14 @@ export async function fetchShareClassNavs({
 
   const tokensByAddress = new Map(data.tokenInstances.items.map((item) => [item.address.toLowerCase(), item.token]));
 
+  // Exactly one row per address: a duplicate would silently last-write-win
+  // into a published AUM figure. (Missing rows throw below.)
+  if (data.tokenInstances.items.length !== tokensByAddress.size)
+    throw new CentrifugeIndexerError({
+      kind: 'validation',
+      message: `The indexer returned duplicate share-token rows on ${network}.`
+    });
+
   return Object.fromEntries(
     identities.map((identity) => {
       const token = tokensByAddress.get(identity.shareTokenAddress.toLowerCase());

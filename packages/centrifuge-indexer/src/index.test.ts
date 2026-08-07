@@ -213,6 +213,19 @@ describe('fetchShareClassNavs', () => {
     });
   });
 
+  it('fails the whole read on duplicate rows instead of letting one silently win', async () => {
+    const row = {
+      address: sepolia.shareTokenAddress.toLowerCase(),
+      token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+    };
+    fakeIndexerResponse({ data: { tokenInstances: { items: [row, row] } } });
+
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('duplicate share-token rows')
+    });
+  });
+
   it('fails the whole read when a requested class is missing, instead of returning a partial map', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] } } });
 
