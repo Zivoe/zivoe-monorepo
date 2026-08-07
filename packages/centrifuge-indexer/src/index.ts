@@ -30,5 +30,5 @@ export {
   getUtcDayStartSeconds,
   type DailyTokenSnapshot
 } from './queries/daily-token-snapshots';
-export { fetchShareClassNavs } from './queries/share-class-navs';
+export { fetchShareClassNavs, sumShareClassNavs } from './queries/share-class-navs';
 export { rayToPercent } from './units';

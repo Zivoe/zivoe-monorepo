@@ -1,3 +1,5 @@
+import { sumShareClassNavs } from '@zivoe/centrifuge-indexer';
+
 import { getShareClassNavs } from '@/server/data/centrifuge-metrics';
 
 import Page from '@/components/page';
@@ -10,10 +12,11 @@ import OfferingCard from './_offerings/offering-card';
 
 export default async function HomePage() {
   // One cached multi-class read: the headline sums the map, each card takes
-  // its own entry. A failed read hides both instead of a partial sum. Summed
-  // as bigint so per-entry float conversion cannot drift the total.
+  // its own entry. A failed read hides both instead of a partial sum, and an
+  // empty book hides the headline instead of reading $0. Summed as bigint so
+  // per-entry float conversion cannot drift the total.
   const navs = await getShareClassNavs();
-  const headlineAumD18 = navs ? Object.values(navs).reduce((sum, navD18) => sum + BigInt(navD18), 0n) : null;
+  const headlineAumD18 = navs ? sumShareClassNavs(navs) : null;
   const headlineAum = headlineAumD18 === null ? null : Number(headlineAumD18) / 1e18;
 
   return (

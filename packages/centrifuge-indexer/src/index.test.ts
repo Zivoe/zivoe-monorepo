@@ -9,6 +9,7 @@ import {
   fetchDailyTokenSnapshots,
   fetchShareClassNavs,
   getShareClassIdentity,
+  sumShareClassNavs,
   getShareClassNetworks,
   listShareClassKeys,
   rayToPercent,
@@ -119,6 +120,18 @@ describe('fetchShareClassNavs', () => {
 
     await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: [] })).resolves.toEqual({});
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('sumShareClassNavs', () => {
+  it('sums every class into one book value as bigint', () => {
+    expect(sumShareClassNavs({ zmca: '107000000000000000000', other: '3000000000000000000' })).toBe(
+      110000000000000000000n
+    );
+  });
+
+  it('returns null for an empty book so no surface renders it as $0', () => {
+    expect(sumShareClassNavs({})).toBeNull();
   });
 });
 

@@ -85,3 +85,14 @@ export async function fetchShareClassNavs({
     })
   );
 }
+
+/**
+ * Sums a nav map into the book's 18-decimal USD value. Null for an empty map:
+ * "no live share classes" must render as unavailable — a surface publishing
+ * AUM may never read an unconfigured book as one worth $0.
+ */
+export function sumShareClassNavs(navs: Record<string, string>): bigint | null {
+  const values = Object.values(navs);
+  if (values.length === 0) return null;
+  return values.reduce((sum, navD18) => sum + BigInt(navD18), 0n);
+}
