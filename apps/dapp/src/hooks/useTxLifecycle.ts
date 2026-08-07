@@ -204,6 +204,10 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const queryClient = useQueryClient();
   const setTransaction = useSetAtom(transactionAtom);
 
+  // The extras default is resolved once here — capture sites below must not
+  // each re-implement the fallback.
+  const sentryExtras = config.sentryExtras ?? toSentryExtras;
+
   const [isTxPending, setIsTxPending] = useState(false);
 
   const mutationInfo = useMutation({
@@ -255,7 +259,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
           Sentry.captureException(new Error('Transaction reverted on-chain'), {
             tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
             extra: {
-              ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+              ...sentryExtras(vars),
               txHash: receipt.transactionHash
             }
           });
@@ -338,7 +342,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         sentry: {
           flow: config.sentryFlow,
           tags: config.sentryTags,
-          extras: config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)
+          extras: sentryExtras(vars)
         }
       });
     },

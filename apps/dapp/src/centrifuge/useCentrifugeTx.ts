@@ -89,7 +89,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
     },
     sentryTags: { ...config.sentryTags, offering: identity.offeringSlug },
     sentryExtras: (vars) => ({
-      ...(config.sentryExtras ? config.sentryExtras(vars) : toSentryExtras(vars)),
+      ...(config.sentryExtras ?? toSentryExtras)(vars),
       offeringSlug: identity.offeringSlug,
       shareClassKey: identity.shareClass.key
     }),
