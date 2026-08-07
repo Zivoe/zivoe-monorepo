@@ -184,13 +184,29 @@ export function getShareClassIdentity({
   };
 }
 
+/** Structural view for the listing helpers — tests inject synthetic catalogs. */
+type DeployableFlagsView = Record<string, { networks: Partial<Record<CentrifugeNetwork, { deployable: boolean }>> }>;
+
 /** Keys of the share classes live (deployable) on the network, in catalog order. */
-export function listShareClassKeys(network: CentrifugeNetwork): Array<ShareClassKey> {
-  return SHARE_CLASS_KEYS.filter((key) => SHARE_CLASS_CATALOG[key].networks[network]?.deployable);
+export function listShareClassKeys(network: CentrifugeNetwork): Array<ShareClassKey>;
+export function listShareClassKeys<C extends DeployableFlagsView>(
+  network: CentrifugeNetwork,
+  catalog: C
+): Array<keyof C & string>;
+export function listShareClassKeys(
+  network: CentrifugeNetwork,
+  catalog: DeployableFlagsView = SHARE_CLASS_CATALOG
+): Array<string> {
+  return Object.keys(catalog).filter((key) => catalog[key]?.networks[network]?.deployable);
 }
 
 /** Networks the share class is live on — claimed entries with operator-verified values. */
-export function getShareClassNetworks(key: ShareClassKey): Array<CentrifugeNetwork> {
-  const networks = SHARE_CLASS_CATALOG[key].networks;
+export function getShareClassNetworks(key: ShareClassKey): Array<CentrifugeNetwork>;
+export function getShareClassNetworks(key: string, catalog: DeployableFlagsView): Array<CentrifugeNetwork>;
+export function getShareClassNetworks(
+  key: string,
+  catalog: DeployableFlagsView = SHARE_CLASS_CATALOG
+): Array<CentrifugeNetwork> {
+  const networks = catalog[key]?.networks ?? {};
   return (Object.keys(networks) as Array<CentrifugeNetwork>).filter((network) => networks[network]?.deployable);
 }

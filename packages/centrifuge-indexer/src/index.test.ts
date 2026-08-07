@@ -58,9 +58,22 @@ describe('share-class catalog', () => {
   });
 
   it('lists only live share classes and networks', () => {
-    expect(listShareClassKeys('sepolia')).toEqual(['zmca']);
-    expect(listShareClassKeys('mainnet')).toEqual([]);
-    expect(getShareClassNetworks('zmca')).toEqual(['sepolia']);
+    // Synthetic catalog on purpose: enumerating the real book here made
+    // registering a share class break this file (it happened once).
+    const catalog = {
+      live: { networks: { sepolia: { deployable: true } } },
+      staged: { networks: { sepolia: { deployable: false }, mainnet: { deployable: false } } }
+    };
+
+    expect(listShareClassKeys('sepolia', catalog)).toEqual(['live']);
+    expect(listShareClassKeys('mainnet', catalog)).toEqual([]);
+    expect(getShareClassNetworks('live', catalog)).toEqual(['sepolia']);
+    expect(getShareClassNetworks('staged', catalog)).toEqual([]);
+  });
+
+  it('keeps the original class listed on its live network', () => {
+    // Membership only — the whole book is deliberately not asserted.
+    expect(listShareClassKeys('sepolia')).toContain('zmca');
   });
 });
 

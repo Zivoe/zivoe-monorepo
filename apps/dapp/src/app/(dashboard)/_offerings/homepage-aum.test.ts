@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getHomepageAum } from './homepage-aum';
 
-vi.mock('@zivoe/ui/icons', () => ({ ZMcaLogo: () => null, ZAltLogo: () => null }));
+// The registry is mocked wholesale: these tests assert aggregation semantics
+// and must never enumerate the live book — registering an Offering broke the
+// old real-registry assertions once.
+vi.mock('@/offerings', () => ({
+  OFFERINGS: [{ shareClass: { key: 'alpha' } }, { shareClass: { key: 'beta' } }]
+}));
 vi.mock('@/server/data/centrifuge-metrics', () => ({
   getShareClassNavs: vi.fn(),
   getCurrentShareMetrics: vi.fn()
@@ -19,11 +24,14 @@ beforeEach(() => {
 
 describe('getHomepageAum', () => {
   it('sums the headline from the aggregated read and feeds each card its own entry', async () => {
-    getShareClassNavs.mockResolvedValue({ zmca: '107000000000000000000' });
+    getShareClassNavs.mockResolvedValue({
+      alpha: '107000000000000000000',
+      beta: '53000000000000000000'
+    });
 
     await expect(getHomepageAum()).resolves.toEqual({
-      headlineAum: 107,
-      cardAums: { zmca: 107 }
+      headlineAum: 160,
+      cardAums: { alpha: 107, beta: 53 }
     });
     expect(getCurrentShareMetrics).not.toHaveBeenCalled();
   });
@@ -47,9 +55,9 @@ describe('getHomepageAum', () => {
 
     await expect(getHomepageAum()).resolves.toEqual({
       headlineAum: null,
-      cardAums: { zmca: 107 }
+      cardAums: { alpha: 107, beta: 107 }
     });
-    expect(getCurrentShareMetrics).toHaveBeenCalledWith('zmca');
+    expect(getCurrentShareMetrics.mock.calls.map((call) => call[0])).toEqual(['alpha', 'beta']);
   });
 
   it('renders the em-dash state when both the aggregate and the per-class fallback fail', async () => {
@@ -58,7 +66,7 @@ describe('getHomepageAum', () => {
 
     await expect(getHomepageAum()).resolves.toEqual({
       headlineAum: null,
-      cardAums: { zmca: null }
+      cardAums: { alpha: null, beta: null }
     });
   });
 });
