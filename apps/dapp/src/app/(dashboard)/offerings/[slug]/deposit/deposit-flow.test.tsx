@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
   allowance: 0n,
   approve: vi.fn(),
   capacity: 5_000000n,
+  capacityIsError: false,
   deposit: vi.fn(),
   isDebouncing: false,
   previewError: undefined as string | undefined,
@@ -62,12 +63,10 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
-  useVaultCapacity: () => ({
-    data: { maxDeposit: mocks.capacity },
-    isFetching: false,
-    isPending: false,
-    isSuccess: true
-  })
+  useVaultCapacity: () =>
+    mocks.capacityIsError
+      ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
+      : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
 }));
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
@@ -223,6 +222,7 @@ describe('DepositFlow', () => {
     vi.clearAllMocks();
     mocks.allowance = 0n;
     mocks.capacity = 5_000000n;
+    mocks.capacityIsError = false;
     mocks.isDebouncing = false;
     mocks.previewError = undefined;
     mocks.previewIsError = false;
@@ -243,6 +243,17 @@ describe('DepositFlow', () => {
     expect(getInput('Estimated receive').value).toBe('');
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
     expect(getButton('Estimating zMCA...').disabled).toBe(true);
+  });
+
+  it('blocks submission while the capacity read is failing', () => {
+    // A failed capacity read is how a misconfigured vault surfaces — the
+    // submit would only re-run the same failure inside the mutation.
+    mocks.capacityIsError = true;
+
+    renderFlow();
+    fireEvent.change(getInput('Deposit'), { target: { value: '1' } });
+
+    expect(getButton('Approve').disabled).toBe(true);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {

@@ -127,11 +127,16 @@ export default function RedeemFlow() {
   // locks the whole form through isPrereqsLoading.
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
+  // A failed position read renders like "no position" (the ?? 0n fallbacks
+  // above), so a new request must not be offered on top of state we cannot
+  // see — the read failing is also how a misconfigured vault surfaces.
+  const isPositionUnavailable = position.isError;
+
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isEstimateFailed || isEstimateLoading) return;
+    if (!isValid || isEstimateFailed || isEstimateLoading || isPositionUnavailable) return;
     // Narrowing only — validation guarantees redeemRaw and the estimate states
     // cover every missing-estimate case.
     if (!redeemRaw || estimatedAssets === undefined) return;
@@ -354,7 +359,11 @@ export default function RedeemFlow() {
             fullWidth
             onPress={() => void handleRequestRedeem()}
             isDisabled={
-              isEstimateFailed || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending
+              isEstimateFailed ||
+              isPositionUnavailable ||
+              claimRedeem.isPending ||
+              cancelRedeem.isPending ||
+              claimReturnedShares.isPending
             }
             isPending={requestRedeem.isPending || isEstimateLoading}
             pendingContent={

@@ -45,6 +45,7 @@ const mocks = vi.hoisted(() => ({
   metricsIsFetching: false,
   metricsRefetch: vi.fn(),
   pendingShares: 0n,
+  positionIsError: false,
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
@@ -83,14 +84,17 @@ vi.mock('@/centrifuge', () => ({
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
   useRedemptionPosition: () => ({
+    isError: mocks.positionIsError,
     isFetching: false,
-    data: {
-      pendingRedeemShares: mocks.pendingShares,
-      claimableRedeemAssets: mocks.claimableAssets,
-      claimableRedeemSharesEquivalent: 0n,
-      claimableCancelRedeemShares: mocks.returnedShares,
-      hasPendingCancelRedeemRequest: mocks.hasPendingCancel
-    }
+    data: mocks.positionIsError
+      ? undefined
+      : {
+          pendingRedeemShares: mocks.pendingShares,
+          claimableRedeemAssets: mocks.claimableAssets,
+          claimableRedeemSharesEquivalent: 0n,
+          claimableCancelRedeemShares: mocks.returnedShares,
+          hasPendingCancelRedeemRequest: mocks.hasPendingCancel
+        }
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
@@ -204,6 +208,7 @@ describe('RedeemFlow', () => {
     mocks.metricsIsError = false;
     mocks.metricsIsFetching = false;
     mocks.pendingShares = 0n;
+    mocks.positionIsError = false;
     mocks.returnedShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
   });
@@ -237,6 +242,16 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('2');
     act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Redeem').value).toBe('');
+  });
+
+  it('blocks a new request while the position read is failing', () => {
+    // A failed read renders like "no position"; requesting on top of state we
+    // cannot see must not be offered.
+    mocks.positionIsError = true;
+
+    renderFlow();
+
+    expect(getButton('Request redemption').disabled).toBe(true);
   });
 
   it('scales the dollar value independently of the share token decimals', () => {

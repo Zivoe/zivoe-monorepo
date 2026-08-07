@@ -109,9 +109,11 @@ export function DepositFlow() {
     capacity.isPending;
 
   // isSubmitBlocked only gates approve/deposit, so inputs stay editable while
-  // a preview resolves or the vault is at capacity.
+  // a preview resolves or the vault is at capacity. A failed capacity read
+  // also blocks: it is how a misconfigured vault surfaces (resolution throws),
+  // and submitting would only re-run the same failure inside the mutation.
   const isFormLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable;
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable || capacity.isError;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
