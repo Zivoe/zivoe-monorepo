@@ -396,22 +396,25 @@ describe('DepositFlow', () => {
     expect(getInput('Deposit').value).toBe('');
   });
 
-  it('caps Max at vault capacity and disables zero-capacity deposits', () => {
-    const { rerender } = renderFlow();
+  it('caps Max at vault capacity', () => {
+    renderFlow();
 
     // Wallet holds 10 USDC but the vault only accepts 5 more.
     fireEvent.click(getButton('Max'));
     expect(getInput('Deposit').value).toBe('5');
+  });
 
+  it('offers no deposit action at all when the vault has no capacity', () => {
+    // An Offering-level fact, so it reads like one: a named action and a
+    // callout, not a validation error against an amount nobody has typed.
     mocks.capacity = 0n;
-    rerender(
-      <OfferingIdentityProvider identity={TEST_IDENTITY} status="Open">
-        <EarnDialogProvider>
-          <DepositFlow />
-        </EarnDialogProvider>
-      </OfferingIdentityProvider>
-    );
-    expect(screen.getByText('Deposits are currently unavailable.')).toBeTruthy();
-    expect(getButton('Approve').disabled).toBe(true);
+    renderFlow();
+
+    expect(getButton('Deposits Unavailable').disabled).toBe(true);
+    expect(screen.getByText('Deposits are currently unavailable, redemptions are enabled.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+    // Nothing to enter an amount for.
+    expect(getInput('Deposit').disabled).toBe(true);
   });
 });

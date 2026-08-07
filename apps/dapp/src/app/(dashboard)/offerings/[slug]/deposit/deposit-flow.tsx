@@ -128,13 +128,18 @@ export function DepositFlow() {
     capacity.isPending;
 
   // The two blocks differ in what they say about the future. A resolving or
-  // failed preview and a full vault may still clear on their own, so they only
-  // gate the action (isSubmitBlocked) and leave the inputs editable — typing an
-  // amount while one clears is reasonable. A closed Offering and a wallet the
-  // vault will not admit are settled answers, so they lock the form itself:
-  // there is no amount worth entering.
+  // failed preview may still clear on its own, so it only gates the action
+  // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
+  // it clears is reasonable. A closed Offering, a vault with no capacity and a
+  // wallet the vault will not admit are settled answers, so they lock the form
+  // itself: there is no amount worth entering.
   const isFormLocked =
-    isPrereqsLoading || approveSpending.isPending || depositMutation.isPending || isDepositsClosed || isNotAllowlisted;
+    isPrereqsLoading ||
+    approveSpending.isPending ||
+    depositMutation.isPending ||
+    isDepositsClosed ||
+    isCapacityUnavailable ||
+    isNotAllowlisted;
 
   const isSubmitBlocked =
     isPreviewLoading || isPreviewFailed || isCapacityUnavailable || isDepositsClosed || isNotAllowlisted;
@@ -195,8 +200,8 @@ export function DepositFlow() {
             label="Deposit"
             value={value ?? ''}
             onChange={(value) => onChange(parseInput(value) || undefined)}
-            errorMessage={isCapacityUnavailable ? 'Deposits are currently unavailable.' : error?.message}
-            isInvalid={isCapacityUnavailable || invalid}
+            errorMessage={error?.message}
+            isInvalid={invalid}
             isDisabled={isFormLocked}
             decimalPlaces={USDC.decimals}
             subContent={
@@ -255,12 +260,16 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      {/* Outside ConnectedAccount on purpose: a closed Offering is decided
-          before any wallet or read is involved, so prompting for one would
-          only offer a connection that leads nowhere. */}
+      {/* Outside ConnectedAccount on purpose: a closed Offering and a vault
+          with no capacity are both decided without reference to any wallet, so
+          prompting for one would only offer a connection that leads nowhere. */}
       {isDepositsClosed ? (
         <Button fullWidth isDisabled>
           Deposits Disabled
+        </Button>
+      ) : isCapacityUnavailable ? (
+        <Button fullWidth isDisabled>
+          Deposits Unavailable
         </Button>
       ) : (
         <ConnectedAccount>
@@ -310,11 +319,13 @@ export function DepositFlow() {
         </ConnectedAccount>
       )}
 
-      {/* Why the action above is disabled. The closed status is an Offering
-          fact, so it renders whether or not a wallet is connected; the
-          allow-list verdict only exists once one is. */}
+      {/* Why the action above is disabled. The closed status and the vault's
+          capacity are Offering facts, so they render whether or not a wallet is
+          connected; the allow-list verdict only exists once one is. */}
       {isDepositsClosed ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
+      ) : isCapacityUnavailable ? (
+        <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
       ) : isNotAllowlisted ? (
         <NotAllowlistedCallout />
       ) : null}
