@@ -1,4 +1,4 @@
-import { type CentrifugeNetwork, SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { type CentrifugeNetwork, SHARE_CLASS_CATALOG, ZERO_HEX, assertUnique } from '@zivoe/centrifuge-indexer';
 
 import { DEPOSIT_TOKENS } from '@/types/constants';
 
@@ -21,7 +21,6 @@ type CatalogEntries = Record<
   }
 >;
 
-const ZERO_HEX = /^0x0+$/i;
 const SLUG_SHAPE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
@@ -156,14 +155,5 @@ function isZeroPoolId(poolId: string): boolean {
     return BigInt(poolId) <= 0n;
   } catch {
     return true;
-  }
-}
-
-function assertUnique({ values, message }: { values: Array<string>; message: (duplicate: string) => string }) {
-  const seen = new Set<string>();
-
-  for (const value of values) {
-    if (seen.has(value)) throw new Error(message(value));
-    seen.add(value);
   }
 }

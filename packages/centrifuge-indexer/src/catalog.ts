@@ -81,7 +81,8 @@ type CatalogLike = Record<
   }
 >;
 
-const ZERO_HEX = /^0x0+$/i;
+/** Matches placeholder zero hex values (addresses, scIds) in staged entries. */
+export const ZERO_HEX = /^0x0+$/i;
 
 /**
  * Import-time invariants over the catalog itself, checked wherever the catalog
@@ -137,7 +138,8 @@ export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_C
   }
 }
 
-function assertUnique({ values, message }: { values: Array<string>; message: (duplicate: string) => string }) {
+/** Throws via `message` on the first duplicate — shared by both invariant sweeps (catalog here, registry in the dApp). */
+export function assertUnique({ values, message }: { values: Array<string>; message: (duplicate: string) => string }) {
   const seen = new Set<string>();
 
   for (const value of values) {
