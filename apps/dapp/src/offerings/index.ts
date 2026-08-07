@@ -1,49 +1,9 @@
-import { type ComponentType } from 'react';
-
+import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
 import { ZMcaLogo } from '@zivoe/ui/icons';
-import { type IconProps } from '@zivoe/ui/icons/types';
 
-import { type DepositToken, type ShareToken } from '@/types/constants';
+import { type Offering } from './offering';
 
-// Deep path on purpose: this module is imported by server components, and
-// config.ts is the only piece of @/centrifuge server code may touch.
-import { CENTRIFUGE_CONFIG } from '@/centrifuge/config';
-
-/**
- * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
- *
- * Centrifuge's model is Pool > Share Class > Vault: a pool holds N share
- * classes (tranches, each with its own share token, price, AUM and yield
- * history), and a vault is one share class instantiated on one network for one
- * deposit asset. A route is therefore keyed by share class, not by vault — the
- * same class accepting a second stablecoin stays one Offering, which is also
- * why the URL says offerings rather than vaults.
- */
-export type Offering = {
-  /** Permanent public URL segment — it ends up in emails and external links. */
-  slug: string;
-  name: string;
-  Logo: ComponentType<IconProps>;
-  /** Asset class, shown as the listing card's eyebrow. */
-  category: string;
-  /** The listing card's blurb — the page itself carries the long-form About. */
-  description: string;
-  /**
-   * CSS `background` for the listing card's banner. A raw value rather than a
-   * token: each Offering gets its own multi-layer gradient so cards stay
-   * distinguishable at a glance, and that is data, not a design-system choice.
-   */
-  cardGradient: string;
-  issuer: string;
-  /** The Centrifuge share class this route reads and transacts against. */
-  shareClass: {
-    scId: `0x${string}`;
-    symbol: ShareToken;
-  };
-  /** Networks the share class is deployed to, for the listing card. */
-  networks: Array<'Ethereum'>;
-  acceptedAssets: Array<DepositToken>;
-};
+export { type Offering, type OfferingIdentity, type OfferingPresentation } from './offering';
 
 /**
  * Published Target APY, in percent. A single constant rather than an Offering
@@ -66,9 +26,10 @@ export const OFFERINGS: Array<Offering> = [
       'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
     ].join(', '),
     issuer: 'Zivoe',
-    shareClass: { scId: CENTRIFUGE_CONFIG.scId, symbol: 'zMCA' },
-    networks: ['Ethereum'],
-    acceptedAssets: ['USDC']
+    // Symbol read off the catalog so the registry cannot drift from the
+    // share class it references.
+    shareClass: { key: 'zmca', symbol: SHARE_CLASS_CATALOG.zmca.symbol },
+    shareTokenDescription: 'Zivoe MCA'
   }
 ];
 

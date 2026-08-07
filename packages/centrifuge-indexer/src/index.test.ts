@@ -7,6 +7,9 @@ import {
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   getCentrifugeIndexerConfig,
+  getShareClassIdentity,
+  getShareClassNetworks,
+  listShareClassKeys,
   rayToPercent,
   toShareStatsPayload
 } from './index';
@@ -30,6 +33,29 @@ function shareMetricsPayload(token: Record<string, unknown>, yield30dComp365: st
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('share-class catalog', () => {
+  it('resolves a live entry to serializable identity', () => {
+    expect(getShareClassIdentity({ network: 'sepolia', key: 'zmca' })).toEqual({
+      key: 'zmca',
+      symbol: 'zMCA',
+      decimals: 18,
+      poolId: '281474976720680',
+      scId: '0x00010000000027280000000000000001',
+      shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
+    });
+  });
+
+  it('refuses to resolve a claimed placeholder entry', () => {
+    expect(() => getShareClassIdentity({ network: 'mainnet', key: 'zmca' })).toThrow(/non-deployable placeholder/);
+  });
+
+  it('lists only live share classes and networks', () => {
+    expect(listShareClassKeys('sepolia')).toEqual(['zmca']);
+    expect(listShareClassKeys('mainnet')).toEqual([]);
+    expect(getShareClassNetworks('zmca')).toEqual(['sepolia']);
+  });
 });
 
 describe('getCentrifugeIndexerConfig', () => {

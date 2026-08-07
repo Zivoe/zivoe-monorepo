@@ -1,8 +1,11 @@
 import { type ComponentType } from 'react';
 
+import { type CentrifugeNetwork, getShareClassNetworks } from '@zivoe/centrifuge-indexer';
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, EthereumIcon } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
+
+import { DEPOSIT_TOKENS } from '@/types/constants';
 
 import { customNumber } from '@/lib/utils';
 
@@ -10,9 +13,17 @@ import { TOKEN_INFO } from '@/components/token-info';
 
 import { type Offering, TARGET_APY_PERCENT, offeringPath } from '@/offerings';
 
-const NETWORK_ICONS: Record<Offering['networks'][number], ComponentType<IconProps>> = {
-  Ethereum: EthereumIcon
+/** Card branding per Centrifuge network — a testnet advertises its mainnet family. */
+const NETWORK_DISPLAY: Record<CentrifugeNetwork, { label: string; Icon: ComponentType<IconProps> }> = {
+  mainnet: { label: 'Ethereum', Icon: EthereumIcon },
+  sepolia: { label: 'Ethereum', Icon: EthereumIcon }
 };
+
+/** Networks the Offering's share class is live on per the catalog, deduped by display family. */
+function offeringNetworkDisplays(offering: Offering) {
+  const displays = getShareClassNetworks(offering.shareClass.key).map((network) => NETWORK_DISPLAY[network]);
+  return [...new Map(displays.map((display) => [display.label, display])).values()];
+}
 
 export default function OfferingCard({
   offering,
@@ -51,7 +62,7 @@ export default function OfferingCard({
             label="Accepted stablecoins"
             value={
               <div className="flex items-center gap-1.5">
-                {offering.acceptedAssets.map((asset) => (
+                {DEPOSIT_TOKENS.map((asset) => (
                   <span
                     key={asset}
                     role="img"
@@ -70,14 +81,11 @@ export default function OfferingCard({
             label="Available on"
             value={
               <div className="flex items-center gap-1.5">
-                {offering.networks.map((network) => {
-                  const NetworkIcon = NETWORK_ICONS[network];
-                  return (
-                    <span key={network} role="img" title={network} aria-label={network} className="[&_svg]:size-5">
-                      <NetworkIcon />
-                    </span>
-                  );
-                })}
+                {offeringNetworkDisplays(offering).map(({ label, Icon }) => (
+                  <span key={label} role="img" title={label} aria-label={label} className="[&_svg]:size-5">
+                    <Icon />
+                  </span>
+                ))}
               </div>
             }
           />
