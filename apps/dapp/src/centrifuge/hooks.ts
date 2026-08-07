@@ -62,7 +62,7 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
 
   return useQuery({
     queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey: shareClass.key }),
-    meta: { toastErrorMessage: 'Error fetching investment data' },
+    meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
