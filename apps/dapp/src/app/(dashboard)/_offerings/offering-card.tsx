@@ -1,4 +1,3 @@
-import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
 import { Badge } from '@zivoe/ui/core/badge';
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
@@ -6,6 +5,7 @@ import { ArrowRightIcon } from '@zivoe/ui/icons';
 import { customNumber } from '@/lib/utils';
 
 import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/offering-icons';
+import OfferingIdentity from '@/components/offering-identity';
 
 import { type Offering, offeringPath } from '@/offerings';
 
@@ -28,17 +28,7 @@ export default function OfferingCard({
       <div className="h-38" style={{ background: offering.cardGradient }} />
 
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-3">
-            {/* No uppercase: the ticker is cased by the catalog — zSMB, not ZSMB. */}
-            <p className="text-small tracking-wider text-tertiary">
-              {SHARE_CLASS_CATALOG[offering.shareClass.key].symbol}
-            </p>
-            {offering.status ? <Badge>{offering.status}</Badge> : null}
-          </div>
-
-          <p className="font-heading! text-h6 text-primary">{offering.name}</p>
-        </div>
+        <OfferingIdentity offering={offering} trailing={offering.status ? <Badge>{offering.status}</Badge> : null} />
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Asset Type" value={offering.category} />
