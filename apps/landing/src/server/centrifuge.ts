@@ -18,8 +18,11 @@ const fetchHeroNavs = async (): Promise<Record<string, string>> => {
 const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs'], { revalidate: 30 });
 
 /**
- * AUM per live share class from the shared catalog — the hero sums the map,
- * so the marketing number matches the dApp homepage. Fail-closed: the fetch
+ * AUM per live share class from the shared catalog. The dApp homepage sums
+ * the REGISTRY's book instead; the two agree only while the dApp-side
+ * invariant pinning every catalog entry's deployable flag to its vault's
+ * holds — a landing-only build never runs that check, so treat catalog-flag
+ * flips as dApp-gated. Fail-closed: the fetch
  * throws on any missing or unpriced class, and Sentry-captured failure
  * returns undefined so the hero hides the stat instead of rendering a partial
  * sum. The fetch throws inside the cache boundary on purpose: a failed
