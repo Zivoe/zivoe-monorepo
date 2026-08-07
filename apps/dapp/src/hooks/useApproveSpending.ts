@@ -60,6 +60,7 @@ export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) =
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
     sentryTags: { offering: offeringSlug },
+    offeringSlug,
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
     transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {

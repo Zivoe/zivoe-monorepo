@@ -132,6 +132,12 @@ export type TxSharedConfig<TVariables> = {
   /** Extras attached to the Sentry capture; defaults to the mutation variables. */
   sentryExtras?: (vars: TVariables) => Record<string, unknown>;
   /**
+   * Offering the transaction runs against — stamped onto the dialog payload
+   * (built and fallback alike), so receipts from every driver carry the same
+   * stable product identity.
+   */
+  offeringSlug?: string;
+  /**
    * Maps the confirmed receipt to the transaction dialog payload. Runs inside
    * the mutation, so the payload snapshots the identity the hook was handed
    * when the transaction started — the mutation observer re-syncs its
@@ -282,6 +288,9 @@ export default function useTxLifecycle<TVariables, TPrepared>(
                   hash: receipt.transactionHash
                 };
         }
+
+        // Stamped after the fallback so every payload shape carries the slug.
+        if (config.offeringSlug) transactionData = { ...transactionData, offeringSlug: config.offeringSlug };
 
         // Same rule as the payload above: a throw after the receipt must never
         // re-classify a settled transaction as failed — capture and move on
