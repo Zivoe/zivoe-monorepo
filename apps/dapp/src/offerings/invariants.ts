@@ -1,5 +1,7 @@
 import { type CentrifugeNetwork, SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
 
+import { DEPOSIT_TOKENS } from '@/types/constants';
+
 // Typed over the open string domain rather than the catalog unions — this is
 // a runtime guard over registration data, and the fixture sweep runs it
 // against synthetic classes the catalog deliberately does not know.
@@ -12,6 +14,7 @@ type RegisteredOffering = {
 type CatalogEntries = Record<
   string,
   {
+    symbol: string;
     networks: Partial<
       Record<CentrifugeNetwork, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -19,6 +22,7 @@ type CatalogEntries = Record<
 >;
 
 const ZERO_HEX = /^0x0+$/i;
+const SLUG_SHAPE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
  * Import-time invariants over the Offering registry — the codebase's existing
@@ -50,6 +54,14 @@ export function assertOfferingRegistryInvariants({
     message: (key) => `Share class "${key}" is registered by two Offerings.`
   });
 
+  // The slug is a permanent public URL segment, concatenated unencoded into
+  // routes, emails and external links — anything beyond kebab-case would
+  // encode or normalize differently across those surfaces.
+  for (const offering of offerings) {
+    if (!SLUG_SHAPE.test(offering.slug))
+      throw new Error(`Offering slug "${offering.slug}" is not kebab-case ([a-z0-9], dash-separated).`);
+  }
+
   for (const offering of offerings) {
     // Object.hasOwn: a prototype-chain key like "toString" is truthy under a
     // plain index and would skip the not-in-catalog throw.
@@ -58,6 +70,12 @@ export function assertOfferingRegistryInvariants({
       throw new Error(
         `Offering "${offering.slug}" references share class "${offering.shareClass.key}" not in the catalog.`
       );
+
+    // The share-token display map spreads over the deposit-token map, so a
+    // share class claiming a deposit asset's symbol would silently take over
+    // that asset's display entry.
+    if (DEPOSIT_TOKENS.some((token) => token.toLowerCase() === entry.symbol.toLowerCase()))
+      throw new Error(`Share class "${offering.shareClass.key}" claims the deposit asset symbol "${entry.symbol}".`);
 
     const claimedNetworks = new Set<CentrifugeNetwork>([
       ...(Object.keys(entry.networks) as Array<CentrifugeNetwork>),

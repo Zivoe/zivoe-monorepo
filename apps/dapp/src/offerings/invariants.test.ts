@@ -18,6 +18,7 @@ type Registration = {
     vaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
   };
   catalogEntry: {
+    symbol: string;
     networks: Partial<
       Record<NetworkName, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -45,6 +46,7 @@ function makeRegistration({
       vaults: { sepolia: { address: vaultAddress, deployable: true } }
     },
     catalogEntry: {
+      symbol: `z${key}`,
       networks: { sepolia: { poolId: '77', scId, shareTokenAddress, deployable: true } }
     }
   };
@@ -132,6 +134,18 @@ describe('assertOfferingRegistryInvariants', () => {
         { ...other, offering: { ...other.offering, slug: fixture.offering.slug.toUpperCase() } }
       ])
     ).toThrow(/Duplicate Offering slug/);
+  });
+
+  it('throws on a slug that is not kebab-case', () => {
+    for (const slug of ['fixture offering', 'Fixture-Offering', '../..', 'fixture?x=1']) {
+      const malformed: Registration = { ...fixture, offering: { ...fixture.offering, slug } };
+      expect(() => assertRegistry([malformed])).toThrow(/kebab-case/);
+    }
+  });
+
+  it('throws when a share class claims a deposit asset symbol, compared case-insensitively', () => {
+    const usdc: Registration = { ...fixture, catalogEntry: { ...fixture.catalogEntry, symbol: 'usdc' } };
+    expect(() => assertRegistry([usdc])).toThrow(/deposit asset/);
   });
 
   it('throws when two Offerings register the same share class', () => {
