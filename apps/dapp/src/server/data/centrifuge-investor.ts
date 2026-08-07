@@ -48,7 +48,9 @@ export async function hasAnyInvestorTransaction({ addresses }: { addresses: Arra
     query: ANY_INVESTOR_TRANSACTION_QUERY,
     variables: {
       tokenIds: identities.map((identity) => identity.scId),
-      poolIds: identities.map((identity) => identity.poolId),
+      // Deduped: share classes of one pool share a poolId (both current
+      // classes do), and the duplicate reads like a bug at the query layer.
+      poolIds: [...new Set(identities.map((identity) => identity.poolId))],
       accounts: addresses.map((address) => address.toLowerCase())
     },
     dataSchema: anyInvestorTransactionSchema
