@@ -715,6 +715,7 @@ describe('createDailyNegativeYieldReporter', () => {
     reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
 
     expect(report).toHaveBeenCalledTimes(2);
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
     expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zalt', negativeYield30d: -2n });
   });
 });

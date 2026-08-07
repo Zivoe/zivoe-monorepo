@@ -152,4 +152,18 @@ describe('getVault', () => {
 
     await expect(getVault(SHARE_CLASS)).rejects.toThrow(/Fix the environment config before transacting/);
   });
+
+  it("never lets one key's cached vault answer for a different vault address", async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithVaults({ [SHARE_CLASS.scId]: fakeSdkVault({ address: SHARE_CLASS.vaultAddress }) })
+    );
+
+    const { getVault } = await loadClient();
+    await expect(getVault(SHARE_CLASS)).resolves.toBeTruthy();
+
+    // Same key, different vault: the memo must miss so the address assertion
+    // runs — a key-only memo would silently return the cached vault.
+    const rewired = { ...SHARE_CLASS, vaultAddress: OTHER_SHARE_CLASS.vaultAddress };
+    await expect(getVault(rewired)).rejects.toThrow(/is configured/);
+  });
 });
