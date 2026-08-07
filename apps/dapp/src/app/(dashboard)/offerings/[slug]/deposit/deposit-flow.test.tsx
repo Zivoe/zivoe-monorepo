@@ -282,30 +282,36 @@ describe('DepositFlow', () => {
     expect(mocks.deposit).not.toHaveBeenCalled();
   });
 
-  it('blocks submission on a failed allow-list read without blaming the wallet', () => {
-    // A fetch failure is not a verdict — the query-cache toast is the signal,
-    // so the action stays put and merely disabled. The read may still succeed
-    // on retry, so the form stays editable rather than locking.
+  it('leaves the action live on a failed allow-list read', async () => {
+    // A fetch failure is not a verdict, so it neither names the wallet nor
+    // takes the action away. The exact-call simulation is the authoritative
+    // pre-sign gate and decodes the real revert if the vault does refuse.
     mocks.allowlistIsError = true;
     renderFlow();
     enterAmount('1');
 
-    expect(getButton('Approve').disabled).toBe(true);
+    expect(getButton('Approve').disabled).toBe(false);
     expect(getInput('Deposit').disabled).toBe(false);
     expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+
+    await press('Approve');
+
+    expect(mocks.approve).toHaveBeenCalled();
   });
 
-  it('blocks submission while the capacity read is failing', () => {
-    // A failed capacity read is how a misconfigured vault surfaces — the
-    // submit would only re-run the same failure inside the mutation. The
-    // query-cache toast is the user-facing signal, and the capacity interval
-    // recovers the form.
+  it('drops the capacity cap rather than the action when the capacity read fails', async () => {
+    // With no capacity there is nothing to validate against, so the cap simply
+    // stops applying — 7 USDC clears a form that a successful 5 USDC read
+    // would reject. ExceedsMaxDeposit still surfaces from the simulation.
     mocks.capacityIsError = true;
 
     renderFlow();
-    fireEvent.change(getInput('Deposit'), { target: { value: '1' } });
+    // The resolver is async: without the await the message has not had a chance
+    // to land, and asserting its absence would pass whatever the cap did.
+    await act(async () => enterAmount('7'));
 
-    expect(getButton('Approve').disabled).toBe(true);
+    expect(screen.queryByText(/exceeds current vault capacity/)).toBeNull();
+    expect(getButton('Approve').disabled).toBe(false);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {

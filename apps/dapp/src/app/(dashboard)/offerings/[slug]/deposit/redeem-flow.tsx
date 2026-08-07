@@ -62,8 +62,9 @@ export default function RedeemFlow() {
   const allowlist = useInvestorAllowlist({ shareClass: share });
 
   // Two gates, because the allow list does not fall along this panel's own
-  // lines. Only a definitive `false` names the wallet; a failed read blocks
-  // both as well, but silently — it is a fetch problem, not a verdict.
+  // lines. Only a definitive `false` gates anything: a failed read is a fetch
+  // problem and not a verdict, so it leaves both alone and lets the pre-sign
+  // simulation decode the real revert if the vault does refuse.
   //
   // Claiming settled USDC is deliberately under neither: the protocol exempts
   // a redeem claim from the memberlist (and USDC carries no transfer hook), so
@@ -71,7 +72,7 @@ export default function RedeemFlow() {
   const isNotAllowlisted = allowlist.isSuccess && !allowlist.data.canRequestRedemption;
   // Cancelling and claiming returned shares both reduce on-chain to "may this
   // wallet receive shares", so they stand or fall together.
-  const isShareReturnBlocked = (allowlist.isSuccess && !allowlist.data.canReceiveShares) || allowlist.isError;
+  const isShareReturnBlocked = allowlist.isSuccess && !allowlist.data.canReceiveShares;
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
@@ -146,23 +147,11 @@ export default function RedeemFlow() {
   // locks the whole form through isPrereqsLoading.
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
-  // A failed position read renders like "no position" (the ?? 0n fallbacks
-  // above), so a new request must not be offered on top of state we cannot
-  // see — the read failing is also how a misconfigured vault surfaces. The
-  // query-cache toast is the user-facing signal, and the hook polls its
-  // error state so the form recovers without a reload.
-  const isPositionUnavailable = position.isError;
-
-  // The share transfer a request makes would revert at the hook, so an
-  // un-admitted wallet — or an allow-list read we could not complete — blocks
-  // the request the same way a failed position read does.
-  const isRequestBlocked = isPositionUnavailable || isNotAllowlisted || allowlist.isError;
-
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isEstimateFailed || isEstimateLoading || isRequestBlocked) return;
+    if (!isValid || isEstimateFailed || isEstimateLoading || isNotAllowlisted) return;
     // Narrowing only — validation guarantees redeemRaw and the estimate states
     // cover every missing-estimate case.
     if (!redeemRaw || estimatedAssets === undefined) return;
@@ -405,7 +394,7 @@ export default function RedeemFlow() {
             onPress={() => void handleRequestRedeem()}
             isDisabled={
               isEstimateFailed ||
-              isRequestBlocked ||
+              isNotAllowlisted ||
               claimRedeem.isPending ||
               cancelRedeem.isPending ||
               claimReturnedShares.isPending

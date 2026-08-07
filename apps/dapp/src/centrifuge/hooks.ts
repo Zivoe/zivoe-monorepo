@@ -85,8 +85,9 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
-    // An errored read also polls: focus refetch is off app-wide and the error
-    // state blocks the redeem form, so it must be able to self-recover.
+    // An errored read also polls: focus refetch is off app-wide, and a failed
+    // read renders like "no position" — the strips a user needs to claim or
+    // cancel with are missing until it recovers on its own.
     refetchInterval: ({ state }) =>
       state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
     queryFn: !address

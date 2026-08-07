@@ -64,9 +64,9 @@ export function DepositFlow() {
   const capacity = useVaultCapacity({ shareClass: share });
   const allowlist = useInvestorAllowlist({ shareClass: share });
 
-  // Only a definitive `false` names the wallet — a failed read blocks too (see
-  // isSubmitBlocked), but silently, since it is a fetch problem and not a
-  // verdict about this wallet.
+  // Only a definitive `false` gates anything. A failed read is a fetch problem
+  // and not a verdict about this wallet, so it leaves the flow alone and lets
+  // the pre-sign simulation decode the real revert if the vault does refuse.
   const isNotAllowlisted = allowlist.isSuccess && !allowlist.data.canReceiveShares;
 
   const balance = usdcBalance.data ?? 0n;
@@ -127,25 +127,17 @@ export function DepositFlow() {
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
 
-  // The two blocks differ in what they say about the future. A resolving
-  // preview, a full vault or a failed read may all clear on their own, so they
-  // only gate the action (isSubmitBlocked) and leave the inputs editable —
-  // typing an amount while one clears is reasonable. A closed Offering and a
-  // wallet the vault will not admit are settled answers, so they lock the form
-  // itself: there is no amount worth entering.
+  // The two blocks differ in what they say about the future. A resolving or
+  // failed preview and a full vault may still clear on their own, so they only
+  // gate the action (isSubmitBlocked) and leave the inputs editable — typing an
+  // amount while one clears is reasonable. A closed Offering and a wallet the
+  // vault will not admit are settled answers, so they lock the form itself:
+  // there is no amount worth entering.
   const isFormLocked =
     isPrereqsLoading || approveSpending.isPending || depositMutation.isPending || isDepositsClosed || isNotAllowlisted;
-  // A failed capacity or allow-list read blocks too: a failed read is how a
-  // misconfigured vault surfaces (resolution throws), and submitting would
-  // only re-run the same failure inside the mutation.
+
   const isSubmitBlocked =
-    isPreviewLoading ||
-    isPreviewFailed ||
-    isCapacityUnavailable ||
-    capacity.isError ||
-    isDepositsClosed ||
-    isNotAllowlisted ||
-    allowlist.isError;
+    isPreviewLoading || isPreviewFailed || isCapacityUnavailable || isDepositsClosed || isNotAllowlisted;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 

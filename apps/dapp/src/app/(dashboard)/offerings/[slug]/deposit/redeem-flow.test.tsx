@@ -312,16 +312,16 @@ describe('RedeemFlow', () => {
     expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
 
-  it('blocks the request on a failed allow-list read without blaming the wallet', async () => {
-    // A fetch failure is not a verdict — the query-cache toast is the signal,
-    // so the action stays put and merely disabled. The read may still succeed
-    // on retry, so the form stays editable rather than locking.
+  it('leaves the request live on a failed allow-list read', async () => {
+    // A fetch failure is not a verdict, so it neither names the wallet nor
+    // takes the action away. The exact-call simulation is the authoritative
+    // pre-sign gate and decodes the real revert if the vault does refuse.
     mocks.allowlistIsError = true;
     renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
-    expect(getButton('Request redemption').disabled).toBe(true);
+    expect(getButton('Request redemption').disabled).toBe(false);
     expect(getInput('Redeem').disabled).toBe(false);
     expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
 
@@ -329,7 +329,7 @@ describe('RedeemFlow', () => {
       fireEvent.click(getButton('Request redemption'));
     });
 
-    expect(mocks.requestRedeem).not.toHaveBeenCalled();
+    expect(mocks.requestRedeem).toHaveBeenCalled();
   });
 
   it('requests the first redemption with a correctly scaled estimate and clears only on success', async () => {
@@ -363,15 +363,23 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('');
   });
 
-  it('blocks a new request while the position read is failing', () => {
-    // A failed read renders like "no position"; requesting on top of state we
-    // cannot see must not be offered. The query-cache toast is the signal,
-    // and the hook's error-state polling recovers the form.
+  it('leaves the request live while the position read is failing', async () => {
+    // A failed read renders like "no position", but the one state it could be
+    // hiding that makes a request invalid — a cancellation already in flight —
+    // reverts at the simulation, which decodes CancellationIsPending.
     mocks.positionIsError = true;
 
     renderFlow();
 
-    expect(getButton('Request redemption').disabled).toBe(true);
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalled();
   });
 
   it('scales the dollar value independently of the share token decimals', () => {
