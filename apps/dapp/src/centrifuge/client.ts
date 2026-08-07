@@ -26,19 +26,25 @@ function getCentrifuge(): Centrifuge {
   return client;
 }
 
-/** Vault resolution is memoized per share class; a failed resolve retries on the next call. */
+/** Vault resolution is memoized per share class and vault; a failed resolve retries on the next call. */
 export function getVault(shareClass: TransactedShareClass): Promise<VaultEntity> {
-  const existing = vaultPromises.get(shareClass.key);
+  // The vault address is part of the key: a memo keyed by class alone would
+  // let one cached vault answer for a different address under the same key,
+  // skipping resolveVault's address assertion (e.g. the day a class carries a
+  // second deposit asset's vault).
+  const memoKey = `${shareClass.key}:${shareClass.vaultAddress.toLowerCase()}`;
+
+  const existing = vaultPromises.get(memoKey);
   if (existing) return existing;
 
   const vaultPromise = resolveVault(shareClass).catch((error: unknown) => {
     // Guarded eviction: only this promise's own failure may evict, so a slow
     // failure can never drop a newer retry already stored under the key.
-    if (vaultPromises.get(shareClass.key) === vaultPromise) vaultPromises.delete(shareClass.key);
+    if (vaultPromises.get(memoKey) === vaultPromise) vaultPromises.delete(memoKey);
     throw error;
   });
 
-  vaultPromises.set(shareClass.key, vaultPromise);
+  vaultPromises.set(memoKey, vaultPromise);
   return vaultPromise;
 }
 
