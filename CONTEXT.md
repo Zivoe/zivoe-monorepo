@@ -36,6 +36,22 @@ _Avoid_: mutation hook (server-action mutations are not Transaction Hooks)
 One Centrifuge share class exposed as a product page at `/offerings/<slug>`, described by the registry in `apps/dapp/src/offerings`. Centrifuge's model is Pool > Share Class > Vault: a pool holds N share classes (each with its own share token, price, AUM and yield history), and a vault is one share class instantiated on one network for one deposit asset — so a route is keyed by share class, not by vault, and one Offering accepting a second stablecoin stays one Offering.
 _Avoid_: opportunity (the pre-Centrifuge name), vault, product
 
+**Share Class Catalog**:
+The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/catalog.ts`): symbol, decimals, and per-network on-chain identity, with `deployable: false` marking staged placeholder entries. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import.
+_Avoid_: config (that is the network singleton), token list
+
+**Share-Class Key**:
+The Share Class Catalog key naming one class (e.g. `zmca`) — the share-class dimension of query keys, caches, and vault resolution. It travels as a plain string through providers and caches; `getShareClassIdentity` is the runtime trust boundary that validates it.
+_Avoid_: scId (the on-chain id), symbol
+
+**Offering Module**:
+One Offering's registration in the dApp — identity (slug, Share-Class Key, per-network vaults) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/offerings/zmca.tsx`. Listed in `REGISTERED_OFFERINGS`; the registry invariants sweep every claimed network at import, so a misregistration fails the build, never production traffic.
+_Avoid_: offering config
+
+**Transaction Identity**:
+What a flow hands every Centrifuge Transaction Hook: `{ offeringSlug, shareClass }`, the resolved catalog identity joined with the Offering's vault on the active network via `resolveTransactionIdentity`. The Centrifuge module never imports the registry — it trusts the identity it is handed, which keeps the test fixture class unregisterable.
+_Avoid_: offering context
+
 **AUM**:
 The user-facing name for a share class's value — Token Price × total issuance. Internals and the indexer deliberately keep `nav`/`navD18`; the rename is presentational only.
 _Avoid_: NAV in user-facing copy
@@ -49,7 +65,7 @@ A wallet's in-flight redemption state on a share class: pending shares awaiting 
 _Avoid_: withdrawal, exit
 
 **Returned Shares**:
-zMCA handed back by a redemption cancellation — the `claimableCancelRedeemShares` bucket. The SDK's aggregate claim empties this bucket first, so Returned Shares must be claimed before claiming redemption USDC.
+Share tokens handed back by a redemption cancellation — the `claimableCancelRedeemShares` bucket, per share class. The SDK's aggregate claim empties this bucket first, so Returned Shares must be claimed before claiming redemption USDC.
 _Avoid_: refunded shares, cancelled shares
 
 **Cancellation Processing**:
