@@ -32,7 +32,7 @@ vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { dismiss: vi.fn() }) }
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
 // Pulled in by the Offering modules' logos; raw UI TSX does not transform here.
-vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e' as const;
 const TX_HASH = '0x3333333333333333333333333333333333333333333333333333333333333333';

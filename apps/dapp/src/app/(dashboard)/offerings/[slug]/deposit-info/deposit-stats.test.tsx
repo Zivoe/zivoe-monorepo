@@ -10,7 +10,7 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null })
 vi.mock('@/components/info-section', () => ({
   default: ({ children }: { children: ReactNode }) => <section>{children}</section>
 }));
-vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 describe('DepositStats', () => {
   afterEach(cleanup);

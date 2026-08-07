@@ -54,7 +54,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Pulled in by the Offering modules' logos and the token display map.
-vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@/centrifuge', () => ({
   CENTRIFUGE_ENV: {
     chainId: 11155111,

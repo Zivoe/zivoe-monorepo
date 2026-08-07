@@ -201,7 +201,7 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectValue: () => null
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
-vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);

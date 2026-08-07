@@ -18,7 +18,7 @@ vi.mock('react-responsive', () => ({ useMediaQuery: () => mocks.isMobile }));
 
 // Raw UI TSX does not transform here; the Dialog mock keeps the one behavior
 // under test — children render only while isOpen.
-vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@zivoe/ui/lib/tw-utils', () => ({ cn: (...classes: Array<unknown>) => classes.join(' ') }));
 vi.mock('@zivoe/ui/core/button', () => ({
   Button: ({ children, onPress }: { children?: ReactNode; onPress?: () => void }) => (
