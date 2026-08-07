@@ -93,7 +93,7 @@ export function DepositFlow() {
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
 
-  const approveSpending = useApproveSpending();
+  const approveSpending = useApproveSpending({ offeringSlug: identity.offeringSlug });
   const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
 
   // Balances/allowance use isFetching so post-transaction invalidations keep
@@ -127,7 +127,6 @@ export function DepositFlow() {
       amount: depositRaw,
       name: 'USDC',
       decimals: USDC.decimals,
-      offeringSlug: identity.offeringSlug,
       abi: erc20Abi,
       successMessage: 'You can now deposit USDC.',
       errorMessage: 'There was an error approving USDC'

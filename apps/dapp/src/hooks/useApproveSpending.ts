@@ -18,18 +18,18 @@ type ApproveSpendingVariables = {
   name: string;
   /** Snapshotted onto the payload so the receipt dialog renders the approved token exactly. */
   decimals: number;
-  /**
-   * The Offering whose flow initiated the approval — the approval itself is
-   * deliberately cross-Offering (one router spender), but the deposit funnel
-   * segments per product, so its analytics carry the slug.
-   */
-  offeringSlug?: string;
   abi: ApproveTokenAbi;
   successMessage: string;
   errorMessage: string;
 };
 
-export const useApproveSpending = () => {
+/**
+ * The approval itself is deliberately cross-Offering (one router spender), but
+ * the deposit funnel segments per product — the initiating Offering's slug is
+ * hook-level identity so analytics AND Sentry captures carry it, same as
+ * useCentrifugeTx tags every transaction of the flows behind it.
+ */
+export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) => {
   return useTx<ApproveSpendingVariables, ApproveTokenParams>({
     buildParams: ({ contract, spender, amount, abi }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
@@ -46,7 +46,7 @@ export const useApproveSpending = () => {
 
     analytics: {
       flow: 'approval',
-      input: ({ name, amount, spender, offeringSlug }, { address }) => ({
+      input: ({ name, amount, spender }, { address }) => ({
         walletAddress: address,
         chainId: NETWORK_CHAIN.id,
         offeringSlug,
@@ -59,6 +59,7 @@ export const useApproveSpending = () => {
     pendingToast: ({ name }) => `Approving ${name}...`,
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
+    sentryTags: { offering: offeringSlug },
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
     transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {
