@@ -122,5 +122,5 @@ export async function fetchShareClassNavs({
 export function sumShareClassNavs(navs: Record<string, string>): bigint | null {
   const values = Object.values(navs);
   if (values.length === 0) return null;
-  return values.reduce((sum, navD18) => sum + BigInt(navD18), 0n);
+  return values.reduce((sum, navString) => sum + BigInt(navString), 0n);
 }

@@ -75,6 +75,7 @@ describe('share-class catalog', () => {
     expect(listShareClassKeys('mainnet', catalog)).toEqual([]);
     expect(getShareClassNetworks('live', catalog)).toEqual(['sepolia']);
     expect(getShareClassNetworks('staged', catalog)).toEqual([]);
+    expect(() => getShareClassNetworks('toString', catalog)).toThrow(/not in the catalog/);
   });
 
   it('keeps the original class listed on its live network', () => {

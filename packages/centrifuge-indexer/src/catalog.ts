@@ -209,12 +209,11 @@ export function getShareClassIdentity({
 /** Structural view for the listing helpers — tests inject synthetic catalogs. */
 type DeployableFlagsView = Record<string, { networks: Partial<Record<CentrifugeNetwork, { deployable: boolean }>> }>;
 
-/** Keys of the share classes live (deployable) on the network, in catalog order. */
-export function listShareClassKeys(network: CentrifugeNetwork): Array<ShareClassKey>;
-export function listShareClassKeys<C extends DeployableFlagsView>(
-  network: CentrifugeNetwork,
-  catalog: C
-): Array<keyof C & string>;
+/**
+ * Keys of the share classes live (deployable) on the network, in catalog
+ * order. No caller needs the key union back — consumers count, re-resolve
+ * through getShareClassIdentity, or pass the keys straight to queries.
+ */
 export function listShareClassKeys(
   network: CentrifugeNetwork,
   catalog: DeployableFlagsView = SHARE_CLASS_CATALOG
@@ -223,12 +222,14 @@ export function listShareClassKeys(
 }
 
 /** Networks the share class is live on — claimed entries with operator-verified values. */
-export function getShareClassNetworks(key: ShareClassKey): Array<CentrifugeNetwork>;
-export function getShareClassNetworks(key: string, catalog: DeployableFlagsView): Array<CentrifugeNetwork>;
 export function getShareClassNetworks(
   key: string,
   catalog: DeployableFlagsView = SHARE_CLASS_CATALOG
 ): Array<CentrifugeNetwork> {
+  // Same boundary rule as getShareClassIdentity: an unknown key fails loudly
+  // instead of silently reading as "live on no network".
+  if (!Object.hasOwn(catalog, key)) throw new Error(`Share class "${key}" is not in the catalog.`);
+
   const networks = catalog[key]?.networks ?? {};
   return (Object.keys(networks) as Array<CentrifugeNetwork>).filter((network) => networks[network]?.deployable);
 }
