@@ -30,7 +30,12 @@ const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | 
   try {
     return await cachedHeroNavs();
   } catch (error) {
-    Sentry.captureException(error, { tags: { source: 'SERVER' } });
+    // The keys distinguish "a new class is not indexed yet" from "the indexer
+    // is down" — this read fails as one unit for the whole book.
+    Sentry.captureException(error, {
+      tags: { source: 'SERVER' },
+      extra: { shareClassKeys: listShareClassKeys(env.NEXT_PUBLIC_NETWORK) }
+    });
   }
 });
 

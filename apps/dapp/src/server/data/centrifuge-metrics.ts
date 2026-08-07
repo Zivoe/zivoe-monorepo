@@ -139,10 +139,14 @@ const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-shar
  * inside the cache, hide-and-capture outside.
  */
 export const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | undefined> => {
+  const shareClassKeys = OFFERINGS.map((offering) => offering.shareClass.key);
+
   try {
-    return await cachedShareClassNavs(OFFERINGS.map((offering) => offering.shareClass.key));
+    return await cachedShareClassNavs(shareClassKeys);
   } catch (error) {
-    Sentry.captureException(error, { tags: { source: 'SERVER' } });
+    // The keys distinguish "a new class is not indexed yet" from "the indexer
+    // is down" — this read fails as one unit for the whole book.
+    Sentry.captureException(error, { tags: { source: 'SERVER' }, extra: { shareClassKeys } });
   }
 });
 
