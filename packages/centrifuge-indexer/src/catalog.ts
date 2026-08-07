@@ -74,8 +74,10 @@ const ZERO_HEX = /^0x0+$/i;
 export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_CLASS_CATALOG): void {
   const entries = Object.values(catalog);
 
+  // Lowercased: two symbols differing only in case would read as one product
+  // to a user while keying two display-map entries.
   assertUnique({
-    values: entries.map((entry) => entry.symbol),
+    values: entries.map((entry) => entry.symbol.toLowerCase()),
     message: (symbol) => `Share token symbol "${symbol}" is claimed by two share classes.`
   });
 

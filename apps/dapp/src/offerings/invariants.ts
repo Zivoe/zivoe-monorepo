@@ -38,12 +38,15 @@ export function assertOfferingRegistryInvariants({
   offerings: Array<RegisteredOffering>;
   catalog?: CatalogEntries;
 }): void {
+  // Lowercased like the on-chain identities: two slugs or keys differing only
+  // in case would register as two products that read identically to a user,
+  // while exact-match routing leaves one of them unreachable.
   assertUnique({
-    values: offerings.map((offering) => offering.slug),
+    values: offerings.map((offering) => offering.slug.toLowerCase()),
     message: (slug) => `Duplicate Offering slug "${slug}".`
   });
   assertUnique({
-    values: offerings.map((offering) => offering.shareClass.key),
+    values: offerings.map((offering) => offering.shareClass.key.toLowerCase()),
     message: (key) => `Share class "${key}" is registered by two Offerings.`
   });
 

@@ -108,12 +108,13 @@ describe('assertShareClassCatalogInvariants', () => {
     ).not.toThrow();
   });
 
-  it('throws when two entries share a symbol', () => {
+  it('throws when two entries share a symbol, compared case-insensitively', () => {
     expect(() =>
       assertShareClassCatalogInvariants({
         a: first,
         b: entry({
-          symbol: 'zAAA',
+          // Case-shifted on purpose: two case-variant symbols read as one product.
+          symbol: 'ZaAa',
           scId: '0x000100000000bbbb0000000000000001',
           shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
         })

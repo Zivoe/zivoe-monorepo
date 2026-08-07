@@ -119,9 +119,18 @@ describe('assertOfferingRegistryInvariants', () => {
     expect(() => assertRegistry([fixture, withMainnet])).not.toThrow();
   });
 
-  it('throws on a duplicate slug', () => {
+  it('throws on a duplicate slug, compared case-insensitively', () => {
     expect(() =>
       assertRegistry([fixture, { ...other, offering: { ...other.offering, slug: fixture.offering.slug } }])
+    ).toThrow(/Duplicate Offering slug/);
+
+    // Case-shifted on purpose: exact-match routing would leave one of these
+    // two "distinct" products unreachable.
+    expect(() =>
+      assertRegistry([
+        fixture,
+        { ...other, offering: { ...other.offering, slug: fixture.offering.slug.toUpperCase() } }
+      ])
     ).toThrow(/Duplicate Offering slug/);
   });
 
