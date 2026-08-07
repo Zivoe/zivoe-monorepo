@@ -3,6 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
+import { listShareClassKeys } from '@zivoe/centrifuge-indexer';
+
+import { env } from '@/env';
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
 import { hasAnyInvestorTransaction } from '@/server/data/centrifuge-investor';
@@ -29,6 +32,14 @@ const handler = async (req: NextRequest) => {
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
 
   const { userId, reminderNumber } = parsedBody.data;
+
+  // No live share class means nothing to deposit into: skip the reminder
+  // outright — nagging during an empty-book cutover window is wrong, and the
+  // old behavior (an investor-activity read that threw) just made QStash
+  // retry a send that must not happen.
+  if (listShareClassKeys(env.NEXT_PUBLIC_NETWORK).length === 0)
+    return NextResponse.json({ success: true, data: 'No live share class, skipping reminder' });
+
   const profile = await getUserEmailProfile(userId);
 
   if (!profile?.createdAt || !profile.accountType) {
