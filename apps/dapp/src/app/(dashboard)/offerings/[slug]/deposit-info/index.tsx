@@ -3,6 +3,8 @@ import { DiamondIcon } from '@zivoe/ui/icons';
 
 import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
+import { type Offering } from '@/offerings';
+
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
 import DepositContact from './deposit-contact';
@@ -11,25 +13,25 @@ import Documents from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
 import DepositStats from './deposit-stats';
 
-export default function DepositInfo() {
+export default function DepositInfo({ offering }: { offering: Offering }) {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
       <DepositChartsComponent />
       <DiamondSeparator />
 
-      <DepositStatsComponent />
+      <DepositStatsComponent targetApyPercent={offering.targetApyPercent} />
       <DiamondSeparator />
 
-      <DepositAbout />
+      <DepositAbout paragraphs={offering.about} />
       <DiamondSeparator />
 
       <DepositHighlights />
       <DiamondSeparator />
 
-      <DepositDetails />
+      <DepositDetails details={offering.details} />
       <DiamondSeparator />
 
-      <Documents />
+      <Documents documents={offering.documents} />
       <DiamondSeparator />
 
       <DepositContact />
@@ -46,13 +48,19 @@ async function DepositChartsComponent() {
   return <DepositCharts snapshots={snapshots} current={current ?? null} />;
 }
 
-async function DepositStatsComponent() {
+async function DepositStatsComponent({ targetApyPercent }: { targetApyPercent: number }) {
   const metrics = await getCurrentShareMetrics();
 
   // Indexer failure hides the stats rather than rendering wrong numbers.
   if (!metrics) return null;
 
-  return <DepositStats nav={Number(metrics.navD18) / 1e18} sharePrice={Number(metrics.sharePriceD18) / 1e18} />;
+  return (
+    <DepositStats
+      nav={Number(metrics.navD18) / 1e18}
+      sharePrice={Number(metrics.sharePriceD18) / 1e18}
+      targetApyPercent={targetApyPercent}
+    />
+  );
 }
 
 function DiamondSeparator() {

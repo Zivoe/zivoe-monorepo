@@ -1,3 +1,4 @@
+import { type Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
@@ -17,6 +18,19 @@ import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { depositPageViewSchema } from './deposit/_utils';
 import OfferingHeader from './offering-header';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const offering = getOffering(slug);
+
+  // Unknown slugs fall through to the root metadata; the page itself 404s.
+  if (!offering) return {};
+
+  return {
+    title: `${offering.name} | Zivoe`,
+    description: offering.description
+  };
+}
 
 export default async function OfferingPage({
   params,
@@ -58,7 +72,7 @@ export default async function OfferingPage({
 
         <HydrationBoundary state={dehydrate(queryClient)}>
           <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <DepositInfo />
+            <DepositInfo offering={offering} />
             <Deposit initialView={validatedView.success ? validatedView.data : null} />
           </Page>
         </HydrationBoundary>

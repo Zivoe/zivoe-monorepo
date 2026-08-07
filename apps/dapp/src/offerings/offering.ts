@@ -1,9 +1,32 @@
-import { type ComponentType } from 'react';
+import { type ComponentType, type ReactNode } from 'react';
 
 import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 import { type ShareToken } from '@/types/constants';
+
+/**
+ * The fixed Details row set every Offering must fill, in render order.
+ * Products stay comparable line by line because the labels never vary per
+ * Offering; a new row is a deliberate addition here, forced onto every module
+ * by the typed record below.
+ */
+export const OFFERING_DETAIL_LABELS = [
+  'Eligibility',
+  'Underlying Assets',
+  'Geography',
+  'Legal Structure',
+  'Regulatory Compliance',
+  'Management Fee',
+  'Liquidity',
+  'Audits',
+  'Available Networks'
+] as const;
+
+export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
+
+/** A Details row value: plain text, or an external link the section styles itself. */
+export type OfferingDetailValue = string | { href: string; label: string };
 
 /**
  * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
@@ -47,6 +70,14 @@ export type OfferingPresentation = {
   issuer: string;
   /** Share-token subtitle for token display maps and pickers. */
   shareTokenDescription: string;
+  /** Published Target APY, in percent — product data until the trailing-yield read returns. */
+  targetApyPercent: number;
+  /** About-section paragraphs, in render order — rich text with links allowed. */
+  about: Array<ReactNode>;
+  /** Details values for the fixed row set — a missing row fails to compile. */
+  details: Record<OfferingDetailLabel, OfferingDetailValue>;
+  /** Documents-section links, in render order. */
+  documents: Array<{ title: string; href: string }>;
 };
 
 export type Offering = OfferingIdentity & OfferingPresentation;

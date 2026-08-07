@@ -11,7 +11,7 @@ import { customNumber } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { type Offering, TARGET_APY_PERCENT, offeringPath } from '@/offerings';
+import { type Offering, offeringPath } from '@/offerings';
 
 /** Card branding per Centrifuge network — a testnet advertises its mainnet family. */
 const NETWORK_DISPLAY: Record<CentrifugeNetwork, { label: string; Icon: ComponentType<IconProps> }> = {
@@ -55,7 +55,7 @@ export default function OfferingCard({
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Issuer" value={offering.issuer} />
-          <Term label="Target APY" value={`${TARGET_APY_PERCENT}%`} />
+          <Term label="Target APY" value={`${offering.targetApyPercent}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
 
           <Term

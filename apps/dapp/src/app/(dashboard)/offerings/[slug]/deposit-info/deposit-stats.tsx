@@ -6,15 +6,21 @@ import { customNumber } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 
-import { TARGET_APY_PERCENT } from '@/offerings';
-
-export default function DepositStats({ nav, sharePrice }: { nav: number; sharePrice: number }) {
+export default function DepositStats({
+  nav,
+  sharePrice,
+  targetApyPercent
+}: {
+  nav: number;
+  sharePrice: number;
+  targetApyPercent: number;
+}) {
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
         <Box title="AUM" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
 
-        <Box title="Target APY" icon={<TrendingIcon />} value={`${TARGET_APY_PERCENT}%`} />
+        <Box title="Target APY" icon={<TrendingIcon />} value={`${targetApyPercent}%`} />
 
         <Box title="Token Price" icon={<MoneyIcon />} value={`$${customNumber(sharePrice)}`} />
       </div>

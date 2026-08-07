@@ -4,11 +4,13 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import InfoSection from '@/components/info-section';
 
-export default function Documents() {
+import { type Offering } from '@/offerings';
+
+export default function Documents({ documents }: { documents: Offering['documents'] }) {
   return (
     <InfoSection title="Documents" icon={<DocumentIcon />}>
       <div>
-        {Object.entries(LINKS).map(([title, href]) => (
+        {documents.map(({ title, href }) => (
           <DocumentLink key={title} title={title} href={href} className="border-b border-default last:border-b-0" />
         ))}
       </div>
@@ -35,8 +37,3 @@ function DocumentLink({ title, href, className }: { title: string; href: string;
     </NextLink>
   );
 }
-
-const LINKS: Record<string, string> = {
-  'Protocol Documentation': 'https://docs.zivoe.com/user-docs/introduction',
-  'Reg S Compliance': 'https://docs.zivoe.com/terms/reg-s-compliance'
-};
