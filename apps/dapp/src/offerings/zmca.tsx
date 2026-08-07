@@ -40,8 +40,7 @@ export const ZMCA_OFFERING: Offering = {
     'Regulatory Compliance': 'Reg S Compliant Offering',
     'Management Fee': '2.5% APR',
     Liquidity: 'Available upon request',
-    Audits: { href: 'https://docs.zivoe.com/official-links/audits', label: 'View Reports' },
-    'Available Networks': 'Ethereum'
+    Audits: { href: 'https://docs.zivoe.com/official-links/audits', label: 'View Reports' }
   },
 
   documents: [

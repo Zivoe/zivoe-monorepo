@@ -1,9 +1,5 @@
-import { type ComponentType } from 'react';
-
-import { type CentrifugeNetwork, getShareClassNetworks } from '@zivoe/centrifuge-indexer';
 import { NextLink } from '@zivoe/ui/core/link';
-import { ArrowRightIcon, EthereumIcon } from '@zivoe/ui/icons';
-import { type IconProps } from '@zivoe/ui/icons/types';
+import { ArrowRightIcon } from '@zivoe/ui/icons';
 
 import { DEPOSIT_TOKENS } from '@/types/constants';
 
@@ -13,17 +9,7 @@ import { TOKEN_INFO } from '@/components/token-info';
 
 import { type Offering, offeringPath } from '@/offerings';
 
-/** Card branding per Centrifuge network — a testnet advertises its mainnet family. */
-const NETWORK_DISPLAY: Record<CentrifugeNetwork, { label: string; Icon: ComponentType<IconProps> }> = {
-  mainnet: { label: 'Ethereum', Icon: EthereumIcon },
-  sepolia: { label: 'Ethereum', Icon: EthereumIcon }
-};
-
-/** Networks the Offering's share class is live on per the catalog, deduped by display family. */
-function offeringNetworkDisplays(offering: Offering) {
-  const displays = getShareClassNetworks(offering.shareClass.key).map((network) => NETWORK_DISPLAY[network]);
-  return [...new Map(displays.map((display) => [display.label, display])).values()];
-}
+import { offeringNetworkDisplays } from './network-display';
 
 export default function OfferingCard({
   offering,

@@ -6,7 +6,16 @@ import InfoSection from '@/components/info-section';
 
 import { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailValue } from '@/offerings';
 
-export default function DepositDetails({ details }: { details: Offering['details'] }) {
+import { offeringNetworkDisplays } from '../../../_offerings/network-display';
+
+export default function DepositDetails({ offering }: { offering: Offering }) {
+  const { details } = offering;
+  // Derived from the catalog, like the listing card's network chips — the two
+  // surfaces render the same fact and must never disagree.
+  const availableNetworks = offeringNetworkDisplays(offering)
+    .map((display) => display.label)
+    .join(', ');
+
   return (
     <InfoSection title="Details" icon={<DocumentIcon />}>
       <div>
@@ -18,6 +27,7 @@ export default function DepositDetails({ details }: { details: Offering['details
             className="border-b border-default last:border-b-0"
           />
         ))}
+        <Element title="Available Networks" value={availableNetworks} className="border-b border-default last:border-b-0" />
       </div>
     </InfoSection>
   );

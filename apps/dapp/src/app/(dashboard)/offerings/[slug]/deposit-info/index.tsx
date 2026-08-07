@@ -29,7 +29,7 @@ export default function DepositInfo({ offering }: { offering: Offering }) {
       <DepositHighlights />
       <DiamondSeparator />
 
-      <DepositDetails details={offering.details} />
+      <DepositDetails offering={offering} />
       <DiamondSeparator />
 
       <Documents documents={offering.documents} />

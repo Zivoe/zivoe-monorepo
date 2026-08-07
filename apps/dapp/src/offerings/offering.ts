@@ -7,9 +7,11 @@ import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
  * The fixed Details row set every Offering must fill, in render order.
- * Products stay comparable line by line because the labels never vary per
- * Offering; a new row is a deliberate addition here, forced onto every module
- * by the typed record below.
+ * Offerings stay comparable line by line because the labels never vary per
+ * module; a new row is a deliberate addition here, forced onto every module
+ * by the typed record below. Facts the catalog already owns (the Available
+ * Networks row) are derived at render, never authored here — two sources for
+ * one fact would drift.
  */
 export const OFFERING_DETAIL_LABELS = [
   'Eligibility',
@@ -19,8 +21,7 @@ export const OFFERING_DETAIL_LABELS = [
   'Regulatory Compliance',
   'Management Fee',
   'Liquidity',
-  'Audits',
-  'Available Networks'
+  'Audits'
 ] as const;
 
 export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
