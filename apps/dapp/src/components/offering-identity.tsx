@@ -1,9 +1,10 @@
 import { type ReactNode } from 'react';
 
 import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { Badge } from '@zivoe/ui/core/badge';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { type Offering } from '@/offerings';
+import { type Offering, type OfferingStatus } from '@/offerings';
 
 /**
  * Logo, ticker and name — the identity row the listing card and the Offering
@@ -21,7 +22,7 @@ export default function OfferingIdentity({
   as?: 'h1' | 'p';
   /** 'lg' scales the name up on wide screens, where the row is the page header rather than a card. */
   size?: 'sm' | 'lg';
-  /** Sits at the end of the ticker line — the listing card's status chip. */
+  /** Sits at the end of the ticker line — the status chip on both surfaces. */
   trailing?: ReactNode;
 }) {
   return (
@@ -44,4 +45,15 @@ export default function OfferingIdentity({
       </div>
     </div>
   );
+}
+
+/**
+ * The subscription status chip. Lives next to the identity row because the
+ * listing card and the Offering page header both trail the row with it, and
+ * they must not disagree on how a closed Offering reads.
+ */
+export function OfferingStatusBadge({ status }: { status: OfferingStatus }) {
+  // A closed Offering keeps its chip but drops the brand tint — the primary
+  // badge reads as "act on this", which is the opposite here.
+  return <Badge variant={status === 'Open' ? 'primary' : 'neutral'}>{status}</Badge>;
 }

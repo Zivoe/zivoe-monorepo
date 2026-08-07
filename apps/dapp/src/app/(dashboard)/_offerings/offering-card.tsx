@@ -1,11 +1,10 @@
-import { Badge } from '@zivoe/ui/core/badge';
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
 import { customNumber } from '@/lib/utils';
 
 import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/offering-icons';
-import OfferingIdentity from '@/components/offering-identity';
+import OfferingIdentity, { OfferingStatusBadge } from '@/components/offering-identity';
 
 import { type Offering, offeringPath } from '@/offerings';
 
@@ -28,12 +27,7 @@ export default function OfferingCard({
       <div className="h-38" style={{ background: offering.cardGradient }} />
 
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <OfferingIdentity
-          offering={offering}
-          // A closed Offering keeps its chip but drops the brand tint — the
-          // primary badge reads as "act on this", which is the opposite here.
-          trailing={<Badge variant={offering.status === 'Open' ? 'primary' : 'neutral'}>{offering.status}</Badge>}
-        />
+        <OfferingIdentity offering={offering} trailing={<OfferingStatusBadge status={offering.status} />} />
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Asset Type" value={offering.category} />

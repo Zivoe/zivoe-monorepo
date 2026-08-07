@@ -1,14 +1,14 @@
 import { Link } from '@zivoe/ui/core/link';
 import { ArrowLeftIcon } from '@zivoe/ui/icons';
 
-import OfferingIdentity from '@/components/offering-identity';
+import OfferingIdentity, { OfferingStatusBadge } from '@/components/offering-identity';
 
 import { type Offering } from '@/offerings';
 
 /**
  * Back link over an identity row — the mock's vault-page header, minus the
- * Standard/Identity/Dashboard switcher and the status pill. The link goes to
- * the homepage, which is the Offerings list this page was reached from.
+ * Standard/Identity/Dashboard switcher. The link goes to the homepage, which
+ * is the Offerings list this page was reached from.
  */
 export default function OfferingHeader({ offering }: { offering: Offering }) {
   return (
@@ -20,7 +20,12 @@ export default function OfferingHeader({ offering }: { offering: Offering }) {
       </Link>
 
       <div className="pt-5.5 pb-1">
-        <OfferingIdentity offering={offering} as="h1" size="lg" />
+        <OfferingIdentity
+          offering={offering}
+          as="h1"
+          size="lg"
+          trailing={<OfferingStatusBadge status={offering.status} />}
+        />
       </div>
     </div>
   );
