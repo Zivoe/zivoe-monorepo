@@ -16,10 +16,13 @@ const NullIcon = () => null;
 const isIconName = (prop: string | symbol): prop is string =>
   typeof prop === 'string' && prop !== 'then' && prop !== '__esModule' && prop !== 'default';
 
-export const ICON_BARREL_MOCK = new Proxy({} as Record<string, typeof NullIcon>, {
-  get: (_target, prop) => (isIconName(prop) ? NullIcon : undefined),
-  // Vitest verifies a named export exists on the mock before binding it.
-  has: (_target, prop) => isIconName(prop),
-  getOwnPropertyDescriptor: (_target, prop) =>
-    isIconName(prop) ? { configurable: true, enumerable: true, value: NullIcon, writable: true } : undefined
-});
+export const ICON_BARREL_MOCK = new Proxy<Record<string, typeof NullIcon>>(
+  {},
+  {
+    get: (_target, prop) => (isIconName(prop) ? NullIcon : undefined),
+    // Vitest verifies a named export exists on the mock before binding it.
+    has: (_target, prop) => isIconName(prop),
+    getOwnPropertyDescriptor: (_target, prop) =>
+      isIconName(prop) ? { configurable: true, enumerable: true, value: NullIcon, writable: true } : undefined
+  }
+);

@@ -12,8 +12,8 @@ vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn(), captureMessage }))
 // The real package everywhere except the live-book listing, so the empty-book
 // cutover window is testable without inventing a synthetic catalog.
 const emptyBook = vi.hoisted(() => ({ value: false }));
-vi.mock('@zivoe/centrifuge-indexer', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@zivoe/centrifuge-indexer')>();
+vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
+  const original = await importOriginal();
   return {
     ...original,
     listShareClassKeys: (...args: Parameters<typeof original.listShareClassKeys>) =>
