@@ -685,13 +685,26 @@ describe('createDailyNegativeYieldReporter', () => {
     const report = vi.fn();
     const reportNegativeYield = createDailyNegativeYieldReporter(report);
 
-    reportNegativeYield({ negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
-    reportNegativeYield({ negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
-    reportNegativeYield({ negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
-    reportNegativeYield({ negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: null, now: new Date('2026-07-22T23:59:58Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now: new Date('2026-07-22T23:59:59Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -2n, now: new Date('2026-07-22T23:59:59.999Z') });
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -3n, now: new Date('2026-07-23T00:00:00Z') });
 
     expect(report).toHaveBeenCalledTimes(2);
-    expect(report).toHaveBeenNthCalledWith(1, -1n);
-    expect(report).toHaveBeenNthCalledWith(2, -3n);
+    expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zmca', negativeYield30d: -1n });
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zmca', negativeYield30d: -3n });
+  });
+
+  it('dedupes per share class, so one class cannot suppress another', () => {
+    const report = vi.fn();
+    const reportNegativeYield = createDailyNegativeYieldReporter(report);
+    const now = new Date('2026-07-22T12:00:00Z');
+
+    reportNegativeYield({ shareClassKey: 'zmca', negativeYield30d: -1n, now });
+    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
+    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
+
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zalt', negativeYield30d: -2n });
   });
 });

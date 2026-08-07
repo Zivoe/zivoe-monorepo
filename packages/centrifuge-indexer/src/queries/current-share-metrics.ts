@@ -109,19 +109,30 @@ export function toShareStatsPayload(metrics: CurrentShareMetrics): {
 /**
  * Creates a per-process reporter for the live negative-yield anomaly. Current
  * metrics revalidate frequently, so a persistent anomaly reports at most once
- * per UTC day instead of on every fetch.
+ * per UTC day — per share class, so one class's anomaly can never suppress
+ * another's on a multi-class book.
  */
-export function createDailyNegativeYieldReporter(report: (negativeYield30d: bigint) => void) {
-  let lastReportedUtcDay: string | undefined;
+export function createDailyNegativeYieldReporter(
+  report: (ctx: { shareClassKey: string; negativeYield30d: bigint }) => void
+) {
+  const lastReportedUtcDayByClass = new Map<string, string>();
 
-  return ({ negativeYield30d, now = new Date() }: { negativeYield30d: bigint | null; now?: Date }): void => {
+  return ({
+    shareClassKey,
+    negativeYield30d,
+    now = new Date()
+  }: {
+    shareClassKey: string;
+    negativeYield30d: bigint | null;
+    now?: Date;
+  }): void => {
     if (negativeYield30d === null) return;
 
     const utcDay = now.toISOString().slice(0, 10);
-    if (utcDay === lastReportedUtcDay) return;
+    if (lastReportedUtcDayByClass.get(shareClassKey) === utcDay) return;
 
-    lastReportedUtcDay = utcDay;
-    report(negativeYield30d);
+    lastReportedUtcDayByClass.set(shareClassKey, utcDay);
+    report({ shareClassKey, negativeYield30d });
   };
 }
 
