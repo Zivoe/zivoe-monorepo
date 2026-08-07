@@ -86,7 +86,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics).toEqual({
       sharePrice: 1070000000000000000n,
@@ -111,7 +111,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBe(52500000000000000000000000n);
   });
@@ -129,7 +129,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBe(-52500000000000000000000000n);
     expect(metrics.nav).toBe(107000000000000000000n);
@@ -154,7 +154,7 @@ describe('fetchCurrentShareMetrics', () => {
       }
     });
 
-    const metrics = await fetchCurrentShareMetrics({ config: sepolia });
+    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(metrics.yield30dComp365).toBeNull();
   });
@@ -169,7 +169,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ config: sepolia });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -191,7 +191,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ config: sepolia });
+    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -208,7 +208,11 @@ describe('fetchCurrentShareMetrics', () => {
     );
 
     const controller = new AbortController();
-    await fetchCurrentShareMetrics({ config: sepolia, fetchOptions: { signal: controller.signal } });
+    await fetchCurrentShareMetrics({
+      network: 'sepolia',
+      shareClassKey: 'zmca',
+      fetchOptions: { signal: controller.signal }
+    });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBe(controller.signal);
@@ -217,7 +221,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a network error when the request cannot be sent at all', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'network',
       message: expect.stringContaining('fetch failed')
     });
@@ -226,7 +230,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws an http error when the indexer responds with a failure status', async () => {
     fakeIndexerResponse({}, { status: 502 });
 
-    const request = fetchCurrentShareMetrics({ config: sepolia });
+    const request = fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' });
 
     await expect(request).rejects.toBeInstanceOf(CentrifugeIndexerError);
     await expect(request).rejects.toMatchObject({ kind: 'http', status: 502 });
@@ -235,7 +239,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a graphql error when the response carries GraphQL errors', async () => {
     fakeIndexerResponse({ errors: [{ message: 'Unknown field "tokenPrice"' }] });
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'graphql',
       message: expect.stringContaining('Unknown field "tokenPrice"')
     });
@@ -244,7 +248,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a validation error when the share token is not indexed', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] }, tokenSnapshots: { items: [] } } });
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('not indexed')
     });
@@ -260,7 +264,9 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+      kind: 'validation'
+    });
   });
 
   it('throws a validation error when the published share price is zero', async () => {
@@ -273,13 +279,15 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({ kind: 'validation' });
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
+      kind: 'validation'
+    });
   });
 
   it('throws a validation error on a non-JSON response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>')));
 
-    await expect(fetchCurrentShareMetrics({ config: sepolia })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zmca' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('non-JSON')
     });
@@ -320,7 +328,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(truncated).toBe(false);
     expect(snapshots).toEqual([
@@ -353,7 +361,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     // Day 1's point is its close (the midnight row), and day 2 has no row yet.
     expect(snapshots).toEqual([
@@ -383,7 +391,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(snapshots.map((snapshot) => [snapshot.dayStartSeconds, snapshot.tokenPrice])).toEqual([
       [day1 / 1000, 1070000000000000000n],
@@ -403,7 +411,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]?.tokenPrice).toBe(1050000000000000000n);
@@ -418,7 +426,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ config: sepolia });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zmca' });
 
     expect(truncated).toBe(true);
     expect(snapshots).toHaveLength(1000);

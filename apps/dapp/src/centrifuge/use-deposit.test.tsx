@@ -317,8 +317,8 @@ describe('useDeposit', () => {
           CENTRIFUGE_CONFIG.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['CENTRIFUGE', 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT'])
+        JSON.stringify(['CENTRIFUGE', 'zmca', 'VAULT_CAPACITY']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT', 'zmca'])
       ])
     );
 

@@ -14,6 +14,7 @@ import { AppError, handlePromise } from '@/lib/utils';
 import useTxLifecycle, { type TxSharedConfig } from '@/hooks/useTxLifecycle';
 
 import { getVault, setTransactionSigner } from './client';
+import { ZMCA_SHARE_CLASS } from './config';
 import { type TransactionEntity, type VaultEntity } from './entities';
 import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
 
@@ -93,7 +94,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const vault = await getVault();
+        const vault = await getVault(ZMCA_SHARE_CLASS);
         const txContext = { address, vault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -220,9 +221,13 @@ export function invalidateInvestmentQueries({
   address: Address | undefined;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
-  void queryClient.invalidateQueries({ queryKey: queryKeys.account.investment({ accountAddress: address }) });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.account.investment({ accountAddress: address, shareClassKey: ZMCA_SHARE_CLASS.key })
+  });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
-  void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.app.shareMetrics({ shareClassKey: ZMCA_SHARE_CLASS.key })
+  });
 }
 
 /**

@@ -6,20 +6,16 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import {
-  type ShareStatsPayload,
-  fetchCurrentShareMetrics,
-  getCentrifugeIndexerConfig,
-  toShareStatsPayload
-} from '@zivoe/centrifuge-indexer';
+import { type ShareStatsPayload, fetchCurrentShareMetrics, toShareStatsPayload } from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
 
 const fetchHeroMetrics = async (): Promise<ShareStatsPayload> => {
-  const config = getCentrifugeIndexerConfig(env.NEXT_PUBLIC_NETWORK);
   // negativeYield30d is deliberately not alerted on while APY is unrendered —
   // the projection already nulls it; restore the daily reporter with APY.
-  const { payload } = toShareStatsPayload(await fetchCurrentShareMetrics({ config }));
+  const { payload } = toShareStatsPayload(
+    await fetchCurrentShareMetrics({ network: env.NEXT_PUBLIC_NETWORK, shareClassKey: 'zmca' })
+  );
 
   return payload;
 };

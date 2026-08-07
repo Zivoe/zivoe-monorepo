@@ -9,15 +9,15 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from '@/hooks/useAccount';
 
 import { getVault } from './client';
-import { CENTRIFUGE_CONFIG } from './config';
+import { ZMCA_SHARE_CLASS } from './config';
 import { readInvestment, readVaultCapacity } from './reads';
 
 export function useVaultCapacity() {
   return useQuery({
-    queryKey: queryKeys.app.vaultCapacity,
+    queryKey: queryKeys.app.vaultCapacity({ shareClassKey: ZMCA_SHARE_CLASS.key }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
-    queryFn: async () => readVaultCapacity(await getVault())
+    queryFn: async () => readVaultCapacity(await getVault(ZMCA_SHARE_CLASS))
   });
 }
 
@@ -41,7 +41,7 @@ export function useDepositPreview({ assets }: { assets: bigint }) {
   const web3 = usePublicClient();
 
   return useQuery({
-    queryKey: queryKeys.app.depositPreview({ assets }),
+    queryKey: queryKeys.app.depositPreview({ shareClassKey: ZMCA_SHARE_CLASS.key, assets }),
     meta: { skipErrorToast: true },
     queryFn:
       assets <= 0n || !web3
@@ -49,7 +49,7 @@ export function useDepositPreview({ assets }: { assets: bigint }) {
         : async () => ({
             shares: await web3.readContract({
               abi: VAULT_PREVIEW_ABI,
-              address: CENTRIFUGE_CONFIG.vaultAddress,
+              address: ZMCA_SHARE_CLASS.vaultAddress,
               functionName: 'previewDeposit',
               args: [assets]
             })
@@ -61,12 +61,14 @@ export function useInvestment() {
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: queryKeys.account.investment({ accountAddress: address }),
+    queryKey: queryKeys.account.investment({ accountAddress: address, shareClassKey: ZMCA_SHARE_CLASS.key }),
     meta: { toastErrorMessage: 'Error fetching investment data' },
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
     refetchInterval: ({ state }) => (state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false),
-    queryFn: !address ? skipToken : async () => readInvestment({ vault: await getVault(), investor: address })
+    queryFn: !address
+      ? skipToken
+      : async () => readInvestment({ vault: await getVault(ZMCA_SHARE_CLASS), investor: address })
   });
 }

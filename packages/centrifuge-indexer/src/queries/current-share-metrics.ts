@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { type CentrifugeIndexerConfig } from '../config';
+import { type ShareClassKey, getShareClassIdentity } from '../catalog';
+import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
 import { rayToPercent } from '../units';
@@ -125,16 +126,20 @@ export function createDailyNegativeYieldReporter(report: (negativeYield30d: bigi
 }
 
 export async function fetchCurrentShareMetrics({
-  config,
+  network,
+  shareClassKey,
   fetchOptions
 }: {
-  config: CentrifugeIndexerConfig;
+  network: CentrifugeNetwork;
+  shareClassKey: ShareClassKey;
   fetchOptions?: RequestInit;
 }): Promise<CurrentShareMetrics> {
+  const shareClass = getShareClassIdentity({ network, key: shareClassKey });
+
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: config.indexerUrl,
+    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
     query: CURRENT_SHARE_METRICS_QUERY,
-    variables: { shareTokenAddress: config.shareTokenAddress.toLowerCase(), tokenId: config.scId },
+    variables: { shareTokenAddress: shareClass.shareTokenAddress.toLowerCase(), tokenId: shareClass.scId },
     dataSchema,
     fetchOptions
   });
@@ -143,7 +148,7 @@ export async function fetchCurrentShareMetrics({
   if (!token)
     throw new CentrifugeIndexerError({
       kind: 'validation',
-      message: `Share token ${config.shareTokenAddress} is not indexed on ${config.network}.`
+      message: `Share token ${shareClass.shareTokenAddress} is not indexed on ${network}.`
     });
 
   const sharePrice = BigInt(token.tokenPrice);

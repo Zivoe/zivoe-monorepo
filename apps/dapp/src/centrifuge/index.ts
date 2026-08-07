@@ -2,10 +2,14 @@
 // components. SDK types and Observables never leave this module.
 export {
   CENTRIFUGE_CONFIG,
+  CENTRIFUGE_ENV,
   getCentrifugeConfig,
+  getShareClassConfig,
   sharesToUsdc,
   sharesToValueD18,
-  type CentrifugeConfig
+  type CentrifugeConfig,
+  type CentrifugeEnvironment,
+  type ShareClassConfig
 } from './config';
 export { isPriceUnavailableError, useDepositPreview, useInvestment, useVaultCapacity } from './hooks';
 export { useCancelRedeem } from './use-cancel-redeem';

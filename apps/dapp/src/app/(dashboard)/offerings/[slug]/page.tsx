@@ -51,9 +51,9 @@ export default async function OfferingPage({
   // RSCs just rendered. React cache dedupes this with the RSC reads below.
   const queryClient = getQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.app.shareMetrics,
+    queryKey: queryKeys.app.shareMetrics({ shareClassKey: offering.shareClass.key }),
     queryFn: async () => {
-      const payload = await getCurrentShareMetrics();
+      const payload = await getCurrentShareMetrics(offering.shareClass.key);
       // Throwing keeps a failed prefetch out of the dehydrated state, so the
       // browser fetches fresh on mount instead of hydrating an empty success.
       if (!payload) throw new Error('Centrifuge current share metrics are unavailable');

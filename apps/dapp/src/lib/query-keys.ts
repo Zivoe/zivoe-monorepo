@@ -1,7 +1,13 @@
 import { type Address } from 'viem';
 
+import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
+
 type AccountProps = {
   accountAddress?: Address;
+};
+
+type ShareClassProps = {
+  shareClassKey: ShareClassKey;
 };
 
 const account = {
@@ -16,14 +22,25 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  investment: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'INVESTMENT']
+  investment: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+    ...account.by({ accountAddress }),
+    'INVESTMENT',
+    shareClassKey
+  ],
+  /** Every share class's investment state for the account — the invalidation prefix. */
+  investments: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'INVESTMENT']
 };
 
 const app = {
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
-  vaultCapacity: ['CENTRIFUGE', 'VAULT_CAPACITY'],
-  depositPreview: ({ assets }: { assets: bigint }) => ['CENTRIFUGE', 'DEPOSIT_PREVIEW', assets.toString()],
-  shareMetrics: ['CENTRIFUGE', 'SHARE_METRICS']
+  vaultCapacity: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'VAULT_CAPACITY'],
+  depositPreview: ({ shareClassKey, assets }: ShareClassProps & { assets: bigint }) => [
+    'CENTRIFUGE',
+    shareClassKey,
+    'DEPOSIT_PREVIEW',
+    assets.toString()
+  ],
+  shareMetrics: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'SHARE_METRICS']
 };
 
 export const queryKeys = {

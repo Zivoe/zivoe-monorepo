@@ -28,7 +28,9 @@ export type TransactionEntity = {
 };
 
 export type VaultEntity = {
-  details(): PromiseLike<{ maxDeposit: BalanceLike }>;
+  /** The vault's contract address — asserted against the configured one at resolution. */
+  address: `0x${string}`;
+  details(): PromiseLike<{ maxDeposit: BalanceLike; isSyncDeposit: boolean; isSyncRedeem: boolean }>;
   investment(investor: `0x${string}`): PromiseLike<{
     pendingRedeemShares: BalanceLike;
     claimableRedeemAssets: BalanceLike;

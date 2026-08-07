@@ -201,7 +201,7 @@ describe('useClaimRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'INVESTMENT', 'zmca'])
       ])
     );
   });

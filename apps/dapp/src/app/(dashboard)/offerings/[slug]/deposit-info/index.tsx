@@ -1,3 +1,5 @@
+import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
+
 import { Separator } from '@zivoe/ui/core/separator';
 import { DiamondIcon } from '@zivoe/ui/icons';
 
@@ -16,10 +18,10 @@ import DepositStats from './deposit-stats';
 export default function DepositInfo({ offering }: { offering: Offering }) {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
-      <DepositChartsComponent />
+      <DepositChartsComponent shareClassKey={offering.shareClass.key} />
       <DiamondSeparator />
 
-      <DepositStatsComponent targetApyPercent={offering.targetApyPercent} />
+      <DepositStatsComponent shareClassKey={offering.shareClass.key} targetApyPercent={offering.targetApyPercent} />
       <DiamondSeparator />
 
       <DepositAbout paragraphs={offering.about} />
@@ -39,17 +41,26 @@ export default function DepositInfo({ offering }: { offering: Offering }) {
   );
 }
 
-async function DepositChartsComponent() {
+async function DepositChartsComponent({ shareClassKey }: { shareClassKey: ShareClassKey }) {
   // Both reads dedupe within the request (React cache), so the stats section
   // and the chart overlay render the same current payload.
-  const [snapshots, current] = await Promise.all([getCentrifugeDailySnapshots(), getCurrentShareMetrics()]);
+  const [snapshots, current] = await Promise.all([
+    getCentrifugeDailySnapshots(shareClassKey),
+    getCurrentShareMetrics(shareClassKey)
+  ]);
   if (!snapshots || snapshots.length === 0) return null;
 
   return <DepositCharts snapshots={snapshots} current={current ?? null} />;
 }
 
-async function DepositStatsComponent({ targetApyPercent }: { targetApyPercent: number }) {
-  const metrics = await getCurrentShareMetrics();
+async function DepositStatsComponent({
+  shareClassKey,
+  targetApyPercent
+}: {
+  shareClassKey: ShareClassKey;
+  targetApyPercent: number;
+}) {
+  const metrics = await getCurrentShareMetrics(shareClassKey);
 
   // Indexer failure hides the stats rather than rendering wrong numbers.
   if (!metrics) return null;

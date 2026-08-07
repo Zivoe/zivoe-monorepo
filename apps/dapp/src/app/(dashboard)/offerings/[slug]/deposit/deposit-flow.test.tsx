@@ -32,6 +32,7 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null })
 vi.mock('@/centrifuge', () => ({
   CENTRIFUGE_CONFIG: {
     chainId: 11155111,
+    shareClassKey: 'zmca',
     vaultRouterAddress: ROUTER_ADDRESS,
     shareToken: { address: ZMCA_ADDRESS, decimals: 18, symbol: 'zMCA' },
     usdc: { address: USDC_ADDRESS, decimals: 6 }

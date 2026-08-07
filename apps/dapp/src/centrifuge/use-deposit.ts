@@ -100,7 +100,9 @@ export function useDeposit({ onSuccessClose }: { onSuccessClose?: () => void } =
           spender: CENTRIFUGE_CONFIG.vaultRouterAddress
         })
       });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.app.vaultCapacity });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.app.vaultCapacity({ shareClassKey: CENTRIFUGE_CONFIG.shareClassKey })
+      });
       invalidateInvestmentQueries({ queryClient, address });
     }
   });

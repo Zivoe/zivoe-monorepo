@@ -11,8 +11,8 @@ import OfferingCard from './_offerings/offering-card';
 export default async function HomePage() {
   // One share class exists, so its AUM is the whole book and its metrics are
   // every card's metrics. Both become per-Offering reads — AUM a sum — once
-  // the Centrifuge module is parameterized by share class.
-  const metrics = await getCurrentShareMetrics();
+  // the aggregated metrics map lands.
+  const metrics = await getCurrentShareMetrics('zmca');
   const aum = metrics ? Number(metrics.navD18) / 1e18 : null;
 
   return (

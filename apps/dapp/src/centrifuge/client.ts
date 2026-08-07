@@ -1,13 +1,15 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
+import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
+
 import { NETWORK_RPC_URLS } from '@/lib/network';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_CONFIG } from './config';
+import { CENTRIFUGE_ENV, type ShareClassConfig } from './config';
 import { type VaultEntity } from './entities';
 
 let client: Centrifuge | undefined;
-let vaultPromise: Promise<VaultEntity> | undefined;
+const vaultPromises = new Map<ShareClassKey, Promise<VaultEntity>>();
 let signerInUse = false;
 
 function getCentrifuge(): Centrifuge {
@@ -15,9 +17,9 @@ function getCentrifuge(): Centrifuge {
     throw new Error('The Centrifuge SDK client is client-only and must never be constructed on the server.');
 
   client ??= new Centrifuge({
-    environment: CENTRIFUGE_CONFIG.environment,
-    indexerUrl: CENTRIFUGE_CONFIG.indexerUrl,
-    ...(NETWORK_RPC_URLS.length > 0 ? { rpcUrls: { [CENTRIFUGE_CONFIG.chainId]: NETWORK_RPC_URLS } } : {}),
+    environment: CENTRIFUGE_ENV.environment,
+    indexerUrl: CENTRIFUGE_ENV.indexerUrl,
+    ...(NETWORK_RPC_URLS.length > 0 ? { rpcUrls: { [CENTRIFUGE_ENV.chainId]: NETWORK_RPC_URLS } } : {}),
     permitDisabled: true,
     disableRepeatOnEvents: true
   });
@@ -25,21 +27,27 @@ function getCentrifuge(): Centrifuge {
   return client;
 }
 
-export function getVault(): Promise<VaultEntity> {
-  vaultPromise ??= resolveVault().catch((error: unknown) => {
-    vaultPromise = undefined;
+/** Vault resolution is memoized per share class; a failed resolve retries on the next call. */
+export function getVault(shareClass: ShareClassConfig): Promise<VaultEntity> {
+  const existing = vaultPromises.get(shareClass.key);
+  if (existing) return existing;
+
+  const vaultPromise = resolveVault(shareClass).catch((error: unknown) => {
+    vaultPromises.delete(shareClass.key);
     throw error;
   });
 
+  vaultPromises.set(shareClass.key, vaultPromise);
   return vaultPromise;
 }
 
 /**
  * Installs the signer for exactly one transaction and returns its release —
  * call that in a finally block. The lock prevents overlapping transactions
- * from racing the SDK's instance-level signer state; because release only
- * exists for the transaction that acquired the signer, a contender that threw
- * here cannot strip the in-flight transaction's signer or its lock.
+ * from racing the SDK's instance-level signer state — which is why it stays
+ * global across share classes; because release only exists for the
+ * transaction that acquired the signer, a contender that threw here cannot
+ * strip the in-flight transaction's signer or its lock.
  */
 export function setTransactionSigner(signer: { request(...args: Array<never>): Promise<unknown> }): () => void {
   if (signerInUse) throw new AppError({ message: 'Another transaction is already in progress' });
@@ -53,13 +61,34 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
   };
 }
 
-async function resolveVault(): Promise<VaultEntity> {
+/**
+ * Resolves the share class's vault and asserts the configuration against the
+ * chain's own answers: the SDK-resolved vault address must equal the
+ * configured one (two sources for one fact, checked once), and the vault must
+ * report the sync-deposit/async-redeem shape the flows are built around. A
+ * misconfigured or async-deposit class fails loudly at first use instead of
+ * breaking mid-transaction.
+ */
+async function resolveVault(shareClass: ShareClassConfig): Promise<VaultEntity> {
   const centrifuge = getCentrifuge();
 
   const [centrifugeId, pool] = await Promise.all([
-    centrifuge.id(CENTRIFUGE_CONFIG.chainId),
-    centrifuge.pool(new PoolId(CENTRIFUGE_CONFIG.poolId))
+    centrifuge.id(CENTRIFUGE_ENV.chainId),
+    centrifuge.pool(new PoolId(shareClass.poolId))
   ]);
 
-  return pool.vault(centrifugeId, new ShareClassId(CENTRIFUGE_CONFIG.scId), CENTRIFUGE_CONFIG.usdc.address);
+  const vault = await pool.vault(centrifugeId, new ShareClassId(shareClass.scId), CENTRIFUGE_ENV.usdc.address);
+
+  if (vault.address.toLowerCase() !== shareClass.vaultAddress.toLowerCase())
+    throw new Error(
+      `The SDK resolved vault ${vault.address} for share class "${shareClass.key}", but ${shareClass.vaultAddress} is configured. Fix the configuration before transacting.`
+    );
+
+  const details = await vault.details();
+  if (!details.isSyncDeposit || details.isSyncRedeem)
+    throw new Error(
+      `The vault for share class "${shareClass.key}" is not sync-deposit/async-redeem. The flows do not support this vault shape.`
+    );
+
+  return vault;
 }

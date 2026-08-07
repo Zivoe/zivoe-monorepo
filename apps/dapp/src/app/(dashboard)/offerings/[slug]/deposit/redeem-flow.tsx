@@ -52,7 +52,7 @@ export default function RedeemFlow() {
   const zMcaBalance = useBalance({ tokenAddress: ZMCA.address });
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const investment = useInvestment();
-  const metrics = useCurrentShareMetrics();
+  const metrics = useCurrentShareMetrics({ shareClassKey: CENTRIFUGE_CONFIG.shareClassKey });
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = investment.data?.pendingRedeemShares ?? 0n;
@@ -80,9 +80,14 @@ export default function RedeemFlow() {
   const redeemRaw = redeem ? parseUnits(redeem, ZMCA.decimals) : undefined;
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
 
-  const estimatedAssets = hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice }) : undefined;
+  const estimatedAssets =
+    hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice, shareClass: ZMCA }) : undefined;
   const redeemDollarValue =
-    redeemRaw !== undefined && sharePrice ? sharesToValueD18({ shares: redeemRaw, sharePrice }) : redeem ? null : 0n;
+    redeemRaw !== undefined && sharePrice
+      ? sharesToValueD18({ shares: redeemRaw, sharePrice, shareClass: ZMCA })
+      : redeem
+        ? null
+        : 0n;
 
   const requestRedeem = useRequestRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
   const claimRedeem = useClaimRedeem({ onSuccessClose: () => setIsDepositDialogOpen(false) });
@@ -370,7 +375,7 @@ function RedemptionProcessingStrip({
   sharePrice: bigint | undefined;
   cancel: { onPress: () => void; isDisabled: boolean; isPending: boolean; isTxPending: boolean };
 }) {
-  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice }) : undefined;
+  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass: ZMCA }) : undefined;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
