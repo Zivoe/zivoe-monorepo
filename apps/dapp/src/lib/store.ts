@@ -63,6 +63,4 @@ export type TransactionData = {
 
 const transactionAtom = atom<TransactionData | undefined>(undefined);
 
-const depositDialogAtom = atom<boolean>(false);
-
-export { transactionAtom, depositDialogAtom };
+export { transactionAtom };

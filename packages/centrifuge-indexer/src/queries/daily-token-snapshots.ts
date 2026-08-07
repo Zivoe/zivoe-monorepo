@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { type ShareClassKey, getShareClassIdentity } from '../catalog';
+import { getShareClassIdentity } from '../catalog';
 import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
 import { fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
@@ -77,7 +77,7 @@ export async function fetchDailyTokenSnapshots({
   fetchOptions
 }: {
   network: CentrifugeNetwork;
-  shareClassKey: ShareClassKey;
+  shareClassKey: string;
   fetchOptions?: RequestInit;
 }): Promise<{ snapshots: Array<DailyTokenSnapshot>; truncated: boolean }> {
   const shareClass = getShareClassIdentity({ network, key: shareClassKey });

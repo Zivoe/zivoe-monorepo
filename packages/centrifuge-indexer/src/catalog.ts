@@ -68,13 +68,24 @@ export type ShareClassIdentity = {
   shareTokenAddress: `0x${string}`;
 };
 
+function isShareClassKey(key: string): key is ShareClassKey {
+  return key in SHARE_CLASS_CATALOG;
+}
+
+/**
+ * Resolves a share-class id to its identity on one network. Accepts the open
+ * string domain — ids travel through caches and providers as plain strings —
+ * and fails loudly for ids the catalog does not know.
+ */
 export function getShareClassIdentity({
   network,
   key
 }: {
   network: CentrifugeNetwork;
-  key: ShareClassKey;
+  key: string;
 }): ShareClassIdentity {
+  if (!isShareClassKey(key)) throw new Error(`Share class "${key}" is not in the catalog.`);
+
   const entry = SHARE_CLASS_CATALOG[key];
   const onNetwork = entry.networks[network];
 

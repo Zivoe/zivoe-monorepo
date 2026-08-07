@@ -11,6 +11,7 @@ import { queryKeys } from '@/lib/query-keys';
 import Container from '@/components/container';
 import Page from '@/components/page';
 
+import { resolveTransactionIdentity } from '@/centrifuge/config';
 import { getOffering } from '@/offerings';
 
 import { OnboardingGuard } from '../../_components/onboarding-guard';
@@ -18,6 +19,7 @@ import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { depositPageViewSchema } from './deposit/_utils';
 import OfferingHeader from './offering-header';
+import { OfferingIdentityProvider } from './offering-provider';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -43,6 +45,9 @@ export default async function OfferingPage({
 
   const offering = getOffering(slug);
   if (!offering) notFound();
+
+  // Resolved once here; client trees read only this serializable object.
+  const identity = resolveTransactionIdentity(offering);
 
   const validatedView = depositPageViewSchema.safeParse(view);
 
@@ -71,9 +76,12 @@ export default async function OfferingPage({
         </Container>
 
         <HydrationBoundary state={dehydrate(queryClient)}>
-          <Page className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <DepositInfo offering={offering} />
-            <Deposit initialView={validatedView.success ? validatedView.data : null} />
+          {/* Keyed by slug so no component state can leak across Offerings. */}
+          <Page key={offering.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
+            <OfferingIdentityProvider identity={identity}>
+              <DepositInfo offering={offering} />
+              <Deposit initialView={validatedView.success ? validatedView.data : null} />
+            </OfferingIdentityProvider>
           </Page>
         </HydrationBoundary>
       </div>

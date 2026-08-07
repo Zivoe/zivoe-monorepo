@@ -1,11 +1,10 @@
-import { type Token } from '@/types/constants';
+import { getTokenInfo } from '@/components/token-info';
 
-import { TOKEN_INFO } from '@/components/token-info';
-
-export function TokenDisplay({ symbol }: { symbol: Token }) {
+/** Renders a runtime symbol — the page's Offering decides which share token appears. */
+export function TokenDisplay({ symbol }: { symbol: string }) {
   return (
     <div className="flex items-center gap-2 [&_svg]:size-6">
-      {TOKEN_INFO[symbol].icon}
+      {getTokenInfo(symbol)?.icon}
       <p className="text-small font-medium! text-primary">{symbol}</p>
     </div>
   );

@@ -2,20 +2,18 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 
-import { useSetAtom } from 'jotai';
 import { useMediaQuery } from 'react-responsive';
-
-import { depositDialogAtom } from '@/lib/store';
 
 import { isOfferingPath } from '@/offerings';
 
 import { type DepositPageView } from '../_utils';
+import { useEarnDialog } from './earn-dialog';
 
 export function useTabNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const isMobile = useMediaQuery({ query: '(max-width: 1023px)' });
-  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
+  const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
   // For changes outside of the tab component
   const navigateToTab = (view: NonNullable<DepositPageView>) => {
@@ -26,7 +24,7 @@ export function useTabNavigation() {
     if (isOfferingPath(pathname)) router.replace(url, { scroll: false });
     else router.push(url);
 
-    if (isMobile) setIsDepositDialogOpen(true);
+    if (isMobile) setIsEarnDialogOpen(true);
   };
 
   // For changes within the tab component itself

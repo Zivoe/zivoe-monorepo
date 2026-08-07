@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 
-import { useAtom, useSetAtom } from 'jotai';
 import { type Key } from 'react-aria-components';
 
 import { Button } from '@zivoe/ui/core/button';
@@ -12,19 +11,26 @@ import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } fr
 import { Tab, TabList, TabPanel, Tabs } from '@zivoe/ui/core/tabs';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { depositDialogAtom } from '@/lib/store';
-
 import ConnectedAccount from '@/components/connected-account';
 
 import { TransactionDialog } from './_components/transaction-dialog';
+import { EarnDialogProvider, useEarnDialog } from './_hooks/earn-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
 
 export default function Deposit({ initialView }: { initialView: DepositPageView }) {
+  return (
+    <EarnDialogProvider>
+      <DepositContent initialView={initialView} />
+    </EarnDialogProvider>
+  );
+}
+
+function DepositContent({ initialView }: { initialView: DepositPageView }) {
   const { navigateToTab } = useTabNavigation();
-  const [isDepositDialogOpen, setIsDepositDialogOpen] = useAtom(depositDialogAtom);
+  const { isOpen: isEarnDialogOpen, setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
   return (
     <>
@@ -44,7 +50,7 @@ export default function Deposit({ initialView }: { initialView: DepositPageView 
         </ConnectedAccount>
       </div>
 
-      <Dialog isOpen={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+      <Dialog isOpen={isEarnDialogOpen} onOpenChange={setIsEarnDialogOpen}>
         <DialogContent dialogClassName="gap-0" showCloseButton={false}>
           <DialogHeader className="flex-row items-center justify-between">
             <DialogTitle>Earn</DialogTitle>
@@ -70,7 +76,7 @@ function EarnBox({
 }) {
   const searchParams = useSearchParams();
   const { updateTab, isMobile } = useTabNavigation();
-  const setIsDepositDialogOpen = useSetAtom(depositDialogAtom);
+  const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
   const [selectedTab, setSelectedTab] = useState<DepositPageTab>(() => initialView ?? 'deposit');
 
@@ -79,9 +85,9 @@ function EarnBox({
     const viewParsed = depositPageViewSchema.safeParse(view);
     if (viewParsed.success) {
       setSelectedTab(viewParsed.data ?? 'deposit');
-      if (isMobile && viewParsed.data) setIsDepositDialogOpen(true);
+      if (isMobile && viewParsed.data) setIsEarnDialogOpen(true);
     }
-  }, [searchParams, isMobile, setIsDepositDialogOpen]);
+  }, [searchParams, isMobile, setIsEarnDialogOpen]);
 
   const handleTabChange = (key: Key) => {
     const tabKey = depositPageTabSchema.safeParse(key);

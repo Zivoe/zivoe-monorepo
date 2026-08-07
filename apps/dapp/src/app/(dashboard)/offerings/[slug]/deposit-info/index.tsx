@@ -1,5 +1,4 @@
 import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
-
 import { Separator } from '@zivoe/ui/core/separator';
 import { DiamondIcon } from '@zivoe/ui/icons';
 
