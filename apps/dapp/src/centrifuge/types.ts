@@ -34,6 +34,38 @@ export type DepositPreview = {
   shares: bigint;
 };
 
+/**
+ * The share token's transfer hook, asked about one wallet in the two
+ * directions the flows move shares. Every Offering's vault is allow-listed, so
+ * the issuer must admit a wallet before those moves execute — an un-admitted
+ * wallet's transaction reverts on-chain, which no form validation would catch.
+ *
+ * Named for the transfers they permit rather than for the buttons they gate:
+ * one direction gates several actions, and the mapping is not the obvious one
+ * (see canReceiveShares).
+ */
+export type InvestorAllowlist = {
+  /**
+   * `checkTransferRestriction(0, investor, 0)` — the wallet may receive shares.
+   *
+   * Gates deposits, and ALSO cancelling a redemption request and claiming the
+   * shares a cancellation returns: the protocol checks a cancellation with
+   * this same call (AsyncRequestManager `cancelRedeemRequest`), and returning
+   * shares from escrow is a transfer into the wallet. It is the identical read
+   * the vault's own `isPermissioned` performs.
+   */
+  canReceiveShares: boolean;
+  /**
+   * `checkTransferRestriction(investor, ESCROW_HOOK_ID, 0)` — the wallet may
+   * send shares to escrow, which is what a redemption request does.
+   *
+   * Gates the redemption request ONLY. Claiming the USDC a settled redemption
+   * produced is deliberately exempt in the protocol (the hook returns true for
+   * a redeem claim, and USDC carries no hook), so it must never be gated here.
+   */
+  canRequestRedemption: boolean;
+};
+
 export type RedemptionPosition = {
   pendingRedeemShares: bigint;
   claimableRedeemAssets: bigint;

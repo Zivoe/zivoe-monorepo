@@ -7,6 +7,7 @@ import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
+import { Callout } from '@zivoe/ui/core/callout';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
@@ -24,11 +25,19 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { CENTRIFUGE_ENV, isPriceUnavailableError, useDeposit, useDepositPreview, useVaultCapacity } from '@/centrifuge';
+import {
+  CENTRIFUGE_ENV,
+  isPriceUnavailableError,
+  useDeposit,
+  useDepositPreview,
+  useInvestorAllowlist,
+  useVaultCapacity
+} from '@/centrifuge';
 
-import { useOfferingIdentity } from '../offering-provider';
+import { useOfferingIdentity, useOfferingStatus } from '../offering-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
+import { NotAllowlistedCallout } from './_components/not-allowlisted-callout';
 import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
@@ -46,10 +55,19 @@ export function DepositFlow() {
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
+  // A closed Offering stops taking new deposits; its redemptions stay open.
+  const isDepositsClosed = useOfferingStatus() === 'Closed';
+
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
   const capacity = useVaultCapacity({ shareClass: share });
+  const allowlist = useInvestorAllowlist({ shareClass: share });
+
+  // Only a definitive `false` names the wallet — a failed read blocks too (see
+  // isSubmitBlocked), but silently, since it is a fetch problem and not a
+  // verdict about this wallet.
+  const isNotAllowlisted = allowlist.isSuccess && !allowlist.data.canReceiveShares;
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -104,16 +122,30 @@ export function DepositFlow() {
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
+    allowlist.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
 
-  // isSubmitBlocked only gates approve/deposit, so inputs stay editable while
-  // a preview resolves or the vault is at capacity. A failed capacity read
-  // also blocks: it is how a misconfigured vault surfaces (resolution throws),
-  // and submitting would only re-run the same failure inside the mutation.
-  const isFormLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isCapacityUnavailable || capacity.isError;
+  // The two blocks differ in what they say about the future. A resolving
+  // preview, a full vault or a failed read may all clear on their own, so they
+  // only gate the action (isSubmitBlocked) and leave the inputs editable —
+  // typing an amount while one clears is reasonable. A closed Offering and a
+  // wallet the vault will not admit are settled answers, so they lock the form
+  // itself: there is no amount worth entering.
+  const isFormLocked =
+    isPrereqsLoading || approveSpending.isPending || depositMutation.isPending || isDepositsClosed || isNotAllowlisted;
+  // A failed capacity or allow-list read blocks too: a failed read is how a
+  // misconfigured vault surfaces (resolution throws), and submitting would
+  // only re-run the same failure inside the mutation.
+  const isSubmitBlocked =
+    isPreviewLoading ||
+    isPreviewFailed ||
+    isCapacityUnavailable ||
+    capacity.isError ||
+    isDepositsClosed ||
+    isNotAllowlisted ||
+    allowlist.isError;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
@@ -231,47 +263,69 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      <ConnectedAccount>
-        {isPrereqsLoading ? (
-          <Button fullWidth isPending={true} pendingContent="Loading..." />
-        ) : hasDepositRaw && !hasEnoughAllowance ? (
-          <Button
-            fullWidth
-            onPress={() => void handleApprove()}
-            isDisabled={isSubmitBlocked}
-            isPending={approveSpending.isPending || isPreviewLoading}
-            pendingContent={
-              isPreviewLoading
-                ? `Estimating ${share.symbol}...`
-                : approveSpending.isTxPending
-                  ? 'Approving USDC...'
-                  : approveSpending.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
-            }
-          >
-            Approve
-          </Button>
-        ) : (
-          <Button
-            fullWidth
-            onPress={() => void handleDeposit()}
-            isDisabled={hasDepositRaw && isSubmitBlocked}
-            isPending={depositMutation.isPending || isPreviewLoading}
-            pendingContent={
-              isPreviewLoading
-                ? `Estimating ${share.symbol}...`
-                : depositMutation.isTxPending
-                  ? 'Depositing USDC...'
-                  : depositMutation.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
-            }
-          >
-            Deposit
-          </Button>
-        )}
-      </ConnectedAccount>
+      {/* Outside ConnectedAccount on purpose: a closed Offering is decided
+          before any wallet or read is involved, so prompting for one would
+          only offer a connection that leads nowhere. */}
+      {isDepositsClosed ? (
+        <Button fullWidth isDisabled>
+          Deposits Disabled
+        </Button>
+      ) : (
+        <ConnectedAccount>
+          {isPrereqsLoading ? (
+            <Button fullWidth isPending={true} pendingContent="Loading..." />
+          ) : isNotAllowlisted ? (
+            <Button fullWidth isDisabled>
+              Wallet Not Allowlisted
+            </Button>
+          ) : hasDepositRaw && !hasEnoughAllowance ? (
+            <Button
+              fullWidth
+              onPress={() => void handleApprove()}
+              isDisabled={isSubmitBlocked}
+              isPending={approveSpending.isPending || isPreviewLoading}
+              pendingContent={
+                isPreviewLoading
+                  ? `Estimating ${share.symbol}...`
+                  : approveSpending.isTxPending
+                    ? 'Approving USDC...'
+                    : approveSpending.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+              }
+            >
+              Approve
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              onPress={() => void handleDeposit()}
+              isDisabled={hasDepositRaw && isSubmitBlocked}
+              isPending={depositMutation.isPending || isPreviewLoading}
+              pendingContent={
+                isPreviewLoading
+                  ? `Estimating ${share.symbol}...`
+                  : depositMutation.isTxPending
+                    ? 'Depositing USDC...'
+                    : depositMutation.isPending
+                      ? 'Signing Transaction...'
+                      : undefined
+              }
+            >
+              Deposit
+            </Button>
+          )}
+        </ConnectedAccount>
+      )}
+
+      {/* Why the action above is disabled. The closed status is an Offering
+          fact, so it renders whether or not a wallet is connected; the
+          allow-list verdict only exists once one is. */}
+      {isDepositsClosed ? (
+        <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
+      ) : isNotAllowlisted ? (
+        <NotAllowlistedCallout />
+      ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an
           APY to project it from. */}

@@ -59,10 +59,24 @@ export type OfferingVault = {
  * server-rendered and may hold components and rich content. Component and
  * function fields must never cross into the identity half.
  */
+/**
+ * Subscription status. 'Closed' takes an Offering out of new deposits while
+ * its redemptions stay open, so this is a behavioral fact the deposit flow
+ * reads — not only the listing card's chip. Further statuses join the union
+ * here.
+ */
+export type OfferingStatus = 'Open' | 'Closed';
+
 export type OfferingIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
   name: string;
+  /**
+   * Required, not optional: it gates the deposit action, and an Offering with
+   * no declared status would leave "can this wallet still subscribe?"
+   * ambiguous. Lives in the identity half because the client tree reads it.
+   */
+  status: OfferingStatus;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     /**
@@ -86,11 +100,6 @@ export type OfferingPresentation = {
   Logo: ComponentType<IconProps>;
   /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
-  /**
-   * Subscription status, shown as the listing card's chip. Omitted while an
-   * Offering has none to publish; further statuses join the union here.
-   */
-  status?: 'Open';
   /** Link-preview blurb for the Offering page — the card shows no excerpt. */
   description: string;
   /**

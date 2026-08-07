@@ -26,7 +26,7 @@ const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
-    <OfferingIdentityProvider identity={identity}>
+    <OfferingIdentityProvider identity={identity} status="Open">
       <EarnDialogProvider>
         <RedeemFlow />
       </EarnDialogProvider>
@@ -35,6 +35,11 @@ function renderFlow(identity = TEST_IDENTITY) {
 }
 
 const mocks = vi.hoisted(() => ({
+  // Kept apart on purpose: the panel gates different controls on each, so a
+  // single "is allowlisted" switch could not express the states that matter.
+  canReceiveShares: true,
+  canRequestRedemption: true,
+  allowlistIsError: false,
   cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
@@ -82,6 +87,15 @@ vi.mock('@/centrifuge', () => ({
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
+  useInvestorAllowlist: () =>
+    mocks.allowlistIsError
+      ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
+      : {
+          data: { canReceiveShares: mocks.canReceiveShares, canRequestRedemption: mocks.canRequestRedemption },
+          isError: false,
+          isFetching: false,
+          isSuccess: true
+        },
   useRedemptionPosition: () => ({
     isError: mocks.positionIsError,
     isFetching: false,
@@ -202,6 +216,9 @@ describe('RedeemFlow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.canReceiveShares = true;
+    mocks.canRequestRedemption = true;
+    mocks.allowlistIsError = false;
     mocks.claimableAssets = 0n;
     mocks.hasPendingCancel = false;
     mocks.metricsIsError = false;
@@ -210,6 +227,109 @@ describe('RedeemFlow', () => {
     mocks.positionIsError = false;
     mocks.returnedShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
+  });
+
+  it('names the wallet and blocks the request when the vault does not admit it', async () => {
+    mocks.canRequestRedemption = false;
+    renderFlow();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(getInput('Redeem').disabled).toBe(true);
+
+    await act(async () => {
+      fireEvent.click(getButton('Wallet Not Allowlisted'));
+    });
+
+    expect(mocks.requestRedeem).not.toHaveBeenCalled();
+  });
+
+  it('still lets a de-listed wallet claim settled USDC while its share moves are blocked', async () => {
+    // The protocol exempts a redeem claim from the memberlist, so proceeds the
+    // wallet is already owed must stay reachable. This is the assertion that
+    // stops a future "block everything when not allowlisted" from stranding
+    // funds.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.claimableAssets = 150_000000n;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    expect(getButton('Claim USDC').disabled).toBe(false);
+    expect(getButton('Cancel request').disabled).toBe(true);
+    expect(screen.getByText('Requires an allowlisted wallet.')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim USDC'));
+    });
+
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 150_000000n });
+  });
+
+  it('blocks cancelling and claiming returned shares for a wallet that cannot receive shares', async () => {
+    // Both reduce on-chain to the same "may this wallet receive shares" check,
+    // so neither may be offered while it answers no.
+    mocks.canReceiveShares = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim zSMB'));
+    });
+    await act(async () => {
+      fireEvent.click(getButton('Cancel request'));
+    });
+
+    expect(getButton('Claim zSMB').disabled).toBe(true);
+    expect(getButton('Cancel request').disabled).toBe(true);
+    expect(mocks.claimReturnedShares).not.toHaveBeenCalled();
+    expect(mocks.cancelRedeem).not.toHaveBeenCalled();
+    expect(screen.getAllByText('Requires an allowlisted wallet.').length).toBe(2);
+    // The request form is untouched: this wallet may still send shares to
+    // escrow, it just cannot get them back.
+    expect(getInput('Redeem').disabled).toBe(false);
+  });
+
+  it('leaves share moves alone when only the redemption request is blocked', async () => {
+    // The mirror case: a member who may not send shares to escrow can still
+    // unwind a position it already has.
+    mocks.canRequestRedemption = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    expect(getButton('Claim zSMB').disabled).toBe(false);
+    expect(getButton('Cancel request').disabled).toBe(false);
+    expect(screen.queryByText('Requires an allowlisted wallet.')).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(getButton('Cancel request'));
+    });
+
+    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
+  });
+
+  it('blocks the request on a failed allow-list read without blaming the wallet', async () => {
+    // A fetch failure is not a verdict — the query-cache toast is the signal,
+    // so the action stays put and merely disabled. The read may still succeed
+    // on retry, so the form stays editable rather than locking.
+    mocks.allowlistIsError = true;
+    renderFlow();
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(true);
+    expect(getInput('Redeem').disabled).toBe(false);
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).not.toHaveBeenCalled();
   });
 
   it('requests the first redemption with a correctly scaled estimate and clears only on success', async () => {

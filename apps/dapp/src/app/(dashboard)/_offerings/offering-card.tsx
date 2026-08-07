@@ -28,7 +28,12 @@ export default function OfferingCard({
       <div className="h-38" style={{ background: offering.cardGradient }} />
 
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <OfferingIdentity offering={offering} trailing={offering.status ? <Badge>{offering.status}</Badge> : null} />
+        <OfferingIdentity
+          offering={offering}
+          // A closed Offering keeps its chip but drops the brand tint — the
+          // primary badge reads as "act on this", which is the opposite here.
+          trailing={<Badge variant={offering.status === 'Open' ? 'primary' : 'neutral'}>{offering.status}</Badge>}
+        />
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Asset Type" value={offering.category} />

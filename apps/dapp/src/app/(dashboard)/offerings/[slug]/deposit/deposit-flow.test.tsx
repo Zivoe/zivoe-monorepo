@@ -21,9 +21,9 @@ const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
 // drift (an earlier fixture here carried the router address as the vault's).
 const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
-function renderFlow() {
+function renderFlow(status: 'Open' | 'Closed' = 'Open') {
   return render(
-    <OfferingIdentityProvider identity={TEST_IDENTITY}>
+    <OfferingIdentityProvider identity={TEST_IDENTITY} status={status}>
       <EarnDialogProvider>
         <DepositFlow />
       </EarnDialogProvider>
@@ -33,6 +33,8 @@ function renderFlow() {
 
 const mocks = vi.hoisted(() => ({
   allowance: 0n,
+  allowlistIsAllowed: true,
+  allowlistIsError: false,
   approve: vi.fn(),
   capacity: 5_000000n,
   capacityIsError: false,
@@ -63,6 +65,15 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
+  useInvestorAllowlist: () =>
+    mocks.allowlistIsError
+      ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
+      : {
+          data: { canReceiveShares: mocks.allowlistIsAllowed, canRequestRedemption: mocks.allowlistIsAllowed },
+          isError: false,
+          isFetching: false,
+          isSuccess: true
+        },
   useVaultCapacity: () =>
     mocks.capacityIsError
       ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
@@ -185,6 +196,9 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectValue: () => null
 }));
+vi.mock('@zivoe/ui/core/callout', () => ({
+  Callout: ({ children }: { children: ReactNode }) => <div>{children}</div>
+}));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
@@ -216,6 +230,8 @@ describe('DepositFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.allowance = 0n;
+    mocks.allowlistIsAllowed = true;
+    mocks.allowlistIsError = false;
     mocks.capacity = 5_000000n;
     mocks.capacityIsError = false;
     mocks.isDebouncing = false;
@@ -238,6 +254,45 @@ describe('DepositFlow', () => {
     expect(getInput('Estimated receive').value).toBe('');
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
     expect(getButton('Estimating zSMB...').disabled).toBe(true);
+  });
+
+  it('offers no deposit action at all on a closed Offering', () => {
+    renderFlow('Closed');
+
+    expect(getButton('Deposits Disabled').disabled).toBe(true);
+    expect(screen.getByText('Deposits are currently disabled, redemptions are enabled.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    // Nothing to enter an amount for.
+    expect(getInput('Deposit').disabled).toBe(true);
+  });
+
+  it('names the wallet and blocks the action when the vault does not admit it', async () => {
+    mocks.allowlistIsAllowed = false;
+    renderFlow();
+    enterAmount('1');
+
+    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(getInput('Deposit').disabled).toBe(true);
+
+    await press('Wallet Not Allowlisted');
+
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.deposit).not.toHaveBeenCalled();
+  });
+
+  it('blocks submission on a failed allow-list read without blaming the wallet', () => {
+    // A fetch failure is not a verdict — the query-cache toast is the signal,
+    // so the action stays put and merely disabled. The read may still succeed
+    // on retry, so the form stays editable rather than locking.
+    mocks.allowlistIsError = true;
+    renderFlow();
+    enterAmount('1');
+
+    expect(getButton('Approve').disabled).toBe(true);
+    expect(getInput('Deposit').disabled).toBe(false);
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
   });
 
   it('blocks submission while the capacity read is failing', () => {
@@ -344,7 +399,7 @@ describe('DepositFlow', () => {
 
     mocks.capacity = 0n;
     rerender(
-      <OfferingIdentityProvider identity={TEST_IDENTITY}>
+      <OfferingIdentityProvider identity={TEST_IDENTITY} status="Open">
         <EarnDialogProvider>
           <DepositFlow />
         </EarnDialogProvider>
