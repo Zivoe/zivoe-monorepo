@@ -33,14 +33,10 @@ const ENVIRONMENT_CONSTANTS: Record<
     deployable: true
   },
   mainnet: {
-    // NON-DEPLOYABLE PLACEHOLDER: the zero USDC address does NOT fail loudly
-    // on its own, so the guard below throws for this network independently of
-    // the catalog's guard. Verify every entry (incl. VaultRouter) at mainnet
-    // cutover.
     environment: 'mainnet',
     vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: { address: '0x0000000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
-    deployable: false
+    usdc: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 },
+    deployable: true
   }
 };
 

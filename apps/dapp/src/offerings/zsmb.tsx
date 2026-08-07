@@ -20,9 +20,7 @@ export const ZSMB_OFFERING: Offering = {
   shareClass: { key: 'zsmb' },
   vaults: {
     sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
-    // NON-DEPLOYABLE PLACEHOLDER: receipt decoding against the zero address
-    // silently matches nothing, so resolution throws instead.
-    mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
+    mainnet: { address: '0x50aE66E07c6311C2eE4a327378ddf33e46BEe6Bf', deployable: true }
   },
   shareTokenDescription: 'Zivoe SMB Credit',
   targetApyPercent: 14,

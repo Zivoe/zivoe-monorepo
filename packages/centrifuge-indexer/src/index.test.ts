@@ -53,9 +53,10 @@ describe('share-class catalog', () => {
     });
   });
 
-  it('refuses to resolve a claimed placeholder entry', () => {
-    expect(() => getShareClassIdentity({ network: 'mainnet', key: 'zsmb' })).toThrow(/non-deployable placeholder/);
-  });
+  // The non-deployable-placeholder branch of getShareClassIdentity has no test
+  // here: it takes no injectable catalog, and every real entry is now live on
+  // both networks. Restore this the next time a launch is staged — the branch
+  // is what stops a staged entry from resolving to zeros.
 
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
