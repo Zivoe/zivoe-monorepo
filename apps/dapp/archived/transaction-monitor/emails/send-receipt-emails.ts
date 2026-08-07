@@ -72,7 +72,7 @@ export async function sendDepositConfirmationEmail({
 export async function sendRedemptionConfirmationEmail({
   to,
   userId,
-  zMcaRedeemed,
+  zSmbRedeemed,
   usdcReceived,
   fee,
   walletAddress,
@@ -82,7 +82,7 @@ export async function sendRedemptionConfirmationEmail({
 }: {
   to: string;
   userId: string;
-  zMcaRedeemed: string;
+  zSmbRedeemed: string;
   usdcReceived: string;
   fee: string;
   walletAddress: string;
@@ -93,7 +93,7 @@ export async function sendRedemptionConfirmationEmail({
   const unsubscribeUrl = buildUnsubscribeUrl({ userId, email: to, bucket: 'transaction_receipts' });
   const html = await render(
     RedemptionConfirmationEmail({
-      zMcaRedeemed,
+      zSmbRedeemed,
       usdcReceived,
       fee,
       walletAddress,
