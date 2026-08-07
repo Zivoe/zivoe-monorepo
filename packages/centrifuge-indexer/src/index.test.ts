@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  CENTRIFUGE_NETWORK_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   fetchShareClassNavs,
-  getCentrifugeIndexerConfig,
   getShareClassIdentity,
   getShareClassNetworks,
   listShareClassKeys,
@@ -15,7 +15,10 @@ import {
   toShareStatsPayload
 } from './index';
 
-const sepolia = getCentrifugeIndexerConfig('sepolia');
+const sepolia = {
+  ...getShareClassIdentity({ network: 'sepolia', key: 'zmca' }),
+  indexerUrl: CENTRIFUGE_NETWORK_FACTS.sepolia.indexerUrl
+};
 
 function fakeIndexerResponse(body: unknown, init?: ResponseInit) {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), init));
@@ -116,23 +119,6 @@ describe('fetchShareClassNavs', () => {
 
     await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: [] })).resolves.toEqual({});
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe('getCentrifugeIndexerConfig', () => {
-  it('returns the Sepolia constants', () => {
-    expect(sepolia).toEqual({
-      network: 'sepolia',
-      chainId: 11155111,
-      indexerUrl: 'https://api-v3-test.cfg.embrio.tech',
-      shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
-      poolId: '281474976720680',
-      scId: '0x00010000000027280000000000000001'
-    });
-  });
-
-  it('refuses to hand out the non-deployable mainnet placeholder', () => {
-    expect(() => getCentrifugeIndexerConfig('mainnet')).toThrow(/non-deployable placeholder/);
   });
 });
 

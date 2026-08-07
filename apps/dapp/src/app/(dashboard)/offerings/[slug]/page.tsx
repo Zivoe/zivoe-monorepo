@@ -11,8 +11,7 @@ import { queryKeys } from '@/lib/query-keys';
 import Container from '@/components/container';
 import Page from '@/components/page';
 
-import { resolveTransactionIdentity } from '@/centrifuge/config';
-import { getOffering } from '@/offerings';
+import { getOffering, resolveTransactionIdentity } from '@/offerings';
 
 import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
@@ -28,9 +27,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   // Unknown slugs fall through to the root metadata; the page itself 404s.
   if (!offering) return {};
 
+  const title = `${offering.name} | Zivoe`;
+
   return {
-    title: `${offering.name} | Zivoe`,
-    description: offering.description
+    title,
+    description: offering.description,
+    // Without these, link previews inherit the root layout's platform copy —
+    // a shared Offering URL must preview the Offering itself.
+    openGraph: { title, description: offering.description },
+    twitter: { title, description: offering.description }
   };
 }
 

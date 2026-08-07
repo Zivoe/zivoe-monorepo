@@ -20,6 +20,12 @@ export const ZMCA_OFFERING: Offering = {
   // Symbol read off the catalog so the module cannot drift from the share
   // class it references.
   shareClass: { key: 'zmca', symbol: SHARE_CLASS_CATALOG.zmca.symbol },
+  vaults: {
+    sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
+    // NON-DEPLOYABLE PLACEHOLDER: receipt decoding against the zero address
+    // silently matches nothing, so resolution throws instead.
+    mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
+  },
   shareTokenDescription: 'Zivoe MCA',
   targetApyPercent: 14,
 

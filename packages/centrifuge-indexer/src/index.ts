@@ -13,8 +13,6 @@ export {
 export {
   CENTRIFUGE_NETWORKS,
   CENTRIFUGE_NETWORK_FACTS,
-  getCentrifugeIndexerConfig,
-  type CentrifugeIndexerConfig,
   type CentrifugeNetwork,
   type CentrifugeNetworkFacts
 } from './config';

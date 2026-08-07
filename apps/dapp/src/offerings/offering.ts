@@ -1,6 +1,8 @@
 import { type ComponentType, type ReactNode } from 'react';
 
-import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
+import { type Address } from 'viem';
+
+import { type CentrifugeNetwork, type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 import { type ShareToken } from '@/types/constants';
@@ -43,6 +45,17 @@ export type OfferingDetailValue = string | { href: string; label: string };
  * server-rendered and may hold components and rich content. Component and
  * function fields must never cross into the identity half.
  */
+/** The vault instantiating the share class for USDC on one network. */
+export type OfferingVault = {
+  address: Address;
+  /**
+   * False while the address is a placeholder for a network the launch is
+   * staged on — resolving it throws rather than decoding receipts against
+   * the zero address (which silently matches nothing).
+   */
+  deployable: boolean;
+};
+
 export type OfferingIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
@@ -53,6 +66,13 @@ export type OfferingIdentity = {
     key: ShareClassKey;
     symbol: ShareToken;
   };
+  /**
+   * dApp-only identity: the vault per network this Offering claims —
+   * collocated here so a launch is a catalog entry plus this one module,
+   * with no third map to keep in sync. The registry invariants force the
+   * claimed networks to match the catalog's, both ways.
+   */
+  vaults: Partial<Record<CentrifugeNetwork, OfferingVault>>;
 };
 
 export type OfferingPresentation = {

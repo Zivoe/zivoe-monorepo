@@ -1,16 +1,8 @@
 import { type Address } from 'viem';
 
-import {
-  CENTRIFUGE_NETWORK_FACTS,
-  type CentrifugeNetwork,
-  type ShareClassIdentity,
-  type ShareClassKey,
-  getShareClassIdentity
-} from '@zivoe/centrifuge-indexer';
+import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork, type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
-
-import { type TransactionIdentity } from './types';
 
 /**
  * Facts of the deployment network itself, shared by every Offering: one chain,
@@ -60,105 +52,15 @@ export function getCentrifugeEnvironment(network: CentrifugeNetwork): Centrifuge
       `Centrifuge environment config for "${network}" is a non-deployable placeholder. Replace it with operator-verified values before deploying.`
     );
 
+  // deployable: true asserts operator-verified values — zero addresses under
+  // that flag are a flipped flag, not a staged network.
+  if (/^0x0+$/i.test(constants.vaultRouterAddress) || /^0x0+$/i.test(constants.usdc.address))
+    throw new Error(`Centrifuge environment config for "${network}" is deployable but carries placeholder addresses.`);
+
   return { ...constants, network, ...CENTRIFUGE_NETWORK_FACTS[network] };
 }
 
 export const CENTRIFUGE_ENV = getCentrifugeEnvironment(env.NEXT_PUBLIC_NETWORK);
-
-/**
- * dApp-only share-class identity: the vault instantiating each class for USDC,
- * per network it claims. The same placeholder discipline as the catalog — a
- * claimed network with unverified values throws at resolution.
- */
-const VAULTS: Record<ShareClassKey, Partial<Record<CentrifugeNetwork, { address: Address; deployable: boolean }>>> = {
-  zmca: {
-    sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
-    // NON-DEPLOYABLE PLACEHOLDER: receipt decoding against the zero address
-    // silently matches nothing, so the guard below throws instead.
-    mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
-  }
-};
-
-/** A share class's full dApp identity on the active network: catalog entry + vault. */
-export type ShareClassConfig = ShareClassIdentity & {
-  vaultAddress: Address;
-};
-
-export function getShareClassConfig(key: ShareClassKey): ShareClassConfig {
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const identity = getShareClassIdentity({ network, key });
-  const vault = VAULTS[key][network];
-
-  if (!vault) throw new Error(`Share class "${key}" has no vault on "${network}".`);
-
-  if (!vault.deployable)
-    throw new Error(
-      `The vault for share class "${key}" on "${network}" is a non-deployable placeholder. Replace it with an operator-verified address before deploying.`
-    );
-
-  return { ...identity, vaultAddress: vault.address };
-}
-
-/**
- * Resolves an Offering's transaction identity on the active network — what
- * flows hand to every Centrifuge Module hook: the resolved share class plus
- * the Offering's stable public identity for analytics and Sentry.
- */
-export function resolveTransactionIdentity(offering: {
-  slug: string;
-  shareClass: { key: ShareClassKey };
-}): TransactionIdentity {
-  return { offeringSlug: offering.slug, shareClass: getShareClassConfig(offering.shareClass.key) };
-}
-
-export type CentrifugeConfig = {
-  network: CentrifugeNetwork;
-  chainId: number;
-  /** The SDK environment flag — selects its chain set and defaults. */
-  environment: 'mainnet' | 'testnet';
-  indexerUrl: string;
-  /** Catalog key of the share class — the identity dimension of caches and query keys. */
-  shareClassKey: ShareClassKey;
-  poolId: string;
-  scId: `0x${string}`;
-  vaultAddress: Address;
-  /** Deposits route through the VaultRouter — the USDC approval spender. */
-  vaultRouterAddress: Address;
-  shareToken: { address: Address; symbol: 'zMCA'; decimals: number };
-  usdc: { address: Address; decimals: number };
-};
-
-/**
- * The legacy single-share-class config — a thin alias over the environment
- * singleton and the zMCA Offering's share class, kept so existing consumers
- * stay green while identity is threaded per Offering.
- */
-export function getCentrifugeConfig(network: CentrifugeNetwork): CentrifugeConfig {
-  const environment = getCentrifugeEnvironment(network);
-  const zmca = getShareClassIdentity({ network, key: 'zmca' });
-  const vault = VAULTS.zmca[network];
-
-  if (!vault?.deployable)
-    throw new Error(
-      `The vault for share class "zmca" on "${network}" is a non-deployable placeholder. Replace it with an operator-verified address before deploying.`
-    );
-
-  return {
-    network,
-    chainId: environment.chainId,
-    environment: environment.environment,
-    indexerUrl: environment.indexerUrl,
-    shareClassKey: zmca.key,
-    poolId: zmca.poolId,
-    scId: zmca.scId,
-    vaultAddress: vault.address,
-    vaultRouterAddress: environment.vaultRouterAddress,
-    shareToken: { address: zmca.shareTokenAddress, symbol: zmca.symbol, decimals: zmca.decimals },
-    usdc: environment.usdc
-  };
-}
-
-export const CENTRIFUGE_CONFIG = getCentrifugeConfig(env.NEXT_PUBLIC_NETWORK);
 
 /**
  * Indicative USDC (base units) for a share amount at an 18-decimal Share

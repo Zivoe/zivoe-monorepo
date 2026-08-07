@@ -9,10 +9,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { ZMCA_OFFERING } from '@/offerings';
+import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { type TransactionIdentity, resolveTransactionIdentity, useDeposit } from './index';
+import { type TransactionIdentity, useDeposit } from './index';
 
 const getVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn(() => () => undefined));
@@ -181,5 +181,69 @@ describe('two share classes side by side', () => {
     );
     expect(slugs).toContain('global-mca-offerings');
     expect(slugs).toContain('fixture-offering');
+  });
+
+  it('keeps the mutation-time identity when the hook re-renders under another Offering mid-flight', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    // A vault whose transaction confirms only on command, so the hook can be
+    // re-rendered with another Offering while the receipt is pending.
+    let confirm: (() => void) | undefined;
+    const receipt = mixedReceipt();
+    getVault.mockImplementation(() =>
+      Promise.resolve({
+        syncDeposit: () => ({
+          then: () => {
+            throw new Error('SDK Transaction awaited directly — return it wrapped as { tx }');
+          },
+          subscribe: (observer: {
+            next: (status: { type: string; hash?: string; receipt?: TransactionReceipt }) => void;
+            complete: () => void;
+          }) => {
+            observer.next({ type: 'TransactionPending', hash: TX_HASH });
+            confirm = () => {
+              observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
+              observer.complete();
+            };
+            return { unsubscribe: () => undefined };
+          }
+        })
+      })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ identity }: { identity: TransactionIdentity }) => useDeposit({ identity }),
+      {
+        wrapper,
+        initialProps: { identity: ZMCA_IDENTITY }
+      }
+    );
+
+    await act(async () => {
+      result.current.mutate({ assets: 1n, previewShares: 1n });
+    });
+    await waitFor(() => expect(confirm).toBeDefined());
+
+    // TanStack re-syncs the in-flight mutation's options to this render — the
+    // payload must still carry the identity handed at mutation time.
+    rerender({ identity: FIXTURE_IDENTITY });
+
+    await act(async () => {
+      confirm!();
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const payload = getDefaultStore().get(transactionAtom);
+    expect(payload?.offeringSlug).toBe('global-mca-offerings');
+    expect(payload?.description).toBe('zMCA has been transferred to your wallet.');
+    expect(payload?.meta?.deposit).toEqual({
+      asset: { symbol: 'USDC', decimals: 6 },
+      share: { symbol: 'zMCA', decimals: 18 },
+      amount: ZMCA_AMOUNTS.assets,
+      receive: ZMCA_AMOUNTS.shares
+    });
   });
 });
