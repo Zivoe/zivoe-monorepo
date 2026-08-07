@@ -1,19 +1,19 @@
 import { type Address } from 'viem';
 
+import { type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
+
 /**
  * The share class a hook transacts and reads against — resolved from the
- * catalog and vault map in the app, a synthetic fixture in tests. Typed over
- * plain strings rather than the catalog unions so the module stays a pure,
- * testable boundary with no registry coupling.
+ * catalog and vault map in the app, a synthetic fixture in tests. Composed
+ * from the catalog's identity shape so a new identity field cannot be added
+ * in one package and forgotten here, with `key`/`symbol` widened to plain
+ * strings on purpose: the module stays a pure, testable boundary with no
+ * registry coupling (this import is type-only).
  */
-export type TransactedShareClass = {
+export type TransactedShareClass = Omit<ShareClassIdentity, 'key' | 'symbol'> & {
   /** Share-class id — the identity dimension of caches, query keys and vault memoization. */
   key: string;
   symbol: string;
-  decimals: number;
-  poolId: string;
-  scId: `0x${string}`;
-  shareTokenAddress: Address;
   vaultAddress: Address;
 };
 
