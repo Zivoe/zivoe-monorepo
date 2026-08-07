@@ -159,7 +159,7 @@ export default function RedeemFlow() {
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isNotAllowlisted) return;
+    if (!isValid || isSubmitBlocked) return;
     // Narrowing only — validation guarantees redeemRaw. estimatedAssets is
     // deliberately not required: it rides along for the receipt.
     if (!redeemRaw) return;
