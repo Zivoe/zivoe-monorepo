@@ -131,6 +131,12 @@ export default function RedeemFlow() {
 
   const isMutationPending =
     requestRedeem.isPending || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
+  /**
+   * All four writes share one transaction path, so each control waits out the
+   * other three. Pass the control's own pending flag — its own run is already
+   * shown (and blocked) by the button's `isPending`.
+   */
+  const isOtherMutationPending = (isSelfPending: boolean) => isMutationPending && !isSelfPending;
   // Cancellation Processing locks the whole form: a new request would revert
   // on-chain until the hub finishes the unwind. A wallet the vault will not
   // admit locks it for the same reason — there is no amount worth entering.
@@ -215,11 +221,7 @@ export default function RedeemFlow() {
                 onPress={handleClaimReturnedShares}
                 size="s"
                 isDisabled={
-                  isPrereqsLoading ||
-                  isShareReturnBlocked ||
-                  requestRedeem.isPending ||
-                  claimRedeem.isPending ||
-                  cancelRedeem.isPending
+                  isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
                 }
                 isPending={claimReturnedShares.isPending}
                 pendingContent={
@@ -255,9 +257,7 @@ export default function RedeemFlow() {
                 size="s"
                 isDisabled={
                   isPrereqsLoading ||
-                  requestRedeem.isPending ||
-                  cancelRedeem.isPending ||
-                  claimReturnedShares.isPending ||
+                  isOtherMutationPending(claimRedeem.isPending) ||
                   // The vault claims Returned Shares before USDC in one shared
                   // transaction path, so the USDC claim waits its turn.
                   returnedShares > 0n
@@ -292,12 +292,7 @@ export default function RedeemFlow() {
             shareClass={share}
             cancel={{
               onPress: handleCancelRedeem,
-              isDisabled:
-                isPrereqsLoading ||
-                isShareReturnBlocked ||
-                requestRedeem.isPending ||
-                claimRedeem.isPending ||
-                claimReturnedShares.isPending,
+              isDisabled: isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
               isBlockedByAllowlist: isShareReturnBlocked,
               isPending: cancelRedeem.isPending,
               isTxPending: cancelRedeem.isTxPending
