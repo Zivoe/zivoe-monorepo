@@ -37,8 +37,17 @@ const handler = async (req: NextRequest) => {
   // outright — nagging during an empty-book cutover window is wrong, and the
   // old behavior (an investor-activity read that threw) just made QStash
   // retry a send that must not happen.
-  if (listShareClassKeys(env.NEXT_PUBLIC_NETWORK).length === 0)
+  if (listShareClassKeys(env.NEXT_PUBLIC_NETWORK).length === 0) {
+    // Mirrors the profile-not-found branch below: this skip silently ends the
+    // user's funnel (reminder 2 is only scheduled from a delivered reminder
+    // 1), so it must at least be visible in Sentry.
+    Sentry.captureException(new Error('Deposit reminder email skipped: no live share class'), {
+      tags: { source: 'API', flow: 'deposit-reminder-email' },
+      extra: { userId, reminderNumber }
+    });
+
     return NextResponse.json({ success: true, data: 'No live share class, skipping reminder' });
+  }
 
   const profile = await getUserEmailProfile(userId);
 

@@ -36,7 +36,12 @@ export async function hasAnyInvestorTransaction({ addresses }: { addresses: Arra
 
   const network = env.NEXT_PUBLIC_NETWORK;
   const identities = listShareClassKeys(network).map((key) => getShareClassIdentity({ network, key }));
-  if (identities.length === 0) return false;
+
+  // An empty book cannot answer this question — `false` would read as "never
+  // invested" and re-arm every nag downstream. Callers must guard the empty
+  // book themselves (the deposit-reminder route does, before calling).
+  if (identities.length === 0)
+    throw new Error(`No live share class on "${network}" — investor activity is unknowable, not absent.`);
 
   const data = await fetchCentrifugeIndexer({
     indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
