@@ -155,8 +155,6 @@ export type ShareClassKey = keyof typeof SHARE_CLASS_CATALOG;
 /** Union of every catalogued share token symbol — derive token unions from this, never hand-extend them. */
 export type ShareClassSymbol = (typeof SHARE_CLASS_CATALOG)[ShareClassKey]['symbol'];
 
-export const SHARE_CLASS_KEYS = Object.keys(SHARE_CLASS_CATALOG) as Array<ShareClassKey>;
-
 /** A share class's identity resolved for one network — serializable, no placeholder values. */
 export type ShareClassIdentity = {
   key: ShareClassKey;

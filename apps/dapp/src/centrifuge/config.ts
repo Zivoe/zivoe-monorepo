@@ -10,7 +10,7 @@ import { env } from '@/env';
  * stay a singleton by design — per-Offering variability lives in
  * ShareClassConfig.
  */
-export type CentrifugeEnvironment = {
+type CentrifugeEnvironment = {
   network: CentrifugeNetwork;
   chainId: number;
   /** The SDK environment flag — selects its chain set and defaults. */
@@ -44,7 +44,7 @@ const ENVIRONMENT_CONSTANTS: Record<
   }
 };
 
-export function getCentrifugeEnvironment(network: CentrifugeNetwork): CentrifugeEnvironment {
+function getCentrifugeEnvironment(network: CentrifugeNetwork): CentrifugeEnvironment {
   const { deployable, ...constants } = ENVIRONMENT_CONSTANTS[network];
 
   if (!deployable)

@@ -1,6 +1,6 @@
 // The Centrifuge Module's public surface — the only import path for pages and
 // components. SDK types and Observables never leave this module.
-export { CENTRIFUGE_ENV, sharesToUsdc, sharesToValueD18, type CentrifugeEnvironment } from './config';
+export { CENTRIFUGE_ENV, sharesToUsdc, sharesToValueD18 } from './config';
 export { isPriceUnavailableError, useDepositPreview, useRedemptionPosition, useVaultCapacity } from './hooks';
 export { useCancelRedeem } from './use-cancel-redeem';
 export { useClaimRedeem } from './use-claim-redeem';

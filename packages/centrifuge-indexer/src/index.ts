@@ -1,6 +1,5 @@
 export {
   SHARE_CLASS_CATALOG,
-  SHARE_CLASS_KEYS,
   ZERO_HEX,
   assertShareClassCatalogInvariants,
   assertUnique,
