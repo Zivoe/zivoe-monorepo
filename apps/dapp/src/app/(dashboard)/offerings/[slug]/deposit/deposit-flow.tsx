@@ -193,8 +193,15 @@ export function DepositFlow() {
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isPreviewLoading ? '' : undefined;
   // The quote is at the current Share Price, so the estimated receive's dollar
-  // value equals the entered USDC amount.
-  const receiveDollarValue = previewShares !== undefined && depositRaw !== undefined ? depositRaw : deposit ? null : 0n;
+  // value equals the entered USDC amount. A failed estimate resolves it here
+  // rather than at the row, matching the redeem tab.
+  const receiveDollarValue = isPreviewFailed
+    ? 0n
+    : previewShares !== undefined && depositRaw !== undefined
+      ? depositRaw
+      : deposit
+        ? null
+        : 0n;
 
   return (
     <>
@@ -261,7 +268,7 @@ export function DepositFlow() {
         subContent={
           <InputExtraInfo
             dollarValueDecimals={USDC.decimals}
-            dollarValue={isPreviewFailed ? 0n : receiveDollarValue}
+            dollarValue={receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
           />
