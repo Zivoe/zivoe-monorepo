@@ -81,11 +81,7 @@ export function useDeposit({
         amountOutRaw: previewShares
       }),
       receiptInput: (receipt) => {
-        const decoded = decodeSyncDepositReceipt({
-          receipt,
-          vaultAddress: shareClass.vaultAddress,
-          offeringSlug: identity.offeringSlug
-        });
+        const decoded = decodeSyncDepositReceipt({ receipt, identity });
         return decoded ? { amountInRaw: decoded.assets, amountOutRaw: decoded.shares } : {};
       }
     },
@@ -103,11 +99,7 @@ export function useDeposit({
           hash: receipt.transactionHash
         };
 
-      const decoded = decodeSyncDepositReceipt({
-        receipt,
-        vaultAddress: shareClass.vaultAddress,
-        offeringSlug: identity.offeringSlug
-      });
+      const decoded = decodeSyncDepositReceipt({ receipt, identity });
       const transactionData: TransactionData = {
         type: 'SUCCESS',
         title: copy.success.title,

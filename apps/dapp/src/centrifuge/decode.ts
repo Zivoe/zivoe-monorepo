@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
-import { type Address, type ParseEventLogsReturnType, type TransactionReceipt } from 'viem';
+import { type ParseEventLogsReturnType, type TransactionReceipt } from 'viem';
 
+import { type TransactionIdentity } from './types';
 import { type VAULT_LIFECYCLE_EVENTS_ABI, type VaultLifecycleEventName, readVaultReceiptEvents } from './vault-receipt';
 
 /** The exact args shape of one vault lifecycle event, as viem strictly decodes it. */
@@ -33,16 +34,17 @@ function createVaultReceiptDecoder<TEventName extends VaultLifecycleEventName, T
 }) {
   const decodedReceipts = new WeakMap<TransactionReceipt, Map<string, TAmounts | undefined>>();
 
+  // The whole identity, not loose vault/slug halves: the pair must always
+  // come from one Offering, and separate parameters would let a call site
+  // tag a capture with one Offering while decoding another's vault.
   return function decode({
     receipt,
-    vaultAddress,
-    offeringSlug
+    identity
   }: {
     receipt: TransactionReceipt;
-    vaultAddress: Address;
-    /** Tagged on the failure capture — the one money-path capture that would otherwise lack it. */
-    offeringSlug: string;
+    identity: TransactionIdentity;
   }): TAmounts | undefined {
+    const { vaultAddress } = identity.shareClass;
     const byVault = decodedReceipts.get(receipt) ?? new Map<string, TAmounts | undefined>();
     const vaultKey = vaultAddress.toLowerCase();
     if (byVault.has(vaultKey)) return byVault.get(vaultKey);
@@ -61,7 +63,7 @@ function createVaultReceiptDecoder<TEventName extends VaultLifecycleEventName, T
 
     if (!amounts)
       Sentry.captureException(new Error(errorMessage), {
-        tags: { source: 'MUTATION', flow, offering: offeringSlug },
+        tags: { source: 'MUTATION', flow, offering: identity.offeringSlug },
         extra: { txHash: receipt.transactionHash, vaultAddress }
       });
 

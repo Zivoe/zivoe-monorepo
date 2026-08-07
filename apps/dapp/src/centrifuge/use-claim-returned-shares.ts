@@ -93,11 +93,7 @@ export function useClaimReturnedShares({
         amountOutRaw: returnedShares
       }),
       receiptInput: (receipt) => {
-        const decoded = decodeClaimReturnedSharesReceipt({
-          receipt,
-          vaultAddress: shareClass.vaultAddress,
-          offeringSlug: identity.offeringSlug
-        });
+        const decoded = decodeClaimReturnedSharesReceipt({ receipt, identity });
         return decoded ? { amountOutRaw: decoded.shares } : {};
       }
     },
@@ -115,11 +111,7 @@ export function useClaimReturnedShares({
           hash: receipt.transactionHash
         };
 
-      const decoded = decodeClaimReturnedSharesReceipt({
-        receipt,
-        vaultAddress: shareClass.vaultAddress,
-        offeringSlug: identity.offeringSlug
-      });
+      const decoded = decodeClaimReturnedSharesReceipt({ receipt, identity });
       if (!decoded)
         return {
           type: 'ERROR',
