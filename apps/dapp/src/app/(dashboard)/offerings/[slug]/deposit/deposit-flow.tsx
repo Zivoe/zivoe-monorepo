@@ -190,9 +190,9 @@ export function DepositFlow() {
             decimalPlaces={USDC.decimals}
             subContent={
               <InputExtraInfo
-                decimals={USDC.decimals}
+                dollarValueDecimals={USDC.decimals}
                 dollarValue={depositRaw ?? 0n}
-                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending }}
+                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
               />
             }
             endContent={
@@ -235,7 +235,7 @@ export function DepositFlow() {
         startContent={isPreviewLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            decimals={USDC.decimals}
+            dollarValueDecimals={USDC.decimals}
             dollarValue={isPreviewFailed ? 0n : receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}

@@ -298,8 +298,8 @@ export default function RedeemFlow() {
             subContent={
               <InputExtraInfo
                 // sharesToValueD18 is 18-decimal whatever the share token's own
-                // decimals are; only the balance renders at the token's scale.
-                decimals={18}
+                // decimals are; the balance carries the token's scale itself.
+                dollarValueDecimals={18}
                 dollarValue={redeemDollarValue}
                 balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
               />
@@ -344,10 +344,10 @@ export default function RedeemFlow() {
           startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
           subContent={
             <InputExtraInfo
-              decimals={USDC.decimals}
+              dollarValueDecimals={USDC.decimals}
               dollarValue={receiveDollarValue}
               isLoading={isEstimateLoading}
-              balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending }}
+              balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
             />
           }
           endContent={<TokenDisplay symbol="USDC" />}
