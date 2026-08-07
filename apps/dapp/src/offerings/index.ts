@@ -36,16 +36,9 @@ const REGISTERED_OFFERINGS = {
 
 const ALL_OFFERINGS: Array<Offering> = Object.values(REGISTERED_OFFERINGS);
 
-// The record key is a claim; the module's own share class is the truth —
-// they must agree or class-keyed registration and the module would diverge.
-for (const [key, offering] of Object.entries(REGISTERED_OFFERINGS)) {
-  if (key !== offering.shareClass.key)
-    throw new Error(
-      `Offering "${offering.slug}" is registered under "${key}" but declares share class "${offering.shareClass.key}".`
-    );
-}
-
-assertOfferingRegistryInvariants({ offerings: ALL_OFFERINGS });
+// The invariants take the record itself, so record-key/module agreement is
+// checked in the same tested module as every other registration guard.
+assertOfferingRegistryInvariants({ offerings: REGISTERED_OFFERINGS });
 
 /**
  * The Offerings this deployment serves: registered modules whose catalog

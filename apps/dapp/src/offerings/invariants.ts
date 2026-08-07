@@ -34,13 +34,24 @@ const SLUG_SHAPE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * injectable catalog) so the fixture sweep can exercise every guard.
  */
 export function assertOfferingRegistryInvariants({
-  offerings,
+  offerings: registered,
   catalog = SHARE_CLASS_CATALOG
 }: {
-  /** Every registered Offering module, listed or not. */
-  offerings: Array<RegisteredOffering>;
+  /** The registry record itself — every registered Offering module, listed or not, keyed by share class. */
+  offerings: Record<string, RegisteredOffering>;
   catalog?: CatalogEntries;
 }): void {
+  // The record key is a claim; the module's own share class is the truth —
+  // they must agree or class-keyed registration and the module would diverge.
+  for (const [key, offering] of Object.entries(registered)) {
+    if (key !== offering.shareClass.key)
+      throw new Error(
+        `Offering "${offering.slug}" is registered under "${key}" but declares share class "${offering.shareClass.key}".`
+      );
+  }
+
+  const offerings = Object.values(registered);
+
   // Lowercased like the on-chain identities: two slugs or keys differing only
   // in case would register as two Offerings that read identically to a user,
   // while exact-match routing leaves one of them unreachable.

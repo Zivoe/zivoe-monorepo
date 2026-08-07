@@ -54,7 +54,9 @@ function makeRegistration({
 
 function assertRegistry(registrations: Array<Registration>) {
   assertOfferingRegistryInvariants({
-    offerings: registrations.map((registration) => registration.offering),
+    offerings: Object.fromEntries(
+      registrations.map((registration) => [registration.offering.shareClass.key, registration.offering])
+    ),
     catalog: Object.fromEntries(
       registrations.map((registration) => [registration.offering.shareClass.key, registration.catalogEntry])
     )
@@ -149,29 +151,43 @@ describe('assertOfferingRegistryInvariants', () => {
   });
 
   it('throws when two Offerings register the same share class', () => {
+    // A case variant on purpose: the record itself cannot hold an exact
+    // duplicate key, so the case-insensitive sweep is the reachable guard.
     const duplicate: Registration = {
       ...other,
-      offering: { ...other.offering, shareClass: { key: FIXTURE_SHARE_CLASS.key } }
+      offering: { ...other.offering, shareClass: { key: FIXTURE_SHARE_CLASS.key.toUpperCase() } }
     };
 
     expect(() =>
       assertOfferingRegistryInvariants({
-        offerings: [fixture.offering, duplicate.offering],
+        offerings: {
+          [fixture.offering.shareClass.key]: fixture.offering,
+          [duplicate.offering.shareClass.key]: duplicate.offering
+        },
         catalog: { [FIXTURE_SHARE_CLASS.key]: fixture.catalogEntry }
       })
     ).toThrow(/registered by two Offerings/);
   });
 
-  it('throws when an Offering references a share class the catalog does not know', () => {
-    expect(() => assertOfferingRegistryInvariants({ offerings: [fixture.offering], catalog: {} })).toThrow(
-      /not in the catalog/
+  it('throws when the record key disagrees with the module it registers', () => {
+    expect(() => assertOfferingRegistryInvariants({ offerings: { wrong: fixture.offering }, catalog: {} })).toThrow(
+      /registered under "wrong"/
     );
+  });
+
+  it('throws when an Offering references a share class the catalog does not know', () => {
+    expect(() =>
+      assertOfferingRegistryInvariants({
+        offerings: { [fixture.offering.shareClass.key]: fixture.offering },
+        catalog: {}
+      })
+    ).toThrow(/not in the catalog/);
   });
 
   it('throws the not-in-catalog error for a prototype-chain key, not a TypeError', () => {
     expect(() =>
       assertOfferingRegistryInvariants({
-        offerings: [{ slug: 'ghost-offering', shareClass: { key: 'toString' }, vaults: {} }],
+        offerings: { toString: { slug: 'ghost-offering', shareClass: { key: 'toString' }, vaults: {} } },
         catalog: {}
       })
     ).toThrow(/not in the catalog/);
