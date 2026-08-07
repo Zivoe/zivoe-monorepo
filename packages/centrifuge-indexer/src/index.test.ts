@@ -209,16 +209,29 @@ describe('fetchShareClassNavs', () => {
     });
   });
 
-  it('fails the whole read on duplicate rows instead of letting one silently win', async () => {
+  it('tolerates duplicate rows with identical payloads — one TokenInstance per spoke chain', async () => {
     const row = {
       address: sepolia.shareTokenAddress.toLowerCase(),
       token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
     };
     fakeIndexerResponse({ data: { tokenInstances: { items: [row, row] } } });
 
+    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).resolves.toEqual({
+      zmca: '107000000000000000000'
+    });
+  });
+
+  it('fails the whole read when duplicate rows disagree, instead of letting one silently win', async () => {
+    const row = {
+      address: sepolia.shareTokenAddress.toLowerCase(),
+      token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
+    };
+    const conflicting = { ...row, token: { ...row.token, tokenPrice: '9990000000000000000' } };
+    fakeIndexerResponse({ data: { tokenInstances: { items: [row, conflicting] } } });
+
     await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zmca'] })).rejects.toMatchObject({
       kind: 'validation',
-      message: expect.stringContaining('duplicate share-token rows')
+      message: expect.stringContaining('conflicting share-token rows')
     });
   });
 

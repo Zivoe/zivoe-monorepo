@@ -70,15 +70,30 @@ export async function fetchShareClassNavs({
     fetchOptions
   });
 
-  const tokensByAddress = new Map(data.tokenInstances.items.map((item) => [item.address.toLowerCase(), item.token]));
+  // TokenInstance is a per-chain entity and the environment shares one
+  // indexer, so a class instantiated on several spoke chains legitimately
+  // returns one row per chain — each carrying the same hub-level `token`
+  // payload. Rows are corrupt only when they disagree for one address: that
+  // fails closed instead of last-write-winning into a published AUM figure.
+  const tokensByAddress = new Map<string, (typeof data.tokenInstances.items)[number]['token']>();
 
-  // Exactly one row per address: a duplicate would silently last-write-win
-  // into a published AUM figure. (Missing rows throw below.)
-  if (data.tokenInstances.items.length !== tokensByAddress.size)
-    throw new CentrifugeIndexerError({
-      kind: 'validation',
-      message: `The indexer returned duplicate share-token rows on ${network}.`
-    });
+  for (const item of data.tokenInstances.items) {
+    const address = item.address.toLowerCase();
+    const existing = tokensByAddress.get(address);
+
+    if (
+      existing &&
+      (existing.tokenPrice !== item.token.tokenPrice ||
+        existing.totalIssuance !== item.token.totalIssuance ||
+        existing.decimals !== item.token.decimals)
+    )
+      throw new CentrifugeIndexerError({
+        kind: 'validation',
+        message: `The indexer returned conflicting share-token rows for ${address} on ${network}.`
+      });
+
+    tokensByAddress.set(address, item.token);
+  }
 
   return Object.fromEntries(
     identities.map((identity) => {
