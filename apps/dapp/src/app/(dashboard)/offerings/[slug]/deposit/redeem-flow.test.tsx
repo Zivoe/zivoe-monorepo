@@ -401,10 +401,30 @@ describe('RedeemFlow', () => {
     // Metrics are page-level, so the failure shows before any amount is typed.
     expect(screen.getByText(/Unable to estimate USDC/)).toBeTruthy();
     expect(getInput('Estimated receive').value).toBe('');
-    expect(getButton('Request redemption').disabled).toBe(true);
 
     fireEvent.click(getButton('Retry'));
     expect(mocks.metricsRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('still requests a redemption when the Share Price is unavailable', async () => {
+    // The estimate is indicative — the request settles at the price applying
+    // when it is processed — so an unreadable Share Price costs the receipt
+    // its estimate and nothing else.
+    mocks.metricsIsError = true;
+
+    renderFlow();
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(getButton('Request redemption').disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalledWith(
+      { shares: 2n * D18, estimatedAssets: undefined },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
   });
 
   it('drops back into the loading presentation while a retry is in flight', () => {
@@ -414,8 +434,10 @@ describe('RedeemFlow', () => {
     renderFlow();
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
+    // The skeleton belongs to the estimate row; the request stays offered.
     expect(screen.queryByText(/Unable to estimate USDC/)).toBeNull();
-    expect(getButton('Estimating USDC...')).toBeTruthy();
+    expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
+    expect(getButton('Request redemption').disabled).toBe(false);
   });
 
   it('renders one aggregate pending position with a cancel control that cancels the full amount', () => {

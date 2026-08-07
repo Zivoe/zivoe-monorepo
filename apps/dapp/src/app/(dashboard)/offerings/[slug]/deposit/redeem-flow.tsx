@@ -138,23 +138,24 @@ export default function RedeemFlow() {
   // escrow can use this form even when its share moves back are blocked.
   const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAllowlisted;
 
-  // Page-level failure surfaces immediately; a retry in flight shows loading
-  // rather than the stale error. A fetched Share Price of 0 (pre-first-price
-  // row or upstream glitch) also fails the estimate — a truthiness pass-through
-  // would park the submit in a permanent 'Estimating USDC...' state instead.
+  // Both states are presentation only. The estimate quotes a price that will
+  // not be the settlement price anyway — the callout below the row says as
+  // much — so it never gates the request; it only decides what the Estimated
+  // receive row shows. A retry in flight shows loading rather than the stale
+  // error, and a fetched Share Price of 0 (pre-first-price row or upstream
+  // glitch) counts as failed, so the row resolves instead of skeletoning
+  // forever.
   const isEstimateFailed = (metrics.isError || (!metrics.isPending && !sharePrice)) && !metrics.isFetching;
-  // Only manifests during an error retry — the initial metrics load already
-  // locks the whole form through isPrereqsLoading.
   const isEstimateLoading = hasRedeemRaw && !isEstimateFailed && estimatedAssets === undefined;
 
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
 
   const handleRequestRedeem = async () => {
     const isValid = await validateForm();
-    if (!isValid || isEstimateFailed || isEstimateLoading || isNotAllowlisted) return;
-    // Narrowing only — validation guarantees redeemRaw and the estimate states
-    // cover every missing-estimate case.
-    if (!redeemRaw || estimatedAssets === undefined) return;
+    if (!isValid || isNotAllowlisted) return;
+    // Narrowing only — validation guarantees redeemRaw. estimatedAssets is
+    // deliberately not required: it rides along for the receipt.
+    if (!redeemRaw) return;
 
     requestRedeem.mutate(
       { shares: redeemRaw, estimatedAssets },
@@ -393,21 +394,15 @@ export default function RedeemFlow() {
             fullWidth
             onPress={() => void handleRequestRedeem()}
             isDisabled={
-              isEstimateFailed ||
-              isNotAllowlisted ||
-              claimRedeem.isPending ||
-              cancelRedeem.isPending ||
-              claimReturnedShares.isPending
+              isNotAllowlisted || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending
             }
-            isPending={requestRedeem.isPending || isEstimateLoading}
+            isPending={requestRedeem.isPending}
             pendingContent={
-              isEstimateLoading
-                ? 'Estimating USDC...'
-                : requestRedeem.isTxPending
-                  ? 'Requesting redemption...'
-                  : requestRedeem.isPending
-                    ? 'Signing Transaction...'
-                    : undefined
+              requestRedeem.isTxPending
+                ? 'Requesting redemption...'
+                : requestRedeem.isPending
+                  ? 'Signing Transaction...'
+                  : undefined
             }
           >
             {hasPosition ? 'Add to redemption' : 'Request redemption'}

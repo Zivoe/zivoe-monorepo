@@ -91,13 +91,20 @@ export function TransactionDialog() {
             <TransactionDialogTokensSection>
               <TransactionDialogToken token={transaction.meta.redeem.share} amount={transaction.meta.redeem.amount} />
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+              {/* The USDC side is an estimate at request time, so it drops out
+                  entirely when the Share Price was unavailable — the shares
+                  submitted are the fact worth showing either way. */}
+              {transaction.meta.redeem.receive !== undefined && (
+                <>
+                  <ArrowRightIcon className="size-4 text-icon-default" />
 
-              <TransactionDialogToken
-                token={transaction.meta.redeem.asset}
-                amount={transaction.meta.redeem.receive}
-                prefix="≈ "
-              />
+                  <TransactionDialogToken
+                    token={transaction.meta.redeem.asset}
+                    amount={transaction.meta.redeem.receive}
+                    prefix="≈ "
+                  />
+                </>
+              )}
             </TransactionDialogTokensSection>
           )}
 
