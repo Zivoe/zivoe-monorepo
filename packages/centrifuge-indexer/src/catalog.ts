@@ -26,7 +26,9 @@ export type ShareClassCatalogEntry = {
  * the single source both apps derive share-class identity from. Adding a class
  * means adding an entry here (plus an Offering module in the dApp); reviews of
  * new entries must verify the values on-chain and that the pool is
- * USD-denominated.
+ * USD-denominated. Flip `deployable` only once the indexer prices the class on
+ * that network: the aggregated AUM read is fail-closed, so a live-but-unpriced
+ * entry hides the whole-book number on every surface until it is indexed.
  */
 export const SHARE_CLASS_CATALOG = {
   zmca: {
