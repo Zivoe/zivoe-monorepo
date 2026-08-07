@@ -24,7 +24,7 @@ const TOKEN_ICON_URL_BY_SYMBOL = {
   USDT: `${BASE_URL}/email-icons/usdt.png`,
   frxUSD: `${BASE_URL}/email-icons/frxusd.png`,
   zSTT: `${BASE_URL}/email-icons/zstt.png`,
-  zMCA: `${BASE_URL}/email-icons/zmca.png`
+  zSMB: `${BASE_URL}/email-icons/zsmb.png`
 } as const;
 
 export type ReceiptTokenSymbol = keyof typeof TOKEN_ICON_URL_BY_SYMBOL;

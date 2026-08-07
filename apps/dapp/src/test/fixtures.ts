@@ -2,7 +2,7 @@ import { type TransactionIdentity } from '@/centrifuge';
 
 /**
  * A synthetic share class for hook tests — deliberately distinct symbol and
- * decimals from zMCA (and never present in the production catalog or the
+ * decimals from zSMB (and never present in the production catalog or the
  * registry) so decimal-dependent math and identity plumbing cannot pass by
  * coincidence. Every hook assertion (copy, query keys, invalidations, vault
  * resolution, receipt decoding, payload snapshots) must follow this object.

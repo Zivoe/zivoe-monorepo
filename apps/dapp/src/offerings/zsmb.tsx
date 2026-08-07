@@ -1,12 +1,12 @@
-import { ZMcaLogo } from '@zivoe/ui/icons';
+import { ZSmbLogo } from '@zivoe/ui/icons';
 
 import { type Offering } from './offering';
 
-/** The Global MCA Offerings Fund — the zMCA share class. */
-export const ZMCA_OFFERING: Offering = {
-  slug: 'global-mca-offerings',
-  name: 'Global MCA Offerings Fund',
-  Logo: ZMcaLogo,
+/** Zivoe SMB Credit — the zSMB share class. */
+export const ZSMB_OFFERING: Offering = {
+  slug: 'zivoe-smb-credit',
+  name: 'Zivoe SMB Credit',
+  Logo: ZSmbLogo,
   category: 'Merchant Cash Advance',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
@@ -16,20 +16,20 @@ export const ZMCA_OFFERING: Offering = {
     'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
   ].join(', '),
   issuer: 'Zivoe',
-  shareClass: { key: 'zmca' },
+  shareClass: { key: 'zsmb' },
   vaults: {
     sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
     // NON-DEPLOYABLE PLACEHOLDER: receipt decoding against the zero address
     // silently matches nothing, so resolution throws instead.
     mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
   },
-  shareTokenDescription: 'Zivoe MCA',
+  shareTokenDescription: 'Zivoe SMB Credit',
   targetApyPercent: 14,
 
   about: [
-    'zMCA offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',
-    'zMCA is a yield-bearing token that delivers returns through price appreciation. As the underlying loan portfolio generates income and grows in value, this is reflected by a steadily increasing token price.',
-    'zMCA seeks to provide consistent, risk-adjusted yields supported by a diversified, short-duration strategy and a team with decades of experience managing credit risk.'
+    'zSMB offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',
+    'zSMB is a yield-bearing token that delivers returns through price appreciation. As the underlying loan portfolio generates income and grows in value, this is reflected by a steadily increasing token price.',
+    'zSMB seeks to provide consistent, risk-adjusted yields supported by a diversified, short-duration strategy and a team with decades of experience managing credit risk.'
   ],
 
   details: {

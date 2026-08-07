@@ -5,24 +5,24 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
-const { USDC_ADDRESS, ZMCA_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ZSMB_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
+  ZSMB_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
 }));
 
 const D18 = 10n ** 18n;
 
-// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here used the share-token address as the vault's,
 // the exact conflation the registry invariants exist to catch).
-const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
@@ -48,7 +48,7 @@ const mocks = vi.hoisted(() => ({
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
-  zMcaBalance: 10n * 10n ** 18n
+  zSmbBalance: 10n * 10n ** 18n
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -111,7 +111,7 @@ vi.mock('@/hooks/useAccount', () => ({
 }));
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: tokenAddress === ZMCA_ADDRESS ? mocks.zMcaBalance : 0n,
+    data: tokenAddress === ZSMB_ADDRESS ? mocks.zSmbBalance : 0n,
     isFetching: false,
     isPending: false
   })
@@ -217,7 +217,7 @@ describe('RedeemFlow', () => {
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
-    // 2 zMCA at a $1.07 Share Price → 2.14 USDC, in 6-decimal base units. An
+    // 2 zSMB at a $1.07 Share Price → 2.14 USDC, in 6-decimal base units. An
     // 18-decimal USD value formatted as USDC would read in the trillions.
     expect(getInput('Estimated receive').value).toBe('2.14');
 
@@ -295,7 +295,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/3\.00 zMCA\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
+    expect(screen.getByText(/3\.00 zSMB\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
     expect(getButton('Add to redemption')).toBeTruthy();
 
     fireEvent.click(getButton('Cancel request'));
@@ -320,7 +320,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/Cancelling redemption request for 3\.00 zMCA/)).toBeTruthy();
+    expect(screen.getByText(/Cancelling redemption request for 3\.00 zSMB/)).toBeTruthy();
     expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
 
@@ -334,9 +334,9 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/3\.00 zMCA\s+returned from cancellation/)).toBeTruthy();
+    expect(screen.getByText(/3\.00 zSMB\s+returned from cancellation/)).toBeTruthy();
 
-    fireEvent.click(getButton('Claim zMCA'));
+    fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 3n * D18 });
 
     // No cancellation in flight: the form stays open for a fresh request.
@@ -353,10 +353,10 @@ describe('RedeemFlow', () => {
     // The vault claims Returned Shares before USDC in one shared transaction
     // path, so the USDC button must wait its turn.
     expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('Claim your returned zMCA first.')).toBeTruthy();
-    expect(getButton('Claim zMCA').disabled).toBe(false);
+    expect(screen.getByText('Claim your returned zSMB first.')).toBeTruthy();
+    expect(getButton('Claim zSMB').disabled).toBe(false);
 
-    fireEvent.click(getButton('Claim zMCA'));
+    fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
     expect(mocks.claimRedeem).not.toHaveBeenCalled();
   });

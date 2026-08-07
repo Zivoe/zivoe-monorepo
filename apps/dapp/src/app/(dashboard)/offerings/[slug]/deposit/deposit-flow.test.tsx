@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
@@ -13,13 +13,13 @@ import { DepositFlow } from './deposit-flow';
 
 const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZMCA_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
+  ZSMB_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
   ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD'
 }));
 
-// The zMCA identity exactly as the app resolves it — no hand-rolled copy to
+// The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here carried the router address as the vault's).
-const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
 function renderFlow() {
   return render(
@@ -237,7 +237,7 @@ describe('DepositFlow', () => {
 
     expect(getInput('Estimated receive').value).toBe('');
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
-    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+    expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
   it('blocks submission while the capacity read is failing', () => {
@@ -259,7 +259,7 @@ describe('DepositFlow', () => {
     enterAmount('1');
 
     expect(getInput('Estimated receive').value).toBe('');
-    expect(screen.getByText(/Unable to estimate zMCA/)).toBeTruthy();
+    expect(screen.getByText(/Unable to estimate zSMB/)).toBeTruthy();
     expect(getButton('Approve').disabled).toBe(true);
 
     await press('Retry');
@@ -273,9 +273,9 @@ describe('DepositFlow', () => {
     renderFlow();
     enterAmount('1');
 
-    expect(screen.queryByText(/Unable to estimate zMCA/)).toBeNull();
+    expect(screen.queryByText(/Unable to estimate zSMB/)).toBeNull();
     expect(screen.getAllByText('Loading preview').length).toBeGreaterThan(0);
-    expect(getButton('Estimating zMCA...').disabled).toBe(true);
+    expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
   it('shows the price-unavailable copy and still offers a retry', () => {

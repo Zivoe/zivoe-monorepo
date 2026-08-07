@@ -21,7 +21,7 @@ import {
 interface DepositConfirmationEmailProps {
   inputAmount: string; // Formatted string, e.g., "1,000.00 USDC"
   inputTokenSymbol: ReceiptTokenSymbol;
-  sharesReceived: string; // Formatted string, e.g., "950.23 zMCA"
+  sharesReceived: string; // Formatted string, e.g., "950.23 zSMB"
   walletAddress: string;
   txHash: string;
   eventTimestamp: bigint;
@@ -45,12 +45,12 @@ export default function DepositConfirmationEmail({
     <TransactionReceiptLayout preview="Your deposit receipt is ready" unsubscribeUrl={unsubscribeUrl}>
       <Section className="mb-6 text-center" style={{ width: '100%' }}>
         <Heading className="m-0 mb-2 font-heading text-h5 text-primary">Deposit Receipt</Heading>
-        <Text className="m-0 text-regular text-secondary">zMCA has been transferred to your wallet.</Text>
+        <Text className="m-0 text-regular text-secondary">zSMB has been transferred to your wallet.</Text>
       </Section>
 
       <ReceiptTokenFlowRow
         from={{ symbol: inputTokenSymbol, value: inputAmount }}
-        to={{ symbol: 'zMCA', value: sharesReceived }}
+        to={{ symbol: 'zSMB', value: sharesReceived }}
       />
 
       <ReceiptDetailTable>

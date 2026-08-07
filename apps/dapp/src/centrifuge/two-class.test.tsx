@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { type TransactionIdentity, useDeposit } from './index';
@@ -41,10 +41,10 @@ const DEPOSIT_EVENT_ABI = parseAbi([
   'event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)'
 ]);
 
-/** The zMCA identity as the app resolves it, next to the synthetic fixture class. */
-const ZMCA_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
+/** The zSMB identity as the app resolves it, next to the synthetic fixture class. */
+const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
-const ZMCA_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
+const ZSMB_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
 const FIXTURE_AMOUNTS = { assets: 250_000000n, shares: 233_64485981n };
 
 function depositLog({ vaultAddress, assets, shares }: { vaultAddress: string; assets: bigint; shares: bigint }) {
@@ -68,7 +68,7 @@ function mixedReceipt(): TransactionReceipt {
     status: 'success',
     transactionHash: TX_HASH,
     logs: [
-      depositLog({ vaultAddress: ZMCA_IDENTITY.shareClass.vaultAddress, ...ZMCA_AMOUNTS }),
+      depositLog({ vaultAddress: ZSMB_IDENTITY.shareClass.vaultAddress, ...ZSMB_AMOUNTS }),
       depositLog({ vaultAddress: FIXTURE_IDENTITY.shareClass.vaultAddress, ...FIXTURE_AMOUNTS })
     ]
   } as unknown as TransactionReceipt;
@@ -120,20 +120,20 @@ describe('two share classes side by side', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    await runDeposit({ identity: ZMCA_IDENTITY, queryClient });
+    await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
-    expect(getVault).toHaveBeenNthCalledWith(1, ZMCA_IDENTITY.shareClass);
+    expect(getVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.shareClass);
     expect(getVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.shareClass);
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['CENTRIFUGE', 'zmca', 'VAULT_CAPACITY']),
+        JSON.stringify(['CENTRIFUGE', 'zsmb', 'VAULT_CAPACITY']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zmca']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb']),
         JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
-        JSON.stringify(['CENTRIFUGE', 'zmca', 'SHARE_METRICS']),
+        JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])
     );
@@ -147,14 +147,14 @@ describe('two share classes side by side', () => {
     const receipt = mixedReceipt();
     getVault.mockImplementation(() => Promise.resolve(fakeVault(receipt)));
 
-    const zmcaPayload = await runDeposit({ identity: ZMCA_IDENTITY, queryClient });
-    expect(zmcaPayload?.offeringSlug).toBe('global-mca-offerings');
-    expect(zmcaPayload?.description).toBe('zMCA has been transferred to your wallet.');
-    expect(zmcaPayload?.meta?.deposit).toEqual({
+    const zsmbPayload = await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
+    expect(zsmbPayload?.offeringSlug).toBe('zivoe-smb-credit');
+    expect(zsmbPayload?.description).toBe('zSMB has been transferred to your wallet.');
+    expect(zsmbPayload?.meta?.deposit).toEqual({
       asset: { symbol: 'USDC', decimals: 6 },
-      share: { symbol: 'zMCA', decimals: 18 },
-      amount: ZMCA_AMOUNTS.assets,
-      receive: ZMCA_AMOUNTS.shares
+      share: { symbol: 'zSMB', decimals: 18 },
+      amount: ZSMB_AMOUNTS.assets,
+      receive: ZSMB_AMOUNTS.shares
     });
 
     getDefaultStore().set(transactionAtom, undefined);
@@ -173,13 +173,13 @@ describe('two share classes side by side', () => {
   it('stamps each transaction with its own Offering slug on analytics', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-    await runDeposit({ identity: ZMCA_IDENTITY, queryClient });
+    await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
     const slugs = analyticsCapture.mock.calls.map(
       ([, properties]) => (properties as { offering_slug?: string }).offering_slug
     );
-    expect(slugs).toContain('global-mca-offerings');
+    expect(slugs).toContain('zivoe-smb-credit');
     expect(slugs).toContain('fixture-offering');
   });
 
@@ -219,7 +219,7 @@ describe('two share classes side by side', () => {
       ({ identity }: { identity: TransactionIdentity }) => useDeposit({ identity }),
       {
         wrapper,
-        initialProps: { identity: ZMCA_IDENTITY }
+        initialProps: { identity: ZSMB_IDENTITY }
       }
     );
 
@@ -240,19 +240,19 @@ describe('two share classes side by side', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const payload = getDefaultStore().get(transactionAtom);
-    expect(payload?.offeringSlug).toBe('global-mca-offerings');
-    expect(payload?.description).toBe('zMCA has been transferred to your wallet.');
+    expect(payload?.offeringSlug).toBe('zivoe-smb-credit');
+    expect(payload?.description).toBe('zSMB has been transferred to your wallet.');
     expect(payload?.meta?.deposit).toEqual({
       asset: { symbol: 'USDC', decimals: 6 },
-      share: { symbol: 'zMCA', decimals: 18 },
-      amount: ZMCA_AMOUNTS.assets,
-      receive: ZMCA_AMOUNTS.shares
+      share: { symbol: 'zSMB', decimals: 18 },
+      amount: ZSMB_AMOUNTS.assets,
+      receive: ZSMB_AMOUNTS.shares
     });
 
     // The invalidations are pinned the same way: they refetch the
     // mutation-time class's scope, never the re-rendered one's.
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
-    expect(invalidatedKeys.some((key) => key.includes(ZMCA_IDENTITY.shareClass.key))).toBe(true);
+    expect(invalidatedKeys.some((key) => key.includes(ZSMB_IDENTITY.shareClass.key))).toBe(true);
     expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.shareClass.key))).toBe(false);
   });
 });

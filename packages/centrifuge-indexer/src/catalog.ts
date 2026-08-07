@@ -31,8 +31,8 @@ export type ShareClassCatalogEntry = {
  * entry hides the whole-book number on every surface until it is indexed.
  */
 export const SHARE_CLASS_CATALOG = {
-  zmca: {
-    symbol: 'zMCA',
+  zsmb: {
+    symbol: 'zSMB',
     decimals: 18,
     networks: {
       sepolia: {

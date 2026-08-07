@@ -9,7 +9,7 @@ import { type TransactionIdentity } from '@/centrifuge/types';
 import { assertOfferingRegistryInvariants } from './invariants';
 import { type Offering } from './offering';
 import { ZALT_OFFERING } from './zalt';
-import { ZMCA_OFFERING } from './zmca';
+import { ZSMB_OFFERING } from './zsmb';
 
 // The identity/presentation halves and the vault shape stay internal to
 // offering.ts — they document the serialization boundary there, and no
@@ -17,7 +17,7 @@ import { ZMCA_OFFERING } from './zmca';
 export { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailLabel, type OfferingDetailValue } from './offering';
 export { offeringNetworkDisplays } from './network-display';
 export { ZALT_OFFERING } from './zalt';
-export { ZMCA_OFFERING } from './zmca';
+export { ZSMB_OFFERING } from './zsmb';
 
 /**
  * Every Offering module, keyed by its share class. `satisfies` over the
@@ -26,7 +26,7 @@ export { ZMCA_OFFERING } from './zmca';
  * without the module that gives it a card, a route, and display info.
  */
 const REGISTERED_OFFERINGS = {
-  zmca: ZMCA_OFFERING,
+  zsmb: ZSMB_OFFERING,
   zalt: ZALT_OFFERING
 } satisfies Record<ShareClassKey, Offering>;
 
