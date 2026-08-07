@@ -133,8 +133,9 @@ export type TxSharedConfig<TVariables> = {
   sentryExtras?: (vars: TVariables) => Record<string, unknown>;
   /**
    * Offering the transaction runs against — stamped onto the dialog payload
-   * (built and fallback alike), so receipts from every driver carry the same
-   * stable product identity.
+   * (built and fallback alike) and derived into the `offering` Sentry tag and
+   * `offeringSlug` extra, so every driver carries the same stable Offering
+   * identity without per-driver stamps.
    */
   offeringSlug?: string;
   /**
@@ -205,8 +206,12 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const setTransaction = useSetAtom(transactionAtom);
 
   // The extras default is resolved once here — capture sites below must not
-  // each re-implement the fallback.
-  const sentryExtras = config.sentryExtras ?? toSentryExtras;
+  // each re-implement the fallback — and the Offering identity is derived
+  // into tags/extras from the one slug field instead of per-driver stamps.
+  const resolvedExtras = config.sentryExtras ?? toSentryExtras;
+  const sentryTags = config.offeringSlug ? { offering: config.offeringSlug, ...config.sentryTags } : config.sentryTags;
+  const sentryExtras = (vars: TVariables) =>
+    config.offeringSlug ? { ...resolvedExtras(vars), offeringSlug: config.offeringSlug } : resolvedExtras(vars);
 
   const [isTxPending, setIsTxPending] = useState(false);
 
@@ -238,7 +243,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
       // failures stay distinguishable in Sentry triage.
       const captureMutationError = (error: unknown, { stage, txHash }: { stage: string; txHash?: string }) =>
         Sentry.captureException(error, {
-          tags: { source: 'MUTATION', flow: config.sentryFlow, stage, ...config.sentryTags },
+          tags: { source: 'MUTATION', flow: config.sentryFlow, stage, ...sentryTags },
           extra: { ...sentryExtras(vars), ...(txHash ? { txHash } : {}) }
         });
 
@@ -341,7 +346,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         defaultToastMsg: config.errorToast(vars),
         sentry: {
           flow: config.sentryFlow,
-          tags: config.sentryTags,
+          tags: sentryTags,
           extras: sentryExtras(vars)
         }
       });

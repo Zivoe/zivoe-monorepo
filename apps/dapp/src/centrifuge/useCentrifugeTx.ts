@@ -34,7 +34,7 @@ type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient:
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate'> & {
+export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'offeringSlug'> & {
   /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
   identity: TransactionIdentity;
   /**
@@ -80,17 +80,15 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   return useTxLifecycle({
     ...config,
 
-    // The Offering slug rides every analytics event and Sentry capture as the
-    // stable product identity, stamped here once instead of in every hook —
-    // as an indexed tag, so triage can filter and alert per Offering.
+    // The Offering slug rides every analytics event, and the lifecycle
+    // derives the Sentry tag/extra from `offeringSlug` below — the driver
+    // adds only what the lifecycle cannot know: the share-class key.
     analytics: analytics && {
       ...analytics,
       input: (vars, ctx) => ({ ...analytics.input(vars, ctx), offeringSlug: identity.offeringSlug })
     },
-    sentryTags: { ...config.sentryTags, offering: identity.offeringSlug },
     sentryExtras: (vars) => ({
       ...(config.sentryExtras ?? toSentryExtras)(vars),
-      offeringSlug: identity.offeringSlug,
       shareClassKey: identity.shareClass.key
     }),
 

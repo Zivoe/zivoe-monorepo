@@ -59,7 +59,7 @@ export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) =
     pendingToast: ({ name }) => `Approving ${name}...`,
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
-    sentryTags: { offering: offeringSlug },
+    // The lifecycle derives the `offering` Sentry tag and extra from this.
     offeringSlug,
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
