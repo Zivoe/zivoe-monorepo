@@ -171,8 +171,21 @@ export function DepositFlow() {
             label="Deposit"
             value={value ?? ''}
             onChange={(value) => onChange(parseInput(value) || undefined)}
-            errorMessage={isCapacityUnavailable ? 'Deposits are currently unavailable.' : error?.message}
-            isInvalid={isCapacityUnavailable || invalid}
+            errorMessage={
+              capacity.isError ? (
+                <>
+                  Unable to check deposit availability.{' '}
+                  <Button variant="link-alert" size="s" onPress={() => void capacity.refetch()}>
+                    Retry
+                  </Button>
+                </>
+              ) : isCapacityUnavailable ? (
+                'Deposits are currently unavailable.'
+              ) : (
+                error?.message
+              )
+            }
+            isInvalid={isCapacityUnavailable || capacity.isError || invalid}
             isDisabled={isFormLocked}
             decimalPlaces={USDC.decimals}
             subContent={

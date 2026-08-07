@@ -179,6 +179,18 @@ export default function RedeemFlow() {
 
   return (
     <>
+      {isPositionUnavailable && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
+          <p className="text-regular text-primary">
+            Unable to load your redemption position — pending and claimable amounts may not be shown.
+          </p>
+
+          <Button variant="link-alert" size="s" onPress={() => void position.refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {returnedShares > 0n && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
