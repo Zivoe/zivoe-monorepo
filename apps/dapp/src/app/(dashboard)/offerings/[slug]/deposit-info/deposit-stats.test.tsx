@@ -10,12 +10,7 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null })
 vi.mock('@/components/info-section', () => ({
   default: ({ children }: { children: ReactNode }) => <section>{children}</section>
 }));
-vi.mock('@zivoe/ui/icons', () => ({
-  BankIcon: () => null,
-  ChartIcon: () => null,
-  MoneyIcon: () => null,
-  TrendingIcon: () => null
-}));
+vi.mock('@zivoe/ui/icons', () => import('@/test/icon-mocks'));
 
 describe('DepositStats', () => {
   afterEach(cleanup);
