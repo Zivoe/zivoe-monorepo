@@ -280,9 +280,11 @@ export default function RedeemFlow() {
             decimalPlaces={share.decimals}
             subContent={
               <InputExtraInfo
-                decimals={share.decimals}
+                // sharesToValueD18 is 18-decimal whatever the share token's own
+                // decimals are; only the balance renders at the token's scale.
+                decimals={18}
                 dollarValue={redeemDollarValue}
-                balance={{ value: shareBalance.data, isPending: shareBalance.isPending }}
+                balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
               />
             }
             endContent={

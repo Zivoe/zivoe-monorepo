@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ZMCA_OFFERING, resolveTransactionIdentity } from '@/offerings';
 
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
+
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
@@ -23,9 +25,9 @@ const D18 = 10n ** 18n;
 // the exact conflation the registry invariants exist to catch).
 const TEST_IDENTITY = resolveTransactionIdentity(ZMCA_OFFERING);
 
-function renderFlow() {
+function renderFlow(identity = TEST_IDENTITY) {
   return render(
-    <OfferingIdentityProvider identity={TEST_IDENTITY}>
+    <OfferingIdentityProvider identity={identity}>
       <EarnDialogProvider>
         <RedeemFlow />
       </EarnDialogProvider>
@@ -57,11 +59,26 @@ vi.mock('@/centrifuge', () => ({
     chainId: 11155111,
     usdc: { address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }
   },
-  // Mirrors the module's unit math for the mocked 18/6 decimals above.
-  sharesToUsdc: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
-    (shares * sharePrice) / 10n ** 18n / 10n ** 12n,
-  sharesToValueD18: ({ shares, sharePrice }: { shares: bigint; sharePrice: bigint }) =>
-    (shares * sharePrice) / 10n ** 18n,
+  // Mirrors the module's real unit math, including the share class's own
+  // decimals — hardcoding 18 here once hid a scaling bug from this suite.
+  sharesToUsdc: ({
+    shares,
+    sharePrice,
+    shareClass
+  }: {
+    shares: bigint;
+    sharePrice: bigint;
+    shareClass: { decimals: number };
+  }) => (shares * sharePrice) / 10n ** BigInt(shareClass.decimals) / 10n ** 12n,
+  sharesToValueD18: ({
+    shares,
+    sharePrice,
+    shareClass
+  }: {
+    shares: bigint;
+    sharePrice: bigint;
+    shareClass: { decimals: number };
+  }) => (shares * sharePrice) / 10n ** BigInt(shareClass.decimals),
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
@@ -99,7 +116,8 @@ vi.mock('@/hooks/useBalance', () => ({
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => ({ isFetching: false }) }));
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
-vi.mock('./_components/input-extra-info', () => ({ InputExtraInfo: () => null }));
+// InputExtraInfo stays real: the dollar line's decimal scaling is exactly what
+// this suite must be able to catch.
 vi.mock('./_components/max-button', () => ({
   MaxButton: ({ balance, decimals, onPress }: { balance: bigint; decimals: number; onPress: (v: string) => void }) => (
     <button type="button" onClick={() => onPress(formatUnits(balance, decimals))}>
@@ -219,6 +237,17 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('2');
     act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Redeem').value).toBe('');
+  });
+
+  it('scales the dollar value independently of the share token decimals', () => {
+    // The 8-decimals fixture: 2 shares at a $1.07 Share Price is ≈ $2.14 on
+    // both rows. Formatting the redeem row's 18-decimal dollar value with the
+    // share token's 8 decimals instead would read ≈ $21,400,000,000.140.
+    renderFlow(FIXTURE_IDENTITY);
+
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+
+    expect(screen.getAllByText('≈ $2.140')).toHaveLength(2);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', () => {
