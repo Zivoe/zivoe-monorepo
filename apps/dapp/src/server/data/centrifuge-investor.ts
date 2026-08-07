@@ -7,8 +7,7 @@ import {
   type ResultOf,
   fetchCentrifugeIndexer,
   getShareClassIdentity,
-  graphql,
-  listShareClassKeys
+  graphql
 } from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
@@ -31,15 +30,21 @@ const anyInvestorTransactionSchema = z.object({
  * nagged, deposited-then-redeemed users stay suppressed, and an investor in
  * any Offering is never nagged to deposit into a platform they already use.
  */
-export async function hasAnyInvestorTransaction({ addresses }: { addresses: Array<string> }): Promise<boolean> {
+export async function hasAnyInvestorTransaction({
+  shareClassKeys,
+  addresses
+}: {
+  /** The live book, resolved AND guarded by the caller — an empty book cannot answer this question. */
+  shareClassKeys: Array<string>;
+  addresses: Array<string>;
+}): Promise<boolean> {
   if (addresses.length === 0) return false;
 
   const network = env.NEXT_PUBLIC_NETWORK;
-  const identities = listShareClassKeys(network).map((key) => getShareClassIdentity({ network, key }));
+  const identities = shareClassKeys.map((key) => getShareClassIdentity({ network, key }));
 
-  // An empty book cannot answer this question — `false` would read as "never
-  // invested" and re-arm every nag downstream. Callers must guard the empty
-  // book themselves (the deposit-reminder route does, before calling).
+  // Defense in depth behind the parameter: `false` would read as "never
+  // invested" and re-arm every nag downstream.
   if (identities.length === 0)
     throw new Error(`No live share class on "${network}" — investor activity is unknowable, not absent.`);
 

@@ -37,12 +37,18 @@ const handler = async (req: NextRequest) => {
   // No live share class means nothing to deposit into: skip the reminder
   // outright — nagging during an empty-book cutover window is wrong, and the
   // old behavior (an investor-activity read that threw) just made QStash
-  // retry a send that must not happen.
-  if (listShareClassKeys(env.NEXT_PUBLIC_NETWORK).length === 0) {
-    // Mirrors the profile-not-found branch below: this skip silently ends the
-    // user's funnel (reminder 2 is only scheduled from a delivered reminder
-    // 1), so it must at least be visible in Sentry.
-    Sentry.captureException(new Error('Deposit reminder email skipped: no live share class'), {
+  // retry a send that must not happen. Resolved once: the same keys feed the
+  // investor-activity read below, which cannot answer for an empty book.
+  const liveShareClassKeys = listShareClassKeys(env.NEXT_PUBLIC_NETWORK);
+
+  if (liveShareClassKeys.length === 0) {
+    // This skip silently ends the user's funnel (reminder 2 is only scheduled
+    // from a delivered reminder 1), so it must be visible — as a warning, not
+    // an exception: the condition is a global operator state that fires once
+    // per queued reminder, and grouping per-user errors would track queue
+    // depth, not the fault.
+    Sentry.captureMessage('Deposit reminder email skipped: no live share class', {
+      level: 'warning',
       tags: { source: 'API', flow: 'deposit-reminder-email' },
       extra: { userId, reminderNumber }
     });
@@ -62,7 +68,10 @@ const handler = async (req: NextRequest) => {
   }
 
   const wallets = await getWalletAddressesForUser(userId);
-  const hasInvestorActivity = await hasAnyInvestorTransaction({ addresses: wallets });
+  const hasInvestorActivity = await hasAnyInvestorTransaction({
+    shareClassKeys: liveShareClassKeys,
+    addresses: wallets
+  });
   if (hasInvestorActivity)
     return NextResponse.json({ success: true, data: 'User already has investor activity, skipping reminder' });
 

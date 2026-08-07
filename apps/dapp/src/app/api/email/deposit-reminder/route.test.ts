@@ -5,7 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
-vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+
+const captureMessage = vi.hoisted(() => vi.fn());
+vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn(), captureMessage }));
+
+// The real package everywhere except the live-book listing, so the empty-book
+// cutover window is testable without inventing a synthetic catalog.
+const emptyBook = vi.hoisted(() => ({ value: false }));
+vi.mock('@zivoe/centrifuge-indexer', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@zivoe/centrifuge-indexer')>();
+  return {
+    ...original,
+    listShareClassKeys: (...args: Parameters<typeof original.listShareClassKeys>) =>
+      emptyBook.value ? [] : original.listShareClassKeys(...args)
+  };
+});
 vi.mock('@/lib/qstash', () => ({
   withQstashSignature: (handler: unknown) => handler,
   getQstashFailureCallback: () => 'http://localhost/api/qstash/failure',
@@ -37,6 +51,7 @@ let indexerAccountsSeen: Array<string> | undefined;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  emptyBook.value = false;
   investorTransactionCount = 0;
   indexerAccountsSeen = undefined;
 
@@ -108,6 +123,20 @@ describe('POST /api/email/deposit-reminder', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true, data: 'Reminder 1 email sent' });
     expect(sendFirstDepositReminderEmail).toHaveBeenCalledOnce();
+  });
+
+  it('skips with a visible warning while no share class is live, without touching the indexer', async () => {
+    emptyBook.value = true;
+
+    const res = await POST(reminderRequest());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, data: 'No live share class, skipping reminder' });
+    expect(sendFirstDepositReminderEmail).not.toHaveBeenCalled();
+    expect(indexerAccountsSeen).toBeUndefined();
+    expect(captureMessage).toHaveBeenCalledWith(
+      'Deposit reminder email skipped: no live share class',
+      expect.objectContaining({ level: 'warning' })
+    );
   });
 
   it('sends the reminder without querying the indexer when the user has no wallets', async () => {
