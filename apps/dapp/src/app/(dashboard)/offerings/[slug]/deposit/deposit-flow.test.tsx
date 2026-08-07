@@ -36,7 +36,6 @@ const mocks = vi.hoisted(() => ({
   approve: vi.fn(),
   capacity: 5_000000n,
   capacityIsError: false,
-  capacityRefetch: vi.fn(),
   deposit: vi.fn(),
   isDebouncing: false,
   previewError: undefined as string | undefined,
@@ -66,22 +65,8 @@ vi.mock('@/centrifuge', () => ({
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
   useVaultCapacity: () =>
     mocks.capacityIsError
-      ? {
-          data: undefined,
-          isError: true,
-          isFetching: false,
-          isPending: false,
-          isSuccess: false,
-          refetch: mocks.capacityRefetch
-        }
-      : {
-          data: { maxDeposit: mocks.capacity },
-          isError: false,
-          isFetching: false,
-          isPending: false,
-          isSuccess: true,
-          refetch: mocks.capacityRefetch
-        }
+      ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
+      : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
 }));
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
@@ -255,21 +240,17 @@ describe('DepositFlow', () => {
     expect(getButton('Estimating zMCA...').disabled).toBe(true);
   });
 
-  it('blocks submission while the capacity read is failing, with a visible retry', () => {
+  it('blocks submission while the capacity read is failing', () => {
     // A failed capacity read is how a misconfigured vault surfaces — the
     // submit would only re-run the same failure inside the mutation. The
-    // block must never be a silent dead button: the read is sticky (retry: 1,
-    // no focus refetch), so the user needs the reason and a way out.
+    // query-cache toast is the user-facing signal, and the capacity interval
+    // recovers the form.
     mocks.capacityIsError = true;
 
     renderFlow();
     fireEvent.change(getInput('Deposit'), { target: { value: '1' } });
 
     expect(getButton('Approve').disabled).toBe(true);
-    expect(screen.getByText(/Unable to check deposit availability/)).toBeTruthy();
-
-    fireEvent.click(getButton('Retry'));
-    expect(mocks.capacityRefetch).toHaveBeenCalledTimes(1);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {

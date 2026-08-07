@@ -45,7 +45,6 @@ const mocks = vi.hoisted(() => ({
   metricsRefetch: vi.fn(),
   pendingShares: 0n,
   positionIsError: false,
-  positionRefetch: vi.fn(),
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
@@ -86,7 +85,6 @@ vi.mock('@/centrifuge', () => ({
   useRedemptionPosition: () => ({
     isError: mocks.positionIsError,
     isFetching: false,
-    refetch: mocks.positionRefetch,
     data: mocks.positionIsError
       ? undefined
       : {
@@ -245,19 +243,15 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('');
   });
 
-  it('blocks a new request while the position read is failing, with a visible retry', () => {
+  it('blocks a new request while the position read is failing', () => {
     // A failed read renders like "no position"; requesting on top of state we
-    // cannot see must not be offered — and the zeros must not be silent, so
-    // the failure renders its own strip with a way out.
+    // cannot see must not be offered. The query-cache toast is the signal,
+    // and the hook's error-state polling recovers the form.
     mocks.positionIsError = true;
 
     renderFlow();
 
     expect(getButton('Request redemption').disabled).toBe(true);
-    expect(screen.getByText(/Unable to load your redemption position/)).toBeTruthy();
-
-    fireEvent.click(getButton('Retry'));
-    expect(mocks.positionRefetch).toHaveBeenCalledTimes(1);
   });
 
   it('scales the dollar value independently of the share token decimals', () => {

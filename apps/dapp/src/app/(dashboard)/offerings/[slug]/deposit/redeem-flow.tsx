@@ -129,7 +129,9 @@ export default function RedeemFlow() {
 
   // A failed position read renders like "no position" (the ?? 0n fallbacks
   // above), so a new request must not be offered on top of state we cannot
-  // see — the read failing is also how a misconfigured vault surfaces.
+  // see — the read failing is also how a misconfigured vault surfaces. The
+  // query-cache toast is the user-facing signal, and the hook polls its
+  // error state so the form recovers without a reload.
   const isPositionUnavailable = position.isError;
 
   const validateForm = () => form.trigger('redeem', { shouldFocus: true });
@@ -179,18 +181,6 @@ export default function RedeemFlow() {
 
   return (
     <>
-      {isPositionUnavailable && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
-          <p className="text-regular text-primary">
-            Unable to load your redemption position — pending and claimable amounts may not be shown.
-          </p>
-
-          <Button variant="link-alert" size="s" onPress={() => void position.refetch()}>
-            Retry
-          </Button>
-        </div>
-      )}
-
       {returnedShares > 0n && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
