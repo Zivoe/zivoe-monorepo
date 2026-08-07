@@ -5,8 +5,6 @@ import { type Address } from 'viem';
 import { type CentrifugeNetwork, type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
-import { type ShareToken } from '@/types/constants';
-
 /**
  * The fixed Details row set every Offering must fill, in render order.
  * Products stay comparable line by line because the labels never vary per
@@ -30,6 +28,17 @@ export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
 /** A Details row value: plain text, or an external link the section styles itself. */
 export type OfferingDetailValue = string | { href: string; label: string };
 
+/** The vault instantiating the share class for USDC on one network. */
+export type OfferingVault = {
+  address: Address;
+  /**
+   * False while the address is a placeholder for a network the launch is
+   * staged on — resolving it throws rather than decoding receipts against
+   * the zero address (which silently matches nothing).
+   */
+  deployable: boolean;
+};
+
 /**
  * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
  *
@@ -45,26 +54,19 @@ export type OfferingDetailValue = string | { href: string; label: string };
  * server-rendered and may hold components and rich content. Component and
  * function fields must never cross into the identity half.
  */
-/** The vault instantiating the share class for USDC on one network. */
-export type OfferingVault = {
-  address: Address;
-  /**
-   * False while the address is a placeholder for a network the launch is
-   * staged on — resolving it throws rather than decoding receipts against
-   * the zero address (which silently matches nothing).
-   */
-  deployable: boolean;
-};
-
 export type OfferingIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
   name: string;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
-    /** Catalog key — the share-class dimension of caches, query keys and vault resolution. */
+    /**
+     * Catalog key — the share-class dimension of caches, query keys and vault
+     * resolution. Symbol, decimals and on-chain ids are always read off the
+     * catalog by this key, never re-declared here, so a module cannot drift
+     * from the class it references.
+     */
     key: ShareClassKey;
-    symbol: ShareToken;
   };
   /**
    * dApp-only identity: the vault per network this Offering claims —

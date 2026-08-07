@@ -1,3 +1,4 @@
+import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
 import { UsdcIcon } from '@zivoe/ui/icons';
 
 import { type DepositToken, type ShareToken } from '@/types/constants';
@@ -14,15 +15,16 @@ const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
   }
 };
 
-// One display entry per registered share token, derived from the Offering
-// modules. Partial on purpose: OFFERINGS is filtered to the active network, so
-// a catalogued class not live here has no entry — share-symbol lookups must
-// stay null-safe (getTokenInfo) rather than assume catalog-wide completeness.
+// One display entry per registered share token, keyed by the CATALOG's symbol
+// — the same source payload snapshots carry, so a lookup cannot miss. Partial
+// on purpose: OFFERINGS is filtered to the active network, so a catalogued
+// class not live here has no entry — share-symbol lookups must stay null-safe
+// (getTokenInfo) rather than assume catalog-wide completeness.
 const SHARE_TOKEN_INFO: Partial<Record<ShareToken, TokenInfo>> = Object.fromEntries(
-  OFFERINGS.map((offering) => [
-    offering.shareClass.symbol,
-    { label: offering.shareClass.symbol, description: offering.shareTokenDescription, icon: <offering.Logo /> }
-  ])
+  OFFERINGS.map((offering) => {
+    const symbol = SHARE_CLASS_CATALOG[offering.shareClass.key].symbol;
+    return [symbol, { label: symbol, description: offering.shareTokenDescription, icon: <offering.Logo /> }];
+  })
 );
 
 export const TOKEN_INFO: Record<DepositToken, TokenInfo> & Partial<Record<ShareToken, TokenInfo>> = {

@@ -5,13 +5,14 @@ import { type CentrifugeNetwork, SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-i
 // against synthetic classes the catalog deliberately does not know.
 type RegisteredOffering = {
   slug: string;
-  shareClass: { key: string; symbol: string };
+  shareClass: { key: string };
   vaults: Partial<Record<CentrifugeNetwork, { address: string; deployable: boolean }>>;
 };
 
 type CatalogEntries = Record<
   string,
   {
+    symbol: string;
     networks: Partial<
       Record<CentrifugeNetwork, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -47,10 +48,14 @@ export function assertOfferingRegistryInvariants({
     message: (key) => `Share class "${key}" is registered by two Offerings.`
   });
   // Symbols key the token display map — two classes sharing one would render
-  // one product's token as the other's.
+  // one product's token as the other's. Read off the catalog: modules carry no
+  // symbol of their own to drift.
   assertUnique({
-    values: offerings.map((offering) => offering.shareClass.symbol),
-    message: (symbol) => `Share token symbol "${symbol}" is claimed by two Offerings.`
+    values: offerings.flatMap((offering) => {
+      const entry = catalog[offering.shareClass.key];
+      return entry ? [entry.symbol] : [];
+    }),
+    message: (symbol) => `Share token symbol "${symbol}" is claimed by two share classes.`
   });
 
   for (const offering of offerings) {

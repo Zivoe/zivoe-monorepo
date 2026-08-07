@@ -1,4 +1,3 @@
-import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
 import { ZMcaLogo } from '@zivoe/ui/icons';
 
 import { type Offering } from './offering';
@@ -17,9 +16,7 @@ export const ZMCA_OFFERING: Offering = {
     'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
   ].join(', '),
   issuer: 'Zivoe',
-  // Symbol read off the catalog so the module cannot drift from the share
-  // class it references.
-  shareClass: { key: 'zmca', symbol: SHARE_CLASS_CATALOG.zmca.symbol },
+  shareClass: { key: 'zmca' },
   vaults: {
     sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
     // NON-DEPLOYABLE PLACEHOLDER: receipt decoding against the zero address

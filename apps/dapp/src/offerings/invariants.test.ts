@@ -14,10 +14,11 @@ type NetworkName = 'sepolia' | 'mainnet';
 type Registration = {
   offering: {
     slug: string;
-    shareClass: { key: string; symbol: string };
+    shareClass: { key: string };
     vaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
   };
   catalogEntry: {
+    symbol: string;
     networks: Partial<
       Record<NetworkName, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -43,10 +44,11 @@ function makeRegistration({
   return {
     offering: {
       slug,
-      shareClass: { key, symbol },
+      shareClass: { key },
       vaults: { sepolia: { address: vaultAddress, deployable: true } }
     },
     catalogEntry: {
+      symbol,
       networks: { sepolia: { poolId: '77', scId, shareTokenAddress, deployable: true } }
     }
   };
@@ -86,6 +88,7 @@ describe('assertOfferingRegistryInvariants', () => {
         vaults: { ...registration.offering.vaults, mainnet: { address: ZERO_ADDRESS, deployable: false } }
       },
       catalogEntry: {
+        ...registration.catalogEntry,
         networks: {
           ...registration.catalogEntry.networks,
           mainnet: { poolId: '0', scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS, deployable: false }
@@ -106,6 +109,7 @@ describe('assertOfferingRegistryInvariants', () => {
         }
       },
       catalogEntry: {
+        ...other.catalogEntry,
         networks: {
           ...other.catalogEntry.networks,
           mainnet: {
@@ -130,7 +134,7 @@ describe('assertOfferingRegistryInvariants', () => {
   it('throws when two Offerings register the same share class', () => {
     const duplicate: Registration = {
       ...other,
-      offering: { ...other.offering, shareClass: { ...other.offering.shareClass, key: FIXTURE_SHARE_CLASS.key } }
+      offering: { ...other.offering, shareClass: { key: FIXTURE_SHARE_CLASS.key } }
     };
 
     expect(() =>
@@ -141,19 +145,16 @@ describe('assertOfferingRegistryInvariants', () => {
     ).toThrow(/registered by two Offerings/);
   });
 
-  it('throws when two Offerings share a token symbol', () => {
+  it('throws when two catalog entries share a token symbol', () => {
     expect(() =>
       assertRegistry([
         fixture,
         {
           ...other,
-          offering: {
-            ...other.offering,
-            shareClass: { ...other.offering.shareClass, symbol: FIXTURE_SHARE_CLASS.symbol }
-          }
+          catalogEntry: { ...other.catalogEntry, symbol: FIXTURE_SHARE_CLASS.symbol }
         }
       ])
-    ).toThrow(/symbol .* is claimed by two Offerings/);
+    ).toThrow(/symbol .* is claimed by two share classes/);
   });
 
   it('throws when an Offering references a share class the catalog does not know', () => {
@@ -171,7 +172,7 @@ describe('assertOfferingRegistryInvariants', () => {
 
     const vaultOnly: Registration = {
       ...other,
-      catalogEntry: { networks: {} }
+      catalogEntry: { ...other.catalogEntry, networks: {} }
     };
     expect(() => assertRegistry([vaultOnly])).toThrow(/claims "sepolia" in its vaults but not the catalog/);
   });
@@ -191,6 +192,7 @@ describe('assertOfferingRegistryInvariants', () => {
     const vaultLiveCatalogStaged: Registration = {
       ...other,
       catalogEntry: {
+        ...other.catalogEntry,
         networks: { sepolia: { ...other.catalogEntry.networks.sepolia!, deployable: false } }
       }
     };
@@ -201,6 +203,7 @@ describe('assertOfferingRegistryInvariants', () => {
     const flippedCatalog: Registration = {
       ...other,
       catalogEntry: {
+        ...other.catalogEntry,
         networks: { sepolia: { poolId: '0', scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS, deployable: true } }
       }
     };
@@ -228,6 +231,7 @@ describe('assertOfferingRegistryInvariants', () => {
         }
       },
       catalogEntry: {
+        ...registration.catalogEntry,
         networks: {
           ...registration.catalogEntry.networks,
           mainnet: {
@@ -253,6 +257,7 @@ describe('assertOfferingRegistryInvariants', () => {
         {
           ...other,
           catalogEntry: {
+            ...other.catalogEntry,
             networks: {
               sepolia: {
                 poolId: '77',
