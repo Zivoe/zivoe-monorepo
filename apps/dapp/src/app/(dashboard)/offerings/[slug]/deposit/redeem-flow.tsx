@@ -145,10 +145,10 @@ export default function RedeemFlow() {
   const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAllowlisted;
 
   // Named once, like the deposit tab's, so the button and its handler cannot
-  // drift apart. A sibling mutation blocks because all four share one write
-  // path — the request waits its turn rather than colliding.
-  const isSubmitBlocked =
-    isNotAllowlisted || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
+  // drift apart. Only a sibling write gates the action; the settled facts above
+  // are enforced one level up, where the ladder swaps this button for a named
+  // one — repeating them here would describe states this gate never sees.
+  const isSubmitBlocked = isOtherMutationPending(requestRedeem.isPending);
 
   // Both states are presentation only, and both are scoped to an entered amount
   // to match the deposit tab. The estimate quotes a price that will not be the

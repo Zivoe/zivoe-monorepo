@@ -143,8 +143,10 @@ export function DepositFlow() {
     isCapacityUnavailable ||
     isNotAllowlisted;
 
-  const isSubmitBlocked =
-    isPreviewLoading || isPreviewFailed || isCapacityUnavailable || isDepositsClosed || isNotAllowlisted;
+  // Only the quote gates the action. The settled facts above are enforced one
+  // level up, where the ladder swaps this button for a named one — repeating
+  // them here would describe states this gate never sees.
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
@@ -317,7 +319,7 @@ export function DepositFlow() {
             <Button
               fullWidth
               onPress={() => void handleDeposit()}
-              isDisabled={hasDepositRaw && isSubmitBlocked}
+              isDisabled={isSubmitBlocked}
               isPending={depositMutation.isPending || isPreviewLoading}
               pendingContent={
                 isPreviewLoading
