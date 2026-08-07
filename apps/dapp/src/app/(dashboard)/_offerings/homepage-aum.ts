@@ -16,7 +16,7 @@ export type HomepageAum = {
  * fail-closed — a partial or empty book renders as unavailable, never as a
  * partial sum or $0 — but when the aggregated read fails, each card falls
  * back to its own per-class metrics read, so one unpriced class cannot blank
- * every other product's AUM.
+ * every other Offering's AUM.
  */
 export async function getHomepageAum(): Promise<HomepageAum> {
   const navs = await getShareClassNavs();

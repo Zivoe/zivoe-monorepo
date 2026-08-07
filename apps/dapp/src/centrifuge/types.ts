@@ -19,7 +19,7 @@ export type TransactedShareClass = {
 
 /** Identity a Transaction Hook stamps on copy, analytics, Sentry, and the payload. */
 export type TransactionIdentity = {
-  /** Offering slug — the stable product identity alongside token symbols. */
+  /** Offering slug — the stable public identity alongside token symbols. */
   offeringSlug: string;
   shareClass: TransactedShareClass;
 };

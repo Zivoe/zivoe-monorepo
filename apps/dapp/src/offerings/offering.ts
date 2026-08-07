@@ -92,7 +92,7 @@ export type OfferingPresentation = {
   issuer: string;
   /** Share-token subtitle for token display maps and pickers. */
   shareTokenDescription: string;
-  /** Published Target APY, in percent — product data until the trailing-yield read returns. */
+  /** Published Target APY, in percent — authored data until the trailing-yield read returns. */
   targetApyPercent: number;
   /** About-section paragraphs, in render order — rich text with links allowed. */
   about: Array<ReactNode>;

@@ -25,7 +25,7 @@ type ApproveSpendingVariables = {
 
 /**
  * The approval itself is deliberately cross-Offering (one router spender), but
- * the deposit funnel segments per product — the initiating Offering's slug is
+ * the deposit funnel segments per Offering — the initiating Offering's slug is
  * hook-level identity so analytics AND Sentry captures carry it, same as
  * useCentrifugeTx tags every transaction of the flows behind it.
  */

@@ -86,7 +86,7 @@ const ZERO_HEX = /^0x0+$/i;
 /**
  * Import-time invariants over the catalog itself, checked wherever the catalog
  * is imported — both apps, so a landing-only build is guarded too. Two entries
- * sharing an on-chain identity would serve one product's data under the
+ * sharing an on-chain identity would serve one share class's data under the
  * other's name (and the aggregated nav read would double-count the class);
  * two sharing a symbol would collide in every token display map. Placeholder
  * zeros are excluded: staged launches legitimately share them. Swept across
@@ -96,7 +96,7 @@ const ZERO_HEX = /^0x0+$/i;
 export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_CLASS_CATALOG): void {
   const entries = Object.values(catalog);
 
-  // Lowercased: two symbols differing only in case would read as one product
+  // Lowercased: two symbols differing only in case would read as one share class
   // to a user while keying two display-map entries.
   assertUnique({
     values: entries.map((entry) => entry.symbol.toLowerCase()),

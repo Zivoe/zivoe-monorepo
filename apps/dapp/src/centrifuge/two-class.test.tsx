@@ -232,8 +232,10 @@ describe('two share classes side by side', () => {
     // payload must still carry the identity handed at mutation time.
     rerender({ identity: FIXTURE_IDENTITY });
 
+    if (!confirm) throw new Error('The transaction never reached its confirm step');
+    const confirmTransaction = confirm;
     await act(async () => {
-      confirm!();
+      confirmTransaction();
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

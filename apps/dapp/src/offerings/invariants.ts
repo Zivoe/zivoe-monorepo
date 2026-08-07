@@ -43,7 +43,7 @@ export function assertOfferingRegistryInvariants({
   catalog?: CatalogEntries;
 }): void {
   // Lowercased like the on-chain identities: two slugs or keys differing only
-  // in case would register as two products that read identically to a user,
+  // in case would register as two Offerings that read identically to a user,
   // while exact-match routing leaves one of them unreachable.
   assertUnique({
     values: offerings.map((offering) => offering.slug.toLowerCase()),

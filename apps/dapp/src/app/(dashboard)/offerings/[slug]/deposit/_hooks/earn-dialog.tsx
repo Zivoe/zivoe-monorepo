@@ -17,7 +17,7 @@ const EarnDialogContext = createContext<EarnDialogState | null>(null);
 /**
  * The mobile Earn dialog's open state, owned by the Offering page tree — which
  * the route keys by slug, so navigating to another Offering unmounts the state
- * instead of resetting it. A dialog opened on one product can never linger
+ * instead of resetting it. A dialog opened on one Offering can never linger
  * onto another, and nothing races the `?view=` deep-link auto-open the way a
  * global-atom reset effect would.
  */
