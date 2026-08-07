@@ -147,7 +147,10 @@ export type ShareClassIdentity = {
 };
 
 function isShareClassKey(key: string): key is ShareClassKey {
-  return key in SHARE_CLASS_CATALOG;
+  // Object.hasOwn, not `in`: ids arrive as arbitrary strings, and a
+  // prototype-chain key like "toString" must fail the guard, not pass it and
+  // die dereferencing a function's `networks`.
+  return Object.hasOwn(SHARE_CLASS_CATALOG, key);
 }
 
 /**

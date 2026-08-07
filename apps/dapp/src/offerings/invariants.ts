@@ -51,7 +51,9 @@ export function assertOfferingRegistryInvariants({
   });
 
   for (const offering of offerings) {
-    const entry = catalog[offering.shareClass.key];
+    // Object.hasOwn: a prototype-chain key like "toString" is truthy under a
+    // plain index and would skip the not-in-catalog throw.
+    const entry = Object.hasOwn(catalog, offering.shareClass.key) ? catalog[offering.shareClass.key] : undefined;
     if (!entry)
       throw new Error(
         `Offering "${offering.slug}" references share class "${offering.shareClass.key}" not in the catalog.`

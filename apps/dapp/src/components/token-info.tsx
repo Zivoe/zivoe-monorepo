@@ -41,5 +41,7 @@ const TOKEN_INFO_BY_SYMBOL: Record<string, TokenInfo | undefined> = { ...TOKEN_I
  * Undefined for symbols no registered Offering carries.
  */
 export function getTokenInfo(symbol: string): TokenInfo | undefined {
-  return TOKEN_INFO_BY_SYMBOL[symbol];
+  // Object.hasOwn: the symbol is an arbitrary runtime string, and a
+  // prototype-chain key like "toString" would otherwise return a function.
+  return Object.hasOwn(TOKEN_INFO_BY_SYMBOL, symbol) ? TOKEN_INFO_BY_SYMBOL[symbol] : undefined;
 }

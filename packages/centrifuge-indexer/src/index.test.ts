@@ -57,6 +57,12 @@ describe('share-class catalog', () => {
     expect(() => getShareClassIdentity({ network: 'mainnet', key: 'zmca' })).toThrow(/non-deployable placeholder/);
   });
 
+  it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
+    for (const key of ['toString', '__proto__', 'constructor']) {
+      expect(() => getShareClassIdentity({ network: 'sepolia', key })).toThrow(/not in the catalog/);
+    }
+  });
+
   it('lists only live share classes and networks', () => {
     // Synthetic catalog on purpose: enumerating the real book here made
     // registering a share class break this file (it happened once).

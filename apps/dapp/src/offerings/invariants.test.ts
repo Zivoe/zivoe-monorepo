@@ -154,6 +154,15 @@ describe('assertOfferingRegistryInvariants', () => {
     );
   });
 
+  it('throws the not-in-catalog error for a prototype-chain key, not a TypeError', () => {
+    expect(() =>
+      assertOfferingRegistryInvariants({
+        offerings: [{ slug: 'ghost-offering', shareClass: { key: 'toString' }, vaults: {} }],
+        catalog: {}
+      })
+    ).toThrow(/not in the catalog/);
+  });
+
   it('throws on a half-claimed network, in both directions', () => {
     const catalogOnly: Registration = {
       ...other,
