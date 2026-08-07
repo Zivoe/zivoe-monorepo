@@ -94,6 +94,14 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       shareClassKey: identity.shareClass.key
     }),
 
+    // The payload carries the same slug — stamped here rather than repeated
+    // in every hook's transactionData branches. (The lifecycle's minimal
+    // fallback payload skips it; its Sentry capture is tagged instead.)
+    transactionData: (receipt, vars) => ({
+      ...config.transactionData(receipt, vars),
+      offeringSlug: identity.offeringSlug
+    }),
+
     // Every Centrifuge transaction moves share-class-scoped state, so the
     // driver owns the invalidation — stamped once here (like the slug above)
     // instead of copy-pasted into every hook; hooks add flow extras only.

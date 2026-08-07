@@ -8,6 +8,7 @@ export type DepositToken = (typeof DEPOSIT_TOKENS)[number];
 /** Every catalogued share token symbol — grows with the catalog, never by hand. */
 export type ShareToken = ShareClassSymbol;
 
+/** Any token the product displays — deposit assets and share tokens (the portfolio lists both). */
 export type Token = DepositToken | ShareToken;
 
 export const LINKS = {

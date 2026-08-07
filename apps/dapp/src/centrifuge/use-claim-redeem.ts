@@ -107,8 +107,7 @@ export function useClaimRedeem({
           type: 'ERROR',
           title: copy.failure.title,
           description: copy.failure.description,
-          hash: receipt.transactionHash,
-          offeringSlug: identity.offeringSlug
+          hash: receipt.transactionHash
         };
 
       const decoded = decodeClaimRedeemReceipt({ receipt, vaultAddress: shareClass.vaultAddress });
@@ -117,8 +116,7 @@ export function useClaimRedeem({
           type: 'ERROR',
           title: copy.unverified.title,
           description: copy.unverified.description,
-          hash: receipt.transactionHash,
-          offeringSlug: identity.offeringSlug
+          hash: receipt.transactionHash
         };
 
       const transactionData: TransactionData = {
@@ -126,7 +124,6 @@ export function useClaimRedeem({
         title: copy.success.title,
         description: copy.success.description,
         hash: receipt.transactionHash,
-        offeringSlug: identity.offeringSlug,
         meta: {
           claimRedeem: {
             share: { symbol: shareClass.symbol, decimals: shareClass.decimals },

@@ -16,7 +16,7 @@ export type TransactionData = {
   title: string;
   description: string;
   hash: string;
-  /** Stable identity of the Offering transacted on. */
+  /** Stable identity of the Offering transacted on — stamped centrally by useCentrifugeTx. */
   offeringSlug?: string;
   meta?: {
     approve?: {

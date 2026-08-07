@@ -108,8 +108,7 @@ export function useClaimReturnedShares({
           type: 'ERROR',
           title: copy.failure.title,
           description: copy.failure.description,
-          hash: receipt.transactionHash,
-          offeringSlug: identity.offeringSlug
+          hash: receipt.transactionHash
         };
 
       const decoded = decodeClaimReturnedSharesReceipt({ receipt, vaultAddress: shareClass.vaultAddress });
@@ -118,8 +117,7 @@ export function useClaimReturnedShares({
           type: 'ERROR',
           title: copy.unverified.title,
           description: copy.unverified.description,
-          hash: receipt.transactionHash,
-          offeringSlug: identity.offeringSlug
+          hash: receipt.transactionHash
         };
 
       const transactionData: TransactionData = {
@@ -127,7 +125,6 @@ export function useClaimReturnedShares({
         title: copy.success.title,
         description: copy.success.description,
         hash: receipt.transactionHash,
-        offeringSlug: identity.offeringSlug,
         meta: {
           claimReturnedShares: {
             share: { symbol: shareClass.symbol, decimals: shareClass.decimals },

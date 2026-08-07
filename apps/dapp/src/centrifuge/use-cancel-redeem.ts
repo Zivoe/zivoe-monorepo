@@ -88,8 +88,7 @@ export function useCancelRedeem({
           type: 'ERROR',
           title: copy.failure.title,
           description: copy.failure.description,
-          hash: receipt.transactionHash,
-          offeringSlug: identity.offeringSlug
+          hash: receipt.transactionHash
         };
 
       const transactionData: TransactionData = {
@@ -97,7 +96,6 @@ export function useCancelRedeem({
         title: copy.success.title,
         description: copy.success.description,
         hash: receipt.transactionHash,
-        offeringSlug: identity.offeringSlug,
         meta: {
           cancelRedeem: {
             share: { symbol: shareClass.symbol, decimals: shareClass.decimals },
