@@ -74,7 +74,11 @@ export const SHARE_CLASS_CATALOG = {
 /** Structural view of the catalog for the invariant sweep — tests inject synthetic catalogs. */
 type CatalogLike = Record<
   string,
-  { symbol: string; networks: Partial<Record<CentrifugeNetwork, { scId: string; shareTokenAddress: string }>> }
+  {
+    symbol: string;
+    decimals: number;
+    networks: Partial<Record<CentrifugeNetwork, { scId: string; shareTokenAddress: string }>>;
+  }
 >;
 
 const ZERO_HEX = /^0x0+$/i;
@@ -98,6 +102,21 @@ export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_C
     values: entries.map((entry) => entry.symbol.toLowerCase()),
     message: (symbol) => `Share token symbol "${symbol}" is claimed by two share classes.`
   });
+
+  for (const [key, entry] of Object.entries(catalog)) {
+    // Decimals scale every parseUnits and NAV division, and are the one money
+    // field whose only other guard (the chain assertion at vault resolution)
+    // fires after the UI and server have already formatted with the value.
+    if (!Number.isInteger(entry.decimals) || entry.decimals < 0 || entry.decimals > 36)
+      throw new Error(`Share class "${key}" declares implausible decimals: ${String(entry.decimals)}.`);
+
+    for (const [network, claimed] of Object.entries(entry.networks)) {
+      // Query sites send the scId verbatim (the indexer matches ids exactly),
+      // unlike addresses, which they lowercase — so it must be stored lowercase.
+      if (claimed && claimed.scId !== claimed.scId.toLowerCase())
+        throw new Error(`Share class "${key}" must store its scId lowercase on "${network}".`);
+    }
+  }
 
   for (const network of CENTRIFUGE_NETWORKS) {
     const onNetwork = entries.flatMap((entry) => {

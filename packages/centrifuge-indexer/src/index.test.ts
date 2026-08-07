@@ -98,7 +98,7 @@ describe('assertShareClassCatalogInvariants', () => {
     shareTokenAddress: string;
     network?: 'sepolia' | 'mainnet';
   }) {
-    return { symbol, networks: { [network]: { scId, shareTokenAddress } } };
+    return { symbol, decimals: 18, networks: { [network]: { scId, shareTokenAddress } } };
   }
 
   const first = entry({
@@ -125,6 +125,27 @@ describe('assertShareClassCatalogInvariants', () => {
         )
       })
     ).not.toThrow();
+  });
+
+  it('throws on implausible decimals', () => {
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(
+      /implausible decimals/
+    );
+    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 180 } })).toThrow(
+      /implausible decimals/
+    );
+  });
+
+  it('throws on a mixed-case scId — query sites send it verbatim', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000AAAA0000000000000001',
+          shareTokenAddress: '0xabababababababababababababababababababab'
+        })
+      })
+    ).toThrow(/lowercase/);
   });
 
   it('throws when two entries share a symbol, compared case-insensitively', () => {
