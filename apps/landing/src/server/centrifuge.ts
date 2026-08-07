@@ -18,16 +18,16 @@ const fetchHeroNavs = async (): Promise<Record<string, string>> => {
 const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs'], { revalidate: 30 });
 
 /**
- * AUM per live share class from the shared catalog. The dApp homepage sums
- * the REGISTRY's book instead; the two agree only while the dApp-side
- * invariant pinning every catalog entry's deployable flag to its vault's
- * holds — a landing-only build never runs that check, so treat catalog-flag
- * flips as dApp-gated. Fail-closed: the fetch
- * throws on any missing or unpriced class, and Sentry-captured failure
- * returns undefined so the hero hides the stat instead of rendering a partial
- * sum. The fetch throws inside the cache boundary on purpose: a failed
- * background revalidation then keeps serving the last good payload instead of
- * caching `undefined` over it.
+ * AUM per live share class from the shared catalog. Note the dApp homepage
+ * sums the REGISTRY's book instead; a dApp-side invariant keeps the two books
+ * equal, and a landing-only build never runs it — so treat catalog flag flips
+ * as dApp-gated, and never assume this sum matches the dApp's by construction.
+ *
+ * Fail-closed: the fetch throws on any missing or unpriced class, and a
+ * Sentry-captured failure returns undefined so the hero hides the stat
+ * instead of rendering a partial sum. The fetch throws inside the cache
+ * boundary on purpose: a failed background revalidation then keeps serving
+ * the last good payload instead of caching `undefined` over it.
  */
 const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | undefined> => {
   try {

@@ -108,6 +108,7 @@ export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_C
     // Decimals scale every parseUnits and NAV division, and are the one money
     // field whose only other guard (the chain assertion at vault resolution)
     // fires after the UI and server have already formatted with the value.
+    // 36 is comfortably past any real ERC-20; beyond it is a typo, not a token.
     if (!Number.isInteger(entry.decimals) || entry.decimals < 0 || entry.decimals > 36)
       throw new Error(`Share class "${key}" declares implausible decimals: ${String(entry.decimals)}.`);
 

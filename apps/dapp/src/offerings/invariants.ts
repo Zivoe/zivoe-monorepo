@@ -73,8 +73,9 @@ export function assertOfferingRegistryInvariants({
   }
 
   for (const offering of offerings) {
-    // Object.hasOwn: a prototype-chain key like "toString" is truthy under a
-    // plain index and would skip the not-in-catalog throw.
+    // Object.hasOwn for uniformity with the real trust boundaries: the keys
+    // here are in-repo literals typed ShareClassKey in production, so this
+    // guard is exercised by the open-string fixture sweep, not by traffic.
     const entry = Object.hasOwn(catalog, offering.shareClass.key) ? catalog[offering.shareClass.key] : undefined;
     if (!entry)
       throw new Error(
