@@ -145,7 +145,10 @@ export type TxSharedConfig<TVariables> = {
    * Query invalidations after the transaction settles; skipped for no-refetch
    * rejections. Runs inside the mutation — pinned, like transactionData, to
    * the options the mutation started with, so a hook re-rendered under
-   * another identity mid-flight can never refetch the wrong scope.
+   * another identity mid-flight can never refetch the wrong scope. Only what
+   * runs inside the mutation is pinned: onError/errorToast/sentry* are
+   * observer callbacks and read the latest render's options (cross-identity
+   * re-renders are unreachable today — the route keys the subtree by slug).
    */
   invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
@@ -280,7 +283,17 @@ export default function useTxLifecycle<TVariables, TPrepared>(
                 };
         }
 
-        config.invalidate({ queryClient, address, vars });
+        // Same rule as the payload above: a throw after the receipt must never
+        // re-classify a settled transaction as failed — capture and move on
+        // (stale caches self-correct on the next focus refetch).
+        try {
+          config.invalidate({ queryClient, address, vars });
+        } catch (invalidateError) {
+          Sentry.captureException(invalidateError, {
+            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
+            extra: { txHash: receipt.transactionHash }
+          });
+        }
 
         return { receipt, transactionData };
       } catch (err) {
@@ -293,8 +306,17 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         });
 
         // Settled non-rejection failures still refetch — the chain may have
-        // moved (e.g. a late broadcast) even though this mutation failed.
-        if (!skipTxSettled(normalized)) config.invalidate({ queryClient, address, vars });
+        // moved (e.g. a late broadcast) even though this mutation failed. A
+        // throwing invalidation must not displace the real error below.
+        if (!skipTxSettled(normalized)) {
+          try {
+            config.invalidate({ queryClient, address, vars });
+          } catch (invalidateError) {
+            Sentry.captureException(invalidateError, {
+              tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags }
+            });
+          }
+        }
 
         throw normalized;
       }
