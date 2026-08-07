@@ -8,6 +8,7 @@ import { type TransactionIdentity } from '@/centrifuge/types';
 
 import { assertOfferingRegistryInvariants } from './invariants';
 import { type Offering } from './offering';
+import { ZALT_OFFERING } from './zalt';
 import { ZMCA_OFFERING } from './zmca';
 
 export {
@@ -19,6 +20,7 @@ export {
   type OfferingPresentation,
   type OfferingVault
 } from './offering';
+export { ZALT_OFFERING } from './zalt';
 export { ZMCA_OFFERING } from './zmca';
 
 /**
@@ -28,7 +30,8 @@ export { ZMCA_OFFERING } from './zmca';
  * without the module that gives it a card, a route, and display info.
  */
 const REGISTERED_OFFERINGS = {
-  zmca: ZMCA_OFFERING
+  zmca: ZMCA_OFFERING,
+  zalt: ZALT_OFFERING
 } satisfies Record<ShareClassKey, Offering>;
 
 const ALL_OFFERINGS: Array<Offering> = Object.values(REGISTERED_OFFERINGS);

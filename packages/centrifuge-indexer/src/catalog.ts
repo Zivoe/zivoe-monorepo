@@ -42,8 +42,26 @@ export const SHARE_CLASS_CATALOG = {
         deployable: true
       },
       mainnet: {
-        // NON-DEPLOYABLE PLACEHOLDER: no mainnet deployment yet — zero values
-        // fail loudly if the resolution guard is bypassed.
+        // NON-DEPLOYABLE PLACEHOLDER: no mainnet deployment yet
+        poolId: '0',
+        scId: '0x00000000000000000000000000000000',
+        shareTokenAddress: '0x0000000000000000000000000000000000000000',
+        deployable: false
+      }
+    }
+  },
+  zalt: {
+    symbol: 'zALT',
+    decimals: 18,
+    networks: {
+      sepolia: {
+        poolId: '281474976720680',
+        scId: '0x00010000000027280000000000000002',
+        shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
+        deployable: true
+      },
+      // NON-DEPLOYABLE PLACEHOLDER: no mainnet deployment yet.
+      mainnet: {
         poolId: '0',
         scId: '0x00000000000000000000000000000000',
         shareTokenAddress: '0x0000000000000000000000000000000000000000',

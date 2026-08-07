@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getHomepageAum } from './homepage-aum';
 
-vi.mock('@zivoe/ui/icons', () => ({ ZMcaLogo: () => null }));
+vi.mock('@zivoe/ui/icons', () => ({ ZMcaLogo: () => null, ZAltLogo: () => null }));
 vi.mock('@/server/data/centrifuge-metrics', () => ({
   getShareClassNavs: vi.fn(),
   getCurrentShareMetrics: vi.fn()

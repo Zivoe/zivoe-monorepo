@@ -19,6 +19,7 @@ export * from './info';
 export * from './question';
 export * from './search';
 export * from './zmca-logo';
+export * from './zalt-logo';
 export * from './diamond';
 export * from './trending';
 export * from './bank';

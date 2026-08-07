@@ -187,7 +187,12 @@ vi.mock('@zivoe/ui/core/select', () => ({
   SelectValue: () => null
 }));
 vi.mock('@zivoe/ui/core/skeleton', () => ({ Skeleton: () => <span>Loading preview</span> }));
-vi.mock('@zivoe/ui/icons', () => ({ UsdcIcon: () => null, InfoIcon: () => null, ZMcaLogo: () => null }));
+vi.mock('@zivoe/ui/icons', () => ({
+  UsdcIcon: () => null,
+  InfoIcon: () => null,
+  ZMcaLogo: () => null,
+  ZAltLogo: () => null
+}));
 
 function getInput(label: string): HTMLInputElement {
   const input = screen.getByLabelText(label);
