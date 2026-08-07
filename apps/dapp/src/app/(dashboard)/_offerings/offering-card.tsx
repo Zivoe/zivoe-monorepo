@@ -1,13 +1,13 @@
+import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { Badge } from '@zivoe/ui/core/badge';
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
-import { DEPOSIT_TOKENS } from '@/types/constants';
-
 import { customNumber } from '@/lib/utils';
 
-import { TOKEN_INFO } from '@/components/token-info';
+import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/offering-icons';
 
-import { type Offering, offeringNetworkDisplays, offeringPath } from '@/offerings';
+import { type Offering, offeringPath } from '@/offerings';
 
 export default function OfferingCard({
   offering,
@@ -28,55 +28,27 @@ export default function OfferingCard({
       <div className="h-38" style={{ background: offering.cardGradient }} />
 
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-1.5">
-            <p className="text-small tracking-wider text-tertiary uppercase">{offering.category}</p>
-            <p className="font-heading! text-h6 text-primary">{offering.name}</p>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-small tracking-wider text-tertiary uppercase">
+              {SHARE_CLASS_CATALOG[offering.shareClass.key].symbol}
+            </p>
+            {offering.status ? <Badge>{offering.status}</Badge> : null}
           </div>
 
-          <p className="text-regular text-secondary">{offering.description}</p>
+          <p className="font-heading! text-h6 text-primary">{offering.name}</p>
         </div>
 
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
-          <Term label="Issuer" value={offering.issuer} />
+          <Term label="Asset Type" value={offering.category} />
           <Term label="Target APY" value={`${offering.targetApyPercent}%`} />
           <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
-
-          <Term
-            label="Accepted stablecoins"
-            value={
-              <div className="flex items-center gap-1.5">
-                {DEPOSIT_TOKENS.map((asset) => (
-                  <span
-                    key={asset}
-                    role="img"
-                    title={TOKEN_INFO[asset].label}
-                    aria-label={TOKEN_INFO[asset].label}
-                    className="[&_svg]:size-5"
-                  >
-                    {TOKEN_INFO[asset].icon}
-                  </span>
-                ))}
-              </div>
-            }
-          />
-
-          <Term
-            label="Available on"
-            value={
-              <div className="flex items-center gap-1.5">
-                {offeringNetworkDisplays(offering).map(({ label, Icon }) => (
-                  <span key={label} role="img" title={label} aria-label={label} className="[&_svg]:size-5">
-                    <Icon />
-                  </span>
-                ))}
-              </div>
-            }
-          />
+          <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons />} />
+          <Term label="Available on" value={<AcceptedChainIcons offering={offering} />} />
         </div>
 
         <div className="flex items-center justify-end gap-1.5 text-regular font-medium text-brand-subtle">
-          Invest now
+          View
           <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
         </div>
       </div>

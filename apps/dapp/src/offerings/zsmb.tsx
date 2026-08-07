@@ -7,7 +7,8 @@ export const ZSMB_OFFERING: Offering = {
   slug: 'zivoe-smb-credit',
   name: 'Zivoe SMB Credit',
   Logo: ZSmbLogo,
-  category: 'Merchant Cash Advance',
+  category: 'Small Business Financing',
+  status: 'Open',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardGradient: [

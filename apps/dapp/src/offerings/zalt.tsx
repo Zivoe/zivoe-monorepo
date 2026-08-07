@@ -22,7 +22,7 @@ export const ZALT_OFFERING: Offering = {
     mainnet: { address: '0x0000000000000000000000000000000000000000', deployable: false }
   },
   shareTokenDescription: 'Zivoe Alternative Credit',
-  targetApyPercent: 14,
+  targetApyPercent: 10,
 
   about: [
     'zALT offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',

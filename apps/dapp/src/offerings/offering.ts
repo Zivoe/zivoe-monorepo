@@ -86,9 +86,14 @@ export type OfferingIdentity = {
 
 export type OfferingPresentation = {
   Logo: ComponentType<IconProps>;
-  /** Asset class, shown as the listing card's eyebrow. */
+  /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
-  /** The listing card's blurb — the page itself carries the long-form About. */
+  /**
+   * Subscription status, shown as the listing card's chip. Omitted while an
+   * Offering has none to publish; further statuses join the union here.
+   */
+  status?: 'Open';
+  /** Link-preview blurb for the Offering page — the card shows no excerpt. */
   description: string;
   /**
    * CSS `background` for the listing card's banner. A raw value rather than a
