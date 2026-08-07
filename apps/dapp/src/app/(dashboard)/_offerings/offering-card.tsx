@@ -7,9 +7,7 @@ import { customNumber } from '@/lib/utils';
 
 import { TOKEN_INFO } from '@/components/token-info';
 
-import { type Offering, offeringPath } from '@/offerings';
-
-import { offeringNetworkDisplays } from './network-display';
+import { type Offering, offeringNetworkDisplays, offeringPath } from '@/offerings';
 
 export default function OfferingCard({
   offering,

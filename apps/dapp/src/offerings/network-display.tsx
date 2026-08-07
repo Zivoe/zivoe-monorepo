@@ -4,7 +4,7 @@ import { type CentrifugeNetwork, getShareClassNetworks } from '@zivoe/centrifuge
 import { EthereumIcon } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
-import { type Offering } from '@/offerings';
+import { type Offering } from './offering';
 
 /** Network branding per Centrifuge network — a testnet advertises its mainnet family. */
 const NETWORK_DISPLAY: Record<CentrifugeNetwork, { label: string; Icon: ComponentType<IconProps> }> = {

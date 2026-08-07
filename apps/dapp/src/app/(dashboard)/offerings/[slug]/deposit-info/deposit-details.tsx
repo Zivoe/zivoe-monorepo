@@ -4,9 +4,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import InfoSection from '@/components/info-section';
 
-import { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailValue } from '@/offerings';
-
-import { offeringNetworkDisplays } from '../../../_offerings/network-display';
+import { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailValue, offeringNetworkDisplays } from '@/offerings';
 
 export default function DepositDetails({ offering }: { offering: Offering }) {
   const { details } = offering;
@@ -23,15 +21,10 @@ export default function DepositDetails({ offering }: { offering: Offering }) {
           <Element
             key={label}
             title={label}
-            value={details[label]}
+            value={label === 'Available Networks' ? availableNetworks : details[label]}
             className="border-b border-default last:border-b-0"
           />
         ))}
-        <Element
-          title="Available Networks"
-          value={availableNetworks}
-          className="border-b border-default last:border-b-0"
-        />
       </div>
     </InfoSection>
   );

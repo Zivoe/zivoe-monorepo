@@ -6,12 +6,12 @@ import { type CentrifugeNetwork, type ShareClassKey } from '@zivoe/centrifuge-in
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
- * The fixed Details row set every Offering must fill, in render order.
- * Offerings stay comparable line by line because the labels never vary per
- * module; a new row is a deliberate addition here, forced onto every module
- * by the typed record below. Facts the catalog already owns (the Available
- * Networks row) are derived at render, never authored here — two sources for
- * one fact would drift.
+ * The fixed Details row set, in render order — one list owns both the rows
+ * and their order. Offerings stay comparable line by line because the labels
+ * never vary per module; a new row is a deliberate addition here. Rows whose
+ * fact the catalog already owns are DERIVED at render and cannot be authored
+ * by a module (two sources for one fact would drift) — the typed record
+ * below forces every module to fill exactly the authored rows.
  */
 export const OFFERING_DETAIL_LABELS = [
   'Eligibility',
@@ -21,10 +21,16 @@ export const OFFERING_DETAIL_LABELS = [
   'Regulatory Compliance',
   'Management Fee',
   'Liquidity',
-  'Audits'
+  'Audits',
+  'Available Networks'
 ] as const;
 
 export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
+
+/** Rows derived from the catalog at render — never authored by a module. */
+export type DerivedDetailLabel = 'Available Networks';
+
+export type AuthoredDetailLabel = Exclude<OfferingDetailLabel, DerivedDetailLabel>;
 
 /** A Details row value: plain text, or an external link the section styles itself. */
 export type OfferingDetailValue = string | { href: string; label: string };
@@ -97,8 +103,8 @@ export type OfferingPresentation = {
   targetApyPercent: number;
   /** About-section paragraphs, in render order — rich text with links allowed. */
   about: Array<ReactNode>;
-  /** Details values for the fixed row set — a missing row fails to compile. */
-  details: Record<OfferingDetailLabel, OfferingDetailValue>;
+  /** Details values for the AUTHORED rows only — a missing row fails to compile, a derived row cannot be written. */
+  details: Record<AuthoredDetailLabel, OfferingDetailValue>;
   /** Documents-section links, in render order. */
   documents: Array<{ title: string; href: string }>;
 };

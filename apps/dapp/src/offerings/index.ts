@@ -15,6 +15,7 @@ import { ZMCA_OFFERING } from './zmca';
 // offering.ts — they document the serialization boundary there, and no
 // consumer composes with them directly.
 export { OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailLabel, type OfferingDetailValue } from './offering';
+export { offeringNetworkDisplays } from './network-display';
 export { ZALT_OFFERING } from './zalt';
 export { ZMCA_OFFERING } from './zmca';
 
