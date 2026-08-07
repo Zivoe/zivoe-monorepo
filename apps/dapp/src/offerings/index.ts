@@ -57,6 +57,14 @@ export const OFFERINGS: Array<Offering> = ALL_OFFERINGS.filter((offering) => {
   return Boolean(catalogEntry?.deployable && offering.vaults[network]?.deployable);
 });
 
+// The dApp's product IS its Offerings: a deployment serving none is a
+// misconfigured cutover (flags not flipped for the active network), not an
+// empty book — fail the build/boot loudly instead of rendering a shell.
+if (OFFERINGS.length === 0)
+  throw new Error(
+    `No Offering is live on "${env.NEXT_PUBLIC_NETWORK}". Flip the catalog and vault deployable flags for the network before deploying.`
+  );
+
 export function getOffering(slug: string): Offering | undefined {
   return OFFERINGS.find((offering) => offering.slug === slug);
 }

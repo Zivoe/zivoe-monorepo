@@ -176,6 +176,27 @@ describe('assertOfferingRegistryInvariants', () => {
     expect(() => assertRegistry([vaultOnly])).toThrow(/claims "sepolia" in its vaults but not the catalog/);
   });
 
+  it('throws when the catalog and vault deployable flags disagree, in both directions', () => {
+    // The exact staging state a mainnet cutover passes through: one half
+    // flipped live, the other still a verified-but-staged entry.
+    const catalogLiveVaultStaged: Registration = {
+      ...other,
+      offering: {
+        ...other.offering,
+        vaults: { sepolia: { address: other.offering.vaults.sepolia!.address, deployable: false } }
+      }
+    };
+    expect(() => assertRegistry([catalogLiveVaultStaged])).toThrow(/catalog-deployable but its vault is not/);
+
+    const vaultLiveCatalogStaged: Registration = {
+      ...other,
+      catalogEntry: {
+        networks: { sepolia: { ...other.catalogEntry.networks.sepolia!, deployable: false } }
+      }
+    };
+    expect(() => assertRegistry([vaultLiveCatalogStaged])).toThrow(/vault-deployable but its catalog entry is not/);
+  });
+
   it('throws on placeholder values under a deployable flag', () => {
     const flippedCatalog: Registration = {
       ...other,

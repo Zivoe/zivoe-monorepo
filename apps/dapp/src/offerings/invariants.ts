@@ -78,6 +78,18 @@ export function assertOfferingRegistryInvariants({
           }.`
         );
 
+      // The two deployable flags are one launch switch seen from two files.
+      // Half-flipped they build green while the dApp serves zero Offerings and
+      // the catalog-driven surfaces count a class the dApp will not route.
+      if (catalogEntry.deployable !== vault.deployable)
+        throw new Error(
+          `Share class "${offering.shareClass.key}" on "${network}" is ${
+            catalogEntry.deployable
+              ? 'catalog-deployable but its vault is not'
+              : 'vault-deployable but its catalog entry is not'
+          }. Flip both flags together.`
+        );
+
       // deployable: true asserts operator-verified values — zero values under
       // that flag are a flipped flag, not a staged launch.
       if (
