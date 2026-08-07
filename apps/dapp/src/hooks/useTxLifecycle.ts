@@ -233,6 +233,15 @@ export default function useTxLifecycle<TVariables, TPrepared>(
 
       capture(choreography?.started);
 
+      // One envelope for every mutation-scope capture: the same tags, the
+      // resolved extras, and a `stage` tag so revert/payload/invalidate
+      // failures stay distinguishable in Sentry triage.
+      const captureMutationError = (error: unknown, { stage, txHash }: { stage: string; txHash?: string }) =>
+        Sentry.captureException(error, {
+          tags: { source: 'MUTATION', flow: config.sentryFlow, stage, ...config.sentryTags },
+          extra: { ...sentryExtras(vars), ...(txHash ? { txHash } : {}) }
+        });
+
       let txHash: string | undefined;
 
       try {
@@ -256,12 +265,9 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         // succeeds), so onError never sees it — capture here or the revert is
         // invisible to Sentry.
         if (receipt.status !== 'success')
-          Sentry.captureException(new Error('Transaction reverted on-chain'), {
-            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
-            extra: {
-              ...sentryExtras(vars),
-              txHash: receipt.transactionHash
-            }
+          captureMutationError(new Error('Transaction reverted on-chain'), {
+            stage: 'revert',
+            txHash: receipt.transactionHash
           });
 
         // A throw while building the payload must not fall into the catch
@@ -272,10 +278,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         try {
           transactionData = config.transactionData(receipt, vars);
         } catch (payloadError) {
-          Sentry.captureException(payloadError, {
-            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
-            extra: { txHash: receipt.transactionHash }
-          });
+          captureMutationError(payloadError, { stage: 'payload', txHash: receipt.transactionHash });
 
           transactionData =
             receipt.status === 'success'
@@ -297,15 +300,14 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         if (config.offeringSlug) transactionData = { ...transactionData, offeringSlug: config.offeringSlug };
 
         // Same rule as the payload above: a throw after the receipt must never
-        // re-classify a settled transaction as failed — capture and move on
-        // (stale caches self-correct on the next focus refetch).
+        // re-classify a settled transaction as failed — capture and move on.
+        // This guards synchronous throws (key construction and the like); the
+        // invalidations themselves are fire-and-forget voided promises whose
+        // rejections TanStack surfaces through the query cache, not here.
         try {
           config.invalidate({ queryClient, address, vars });
         } catch (invalidateError) {
-          Sentry.captureException(invalidateError, {
-            tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags },
-            extra: { txHash: receipt.transactionHash }
-          });
+          captureMutationError(invalidateError, { stage: 'invalidate', txHash: receipt.transactionHash });
         }
 
         return { receipt, transactionData };
@@ -325,9 +327,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
           try {
             config.invalidate({ queryClient, address, vars });
           } catch (invalidateError) {
-            Sentry.captureException(invalidateError, {
-              tags: { source: 'MUTATION', flow: config.sentryFlow, ...config.sentryTags }
-            });
+            captureMutationError(invalidateError, { stage: 'invalidate', txHash });
           }
         }
 
