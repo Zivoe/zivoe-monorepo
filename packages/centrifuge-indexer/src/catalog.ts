@@ -1,4 +1,4 @@
-import { type CentrifugeNetwork } from './config';
+import { CENTRIFUGE_NETWORKS, type CentrifugeNetwork } from './config';
 
 /**
  * One share class's identity on one network it claims. `deployable: false`
@@ -52,6 +52,62 @@ export const SHARE_CLASS_CATALOG = {
     }
   }
 } as const satisfies Record<string, ShareClassCatalogEntry>;
+
+/** Structural view of the catalog for the invariant sweep — tests inject synthetic catalogs. */
+type CatalogLike = Record<
+  string,
+  { symbol: string; networks: Partial<Record<CentrifugeNetwork, { scId: string; shareTokenAddress: string }>> }
+>;
+
+const ZERO_HEX = /^0x0+$/i;
+
+/**
+ * Import-time invariants over the catalog itself, checked wherever the catalog
+ * is imported — both apps, so a landing-only build is guarded too. Two entries
+ * sharing an on-chain identity would serve one product's data under the
+ * other's name (and the aggregated nav read would double-count the class);
+ * two sharing a symbol would collide in every token display map. Placeholder
+ * zeros are excluded: staged launches legitimately share them. Swept across
+ * EVERY network, staged or live — cutover is the expensive time to find a
+ * duplicate.
+ */
+export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_CLASS_CATALOG): void {
+  const entries = Object.values(catalog);
+
+  assertUnique({
+    values: entries.map((entry) => entry.symbol),
+    message: (symbol) => `Share token symbol "${symbol}" is claimed by two share classes.`
+  });
+
+  for (const network of CENTRIFUGE_NETWORKS) {
+    const onNetwork = entries.flatMap((entry) => {
+      const claimed = entry.networks[network];
+      return claimed ? [claimed] : [];
+    });
+
+    assertUnique({
+      values: onNetwork.map((entry) => entry.scId.toLowerCase()).filter((scId) => !ZERO_HEX.test(scId)),
+      message: (scId) => `Share-class id ${scId} is claimed by two catalog entries on "${network}".`
+    });
+    assertUnique({
+      values: onNetwork
+        .map((entry) => entry.shareTokenAddress.toLowerCase())
+        .filter((address) => !ZERO_HEX.test(address)),
+      message: (address) => `Share token ${address} is claimed by two share classes on "${network}".`
+    });
+  }
+}
+
+function assertUnique({ values, message }: { values: Array<string>; message: (duplicate: string) => string }) {
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    if (seen.has(value)) throw new Error(message(value));
+    seen.add(value);
+  }
+}
+
+assertShareClassCatalogInvariants();
 
 export type ShareClassKey = keyof typeof SHARE_CLASS_CATALOG;
 

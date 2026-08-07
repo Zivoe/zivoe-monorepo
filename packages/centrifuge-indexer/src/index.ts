@@ -1,6 +1,7 @@
 export {
   SHARE_CLASS_CATALOG,
   SHARE_CLASS_KEYS,
+  assertShareClassCatalogInvariants,
   getShareClassIdentity,
   getShareClassNetworks,
   listShareClassKeys,

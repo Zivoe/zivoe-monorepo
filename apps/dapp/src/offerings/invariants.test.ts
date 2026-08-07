@@ -18,7 +18,6 @@ type Registration = {
     vaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
   };
   catalogEntry: {
-    symbol: string;
     networks: Partial<
       Record<NetworkName, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -28,14 +27,12 @@ type Registration = {
 /** One registered class — the module half and its catalog half, live on sepolia. */
 function makeRegistration({
   key,
-  symbol,
   slug = `${key}-offering`,
   scId,
   shareTokenAddress,
   vaultAddress
 }: {
   key: string;
-  symbol: string;
   slug?: string;
   scId: string;
   shareTokenAddress: string;
@@ -48,7 +45,6 @@ function makeRegistration({
       vaults: { sepolia: { address: vaultAddress, deployable: true } }
     },
     catalogEntry: {
-      symbol,
       networks: { sepolia: { poolId: '77', scId, shareTokenAddress, deployable: true } }
     }
   };
@@ -65,7 +61,6 @@ function assertRegistry(registrations: Array<Registration>) {
 
 const fixture = makeRegistration({
   key: FIXTURE_SHARE_CLASS.key,
-  symbol: FIXTURE_SHARE_CLASS.symbol,
   slug: 'fixture-offering',
   scId: FIXTURE_SHARE_CLASS.scId,
   shareTokenAddress: FIXTURE_SHARE_CLASS.shareTokenAddress,
@@ -74,7 +69,6 @@ const fixture = makeRegistration({
 
 const other = makeRegistration({
   key: 'other',
-  symbol: 'zOTH',
   scId: '0x000100000000eeee0000000000000001',
   shareTokenAddress: '0xbebebebebebebebebebebebebebebebebebebebe',
   vaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'
@@ -145,18 +139,6 @@ describe('assertOfferingRegistryInvariants', () => {
     ).toThrow(/registered by two Offerings/);
   });
 
-  it('throws when two catalog entries share a token symbol', () => {
-    expect(() =>
-      assertRegistry([
-        fixture,
-        {
-          ...other,
-          catalogEntry: { ...other.catalogEntry, symbol: FIXTURE_SHARE_CLASS.symbol }
-        }
-      ])
-    ).toThrow(/symbol .* is claimed by two share classes/);
-  });
-
   it('throws when an Offering references a share class the catalog does not know', () => {
     expect(() => assertOfferingRegistryInvariants({ offerings: [fixture.offering], catalog: {} })).toThrow(
       /not in the catalog/
@@ -216,18 +198,29 @@ describe('assertOfferingRegistryInvariants', () => {
     expect(() => assertRegistry([flippedVault])).toThrow(/deployable but carries a placeholder address/);
   });
 
-  it('throws on duplicate on-chain identities, including on a non-active network', () => {
-    // Both classes are fine on sepolia but collide on mainnet — the sweep must
-    // fail every build, not only the mainnet one.
-    const onMainnet = (registration: Registration, scId: string): Registration => ({
+  it('throws when two share classes share a vault, compared case-insensitively', () => {
+    expect(() =>
+      assertRegistry([
+        fixture,
+        {
+          ...other,
+          offering: {
+            ...other.offering,
+            // Case-shifted on purpose: identity comparisons must be case-insensitive.
+            vaults: { sepolia: { address: FIXTURE_SHARE_CLASS.vaultAddress.toUpperCase(), deployable: true } }
+          }
+        }
+      ])
+    ).toThrow(/Vault .* is claimed by two share classes/);
+  });
+
+  it('throws on a duplicate vault on a non-active network — the sweep covers every claimed network', () => {
+    const onMainnet = (registration: Registration, index: number): Registration => ({
       offering: {
         ...registration.offering,
         vaults: {
           ...registration.offering.vaults,
-          mainnet: {
-            address: `0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${registration.offering.slug.length}0`,
-            deployable: true
-          }
+          mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
       catalogEntry: {
@@ -236,55 +229,16 @@ describe('assertOfferingRegistryInvariants', () => {
           ...registration.catalogEntry.networks,
           mainnet: {
             poolId: '99',
-            scId,
-            shareTokenAddress: `0xcccccccccccccccccccccccccccccccccccccc${registration.offering.slug.length}0`,
+            scId: `0x000100000000dddd000000000000000${index}`,
+            shareTokenAddress: `0xcccccccccccccccccccccccccccccccccccccc${index}0`,
             deployable: true
           }
         }
       }
     });
 
-    const collidingScId = '0x000100000000dddd0000000000000001';
-    expect(() => assertRegistry([onMainnet(fixture, collidingScId), onMainnet(other, collidingScId)])).toThrow(
-      /claimed by two catalog entries on "mainnet"/
+    expect(() => assertRegistry([onMainnet(fixture, 1), onMainnet(other, 2)])).toThrow(
+      /Vault .* is claimed by two share classes on "mainnet"/
     );
-  });
-
-  it('compares identities case-insensitively', () => {
-    expect(() =>
-      assertRegistry([
-        fixture,
-        {
-          ...other,
-          catalogEntry: {
-            ...other.catalogEntry,
-            networks: {
-              sepolia: {
-                poolId: '77',
-                scId: '0x000100000000eeee0000000000000001',
-                // Case-shifted on purpose: identity comparisons must be case-insensitive.
-                shareTokenAddress: FIXTURE_SHARE_CLASS.shareTokenAddress.toUpperCase(),
-                deployable: true
-              }
-            }
-          }
-        }
-      ])
-    ).toThrow(/Share token .* is claimed by two share classes/);
-  });
-
-  it('throws when two share classes share a vault', () => {
-    expect(() =>
-      assertRegistry([
-        fixture,
-        {
-          ...other,
-          offering: {
-            ...other.offering,
-            vaults: { sepolia: { address: FIXTURE_SHARE_CLASS.vaultAddress, deployable: true } }
-          }
-        }
-      ])
-    ).toThrow(/Vault .* is claimed by two share classes/);
   });
 });

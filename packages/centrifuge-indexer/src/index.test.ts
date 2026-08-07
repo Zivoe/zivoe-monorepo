@@ -4,15 +4,16 @@ import {
   CENTRIFUGE_NETWORK_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
+  assertShareClassCatalogInvariants,
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   fetchShareClassNavs,
   getShareClassIdentity,
-  sumShareClassNavs,
   getShareClassNetworks,
   listShareClassKeys,
   rayToPercent,
+  sumShareClassNavs,
   toShareStatsPayload
 } from './index';
 
@@ -60,6 +61,90 @@ describe('share-class catalog', () => {
     expect(listShareClassKeys('sepolia')).toEqual(['zmca']);
     expect(listShareClassKeys('mainnet')).toEqual([]);
     expect(getShareClassNetworks('zmca')).toEqual(['sepolia']);
+  });
+});
+
+describe('assertShareClassCatalogInvariants', () => {
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+  const ZERO_SC_ID = '0x00000000000000000000000000000000';
+
+  function entry({
+    symbol,
+    scId,
+    shareTokenAddress,
+    network = 'sepolia'
+  }: {
+    symbol: string;
+    scId: string;
+    shareTokenAddress: string;
+    network?: 'sepolia' | 'mainnet';
+  }) {
+    return { symbol, networks: { [network]: { scId, shareTokenAddress } } };
+  }
+
+  const first = entry({
+    symbol: 'zAAA',
+    scId: '0x000100000000aaaa0000000000000001',
+    shareTokenAddress: '0xabababababababababababababababababababab'
+  });
+
+  it('accepts distinct entries, including shared placeholder zeros on staged networks', () => {
+    const staged = (base: ReturnType<typeof entry>) => ({
+      ...base,
+      networks: { ...base.networks, mainnet: { scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS } }
+    });
+
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: staged(first),
+        b: staged(
+          entry({
+            symbol: 'zBBB',
+            scId: '0x000100000000bbbb0000000000000001',
+            shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+          })
+        )
+      })
+    ).not.toThrow();
+  });
+
+  it('throws when two entries share a symbol', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: first,
+        b: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000bbbb0000000000000001',
+          shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+        })
+      })
+    ).toThrow(/symbol .* is claimed by two share classes/);
+  });
+
+  it('throws on a duplicate share-class id per network, including a non-active one', () => {
+    const onMainnet = (symbol: string, shareTokenAddress: string) =>
+      entry({ symbol, scId: '0x000100000000dddd0000000000000001', shareTokenAddress, network: 'mainnet' });
+
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: onMainnet('zAAA', '0xabababababababababababababababababababab'),
+        b: onMainnet('zBBB', '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc')
+      })
+    ).toThrow(/claimed by two catalog entries on "mainnet"/);
+  });
+
+  it('compares share-token addresses case-insensitively', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: first,
+        b: entry({
+          symbol: 'zBBB',
+          scId: '0x000100000000bbbb0000000000000001',
+          // Case-shifted on purpose: identity comparisons must be case-insensitive.
+          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase()
+        })
+      })
+    ).toThrow(/Share token .* is claimed by two share classes/);
   });
 });
 

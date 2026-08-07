@@ -12,7 +12,6 @@ type RegisteredOffering = {
 type CatalogEntries = Record<
   string,
   {
-    symbol: string;
     networks: Partial<
       Record<CentrifugeNetwork, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
     >;
@@ -46,16 +45,6 @@ export function assertOfferingRegistryInvariants({
   assertUnique({
     values: offerings.map((offering) => offering.shareClass.key),
     message: (key) => `Share class "${key}" is registered by two Offerings.`
-  });
-  // Symbols key the token display map — two classes sharing one would render
-  // one product's token as the other's. Read off the catalog: modules carry no
-  // symbol of their own to drift.
-  assertUnique({
-    values: offerings.flatMap((offering) => {
-      const entry = catalog[offering.shareClass.key];
-      return entry ? [entry.symbol] : [];
-    }),
-    message: (symbol) => `Share token symbol "${symbol}" is claimed by two share classes.`
   });
 
   for (const offering of offerings) {
@@ -114,33 +103,25 @@ export function assertOfferingRegistryInvariants({
     }
   }
 
-  // On-chain identities must be unique per network across every registered
-  // entry, staged or live — two entries sharing one would serve one product's
-  // data under the other's name. Placeholder zeros are excluded: staged
-  // launches legitimately share them until values are operator-verified.
+  // Vault addresses must be unique per network across every registered entry,
+  // staged or live — two Offerings sharing one would decode each other's
+  // receipts. Placeholder zeros are excluded: staged launches legitimately
+  // share them until values are operator-verified. (Catalog-internal identity
+  // uniqueness — symbols, scIds, share tokens — is the catalog's own
+  // import-time sweep in @zivoe/centrifuge-indexer, so landing-only builds
+  // are guarded too.)
   const allNetworks = new Set<CentrifugeNetwork>(
     offerings.flatMap((offering) => Object.keys(offering.vaults) as Array<CentrifugeNetwork>)
   );
 
   for (const network of allNetworks) {
-    const entries = offerings.flatMap((offering) => {
-      const catalogEntry = catalog[offering.shareClass.key]?.networks[network];
-      const vault = offering.vaults[network];
-      return catalogEntry && vault ? [{ catalogEntry, vault }] : [];
-    });
-
     assertUnique({
-      values: entries.map((entry) => entry.catalogEntry.scId.toLowerCase()).filter((scId) => !ZERO_HEX.test(scId)),
-      message: (scId) => `Share-class id ${scId} is claimed by two catalog entries on "${network}".`
-    });
-    assertUnique({
-      values: entries
-        .map((entry) => entry.catalogEntry.shareTokenAddress.toLowerCase())
+      values: offerings
+        .flatMap((offering) => {
+          const vault = offering.vaults[network];
+          return vault ? [vault.address.toLowerCase()] : [];
+        })
         .filter((address) => !ZERO_HEX.test(address)),
-      message: (address) => `Share token ${address} is claimed by two share classes on "${network}".`
-    });
-    assertUnique({
-      values: entries.map((entry) => entry.vault.address.toLowerCase()).filter((address) => !ZERO_HEX.test(address)),
       message: (address) => `Vault ${address} is claimed by two share classes on "${network}".`
     });
   }
