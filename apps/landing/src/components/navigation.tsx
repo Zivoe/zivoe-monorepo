@@ -8,6 +8,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
 import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
+import { SplitCta } from '@zivoe/ui/core/split-cta';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
 import Container from './container';
@@ -34,21 +35,14 @@ function Navigation() {
 
 function Desktop() {
   return (
-    <div className="bg-surface-base hidden items-center gap-6 rounded-lg shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
+    <div className="hidden items-center gap-6 rounded-lg bg-surface-base shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
       <div className="ml-5 flex gap-6">
         <NavigationItems />
       </div>
 
-      <Link
-        href="https://app.zivoe.com"
-        target="_blank"
-        hideExternalLinkIcon
-        variant="primary"
-        size="m"
-        className="my-2.5 mr-2.5"
-      >
-        Start Earning
-      </Link>
+      <SplitCta href="https://app.zivoe.com" target="_blank" size="m" className="my-2.5 mr-2.5">
+        View Vaults
+      </SplitCta>
     </div>
   );
 }
@@ -80,7 +74,7 @@ function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="current:shadow-secondary hover:shadow-secondary lg:text-primary lg:current:shadow-active lg:hover:shadow-active h-14 text-base"
+            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
             href={href}
             target={target}
             aria-current={isCurrent}
@@ -97,6 +91,5 @@ const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: string }> 
   { title: 'Home', href: '/' },
   { title: 'Team', href: '/team' },
   { title: 'FAQ', href: '/faq' },
-  { title: 'Insights', href: '/insights' },
-  { title: 'Docs', href: 'https://docs.zivoe.com', target: '_blank' }
+  { title: 'Insights', href: '/insights' }
 ];

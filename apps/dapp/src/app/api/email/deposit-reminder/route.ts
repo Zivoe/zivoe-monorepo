@@ -3,15 +3,20 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
+import { listShareClassKeys } from '@zivoe/centrifuge-indexer';
+
 import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
+import { hasAnyInvestorTransaction } from '@/server/data/centrifuge-investor';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
-import { hasUserDeposited } from '@/server/data/ponder';
+import { getWalletAddressesForUser } from '@/server/data/wallets';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
+
+import { env } from '@/env';
 
 const bodySchema = z.object({
   userId: z.string().uuid(),
@@ -28,6 +33,29 @@ const handler = async (req: NextRequest) => {
   if (!parsedBody.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
 
   const { userId, reminderNumber } = parsedBody.data;
+
+  // No live share class means nothing to deposit into: skip the reminder
+  // outright — nagging during an empty-book cutover window is wrong, and the
+  // old behavior (an investor-activity read that threw) just made QStash
+  // retry a send that must not happen. Resolved once: the same keys feed the
+  // investor-activity read below, which cannot answer for an empty book.
+  const liveShareClassKeys = listShareClassKeys(env.NEXT_PUBLIC_NETWORK);
+
+  if (liveShareClassKeys.length === 0) {
+    // This skip silently ends the user's funnel (reminder 2 is only scheduled
+    // from a delivered reminder 1), so it must be visible — as a warning, not
+    // an exception: the condition is a global operator state that fires once
+    // per queued reminder, and grouping per-user errors would track queue
+    // depth, not the fault.
+    Sentry.captureMessage('Deposit reminder email skipped: no live share class', {
+      level: 'warning',
+      tags: { source: 'API', flow: 'deposit-reminder-email' },
+      extra: { userId, reminderNumber }
+    });
+
+    return NextResponse.json({ success: true, data: 'No live share class, skipping reminder' });
+  }
+
   const profile = await getUserEmailProfile(userId);
 
   if (!profile?.createdAt || !profile.accountType) {
@@ -39,8 +67,13 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
-  const hasDeposited = await hasUserDeposited(userId);
-  if (hasDeposited) return NextResponse.json({ success: true, data: 'User has already deposited, skipping reminder' });
+  const wallets = await getWalletAddressesForUser(userId);
+  const hasInvestorActivity = await hasAnyInvestorTransaction({
+    shareClassKeys: liveShareClassKeys,
+    addresses: wallets
+  });
+  if (hasInvestorActivity)
+    return NextResponse.json({ success: true, data: 'User already has investor activity, skipping reminder' });
 
   const isProductTipsEnabled = await isEmailPreferenceEnabled({
     userId,
@@ -65,7 +98,7 @@ const handler = async (req: NextRequest) => {
   if (err)
     throw new ApiError({ message: 'Failed to send reminder email', status: 500, exception: err, capture: false });
 
-  // After sending reminder 1, schedule reminder 2 (7 days later = 10 days from onboarding)
+  // Reminder 2 lands 10 days after onboarding: 3 days to reminder 1, then 7 more.
   if (reminderNumber === 1) {
     const { err: scheduleErr } = await handlePromise(
       qstash.publishJSON({

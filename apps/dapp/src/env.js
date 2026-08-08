@@ -4,15 +4,12 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']),
-    PONDER_MAINNET_DATABASE_URL: z.string(),
     QSTASH_URL: z.string().url().optional(),
     QSTASH_TOKEN: z.string(),
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
     QSTASH_NEXT_SIGNING_KEY: z.string(),
     UPSTASH_REDIS_REST_URL: z.string(),
     UPSTASH_REDIS_REST_TOKEN: z.string(),
-    LANDING_PAGE_URL: z.string().optional(),
-    LANDING_PAGE_REVALIDATE_API_KEY: z.string().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
@@ -51,9 +48,12 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
+    NEXT_PUBLIC_NETWORK: z.enum(['mainnet', 'sepolia']),
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: z.string(),
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: z.string(),
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: z.string().optional(),
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
     NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
@@ -62,9 +62,11 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
     NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY,
     NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY,
-    PONDER_MAINNET_DATABASE_URL: process.env.PONDER_MAINNET_DATABASE_URL,
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY,
+    NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY,
     QSTASH_URL: process.env.QSTASH_URL,
     QSTASH_TOKEN: process.env.QSTASH_TOKEN,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
@@ -73,8 +75,6 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
-    LANDING_PAGE_URL: process.env.LANDING_PAGE_URL,
-    LANDING_PAGE_REVALIDATE_API_KEY: process.env.LANDING_PAGE_REVALIDATE_API_KEY,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,

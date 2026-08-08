@@ -52,7 +52,6 @@ const handler = async (req: NextRequest) => {
 
   if (err) throw new ApiError({ message: 'Failed to send welcome email', status: 500, exception: err, capture: false });
 
-  // Schedule first deposit reminder (3 days after welcome email)
   const { err: scheduleErr } = await handlePromise(
     qstash.publishJSON({
       url: `${BASE_URL}/api/email/deposit-reminder`,

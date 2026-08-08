@@ -1,11 +1,5 @@
-import { Suspense } from 'react';
-
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
-import { Link, type LinkProps } from '@zivoe/ui/core/link';
-
-import { web3 } from '@/server/web3';
-
-import { formatBigIntToReadable } from '@/lib/utils';
+import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
 import Container from '@/components/container';
 import {
@@ -16,8 +10,11 @@ import {
 } from '@/components/hero';
 import NavigationSection from '@/components/navigation';
 
+import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
-import MigrationNotice from './migration-notice';
+
+const STATISTIC_DISCLOSURE =
+  'Historical platform metrics, rounded for presentation purposes. Past performance is not indicative of future results. For informational purposes only; this is not an offer to sell or a solicitation of an offer to buy any security or financial product.';
 
 export default function Hero() {
   return (
@@ -28,13 +25,16 @@ export default function Hero() {
         <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-132 sm:gap-16 lg:max-w-165 lg:gap-50">
           <div>
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
-              <h1 className="text-h4 text-primary sm:text-h2">Your Portal to Private Credit</h1>
-              <p className="text-smallSubheading text-primary sm:max-w-full">
-                Grow your wealth through a diversified, short-duration portfolio designed to generate sustainable yield.
+              <div className="flex items-center gap-2">
+                <span className="text-small text-secondary">Powered by</span>
+                <CentrifugeIcon aria-label="Centrifuge" role="img" className="h-6 w-auto sm:h-7" />
+              </div>
+
+              <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>
+              <p className="max-w-120 text-smallSubheading text-primary">
+                Access institutional yield across curated real-world credit strategies.
               </p>
             </div>
-
-            <MigrationNotice />
 
             <div className="mt-4 sm:mt-6">
               <HeroButton size="m" className="sm:hidden" />
@@ -42,9 +42,7 @@ export default function Hero() {
             </div>
           </div>
 
-          <Suspense>
-            <Statistics />
-          </Suspense>
+          <Statistics />
         </div>
       </Container>
 
@@ -55,49 +53,52 @@ export default function Hero() {
 
       <HeroClouds
         aria-hidden="true"
-        className="absolute -left-37.5 bottom-1/4 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
+        className="absolute bottom-1/4 -left-37.5 -z-20 w-108.25 rotate-15 sm:bottom-1/3 lg:-bottom-25 lg:w-216.5"
       />
     </div>
   );
 }
 
-function HeroButton(props: LinkProps) {
+function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
   return (
-    <Link href="https://app.zivoe.com" target="_blank" hideExternalLinkIcon variant="primary" {...props}>
-      Start Earning
-    </Link>
+    <SplitCta href="https://app.zivoe.com" target="_blank" {...props}>
+      View Vaults
+    </SplitCta>
   );
 }
 
-async function Statistics() {
-  const [currentDailySnapshot, revenue] = await Promise.all([web3.getCurrentDailySnapshot(), web3.getRevenue()]);
-
+// TODO: these are hardcoded operating figures. Restore the live reads (`centrifuge.getShareClassNavs`,
+// summed with `sumShareClassNavs` so NAV covers every live share class) once the transparency data is
+// available post-migration, and re-wrap this in <Suspense> when it does.
+function Statistics() {
   return (
-    <div className="flex gap-6 lg:gap-16">
-      {currentDailySnapshot?.tvl ? (
-        <Statistic label="TVL" value={'$' + formatBigIntToReadable(BigInt(currentDailySnapshot.tvl.total))} />
-      ) : null}
+    <div className="flex gap-2 sm:gap-6 lg:-mt-20 lg:gap-16">
+      <Statistic label="Loans Funded" value="1,000+" />
 
-      <Statistic label="Target Net APY" value="10%+" />
+      <Statistic label="Originations" value="$10M" />
 
-      {revenue ? <Statistic label="Revenue" value={'$' + formatBigIntToReadable(BigInt(revenue), 6)} /> : null}
+      <Statistic label="Collections" value="$1.5M" />
     </div>
   );
 }
 
-function Statistic({ label, value, description }: { label: string; value: string; description?: string }) {
+function Statistic({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
       <div className="flex items-center">
-        <p className="whitespace-nowrap text-leading text-primary/80 lg:text-smallSubheading">{label}</p>
+        <p className="text-small whitespace-nowrap text-primary/80 sm:text-leading lg:text-smallSubheading">{label}</p>
 
-        {description && (
-          <ContextualHelp variant="info">
-            <ContextualHelpDescription>{description}</ContextualHelpDescription>
-          </ContextualHelp>
-        )}
+        <ContextualHelp
+          variant="info"
+          aria-label={`About ${label}`}
+          className="w-72 max-w-[calc(100vw-2rem)]"
+          triggerClassName="text-primary/80"
+        >
+          <ContextualHelpDescription>{STATISTIC_DISCLOSURE}</ContextualHelpDescription>
+        </ContextualHelp>
       </div>
-      <p className="whitespace-nowrap text-h6 sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
+
+      <p className="text-h6 whitespace-nowrap sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
     </div>
   );
 }

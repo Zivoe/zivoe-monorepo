@@ -6,8 +6,10 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 
 ### Transaction monitoring
 
+> Archived with the Centrifuge migration — the module now lives at `apps/dapp/archived/transaction-monitor` and is excluded from typecheck and lint. The vocabulary is kept for reading that code and for whatever replaces it.
+
 **Transaction Monitor**:
-The module that watches finalized on-chain transaction events and fans out user notifications (analytics, Telegram, confirmation emails with dedupe). One orchestration; everything kind-specific lives in a Monitor Kind. Lives at `apps/dapp/src/server/monitor`.
+The module that watches finalized on-chain transaction events and fans out user notifications (analytics, Telegram, confirmation emails with dedupe). One orchestration; everything kind-specific lives in a Monitor Kind.
 _Avoid_: cron route, notification job
 
 **Monitor Kind**:
@@ -25,8 +27,54 @@ _Avoid_: checkpoint, offset
 ### Client transactions
 
 **Transaction Hook**:
-A client module that drives one on-chain transaction through the shared lifecycle in `useTx` — guards → simulate → send → receipt toast → transaction dialog → refetches — via a declarative config. Seven exist: vault/router/permit deposits, redeem, unstake, claim, approve.
+A client module that drives one on-chain transaction through the shared lifecycle — guards → simulate → send → receipt toast → transaction dialog → refetches — via a declarative config. The lifecycle itself lives in `useTxLifecycle`; two drivers supply receipt acquisition: `useTx` for direct viem contract calls (approve) and `useCentrifugeTx` for Centrifuge SDK actions (deposit, request redeem, cancel redeem, claim redeem, claim returned shares).
 _Avoid_: mutation hook (server-action mutations are not Transaction Hooks)
+
+### Offerings and redemptions
+
+**Offering**:
+One Centrifuge share class exposed as a product page at `/offerings/<slug>`, described by the registry in `apps/dapp/src/offerings`. Centrifuge's model is Pool > Share Class > Vault: a pool holds N share classes (each with its own share token, price, NAV and yield history), and a vault is one share class instantiated on one network for one deposit asset — so a route is keyed by share class, not by vault, and one Offering accepting a second stablecoin stays one Offering.
+_Avoid_: opportunity (the pre-Centrifuge name), vault, product
+
+**Share Class Catalog**:
+The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/catalog.ts`): symbol, decimals, and per-network on-chain identity, with `deployable: false` marking staged placeholder entries. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import.
+_Avoid_: config (that is the network singleton), token list
+
+**Share-Class Key**:
+The Share Class Catalog key naming one class (e.g. `zSMB`) — the share-class dimension of query keys, caches, and vault resolution. It travels as a plain string through providers and caches; `getShareClassIdentity` is the runtime trust boundary that validates it.
+_Avoid_: scId (the on-chain id), symbol
+
+**Offering Module**:
+One Offering's registration in the dApp — identity (slug, Share-Class Key, per-network vaults) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/offerings/zsmb.tsx`. Listed in `REGISTERED_OFFERINGS`; the registry invariants sweep every claimed network at import, so a misregistration fails the build, never production traffic.
+_Avoid_: offering config
+
+**Transaction Identity**:
+What a flow hands every Centrifuge Transaction Hook: `{ offeringSlug, shareClass }`, the resolved catalog identity joined with the Offering's vault on the active network via `resolveTransactionIdentity`. The Centrifuge module never imports the registry — it trusts the identity it is handed, which keeps the test fixture class unregisterable.
+_Avoid_: offering context
+
+**NAV**:
+Net Asset Value: the user-facing name for a share class's value — Token Price × total issuance. Internals and the indexer use `nav`/`navD18` too, so the term stays consistent from data through presentation.
+_Avoid_: alternate names for this metric
+
+**Token Price**:
+The user-facing name for the share token's price, shown to two decimals like NAV. Internals deliberately keep `sharePrice`/`sharePriceD18`, matching the SDK and indexer vocabulary — do not rename them.
+_Avoid_: Share Price in user-facing copy
+
+**Redemption Position**:
+A wallet's in-flight redemption state on a share class: pending shares awaiting fulfillment, claimable USDC from fulfilled requests, and Returned Shares from cancellations.
+_Avoid_: withdrawal, exit
+
+**Returned Shares**:
+Share tokens handed back by a redemption cancellation — the `claimableCancelRedeemShares` bucket, per share class. The SDK's aggregate claim empties this bucket first, so Returned Shares must be claimed before claiming redemption USDC.
+_Avoid_: refunded shares, cancelled shares
+
+**Cancellation Processing**:
+The window after a cancel request while the hub unwinds it (`hasPendingCancelRedeemRequest`). The redeem form locks — a new request would revert on-chain until the unwind lands.
+_Avoid_: pending cancel (ambiguous with a pending redeem request)
+
+**Split Outcome**:
+A Redemption Position holding both claimable USDC and Returned Shares at once — a cancellation landed after partial fulfillment. The UI gates the USDC claim behind the Returned Shares claim.
+_Avoid_: partial cancel
 
 ## Example dialogue
 

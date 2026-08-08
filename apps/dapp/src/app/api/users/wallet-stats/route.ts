@@ -112,7 +112,6 @@ const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> =
     .where(condition);
 
   // TODO: At ~5K+ users, add cursor-based pagination and a separate summary query (using wallet_holdings PK for dedup).
-  // Group wallets by userId and track unique address holdings
   const userMap = new Map<string, UserData>();
   const uniqueAddressHoldings = new Map<string, number>();
   let totalValueUSD = 0;
@@ -134,20 +133,18 @@ const handler = async (req: NextRequest): ApiResponse<UserWalletStatsResponse> =
 
     const userData = userMap.get(w.userId)!;
 
-    // Aggregate holdings
     userData.totalValueUSD = roundTo4(userData.totalValueUSD + (w.totalValueUsd ?? 0));
     userData.tokenBalanceUSD = roundTo4(userData.tokenBalanceUSD + (w.tokenBalanceUsd ?? 0));
     userData.defiBalanceUSD = roundTo4(userData.defiBalanceUSD + (w.defiBalanceUsd ?? 0));
     userData.walletCount++;
 
-    // Track oldest update (stalest data)
+    // A user is only as fresh as their stalest wallet.
     if (w.holdingsUpdatedAt) {
       if (!userData.holdingsUpdatedAt || w.holdingsUpdatedAt < userData.holdingsUpdatedAt) {
         userData.holdingsUpdatedAt = w.holdingsUpdatedAt;
       }
     }
 
-    // Add wallet to list
     userData.wallets.push({
       address: w.address,
       walletType: w.walletType,

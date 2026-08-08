@@ -13,15 +13,11 @@ import { TowerLeftIcon } from '@/components/tower-left-icon';
 import NewsletterForm from '../../../../components/newsletter/common/newsletter-form';
 import {
   CapitalOneIcon,
+  CentrifugeIcon,
   ChainalysisIcon,
-  CowSwapIcon,
   JPMorganIcon,
-  M0Icon,
   MapleIcon,
-  RuntimeIcon,
   RwaioIcon,
-  SecuritizeIcon,
-  SherlockIcon,
   WellsFargoIcon
 } from './assets';
 import { TowerRightDesktopIcon } from './assets/tower-right-desktop';
@@ -49,7 +45,7 @@ export default function Experience() {
               </div>
             </div>
 
-            <Link variant="primary" href={`mailto:${EMAILS.INVESTORS}`} size="l">
+            <Link variant="primary" href={`mailto:${EMAILS.INQUIRE}`} size="l">
               Let's Talk
             </Link>
           </div>
@@ -57,7 +53,7 @@ export default function Experience() {
           <div className="flex w-full flex-col gap-14 sm:gap-20 xl:max-w-120 2xl:max-w-171">
             <Section
               title="Experienced Leadership"
-              description="Our team combines expertise from leading financial institutions and DeFi protocols."
+              description="Our team combines expertise from leading financial institutions."
               extra={
                 <Link href="/about-us" variant="link-neutral-dark" size="m">
                   Meet the Team
@@ -85,57 +81,24 @@ export default function Experience() {
             </Section>
 
             <Section
-              title="Audited by Top Security Firms"
-              description="We work with industry-leading auditors to ensure our platform is secure and reliable."
-              extra={
-                <Link
-                  href="https://docs.zivoe.com/official-links/audits"
-                  target="_blank"
-                  hideExternalLinkIcon
-                  variant="link-neutral-dark"
-                  size="m"
-                >
-                  Review Our Audits
-                  <ArrowRightIcon />
-                </Link>
-              }
-            >
-              <Partner>
-                <RuntimeIcon />
-              </Partner>
-
-              <Partner>
-                <SherlockIcon />
-              </Partner>
-            </Section>
-
-            <Section
               title="Compliance-First Approach"
-              description="We collaborate with Securitize and Chainalysis to ensure we meet the highest standards of regulatory compliance."
+              description="We work with Chainalysis to support our compliance program and maintain high regulatory standards."
             >
-              <Partner>
-                <SecuritizeIcon />
-              </Partner>
-
               <Partner>
                 <ChainalysisIcon />
               </Partner>
             </Section>
 
             <Section
-              title="Collaborating with Industry Leaders"
-              description="We are proud to work with top-tier partners across the DeFi ecosystem to deliver the best results for our users."
+              title="Infrastructure & Ecosystem Partners"
+              description="Zivoe works with specialized providers across the digital asset and private credit ecosystem."
             >
-              <Partner>
-                <CowSwapIcon />
-              </Partner>
               <div className="flex flex-wrap gap-4">
                 <Partner>
-                  <RwaioIcon />
+                  <CentrifugeIcon aria-label="Centrifuge" role="img" className="h-7 w-auto" />
                 </Partner>
-
                 <Partner>
-                  <M0Icon />
+                  <RwaioIcon />
                 </Partner>
               </div>
             </Section>
@@ -155,8 +118,8 @@ export default function Experience() {
       </div>
 
       <TowerRightDesktopIcon className="absolute -right-16 bottom-0 hidden xl:block 2xl:right-0" />
-      <TowerRightTabletIcon className="absolute bottom-0 right-0 hidden sm:block xl:hidden" />
-      <TowerRightMobileIcon className="absolute bottom-0 right-0 block sm:hidden" />
+      <TowerRightTabletIcon className="absolute right-0 bottom-0 hidden sm:block xl:hidden" />
+      <TowerRightMobileIcon className="absolute right-0 bottom-0 block sm:hidden" />
     </div>
   );
 }

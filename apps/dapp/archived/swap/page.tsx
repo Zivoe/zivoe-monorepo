@@ -14,7 +14,7 @@ export default function SwapPage() {
           <CowswapElementLeft />
         </div>
 
-        <div className="absolute bottom-0 right-0 hidden lg:block">
+        <div className="absolute right-0 bottom-0 hidden lg:block">
           <CowswapElementRight />
         </div>
       </Page>

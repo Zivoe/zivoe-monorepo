@@ -47,7 +47,7 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "text-extraSmall [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 flex aspect-video justify-center [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+          "flex aspect-video justify-center text-extraSmall [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
           className
         )}
         {...props}
@@ -123,7 +123,7 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          'bg-surface-base grid min-w-48 items-start gap-1.5 rounded-lg px-3 py-2 text-extraSmall shadow-[0px_1px_3px_0px_rgba(16,24,40,0.10),0px_1px_2px_0px_rgba(16,24,40,0.06)]',
+          'grid min-w-48 items-start gap-1.5 rounded-lg bg-surface-base px-3 py-2 text-extraSmall shadow-[0px_1px_3px_0px_rgba(16,24,40,0.10),0px_1px_2px_0px_rgba(16,24,40,0.06)]',
           className
         )}
       >

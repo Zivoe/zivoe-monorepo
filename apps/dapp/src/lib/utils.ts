@@ -1,20 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { type QueryClient } from '@tanstack/react-query';
-import { type Address, type TransactionReceipt, formatUnits, parseEventLogs } from 'viem';
+import { formatUnits } from 'viem';
 
-import { CONTRACTS } from '@zivoe/contracts';
-import { zivoeVaultAbi } from '@zivoe/contracts/abis';
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { type DepositToken } from '@/types/constants';
-
-import { type TransactionData } from '@/lib/store';
-
 import { env } from '@/env';
-
-import { queryKeys } from './query-keys';
 
 export const DAY_IN_SECONDS = 86400;
 export const DAYS_PER_YEAR = 365;
@@ -24,11 +15,11 @@ export const truncateAddress = (address: string | undefined) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export function customNumber(number: number, decimals = 2) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000, decimals)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000, decimals)}k`;
+export function customNumber(number: number) {
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
   else {
-    return floorToDecimals(number, decimals);
+    return floorToDecimals(number);
   }
 }
 
@@ -41,7 +32,10 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   } else if (numericValue >= 1_000) {
     return `${floorToDecimals(numericValue / 1_000)}k`;
   } else {
-    return floorToDecimals(numericValue);
+    // Cents only survive below the k/M thresholds, and this is the range where
+    // a receipt sits beside a claim row showing the same amount — so share the
+    // exact formatter rather than letting the two disagree by a cent.
+    return formatBigIntWithCommas({ value, tokenDecimals: decimals ?? 18, displayDecimals: 2 });
   }
 };
 
@@ -56,23 +50,27 @@ export const formatBigIntWithCommas = ({
   displayDecimals?: number;
   showUnderZero?: boolean;
 }) => {
-  const inEther = formatUnits(value, tokenDecimals);
-  const numericValue = Number(inEther);
+  // formatUnits already yields the exact decimal string, so truncate that text
+  // rather than scaling a Number: 0.57 * 100 is 56.99999999999999, which floors
+  // a whole cent off an exact amount. Callers pass on-chain token amounts, but
+  // carry the sign explicitly so a negative could never print as positive.
+  const [whole = '0', fraction = ''] = formatUnits(value < 0n ? -value : value, tokenDecimals).split('.');
 
-  const multiplier = Math.pow(10, displayDecimals);
-  const rounded = Math.floor(numericValue * multiplier) / multiplier;
-
-  const formatted = rounded.toLocaleString('en-US', {
-    minimumFractionDigits: displayDecimals,
-    maximumFractionDigits: displayDecimals
-  });
+  const sign = value < 0n ? '-' : '';
+  const digits = fraction.slice(0, displayDecimals).padEnd(displayDecimals, '0');
+  const formatted = `${sign}${BigInt(whole).toLocaleString('en-US')}${displayDecimals > 0 ? `.${digits}` : ''}`;
 
   return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
 
 const floorToDecimals = (num: number, decimals = 2) => {
   const multiplier = Math.pow(10, decimals);
-  return (Math.floor(num * multiplier) / multiplier).toFixed(decimals);
+  // Scaling first introduces representation error (1.14 * 100 is
+  // 113.99999999999999), which floors a whole cent off the value. Round that
+  // noise away before flooring. The guard is coarser than it looks — anything
+  // within 0.0005 of the next step rounds up — so this is only safe for the
+  // k/M summaries it now serves, where that margin is far below what is shown.
+  return (Math.floor(Math.round(num * multiplier * 1000) / 1000) / multiplier).toFixed(decimals);
 };
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
@@ -122,19 +120,23 @@ export class AppError extends Error {
   public readonly capture: boolean;
   public readonly exception?: unknown;
   public readonly type: AppErrorType;
+  /** True when the pre-sign simulation blocked the transaction — analytics classify these as simulation_failed, not failed. */
+  public readonly simulation: boolean;
 
   constructor({
     message,
     refetch = true,
     capture = true,
     exception,
-    type = 'error'
+    type = 'error',
+    simulation = false
   }: {
     message: string;
     refetch?: boolean;
     capture?: boolean;
     exception?: unknown;
     type?: AppErrorType;
+    simulation?: boolean;
   }) {
     super(message);
     this.name = 'AppError';
@@ -142,6 +144,7 @@ export class AppError extends Error {
     this.capture = capture;
     this.exception = exception;
     this.type = type;
+    this.simulation = simulation;
   }
 }
 
@@ -154,7 +157,7 @@ export const onTxError = ({
   err: unknown;
   defaultToastMsg: string;
   onRefetch?: () => Promise<void>;
-  sentry: { flow: string; extras: Record<string, unknown> };
+  sentry: { flow: string; tags?: Record<string, string>; extras: Record<string, unknown> };
 }) => {
   let refetch = true;
   let capture = true;
@@ -166,7 +169,9 @@ export const onTxError = ({
     refetch = err.refetch;
     capture = err.capture;
     toastMsg = err.message;
-    exception = err.exception ?? err.message;
+    // Fall back to the AppError itself (not its message) so guard failures
+    // reach Sentry with a stack and error class instead of a bare string.
+    exception = err.exception ?? err;
     type = err.type;
   }
 
@@ -177,7 +182,7 @@ export const onTxError = ({
 
   if (capture)
     Sentry.captureException(exception, {
-      tags: { source: 'MUTATION', flow: sentry.flow },
+      tags: { source: 'MUTATION', flow: sentry.flow, ...sentry.tags },
       extra: {
         ...sentry.extras,
         toastMsg
@@ -187,101 +192,6 @@ export const onTxError = ({
 
 export const skipTxSettled = (err: unknown) => {
   return !!err && err instanceof AppError && err.refetch === false;
-};
-
-export const getDepositTransactionData = ({
-  stableCoinName,
-  receipt,
-  getDepositAmount
-}: {
-  stableCoinName: DepositToken;
-  receipt: TransactionReceipt;
-  getDepositAmount: () => bigint | undefined;
-}) => {
-  let depositAmount: bigint | undefined;
-  let receiveAmount: bigint | undefined;
-
-  try {
-    depositAmount = getDepositAmount();
-
-    const vaultDepositLogs = parseEventLogs({
-      abi: zivoeVaultAbi,
-      eventName: 'Deposit',
-      logs: receipt.logs
-    });
-
-    const vaultDepositLog = vaultDepositLogs[0];
-    if (vaultDepositLog) receiveAmount = vaultDepositLog.args.shares;
-  } catch (error) {
-    Sentry.captureException(error, { tags: { source: 'MUTATION', flow: 'deposit' } });
-  }
-
-  let meta: TransactionData['meta'] = undefined;
-  if (depositAmount && receiveAmount) {
-    meta = {
-      deposit: {
-        token: stableCoinName,
-        amount: depositAmount,
-        receive: receiveAmount
-      }
-    };
-  }
-
-  const transactionData: TransactionData =
-    receipt.status === 'success'
-      ? {
-          type: 'SUCCESS',
-          title: 'Deposit Successful',
-          description: 'zVLT tokens have been transferred to your wallet.',
-          hash: receipt.transactionHash,
-          meta
-        }
-      : {
-          type: 'ERROR',
-          title: 'Deposit Failed',
-          description: `There was an error depositing ${stableCoinName}`,
-          hash: receipt.transactionHash
-        };
-
-  return transactionData;
-};
-
-export const handleDepositRefetches = ({
-  queryClient,
-  address,
-  stableCoinName,
-  allowanceSpender
-}: {
-  queryClient: QueryClient;
-  address: Address | undefined;
-  stableCoinName: DepositToken;
-  allowanceSpender: Address | undefined;
-}) => {
-  // Refetch allowance
-  if (allowanceSpender) {
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.account.allowance({
-        accountAddress: address,
-        contract: CONTRACTS[stableCoinName],
-        spender: allowanceSpender
-      })
-    });
-  }
-
-  // Refetch deposit balances
-  void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.depositBalances({ accountAddress: address })
-  });
-
-  // Refetch zVLT balance
-  void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.balanceOf({ accountAddress: address, id: CONTRACTS.zVLT })
-  });
-
-  // Refetch portfolio
-  void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.portfolio({ accountAddress: address })
-  });
 };
 
 export function withErrorHandler(defaultErrorMessage: string, handler: (req: NextRequest) => Promise<NextResponse>) {
@@ -322,6 +232,5 @@ export const getEndOfDayUTC = (date: Date) => {
 };
 
 export const EMAILS = {
-  INVESTORS: 'investors@zivoe.com',
   INQUIRE: 'inquire@zivoe.com'
 } as const;

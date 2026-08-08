@@ -5,7 +5,7 @@ export const SITE_ORIGIN = 'https://www.zivoe.com';
 export const SITE_TITLE = 'Zivoe | RWA Private Credit & Stablecoin Yield Protocol';
 
 export const SITE_DESCRIPTION =
-  'Zivoe is an RWA credit protocol helping qualified users access private credit yield through diversified loan portfolios, stablecoin deposits, and zVLT.';
+  'Zivoe is an RWA credit protocol helping qualified users access private credit yield through diversified loan portfolios, USDC deposits, and zSMB.';
 
 export const SITE_IMAGE = {
   url: `${SITE_ORIGIN}/zivoe-hero.jpg`,

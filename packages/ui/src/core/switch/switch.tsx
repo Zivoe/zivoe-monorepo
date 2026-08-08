@@ -11,21 +11,17 @@ import { cn, tv } from '../../lib/tw-utils';
 const switchVariants = tv({
   slots: {
     container: [
-      'peer bg-surface-elevated-low-emphasis inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-none transition-colors',
-      /* Focus Visible */
-      'group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-neutral-0 group-data-focus-visible:ring-2 group-data-focus-visible:ring-offset-1',
-      /* Disabled */
-      'group-data-disabled:bg-surface-elevated-contrast group-data-disabled:cursor-not-allowed',
-      /* Selected */
+      'peer inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-none bg-surface-elevated-low-emphasis transition-colors',
+      'group-data-focus-visible:ring-2 group-data-focus-visible:ring-default group-data-focus-visible:ring-offset-1 group-data-focus-visible:ring-offset-neutral-0',
+      'group-data-disabled:cursor-not-allowed group-data-disabled:bg-surface-elevated-contrast',
       'group-selected:bg-element-primary-subtle group-data-disabled:group-selected:bg-element-primary',
-      /* Readonly */
       'group-data-readonly:cursor-auto',
       /* Resets */
       'group-data-focus-visible:outline-hidden'
     ],
 
     thumb:
-      'bg-surface-base group-data-disabled:bg-surface-elevated-high-contrast group-data-disabled:group-selected:bg-element-primary-contrast pointer-events-none block size-5 translate-x-1 rounded-full shadow-lg ring-0 transition-transform group-selected:translate-x-6'
+      'pointer-events-none block size-5 translate-x-1 rounded-full bg-surface-base shadow-lg ring-0 transition-transform group-data-disabled:bg-surface-elevated-high-contrast group-selected:translate-x-6 group-data-disabled:group-selected:bg-element-primary-contrast'
   }
 });
 
@@ -38,7 +34,7 @@ const Switch = forwardRef<HTMLLabelElement, SwitchProps>(({ children, className,
     <Aria.Switch
       className={composeRenderProps(className, (className) =>
         cn(
-          'group text-regular text-primary inline-flex items-center gap-2 leading-none font-medium data-disabled:cursor-not-allowed',
+          'group inline-flex items-center gap-2 text-regular leading-none font-medium text-primary data-disabled:cursor-not-allowed',
           className
         )
       )}

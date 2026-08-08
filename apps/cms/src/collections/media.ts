@@ -1,9 +1,10 @@
 import type { CollectionConfig } from 'payload';
 
-import { isAdminOrEditor } from '@/access/users';
-import { preventInsightReferenceDeletion } from '@/lib/insights-references';
 import { COLLECTION_GROUP } from '@/lib/constants';
+import { preventInsightReferenceDeletion } from '@/lib/insights-references';
 import { revalidateInsightsAfterChange, revalidateInsightsAfterDelete } from '@/lib/revalidate';
+
+import { isAdminOrEditor } from '@/access/users';
 
 export const Media: CollectionConfig = {
   slug: 'media',

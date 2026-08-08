@@ -161,7 +161,9 @@ export function normalizePost(post: PostDocument): InsightsPostDocument {
 
   const author = authorRelation ? normalizeAuthor(authorRelation) : createFallbackAuthor(post);
   const category = categoryRelation ? normalizeCategory(categoryRelation) : createFallbackCategory(post);
-  const featuredImage = featuredImageRelation ? (toMedia(featuredImageRelation) ?? createFallbackMedia(post)) : createFallbackMedia(post);
+  const featuredImage = featuredImageRelation
+    ? (toMedia(featuredImageRelation) ?? createFallbackMedia(post))
+    : createFallbackMedia(post);
 
   return {
     author,

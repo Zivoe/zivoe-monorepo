@@ -14,7 +14,7 @@ export default function NewsletterHeader({
       </p>
 
       <p className={cn('text-regular sm:text-smallSubheading', type === 'dark' ? 'text-secondary' : 'text-base')}>
-        Receive news and opportunities straight to your inbox
+        Receive updates and insights straight to your inbox.
       </p>
     </div>
   );

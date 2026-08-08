@@ -26,7 +26,6 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'Failure logged (invalid JSON)' });
   }
 
-  // Extract known fields with optional chaining (no strict schema)
   Sentry.captureException(new Error(`QStash delivery failed: ${body?.url ?? 'unknown'}`), {
     tags: {
       source: 'SERVER',

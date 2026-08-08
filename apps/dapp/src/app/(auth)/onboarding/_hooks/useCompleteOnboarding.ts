@@ -17,7 +17,7 @@ export function useCompleteOnboarding() {
   return useMutation({
     mutationFn: async (data: OnboardingFormData) => {
       const { error } = await completeOnboarding(data);
-      if (error) throw new AppError({ message: 'Onboarding failed', exception: error, capture: false });
+      if (error) throw new AppError({ message: 'Onboarding Failed', exception: error, capture: false });
     },
 
     onSuccess: () => {

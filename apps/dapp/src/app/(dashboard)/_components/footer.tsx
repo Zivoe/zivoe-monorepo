@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 
 import { Link } from '@zivoe/ui/core/link';
+import { copyrightLine } from '@zivoe/ui/lib/copyright';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { LINKS } from '@/types/constants';
@@ -14,7 +15,7 @@ export default function Footer() {
   return (
     <div className={cn('bg-surface-base p-4 lg:pb-4', isDepositPage && 'pb-24.5')}>
       <div className="flex flex-col justify-between gap-6 rounded-sm bg-surface-elevated p-6 md:flex-row">
-        <p className="order-2 text-regular text-primary md:order-1">©Zivoe 2025. All Right Reserved.</p>
+        <p className="order-2 text-regular text-primary md:order-1">{copyrightLine()}</p>
 
         <div className="order-1 flex gap-4 md:order-2">
           <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use</FooterLink>

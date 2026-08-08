@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';
+import { copyrightLine } from '@zivoe/ui/lib/copyright';
 
 import { EMAILS } from '@/lib/utils';
 
@@ -42,7 +43,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex w-full flex-col justify-between gap-8 lg:mt-14 lg:flex-row">
-          <p className="text-small text-base">©Zivoe 2025. All Right Reserved.</p>
+          <p className="text-small text-base">{copyrightLine()}</p>
 
           <div className="order-2 flex gap-8 lg:order-1">
             <Link
@@ -62,18 +63,18 @@ export default function Footer() {
               variant="link-base"
               size="s"
             >
-              Reg S Complicance
+              Reg S Compliance
             </Link>
           </div>
         </div>
 
-        <p className="text-extraSmall text-disabled mt-12 lg:mt-20">
+        <p className="mt-12 text-extraSmall text-disabled lg:mt-20">
           Zivoe is a technology services provider. Use of the Zivoe Protocol involves risks, including but not limited
           to the potential loss of digital assets. Before using the Zivoe Protocol, you should review our documentation
           to ensure you understand how the Protocol works. As described in our Terms, the Zivoe Protocol is provided on
-          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representation or warranties
-          of any kind relating to the Protocol, and no developer or entity will be liable for claims or damages of any
-          kind associated with use or inability to use the Protocol.
+          an "as is" and "as available" basis, at your own risk. We explicitly disclaim any representations or
+          warranties of any kind relating to the Protocol, and no developer or entity will be liable for claims or
+          damages of any kind associated with use or inability to use the Protocol.
         </p>
       </Container>
     </div>
@@ -103,9 +104,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     title: 'Explore',
     links: [
       { href: '/insights', label: 'Insights' },
-      { href: 'https://docs.zivoe.com', label: 'Docs', target: '_blank' },
       { href: 'https://github.com/Zivoe/zivoe-core-foundry', label: 'GitHub', target: '_blank' },
-      { href: 'https://docs.zivoe.com/official-links/audits', label: 'Audits', target: '_blank' },
       { href: '/faq', label: 'FAQ' }
     ]
   },
@@ -114,7 +113,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     title: 'Company',
     links: [
       { href: '/team', label: 'Team' },
-      { href: `mailto:${EMAILS.INVESTORS}`, label: 'Contact Us' }
+      { href: `mailto:${EMAILS.INQUIRE}`, label: 'Contact Us' }
     ]
   }
 ];

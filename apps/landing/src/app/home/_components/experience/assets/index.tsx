@@ -1,4 +1,5 @@
 export * from './j-p-morgan';
+export * from './centrifuge';
 export * from './wells-fargo';
 export * from './maple';
 export * from './capital-one';

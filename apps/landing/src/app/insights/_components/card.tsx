@@ -27,12 +27,7 @@ export function InsightCard({
         isCompact ? 'min-h-100 gap-0 p-3' : 'min-h-130 gap-2 p-2'
       )}
     >
-      <div
-        className={cn(
-          'aspect-video overflow-hidden rounded-lg bg-surface-base-soft',
-          isCompact && 'rounded-sm'
-        )}
-      >
+      <div className={cn('aspect-video overflow-hidden rounded-lg bg-surface-base-soft', isCompact && 'rounded-sm')}>
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -52,9 +47,12 @@ export function InsightCard({
         )}
       </div>
 
-      <div className={cn('flex flex-1 flex-col', isCompact ? 'gap-5 px-1 pb-1 pt-4' : 'gap-6 px-3 pb-3 pt-1')}>
+      <div className={cn('flex flex-1 flex-col', isCompact ? 'gap-5 px-1 pt-4 pb-1' : 'gap-6 px-3 pt-1 pb-3')}>
         <div className={cn('flex flex-1 flex-col', isCompact ? 'gap-3' : 'gap-4')}>
-          <Badge variant="primary" className={cn('w-fit', isCompact && 'rounded-[3px] px-2 py-1 text-[0.6875rem] leading-4')}>
+          <Badge
+            variant="primary"
+            className={cn('w-fit', isCompact && 'rounded-[3px] px-2 py-1 text-[0.6875rem] leading-4')}
+          >
             {post.category.title}
           </Badge>
 
@@ -62,14 +60,18 @@ export function InsightCard({
             <h3
               className={cn(
                 'font-heading text-primary transition-colors group-hover:text-brand',
-                isCompact
-                  ? 'line-clamp-2 text-[1.625rem] leading-8'
-                  : 'text-[2rem] leading-11'
+                isCompact ? 'line-clamp-2 text-[1.625rem] leading-8' : 'text-[2rem] leading-11'
               )}
             >
               {post.title}
             </h3>
-            <p className={cn(isCompact ? 'line-clamp-3 text-[0.9375rem] leading-6 text-secondary' : 'text-regular leading-7 text-secondary')}>
+            <p
+              className={cn(
+                isCompact
+                  ? 'line-clamp-3 text-[0.9375rem] leading-6 text-secondary'
+                  : 'text-regular leading-7 text-secondary'
+              )}
+            >
               {post.excerpt}
             </p>
           </div>

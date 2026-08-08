@@ -8,9 +8,11 @@
         "DATABASE_URL",
         "NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY",
         "NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY",
+        "NEXT_PUBLIC_NETWORK",
+        "NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY",
+        "NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY",
         "QSTASH_CURRENT_SIGNING_KEY",
         "QSTASH_NEXT_SIGNING_KEY",
-        "PONDER_MAINNET_DATABASE_URL",
         "BEEHIIV_PUBLICATION_ID",
         "BEEHIIV_API_KEY",
         "TURNSTILE_SECRET_KEY",
@@ -19,8 +21,6 @@
         "NEXT_PUBLIC_DYNAMIC_ENV_ID",
         "UPSTASH_REDIS_REST_URL",
         "UPSTASH_REDIS_REST_TOKEN",
-        "LANDING_PAGE_URL",
-        "LANDING_PAGE_REVALIDATE_API_KEY",
         "REVALIDATE_API_KEY",
         "NEXT_PUBLIC_SENTRY_DSN",
         "SENTRY_AUTH_TOKEN",
@@ -58,7 +58,10 @@
         "R2_ACCESS_KEY_ID",
         "R2_SECRET_ACCESS_KEY",
         "R2_ENDPOINT",
-        "R2_PUBLIC_URL"
+        "R2_PUBLIC_URL",
+        "NEXT_RUNTIME",
+        "SKIP_ENV_VALIDATION",
+        "APP_URL"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -69,6 +72,9 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
     },
     "dev": {
       "cache": false,

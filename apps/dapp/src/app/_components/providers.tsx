@@ -9,17 +9,19 @@ import { type DynamicContextProps, DynamicContextProvider, useDynamicContext } f
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import Intercom, { update } from '@intercom/messenger-js-sdk';
 import * as Sentry from '@sentry/nextjs';
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
-import { mainnet } from 'viem/chains';
+import { mainnet, sepolia } from 'viem/chains';
 import { type State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
-import { Toaster, toast } from '@zivoe/ui/core/sonner';
+import { Toaster } from '@zivoe/ui/core/sonner';
 
 import { trackWalletConnection } from '@/server/actions/track-wallet-connection';
 
 import { authClient, useSession } from '@/lib/auth-client';
+import { getQueryClient } from '@/lib/get-query-client';
+import { NETWORK_CHAIN } from '@/lib/network';
 import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -34,11 +36,14 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   initialAuthenticationMode: 'connect-only',
   networkValidationMode: 'always',
   appName: 'Zivoe',
-  mobileExperience: 'redirect'
+  mobileExperience: 'redirect',
+  overrides: {
+    evmNetworks: (networks) => networks.filter((network) => Number(network.chainId) === NETWORK_CHAIN.id)
+  }
 };
 
 export const wagmiConfig = createConfig({
-  chains: [mainnet],
+  chains: [NETWORK_CHAIN],
   multiInjectedProviderDiscovery: false,
   ssr: true,
   storage: createStorage({
@@ -48,29 +53,12 @@ export const wagmiConfig = createConfig({
     [mainnet.id]: fallback([
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
       http(env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY)
+    ]),
+    [sepolia.id]: fallback([
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY),
+      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY)
     ])
   }
-});
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-      retry: 1
-    }
-  },
-
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      if (query.meta?.skipErrorToast) return;
-
-      const title = query.meta?.toastErrorMessage ?? error.message ?? 'An Error Occurred';
-      toast({ type: 'error', title });
-
-      Sentry.captureException(error, { tags: { source: 'QUERY' } });
-    }
-  })
 });
 
 export default function Providers({
@@ -82,6 +70,7 @@ export default function Providers({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = getQueryClient();
 
   useEffect(() => {
     Intercom({ app_id: env.NEXT_PUBLIC_INTERCOM_APP_ID });
@@ -138,11 +127,11 @@ function SentryContext({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// * Wallet connection tracking relies on connect-only mode where only one wallet
-// * is active at a time. If multi-wallet support is added, switch to tracking
-// * the connectedWallets array instead of primaryWallet.
 const MAX_WALLET_CACHE_SIZE = 100;
 
+// * Relies on connect-only mode, where only one wallet is active at a time. If
+// * multi-wallet support is added, track the connectedWallets array instead of
+// * primaryWallet.
 function WalletTracker() {
   const { address } = useAccount();
   const { primaryWallet } = useDynamicContext();
@@ -157,7 +146,7 @@ function WalletTracker() {
     const cacheKey = `${normalizedAddress}:${walletType}`;
     const storageKey = `wallets_${userId}`;
 
-    // Check localStorage cache to avoid unnecessary server calls
+    // Avoids a server call on every mount for a wallet already tracked.
     try {
       const cached = new Set(JSON.parse(localStorage.getItem(storageKey) ?? '[]'));
       if (cached.has(cacheKey)) return;

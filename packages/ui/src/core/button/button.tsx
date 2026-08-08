@@ -11,33 +11,33 @@ import { tv } from '../../lib/tw-utils';
 
 const buttonVariants = tv({
   base: [
-    'font-paragraph inline-flex w-fit items-center justify-center font-medium whitespace-nowrap transition-colors',
-    'disabled:bg-element-neutral disabled:text-tertiary disabled:cursor-not-allowed',
+    'inline-flex w-fit items-center justify-center font-paragraph font-medium whitespace-nowrap transition-colors',
+    'disabled:cursor-not-allowed disabled:bg-element-neutral disabled:text-tertiary',
     'pending:cursor-not-allowed',
-    'focus-visible:ring-default focus-visible:ring-offset-neutral-0 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-hidden',
+    'focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
     'focus:outline-hidden'
   ],
 
   variants: {
     variant: {
       primary:
-        'bg-element-primary hover:bg-element-primary-subtle focus-visible:bg-element-primary-subtle pressed:bg-element-primary-soft text-base',
+        'bg-element-primary text-base hover:bg-element-primary-subtle focus-visible:bg-element-primary-subtle pressed:bg-element-primary-soft',
       secondary:
-        'bg-element-secondary hover:bg-element-secondary-subtle focus-visible:bg-element-secondary-subtle pressed:bg-element-secondary-soft text-base',
+        'bg-element-secondary text-base hover:bg-element-secondary-subtle focus-visible:bg-element-secondary-subtle pressed:bg-element-secondary-soft',
       'primary-light':
         'bg-element-primary-light text-brand hover:bg-element-primary-gentle focus-visible:bg-element-primary-gentle pressed:bg-element-primary-light',
       'secondary-light':
         'bg-element-secondary-light text-brand-secondary hover:bg-element-secondary-gentle focus-visible:bg-element-secondary-gentle pressed:bg-element-secondary-light',
       border:
-        'text-brand shadow-brand hover:bg-element-primary focus-visible:bg-element-primary pressed:bg-element-primary-contrast pressed:text-base bg-transparent shadow-[0_0_0_1px] hover:text-base focus-visible:text-base disabled:shadow-none',
+        'bg-transparent text-brand shadow-[0_0_0_1px] shadow-brand hover:bg-element-primary hover:text-base focus-visible:bg-element-primary focus-visible:text-base disabled:shadow-none pressed:bg-element-primary-contrast pressed:text-base',
       'border-light':
-        'bg-element-base text-primary shadow-default hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light shadow-[0_0_0_1px] disabled:shadow-none',
+        'bg-element-base text-primary shadow-[0_0_0_1px] shadow-default hover:bg-element-neutral focus-visible:bg-element-neutral disabled:shadow-none pressed:bg-element-neutral-light',
       alert:
-        'bg-element-alert hover:bg-element-alert-subtle focus-visible:bg-element-alert-subtle pressed:bg-element-alert-soft text-base',
+        'bg-element-alert text-base hover:bg-element-alert-subtle focus-visible:bg-element-alert-subtle pressed:bg-element-alert-soft',
       ghost:
-        'text-primary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light bg-transparent',
+        'bg-transparent text-primary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       'ghost-light':
-        'text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light bg-transparent',
+        'bg-transparent text-secondary hover:bg-element-neutral focus-visible:bg-element-neutral pressed:bg-element-neutral-light',
       nav: 'text-primary',
       'link-base': 'text-base',
       'link-primary': 'text-brand-subtle',
@@ -46,14 +46,14 @@ const buttonVariants = tv({
       'link-neutral-light': 'text-secondary',
       'link-alert': 'text-alert-subtle',
       'link-tertiary': 'text-tertiary',
-      chip: 'border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light pressed:bg-element-neutral border disabled:border-neutral-100'
+      chip: 'border border-default bg-element-base text-primary hover:bg-element-neutral-light focus-visible:bg-element-neutral-light disabled:border-neutral-100 pressed:bg-element-neutral'
     },
 
     size: {
-      l: 'text-regular h-12 gap-2 rounded-sm px-4 py-3 [&_svg]:size-4',
-      m: 'text-regular h-10 gap-2 rounded-sm px-3 py-2 [&_svg]:size-4',
-      s: 'text-small h-8 gap-1 rounded-xs px-3 py-2 [&_svg]:size-4',
-      xs: 'text-extraSmall h-6 gap-1 rounded-xs px-2 py-2.5 [&_svg]:size-3'
+      l: 'h-12 gap-2 rounded-sm px-4 py-3 text-regular [&_svg]:size-4',
+      m: 'h-10 gap-2 rounded-sm px-3 py-2 text-regular [&_svg]:size-4',
+      s: 'h-8 gap-1 rounded-xs px-3 py-2 text-small [&_svg]:size-4',
+      xs: 'h-6 gap-1 rounded-xs px-2 py-2.5 text-extraSmall [&_svg]:size-3'
     },
 
     fullWidth: { true: 'w-full' }
@@ -71,12 +71,12 @@ const buttonVariants = tv({
         'link-tertiary'
       ],
       className:
-        'disabled:text-disabled h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent'
+        'h-auto p-0 hover:underline hover:underline-offset-8 focus-visible:ring-0 disabled:bg-transparent disabled:text-disabled'
     },
     {
       variant: ['nav'],
       className:
-        'current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active hover:shadow-active focus-visible:shadow-active disabled:text-disabled rounded-none p-0 hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] focus-visible:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] focus-visible:ring-0 disabled:bg-transparent'
+        'rounded-none p-0 hover:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] hover:shadow-active focus-visible:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] focus-visible:ring-0 focus-visible:shadow-active disabled:bg-transparent disabled:text-disabled current:shadow-[0_2px_0_0_rgba(0,0,0,0.1)] current:shadow-active'
     },
     {
       variant: ['link-primary', 'link-secondary', 'link-neutral-dark', 'link-neutral-light', 'link-alert'],
@@ -116,7 +116,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <>
               <Spinner
                 role="progressbar"
-                aria-label={typeof pendingContent === 'string' ? pendingContent : 'Loading'}
+                aria-label={typeof pendingContent === 'string' ? pendingContent : 'Loading...'}
                 className="animate-spin"
               />
               {pendingContent}

@@ -73,7 +73,7 @@ const jsxConverters: JSXConvertersFunction<RichTextNode> = ({ defaultConverters 
 
     return <p className={paragraphClassNames[style]}>{children?.length ? children : <br />}</p>;
   },
-  horizontalrule: () => <hr className="border-default my-4 border-0 border-t" />,
+  horizontalrule: () => <hr className="my-4 border-0 border-t border-default" />,
   quote: ({ node, nodesToJSX }) => renderQuote(node, nodesToJSX),
   upload: ({ node }) => renderUpload(node),
   blocks: {
@@ -95,7 +95,7 @@ export function InsightsRichText({ document }: { document: InsightsRichTextDocum
     <RichText
       data={document}
       converters={jsxConverters}
-      className="text-regular text-secondary flex flex-col gap-6 leading-7.5"
+      className="flex flex-col gap-6 text-regular leading-7.5 text-secondary"
     />
   );
 }
@@ -186,7 +186,7 @@ function renderQuote(
   nodesToJSX: (args: { nodes: RichTextQuoteNode['children'] }) => Array<ReactNode>
 ) {
   return (
-    <blockquote className="border-default text-primary border-l-2 pl-4 italic">
+    <blockquote className="border-l-2 border-default pl-4 text-primary italic">
       {nodesToJSX({ nodes: node.children })}
     </blockquote>
   );
@@ -203,7 +203,7 @@ function renderUpload(node: RichTextUploadNode) {
 
   return (
     <figure className="flex flex-col gap-3">
-      <div className="bg-surface-base-soft overflow-hidden rounded-lg">
+      <div className="overflow-hidden rounded-lg bg-surface-base-soft">
         <Image
           src={imageUrl}
           alt={media.alt}

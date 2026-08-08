@@ -166,7 +166,6 @@ export const auth: DappAuth = betterAuth({
     }
   },
 
-  // Subscribe to newsletter and track signup on user creation
   databaseHooks: {
     user: {
       create: {
@@ -175,14 +174,14 @@ export const auth: DappAuth = betterAuth({
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-schedule-reminder', 'sign-up-posthog-capture'];
 
             const results = await Promise.allSettled([
-              // Subscribe to newsletter
               subscribeToBeehiiv({
                 email: user.email,
                 utmSource: 'dapp-v2',
                 sendWelcomeEmail: false
               }),
 
-              // Schedule onboarding reminder (1 day) for users who don't complete it
+              // Nudges users who signed up but never completed onboarding; the
+              // route no-ops if they finished in the meantime.
               qstash.publishJSON({
                 url: `${BASE_URL}/api/email/onboarding-reminder`,
                 body: { userId: user.id },
@@ -193,7 +192,6 @@ export const auth: DappAuth = betterAuth({
                 label: QSTASH_JOB_LABELS.emailOnboardingReminder
               }),
 
-              // Track signup event
               captureServerEvent({
                 distinctId: user.id,
                 event: 'auth:sign-up',

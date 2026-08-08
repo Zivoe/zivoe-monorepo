@@ -3,7 +3,6 @@ import { type ReactNode } from 'react';
 import { type Metadata } from 'next';
 
 import { Disclosure, DisclosureGroup, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
-import { Link } from '@zivoe/ui/core/link';
 
 import { JsonLd, SITE_ORIGIN } from '@/lib/seo';
 
@@ -40,7 +39,7 @@ export default function FAQPage() {
 function Faq() {
   return (
     <div className="relative">
-      <Container className="gap-10 px-4 pb-2 pt-12 sm:px-10 lg:flex-row lg:pb-28 lg:pt-40 xl:gap-30 xl:px-43">
+      <Container className="gap-10 px-4 pt-12 pb-2 sm:px-10 lg:flex-row lg:pt-40 lg:pb-28 xl:gap-30 xl:px-43">
         <div className="flex w-full flex-col gap-4 lg:max-w-110">
           <h1 className="text-h4 text-primary lg:text-h2">Your Questions, Answered</h1>
           <p className="text-regular text-primary lg:text-leading">
@@ -65,6 +64,10 @@ function Faq() {
   );
 }
 
+/**
+ * `answer` is what the page renders; `jsonLdAnswer` is the plain-text equivalent for the FAQPage
+ * structured data and is required whenever `answer` is JSX. Keep the two in sync when editing copy.
+ */
 const FAQs: Array<{
   question: string;
   answer: ReactNode;
@@ -72,59 +75,94 @@ const FAQs: Array<{
 }> = [
   {
     question: 'What is Zivoe?',
-    answer:
-      'Zivoe is a real world asset (RWA) credit protocol that allows anyone who qualifies to gain tokenized exposure to the private credit market, an asset class historically favored by institutions for its strong risk-adjusted returns. By connecting stablecoin deposits to off-chain lending, Zivoe makes access to this segment available to individuals, offering exposure to yield opportunities that were traditionally out of reach.'
-  },
-  {
-    question: 'How have these loans performed historically?',
-    answer:
-      'Private credit has shown consistent performance across market cycles, providing stable returns even when public markets experienced volatility. During the 2008 financial crisis, when traditional credit contracted sharply, many private lenders continued to perform, supported by disciplined underwriting and diversified borrower bases. This history underscores the resilience of private credit as an asset class.'
-  },
-  {
-    question: 'What are the risks?',
-    answer:
-      'Note, Zivoe only serves as a technology interface, and as with all forms of private credit exposure, there are risks. Borrower defaults, underwriting errors, and broader economic conditions can all impact loan performance. Liquidity is also a consideration, as withdrawals are contingent on available liquidity. To mitigate these risks, Zivoe partners with established asset originators who handle underwriting and loan origination.'
-  },
-  {
-    question: 'How do I earn yield?',
-    answer:
-      'Depositors mint zVLT, Zivoe’s ERC-4626 vault token, by depositing stablecoins into the protocol. These funds are deployed off-chain into yield-generating private credit assets originated by Zivoe’s partners. Over time, interest and principal payments from these assets flow back on-chain and are automatically compounded into zVLT, allowing depositors to passively earn real, on-chain yield backed by private credit.'
-  },
-  {
-    question: 'What are the fees?',
-    answer:
-      'Zivoe currently takes a 15% protocol fee on the gross interest income generated from loan repayments. This fee supports ongoing operational costs, audits, and future development of the protocol. The remaining yield is distributed to zVLT holders, allowing them to earn the full benefit of on-chain cash flows after expenses.'
-  },
-  {
-    question: 'Is there a minimum deposit amount?',
-    answer:
-      'Unlike many other real world asset credit protocols, Zivoe is built to be accessible to all who qualify, and as such there is no minimum deposit amount. You can deposit as much or as little as you would like.'
-  },
-  {
-    question: 'What is the lockup and liquidity policy?',
     answer: (
       <>
-        Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital
-        availability. To initiate a redemption, or if you have questions about the redemption process before depositing,
-        contact us at{' '}
-        <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
-          investors@zivoe.com
-        </Link>
-        .
+        Zivoe is an on-chain private-credit platform and digital lender. It deploys institutional and stablecoin capital
+        through established lending partners that originate and service loans in their markets. Zivoe coordinates
+        strategy administration, portfolio reporting, compliance workflows, and participant access. Tokenization and
+        issuance are powered by Centrifuge.
+        <br />
+        <br />
+        Zivoe is expanding the platform to support additional private-credit strategies and networks.
       </>
     ),
     jsonLdAnswer:
-      'Zivoe enforces no lockup period. Redemption requests are currently processed individually and subject to capital availability. To initiate a redemption, or if you have questions about the redemption process before depositing, contact us at investors@zivoe.com.'
+      'Zivoe is an on-chain private-credit platform and digital lender. It deploys institutional and stablecoin capital through established lending partners that originate and service loans in their markets. Zivoe coordinates strategy administration, portfolio reporting, compliance workflows, and participant access. Tokenization and issuance are powered by Centrifuge. Zivoe is expanding the platform to support additional private-credit strategies and networks.'
   },
   {
-    question: 'How do I convert my tranche tokens to zVLT?',
-    answer:
-      'Zivoe has transitioned from its original tranche-based system to a unified auto-compounding vault token called zVLT, which launched alongside our new dApp. Senior tranche token holders use their tokens in the new dApp to mint zVLT while junior tranche tokens holders will first need to visit our legacy dApp (a link to this can be found in the footer on this page) and convert their junior tranche tokens first to senior tranche tokens and then to zVLT.'
+    question: 'How can a Zivoe position generate returns?',
+    answer: (
+      <>
+        A position’s performance is linked to income generated by the applicable private-credit strategy and is affected
+        by fees, expenses, and credit performance.
+        <br />
+        <br />
+        Target APY is a gross annualized target before fees and expenses. It is not guaranteed and may change. See the
+        applicable vault terms for more information.
+      </>
+    ),
+    jsonLdAnswer:
+      'A position’s performance is linked to income generated by the applicable private-credit strategy and is affected by fees, expenses, and credit performance. Target APY is a gross annualized target before fees and expenses. It is not guaranteed and may change. See the applicable vault terms for more information.'
   },
   {
-    question: 'Has Zivoe been audited?',
-    answer:
-      "Yes. Zivoe's smart contracts have been audited by Runtime Verification and Sherlock, two leading security firms in the blockchain industry. In addition to these audits, Zivoe employs continuous monitoring systems to track protocol activity, flag anomalies, and uphold operational security standards."
+    question: 'Who can participate?',
+    answer: (
+      <>
+        Participation is limited to verified U.S. accredited investors and eligible non-U.S. persons, subject to the
+        applicable vault terms.
+        <br />
+        <br />
+        Participants must complete identity, eligibility, and compliance verification before being whitelisted to
+        interact with a vault.
+      </>
+    ),
+    jsonLdAnswer:
+      'Participation is limited to verified U.S. accredited investors and eligible non-U.S. persons, subject to the applicable vault terms. Participants must complete identity, eligibility, and compliance verification before being whitelisted to interact with a vault.'
+  },
+  {
+    question: 'How do deposits and redemptions work?',
+    answer: (
+      <>
+        After verification and whitelisting, participants can deposit USDC into an available Zivoe vault and receive a
+        position in that vault.
+        <br />
+        <br />
+        Redemption requests are processed weekly, subject to available liquidity, processing requirements, and the
+        applicable vault terms.
+      </>
+    ),
+    jsonLdAnswer:
+      'After verification and whitelisting, participants can deposit USDC into an available Zivoe vault and receive a position in that vault. Redemption requests are processed weekly, subject to available liquidity, processing requirements, and the applicable vault terms.'
+  },
+  {
+    question: 'What reporting does Zivoe provide?',
+    answer: (
+      <>
+        Participants can review core information about their positions and account activity through the Zivoe platform.
+        <br />
+        <br />
+        Zivoe expects to begin regular NAV reporting following the migration. Information is updated as data is received
+        and processed and may not be available in real time.
+      </>
+    ),
+    jsonLdAnswer:
+      'Participants can review core information about their positions and account activity through the Zivoe platform. Zivoe expects to begin regular NAV reporting following the migration. Information is updated as data is received and processed and may not be available in real time.'
+  },
+  {
+    question: 'What fees, liquidity limitations, and risks apply?',
+    answer: (
+      <>
+        Fees, expenses, liquidity terms, and material risks are described in the applicable vault terms before
+        participation.
+        <br />
+        <br />
+        Private credit involves risk, including defaults by lending partners or underlying borrowers, delayed repayment,
+        limited liquidity, and servicing, technology, and regulatory risks. Returns are not guaranteed, and participants
+        may lose some or all of their capital.
+      </>
+    ),
+    jsonLdAnswer:
+      'Fees, expenses, liquidity terms, and material risks are described in the applicable vault terms before participation. Private credit involves risk, including defaults by lending partners or underlying borrowers, delayed repayment, limited liquidity, and servicing, technology, and regulatory risks. Returns are not guaranteed, and participants may lose some or all of their capital.'
   }
 ];
 
@@ -132,12 +170,12 @@ const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   '@id': `${SITE_ORIGIN}/faq#faq`,
-  mainEntity: FAQs.map(({ question, answer, jsonLdAnswer }) => ({
-    '@type': 'Question',
-    name: question,
-    acceptedAnswer: {
-      '@type': 'Answer',
-      text: jsonLdAnswer ?? (typeof answer === 'string' ? answer : '')
-    }
-  }))
+  // Skip any entry without plain text rather than emitting an empty acceptedAnswer, which would
+  // make the whole FAQPage schema invalid.
+  mainEntity: FAQs.flatMap(({ question, answer, jsonLdAnswer }) => {
+    const text = jsonLdAnswer ?? (typeof answer === 'string' ? answer : undefined);
+    if (!text) return [];
+
+    return [{ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text } }];
+  })
 };

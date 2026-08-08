@@ -36,7 +36,7 @@ export function usePrefetch({
     });
 
     return () => observer.disconnect();
-  }, [enabled, href, router]);
+  }, [enabled, href, router, target]);
 }
 
 function prefetch({ href, router }: { href: string; router: AppRouterInstance }) {

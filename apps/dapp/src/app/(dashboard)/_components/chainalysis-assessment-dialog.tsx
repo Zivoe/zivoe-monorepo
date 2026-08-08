@@ -24,7 +24,7 @@ export default function ChainalysisAssessmentDialog() {
       await handleLogOut();
     } catch (error) {
       console.error(error);
-      toast({ type: 'error', title: 'Error disconnecting wallet' });
+      toast({ type: 'error', title: 'Error Disconnecting Wallet' });
     }
 
     setIsDialogOpen(false);
@@ -41,8 +41,8 @@ export default function ChainalysisAssessmentDialog() {
       <DialogContent aria-label="Wallet connection denied" isDismissable={false}>
         <DialogContentBox className="p-4">
           <div className="flex flex-col items-center gap-6 py-3">
-            <div className="bg-element-alert-light flex size-12 items-center justify-center rounded-md">
-              <LockIcon className="text-alert-contrast size-8" />
+            <div className="flex size-12 items-center justify-center rounded-md bg-element-alert-light">
+              <LockIcon className="size-8 text-alert-contrast" />
             </div>
 
             <div className="flex max-w-md flex-col items-center gap-3 text-center">
@@ -67,8 +67,8 @@ export default function ChainalysisAssessmentDialog() {
           </div>
 
           {assessment.data?.riskReason && (
-            <div className="bg-surface-elevated flex w-full flex-col gap-1 rounded-md px-4 py-3">
-              <p className="text-regular text-primary font-medium">Denial reason</p>
+            <div className="flex w-full flex-col gap-1 rounded-md bg-surface-elevated px-4 py-3">
+              <p className="text-regular font-medium text-primary">Denial reason</p>
               <p className="text-small text-secondary">{assessment.data?.riskReason}</p>
             </div>
           )}

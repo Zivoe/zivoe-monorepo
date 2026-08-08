@@ -1,13 +1,8 @@
-import { type ReactNode, Suspense } from 'react';
+import { type ReactNode } from 'react';
 
-import { Link } from '@zivoe/ui/core/link';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
+// import { Link } from '@zivoe/ui/core/link';
 import { CalendarIcon, GlobeIcon, MoneyHandIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
-
-import { web3 } from '@/server/web3';
-
-import { formatBigIntWithCommas } from '@/lib/utils';
 
 import Container from '@/components/container';
 
@@ -28,9 +23,7 @@ export default function Portfolio() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            <Suspense fallback={<LoanPortfolioSkeleton />}>
-              <LoanPortfolio />
-            </Suspense>
+            <LoanPortfolio />
 
             <Card title="Live Since" description="September 2024">
               <CardIcon className="bg-primary-400">
@@ -45,9 +38,12 @@ export default function Portfolio() {
             </Card>
           </div>
 
+          {/*
+          TODO: Add this back once the NAV dashboard is released.
           <Link variant="primary-light" href="https://app.zivoe.com/transparency" target="_blank" hideExternalLinkIcon>
             View Portfolio
           </Link>
+          */}
         </div>
 
         <Globe />
@@ -56,28 +52,13 @@ export default function Portfolio() {
   );
 }
 
-function LoanPortfolioSkeleton() {
+function LoanPortfolio() {
+  // The off-chain loan book has no Centrifuge source; placeholder until the
+  // team decides on a future source (same posture as the Revenue stat).
+  // Synchronous on purpose — restore a Suspense boundary and skeleton when a
+  // real data source returns.
   return (
-    <LoanPortfolioSection description={<Skeleton className="h-7 w-32 rounded-md bg-element-primary-light/10" />} />
-  );
-}
-
-async function LoanPortfolio() {
-  const currentDailySnapshot = await web3.getCurrentDailySnapshot();
-  if (!currentDailySnapshot) return null;
-
-  const loanPortfolio = currentDailySnapshot.tvl.loans.total;
-
-  return (
-    <LoanPortfolioSection
-      description={`$${formatBigIntWithCommas({ value: BigInt(loanPortfolio), tokenDecimals: 18, displayDecimals: 0 })}`}
-    />
-  );
-}
-
-function LoanPortfolioSection({ description }: { description: string | ReactNode }) {
-  return (
-    <Card title="Loan Portfolio" description={description}>
+    <Card title="Loan Portfolio" description="–">
       <CardIcon className="bg-element-secondary">
         <MoneyHandIcon />
       </CardIcon>
@@ -95,7 +76,7 @@ function Card({
   description: string | ReactNode;
 }) {
   return (
-    <div className="flex w-full items-center gap-6 rounded-xl bg-element-primary px-6 py-4 sm:flex-col sm:items-start xl:flex-row xl:items-center xl:pb-4 xl:pt-6 2xl:w-55 2xl:flex-col 2xl:items-start">
+    <div className="flex w-full items-center gap-6 rounded-xl bg-element-primary px-6 py-4 sm:flex-col sm:items-start xl:flex-row xl:items-center xl:pt-6 xl:pb-4 2xl:w-55 2xl:flex-col 2xl:items-start">
       {children}
 
       <div className="flex flex-col gap-1">

@@ -8,23 +8,27 @@ This is the monorepo for the Zivoe websites [zivoe.com](https://zivoe.com) and [
 
 ```
 .
-├── apps/                # Frontend applications
-│   ├── dapp             # Zivoe main dApp frontend
-│   ├── landing          # Marketing/landing website
-│   └── storybook        # Design system preview using Storybook
+├── apps/                    # Frontend applications
+│   ├── cms                  # Payload CMS powering the landing site's Insights
+│   ├── dapp                 # Zivoe main dApp frontend
+│   ├── landing              # Marketing/landing website
+│   └── storybook            # Design system preview using Storybook
 │
-├── packages/            # Shared packages
-│   ├── contracts        # Smart contract ABIs and utilities
-│   ├── eslint           # Shared linting config
-│   ├── prettier         # Shared prettier config
-│   └── typescript       # Shared TS config
-│   └── ui               # Shared UI component library
+├── packages/                # Shared packages
+│   ├── centrifuge-indexer   # Typed GraphQL client for the Centrifuge indexer
+│   ├── cms-types            # Payload-generated types shared with the apps
+│   ├── database             # Drizzle schema, migrations, and shared queries
+│   ├── eslint               # Shared linting config
+│   ├── prettier             # Shared prettier config
+│   ├── typescript           # Shared TS config
+│   └── ui                   # Shared UI component library
 │
-├── .vscode/             # Editor settings
-├── .gitignore
-├── package.json         # Root project metadata
-├── pnpm-workspace.yaml  # Workspace configuration
-├── turbo.json           # Turborepo pipeline config
+├── infra/posthog/           # Terraform for PostHog dashboards and insights
+├── .vscode/                 # Editor settings
+├── CONTEXT.md               # Domain language for the monorepo
+├── package.json             # Root project metadata
+├── pnpm-workspace.yaml      # Workspace configuration
+├── turbo.json               # Turborepo pipeline config
 └── README.md
 ```
 
@@ -34,7 +38,8 @@ This is the monorepo for the Zivoe websites [zivoe.com](https://zivoe.com) and [
 
 - **Monorepo:** Turborepo + pnpm workspaces
 - **Frontend:** Next.js + TailwindCSS
-- **Contracts:** ABIs managed in `/packages/contracts`
+- **Content:** Payload CMS on Postgres
+- **On-chain:** Centrifuge SDK + the Centrifuge indexer
 - **Tooling:** Eslint, Prettier, Storybook
 - **Deployment:** Vercel / Custom
 

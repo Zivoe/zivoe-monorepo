@@ -104,8 +104,8 @@ function HelpFooter() {
   return (
     <Footer>
       Need help? Contact us at{' '}
-      <FooterLink variant="link-primary" href={`mailto:${EMAILS.INVESTORS}`}>
-        {EMAILS.INVESTORS}
+      <FooterLink variant="link-primary" href={`mailto:${EMAILS.INQUIRE}`}>
+        {EMAILS.INQUIRE}
       </FooterLink>
     </Footer>
   );

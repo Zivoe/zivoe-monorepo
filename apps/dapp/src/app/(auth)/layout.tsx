@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col bg-surface-base xl:grid xl:grid-cols-2 xl:gap-3 xl:p-4">
       <div className="flex flex-1 flex-col">
-        {/* Mobile header  */}
+        {/* Mobile header */}
         <div className="xl:hidden">
           <div className="flex h-full min-h-25 items-center px-6">
             <ZivoeLogo className="w-[5.3rem]" />
@@ -22,8 +22,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Desktop right panel */}
-      <div className="relative hidden max-h-[calc(100dvh-2rem)] items-end justify-start overflow-hidden rounded-xl bg-element-tertiary xl:flex 3xl:justify-end">
-        <ZivoeLogo className="absolute left-10 top-10 h-10" />
+      <div className="relative hidden max-h-[calc(100dvh-2rem)] items-end justify-start overflow-hidden rounded-xl bg-element-tertiary 3xl:justify-end xl:flex">
+        <ZivoeLogo className="absolute top-10 left-10 h-10" />
         <Image
           src="/auth-hero.jpg"
           alt="Hero Element 01"

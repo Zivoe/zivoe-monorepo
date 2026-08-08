@@ -66,7 +66,8 @@ export async function completeOnboarding(data: OnboardingFormData) {
     return { error: 'Failed to complete onboarding. Please try again.' };
   }
 
-  // Check if user already onboarded
+  // onConflictDoNothing returns no rows when a profile already exists — the
+  // user is already onboarded, so skip the one-time side effects below.
   if (!res?.length) redirect('/');
 
   after(async () => {

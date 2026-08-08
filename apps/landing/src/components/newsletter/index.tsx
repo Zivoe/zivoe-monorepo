@@ -16,9 +16,9 @@ export default function Newsletter() {
         </div>
       </Container>
 
-      <NewsletterPatternMobileIcon className="absolute left-0 top-0 h-fit w-full xl:hidden" />
-      <NewsletterPatternIcon className="absolute left-0 top-0 hidden h-[102%] w-fit xl:block" />
-      <NewsletterPatternIcon className="absolute right-0 top-0 hidden h-[102%] w-fit xl:block" />
+      <NewsletterPatternMobileIcon className="absolute top-0 left-0 h-fit w-full xl:hidden" />
+      <NewsletterPatternIcon className="absolute top-0 left-0 hidden h-[102%] w-fit xl:block" />
+      <NewsletterPatternIcon className="absolute top-0 right-0 hidden h-[102%] w-fit xl:block" />
     </div>
   );
 }

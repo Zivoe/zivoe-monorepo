@@ -44,7 +44,7 @@ export const useSaveEmailPreferences = ({ token }: { token: string | null }) => 
 
       toast({
         type: 'success',
-        title: 'Preferences saved',
+        title: 'Preferences Saved',
         description: 'Your email preferences have been updated.'
       });
     },

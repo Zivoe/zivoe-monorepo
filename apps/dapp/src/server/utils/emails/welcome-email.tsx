@@ -8,7 +8,7 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
 
   return (
     <EmailLayout preview="Let's connect" unsubscribeUrl={unsubscribeUrl}>
-      <Heading className="font-serif text-2xl text-neutral-950 m-0 mb-6 text-center font-semibold">
+      <Heading className="font-serif text-2xl m-0 mb-6 text-center font-semibold text-neutral-950">
         Welcome to Zivoe
       </Heading>
 
@@ -24,8 +24,8 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
       </Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">
-        zVLT is a return-generating token providing on-chain access to short-duration private credit strategies,
-        primarily revenue-based financing for small and medium-sized businesses.
+        Zivoe provides access to short-duration private credit strategies, primarily revenue-based financing for small
+        and medium-sized businesses.
       </Text>
 
       <Text className="m-0 leading-6 text-neutral-600">Worth a quick chat?</Text>

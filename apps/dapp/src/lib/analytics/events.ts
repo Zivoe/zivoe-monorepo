@@ -1,6 +1,5 @@
-import { mainnet } from 'viem/chains';
-
-import { type DepositToken, type Token } from '@/types/constants';
+import { NETWORK_CHAIN } from '@/lib/network';
+import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =
   | 'auth:sign-up'
@@ -21,29 +20,50 @@ export type AnalyticsEvent =
   | 'tx:redeem_receipt'
   | 'tx:redeem_failed'
   | 'tx:redeem_confirmed'
+  | 'tx:redeem_claim_started'
+  | 'tx:redeem_claim_signature_rejected'
+  | 'tx:redeem_claim_submitted'
+  | 'tx:redeem_claim_receipt'
+  | 'tx:redeem_claim_failed'
+  | 'tx:redeem_cancel_started'
+  | 'tx:redeem_cancel_signature_rejected'
+  | 'tx:redeem_cancel_submitted'
+  | 'tx:redeem_cancel_receipt'
+  | 'tx:redeem_cancel_failed'
+  | 'tx:redeem_claim_returned_started'
+  | 'tx:redeem_claim_returned_signature_rejected'
+  | 'tx:redeem_claim_returned_submitted'
+  | 'tx:redeem_claim_returned_receipt'
+  | 'tx:redeem_claim_returned_failed'
   | 'tx:approval_started'
   | 'tx:approval_signature_rejected'
   | 'tx:approval_submitted'
   | 'tx:approval_confirmed'
-  | 'tx:approval_failed'
-  | 'tx:permit_started'
-  | 'tx:permit_signature_rejected'
-  | 'tx:permit_signed'
-  | 'tx:permit_failed';
+  | 'tx:approval_failed';
 
 type AnalyticsPropertyValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
 
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | Record<string, unknown>>;
 
-export type TransactionFlow = 'deposit' | 'redeem' | 'approval' | 'permit';
+export type TransactionFlow =
+  | 'deposit'
+  | 'redeem'
+  | 'redeem_claim'
+  | 'redeem_cancel'
+  | 'redeem_claim_returned'
+  | 'approval';
 
 export type TransactionAnalyticsInput = {
   flow: TransactionFlow;
   step: string;
   walletAddress?: string | null;
   chainId?: number;
-  tokenIn?: DepositToken | Token | 'USDC' | 'zVLT' | null;
-  tokenOut?: DepositToken | Token | 'USDC' | 'zVLT' | null;
+  /** Stable product identity of the Offering transacted on. */
+  offeringSlug?: string | null;
+  // Symbols travel as plain strings: they come from the transacted identity
+  // object, and test fixtures are deliberately unregistered.
+  tokenIn?: string | null;
+  tokenOut?: string | null;
   amountInRaw?: bigint | string | number | null;
   amountOutRaw?: bigint | string | number | null;
   spender?: string | null;
@@ -69,7 +89,10 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
     flow: input.flow,
     step: input.step,
     wallet_address: input.walletAddress?.toLowerCase(),
-    chain_id: input.chainId ?? mainnet.id,
+    // Default to the deployment's configured chain — a hardcoded mainnet
+    // fallback mislabelled every event whose caller omitted chainId.
+    chain_id: input.chainId ?? NETWORK_CHAIN.id,
+    offering_slug: input.offeringSlug ?? undefined,
     token_in: input.tokenIn ?? undefined,
     token_out: input.tokenOut ?? undefined,
     amount_in_raw: toAnalyticsAmount(input.amountInRaw),
@@ -87,6 +110,10 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
 export function getAnalyticsErrorType(error: unknown) {
   if (error instanceof Error && error.message.includes('Transaction rejected')) return 'user_rejected';
   if (error instanceof Error && error.message.includes('User rejected the request')) return 'user_rejected';
+  // Decoded simulation blocks carry friendly copy without the marker, so the
+  // flag is the signal. The message check below only covers useTx's simulation
+  // path, which still prefixes and sets no flag.
+  if (error instanceof AppError && error.simulation) return 'simulation_failed';
   if (error instanceof Error && error.message.includes('Simulation error')) return 'simulation_failed';
   return 'failed';
 }
