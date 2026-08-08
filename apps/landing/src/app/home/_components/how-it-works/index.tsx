@@ -23,7 +23,7 @@ export default function HowItWorks() {
           <Card
             label="Step 1"
             title="Deposit"
-            description="Deposit stablecoins through the Zivoe platform."
+            description="Complete KYC to deposit stablecoins through the Zivoe platform."
             image={<Step1Icon />}
             className="items-end"
             imageClassName="pt-4 items-end   sm:max-w-[70%]"
@@ -40,8 +40,8 @@ export default function HowItWorks() {
 
           <Card
             label="Step 3"
-            title="Grow"
-            description="Grow your position, request a redemption at any time."
+            title="Earn"
+            description="Grow your position. Weekly redemptions, as liquidity allows."
             image={<Step3Icon />}
             className="items-center"
             imageClassName="max-w-[11rem] items-center sm:max-w-[70%]"
