@@ -20,8 +20,7 @@ export default async function HomePage() {
         <Page className="gap-6 lg:gap-8">
           <h1 className="font-heading! text-h5 text-primary lg:text-h4">Offerings</h1>
 
-          {/* Two columns at most on desktop: three made the cards feel crammed. */}
-          <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-6 lg:grid-cols-2">
+          <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-6 lg:grid-cols-[repeat(auto-fill,minmax(min(100%,26rem),1fr))]">
             {OFFERINGS.map((offering) => (
               <OfferingCard key={offering.slug} offering={offering} aum={cardAums[offering.shareClass.key] ?? null} />
             ))}
