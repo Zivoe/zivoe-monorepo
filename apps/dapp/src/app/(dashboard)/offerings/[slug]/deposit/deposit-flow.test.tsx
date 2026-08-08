@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { type OfferingStatus, ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 
 import { OfferingIdentityProvider } from '../offering-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
@@ -21,7 +21,7 @@ const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
 // drift (an earlier fixture here carried the router address as the vault's).
 const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
 
-function renderFlow(status: 'Open' | 'Closed' = 'Open') {
+function renderFlow(status: OfferingStatus = 'Open') {
   return render(
     <OfferingIdentityProvider identity={TEST_IDENTITY} status={status}>
       <EarnDialogProvider>
@@ -258,8 +258,8 @@ describe('DepositFlow', () => {
     expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
-  it('offers no deposit action at all on a closed Offering', () => {
-    renderFlow('Closed');
+  it('offers no deposit action while an Offering is deploying', () => {
+    renderFlow('Deploying');
 
     expect(getButton('Deposits Disabled').disabled).toBe(true);
     expect(screen.getByText('Deposits are currently disabled, redemptions are enabled.')).toBeTruthy();

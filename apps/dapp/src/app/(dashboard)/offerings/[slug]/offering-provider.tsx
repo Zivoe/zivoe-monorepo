@@ -38,7 +38,7 @@ export function useOfferingIdentity(): TransactionIdentity {
   return useOfferingContext().identity;
 }
 
-/** The page's subscription status — 'Closed' gates new deposits, redemptions stay open. */
+/** The page's subscription status — 'Deploying' gates new deposits, redemptions stay open. */
 export function useOfferingStatus(): OfferingStatus {
   return useOfferingContext().status;
 }

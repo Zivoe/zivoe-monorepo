@@ -50,10 +50,10 @@ export default function OfferingIdentity({
 /**
  * The subscription status chip. Lives next to the identity row because the
  * listing card and the Offering page header both trail the row with it, and
- * they must not disagree on how a closed Offering reads.
+ * they must not disagree on how a deploying Offering reads.
  */
 export function OfferingStatusBadge({ status }: { status: OfferingStatus }) {
-  // A closed Offering keeps its chip but drops the brand tint — the primary
+  // A deploying Offering keeps its chip but drops the brand tint — the primary
   // badge reads as "act on this", which is the opposite here.
   return <Badge variant={status === 'Open' ? 'primary' : 'neutral'}>{status}</Badge>;
 }

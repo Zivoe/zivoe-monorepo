@@ -8,7 +8,7 @@ export const ZALT_OFFERING: Offering = {
   name: 'Zivoe Alternative Credit',
   Logo: ZAltLogo,
   category: 'Merchant Cash Advance',
-  status: 'Closed',
+  status: 'Deploying',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardArtworkSrc: '/offering-zalt-card.svg',

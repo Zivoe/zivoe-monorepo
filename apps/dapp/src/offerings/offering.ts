@@ -60,12 +60,12 @@ export type OfferingVault = {
  * function fields must never cross into the identity half.
  */
 /**
- * Subscription status. 'Closed' takes an Offering out of new deposits while
- * its redemptions stay open, so this is a behavioral fact the deposit flow
- * reads — not only the listing card's chip. Further statuses join the union
- * here.
+ * Subscription status. 'Deploying' keeps an Offering out of new deposits
+ * while its redemptions stay open, so this is a behavioral fact the deposit
+ * flow reads — not only the listing card's chip. Further statuses join the
+ * union here.
  */
-export type OfferingStatus = 'Open' | 'Closed';
+export type OfferingStatus = 'Open' | 'Deploying';
 
 export type OfferingIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */

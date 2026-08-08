@@ -57,8 +57,8 @@ export function DepositFlow() {
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  // A closed Offering stops taking new deposits; its redemptions stay open.
-  const isDepositsClosed = useOfferingStatus() === 'Closed';
+  // A deploying Offering does not take new deposits; its redemptions stay open.
+  const isOfferingDeploying = useOfferingStatus() === 'Deploying';
 
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
@@ -132,14 +132,14 @@ export function DepositFlow() {
   // The two blocks differ in what they say about the future. A resolving or
   // failed preview may still clear on its own, so it only gates the action
   // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
-  // it clears is reasonable. A closed Offering, a vault with no capacity and a
-  // wallet the vault will not admit are settled answers, so they lock the form
-  // itself: there is no amount worth entering.
+  // it clears is reasonable. A deploying Offering, a vault with no capacity
+  // and a wallet the vault will not admit are settled answers, so they lock
+  // the form itself: there is no amount worth entering.
   const isFormLocked =
     isPrereqsLoading ||
     approveSpending.isPending ||
     depositMutation.isPending ||
-    isDepositsClosed ||
+    isOfferingDeploying ||
     isCapacityUnavailable ||
     isNotWhitelisted;
 
@@ -278,10 +278,10 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      {/* Outside ConnectedAccount on purpose: a closed Offering and a vault
+      {/* Outside ConnectedAccount on purpose: a deploying Offering and a vault
           with no capacity are both decided without reference to any wallet, so
           prompting for one would only offer a connection that leads nowhere. */}
-      {isDepositsClosed ? (
+      {isOfferingDeploying ? (
         <Button fullWidth isDisabled>
           Deposits Disabled
         </Button>
@@ -337,10 +337,10 @@ export function DepositFlow() {
         </ConnectedAccount>
       )}
 
-      {/* Why the action above is disabled. The closed status and the vault's
+      {/* Why the action above is disabled. The deploying status and the vault's
           capacity are Offering facts, so they render whether or not a wallet is
           connected; the whitelist verdict only exists once one is. */}
-      {isDepositsClosed ? (
+      {isOfferingDeploying ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
       ) : isCapacityUnavailable ? (
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
