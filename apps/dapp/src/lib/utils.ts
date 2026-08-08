@@ -32,7 +32,10 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   } else if (numericValue >= 1_000) {
     return `${floorToDecimals(numericValue / 1_000)}k`;
   } else {
-    return floorToDecimals(numericValue);
+    // Cents only survive below the k/M thresholds, and this is the range where
+    // a receipt sits beside a claim row showing the same amount — so share the
+    // exact formatter rather than letting the two disagree by a cent.
+    return formatBigIntWithCommas({ value, tokenDecimals: decimals ?? 18, displayDecimals: 2 });
   }
 };
 
@@ -47,16 +50,15 @@ export const formatBigIntWithCommas = ({
   displayDecimals?: number;
   showUnderZero?: boolean;
 }) => {
-  const inEther = formatUnits(value, tokenDecimals);
-  const numericValue = Number(inEther);
+  // formatUnits already yields the exact decimal string, so truncate that text
+  // rather than scaling a Number: 0.57 * 100 is 56.99999999999999, which floors
+  // a whole cent off an exact amount. Callers pass on-chain token amounts, but
+  // carry the sign explicitly so a negative could never print as positive.
+  const [whole = '0', fraction = ''] = formatUnits(value < 0n ? -value : value, tokenDecimals).split('.');
 
-  const multiplier = Math.pow(10, displayDecimals);
-  const rounded = Math.floor(numericValue * multiplier) / multiplier;
-
-  const formatted = rounded.toLocaleString('en-US', {
-    minimumFractionDigits: displayDecimals,
-    maximumFractionDigits: displayDecimals
-  });
+  const sign = value < 0n ? '-' : '';
+  const digits = fraction.slice(0, displayDecimals).padEnd(displayDecimals, '0');
+  const formatted = `${sign}${BigInt(whole).toLocaleString('en-US')}${displayDecimals > 0 ? `.${digits}` : ''}`;
 
   return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
@@ -65,8 +67,9 @@ const floorToDecimals = (num: number, decimals = 2) => {
   const multiplier = Math.pow(10, decimals);
   // Scaling first introduces representation error (1.14 * 100 is
   // 113.99999999999999), which floors a whole cent off the value. Round that
-  // noise away before flooring; it is ~1e-13 relative, far below the last
-  // shown digit, so genuine excess precision is still floored, not rounded up.
+  // noise away before flooring. The guard is coarser than it looks — anything
+  // within 0.0005 of the next step rounds up — so this is only safe for the
+  // k/M summaries it now serves, where that margin is far below what is shown.
   return (Math.floor(Math.round(num * multiplier * 1000) / 1000) / multiplier).toFixed(decimals);
 };
 

@@ -9,25 +9,25 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from '@/hooks/useAccount';
 
 import { getVault } from './client';
-import { readInvestorAllowlist, readRedemptionPosition, readVaultCapacity } from './reads';
+import { readInvestorWhitelist, readRedemptionPosition, readVaultCapacity } from './reads';
 import { type TransactedShareClass } from './types';
 
 /**
  * Whether this share class's vault admits the connected wallet. Every flow's
- * action gates on it: the allow list lives in the vault's own configuration,
+ * action gates on it: the whitelist lives in the vault's own configuration,
  * so a blocked wallet's transaction reverts on-chain rather than failing any
  * check the form could run. Skipped without a wallet — there is nothing to
  * ask about until one connects.
  */
-export function useInvestorAllowlist({ shareClass }: { shareClass: TransactedShareClass }) {
+export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedShareClass }) {
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: queryKeys.account.investorAllowlist({ accountAddress: address, shareClassKey: shareClass.key }),
+    queryKey: queryKeys.account.investorWhitelist({ accountAddress: address, shareClassKey: shareClass.key }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
     queryFn: !address
       ? skipToken
-      : async () => readInvestorAllowlist({ vault: await getVault(shareClass), investor: address })
+      : async () => readInvestorWhitelist({ vault: await getVault(shareClass), investor: address })
   });
 }
 

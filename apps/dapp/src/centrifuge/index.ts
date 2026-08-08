@@ -4,7 +4,7 @@ export { CENTRIFUGE_ENV, sharesToUsdc, sharesToValueD18 } from './config';
 export {
   isPriceUnavailableError,
   useDepositPreview,
-  useInvestorAllowlist,
+  useInvestorWhitelist,
   useRedemptionPosition,
   useVaultCapacity
 } from './hooks';
@@ -15,7 +15,7 @@ export { useDeposit } from './use-deposit';
 export { useRequestRedeem } from './use-request-redeem';
 export type {
   DepositPreview,
-  InvestorAllowlist,
+  InvestorWhitelist,
   RedemptionPosition,
   TransactedShareClass,
   TransactionIdentity,

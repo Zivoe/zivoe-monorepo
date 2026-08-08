@@ -1,5 +1,5 @@
 import { type VaultEntity } from './entities';
-import { type InvestorAllowlist, type RedemptionPosition, type VaultCapacity } from './types';
+import { type InvestorWhitelist, type RedemptionPosition, type VaultCapacity } from './types';
 
 export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapacity> {
   const details = await vault.details();
@@ -11,15 +11,15 @@ export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapaci
  * Both verdicts come off the same investment read the position uses. The SDK's
  * deposit/redeem framing stops here with the rest of its vocabulary: those
  * names describe one caller each, while the underlying transfer checks gate
- * more than that (see InvestorAllowlist).
+ * more than that (see InvestorWhitelist).
  */
-export async function readInvestorAllowlist({
+export async function readInvestorWhitelist({
   vault,
   investor
 }: {
   vault: VaultEntity;
   investor: `0x${string}`;
-}): Promise<InvestorAllowlist> {
+}): Promise<InvestorWhitelist> {
   const investment = await vault.investment(investor);
 
   return {

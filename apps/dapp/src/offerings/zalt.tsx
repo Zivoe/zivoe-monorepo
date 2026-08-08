@@ -22,9 +22,8 @@ export const ZALT_OFFERING: Offering = {
   targetApyPercent: 10,
 
   about: [
-    'zALT offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',
-    'zALT is a yield-bearing token that delivers returns through price appreciation. As the underlying loan portfolio generates income and grows in value, this is reflected by a steadily increasing token price.',
-    'zALT seeks to provide consistent, risk-adjusted yields supported by a diversified, short-duration strategy and a team with decades of experience managing credit risk.'
+    'Capital in zALT is deployed across a portfolio of short-duration business loans in the United States and Europe. The portfolio is monitored against defined credit and performance standards in coordination with established lending partners.',
+    'Participation involves risk, including possible loss of capital. Returns are not guaranteed. Review the vault details and applicable disclosures before participating.'
   ],
 
   details: {

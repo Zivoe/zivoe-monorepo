@@ -34,8 +34,8 @@ function renderFlow(status: 'Open' | 'Closed' = 'Open') {
 const mocks = vi.hoisted(() => ({
   address: '0x1234567890abcdef1234567890abcdef12345678',
   allowance: 0n,
-  allowlistIsAllowed: true,
-  allowlistIsError: false,
+  whitelistIsAllowed: true,
+  whitelistIsError: false,
   approve: vi.fn(),
   capacity: 5_000000n,
   capacityIsError: false,
@@ -66,11 +66,11 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
-  useInvestorAllowlist: () =>
-    mocks.allowlistIsError
+  useInvestorWhitelist: () =>
+    mocks.whitelistIsError
       ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
       : {
-          data: { canReceiveShares: mocks.allowlistIsAllowed, canRequestRedemption: mocks.allowlistIsAllowed },
+          data: { canReceiveShares: mocks.whitelistIsAllowed, canRequestRedemption: mocks.whitelistIsAllowed },
           isError: false,
           isFetching: false,
           isSuccess: true
@@ -232,8 +232,8 @@ describe('DepositFlow', () => {
     vi.clearAllMocks();
     mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
     mocks.allowance = 0n;
-    mocks.allowlistIsAllowed = true;
-    mocks.allowlistIsError = false;
+    mocks.whitelistIsAllowed = true;
+    mocks.whitelistIsError = false;
     mocks.capacity = 5_000000n;
     mocks.capacityIsError = false;
     mocks.isDebouncing = false;
@@ -270,25 +270,25 @@ describe('DepositFlow', () => {
   });
 
   it('names the wallet and blocks the action when the vault does not admit it', async () => {
-    mocks.allowlistIsAllowed = false;
+    mocks.whitelistIsAllowed = false;
     renderFlow();
     enterAmount('1');
 
-    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
     expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
     expect(getInput('Deposit').disabled).toBe(true);
 
-    await press('Wallet Not Allowlisted');
+    await press('Wallet Not Whitelisted');
 
     expect(mocks.approve).not.toHaveBeenCalled();
     expect(mocks.deposit).not.toHaveBeenCalled();
   });
 
-  it('leaves the action live on a failed allow-list read', async () => {
+  it('leaves the action live on a failed whitelist read', async () => {
     // A fetch failure is not a verdict, so it neither names the wallet nor
     // takes the action away. The exact-call simulation is the authoritative
     // pre-sign gate and decodes the real revert if the vault does refuse.
-    mocks.allowlistIsError = true;
+    mocks.whitelistIsError = true;
     renderFlow();
     enterAmount('1');
 

@@ -36,7 +36,7 @@ export type DepositPreview = {
 
 /**
  * The share token's transfer hook, asked about one wallet in the two
- * directions the flows move shares. Every Offering's vault is allow-listed, so
+ * directions the flows move shares. Every Offering's vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
  * wallet's transaction reverts on-chain, which no form validation would catch.
  *
@@ -44,7 +44,7 @@ export type DepositPreview = {
  * one direction gates several actions, and the mapping is not the obvious one
  * (see canReceiveShares).
  */
-export type InvestorAllowlist = {
+export type InvestorWhitelist = {
   /**
    * `checkTransferRestriction(0, investor, 0)` — the wallet may receive shares.
    *

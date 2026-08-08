@@ -32,14 +32,14 @@ import {
   isPriceUnavailableError,
   useDeposit,
   useDepositPreview,
-  useInvestorAllowlist,
+  useInvestorWhitelist,
   useVaultCapacity
 } from '@/centrifuge';
 
 import { useOfferingIdentity, useOfferingStatus } from '../offering-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
-import { NotAllowlistedCallout } from './_components/not-allowlisted-callout';
+import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
 import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
@@ -64,12 +64,12 @@ export function DepositFlow() {
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
   const capacity = useVaultCapacity({ shareClass: share });
-  const allowlist = useInvestorAllowlist({ shareClass: share });
+  const whitelist = useInvestorWhitelist({ shareClass: share });
 
   // Only a definitive `false` gates anything. A failed read is a fetch problem
   // and not a verdict about this wallet, so it leaves the flow alone and lets
   // the pre-sign simulation decode the real revert if the vault does refuse.
-  const isNotAllowlisted = allowlist.isSuccess && !allowlist.data.canReceiveShares;
+  const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canReceiveShares;
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -124,7 +124,7 @@ export function DepositFlow() {
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
-    allowlist.isFetching ||
+    whitelist.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
@@ -141,7 +141,7 @@ export function DepositFlow() {
     depositMutation.isPending ||
     isDepositsClosed ||
     isCapacityUnavailable ||
-    isNotAllowlisted;
+    isNotWhitelisted;
 
   // Only the quote gates the action. The settled facts above are enforced one
   // level up, where the ladder swaps this button for a named one — repeating
@@ -293,9 +293,9 @@ export function DepositFlow() {
         <ConnectedAccount>
           {isPrereqsLoading ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
-          ) : isNotAllowlisted ? (
+          ) : isNotWhitelisted ? (
             <Button fullWidth isDisabled>
-              Wallet Not Allowlisted
+              Wallet Not Whitelisted
             </Button>
           ) : hasDepositRaw && !hasEnoughAllowance ? (
             <Button
@@ -339,13 +339,13 @@ export function DepositFlow() {
 
       {/* Why the action above is disabled. The closed status and the vault's
           capacity are Offering facts, so they render whether or not a wallet is
-          connected; the allow-list verdict only exists once one is. */}
+          connected; the whitelist verdict only exists once one is. */}
       {isDepositsClosed ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
       ) : isCapacityUnavailable ? (
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
-      ) : isNotAllowlisted ? (
-        <NotAllowlistedCallout />
+      ) : isNotWhitelisted ? (
+        <NotWhitelistedCallout />
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an

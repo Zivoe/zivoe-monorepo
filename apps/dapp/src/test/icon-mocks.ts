@@ -4,7 +4,7 @@
  * reaches the barrel must mock it). Total on purpose: ANY icon name resolves
  * to a null component, so neither a new Offering logo nor a newly imported
  * icon can break an unrelated suite with React's opaque "Element type is
- * invalid" — the failure mode the earlier hand-maintained allowlists had.
+ * invalid" — the failure mode the earlier hand-maintained whitelists had.
  *
  * Usage: vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
  */

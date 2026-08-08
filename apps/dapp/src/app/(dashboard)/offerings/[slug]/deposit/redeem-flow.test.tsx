@@ -36,10 +36,10 @@ function renderFlow(identity = TEST_IDENTITY) {
 
 const mocks = vi.hoisted(() => ({
   // Kept apart on purpose: the panel gates different controls on each, so a
-  // single "is allowlisted" switch could not express the states that matter.
+  // single "is whitelisted" switch could not express the states that matter.
   canReceiveShares: true,
   canRequestRedemption: true,
-  allowlistIsError: false,
+  whitelistIsError: false,
   cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
@@ -87,8 +87,8 @@ vi.mock('@/centrifuge', () => ({
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
-  useInvestorAllowlist: () =>
-    mocks.allowlistIsError
+  useInvestorWhitelist: () =>
+    mocks.whitelistIsError
       ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
       : {
           data: { canReceiveShares: mocks.canReceiveShares, canRequestRedemption: mocks.canRequestRedemption },
@@ -218,7 +218,7 @@ describe('RedeemFlow', () => {
     vi.clearAllMocks();
     mocks.canReceiveShares = true;
     mocks.canRequestRedemption = true;
-    mocks.allowlistIsError = false;
+    mocks.whitelistIsError = false;
     mocks.claimableAssets = 0n;
     mocks.hasPendingCancel = false;
     mocks.metricsIsError = false;
@@ -235,12 +235,12 @@ describe('RedeemFlow', () => {
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
-    expect(getButton('Wallet Not Allowlisted').disabled).toBe(true);
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
     expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
     expect(getInput('Redeem').disabled).toBe(true);
 
     await act(async () => {
-      fireEvent.click(getButton('Wallet Not Allowlisted'));
+      fireEvent.click(getButton('Wallet Not Whitelisted'));
     });
 
     expect(mocks.requestRedeem).not.toHaveBeenCalled();
@@ -250,19 +250,19 @@ describe('RedeemFlow', () => {
     mocks.canRequestRedemption = false;
     renderFlow();
 
-    const action = getButton('Wallet Not Allowlisted');
+    const action = getButton('Wallet Not Whitelisted');
     const processingWarning = screen.getByText(/Redemptions are processed periodically/);
-    const allowlistWarning = screen.getByText(/You must be whitelisted to interact with this offer/);
+    const whitelistWarning = screen.getByText(/You must be whitelisted to interact with this offer/);
 
     expect(action.compareDocumentPosition(processingWarning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(processingWarning.parentElement).toBe(allowlistWarning.parentElement);
+    expect(processingWarning.parentElement).toBe(whitelistWarning.parentElement);
     expect(processingWarning.parentElement?.className).toContain('flex-col');
   });
 
-  it('still lets a de-listed wallet claim settled USDC while its share moves are blocked', async () => {
-    // The protocol exempts a redeem claim from the memberlist, so proceeds the
+  it('still lets a wallet that is no longer whitelisted claim settled USDC while share moves are blocked', async () => {
+    // The protocol exempts a redeem claim from the whitelist, so proceeds the
     // wallet is already owed must stay reachable. This is the assertion that
-    // stops a future "block everything when not allowlisted" from stranding
+    // stops a future "block everything when not whitelisted" from stranding
     // funds.
     mocks.canReceiveShares = false;
     mocks.canRequestRedemption = false;
@@ -272,7 +272,7 @@ describe('RedeemFlow', () => {
 
     expect(getButton('Claim USDC').disabled).toBe(false);
     expect(getButton('Cancel request').disabled).toBe(true);
-    expect(screen.getByText('Requires an allowlisted wallet.')).toBeTruthy();
+    expect(screen.getByText('Requires a whitelisted wallet.')).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(getButton('Claim USDC'));
@@ -300,7 +300,7 @@ describe('RedeemFlow', () => {
     expect(getButton('Cancel request').disabled).toBe(true);
     expect(mocks.claimReturnedShares).not.toHaveBeenCalled();
     expect(mocks.cancelRedeem).not.toHaveBeenCalled();
-    expect(screen.getAllByText('Requires an allowlisted wallet.').length).toBe(2);
+    expect(screen.getAllByText('Requires a whitelisted wallet.').length).toBe(2);
     // The request form is untouched: this wallet may still send shares to
     // escrow, it just cannot get them back.
     expect(getInput('Redeem').disabled).toBe(false);
@@ -316,7 +316,7 @@ describe('RedeemFlow', () => {
 
     expect(getButton('Claim zSMB').disabled).toBe(false);
     expect(getButton('Cancel request').disabled).toBe(false);
-    expect(screen.queryByText('Requires an allowlisted wallet.')).toBeNull();
+    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
 
     await act(async () => {
       fireEvent.click(getButton('Cancel request'));
@@ -325,11 +325,11 @@ describe('RedeemFlow', () => {
     expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
 
-  it('leaves the request live on a failed allow-list read', async () => {
+  it('leaves the request live on a failed whitelist read', async () => {
     // A fetch failure is not a verdict, so it neither names the wallet nor
     // takes the action away. The exact-call simulation is the authoritative
     // pre-sign gate and decodes the real revert if the vault does refuse.
-    mocks.allowlistIsError = true;
+    mocks.whitelistIsError = true;
     renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
@@ -479,6 +479,15 @@ describe('RedeemFlow', () => {
 
     fireEvent.click(getButton('Claim USDC'));
     expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 2_000000n });
+  });
+
+  it('offers an exact 0.57 USDC claim without shedding a cent off the row', () => {
+    mocks.claimableAssets = 570_000n;
+
+    renderFlow();
+
+    // The row and the post-claim receipt must agree on the same amount.
+    expect(screen.getByText(/0\.57 USDC\s+ready to claim/)).toBeTruthy();
   });
 
   it('locks the whole form during Cancellation Processing and hides the cancel control', () => {

@@ -37,9 +37,9 @@ const account = {
     'REDEMPTION_POSITION',
     shareClassKey
   ],
-  investorAllowlist: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+  investorWhitelist: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
     ...account.by({ accountAddress }),
-    'INVESTOR_ALLOWLIST',
+    'INVESTOR_WHITELIST',
     shareClassKey
   ]
 };
