@@ -58,7 +58,7 @@ export default function Hero() {
 function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
   return (
     <SplitCta href="https://app.zivoe.com" target="_blank" {...props}>
-      Launch App
+      View Vaults
     </SplitCta>
   );
 }

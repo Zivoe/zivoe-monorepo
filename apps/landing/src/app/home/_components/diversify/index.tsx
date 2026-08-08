@@ -21,7 +21,7 @@ export default function Diversify() {
         </div>
 
         <SplitCta href="https://app.zivoe.com" target="_blank">
-          Launch App
+          View Vaults
         </SplitCta>
       </div>
 
