@@ -23,10 +23,10 @@ vi.mock('@zivoe/ui/core/contextual-help', () => ({
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders AUM, the Offering Target APY and the Token Price', () => {
+  it('renders NAV, the Offering Target APY and the Token Price', () => {
     render(<DepositStats nav={112000} sharePrice={1.0725} targetApyPercent={14} />);
 
-    expect(screen.getByText('AUM')).toBeTruthy();
+    expect(screen.getByText('NAV')).toBeTruthy();
     expect(screen.getByText('$112.00k')).toBeTruthy();
     expect(screen.getByText('Target APY')).toBeTruthy();
     expect(screen.getByText('14%')).toBeTruthy();
@@ -34,7 +34,7 @@ describe('DepositStats', () => {
     expect(screen.getByLabelText('About Target APY')).toBeTruthy();
     expect(screen.getByText(/Target APY is calculated before fees and expenses/)).toBeTruthy();
     expect(screen.getByText('Token Price')).toBeTruthy();
-    // Two decimals, floored — the same treatment AUM gets.
+    // Two decimals, floored — the same treatment NAV gets.
     expect(screen.getByText('$1.07')).toBeTruthy();
   });
 });

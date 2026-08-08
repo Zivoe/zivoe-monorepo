@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getHomepageAum } from './homepage-aum';
+import { getHomepageNav } from './homepage-nav';
 
 // The registry is mocked wholesale: these tests assert aggregation semantics
 // and must never enumerate the live book — registering an Offering broke the
@@ -19,16 +19,16 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('getHomepageAum', () => {
+describe('getHomepageNav', () => {
   it('sums the headline from the aggregated read and feeds each card its own entry', async () => {
     getShareClassNavs.mockResolvedValue({
       alpha: '107000000000000000000',
       beta: '53000000000000000000'
     });
 
-    await expect(getHomepageAum()).resolves.toEqual({
-      headlineAum: 160,
-      cardAums: { alpha: 107, beta: 53 }
+    await expect(getHomepageNav()).resolves.toEqual({
+      headlineNav: 160,
+      cardNavs: { alpha: 107, beta: 53 }
     });
     expect(getCurrentShareMetrics).not.toHaveBeenCalled();
   });
@@ -36,9 +36,9 @@ describe('getHomepageAum', () => {
   it('hides the headline for an empty book instead of rendering $0', async () => {
     getShareClassNavs.mockResolvedValue({});
 
-    const { headlineAum } = await getHomepageAum();
+    const { headlineNav } = await getHomepageNav();
 
-    expect(headlineAum).toBeNull();
+    expect(headlineNav).toBeNull();
   });
 
   it('degrades cards to their own metrics read when the aggregated read fails, keeping the headline hidden', async () => {
@@ -50,9 +50,9 @@ describe('getHomepageAum', () => {
       priceComputedAtMs: 0
     });
 
-    await expect(getHomepageAum()).resolves.toEqual({
-      headlineAum: null,
-      cardAums: { alpha: 107, beta: 107 }
+    await expect(getHomepageNav()).resolves.toEqual({
+      headlineNav: null,
+      cardNavs: { alpha: 107, beta: 107 }
     });
     expect(getCurrentShareMetrics.mock.calls.map((call) => call[0])).toEqual(['alpha', 'beta']);
   });
@@ -61,9 +61,9 @@ describe('getHomepageAum', () => {
     getShareClassNavs.mockResolvedValue(undefined);
     getCurrentShareMetrics.mockResolvedValue(undefined);
 
-    await expect(getHomepageAum()).resolves.toEqual({
-      headlineAum: null,
-      cardAums: { alpha: null, beta: null }
+    await expect(getHomepageNav()).resolves.toEqual({
+      headlineNav: null,
+      cardNavs: { alpha: null, beta: null }
     });
   });
 });

@@ -6,7 +6,7 @@ import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
 import { customNumber } from '@/lib/utils';
 
-export const CHART_TYPES = ['Token Price', 'AUM'] as const;
+export const CHART_TYPES = ['Token Price', 'NAV'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
 export function formatChartValue(value: number) {

@@ -76,7 +76,7 @@ export function sharesToUsdc({
 }
 
 /**
- * 18-decimal USD value of a share amount at an 18-decimal Share Price. AUM is
+ * 18-decimal USD value of a share amount at an 18-decimal Share Price. NAV is
  * the same conversion applied to the class's total issuance.
  */
 export function sharesToValueD18({

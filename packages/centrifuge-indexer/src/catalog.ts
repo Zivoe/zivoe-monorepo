@@ -27,7 +27,7 @@ export type ShareClassCatalogEntry = {
  * means adding an entry here (plus an Offering module in the dApp); reviews of
  * new entries must verify the values on-chain and that the pool is
  * USD-denominated. Flip `deployable` only once the indexer prices the class on
- * that network: the aggregated AUM read is fail-closed, so a live-but-unpriced
+ * that network: the aggregated NAV read is fail-closed, so a live-but-unpriced
  * entry hides the whole-book number on every surface until it is indexed.
  */
 export const SHARE_CLASS_CATALOG = {

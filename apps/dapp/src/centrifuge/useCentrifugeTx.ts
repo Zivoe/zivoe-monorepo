@@ -249,7 +249,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
 /**
  * Invalidated after every settled Centrifuge tx, scoped to the transacted
- * share class. Stats included: AUM moves with issuance as soon as the indexer
+ * share class. Stats included: NAV moves with issuance as soon as the indexer
  * processes the block.
  */
 export function invalidateAfterCentrifugeTx({

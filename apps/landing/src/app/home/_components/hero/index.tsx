@@ -64,7 +64,7 @@ function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
 }
 
 // TODO: these are hardcoded operating figures. Restore the live reads (`centrifuge.getShareClassNavs`,
-// summed with `sumShareClassNavs` so AUM covers every live share class) once the transparency data is
+// summed with `sumShareClassNavs` so NAV covers every live share class) once the transparency data is
 // available post-migration, and re-wrap this in <Suspense> when it does.
 function Statistics() {
   return (

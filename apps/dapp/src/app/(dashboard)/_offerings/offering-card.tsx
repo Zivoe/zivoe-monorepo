@@ -10,11 +10,11 @@ import { type Offering, offeringPath } from '@/offerings';
 
 export default function OfferingCard({
   offering,
-  aum
+  nav
 }: {
   offering: Offering;
-  /** Share-class AUM in USD; null when the indexer read failed. */
-  aum: number | null;
+  /** Share-class NAV in USD; null when the indexer read failed. */
+  nav: number | null;
 }) {
   // Both shadows are ones the rest of the app already uses, and the card rests
   // on the lighter of the two — hover lifts it a step rather than conjuring a
@@ -32,7 +32,7 @@ export default function OfferingCard({
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Asset Type" value={offering.category} />
           <Term label="Target APY" value={`${offering.targetApyPercent}%`} />
-          <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
+          <Term label="NAV" value={nav !== null ? `$${customNumber(nav)}` : '—'} />
           <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons />} />
           <Term label="Available on" value={<AcceptedChainIcons offering={offering} />} />
         </div>

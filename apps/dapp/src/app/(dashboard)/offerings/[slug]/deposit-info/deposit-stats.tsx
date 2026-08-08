@@ -23,7 +23,7 @@ export default function DepositStats({
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
       <div className="flex justify-between gap-4">
-        <Box title="AUM" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
+        <Box title="NAV" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
 
         <Box title="Target APY" icon={<TrendingIcon />} value={`${targetApyPercent}%`} note={TARGET_APY_DISCLOSURE} />
 

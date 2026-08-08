@@ -27,7 +27,7 @@ export type CentrifugeDailySnapshot = {
   timestampMs: number;
   /** Share Price in USD. */
   sharePrice: number;
-  /** Share-class AUM in USD (price x issuance); null while the day's issuance is unpublished. */
+  /** Share-class NAV in USD (price x issuance); null while the day's issuance is unpublished. */
   nav: number | null;
   /** 30-day Trailing APY in percent; null until 30 days of history exist. */
   apy: number | null;
@@ -95,7 +95,7 @@ export const getCentrifugeDailySnapshots = reactCache(
       return rows.map((row): CentrifugeDailySnapshot => {
         const yieldRay = row.yield30dComp365Ray === null ? null : BigInt(row.yield30dComp365Ray);
 
-        // AUM needs issuance; a priced row without it still charts Token Price,
+        // NAV needs issuance; a priced row without it still charts Token Price,
         // so the day maps through with a null nav instead of being dropped.
         const navD18 =
           row.totalIssuanceD18 === null
@@ -128,7 +128,7 @@ async function fetchAggregatedNavRows(shareClassKeys: Array<string>): Promise<Re
 const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-share-class-navs'], { revalidate: 30 });
 
 /**
- * AUM per listed share class, keyed by share-class key (18-decimal USD decimal
+ * NAV per listed share class, keyed by share-class key (18-decimal USD decimal
  * strings). The keys come from the registry rather than the catalog so the
  * headline is the sum of exactly the cards the page lists — a class the dApp
  * does not serve cannot inflate the aggregate — and the array argument keys
@@ -163,7 +163,7 @@ async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareS
 const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
 
 /**
- * Current Share Price / AUM / 30-day Trailing APY for one share class as the
+ * Current Share Price / NAV / 30-day Trailing APY for one share class as the
  * shared stats payload — the same projection the landing hero renders —
  * behind a 30-second cache entry per share class (the key argument splits
  * the entries). Same error contract as the daily snapshots: throw inside the

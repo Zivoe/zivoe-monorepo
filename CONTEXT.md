@@ -33,7 +33,7 @@ _Avoid_: mutation hook (server-action mutations are not Transaction Hooks)
 ### Offerings and redemptions
 
 **Offering**:
-One Centrifuge share class exposed as a product page at `/offerings/<slug>`, described by the registry in `apps/dapp/src/offerings`. Centrifuge's model is Pool > Share Class > Vault: a pool holds N share classes (each with its own share token, price, AUM and yield history), and a vault is one share class instantiated on one network for one deposit asset — so a route is keyed by share class, not by vault, and one Offering accepting a second stablecoin stays one Offering.
+One Centrifuge share class exposed as a product page at `/offerings/<slug>`, described by the registry in `apps/dapp/src/offerings`. Centrifuge's model is Pool > Share Class > Vault: a pool holds N share classes (each with its own share token, price, NAV and yield history), and a vault is one share class instantiated on one network for one deposit asset — so a route is keyed by share class, not by vault, and one Offering accepting a second stablecoin stays one Offering.
 _Avoid_: opportunity (the pre-Centrifuge name), vault, product
 
 **Share Class Catalog**:
@@ -52,12 +52,12 @@ _Avoid_: offering config
 What a flow hands every Centrifuge Transaction Hook: `{ offeringSlug, shareClass }`, the resolved catalog identity joined with the Offering's vault on the active network via `resolveTransactionIdentity`. The Centrifuge module never imports the registry — it trusts the identity it is handed, which keeps the test fixture class unregisterable.
 _Avoid_: offering context
 
-**AUM**:
-The user-facing name for a share class's value — Token Price × total issuance. Internals and the indexer deliberately keep `nav`/`navD18`; the rename is presentational only.
-_Avoid_: NAV in user-facing copy
+**NAV**:
+Net Asset Value: the user-facing name for a share class's value — Token Price × total issuance. Internals and the indexer use `nav`/`navD18` too, so the term stays consistent from data through presentation.
+_Avoid_: alternate names for this metric
 
 **Token Price**:
-The user-facing name for the share token's price, shown to two decimals like AUM. Internals deliberately keep `sharePrice`/`sharePriceD18`, matching the SDK and indexer vocabulary — do not rename them.
+The user-facing name for the share token's price, shown to two decimals like NAV. Internals deliberately keep `sharePrice`/`sharePriceD18`, matching the SDK and indexer vocabulary — do not rename them.
 _Avoid_: Share Price in user-facing copy
 
 **Redemption Position**:
