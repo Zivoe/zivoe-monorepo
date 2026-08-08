@@ -115,7 +115,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
                 questions?
               </p>
               <a
-                href={`mailto:${EMAILS.INVESTORS}`}
+                href={`mailto:${EMAILS.INQUIRE}`}
                 className="inline-flex h-8 shrink-0 items-center justify-center rounded-xs border border-[#e7e7e7] bg-[#fafafa] px-3 text-[0.625rem] leading-none font-medium whitespace-nowrap text-primary shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-opacity hover:opacity-95"
               >
                 Contact us

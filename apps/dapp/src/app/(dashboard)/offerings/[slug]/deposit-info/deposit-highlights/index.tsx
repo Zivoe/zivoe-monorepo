@@ -4,6 +4,8 @@ import { Link } from '@zivoe/ui/core/link';
 import { StarIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { EMAILS } from '@/lib/utils';
+
 import InfoSection from '@/components/info-section';
 
 import { AutocompoundingIcon } from './autocompounding-icon';
@@ -17,7 +19,7 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="Flexible Liquidity"
-          description="Contact us at investors@zivoe.com to initiate a redemption or with any questions about liquidity before depositing."
+          description={`Contact us at ${EMAILS.INQUIRE} to initiate a redemption or with any questions about liquidity before depositing.`}
           className="bg-element-primary-gentle"
         />
 

@@ -5,7 +5,7 @@ import { CreditIcon, DollarIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
-import { formatBigIntToReadable } from '@/lib/utils';
+import { EMAILS, formatBigIntToReadable } from '@/lib/utils';
 
 import Page from '@/components/page';
 
@@ -33,8 +33,8 @@ export default function TransparencyPage() {
               We're currently upgrading our reporting infrastructure to provide more detailed portfolio analytics. To
               view historical performance, see the index price on our Earn page. If you have any questions about our
               portfolio, please contact{' '}
-              <Link href="mailto:investors@zivoe.com" variant="link-neutral-dark" size="m">
-                investors@zivoe.com
+              <Link href={`mailto:${EMAILS.INQUIRE}`} variant="link-neutral-dark" size="m">
+                {EMAILS.INQUIRE}
               </Link>
               .
             </p>

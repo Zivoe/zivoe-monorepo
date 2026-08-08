@@ -57,7 +57,7 @@ export async function sendDepositConfirmationEmail({
     await resend.emails.send(
       {
         from: 'Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Deposit Confirmed',
         html
@@ -107,7 +107,7 @@ export async function sendRedemptionConfirmationEmail({
     await resend.emails.send(
       {
         from: 'Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Redemption Complete',
         html

@@ -229,6 +229,5 @@ export const getEndOfDayUTC = (date: Date) => {
 };
 
 export const EMAILS = {
-  INVESTORS: 'investors@zivoe.com',
   INQUIRE: 'inquire@zivoe.com'
 } as const;
