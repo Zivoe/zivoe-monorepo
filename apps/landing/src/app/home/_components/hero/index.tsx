@@ -74,7 +74,7 @@ function Statistics() {
 
         <Statistic label="Originations" value="$10M" isApproximate />
 
-        <Statistic label="Distributions" value="$1.16M" isApproximate />
+        <Statistic label="Collections" value="$1.5M" isApproximate />
       </div>
 
       <p className="text-extraSmall text-secondary sm:text-small">
