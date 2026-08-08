@@ -10,7 +10,7 @@ export const RECEIPT_VIEW_IN_APP_URL = 'https://app.zivoe.com/portfolio';
 export const RECEIPT_INQUIRIES_EMAIL = EMAILS.INQUIRE;
 
 export const RECEIPT_DISCLAIMER_TEXT =
-  'This update is for informational purposes only. Past performance is not indicative of future results. Private credit investments involve risk, including loss of principal. Token valuations reflect the applicable share class’s Net Asset Value (NAV) and may fluctuate based on market conditions.';
+  'This update is for informational purposes only. Past performance is not indicative of future results. Private credit investments involve risk, including loss of principal. Token valuations are derived from the pool’s Assets Under Management (AUM) and may fluctuate based on market conditions.';
 
 export const RECEIPT_COPYRIGHT_TEXT = '© Zivoe 2025. All Rights Reserved.';
 

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 
 import { Link } from '@zivoe/ui/core/link';
-import { CreditIcon } from '@zivoe/ui/icons';
+import { CreditIcon, DollarIcon } from '@zivoe/ui/icons';
 
 import { data } from '@/server/data';
 
@@ -10,12 +10,15 @@ import { EMAILS, formatBigIntToReadable } from '@/lib/utils';
 import Page from '@/components/page';
 
 import { OnboardingGuard } from '../_components/onboarding-guard';
+import AUMAccordion, { AUMAccordionSkeleton } from './_components/aum/aum-accordion';
+import AUMDonutChart, { AUMDonutChartSkeleton } from './_components/aum/aum-donut-chart';
 import { Card } from './_components/card';
 import { PortfolioAIcon } from './_components/icons/portfolio-a';
 import { PortfolioBIcon } from './_components/icons/portfolio-b';
 // import Liquidity from './_components/liquidity';
 // import LiquidityChart from './_components/liquidity-chart';
 import LoanCard from './_components/loans';
+import { ZIVOE_ZAPPER_URL } from './_utils/constants';
 
 export default function TransparencyPage() {
   return (
@@ -36,6 +39,27 @@ export default function TransparencyPage() {
               .
             </p>
           </div>
+
+          <Card>
+            <Card.Header title="Assets Under Management" titleSmall="AUM" icon={<DollarIcon />}>
+              <Link size="m" href={ZIVOE_ZAPPER_URL} target="_blank">
+                View Wallets
+              </Link>
+            </Card.Header>
+
+            <Card.Body>
+              <Suspense
+                fallback={
+                  <div className="flex w-full flex-col items-center gap-12 lg:flex-row">
+                    <AUMDonutChartSkeleton />
+                    <AUMAccordionSkeleton />
+                  </div>
+                }
+              >
+                <AssetsUnderManagement />
+              </Suspense>
+            </Card.Body>
+          </Card>
 
           <Card>
             <Card.Header title="Loans" icon={<CreditIcon />} />
@@ -79,6 +103,20 @@ export default function TransparencyPage() {
         </Page>
       </div>
     </>
+  );
+}
+
+async function AssetsUnderManagement() {
+  const currentProtocolDailySnapshot = await data.getCurrentDailySnapshot();
+  if (!currentProtocolDailySnapshot) return null;
+
+  const tvl = currentProtocolDailySnapshot.tvl;
+
+  return (
+    <div className="flex w-full flex-col items-center gap-12 lg:flex-row">
+      <AUMDonutChart data={tvl} />
+      <AUMAccordion data={tvl} />
+    </div>
   );
 }
 
