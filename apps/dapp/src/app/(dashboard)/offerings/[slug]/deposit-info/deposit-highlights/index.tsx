@@ -4,13 +4,11 @@ import { Link } from '@zivoe/ui/core/link';
 import { StarIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { EMAILS } from '@/lib/utils';
-
 import InfoSection from '@/components/info-section';
 
-import { AutocompoundingIcon } from './autocompounding-icon';
 import { ExperienceIcon } from './experience-icon';
 import { LiquidityIcon } from './liquidity-icon';
+import { ReportingIcon } from './reporting-icon';
 
 export default function DepositHighlights() {
   return (
@@ -18,22 +16,22 @@ export default function DepositHighlights() {
       <div className="flex flex-col gap-3">
         <Card
           icon={<LiquidityIcon />}
-          title="Flexible Liquidity"
-          description={`Contact us at ${EMAILS.INQUIRE} to initiate a redemption or with any questions about liquidity before depositing.`}
+          title="Liquidity"
+          description="Redemption requests may be submitted at any time and are processed weekly through a redemption queue, subject to available liquidity."
           className="bg-element-primary-gentle"
         />
 
         <Card
-          icon={<AutocompoundingIcon />}
-          title="Autocompounding"
-          description="As borrowers make interest payments, the proceeds are automatically redeployed into new loans, maximizing returns. "
+          icon={<ReportingIcon />}
+          title="Reporting"
+          description="A full transparency dashboard providing direct visibility into the underlying portfolio is launching soon."
           className="bg-element-secondary-light"
         />
 
         <Card
           icon={<ExperienceIcon />}
-          title="Decades of Experience"
-          description="Our team has over 40 years of combined experience managing credit risk at leading financial institutions and DeFi protocols including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
+          title="Experienced Team"
+          description="Our team has over 40 years of combined experience managing credit risk at leading financial institutions including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
           className="bg-tertiary-100"
         >
           <Link variant="border" size="m" href="https://www.zivoe.com/about-us" target="_blank">
