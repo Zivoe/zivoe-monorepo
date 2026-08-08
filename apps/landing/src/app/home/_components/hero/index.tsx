@@ -32,7 +32,7 @@ export default function Hero() {
 
               <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>
               <p className="max-w-120 text-smallSubheading text-primary">
-                Access institutional grade yield opportunities across private credit markets.
+                Access institutional yield across curated real-world credit strategies.
               </p>
             </div>
 
