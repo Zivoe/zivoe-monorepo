@@ -35,7 +35,5 @@ export const ZALT_OFFERING: Offering = {
     Eligibility: 'U.S. Accredited & Non-US Investors'
   },
 
-  documents: [
-    { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
-  ]
+  documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
 };

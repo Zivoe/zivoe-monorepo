@@ -8,7 +8,7 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
 
   return (
     <EmailLayout preview="Let's connect" unsubscribeUrl={unsubscribeUrl}>
-      <Heading className="m-0 mb-6 text-center font-serif text-2xl font-semibold text-neutral-950">
+      <Heading className="font-serif text-2xl m-0 mb-6 text-center font-semibold text-neutral-950">
         Welcome to Zivoe
       </Heading>
 
