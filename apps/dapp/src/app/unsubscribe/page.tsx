@@ -41,7 +41,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
                 Sign in
               </Link>
 
-              <Link variant="ghost-light" href={`mailto:${EMAILS.INVESTORS}`}>
+              <Link variant="ghost-light" href={`mailto:${EMAILS.INQUIRE}`}>
                 Contact support
               </Link>
             </div>

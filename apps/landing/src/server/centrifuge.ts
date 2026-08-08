@@ -18,7 +18,7 @@ const fetchHeroNavs = async (): Promise<Record<string, string>> => {
 const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs'], { revalidate: 30 });
 
 /**
- * AUM per live share class from the shared catalog. Note the dApp homepage
+ * NAV per live share class from the shared catalog. Note the dApp homepage
  * sums the REGISTRY's book instead; a dApp-side invariant keeps the two books
  * equal, and a landing-only build never runs it — so treat catalog flag flips
  * as dApp-gated, and never assume this sum matches the dApp's by construction.
@@ -43,7 +43,7 @@ const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | 
 });
 
 // TODO: nothing reads this since the hero switched to hardcoded operating figures. Kept because the
-// post-migration transparency work is expected to render live AUM again — revisit and delete this
+// post-migration transparency work is expected to render live NAV again — revisit and delete this
 // module if that lands somewhere else.
 export const centrifuge = {
   getShareClassNavs

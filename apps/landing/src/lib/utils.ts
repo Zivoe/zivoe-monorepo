@@ -57,5 +57,5 @@ export function handlePromise<T>(promise: Promise<T>) {
 }
 
 export const EMAILS = {
-  INVESTORS: 'investors@zivoe.com'
+  INQUIRE: 'inquire@zivoe.com'
 } as const;

@@ -26,7 +26,7 @@ export async function sendOTPEmail({ to, otp }: { to: string; otp: string }) {
 
   const { data, error } = await resend.emails.send({
     from: 'Zivoe <verify@auth.zivoe.com>',
-    replyTo: EMAILS.INVESTORS,
+    replyTo: EMAILS.INQUIRE,
     to,
     subject: 'Sign in to Zivoe',
     html
@@ -45,7 +45,7 @@ export async function sendOnboardingReminderEmail({ to, name, userId }: { to: st
     await resend.emails.send(
       {
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Almost There',
         html,
@@ -66,7 +66,7 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
     await resend.emails.send(
       {
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Welcome to Zivoe',
         html,
@@ -97,7 +97,7 @@ export async function sendFirstDepositReminderEmail({
     await resend.emails.send(
       {
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Getting Started',
         html,
@@ -128,7 +128,7 @@ export async function sendSecondDepositReminderEmail({
     await resend.emails.send(
       {
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
-        replyTo: EMAILS.INVESTORS,
+        replyTo: EMAILS.INQUIRE,
         to,
         subject: 'Last Nudge',
         html,
@@ -165,7 +165,7 @@ function getProductTipsUnsubscribeMetadata({ userId, email }: { userId: string; 
     footerUnsubscribeUrl,
     oneClickHeaders: {
       'List-Id': PRODUCT_TIPS_LIST_ID,
-      'List-Unsubscribe': `<${oneClickUnsubscribeUrl}>, <mailto:${EMAILS.INVESTORS}?subject=unsubscribe>`,
+      'List-Unsubscribe': `<${oneClickUnsubscribeUrl}>, <mailto:${EMAILS.INQUIRE}?subject=unsubscribe>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
     }
   };

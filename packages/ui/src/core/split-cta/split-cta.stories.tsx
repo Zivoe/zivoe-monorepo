@@ -35,7 +35,7 @@ type Story = StoryObj<typeof SplitCta>;
 
 export const Default: Story = {
   args: {
-    children: 'Launch App',
+    children: 'View Vaults',
     href: '/'
   }
 };
@@ -50,14 +50,14 @@ export const Sizes: Story = {
     </div>
   ),
   args: {
-    children: 'Launch App',
+    children: 'View Vaults',
     href: '/'
   }
 };
 
 export const FullWidth: Story = {
   args: {
-    children: 'Launch App',
+    children: 'View Vaults',
     fullWidth: true,
     href: '/'
   }
@@ -65,7 +65,7 @@ export const FullWidth: Story = {
 
 export const Disabled: Story = {
   args: {
-    children: 'Launch App',
+    children: 'View Vaults',
     href: '/',
     isDisabled: true
   }

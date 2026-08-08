@@ -1,3 +1,4 @@
+import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { SplitCta, type SplitCtaProps } from '@zivoe/ui/core/split-cta';
 
 import Container from '@/components/container';
@@ -11,6 +12,9 @@ import NavigationSection from '@/components/navigation';
 
 import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
+
+const STATISTIC_DISCLOSURE =
+  'Historical platform metrics, rounded for presentation purposes. Past performance is not indicative of future results. For informational purposes only; this is not an offer to sell or a solicitation of an offer to buy any security or financial product.';
 
 export default function Hero() {
   return (
@@ -28,7 +32,7 @@ export default function Hero() {
 
               <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>
               <p className="max-w-120 text-smallSubheading text-primary">
-                Access institutional grade yield opportunities across private credit markets.
+                Access institutional yield across curated real-world credit strategies.
               </p>
             </div>
 
@@ -58,42 +62,43 @@ export default function Hero() {
 function HeroButton(props: Omit<SplitCtaProps, 'children'>) {
   return (
     <SplitCta href="https://app.zivoe.com" target="_blank" {...props}>
-      Launch App
+      View Vaults
     </SplitCta>
   );
 }
 
 // TODO: these are hardcoded operating figures. Restore the live reads (`centrifuge.getShareClassNavs`,
-// summed with `sumShareClassNavs` so AUM covers every live share class) once the transparency data is
+// summed with `sumShareClassNavs` so NAV covers every live share class) once the transparency data is
 // available post-migration, and re-wrap this in <Suspense> when it does.
 function Statistics() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex gap-6 lg:-mt-20 lg:gap-16">
-        <Statistic label="Loans Funded" value="1,000+" isApproximate />
+    <div className="flex gap-2 sm:gap-6 lg:-mt-20 lg:gap-16">
+      <Statistic label="Loans Funded" value="1,000+" />
 
-        <Statistic label="Originations" value="$10M" isApproximate />
+      <Statistic label="Originations" value="$10M" />
 
-        <Statistic label="Distributions" value="$1.16M" isApproximate />
-      </div>
-
-      <p className="text-extraSmall text-secondary sm:text-small">
-        *Approximate figures from Zivoe&apos;s operating history. Values may change as portfolio and operating data are
-        updated.
-      </p>
+      <Statistic label="Collections" value="$1.5M" />
     </div>
   );
 }
 
-function Statistic({ label, value, isApproximate = false }: { label: string; value: string; isApproximate?: boolean }) {
+function Statistic({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex shrink-0 flex-col gap-3 text-primary">
-      <p className="text-leading whitespace-nowrap text-primary/80 lg:text-smallSubheading">{label}</p>
+      <div className="flex items-center">
+        <p className="text-small whitespace-nowrap text-primary/80 sm:text-leading lg:text-smallSubheading">{label}</p>
 
-      <p className="text-h6 whitespace-nowrap sm:text-h3 md:text-h2 lg:text-h1">
-        {value}
-        {isApproximate ? <sup className="ml-0.5 align-super text-extraSmall sm:text-small">*</sup> : null}
-      </p>
+        <ContextualHelp
+          variant="info"
+          aria-label={`About ${label}`}
+          className="w-72 max-w-[calc(100vw-2rem)]"
+          triggerClassName="text-primary/80"
+        >
+          <ContextualHelpDescription>{STATISTIC_DISCLOSURE}</ContextualHelpDescription>
+        </ContextualHelp>
+      </div>
+
+      <p className="text-h6 whitespace-nowrap sm:text-h3 md:text-h2 lg:text-h1">{value}</p>
     </div>
   );
 }

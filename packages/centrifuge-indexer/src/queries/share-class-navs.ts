@@ -43,7 +43,7 @@ const dataSchema = z.object({
 }) satisfies z.ZodType<ResultOf<typeof SHARE_CLASS_NAVS_QUERY>>;
 
 /**
- * AUM per share class as one multi-class query — the single cached read every
+ * NAV per share class as one multi-class query — the single cached read every
  * aggregated surface derives from. Returns a map keyed by share-class id with
  * 18-decimal USD values as decimal strings (JSON-plain for cache layers).
  * Fail-closed by design: a class the indexer cannot price fails the whole
@@ -74,7 +74,7 @@ export async function fetchShareClassNavs({
   // indexer, so a class instantiated on several spoke chains legitimately
   // returns one row per chain — each carrying the same hub-level `token`
   // payload. Rows are corrupt only when they disagree for one address: that
-  // fails closed instead of last-write-winning into a published AUM figure.
+  // fails closed instead of last-write-winning into a published NAV figure.
   const tokensByAddress = new Map<string, (typeof data.tokenInstances.items)[number]['token']>();
 
   for (const item of data.tokenInstances.items) {
@@ -117,7 +117,7 @@ export async function fetchShareClassNavs({
 /**
  * Sums a nav map into the book's 18-decimal USD value. Null for an empty map:
  * "no live share classes" must render as unavailable — a surface publishing
- * AUM may never read an unconfigured book as one worth $0.
+ * NAV may never read an unconfigured book as one worth $0.
  */
 export function sumShareClassNavs(navs: Record<string, string>): bigint | null {
   const values = Object.values(navs);

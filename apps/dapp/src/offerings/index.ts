@@ -28,7 +28,7 @@ export { ZSMB_OFFERING } from './zsmb';
 /**
  * Every Offering module, keyed by its share class. `satisfies` over the
  * catalog's key union makes the compiler demand a module for every catalog
- * entry — a class cannot enter the catalog (and the aggregated AUM read)
+ * entry — a class cannot enter the catalog (and the aggregated NAV read)
  * without the module that gives it a card, a route, and display info.
  */
 const REGISTERED_OFFERINGS = {

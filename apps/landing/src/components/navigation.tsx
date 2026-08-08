@@ -41,7 +41,7 @@ function Desktop() {
       </div>
 
       <SplitCta href="https://app.zivoe.com" target="_blank" size="m" className="my-2.5 mr-2.5">
-        Launch App
+        View Vaults
       </SplitCta>
     </div>
   );

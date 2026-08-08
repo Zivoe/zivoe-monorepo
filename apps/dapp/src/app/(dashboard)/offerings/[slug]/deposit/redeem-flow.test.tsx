@@ -246,6 +246,19 @@ describe('RedeemFlow', () => {
     expect(mocks.requestRedeem).not.toHaveBeenCalled();
   });
 
+  it('stacks both warnings below the main action', () => {
+    mocks.canRequestRedemption = false;
+    renderFlow();
+
+    const action = getButton('Wallet Not Allowlisted');
+    const processingWarning = screen.getByText(/Redemptions are processed periodically/);
+    const allowlistWarning = screen.getByText(/You must be whitelisted to interact with this offer/);
+
+    expect(action.compareDocumentPosition(processingWarning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(processingWarning.parentElement).toBe(allowlistWarning.parentElement);
+    expect(processingWarning.parentElement?.className).toContain('flex-col');
+  });
+
   it('still lets a de-listed wallet claim settled USDC while its share moves are blocked', async () => {
     // The protocol exempts a redeem claim from the memberlist, so proceeds the
     // wallet is already owed must stay reachable. This is the assertion that

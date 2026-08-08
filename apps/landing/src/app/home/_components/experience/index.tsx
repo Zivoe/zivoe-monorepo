@@ -45,7 +45,7 @@ export default function Experience() {
               </div>
             </div>
 
-            <Link variant="primary" href={`mailto:${EMAILS.INVESTORS}`} size="l">
+            <Link variant="primary" href={`mailto:${EMAILS.INQUIRE}`} size="l">
               Let's Talk
             </Link>
           </div>
@@ -82,7 +82,7 @@ export default function Experience() {
 
             <Section
               title="Compliance-First Approach"
-              description="We leverage Chainalysis to ensure we meet the highest standards of regulatory compliance."
+              description="We work with Chainalysis to support our compliance program and maintain high regulatory standards."
             >
               <Partner>
                 <ChainalysisIcon />

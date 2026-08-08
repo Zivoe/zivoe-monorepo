@@ -11,11 +11,7 @@ export const ZSMB_OFFERING: Offering = {
   status: 'Open',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
-  cardGradient: [
-    'radial-gradient(120% 120% at 18% 22%, rgba(255, 216, 174, 0.95), transparent 55%)',
-    'radial-gradient(120% 130% at 86% 82%, rgba(224, 99, 143, 0.92), transparent 55%)',
-    'linear-gradient(135deg, #f3a25c, #f08f48 45%, #d96b8f)'
-  ].join(', '),
+  cardArtworkSrc: '/offering-zsmb-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
   vaults: {
@@ -26,9 +22,9 @@ export const ZSMB_OFFERING: Offering = {
   targetApyPercent: 14,
 
   about: [
-    'zSMB offers qualified purchasers exposure to a diversified private credit portfolio—an asset class that has delivered strong, risk-adjusted returns on Wall Street for decades. The portfolio is composed primarily of short-duration credit instruments across several private credit verticals, including merchant cash advance, consumer credit, and more.',
-    'zSMB is a yield-bearing token that delivers returns through price appreciation. As the underlying loan portfolio generates income and grows in value, this is reflected by a steadily increasing token price.',
-    'zSMB seeks to provide consistent, risk-adjusted yields supported by a diversified, short-duration strategy and a team with decades of experience managing credit risk.'
+    'zSMB provides short-duration financing to small and medium-sized businesses across the United States, a multi-hundred-billion-dollar market that sits at the core of the American economy. Demand for credit in this segment consistently outpaces traditional supply, creating a durable lending opportunity with attractive risk-adjusted pricing that institutional credit managers have made a cornerstone of private credit allocations.',
+    'Zivoe deploys capital through asset-backed credit facilities with established originators of these loans. Each facility is collateralized by the underlying advances made to businesses, meaning investor capital is secured by a large, diversified pool of receivables rather than any single borrower. These facilities are typically overcollateralized, with collateral value exceeding the capital Zivoe extends, providing a built-in cushion against portfolio losses alongside performance covenants and ongoing monitoring.',
+    "zSMB is a yield-bearing token that delivers returns through price appreciation: as the underlying facilities generate interest income, the token's price steadily increases to reflect the growing value of the portfolio."
   ],
 
   details: {
@@ -39,8 +35,5 @@ export const ZSMB_OFFERING: Offering = {
     Eligibility: 'U.S. Accredited & Non-US Investors'
   },
 
-  documents: [
-    { title: 'Zivoe Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
-    { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
-  ]
+  documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
 };

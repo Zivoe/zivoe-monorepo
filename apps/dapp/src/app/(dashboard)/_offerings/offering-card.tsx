@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
@@ -10,11 +12,11 @@ import { type Offering, offeringPath } from '@/offerings';
 
 export default function OfferingCard({
   offering,
-  aum
+  nav
 }: {
   offering: Offering;
-  /** Share-class AUM in USD; null when the indexer read failed. */
-  aum: number | null;
+  /** Share-class NAV in USD; null when the indexer read failed. */
+  nav: number | null;
 }) {
   // Both shadows are ones the rest of the app already uses, and the card rests
   // on the lighter of the two — hover lifts it a step rather than conjuring a
@@ -24,7 +26,15 @@ export default function OfferingCard({
       href={offeringPath(offering)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-default bg-surface-base shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] transition-shadow duration-300 ease-out hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2 focus-visible:outline-hidden"
     >
-      <div className="h-38" style={{ background: offering.cardGradient }} />
+      <div className="relative h-38">
+        <Image
+          fill
+          alt=""
+          src={offering.cardArtworkSrc}
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-cover"
+        />
+      </div>
 
       <div className="flex flex-1 flex-col gap-6 p-6">
         <OfferingIdentity offering={offering} trailing={<OfferingStatusBadge status={offering.status} />} />
@@ -32,7 +42,7 @@ export default function OfferingCard({
         <div className="mt-auto rounded-xl bg-surface-elevated px-4 py-1">
           <Term label="Asset Type" value={offering.category} />
           <Term label="Target APY" value={`${offering.targetApyPercent}%`} />
-          <Term label="AUM" value={aum !== null ? `$${customNumber(aum)}` : '—'} />
+          <Term label="NAV" value={nav !== null ? `$${customNumber(nav)}` : '—'} />
           <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons />} />
           <Term label="Available on" value={<AcceptedChainIcons offering={offering} />} />
         </div>

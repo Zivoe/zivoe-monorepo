@@ -11,11 +11,7 @@ export const ZALT_OFFERING: Offering = {
   status: 'Closed',
   description:
     'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
-  cardGradient: [
-    'radial-gradient(120% 120% at 18% 22%, rgba(180, 235, 228, 0.95), transparent 55%)',
-    'radial-gradient(120% 130% at 86% 82%, rgba(99, 118, 224, 0.92), transparent 55%)',
-    'linear-gradient(135deg, #5cc7c3, #489dd9 45%, #6b7ed9)'
-  ].join(', '),
+  cardArtworkSrc: '/offering-zalt-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },
   vaults: {
@@ -39,8 +35,5 @@ export const ZALT_OFFERING: Offering = {
     Eligibility: 'U.S. Accredited & Non-US Investors'
   },
 
-  documents: [
-    { title: 'Zivoe Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
-    { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
-  ]
+  documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
 };
