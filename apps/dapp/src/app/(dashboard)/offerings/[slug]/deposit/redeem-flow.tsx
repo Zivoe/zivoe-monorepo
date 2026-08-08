@@ -343,42 +343,35 @@ export default function RedeemFlow() {
         )}
       />
 
-      <div className="flex flex-col gap-1.5">
-        <Input
-          variant="amount"
-          label="Estimated receive"
-          value={receiveValue}
-          placeholder={receivePlaceholder}
-          isDisabled
-          hasNormalStyleIfDisabled={!isFormLocked}
-          errorMessage={
-            isEstimateFailed ? (
-              <>
-                Unable to estimate USDC.{' '}
-                <Button variant="link-alert" size="s" onPress={() => void metrics.refetch()}>
-                  Retry
-                </Button>
-              </>
-            ) : undefined
-          }
-          isInvalid={isEstimateFailed}
-          startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
-          subContent={
-            <InputExtraInfo
-              dollarValueDecimals={USDC.decimals}
-              dollarValue={receiveDollarValue}
-              isLoading={isEstimateLoading}
-              balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
-            />
-          }
-          endContent={<TokenDisplay symbol="USDC" />}
-        />
-
-        <Callout variant="warning">
-          Redemptions are processed periodically. Your final USDC amount is determined using the Token Price when your
-          request is processed.
-        </Callout>
-      </div>
+      <Input
+        variant="amount"
+        label="Estimated receive"
+        value={receiveValue}
+        placeholder={receivePlaceholder}
+        isDisabled
+        hasNormalStyleIfDisabled={!isFormLocked}
+        errorMessage={
+          isEstimateFailed ? (
+            <>
+              Unable to estimate USDC.{' '}
+              <Button variant="link-alert" size="s" onPress={() => void metrics.refetch()}>
+                Retry
+              </Button>
+            </>
+          ) : undefined
+        }
+        isInvalid={isEstimateFailed}
+        startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
+        subContent={
+          <InputExtraInfo
+            dollarValueDecimals={USDC.decimals}
+            dollarValue={receiveDollarValue}
+            isLoading={isEstimateLoading}
+            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
+          />
+        }
+        endContent={<TokenDisplay symbol="USDC" />}
+      />
 
       <ConnectedAccount>
         {isPrereqsLoading ? (
@@ -410,9 +403,16 @@ export default function RedeemFlow() {
         )}
       </ConnectedAccount>
 
-      {/* Why the action above is disabled — the verdict only exists once a
-          wallet is connected. */}
-      {isNotAllowlisted && <NotAllowlistedCallout />}
+      <div className="flex flex-col gap-1.5">
+        <Callout variant="warning">
+          Redemptions are processed periodically. Your final USDC amount is determined using the Token Price when your
+          request is processed.
+        </Callout>
+
+        {/* Why the action above is disabled — the verdict only exists once a
+            wallet is connected. */}
+        {isNotAllowlisted && <NotAllowlistedCallout />}
+      </div>
     </>
   );
 }
