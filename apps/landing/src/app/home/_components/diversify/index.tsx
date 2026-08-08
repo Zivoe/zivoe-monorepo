@@ -35,8 +35,8 @@ export default function Diversify() {
         </Card>
 
         <Card
-          title="Clear Liquidity Terms"
-          label="Redemption timing and liquidity terms are defined for each strategy."
+          title="Clear Terms for Each Strategy"
+          label="Each strategy has a defined duration, redemption schedule, and liquidity terms."
           labelClassName="sm:w-1/2"
         >
           <LiquidityIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-0 sm:w-auto" />
