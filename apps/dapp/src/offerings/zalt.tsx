@@ -36,7 +36,6 @@ export const ZALT_OFFERING: Offering = {
   },
 
   documents: [
-    { title: 'Zivoe Documentation', href: 'https://docs.zivoe.com/user-docs/introduction' },
     { title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }
   ]
 };
