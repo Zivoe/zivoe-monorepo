@@ -31,7 +31,7 @@ export default function DepositHighlights() {
         <Card
           icon={<ExperienceIcon />}
           title="Experienced Team"
-          description="Our team has over 40 years of combined experience managing credit risk at leading financial institutions including JP Morgan Chase, Wells Fargo, Capital One, and Maple Finance."
+          description="Our team has over 40 years of combined experience managing credit risk at leading financial institutions including JPMorgan Chase, Wells Fargo, Capital One, and Maple Finance."
           className="bg-tertiary-100"
         >
           <Link variant="border" size="m" href="https://www.zivoe.com/about-us" target="_blank">
