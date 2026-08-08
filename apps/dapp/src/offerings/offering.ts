@@ -102,12 +102,8 @@ export type OfferingPresentation = {
   category: string;
   /** Link-preview blurb for the Offering page — the card shows no excerpt. */
   description: string;
-  /**
-   * CSS `background` for the listing card's banner. A raw value rather than a
-   * token: each Offering gets its own multi-layer gradient so cards stay
-   * distinguishable at a glance, and that is data, not a design-system choice.
-   */
-  cardGradient: string;
+  /** Decorative artwork shown in the listing card's banner. */
+  cardArtworkSrc: string;
   issuer: string;
   /** Share-token subtitle for token display maps and pickers. */
   shareTokenDescription: string;

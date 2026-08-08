@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
@@ -24,7 +26,15 @@ export default function OfferingCard({
       href={offeringPath(offering)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-default bg-surface-base shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)] transition-shadow duration-300 ease-out hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.05),0px_4px_6px_-2px_rgba(16,24,40,0.03)] focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-2 focus-visible:outline-hidden"
     >
-      <div className="h-38" style={{ background: offering.cardGradient }} />
+      <div className="relative h-38">
+        <Image
+          fill
+          alt=""
+          src={offering.cardArtworkSrc}
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-cover"
+        />
+      </div>
 
       <div className="flex flex-1 flex-col gap-6 p-6">
         <OfferingIdentity offering={offering} trailing={<OfferingStatusBadge status={offering.status} />} />
