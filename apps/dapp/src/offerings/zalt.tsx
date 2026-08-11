@@ -31,7 +31,7 @@ export const ZALT_OFFERING: Offering = {
     Inception: 'September 2025',
     'Entry/exit fees': 'None',
     Redemptions: 'Processed weekly',
-    Eligibility: 'U.S. Accredited & Non-US Investors'
+    Eligibility: 'U.S. accredited investors & eligible non-U.S. persons'
   },
 
   documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]

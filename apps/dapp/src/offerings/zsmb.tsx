@@ -31,7 +31,7 @@ export const ZSMB_OFFERING: Offering = {
     Inception: 'August 8 2026',
     'Entry/exit fees': 'None',
     Redemptions: 'Processed weekly',
-    Eligibility: 'U.S. Accredited & Non-US Investors'
+    Eligibility: 'U.S. accredited investors & eligible non-U.S. persons'
   },
 
   documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
