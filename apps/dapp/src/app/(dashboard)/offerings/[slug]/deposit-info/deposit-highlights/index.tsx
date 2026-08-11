@@ -24,7 +24,7 @@ export default function DepositHighlights() {
         <Card
           icon={<ReportingIcon />}
           title="Reporting"
-          description="A full transparency dashboard providing direct visibility into the underlying portfolio is launching soon."
+          description="Lighthouse™ is coming soon, bringing clearer insight into vault holdings, portfolio activity, and NAV."
           className="bg-element-secondary-light"
         />
 
