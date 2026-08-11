@@ -29,14 +29,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${offering.name} | Zivoe`;
 
-  return {
-    title,
-    description: offering.description,
-    // Without these, link previews inherit the root layout's platform copy —
-    // a shared Offering URL must preview the Offering itself.
-    openGraph: { title, description: offering.description },
-    twitter: { title, description: offering.description }
-  };
+  // Title only — the description falls through to the root layout's platform
+  // copy, which every vault shares until per-vault blurbs are authored again.
+  return { title, openGraph: { title }, twitter: { title } };
 }
 
 export default async function OfferingPage({

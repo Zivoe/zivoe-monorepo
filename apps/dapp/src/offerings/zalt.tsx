@@ -9,8 +9,6 @@ export const ZALT_OFFERING: Offering = {
   Logo: ZAltLogo,
   category: 'Merchant Cash Advance',
   status: 'Deploying',
-  description:
-    'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardArtworkSrc: '/offering-zalt-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },

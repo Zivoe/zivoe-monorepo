@@ -100,8 +100,6 @@ export type OfferingPresentation = {
   Logo: ComponentType<IconProps>;
   /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
-  /** Link-preview blurb for the Offering page — the card shows no excerpt. */
-  description: string;
   /** Decorative artwork shown in the listing card's banner. */
   cardArtworkSrc: string;
   issuer: string;

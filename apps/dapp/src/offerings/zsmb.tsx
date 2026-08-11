@@ -9,8 +9,6 @@ export const ZSMB_OFFERING: Offering = {
   Logo: ZSmbLogo,
   category: 'Small Business Financing',
   status: 'Open',
-  description:
-    'Short-duration, revenue-based financing for small businesses, diversified across thousands of merchants in the US, UK, Europe and APAC with daily repayment.',
   cardArtworkSrc: '/offering-zsmb-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
