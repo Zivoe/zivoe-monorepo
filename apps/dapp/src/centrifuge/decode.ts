@@ -42,8 +42,8 @@ function createCentrifugeVaultReceiptDecoder<
   const decodedReceipts = new WeakMap<TransactionReceipt, Map<string, TAmounts | undefined>>();
 
   // The whole identity, not loose Centrifuge-vault/slug halves: the pair must always
-  // come from one Offering, and separate parameters would let a call site
-  // tag a capture with one Offering while decoding another's Centrifuge vault.
+  // come from one Zivoe Vault, and separate parameters would let a call site
+  // tag a capture with one Zivoe Vault while decoding another's Centrifuge vault.
   return function decode({
     receipt,
     identity
@@ -72,7 +72,7 @@ function createCentrifugeVaultReceiptDecoder<
 
     if (!amounts)
       Sentry.captureException(new Error(errorMessage), {
-        tags: { source: 'MUTATION', flow, offering: identity.offeringSlug },
+        tags: { source: 'MUTATION', flow, zivoeVault: identity.zivoeVaultSlug },
         extra: { txHash: receipt.transactionHash, centrifugeVaultAddress }
       });
 

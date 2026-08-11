@@ -15,9 +15,9 @@ type EarnDialogState = { isOpen: boolean; setIsOpen: Dispatch<SetStateAction<boo
 const EarnDialogContext = createContext<EarnDialogState | null>(null);
 
 /**
- * The mobile Earn dialog's open state, owned by the Offering page tree — which
- * the route keys by slug, so navigating to another Offering unmounts the state
- * instead of resetting it. A dialog opened on one Offering can never linger
+ * The mobile Earn dialog's open state, owned by the Zivoe Vault page tree — which
+ * the route keys by slug, so navigating to another Zivoe Vault unmounts the state
+ * instead of resetting it. A dialog opened on one Zivoe Vault can never linger
  * onto another, and nothing races the `?view=` deep-link auto-open the way a
  * global-atom reset effect would.
  */
@@ -31,6 +31,6 @@ export function EarnDialogProvider({ children }: { children: ReactNode }) {
 /** Open state and stable setter — effects should depend on the setter only. */
 export function useEarnDialog(): EarnDialogState {
   const state = useContext(EarnDialogContext);
-  if (!state) throw new Error('useEarnDialog must be used under the Offering deposit tree.');
+  if (!state) throw new Error('useEarnDialog must be used under the Zivoe Vault deposit tree.');
   return state;
 }

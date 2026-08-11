@@ -1,15 +1,15 @@
 import { ZAltLogo } from '@zivoe/ui/icons';
 
-import { type Offering } from './offering';
+import { type ZivoeVault } from './zivoe-vault';
 
 /** Zivoe Alternative Credit — the zALT share class. */
-export const ZALT_OFFERING: Offering = {
+export const ZALT_ZIVOE_VAULT: ZivoeVault = {
   slug: 'zivoe-alternative-credit',
   name: 'Zivoe Alternative Credit',
   Logo: ZAltLogo,
   category: 'Merchant Cash Advance',
   status: 'Deploying',
-  cardArtworkSrc: '/offering-zalt-card.svg',
+  cardArtworkSrc: '/zivoe-vault-zalt-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },
   centrifugeVaults: {

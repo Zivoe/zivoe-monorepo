@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { useMediaQuery } from 'react-responsive';
 
-import { isOfferingPath } from '@/offerings';
+import { isZivoeVaultPath } from '@/zivoe-vaults';
 
 import { type DepositPageView } from '../_utils';
 import { useEarnDialog } from './earn-dialog';
@@ -19,9 +19,9 @@ export function useTabNavigation() {
   const navigateToTab = (view: NonNullable<DepositPageView>) => {
     const url = view === 'deposit' ? pathname : `${pathname}?view=${view}`;
 
-    // Switching tabs on the Offering itself is not a navigation — only
+    // Switching tabs on the Zivoe Vault itself is not a navigation — only
     // arriving from elsewhere should leave a history entry behind.
-    if (isOfferingPath(pathname)) router.replace(url, { scroll: false });
+    if (isZivoeVaultPath(pathname)) router.replace(url, { scroll: false });
     else router.push(url);
 
     if (isMobile) setIsEarnDialogOpen(true);

@@ -198,7 +198,7 @@ describe('useClaimRedeem', () => {
       title: 'USDC Claimed',
       description: 'USDC has been transferred to your wallet.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: {
         claimRedeem: {
           share: { symbol: 'zFIX', decimals: 8 },
@@ -211,7 +211,7 @@ describe('useClaimRedeem', () => {
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_claim_receipt',
-      expect.objectContaining({ offering_slug: 'fixture-offering', token_in: 'zFIX', token_out: 'USDC' })
+      expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_in: 'zFIX', token_out: 'USDC' })
     );
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
@@ -288,7 +288,7 @@ describe('useClaimRedeem', () => {
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the USDC claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering'
+      zivoeVaultSlug: 'fixture-zivoe-vault'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

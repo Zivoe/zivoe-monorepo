@@ -190,11 +190,11 @@ describe('useClaimReturnedShares', () => {
     expect(walletRequest).toHaveBeenCalledOnce();
 
     // Identity follows the hook parameter: the fixture share class resolves
-    // the Centrifuge vault and the Offering slug rides the analytics captures.
+    // the Centrifuge vault and the Zivoe Vault slug rides the analytics captures.
     expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_claim_returned_receipt',
-      expect.objectContaining({ offering_slug: 'fixture-offering', token_out: 'zFIX' })
+      expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_out: 'zFIX' })
     );
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
@@ -202,7 +202,7 @@ describe('useClaimReturnedShares', () => {
       title: 'zFIX Claimed',
       description: 'Your zFIX has been returned to your wallet.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: { claimReturnedShares: { share: { symbol: 'zFIX', decimals: 8 }, shares: RETURNED_SHARES } }
     });
 
@@ -279,7 +279,7 @@ describe('useClaimReturnedShares', () => {
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the zFIX claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering'
+      zivoeVaultSlug: 'fixture-zivoe-vault'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

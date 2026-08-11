@@ -36,7 +36,7 @@ import {
   useInvestorWhitelist
 } from '@/centrifuge';
 
-import { useOfferingIdentity, useOfferingStatus } from '../offering-provider';
+import { useZivoeVaultIdentity, useZivoeVaultStatus } from '../zivoe-vault-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
@@ -44,21 +44,21 @@ import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
-// The one deposit asset every Offering accepts — a network-level fact.
+// The one deposit asset every Zivoe Vault accepts — a network-level fact.
 const USDC = CENTRIFUGE_ENV.usdc;
 
 type DepositForm = { deposit: string };
 
 export function DepositFlow() {
-  const identity = useOfferingIdentity();
+  const identity = useZivoeVaultIdentity();
   const share = identity.shareClass;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  // A deploying Offering does not take new deposits; its redemptions stay open.
-  const isOfferingDeploying = useOfferingStatus() === 'Deploying';
+  // A deploying Zivoe Vault does not take new deposits; its redemptions stay open.
+  const isZivoeVaultDeploying = useZivoeVaultStatus() === 'Deploying';
 
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
@@ -113,7 +113,7 @@ export function DepositFlow() {
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
 
-  const approveSpending = useApproveSpending({ offeringSlug: identity.offeringSlug });
+  const approveSpending = useApproveSpending({ zivoeVaultSlug: identity.zivoeVaultSlug });
   const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
 
   // Balances/allowance use isFetching so post-transaction invalidations keep
@@ -132,14 +132,14 @@ export function DepositFlow() {
   // The two blocks differ in what they say about the future. A resolving or
   // failed preview may still clear on its own, so it only gates the action
   // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
-  // it clears is reasonable. A deploying Offering, a Centrifuge vault with no capacity
+  // it clears is reasonable. A deploying Zivoe Vault, a Centrifuge vault with no capacity
   // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
   // the form itself: there is no amount worth entering.
   const isFormLocked =
     isPrereqsLoading ||
     approveSpending.isPending ||
     depositMutation.isPending ||
-    isOfferingDeploying ||
+    isZivoeVaultDeploying ||
     isCapacityUnavailable ||
     isNotWhitelisted;
 
@@ -278,10 +278,10 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      {/* Outside ConnectedAccount on purpose: a deploying Offering and a Centrifuge vault
+      {/* Outside ConnectedAccount on purpose: a deploying Zivoe Vault and a Centrifuge vault
           with no capacity are both decided without reference to any wallet, so
           prompting for one would only offer a connection that leads nowhere. */}
-      {isOfferingDeploying ? (
+      {isZivoeVaultDeploying ? (
         <Button fullWidth isDisabled>
           Deposits Disabled
         </Button>
@@ -338,9 +338,9 @@ export function DepositFlow() {
       )}
 
       {/* Why the action above is disabled. The deploying status and the Centrifuge vault's
-          capacity are Offering facts, so they render whether or not a wallet is
+          capacity are Zivoe Vault facts, so they render whether or not a wallet is
           connected; the whitelist verdict only exists once one is. */}
-      {isOfferingDeploying ? (
+      {isZivoeVaultDeploying ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
       ) : isCapacityUnavailable ? (
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>

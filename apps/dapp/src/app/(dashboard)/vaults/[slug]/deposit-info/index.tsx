@@ -4,7 +4,7 @@ import { DiamondIcon } from '@zivoe/ui/icons';
 
 import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
-import { type Offering } from '@/offerings';
+import { type ZivoeVault } from '@/zivoe-vaults';
 
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
@@ -14,25 +14,25 @@ import Documents from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
 import DepositStats from './deposit-stats';
 
-export default function DepositInfo({ offering }: { offering: Offering }) {
+export default function DepositInfo({ zivoeVault }: { zivoeVault: ZivoeVault }) {
   return (
     <div className="flex w-full flex-col gap-8 lg:gap-10">
-      <DepositChartsComponent shareClassKey={offering.shareClass.key} />
+      <DepositChartsComponent shareClassKey={zivoeVault.shareClass.key} />
       <DiamondSeparator />
 
-      <DepositStatsComponent shareClassKey={offering.shareClass.key} targetApyPercent={offering.targetApyPercent} />
+      <DepositStatsComponent shareClassKey={zivoeVault.shareClass.key} targetApyPercent={zivoeVault.targetApyPercent} />
       <DiamondSeparator />
 
-      <DepositAbout paragraphs={offering.about} />
+      <DepositAbout paragraphs={zivoeVault.about} />
       <DiamondSeparator />
 
       <DepositHighlights />
       <DiamondSeparator />
 
-      <DepositDetails offering={offering} />
+      <DepositDetails zivoeVault={zivoeVault} />
       <DiamondSeparator />
 
-      <Documents documents={offering.documents} />
+      <Documents documents={zivoeVault.documents} />
       <DiamondSeparator />
 
       <DepositContact />

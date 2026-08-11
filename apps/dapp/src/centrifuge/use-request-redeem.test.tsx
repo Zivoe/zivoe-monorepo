@@ -124,7 +124,7 @@ describe('useRequestRedeem', () => {
       title: 'Redemption Requested',
       description: 'Your final USDC amount is determined when your request is processed.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: {
         redeem: {
           share: { symbol: 'zFIX', decimals: 8 },
@@ -147,7 +147,7 @@ describe('useRequestRedeem', () => {
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_submitted',
       expect.objectContaining({
-        offering_slug: 'fixture-offering',
+        zivoe_vault_slug: 'fixture-zivoe-vault',
         token_in: 'zFIX',
         token_out: 'USDC',
         amount_in_raw: SHARES.toString()

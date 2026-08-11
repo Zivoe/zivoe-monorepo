@@ -34,7 +34,7 @@ import {
   useRequestRedeem
 } from '@/centrifuge';
 
-import { useOfferingIdentity } from '../offering-provider';
+import { useZivoeVaultIdentity } from '../zivoe-vault-provider';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
@@ -42,13 +42,13 @@ import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
-// The one deposit asset every Offering accepts — a network-level fact.
+// The one deposit asset every Zivoe Vault accepts — a network-level fact.
 const USDC = CENTRIFUGE_ENV.usdc;
 
 type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
-  const identity = useOfferingIdentity();
+  const identity = useZivoeVaultIdentity();
   const share = identity.shareClass;
 
   const account = useAccount();

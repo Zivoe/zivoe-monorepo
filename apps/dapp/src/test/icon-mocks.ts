@@ -2,7 +2,7 @@
  * Stands in for the whole `@zivoe/ui/icons` barrel in vitest suites (raw UI
  * TSX does not transform in this environment, so every suite whose graph
  * reaches the barrel must mock it). Total on purpose: ANY icon name resolves
- * to a null component, so neither a new Offering logo nor a newly imported
+ * to a null component, so neither a new Zivoe Vault logo nor a newly imported
  * icon can break an unrelated suite with React's opaque "Element type is
  * invalid" — the failure mode the earlier hand-maintained whitelists had.
  *

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { assertOfferingRegistryInvariants } from './invariants';
+import { assertZivoeVaultRegistryInvariants } from './invariants';
 
 const FIXTURE_SHARE_CLASS = FIXTURE_IDENTITY.shareClass;
 
@@ -12,7 +12,7 @@ const ZERO_SC_ID = '0x00000000000000000000000000000000';
 type NetworkName = 'sepolia' | 'mainnet';
 
 type Registration = {
-  offering: {
+  zivoeVault: {
     slug: string;
     shareClass: { key: string };
     centrifugeVaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
@@ -28,7 +28,7 @@ type Registration = {
 /** One registered class — the module half and its catalog half, live on sepolia. */
 function makeRegistration({
   key,
-  slug = `${key}-offering`,
+  slug = `${key}-zivoe-vault`,
   scId,
   shareTokenAddress,
   centrifugeVaultAddress
@@ -40,7 +40,7 @@ function makeRegistration({
   centrifugeVaultAddress: string;
 }): Registration {
   return {
-    offering: {
+    zivoeVault: {
       slug,
       shareClass: { key },
       centrifugeVaults: { sepolia: { address: centrifugeVaultAddress, deployable: true } }
@@ -53,19 +53,19 @@ function makeRegistration({
 }
 
 function assertRegistry(registrations: Array<Registration>) {
-  assertOfferingRegistryInvariants({
-    offerings: Object.fromEntries(
-      registrations.map((registration) => [registration.offering.shareClass.key, registration.offering])
+  assertZivoeVaultRegistryInvariants({
+    zivoeVaults: Object.fromEntries(
+      registrations.map((registration) => [registration.zivoeVault.shareClass.key, registration.zivoeVault])
     ),
     catalog: Object.fromEntries(
-      registrations.map((registration) => [registration.offering.shareClass.key, registration.catalogEntry])
+      registrations.map((registration) => [registration.zivoeVault.shareClass.key, registration.catalogEntry])
     )
   });
 }
 
 const fixture = makeRegistration({
   key: FIXTURE_SHARE_CLASS.key,
-  slug: 'fixture-offering',
+  slug: 'fixture-zivoe-vault',
   scId: FIXTURE_SHARE_CLASS.scId,
   shareTokenAddress: FIXTURE_SHARE_CLASS.shareTokenAddress,
   centrifugeVaultAddress: FIXTURE_SHARE_CLASS.centrifugeVaultAddress
@@ -78,13 +78,13 @@ const other = makeRegistration({
   centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'
 });
 
-describe('assertOfferingRegistryInvariants', () => {
+describe('assertZivoeVaultRegistryInvariants', () => {
   it('accepts a registry of distinct identities, including shared placeholder zeros on a staged network', () => {
     const staged = (registration: Registration): Registration => ({
-      offering: {
-        ...registration.offering,
+      zivoeVault: {
+        ...registration.zivoeVault,
         centrifugeVaults: {
-          ...registration.offering.centrifugeVaults,
+          ...registration.zivoeVault.centrifugeVaults,
           mainnet: { address: ZERO_ADDRESS, deployable: false }
         }
       },
@@ -102,10 +102,10 @@ describe('assertOfferingRegistryInvariants', () => {
 
   it('accepts a testnet-only class next to one also claiming mainnet', () => {
     const withMainnet: Registration = {
-      offering: {
-        ...other.offering,
+      zivoeVault: {
+        ...other.zivoeVault,
         centrifugeVaults: {
-          ...other.offering.centrifugeVaults,
+          ...other.zivoeVault.centrifugeVaults,
           mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
@@ -128,22 +128,22 @@ describe('assertOfferingRegistryInvariants', () => {
 
   it('throws on a duplicate slug, compared case-insensitively', () => {
     expect(() =>
-      assertRegistry([fixture, { ...other, offering: { ...other.offering, slug: fixture.offering.slug } }])
-    ).toThrow(/Duplicate Offering slug/);
+      assertRegistry([fixture, { ...other, zivoeVault: { ...other.zivoeVault, slug: fixture.zivoeVault.slug } }])
+    ).toThrow(/Duplicate Zivoe Vault slug/);
 
     // Case-shifted on purpose: exact-match routing would leave one of these
     // two "distinct" products unreachable.
     expect(() =>
       assertRegistry([
         fixture,
-        { ...other, offering: { ...other.offering, slug: fixture.offering.slug.toUpperCase() } }
+        { ...other, zivoeVault: { ...other.zivoeVault, slug: fixture.zivoeVault.slug.toUpperCase() } }
       ])
-    ).toThrow(/Duplicate Offering slug/);
+    ).toThrow(/Duplicate Zivoe Vault slug/);
   });
 
   it('throws on a slug that is not kebab-case', () => {
-    for (const slug of ['fixture offering', 'Fixture-Offering', '../..', 'fixture?x=1']) {
-      const malformed: Registration = { ...fixture, offering: { ...fixture.offering, slug } };
+    for (const slug of ['fixture zivoe vault', 'Fixture-Zivoe-Vault', '../..', 'fixture?x=1']) {
+      const malformed: Registration = { ...fixture, zivoeVault: { ...fixture.zivoeVault, slug } };
       expect(() => assertRegistry([malformed])).toThrow(/kebab-case/);
     }
   });
@@ -153,35 +153,35 @@ describe('assertOfferingRegistryInvariants', () => {
     expect(() => assertRegistry([usdc])).toThrow(/deposit asset/);
   });
 
-  it('throws when two Offerings register the same share class', () => {
+  it('throws when two Zivoe Vaults register the same share class', () => {
     // A case variant on purpose: the record itself cannot hold an exact
     // duplicate key, so the case-insensitive sweep is the reachable guard.
     const duplicate: Registration = {
       ...other,
-      offering: { ...other.offering, shareClass: { key: FIXTURE_SHARE_CLASS.key.toUpperCase() } }
+      zivoeVault: { ...other.zivoeVault, shareClass: { key: FIXTURE_SHARE_CLASS.key.toUpperCase() } }
     };
 
     expect(() =>
-      assertOfferingRegistryInvariants({
-        offerings: {
-          [fixture.offering.shareClass.key]: fixture.offering,
-          [duplicate.offering.shareClass.key]: duplicate.offering
+      assertZivoeVaultRegistryInvariants({
+        zivoeVaults: {
+          [fixture.zivoeVault.shareClass.key]: fixture.zivoeVault,
+          [duplicate.zivoeVault.shareClass.key]: duplicate.zivoeVault
         },
         catalog: { [FIXTURE_SHARE_CLASS.key]: fixture.catalogEntry }
       })
-    ).toThrow(/registered by two Offerings/);
+    ).toThrow(/registered by two Zivoe Vaults/);
   });
 
   it('throws when the record key disagrees with the module it registers', () => {
-    expect(() => assertOfferingRegistryInvariants({ offerings: { wrong: fixture.offering }, catalog: {} })).toThrow(
-      /registered under "wrong"/
-    );
+    expect(() =>
+      assertZivoeVaultRegistryInvariants({ zivoeVaults: { wrong: fixture.zivoeVault }, catalog: {} })
+    ).toThrow(/registered under "wrong"/);
   });
 
-  it('throws when an Offering references a share class the catalog does not know', () => {
+  it('throws when a Zivoe Vault references a share class the catalog does not know', () => {
     expect(() =>
-      assertOfferingRegistryInvariants({
-        offerings: { [fixture.offering.shareClass.key]: fixture.offering },
+      assertZivoeVaultRegistryInvariants({
+        zivoeVaults: { [fixture.zivoeVault.shareClass.key]: fixture.zivoeVault },
         catalog: {}
       })
     ).toThrow(/not in the catalog/);
@@ -189,8 +189,8 @@ describe('assertOfferingRegistryInvariants', () => {
 
   it('throws the not-in-catalog error for a prototype-chain key, not a TypeError', () => {
     expect(() =>
-      assertOfferingRegistryInvariants({
-        offerings: { toString: { slug: 'ghost-offering', shareClass: { key: 'toString' }, centrifugeVaults: {} } },
+      assertZivoeVaultRegistryInvariants({
+        zivoeVaults: { toString: { slug: 'ghost-zivoe-vault', shareClass: { key: 'toString' }, centrifugeVaults: {} } },
         catalog: {}
       })
     ).toThrow(/not in the catalog/);
@@ -199,7 +199,7 @@ describe('assertOfferingRegistryInvariants', () => {
   it('throws on a half-claimed network, in both directions', () => {
     const catalogOnly: Registration = {
       ...other,
-      offering: { ...other.offering, centrifugeVaults: {} }
+      zivoeVault: { ...other.zivoeVault, centrifugeVaults: {} }
     };
     expect(() => assertRegistry([catalogOnly])).toThrow(
       /claims "sepolia" in the catalog but not its Centrifuge vaults/
@@ -215,7 +215,7 @@ describe('assertOfferingRegistryInvariants', () => {
   });
 
   it('throws when the catalog and Centrifuge-vault deployable flags disagree, in both directions', () => {
-    const sepoliaCentrifugeVault = other.offering.centrifugeVaults.sepolia;
+    const sepoliaCentrifugeVault = other.zivoeVault.centrifugeVaults.sepolia;
     const sepoliaEntry = other.catalogEntry.networks.sepolia;
     if (!sepoliaCentrifugeVault || !sepoliaEntry) throw new Error('the "other" registration must claim sepolia');
 
@@ -223,8 +223,8 @@ describe('assertOfferingRegistryInvariants', () => {
     // flipped live, the other still a verified-but-staged entry.
     const catalogLiveCentrifugeVaultStaged: Registration = {
       ...other,
-      offering: {
-        ...other.offering,
+      zivoeVault: {
+        ...other.zivoeVault,
         centrifugeVaults: { sepolia: { address: sepoliaCentrifugeVault.address, deployable: false } }
       }
     };
@@ -256,7 +256,7 @@ describe('assertOfferingRegistryInvariants', () => {
 
     const flippedCentrifugeVault: Registration = {
       ...other,
-      offering: { ...other.offering, centrifugeVaults: { sepolia: { address: ZERO_ADDRESS, deployable: true } } }
+      zivoeVault: { ...other.zivoeVault, centrifugeVaults: { sepolia: { address: ZERO_ADDRESS, deployable: true } } }
     };
     expect(() => assertRegistry([flippedCentrifugeVault])).toThrow(/deployable but carries a placeholder address/);
   });
@@ -267,8 +267,8 @@ describe('assertOfferingRegistryInvariants', () => {
         fixture,
         {
           ...other,
-          offering: {
-            ...other.offering,
+          zivoeVault: {
+            ...other.zivoeVault,
             // Case-shifted on purpose: identity comparisons must be case-insensitive.
             centrifugeVaults: {
               sepolia: { address: FIXTURE_SHARE_CLASS.centrifugeVaultAddress.toUpperCase(), deployable: true }
@@ -281,10 +281,10 @@ describe('assertOfferingRegistryInvariants', () => {
 
   it('throws on a duplicate Centrifuge vault on a non-active network — the sweep covers every claimed network', () => {
     const onMainnet = (registration: Registration, index: number): Registration => ({
-      offering: {
-        ...registration.offering,
+      zivoeVault: {
+        ...registration.zivoeVault,
         centrifugeVaults: {
-          ...registration.offering.centrifugeVaults,
+          ...registration.zivoeVault.centrifugeVaults,
           mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },

@@ -4,9 +4,9 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import InfoSection from '@/components/info-section';
 
-import { type Offering } from '@/offerings';
+import { type ZivoeVault } from '@/zivoe-vaults';
 
-export default function Documents({ documents }: { documents: Offering['documents'] }) {
+export default function Documents({ documents }: { documents: ZivoeVault['documents'] }) {
   return (
     <InfoSection title="Documents" icon={<DocumentIcon />}>
       <div>

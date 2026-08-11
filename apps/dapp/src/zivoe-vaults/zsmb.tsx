@@ -1,15 +1,15 @@
 import { ZSmbLogo } from '@zivoe/ui/icons';
 
-import { type Offering } from './offering';
+import { type ZivoeVault } from './zivoe-vault';
 
 /** Zivoe SMB Credit — the zSMB share class. */
-export const ZSMB_OFFERING: Offering = {
+export const ZSMB_ZIVOE_VAULT: ZivoeVault = {
   slug: 'zivoe-smb-credit',
   name: 'Zivoe SMB Credit',
   Logo: ZSmbLogo,
   category: 'Small Business Financing',
   status: 'Open',
-  cardArtworkSrc: '/offering-zsmb-card.svg',
+  cardArtworkSrc: '/zivoe-vault-zsmb-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
   centrifugeVaults: {

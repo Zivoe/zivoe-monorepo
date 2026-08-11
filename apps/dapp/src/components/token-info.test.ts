@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { getTokenInfo } from './token-info';
 
-// The Offering modules' logos enter through the registry import.
+// The Zivoe Vault modules' logos enter through the registry import.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 describe('getTokenInfo', () => {

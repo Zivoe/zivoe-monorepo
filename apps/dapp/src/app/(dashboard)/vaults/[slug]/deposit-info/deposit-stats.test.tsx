@@ -23,7 +23,7 @@ vi.mock('@zivoe/ui/core/contextual-help', () => ({
 describe('DepositStats', () => {
   afterEach(cleanup);
 
-  it('renders NAV, the Offering Target APY and the Token Price', () => {
+  it('renders NAV, the Zivoe Vault Target APY and the Token Price', () => {
     render(<DepositStats nav={112000} sharePrice={1.0725} targetApyPercent={14} />);
 
     expect(screen.getByText('NAV')).toBeTruthy();

@@ -58,8 +58,8 @@ export type TransactionAnalyticsInput = {
   step: string;
   walletAddress?: string | null;
   chainId?: number;
-  /** Stable product identity of the Offering transacted on. */
-  offeringSlug?: string | null;
+  /** Stable product identity of the Zivoe Vault transacted on. */
+  zivoeVaultSlug?: string | null;
   // Symbols travel as plain strings: they come from the transacted identity
   // object, and test fixtures are deliberately unregistered.
   tokenIn?: string | null;
@@ -92,7 +92,7 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
     // Default to the deployment's configured chain — a hardcoded mainnet
     // fallback mislabelled every event whose caller omitted chainId.
     chain_id: input.chainId ?? NETWORK_CHAIN.id,
-    offering_slug: input.offeringSlug ?? undefined,
+    zivoe_vault_slug: input.zivoeVaultSlug ?? undefined,
     token_in: input.tokenIn ?? undefined,
     token_out: input.tokenOut ?? undefined,
     amount_in_raw: toAnalyticsAmount(input.amountInRaw),

@@ -21,7 +21,7 @@ const EXPLORER_URL = NETWORK_CHAIN.blockExplorers.default.url;
 /**
  * Renders exclusively from the payload's token snapshots — never from the
  * ambient page's configuration — so a transaction confirming after navigation
- * to another Offering keeps its own labels, amounts, and decimals.
+ * to another Zivoe Vault keeps its own labels, amounts, and decimals.
  */
 export function TransactionDialog() {
   const [isOpen, setIsOpen] = useState(false);

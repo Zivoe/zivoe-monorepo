@@ -24,12 +24,12 @@ type ApproveSpendingVariables = {
 };
 
 /**
- * The approval itself is deliberately cross-Offering (one router spender), but
- * the deposit funnel segments per Offering — the initiating Offering's slug is
+ * The approval itself is deliberately cross-Zivoe Vault (one router spender), but
+ * the deposit funnel segments per Zivoe Vault — the initiating Zivoe Vault's slug is
  * hook-level identity so analytics AND Sentry captures carry it, same as
  * useCentrifugeTx tags every transaction of the flows behind it.
  */
-export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) => {
+export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string }) => {
   return useTx<ApproveSpendingVariables, ApproveTokenParams>({
     buildParams: ({ contract, spender, amount, abi }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
@@ -49,7 +49,7 @@ export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) =
       input: ({ name, amount, spender }, { address }) => ({
         walletAddress: address,
         chainId: NETWORK_CHAIN.id,
-        offeringSlug,
+        zivoeVaultSlug,
         tokenIn: name,
         amountInRaw: amount,
         spender
@@ -59,8 +59,8 @@ export const useApproveSpending = ({ offeringSlug }: { offeringSlug: string }) =
     pendingToast: ({ name }) => `Approving ${name}...`,
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
-    // The lifecycle derives the `offering` Sentry tag and extra from this.
-    offeringSlug,
+    // The lifecycle derives the `zivoeVault` Sentry tag and extra from this.
+    zivoeVaultSlug,
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
     transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {

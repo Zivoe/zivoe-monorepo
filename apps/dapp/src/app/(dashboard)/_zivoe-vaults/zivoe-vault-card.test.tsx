@@ -4,9 +4,9 @@ import { type AnchorHTMLAttributes, type ReactNode } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ZSMB_OFFERING } from '@/offerings/zsmb';
+import { ZSMB_ZIVOE_VAULT } from '@/zivoe-vaults/zsmb';
 
-import OfferingCard from './offering-card';
+import ZivoeVaultCard from './zivoe-vault-card';
 
 vi.mock('next/image', () => ({ default: () => null }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -24,27 +24,27 @@ vi.mock('@zivoe/ui/core/contextual-help', () => ({
   ),
   ContextualHelpDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>
 }));
-vi.mock('@/components/offering-icons', () => ({
+vi.mock('@/components/zivoe-vault-icons', () => ({
   AcceptedChainIcons: () => null,
   AcceptedStablecoinIcons: () => null
 }));
-vi.mock('@/components/offering-identity', () => ({
-  default: ({ offering }: { offering: { name: string } }) => <p>{offering.name}</p>,
-  OfferingStatusBadge: () => null
+vi.mock('@/components/zivoe-vault-identity', () => ({
+  default: ({ zivoeVault }: { zivoeVault: { name: string } }) => <p>{zivoeVault.name}</p>,
+  ZivoeVaultStatusBadge: () => null
 }));
 
-describe('OfferingCard', () => {
+describe('ZivoeVaultCard', () => {
   afterEach(cleanup);
 
   it('shows the Target APY disclosure without nesting its trigger inside the card link', () => {
-    render(<OfferingCard offering={ZSMB_OFFERING} nav={112000} />);
+    render(<ZivoeVaultCard zivoeVault={ZSMB_ZIVOE_VAULT} nav={112000} />);
 
     const disclosureTrigger = screen.getByRole('button', { name: 'About Target APY' });
 
     expect(disclosureTrigger.closest('a')).toBeNull();
     expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: `View ${ZSMB_OFFERING.name}` }).getAttribute('href')).toBe(
-      `/vaults/${ZSMB_OFFERING.slug}`
+    expect(screen.getByRole('link', { name: `View ${ZSMB_ZIVOE_VAULT.name}` }).getAttribute('href')).toBe(
+      `/vaults/${ZSMB_ZIVOE_VAULT.slug}`
     );
   });
 });

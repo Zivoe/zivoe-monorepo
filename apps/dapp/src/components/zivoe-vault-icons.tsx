@@ -1,13 +1,13 @@
 import { DEPOSIT_TOKENS } from '@/types/constants';
 
-import { type Offering, offeringNetworkDisplays } from '@/offerings';
+import { type ZivoeVault, zivoeVaultNetworkDisplays } from '@/zivoe-vaults';
 
 import { TOKEN_INFO } from './token-info';
 
 /**
- * The logo rows the listing card and the Offering's Details section both
+ * The logo rows the listing card and the Zivoe Vault's Details section both
  * render — one component per fact, so the two surfaces cannot disagree about
- * which stablecoins are accepted or which chains an Offering is available on.
+ * which stablecoins are accepted or which chains a Zivoe Vault is available on.
  */
 export function AcceptedStablecoinIcons() {
   return (
@@ -21,10 +21,10 @@ export function AcceptedStablecoinIcons() {
   );
 }
 
-export function AcceptedChainIcons({ offering }: { offering: Offering }) {
+export function AcceptedChainIcons({ zivoeVault }: { zivoeVault: ZivoeVault }) {
   return (
     <IconRow>
-      {offeringNetworkDisplays(offering).map(({ label, Icon }) => (
+      {zivoeVaultNetworkDisplays(zivoeVault).map(({ label, Icon }) => (
         <Logo key={label} label={label}>
           <Icon />
         </Logo>

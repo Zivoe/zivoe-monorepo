@@ -7,13 +7,13 @@ import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
  * The fixed Details row set, in render order — one list owns both the rows
- * and their order. Offerings stay comparable line by line because the labels
+ * and their order. Zivoe Vaults stay comparable line by line because the labels
  * never vary per module; a new row is a deliberate addition here. Rows whose
  * fact the catalog already owns are DERIVED at render and cannot be authored
  * by a module (two sources for one fact would drift) — the typed record
  * below forces every module to fill exactly the authored rows.
  */
-export const OFFERING_DETAIL_LABELS = [
+export const ZIVOE_VAULT_DETAIL_LABELS = [
   'Issuer',
   'Ticker',
   'Asset Type',
@@ -26,12 +26,12 @@ export const OFFERING_DETAIL_LABELS = [
   'Accepted chains'
 ] as const;
 
-export type OfferingDetailLabel = (typeof OFFERING_DETAIL_LABELS)[number];
+export type ZivoeVaultDetailLabel = (typeof ZIVOE_VAULT_DETAIL_LABELS)[number];
 
-/** Rows derived from the catalog or the Offering's own fields at render — never authored in `details`. */
+/** Rows derived from the catalog or the Zivoe Vault's own fields at render — never authored in `details`. */
 export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted stablecoin' | 'Accepted chains';
 
-export type AuthoredDetailLabel = Exclude<OfferingDetailLabel, DerivedDetailLabel>;
+export type AuthoredDetailLabel = Exclude<ZivoeVaultDetailLabel, DerivedDetailLabel>;
 
 /**
  * The Centrifuge vault instantiating the share class for USDC on one network —
@@ -48,23 +48,23 @@ export type CentrifugeVault = {
 };
 
 /**
- * Subscription status. 'Deploying' keeps an Offering out of new deposits
+ * Subscription status. 'Deploying' keeps a Zivoe Vault out of new deposits
  * while its redemptions stay open, so this is a behavioral fact the deposit
  * flow reads — not only the listing card's chip. Further statuses join the
  * union here.
  */
-export type OfferingStatus = 'Open' | 'Deploying';
+export type ZivoeVaultStatus = 'Open' | 'Deploying';
 
-export type OfferingIdentity = {
+export type ZivoeVaultIdentity = {
   /** Permanent public URL segment — it ends up in emails and external links. */
   slug: string;
   name: string;
   /**
-   * Required, not optional: it gates the deposit action, and an Offering with
+   * Required, not optional: it gates the deposit action, and a Zivoe Vault with
    * no declared status would leave "can this wallet still subscribe?"
    * ambiguous. Lives in the identity half because the client tree reads it.
    */
-  status: OfferingStatus;
+  status: ZivoeVaultStatus;
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     /**
@@ -76,7 +76,7 @@ export type OfferingIdentity = {
     key: ShareClassKey;
   };
   /**
-   * dApp-only identity: the Centrifuge vault per network this Offering claims —
+   * dApp-only identity: the Centrifuge vault per network this Zivoe Vault claims —
    * collocated here so a launch is a catalog entry plus this one module,
    * with no third map to keep in sync. The registry invariants force the
    * claimed networks to match the catalog's, both ways.
@@ -84,7 +84,7 @@ export type OfferingIdentity = {
   centrifugeVaults: Partial<Record<CentrifugeNetwork, CentrifugeVault>>;
 };
 
-export type OfferingPresentation = {
+export type ZivoeVaultPresentation = {
   Logo: ComponentType<IconProps>;
   /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
@@ -104,7 +104,7 @@ export type OfferingPresentation = {
 };
 
 /**
- * One Offering is one Centrifuge share class, exposed at /vaults/<slug>.
+ * One Zivoe Vault is one Centrifuge share class, exposed at /vaults/<slug>.
  *
  * "Vault" is the product's word for this, and it is deliberately broader than
  * Centrifuge's. Their model is Pool > Share Class > Vault: a pool holds N share
@@ -113,14 +113,14 @@ export type OfferingPresentation = {
  * network for one deposit asset. A route is therefore keyed by share class, not
  * by Centrifuge vault — the same class accepting a second stablecoin stays one
  * product Vault, one page, one URL. To keep the two senses apart, code never
- * says a bare "vault": the product concept is named Offering, and every
- * Centrifuge-vault identifier is spelled out (centrifugeVaults, getCentrifugeVault,
- * centrifugeVaultAddress). User-facing copy says plain "vault" and always means
- * the product one.
+ * says a bare "vault": the product concept is spelled `ZivoeVault`/`zivoeVault`,
+ * and every Centrifuge-vault identifier is spelled out too (centrifugeVaults,
+ * getCentrifugeVault, centrifugeVaultAddress). User-facing copy says plain
+ * "vault" and always means the product one.
  *
- * The contract is split along the Next serialization boundary: OfferingIdentity
- * is plain data safe to hand to a client provider; OfferingPresentation is
+ * The contract is split along the Next serialization boundary: ZivoeVaultIdentity
+ * is plain data safe to hand to a client provider; ZivoeVaultPresentation is
  * server-rendered and may hold components and rich content. Component and
  * function fields must never cross into the identity half.
  */
-export type Offering = OfferingIdentity & OfferingPresentation;
+export type ZivoeVault = ZivoeVaultIdentity & ZivoeVaultPresentation;

@@ -6,33 +6,38 @@ import { DocumentIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import InfoSection from '@/components/info-section';
-import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/offering-icons';
+import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/zivoe-vault-icons';
 
-import { type DerivedDetailLabel, OFFERING_DETAIL_LABELS, type Offering, type OfferingDetailLabel } from '@/offerings';
+import {
+  type DerivedDetailLabel,
+  ZIVOE_VAULT_DETAIL_LABELS,
+  type ZivoeVault,
+  type ZivoeVaultDetailLabel
+} from '@/zivoe-vaults';
 
-/** Row notes, shown as an info popover — fixed copy, the same for every Offering. */
-const DETAIL_NOTES: Partial<Record<OfferingDetailLabel, string>> = {
+/** Row notes, shown as an info popover — fixed copy, the same for every Zivoe Vault. */
+const DETAIL_NOTES: Partial<Record<ZivoeVaultDetailLabel, string>> = {
   Redemptions: 'Subject to available liquidity'
 };
 
-export default function DepositDetails({ offering }: { offering: Offering }) {
-  // Rows whose fact the catalog or another Offering field already owns —
+export default function DepositDetails({ zivoeVault }: { zivoeVault: ZivoeVault }) {
+  // Rows whose fact the catalog or another Zivoe Vault field already owns —
   // derived here, like the listing card derives them, so the two surfaces
   // render one source and can never disagree.
   const derived: Record<DerivedDetailLabel, ReactNode> = {
-    Issuer: offering.issuer,
-    Ticker: SHARE_CLASS_CATALOG[offering.shareClass.key].symbol,
-    'Asset Type': offering.category,
+    Issuer: zivoeVault.issuer,
+    Ticker: SHARE_CLASS_CATALOG[zivoeVault.shareClass.key].symbol,
+    'Asset Type': zivoeVault.category,
     'Accepted stablecoin': <AcceptedStablecoinIcons />,
-    'Accepted chains': <AcceptedChainIcons offering={offering} />
+    'Accepted chains': <AcceptedChainIcons zivoeVault={zivoeVault} />
   };
 
-  const values: Record<OfferingDetailLabel, ReactNode> = { ...offering.details, ...derived };
+  const values: Record<ZivoeVaultDetailLabel, ReactNode> = { ...zivoeVault.details, ...derived };
 
   return (
     <InfoSection title="Details" icon={<DocumentIcon />}>
       <div>
-        {OFFERING_DETAIL_LABELS.map((label) => (
+        {ZIVOE_VAULT_DETAIL_LABELS.map((label) => (
           <Element
             key={label}
             title={label}

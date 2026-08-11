@@ -11,30 +11,30 @@ import { queryKeys } from '@/lib/query-keys';
 import Container from '@/components/container';
 import Page from '@/components/page';
 
-import { getOffering, resolveTransactionIdentity } from '@/offerings';
+import { getZivoeVault, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { depositPageViewSchema } from './deposit/_utils';
-import OfferingHeader from './offering-header';
-import { OfferingIdentityProvider } from './offering-provider';
+import ZivoeVaultHeader from './zivoe-vault-header';
+import { ZivoeVaultIdentityProvider } from './zivoe-vault-provider';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const offering = getOffering(slug);
+  const zivoeVault = getZivoeVault(slug);
 
   // Unknown slugs fall through to the root metadata; the page itself 404s.
-  if (!offering) return {};
+  if (!zivoeVault) return {};
 
-  const title = `${offering.name} | Zivoe`;
+  const title = `${zivoeVault.name} | Zivoe`;
 
   // Title only — the description falls through to the root layout's platform
-  // copy, which every Offering shares until per-Offering blurbs are authored again.
+  // copy, which every Zivoe Vault shares until per-Zivoe-Vault blurbs are authored again.
   return { title, openGraph: { title }, twitter: { title } };
 }
 
-export default async function OfferingPage({
+export default async function ZivoeVaultPage({
   params,
   searchParams
 }: {
@@ -43,11 +43,11 @@ export default async function OfferingPage({
 }) {
   const [{ slug }, { view }] = await Promise.all([params, searchParams]);
 
-  const offering = getOffering(slug);
-  if (!offering) notFound();
+  const zivoeVault = getZivoeVault(slug);
+  if (!zivoeVault) notFound();
 
   // Resolved once here; client trees read only this serializable object.
-  const identity = resolveTransactionIdentity(offering);
+  const identity = resolveTransactionIdentity(zivoeVault);
 
   const validatedView = depositPageViewSchema.safeParse(view);
 
@@ -56,9 +56,9 @@ export default async function OfferingPage({
   // RSCs just rendered. React cache dedupes this with the RSC reads below.
   const queryClient = getQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.app.shareMetrics({ shareClassKey: offering.shareClass.key }),
+    queryKey: queryKeys.app.shareMetrics({ shareClassKey: zivoeVault.shareClass.key }),
     queryFn: async () => {
-      const payload = await getCurrentShareMetrics(offering.shareClass.key);
+      const payload = await getCurrentShareMetrics(zivoeVault.shareClass.key);
       // Throwing keeps a failed prefetch out of the dehydrated state, so the
       // browser fetches fresh on mount instead of hydrating an empty success.
       if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
@@ -72,16 +72,16 @@ export default async function OfferingPage({
 
       <div className="bg-surface-base">
         <Container>
-          <OfferingHeader offering={offering} />
+          <ZivoeVaultHeader zivoeVault={zivoeVault} />
         </Container>
 
         <HydrationBoundary state={dehydrate(queryClient)}>
-          {/* Keyed by slug so no component state can leak across Offerings. */}
-          <Page key={offering.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <OfferingIdentityProvider identity={identity} status={offering.status}>
-              <DepositInfo offering={offering} />
+          {/* Keyed by slug so no component state can leak across Zivoe Vaults. */}
+          <Page key={zivoeVault.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
+            <ZivoeVaultIdentityProvider identity={identity} status={zivoeVault.status}>
+              <DepositInfo zivoeVault={zivoeVault} />
               <Deposit initialView={validatedView.success ? validatedView.data : null} />
-            </OfferingIdentityProvider>
+            </ZivoeVaultIdentityProvider>
           </Page>
         </HydrationBoundary>
       </div>

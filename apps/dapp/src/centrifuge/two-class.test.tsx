@@ -9,8 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { type TransactionIdentity, useDeposit } from './index';
 
@@ -31,7 +31,7 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(() => 'toast-id'), Toaste
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { dismiss: vi.fn() }) }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
-// Pulled in by the Offering modules' logos; raw UI TSX does not transform here.
+// Pulled in by the Zivoe Vault modules' logos; raw UI TSX does not transform here.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 const INVESTOR = '0xa28ef80d690844b586e192690d8fcdaecfd0281e' as const;
@@ -42,7 +42,7 @@ const DEPOSIT_EVENT_ABI = parseAbi([
 ]);
 
 /** The zSMB identity as the app resolves it, next to the synthetic fixture class. */
-const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
+const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
 const ZSMB_CENTRIFUGE_VAULT = ZSMB_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase();
 
 const ZSMB_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
@@ -157,7 +157,7 @@ describe('two share classes side by side', () => {
     getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault(receipt)));
 
     const zsmbPayload = await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
-    expect(zsmbPayload?.offeringSlug).toBe('zivoe-smb-credit');
+    expect(zsmbPayload?.zivoeVaultSlug).toBe('zivoe-smb-credit');
     expect(zsmbPayload?.description).toBe('zSMB has been transferred to your wallet.');
     expect(zsmbPayload?.meta?.deposit).toEqual({
       asset: { symbol: 'USDC', decimals: 6 },
@@ -169,7 +169,7 @@ describe('two share classes side by side', () => {
     getDefaultStore().set(transactionAtom, undefined);
 
     const fixturePayload = await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
-    expect(fixturePayload?.offeringSlug).toBe('fixture-offering');
+    expect(fixturePayload?.zivoeVaultSlug).toBe('fixture-zivoe-vault');
     expect(fixturePayload?.description).toBe('zFIX has been transferred to your wallet.');
     expect(fixturePayload?.meta?.deposit).toEqual({
       asset: { symbol: 'USDC', decimals: 6 },
@@ -179,20 +179,20 @@ describe('two share classes side by side', () => {
     });
   });
 
-  it('stamps each transaction with its own Offering slug on analytics', async () => {
+  it('stamps each transaction with its own Zivoe Vault slug on analytics', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
     const slugs = analyticsCapture.mock.calls.map(
-      ([, properties]) => (properties as { offering_slug?: string }).offering_slug
+      ([, properties]) => (properties as { zivoe_vault_slug?: string }).zivoe_vault_slug
     );
     expect(slugs).toContain('zivoe-smb-credit');
-    expect(slugs).toContain('fixture-offering');
+    expect(slugs).toContain('fixture-zivoe-vault');
   });
 
-  it('keeps the mutation-time identity when the hook re-renders under another Offering mid-flight', async () => {
+  it('keeps the mutation-time identity when the hook re-renders under another Zivoe Vault mid-flight', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -200,7 +200,7 @@ describe('two share classes side by side', () => {
     );
 
     // A Centrifuge vault whose transaction confirms only on command, so the hook can be
-    // re-rendered with another Offering while the receipt is pending.
+    // re-rendered with another Zivoe Vault while the receipt is pending.
     let confirm: (() => void) | undefined;
     const receipt = mixedReceipt();
     getCentrifugeVault.mockImplementation(() =>
@@ -249,7 +249,7 @@ describe('two share classes side by side', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const payload = getDefaultStore().get(transactionAtom);
-    expect(payload?.offeringSlug).toBe('zivoe-smb-credit');
+    expect(payload?.zivoeVaultSlug).toBe('zivoe-smb-credit');
     expect(payload?.description).toBe('zSMB has been transferred to your wallet.');
     expect(payload?.meta?.deposit).toEqual({
       asset: { symbol: 'USDC', decimals: 6 },

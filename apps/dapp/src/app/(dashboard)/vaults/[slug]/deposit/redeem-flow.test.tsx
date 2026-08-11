@@ -5,10 +5,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
-import { OfferingIdentityProvider } from '../offering-provider';
+import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
@@ -22,15 +22,15 @@ const D18 = 10n ** 18n;
 // The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here used the share-token address as the vault's,
 // the exact conflation the registry invariants exist to catch).
-const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
 
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
-    <OfferingIdentityProvider identity={identity} status="Open">
+    <ZivoeVaultIdentityProvider identity={identity} status="Open">
       <EarnDialogProvider>
         <RedeemFlow />
       </EarnDialogProvider>
-    </OfferingIdentityProvider>
+    </ZivoeVaultIdentityProvider>
   );
 }
 
@@ -57,7 +57,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
-// Pulled in by the Offering modules' logos and the token display map.
+// Pulled in by the Zivoe Vault modules' logos and the token display map.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@/centrifuge', () => ({
   CENTRIFUGE_ENV: {

@@ -8,7 +8,7 @@ import { type TransactionIdentity } from '@/centrifuge';
  * resolution, receipt decoding, payload snapshots) must follow this object.
  */
 export const FIXTURE_IDENTITY: TransactionIdentity = {
-  offeringSlug: 'fixture-offering',
+  zivoeVaultSlug: 'fixture-zivoe-vault',
   shareClass: {
     key: 'zfix',
     symbol: 'zFIX',

@@ -19,8 +19,8 @@ export type TransactedShareClass = Omit<ShareClassIdentity, 'key' | 'symbol'> & 
 
 /** Identity a Transaction Hook stamps on copy, analytics, Sentry, and the payload. */
 export type TransactionIdentity = {
-  /** Offering slug — the stable public identity alongside token symbols. */
-  offeringSlug: string;
+  /** Zivoe Vault slug — the stable public identity alongside token symbols. */
+  zivoeVaultSlug: string;
   shareClass: TransactedShareClass;
 };
 
@@ -36,7 +36,7 @@ export type DepositPreview = {
 
 /**
  * The share token's transfer hook, asked about one wallet in the two
- * directions the flows move shares. Every Offering's Centrifuge vault is whitelisted, so
+ * directions the flows move shares. Every Zivoe Vault's Centrifuge vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
  * wallet's transaction reverts on-chain, which no form validation would catch.
  *

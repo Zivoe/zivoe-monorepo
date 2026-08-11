@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getHomepageNav } from './homepage-nav';
 
 // The registry is mocked wholesale: these tests assert aggregation semantics
-// and must never enumerate the live book — registering an Offering broke the
+// and must never enumerate the live book — registering a Zivoe Vault broke the
 // old real-registry assertions once.
-vi.mock('@/offerings', () => ({
-  OFFERINGS: [{ shareClass: { key: 'alpha' } }, { shareClass: { key: 'beta' } }]
+vi.mock('@/zivoe-vaults', () => ({
+  ZIVOE_VAULTS: [{ shareClass: { key: 'alpha' } }, { shareClass: { key: 'beta' } }]
 }));
 vi.mock('@/server/data/centrifuge-metrics', () => ({
   getShareClassNavs: vi.fn(),

@@ -5,9 +5,9 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type OfferingStatus, ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
+import { ZSMB_ZIVOE_VAULT, type ZivoeVaultStatus, resolveTransactionIdentity } from '@/zivoe-vaults';
 
-import { OfferingIdentityProvider } from '../offering-provider';
+import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { DepositFlow } from './deposit-flow';
 
@@ -19,15 +19,15 @@ const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
 
 // The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here carried the router address as the vault's).
-const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
 
-function renderFlow(status: OfferingStatus = 'Open') {
+function renderFlow(status: ZivoeVaultStatus = 'Open') {
   return render(
-    <OfferingIdentityProvider identity={TEST_IDENTITY} status={status}>
+    <ZivoeVaultIdentityProvider identity={TEST_IDENTITY} status={status}>
       <EarnDialogProvider>
         <DepositFlow />
       </EarnDialogProvider>
-    </OfferingIdentityProvider>
+    </ZivoeVaultIdentityProvider>
   );
 }
 
@@ -258,7 +258,7 @@ describe('DepositFlow', () => {
     expect(getButton('Estimating zSMB...').disabled).toBe(true);
   });
 
-  it('offers no deposit action while an Offering is deploying', () => {
+  it('offers no deposit action while a Zivoe Vault is deploying', () => {
     renderFlow('Deploying');
 
     expect(getButton('Deposits Disabled').disabled).toBe(true);
@@ -411,11 +411,11 @@ describe('DepositFlow', () => {
     mocks.usdcBalance = 10_000000n;
     mocks.address = '0xabcdef1234567890abcdef1234567890abcdef12';
     rerender(
-      <OfferingIdentityProvider identity={TEST_IDENTITY} status="Open">
+      <ZivoeVaultIdentityProvider identity={TEST_IDENTITY} status="Open">
         <EarnDialogProvider>
           <DepositFlow />
         </EarnDialogProvider>
-      </OfferingIdentityProvider>
+      </ZivoeVaultIdentityProvider>
     );
 
     expect(screen.queryByText('Deposit amount exceeds balance')).toBeNull();
@@ -430,7 +430,7 @@ describe('DepositFlow', () => {
   });
 
   it('offers no deposit action at all when the vault has no capacity', () => {
-    // An Offering-level fact, so it reads like one: a named action and a
+    // An Zivoe-Vault-level fact, so it reads like one: a named action and a
     // callout, not a validation error against an amount nobody has typed.
     mocks.capacity = 0n;
     renderFlow();

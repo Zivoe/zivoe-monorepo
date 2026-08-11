@@ -305,7 +305,7 @@ describe('useDeposit', () => {
       title: 'Deposit Successful',
       description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: {
         deposit: {
           asset: { symbol: 'USDC', decimals: 6 },
@@ -344,7 +344,7 @@ describe('useDeposit', () => {
         amount_out_raw: DECODED_SHARES.toString(),
         token_in: 'USDC',
         token_out: 'zFIX',
-        offering_slug: 'fixture-offering',
+        zivoe_vault_slug: 'fixture-zivoe-vault',
         chain_id: CENTRIFUGE_ENV.chainId,
         receipt_status: 'success'
       })
@@ -390,7 +390,7 @@ describe('useDeposit', () => {
       title: 'Deposit Successful',
       description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: undefined
     });
     expect(sentryCapture).toHaveBeenCalled();
@@ -545,7 +545,7 @@ describe('useDeposit', () => {
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering'
+      zivoeVaultSlug: 'fixture-zivoe-vault'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     expect(analyticsCapture).toHaveBeenCalledWith(
@@ -575,7 +575,7 @@ describe('useDeposit', () => {
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering'
+      zivoeVaultSlug: 'fixture-zivoe-vault'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
   });

@@ -139,7 +139,7 @@ describe('useCancelRedeem', () => {
       description:
         'Your zFIX will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: { cancelRedeem: { share: { symbol: 'zFIX', decimals: 8 }, shares: PENDING_SHARES } }
     });
 
@@ -153,7 +153,7 @@ describe('useCancelRedeem', () => {
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_cancel_submitted',
-      expect.objectContaining({ offering_slug: 'fixture-offering', token_in: 'zFIX' })
+      expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_in: 'zFIX' })
     );
   });
 
