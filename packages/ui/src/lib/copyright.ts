@@ -5,5 +5,5 @@
  * current year on their next build.
  */
 export function copyrightLine(): string {
-  return `©Zivoe ${new Date().getFullYear()}. All Rights Reserved.`;
+  return `©Zivoe ${new Date().getFullYear()}. All rights reserved.`;
 }
