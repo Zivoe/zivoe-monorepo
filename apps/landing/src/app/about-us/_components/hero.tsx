@@ -12,8 +12,7 @@ export default function Hero() {
           <div className="flex flex-col gap-4">
             <h1 className="text-h4 text-primary sm:text-h2">Meet the Team</h1>
             <p className="text-regular text-primary sm:max-w-full sm:text-leading">
-              We come from leading financial institutions and DeFi protocols including JPMorgan Chase, Wells Fargo, and
-              Maple Finance.
+              Our team brings experience from JPMorgan Chase, Wells Fargo, and Maple Finance.
             </p>
           </div>
         </div>
