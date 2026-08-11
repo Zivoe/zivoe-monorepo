@@ -17,7 +17,7 @@ export default function DepositHighlights() {
         <Card
           icon={<LiquidityIcon />}
           title="Liquidity"
-          description="Redemption requests may be submitted at any time and are processed weekly through a redemption queue, subject to available liquidity."
+          description="Redemption requests follow a weekly schedule and are fulfilled as liquidity allows."
           className="bg-element-primary-gentle"
         />
 
