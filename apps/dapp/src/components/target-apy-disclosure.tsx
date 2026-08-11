@@ -2,7 +2,7 @@ import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contex
 
 /** The published Target APY is a target before fees — the number never appears without this. */
 const TARGET_APY_DISCLOSURE =
-  'Target APY is calculated before fees and expenses. It is a target, not a guaranteed return, and may change. For more information, please see offer terms.';
+  'Target APY is a gross annualized target before fees and expenses. It is not guaranteed and may change. See the applicable vault terms for more information.';
 
 export default function TargetApyDisclosure({ triggerClassName }: { triggerClassName?: string }) {
   return (

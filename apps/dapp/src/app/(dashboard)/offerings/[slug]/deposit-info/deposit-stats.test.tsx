@@ -32,7 +32,7 @@ describe('DepositStats', () => {
     expect(screen.getByText('14%')).toBeTruthy();
     // The Target APY number never renders without its disclosure.
     expect(screen.getByLabelText('About Target APY')).toBeTruthy();
-    expect(screen.getByText(/Target APY is calculated before fees and expenses/)).toBeTruthy();
+    expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
     expect(screen.getByText('Token Price')).toBeTruthy();
     // Two decimals, floored — the same treatment NAV gets.
     expect(screen.getByText('$1.07')).toBeTruthy();

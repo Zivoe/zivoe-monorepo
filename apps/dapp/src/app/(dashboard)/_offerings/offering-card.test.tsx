@@ -42,7 +42,7 @@ describe('OfferingCard', () => {
     const disclosureTrigger = screen.getByRole('button', { name: 'About Target APY' });
 
     expect(disclosureTrigger.closest('a')).toBeNull();
-    expect(screen.getByText(/Target APY is calculated before fees and expenses/)).toBeTruthy();
+    expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
     expect(screen.getByRole('link', { name: `View ${ZSMB_OFFERING.name}` }).getAttribute('href')).toBe(
       `/offerings/${ZSMB_OFFERING.slug}`
     );
