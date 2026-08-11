@@ -91,7 +91,7 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     title: 'Company',
     links: [
       { href: '/team', label: 'Team' },
-      { href: `mailto:${EMAILS.INQUIRE}`, label: 'Contact Us' }
+      { href: `mailto:${EMAILS.INQUIRE}`, label: EMAILS.INQUIRE }
     ]
   },
 
