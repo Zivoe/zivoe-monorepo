@@ -35,10 +35,10 @@ const OTHER_SHARE_CLASS: TransactedShareClass = {
   ...SHARE_CLASS,
   key: 'other',
   scId: '0x000100000000eeee0000000000000001',
-  vaultAddress: '0xbebebebebebebebebebebebebebebebebebebebe'
+  centrifugeVaultAddress: '0xbebebebebebebebebebebebebebebebebebebebe'
 };
 
-function fakeSdkVault({
+function fakeSdkCentrifugeVault({
   address,
   isSyncDeposit = true,
   isSyncRedeem = false,
@@ -63,14 +63,16 @@ function fakeSdkVault({
   };
 }
 
-/** Vaults keyed by scId, so each share class resolves its own instance. */
-function poolWithVaults(vaultsByScId: Record<string, unknown>) {
+/** Centrifuge vaults keyed by scId, so each share class resolves its own instance. */
+function poolWithCentrifugeVaults(centrifugeVaultsByScId: Record<string, unknown>) {
   return {
-    vault: vi.fn((_centrifugeId: number, scId: { value: string }) => Promise.resolve(vaultsByScId[scId.value]))
+    vault: vi.fn((_centrifugeId: number, scId: { value: string }) =>
+      Promise.resolve(centrifugeVaultsByScId[scId.value])
+    )
   };
 }
 
-/** Fresh module state per test — the vault memo is module-level. */
+/** Fresh module state per test — the Centrifuge-vault memo is module-level. */
 async function loadClient() {
   vi.resetModules();
   return import('./client');
@@ -81,26 +83,28 @@ beforeEach(() => {
   sdk.id.mockResolvedValue(3);
 });
 
-describe('getVault', () => {
+describe('getCentrifugeVault', () => {
   it('resolves per share class, memoizing each and asserting the configured address', async () => {
-    const pool = poolWithVaults({
+    const pool = poolWithCentrifugeVaults({
       // Uppercase on purpose: the address equality must be case-insensitive.
-      [SHARE_CLASS.scId]: fakeSdkVault({ address: SHARE_CLASS.vaultAddress.toUpperCase().replace('0X', '0x') }),
-      [OTHER_SHARE_CLASS.scId]: fakeSdkVault({ address: OTHER_SHARE_CLASS.vaultAddress })
+      [SHARE_CLASS.scId]: fakeSdkCentrifugeVault({
+        address: SHARE_CLASS.centrifugeVaultAddress.toUpperCase().replace('0X', '0x')
+      }),
+      [OTHER_SHARE_CLASS.scId]: fakeSdkCentrifugeVault({ address: OTHER_SHARE_CLASS.centrifugeVaultAddress })
     });
     sdk.pool.mockResolvedValue(pool);
 
-    const { getVault } = await loadClient();
+    const { getCentrifugeVault } = await loadClient();
 
     const [first, again, other] = await Promise.all([
-      getVault(SHARE_CLASS),
-      getVault(SHARE_CLASS),
-      getVault(OTHER_SHARE_CLASS)
+      getCentrifugeVault(SHARE_CLASS),
+      getCentrifugeVault(SHARE_CLASS),
+      getCentrifugeVault(OTHER_SHARE_CLASS)
     ]);
 
     expect(first).toBe(again);
     expect(first).not.toBe(other);
-    expect(other.address).toBe(OTHER_SHARE_CLASS.vaultAddress);
+    expect(other.address).toBe(OTHER_SHARE_CLASS.centrifugeVaultAddress);
     // One resolution per share class, each against its own scId.
     expect(pool.vault).toHaveBeenCalledTimes(2);
     expect(pool.vault).toHaveBeenCalledWith(3, expect.objectContaining({ value: SHARE_CLASS.scId }), expect.anything());
@@ -111,59 +115,67 @@ describe('getVault', () => {
     );
   });
 
-  it('fails loudly when the SDK resolves a different vault than configured, then retries', async () => {
-    const wrongVault = fakeSdkVault({ address: '0x1111111111111111111111111111111111111111' });
-    const rightVault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress });
-    const pool = poolWithVaults({ [SHARE_CLASS.scId]: wrongVault });
+  it('fails loudly when the SDK resolves a different Centrifuge vault than configured, then retries', async () => {
+    const wrongCentrifugeVault = fakeSdkCentrifugeVault({ address: '0x1111111111111111111111111111111111111111' });
+    const rightCentrifugeVault = fakeSdkCentrifugeVault({ address: SHARE_CLASS.centrifugeVaultAddress });
+    const pool = poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: wrongCentrifugeVault });
     sdk.pool.mockResolvedValue(pool);
 
-    const { getVault } = await loadClient();
+    const { getCentrifugeVault } = await loadClient();
 
-    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/is configured/);
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/is configured/);
 
     // The failed promise is not memoized — the next call resolves fresh.
-    pool.vault.mockImplementation(() => Promise.resolve(rightVault));
-    await expect(getVault(SHARE_CLASS)).resolves.toBe(rightVault);
+    pool.vault.mockImplementation(() => Promise.resolve(rightCentrifugeVault));
+    await expect(getCentrifugeVault(SHARE_CLASS)).resolves.toBe(rightCentrifugeVault);
   });
 
-  it('fails loudly when the vault is not sync-deposit/async-redeem', async () => {
-    const asyncDepositVault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress, isSyncDeposit: false });
-    sdk.pool.mockResolvedValue(poolWithVaults({ [SHARE_CLASS.scId]: asyncDepositVault }));
+  it('fails loudly when the Centrifuge vault is not sync-deposit/async-redeem', async () => {
+    const asyncDepositCentrifugeVault = fakeSdkCentrifugeVault({
+      address: SHARE_CLASS.centrifugeVaultAddress,
+      isSyncDeposit: false
+    });
+    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: asyncDepositCentrifugeVault }));
 
-    const { getVault } = await loadClient();
+    const { getCentrifugeVault } = await loadClient();
 
-    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/sync-deposit\/async-redeem/);
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/sync-deposit\/async-redeem/);
   });
 
   it('fails loudly when the catalog decimals disagree with the share token on chain', async () => {
-    const vault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress, shareDecimals: SHARE_CLASS.decimals + 10 });
-    sdk.pool.mockResolvedValue(poolWithVaults({ [SHARE_CLASS.scId]: vault }));
+    const vault = fakeSdkCentrifugeVault({
+      address: SHARE_CLASS.centrifugeVaultAddress,
+      shareDecimals: SHARE_CLASS.decimals + 10
+    });
+    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: vault }));
 
-    const { getVault } = await loadClient();
+    const { getCentrifugeVault } = await loadClient();
 
-    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/Fix the catalog before transacting/);
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the catalog before transacting/);
   });
 
-  it('fails loudly when the configured USDC decimals disagree with the vault asset on chain', async () => {
-    const vault = fakeSdkVault({ address: SHARE_CLASS.vaultAddress, assetDecimals: 18 });
-    sdk.pool.mockResolvedValue(poolWithVaults({ [SHARE_CLASS.scId]: vault }));
+  it('fails loudly when the configured USDC decimals disagree with the Centrifuge-vault asset on chain', async () => {
+    const vault = fakeSdkCentrifugeVault({ address: SHARE_CLASS.centrifugeVaultAddress, assetDecimals: 18 });
+    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: vault }));
 
-    const { getVault } = await loadClient();
+    const { getCentrifugeVault } = await loadClient();
 
-    await expect(getVault(SHARE_CLASS)).rejects.toThrow(/Fix the environment config before transacting/);
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the environment config before transacting/);
   });
 
-  it("never lets one key's cached vault answer for a different vault address", async () => {
+  it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
     sdk.pool.mockResolvedValue(
-      poolWithVaults({ [SHARE_CLASS.scId]: fakeSdkVault({ address: SHARE_CLASS.vaultAddress }) })
+      poolWithCentrifugeVaults({
+        [SHARE_CLASS.scId]: fakeSdkCentrifugeVault({ address: SHARE_CLASS.centrifugeVaultAddress })
+      })
     );
 
-    const { getVault } = await loadClient();
-    await expect(getVault(SHARE_CLASS)).resolves.toBeTruthy();
+    const { getCentrifugeVault } = await loadClient();
+    await expect(getCentrifugeVault(SHARE_CLASS)).resolves.toBeTruthy();
 
-    // Same key, different vault: the memo must miss so the address assertion
-    // runs — a key-only memo would silently return the cached vault.
-    const rewired = { ...SHARE_CLASS, vaultAddress: OTHER_SHARE_CLASS.vaultAddress };
-    await expect(getVault(rewired)).rejects.toThrow(/is configured/);
+    // Same key, different Centrifuge vault: the memo must miss so the address assertion
+    // runs — a key-only memo would silently return the cached Centrifuge vault.
+    const rewired = { ...SHARE_CLASS, centrifugeVaultAddress: OTHER_SHARE_CLASS.centrifugeVaultAddress };
+    await expect(getCentrifugeVault(rewired)).rejects.toThrow(/is configured/);
   });
 });

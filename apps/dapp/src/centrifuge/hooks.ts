@@ -8,13 +8,13 @@ import { queryKeys } from '@/lib/query-keys';
 
 import { useAccount } from '@/hooks/useAccount';
 
-import { getVault } from './client';
-import { readInvestorWhitelist, readRedemptionPosition, readVaultCapacity } from './reads';
+import { getCentrifugeVault } from './client';
+import { readCentrifugeVaultCapacity, readInvestorWhitelist, readRedemptionPosition } from './reads';
 import { type TransactedShareClass } from './types';
 
 /**
- * Whether this share class's vault admits the connected wallet. Every flow's
- * action gates on it: the whitelist lives in the vault's own configuration,
+ * Whether this share class's Centrifuge vault admits the connected wallet. Every flow's
+ * action gates on it: the whitelist lives in the Centrifuge vault's own configuration,
  * so a blocked wallet's transaction reverts on-chain rather than failing any
  * check the form could run. Skipped without a wallet — there is nothing to
  * ask about until one connects.
@@ -26,30 +26,33 @@ export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedSha
     queryKey: queryKeys.account.investorWhitelist({
       accountAddress: address,
       shareClassKey: shareClass.key,
-      vaultAddress: shareClass.vaultAddress
+      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
     }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
     queryFn: !address
       ? skipToken
-      : async () => readInvestorWhitelist({ vault: await getVault(shareClass), investor: address })
+      : async () => readInvestorWhitelist({ centrifugeVault: await getCentrifugeVault(shareClass), investor: address })
   });
 }
 
-export function useVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
+export function useCentrifugeVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
   return useQuery({
-    queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key, vaultAddress: shareClass.vaultAddress }),
+    queryKey: queryKeys.app.centrifugeVaultCapacity({
+      shareClassKey: shareClass.key,
+      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
+    }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
-    queryFn: async () => readVaultCapacity(await getVault(shareClass))
+    queryFn: async () => readCentrifugeVaultCapacity(await getCentrifugeVault(shareClass))
   });
 }
 
-const VAULT_PREVIEW_ABI = parseAbi([
+const CENTRIFUGE_VAULT_PREVIEW_ABI = parseAbi([
   'function previewDeposit(uint256 assets) view returns (uint256 shares)',
   'error InvalidPrice()'
 ]);
 
-/** True when a preview failed because the vault has no valid Share Price (deposits unavailable). */
+/** True when a preview failed because the Centrifuge vault has no valid Share Price (deposits unavailable). */
 export function isPriceUnavailableError(error: unknown): boolean {
   if (!(error instanceof BaseError)) return false;
   const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
@@ -57,7 +60,7 @@ export function isPriceUnavailableError(error: unknown): boolean {
 }
 
 /**
- * The vault contract's own previewDeposit answer — the authoritative mint
+ * The Centrifuge vault contract's own previewDeposit answer — the authoritative mint
  * quote, including whatever rounding the contract applies at execution.
  */
 export function useDepositPreview({ shareClass, assets }: { shareClass: TransactedShareClass; assets: bigint }) {
@@ -66,7 +69,7 @@ export function useDepositPreview({ shareClass, assets }: { shareClass: Transact
   return useQuery({
     queryKey: queryKeys.app.depositPreview({
       shareClassKey: shareClass.key,
-      vaultAddress: shareClass.vaultAddress,
+      centrifugeVaultAddress: shareClass.centrifugeVaultAddress,
       assets
     }),
     meta: { skipErrorToast: true },
@@ -75,8 +78,8 @@ export function useDepositPreview({ shareClass, assets }: { shareClass: Transact
         ? skipToken
         : async () => ({
             shares: await web3.readContract({
-              abi: VAULT_PREVIEW_ABI,
-              address: shareClass.vaultAddress,
+              abi: CENTRIFUGE_VAULT_PREVIEW_ABI,
+              address: shareClass.centrifugeVaultAddress,
               functionName: 'previewDeposit',
               args: [assets]
             })
@@ -91,7 +94,7 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
     queryKey: queryKeys.account.redemptionPosition({
       accountAddress: address,
       shareClassKey: shareClass.key,
-      vaultAddress: shareClass.vaultAddress
+      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
     }),
     meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub
@@ -104,6 +107,6 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
       state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
     queryFn: !address
       ? skipToken
-      : async () => readRedemptionPosition({ vault: await getVault(shareClass), investor: address })
+      : async () => readRedemptionPosition({ centrifugeVault: await getCentrifugeVault(shareClass), investor: address })
   });
 }

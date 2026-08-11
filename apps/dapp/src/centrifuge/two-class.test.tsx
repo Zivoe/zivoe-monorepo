@@ -10,13 +10,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { transactionAtom } from '@/lib/store';
 
 import { ZSMB_OFFERING, resolveTransactionIdentity } from '@/offerings';
-import { FIXTURE_IDENTITY, FIXTURE_VAULT } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { type TransactionIdentity, useDeposit } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn(() => () => undefined));
-vi.mock('./client', () => ({ getVault, setTransactionSigner }));
+vi.mock('./client', () => ({ getCentrifugeVault, setTransactionSigner }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -43,14 +43,22 @@ const DEPOSIT_EVENT_ABI = parseAbi([
 
 /** The zSMB identity as the app resolves it, next to the synthetic fixture class. */
 const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_OFFERING);
-const ZSMB_VAULT = ZSMB_IDENTITY.shareClass.vaultAddress.toLowerCase();
+const ZSMB_CENTRIFUGE_VAULT = ZSMB_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase();
 
 const ZSMB_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
 const FIXTURE_AMOUNTS = { assets: 250_000000n, shares: 233_64485981n };
 
-function depositLog({ vaultAddress, assets, shares }: { vaultAddress: string; assets: bigint; shares: bigint }) {
+function depositLog({
+  centrifugeVaultAddress,
+  assets,
+  shares
+}: {
+  centrifugeVaultAddress: string;
+  assets: bigint;
+  shares: bigint;
+}) {
   return {
-    address: vaultAddress.toLowerCase(),
+    address: centrifugeVaultAddress.toLowerCase(),
     topics: encodeEventTopics({
       abi: DEPOSIT_EVENT_ABI,
       eventName: 'Deposit',
@@ -61,21 +69,21 @@ function depositLog({ vaultAddress, assets, shares }: { vaultAddress: string; as
 }
 
 /**
- * One receipt carrying Deposit events from BOTH vaults — decoding under each
- * identity must pick out only the transacted vault's amounts.
+ * One receipt carrying Deposit events from BOTH Centrifuge vaults — decoding under each
+ * identity must pick out only the transacted Centrifuge vault's amounts.
  */
 function mixedReceipt(): TransactionReceipt {
   return {
     status: 'success',
     transactionHash: TX_HASH,
     logs: [
-      depositLog({ vaultAddress: ZSMB_IDENTITY.shareClass.vaultAddress, ...ZSMB_AMOUNTS }),
-      depositLog({ vaultAddress: FIXTURE_IDENTITY.shareClass.vaultAddress, ...FIXTURE_AMOUNTS })
+      depositLog({ centrifugeVaultAddress: ZSMB_IDENTITY.shareClass.centrifugeVaultAddress, ...ZSMB_AMOUNTS }),
+      depositLog({ centrifugeVaultAddress: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, ...FIXTURE_AMOUNTS })
     ]
   } as unknown as TransactionReceipt;
 }
 
-function fakeVault(receipt: TransactionReceipt) {
+function fakeCentrifugeVault(receipt: TransactionReceipt) {
   return {
     syncDeposit: () => ({
       then: () => {
@@ -113,40 +121,40 @@ beforeEach(() => {
   vi.clearAllMocks();
   getDefaultStore().set(transactionAtom, undefined);
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
-  getVault.mockImplementation(() => Promise.resolve(fakeVault(mixedReceipt())));
+  getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault(mixedReceipt())));
 });
 
 describe('two share classes side by side', () => {
-  it('resolves each identity to its own vault and keeps caches per share class', async () => {
+  it('resolves each identity to its own Centrifuge vault and keeps caches per share class', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
-    expect(getVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.shareClass);
-    expect(getVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.shareClass);
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['CENTRIFUGE', 'zsmb', ZSMB_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb', ZSMB_VAULT]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_VAULT]),
+        JSON.stringify(['CENTRIFUGE', 'zsmb', ZSMB_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
+        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb', ZSMB_CENTRIFUGE_VAULT]),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT]),
         JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])
     );
   });
 
-  it('decodes a receipt only against the transacted vault and snapshots that identity', async () => {
+  it('decodes a receipt only against the transacted Centrifuge vault and snapshots that identity', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     // One receipt object shared by both runs: the decode memo must key by
-    // vault as well as receipt for each class to read its own amounts.
+    // Centrifuge vault as well as receipt for each class to read its own amounts.
     const receipt = mixedReceipt();
-    getVault.mockImplementation(() => Promise.resolve(fakeVault(receipt)));
+    getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault(receipt)));
 
     const zsmbPayload = await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     expect(zsmbPayload?.offeringSlug).toBe('zivoe-smb-credit');
@@ -191,11 +199,11 @@ describe('two share classes side by side', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    // A vault whose transaction confirms only on command, so the hook can be
+    // A Centrifuge vault whose transaction confirms only on command, so the hook can be
     // re-rendered with another Offering while the receipt is pending.
     let confirm: (() => void) | undefined;
     const receipt = mixedReceipt();
-    getVault.mockImplementation(() =>
+    getCentrifugeVault.mockImplementation(() =>
       Promise.resolve({
         syncDeposit: () => ({
           then: () => {

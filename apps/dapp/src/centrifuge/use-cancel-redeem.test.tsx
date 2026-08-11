@@ -9,14 +9,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_IDENTITY, FIXTURE_VAULT } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useCancelRedeem } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
 const clearTransactionSigner = vi.hoisted(() => vi.fn());
-vi.mock('./client', () => ({ getVault, setTransactionSigner, clearTransactionSigner }));
+vi.mock('./client', () => ({ getCentrifugeVault, setTransactionSigner, clearTransactionSigner }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -54,7 +54,7 @@ function cancelReceipt() {
 
 const cancelSpy = vi.fn();
 
-function fakeVault({ cancelError }: { cancelError?: Error } = {}) {
+function fakeCentrifugeVault({ cancelError }: { cancelError?: Error } = {}) {
   return {
     cancelRedeemRequest: (...args: Array<unknown>) => {
       cancelSpy(...args);
@@ -112,7 +112,7 @@ beforeEach(() => {
   getDefaultStore().set(transactionAtom, undefined);
 
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
-  getVault.mockResolvedValue(fakeVault());
+  getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault());
   getWalletClient.mockResolvedValue({ request: walletRequest });
   walletRequest.mockResolvedValue(TX_HASH);
   publicClientCall.mockResolvedValue({ data: '0x' });
@@ -127,8 +127,8 @@ describe('useCancelRedeem', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     // One transaction, no arguments — the Cancellation always covers the full
-    // remaining pending amount — against the vault of the identity parameter.
-    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    // remaining pending amount — against the Centrifuge vault of the identity parameter.
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
     expect(cancelSpy).toHaveBeenCalledOnce();
     expect(cancelSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();
@@ -147,7 +147,7 @@ describe('useCancelRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_VAULT])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
       ])
     );
 
@@ -158,7 +158,7 @@ describe('useCancelRedeem', () => {
   });
 
   it("maps the SDK's no-order error to product copy, before any wallet interaction", async () => {
-    getVault.mockResolvedValue(fakeVault({ cancelError: new Error('No order to cancel') }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ cancelError: new Error('No order to cancel') }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useCancelRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });

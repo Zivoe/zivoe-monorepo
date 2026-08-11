@@ -44,7 +44,7 @@ describe('OfferingCard', () => {
     expect(disclosureTrigger.closest('a')).toBeNull();
     expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
     expect(screen.getByRole('link', { name: `View ${ZSMB_OFFERING.name}` }).getAttribute('href')).toBe(
-      `/offerings/${ZSMB_OFFERING.slug}`
+      `/vaults/${ZSMB_OFFERING.slug}`
     );
   });
 });

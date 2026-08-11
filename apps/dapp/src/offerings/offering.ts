@@ -33,8 +33,11 @@ export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted 
 
 export type AuthoredDetailLabel = Exclude<OfferingDetailLabel, DerivedDetailLabel>;
 
-/** The vault instantiating the share class for USDC on one network. */
-export type OfferingVault = {
+/**
+ * The Centrifuge vault instantiating the share class for USDC on one network —
+ * Centrifuge's narrow sense of the word, not the product Vault users see.
+ */
+export type CentrifugeVault = {
   address: Address;
   /**
    * False while the address is a placeholder for a network the launch is
@@ -44,21 +47,6 @@ export type OfferingVault = {
   deployable: boolean;
 };
 
-/**
- * One Offering is one Centrifuge share class, exposed at /offerings/<slug>.
- *
- * Centrifuge's model is Pool > Share Class > Vault: a pool holds N share
- * classes (tranches, each with its own share token, price, NAV and yield
- * history), and a vault is one share class instantiated on one network for one
- * deposit asset. A route is therefore keyed by share class, not by vault — the
- * same class accepting a second stablecoin stays one Offering, which is also
- * why the URL says offerings rather than vaults.
- *
- * The contract is split along the Next serialization boundary: OfferingIdentity
- * is plain data safe to hand to a client provider; OfferingPresentation is
- * server-rendered and may hold components and rich content. Component and
- * function fields must never cross into the identity half.
- */
 /**
  * Subscription status. 'Deploying' keeps an Offering out of new deposits
  * while its redemptions stay open, so this is a behavioral fact the deposit
@@ -80,7 +68,7 @@ export type OfferingIdentity = {
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     /**
-     * Catalog key — the share-class dimension of caches, query keys and vault
+     * Catalog key — the share-class dimension of caches, query keys and Centrifuge-vault
      * resolution. Symbol, decimals and on-chain ids are always read off the
      * catalog by this key, never re-declared here, so a module cannot drift
      * from the class it references.
@@ -88,12 +76,12 @@ export type OfferingIdentity = {
     key: ShareClassKey;
   };
   /**
-   * dApp-only identity: the vault per network this Offering claims —
+   * dApp-only identity: the Centrifuge vault per network this Offering claims —
    * collocated here so a launch is a catalog entry plus this one module,
    * with no third map to keep in sync. The registry invariants force the
    * claimed networks to match the catalog's, both ways.
    */
-  vaults: Partial<Record<CentrifugeNetwork, OfferingVault>>;
+  centrifugeVaults: Partial<Record<CentrifugeNetwork, CentrifugeVault>>;
 };
 
 export type OfferingPresentation = {
@@ -115,4 +103,24 @@ export type OfferingPresentation = {
   documents: Array<{ title: string; href: string }>;
 };
 
+/**
+ * One Offering is one Centrifuge share class, exposed at /vaults/<slug>.
+ *
+ * "Vault" is the product's word for this, and it is deliberately broader than
+ * Centrifuge's. Their model is Pool > Share Class > Vault: a pool holds N share
+ * classes (tranches, each with its own share token, price, NAV and yield
+ * history), and a Centrifuge vault is one share class instantiated on one
+ * network for one deposit asset. A route is therefore keyed by share class, not
+ * by Centrifuge vault — the same class accepting a second stablecoin stays one
+ * product Vault, one page, one URL. To keep the two senses apart, code never
+ * says a bare "vault": the product concept is named Offering, and every
+ * Centrifuge-vault identifier is spelled out (centrifugeVaults, getCentrifugeVault,
+ * centrifugeVaultAddress). User-facing copy says plain "vault" and always means
+ * the product one.
+ *
+ * The contract is split along the Next serialization boundary: OfferingIdentity
+ * is plain data safe to hand to a client provider; OfferingPresentation is
+ * server-rendered and may hold components and rich content. Component and
+ * function fields must never cross into the identity half.
+ */
 export type Offering = OfferingIdentity & OfferingPresentation;

@@ -56,9 +56,7 @@ export function NavigationItems() {
   );
 }
 
-const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [
-  { title: 'Offerings', href: '/' }
-];
+const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [{ title: 'Vaults', href: '/' }];
 
 export function Wallet() {
   const { setShowDynamicUserProfile, primaryWallet } = useDynamicContext();

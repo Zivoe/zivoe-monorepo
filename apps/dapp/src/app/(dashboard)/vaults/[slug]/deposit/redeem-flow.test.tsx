@@ -236,7 +236,7 @@ describe('RedeemFlow', () => {
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
     expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
-    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
     expect(getInput('Redeem').disabled).toBe(true);
 
     await act(async () => {
@@ -252,7 +252,7 @@ describe('RedeemFlow', () => {
 
     const action = getButton('Wallet Not Whitelisted');
     const processingWarning = screen.getByText(/Redemptions are processed periodically/);
-    const whitelistWarning = screen.getByText(/You must be whitelisted to interact with this offer/);
+    const whitelistWarning = screen.getByText(/You must be whitelisted to interact with this vault/);
 
     expect(action.compareDocumentPosition(processingWarning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(processingWarning.parentElement).toBe(whitelistWarning.parentElement);

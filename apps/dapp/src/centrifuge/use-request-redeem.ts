@@ -16,7 +16,7 @@ function requestRedeemCopy({ asset, share }: { asset: string; share: string }) {
       InsufficientBalance: "You don't have enough shares for this redemption request.",
       CancellationIsPending: 'Wait for your cancellation to complete before requesting another redemption.',
       ZeroAmountNotAllowed: 'Enter an amount greater than zero.',
-      VaultNotLinked: 'Redemption requests are temporarily unavailable for this vault.',
+      VaultNotLinked: 'Redemption requests are temporarily unavailable. Try again later.',
       TransferNotAllowed: "This redemption request can't be submitted from this wallet right now.",
       TransferBlocked: "This redemption request can't be submitted from this wallet right now.",
       Paused: 'Redemptions are temporarily paused. Try again later.',
@@ -64,14 +64,14 @@ export function useRequestRedeem({
   return useCentrifugeTx<RequestRedeemVariables>({
     identity,
 
-    // No position/vault re-reads here: the SDK re-checks the share balance
+    // No position/Centrifuge-vault re-reads here: the SDK re-checks the share balance
     // itself ('Insufficient balance' maps below), and the exact-call simulation
     // is the authoritative pre-sign gate (CancellationIsPending and
     // VaultNotLinked surface as decoded copy).
-    action: ({ shares }, { vault }) => {
+    action: ({ shares }, { centrifugeVault }) => {
       if (shares <= 0n) throw new AppError({ message: 'No amount to redeem' });
 
-      return { tx: vault.asyncRedeem(new Balance(shares, shareClass.decimals)) };
+      return { tx: centrifugeVault.asyncRedeem(new Balance(shares, shareClass.decimals)) };
     },
 
     simulationErrorCopy: copy.simulationErrors,

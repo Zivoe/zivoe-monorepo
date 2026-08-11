@@ -12,7 +12,7 @@ export const ZALT_OFFERING: Offering = {
   cardArtworkSrc: '/offering-zalt-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zalt' },
-  vaults: {
+  centrifugeVaults: {
     sepolia: { address: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6', deployable: true },
     mainnet: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true }
   },

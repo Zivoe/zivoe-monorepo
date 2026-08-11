@@ -26,7 +26,7 @@ export default function Infrastructure() {
 
         <Card
           title="Custody Solutions"
-          description="Zivoe will be integrating with industry-leading crypto custodians, offering an easy and secure way to deposit funds and manage positions."
+          description="Zivoe will be integrating with industry-leading crypto custodians, providing an easy and secure way to deposit funds and manage positions."
           className="bg-element-primary-gentle"
         >
           <CustodyIcon className="absolute -top-11 right-0 w-45 sm:top-0 sm:right-0 sm:w-fit" />

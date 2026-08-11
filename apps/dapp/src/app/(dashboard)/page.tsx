@@ -18,7 +18,7 @@ export default async function HomePage() {
         <NavHeader nav={headlineNav} />
 
         <Page className="gap-6 lg:gap-8">
-          <h1 className="font-heading! text-h5 text-primary lg:text-h4">Offerings</h1>
+          <h1 className="font-heading! text-h5 text-primary lg:text-h4">Vaults</h1>
 
           <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-6 lg:grid-cols-[repeat(auto-fill,minmax(min(100%,26rem),1fr))]">
             {OFFERINGS.map((offering) => (

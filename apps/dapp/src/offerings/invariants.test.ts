@@ -15,7 +15,7 @@ type Registration = {
   offering: {
     slug: string;
     shareClass: { key: string };
-    vaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
+    centrifugeVaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
   };
   catalogEntry: {
     symbol: string;
@@ -31,19 +31,19 @@ function makeRegistration({
   slug = `${key}-offering`,
   scId,
   shareTokenAddress,
-  vaultAddress
+  centrifugeVaultAddress
 }: {
   key: string;
   slug?: string;
   scId: string;
   shareTokenAddress: string;
-  vaultAddress: string;
+  centrifugeVaultAddress: string;
 }): Registration {
   return {
     offering: {
       slug,
       shareClass: { key },
-      vaults: { sepolia: { address: vaultAddress, deployable: true } }
+      centrifugeVaults: { sepolia: { address: centrifugeVaultAddress, deployable: true } }
     },
     catalogEntry: {
       symbol: `z${key}`,
@@ -68,14 +68,14 @@ const fixture = makeRegistration({
   slug: 'fixture-offering',
   scId: FIXTURE_SHARE_CLASS.scId,
   shareTokenAddress: FIXTURE_SHARE_CLASS.shareTokenAddress,
-  vaultAddress: FIXTURE_SHARE_CLASS.vaultAddress
+  centrifugeVaultAddress: FIXTURE_SHARE_CLASS.centrifugeVaultAddress
 });
 
 const other = makeRegistration({
   key: 'other',
   scId: '0x000100000000eeee0000000000000001',
   shareTokenAddress: '0xbebebebebebebebebebebebebebebebebebebebe',
-  vaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'
+  centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'
 });
 
 describe('assertOfferingRegistryInvariants', () => {
@@ -83,7 +83,10 @@ describe('assertOfferingRegistryInvariants', () => {
     const staged = (registration: Registration): Registration => ({
       offering: {
         ...registration.offering,
-        vaults: { ...registration.offering.vaults, mainnet: { address: ZERO_ADDRESS, deployable: false } }
+        centrifugeVaults: {
+          ...registration.offering.centrifugeVaults,
+          mainnet: { address: ZERO_ADDRESS, deployable: false }
+        }
       },
       catalogEntry: {
         ...registration.catalogEntry,
@@ -101,8 +104,8 @@ describe('assertOfferingRegistryInvariants', () => {
     const withMainnet: Registration = {
       offering: {
         ...other.offering,
-        vaults: {
-          ...other.offering.vaults,
+        centrifugeVaults: {
+          ...other.offering.centrifugeVaults,
           mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
@@ -187,7 +190,7 @@ describe('assertOfferingRegistryInvariants', () => {
   it('throws the not-in-catalog error for a prototype-chain key, not a TypeError', () => {
     expect(() =>
       assertOfferingRegistryInvariants({
-        offerings: { toString: { slug: 'ghost-offering', shareClass: { key: 'toString' }, vaults: {} } },
+        offerings: { toString: { slug: 'ghost-offering', shareClass: { key: 'toString' }, centrifugeVaults: {} } },
         catalog: {}
       })
     ).toThrow(/not in the catalog/);
@@ -196,41 +199,49 @@ describe('assertOfferingRegistryInvariants', () => {
   it('throws on a half-claimed network, in both directions', () => {
     const catalogOnly: Registration = {
       ...other,
-      offering: { ...other.offering, vaults: {} }
+      offering: { ...other.offering, centrifugeVaults: {} }
     };
-    expect(() => assertRegistry([catalogOnly])).toThrow(/claims "sepolia" in the catalog but not its vaults/);
+    expect(() => assertRegistry([catalogOnly])).toThrow(
+      /claims "sepolia" in the catalog but not its Centrifuge vaults/
+    );
 
-    const vaultOnly: Registration = {
+    const centrifugeVaultOnly: Registration = {
       ...other,
       catalogEntry: { ...other.catalogEntry, networks: {} }
     };
-    expect(() => assertRegistry([vaultOnly])).toThrow(/claims "sepolia" in its vaults but not the catalog/);
+    expect(() => assertRegistry([centrifugeVaultOnly])).toThrow(
+      /claims "sepolia" in its Centrifuge vaults but not the catalog/
+    );
   });
 
-  it('throws when the catalog and vault deployable flags disagree, in both directions', () => {
-    const sepoliaVault = other.offering.vaults.sepolia;
+  it('throws when the catalog and Centrifuge-vault deployable flags disagree, in both directions', () => {
+    const sepoliaCentrifugeVault = other.offering.centrifugeVaults.sepolia;
     const sepoliaEntry = other.catalogEntry.networks.sepolia;
-    if (!sepoliaVault || !sepoliaEntry) throw new Error('the "other" registration must claim sepolia');
+    if (!sepoliaCentrifugeVault || !sepoliaEntry) throw new Error('the "other" registration must claim sepolia');
 
     // The exact staging state a mainnet cutover passes through: one half
     // flipped live, the other still a verified-but-staged entry.
-    const catalogLiveVaultStaged: Registration = {
+    const catalogLiveCentrifugeVaultStaged: Registration = {
       ...other,
       offering: {
         ...other.offering,
-        vaults: { sepolia: { address: sepoliaVault.address, deployable: false } }
+        centrifugeVaults: { sepolia: { address: sepoliaCentrifugeVault.address, deployable: false } }
       }
     };
-    expect(() => assertRegistry([catalogLiveVaultStaged])).toThrow(/catalog-deployable but its vault is not/);
+    expect(() => assertRegistry([catalogLiveCentrifugeVaultStaged])).toThrow(
+      /catalog-deployable but its Centrifuge vault is not/
+    );
 
-    const vaultLiveCatalogStaged: Registration = {
+    const centrifugeVaultLiveCatalogStaged: Registration = {
       ...other,
       catalogEntry: {
         ...other.catalogEntry,
         networks: { sepolia: { ...sepoliaEntry, deployable: false } }
       }
     };
-    expect(() => assertRegistry([vaultLiveCatalogStaged])).toThrow(/vault-deployable but its catalog entry is not/);
+    expect(() => assertRegistry([centrifugeVaultLiveCatalogStaged])).toThrow(
+      /Centrifuge-vault-deployable but its catalog entry is not/
+    );
   });
 
   it('throws on placeholder values under a deployable flag', () => {
@@ -243,14 +254,14 @@ describe('assertOfferingRegistryInvariants', () => {
     };
     expect(() => assertRegistry([flippedCatalog])).toThrow(/deployable but carries placeholder identity values/);
 
-    const flippedVault: Registration = {
+    const flippedCentrifugeVault: Registration = {
       ...other,
-      offering: { ...other.offering, vaults: { sepolia: { address: ZERO_ADDRESS, deployable: true } } }
+      offering: { ...other.offering, centrifugeVaults: { sepolia: { address: ZERO_ADDRESS, deployable: true } } }
     };
-    expect(() => assertRegistry([flippedVault])).toThrow(/deployable but carries a placeholder address/);
+    expect(() => assertRegistry([flippedCentrifugeVault])).toThrow(/deployable but carries a placeholder address/);
   });
 
-  it('throws when two share classes share a vault, compared case-insensitively', () => {
+  it('throws when two share classes share a Centrifuge vault, compared case-insensitively', () => {
     expect(() =>
       assertRegistry([
         fixture,
@@ -259,19 +270,21 @@ describe('assertOfferingRegistryInvariants', () => {
           offering: {
             ...other.offering,
             // Case-shifted on purpose: identity comparisons must be case-insensitive.
-            vaults: { sepolia: { address: FIXTURE_SHARE_CLASS.vaultAddress.toUpperCase(), deployable: true } }
+            centrifugeVaults: {
+              sepolia: { address: FIXTURE_SHARE_CLASS.centrifugeVaultAddress.toUpperCase(), deployable: true }
+            }
           }
         }
       ])
-    ).toThrow(/Vault .* is claimed by two share classes/);
+    ).toThrow(/Centrifuge vault .* is claimed by two share classes/);
   });
 
-  it('throws on a duplicate vault on a non-active network — the sweep covers every claimed network', () => {
+  it('throws on a duplicate Centrifuge vault on a non-active network — the sweep covers every claimed network', () => {
     const onMainnet = (registration: Registration, index: number): Registration => ({
       offering: {
         ...registration.offering,
-        vaults: {
-          ...registration.offering.vaults,
+        centrifugeVaults: {
+          ...registration.offering.centrifugeVaults,
           mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
@@ -290,7 +303,7 @@ describe('assertOfferingRegistryInvariants', () => {
     });
 
     expect(() => assertRegistry([onMainnet(fixture, 1), onMainnet(other, 2)])).toThrow(
-      /Vault .* is claimed by two share classes on "mainnet"/
+      /Centrifuge vault .* is claimed by two share classes on "mainnet"/
     );
   });
 });

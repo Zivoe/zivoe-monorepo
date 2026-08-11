@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${offering.name} | Zivoe`;
 
   // Title only — the description falls through to the root layout's platform
-  // copy, which every vault shares until per-vault blurbs are authored again.
+  // copy, which every Offering shares until per-Offering blurbs are authored again.
   return { title, openGraph: { title }, twitter: { title } };
 }
 

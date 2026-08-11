@@ -11,7 +11,7 @@ import { type Offering } from './offering';
 import { ZALT_OFFERING } from './zalt';
 import { ZSMB_OFFERING } from './zsmb';
 
-// The identity/presentation halves and the vault shape stay internal to
+// The identity/presentation halves and the Centrifuge-vault shape stay internal to
 // offering.ts — they document the serialization boundary there, and no
 // consumer composes with them directly.
 export {
@@ -44,7 +44,7 @@ assertOfferingRegistryInvariants({ offerings: REGISTERED_OFFERINGS });
 
 /**
  * The Offerings this deployment serves: registered modules whose catalog
- * entry and vault are both live on the active network. Half-claims and
+ * entry and Centrifuge vault are both live on the active network. Half-claims and
  * placeholder values under a deployable flag have already thrown in the
  * invariants, so this filter expresses availability only — an Offering
  * absent or staged on the network is simply not listed.
@@ -52,7 +52,7 @@ assertOfferingRegistryInvariants({ offerings: REGISTERED_OFFERINGS });
 export const OFFERINGS: Array<Offering> = ALL_OFFERINGS.filter((offering) => {
   const network = env.NEXT_PUBLIC_NETWORK;
   const catalogEntry = SHARE_CLASS_CATALOG[offering.shareClass.key].networks[network];
-  return Boolean(catalogEntry?.deployable && offering.vaults[network]?.deployable);
+  return Boolean(catalogEntry?.deployable && offering.centrifugeVaults[network]?.deployable);
 });
 
 // The dApp's product IS its Offerings: a deployment serving none is a
@@ -60,7 +60,7 @@ export const OFFERINGS: Array<Offering> = ALL_OFFERINGS.filter((offering) => {
 // empty book — fail the build/boot loudly instead of rendering a shell.
 if (OFFERINGS.length === 0)
   throw new Error(
-    `No Offering is live on "${env.NEXT_PUBLIC_NETWORK}". Flip the catalog and vault deployable flags for the network before deploying.`
+    `No Offering is live on "${env.NEXT_PUBLIC_NETWORK}". Flip the catalog and Centrifuge-vault deployable flags for the network before deploying.`
   );
 
 export function getOffering(slug: string): Offering | undefined {
@@ -70,22 +70,23 @@ export function getOffering(slug: string): Offering | undefined {
 /**
  * Resolves an Offering's transaction identity on the active network — what
  * flows hand to every Centrifuge Module hook: the catalog identity joined
- * with the Offering's own vault, plus the stable public identity for
+ * with the Offering's own Centrifuge vault, plus the stable public identity for
  * analytics and Sentry. Throws for a network the Offering is not live on.
  */
 export function resolveTransactionIdentity(
-  offering: Pick<Offering, 'slug' | 'shareClass' | 'vaults'>
+  offering: Pick<Offering, 'slug' | 'shareClass' | 'centrifugeVaults'>
 ): TransactionIdentity {
   const network = env.NEXT_PUBLIC_NETWORK;
   const identity = getShareClassIdentity({ network, key: offering.shareClass.key });
-  const vault = offering.vaults[network];
+  const centrifugeVault = offering.centrifugeVaults[network];
 
-  if (!vault?.deployable) throw new Error(`The "${offering.slug}" Offering has no deployable vault on "${network}".`);
+  if (!centrifugeVault?.deployable)
+    throw new Error(`The "${offering.slug}" Offering has no deployable Centrifuge vault on "${network}".`);
 
-  return { offeringSlug: offering.slug, shareClass: { ...identity, vaultAddress: vault.address } };
+  return { offeringSlug: offering.slug, shareClass: { ...identity, centrifugeVaultAddress: centrifugeVault.address } };
 }
 
-export const OFFERING_PATH_PREFIX = '/offerings';
+export const OFFERING_PATH_PREFIX = '/vaults';
 
 export function offeringPath(offering: Pick<Offering, 'slug'>): string {
   return `${OFFERING_PATH_PREFIX}/${offering.slug}`;

@@ -13,8 +13,8 @@ import { AppError, handlePromise } from '@/lib/utils';
 
 import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
 
-import { getVault, setTransactionSigner } from './client';
-import { type TransactionEntity, type VaultEntity } from './entities';
+import { getCentrifugeVault, setTransactionSigner } from './client';
+import { type CentrifugeVaultEntity, type TransactionEntity } from './entities';
 import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
 import { type TransactionIdentity } from './types';
 
@@ -29,13 +29,13 @@ type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
  */
 const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
-type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient: PublicClient };
+type CentrifugeTxContext = { address: Address; centrifugeVault: CentrifugeVaultEntity; publicClient: PublicClient };
 
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
 export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'offeringSlug'> & {
-  /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
+  /** The Offering identity this transaction runs against — Centrifuge vault, tokens, analytics slug. */
   identity: TransactionIdentity;
   /**
    * Flow-specific invalidations beyond the driver's share-class-scoped set —
@@ -104,7 +104,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         queryClient: ctx.queryClient,
         address: ctx.address,
         shareClassKey: identity.shareClass.key,
-        vaultAddress: identity.shareClass.vaultAddress
+        centrifugeVaultAddress: identity.shareClass.centrifugeVaultAddress
       });
       config.invalidateExtra?.(ctx);
     },
@@ -133,8 +133,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const vault = await getVault(identity.shareClass);
-        const txContext = { address, vault, publicClient };
+        const centrifugeVault = await getCentrifugeVault(identity.shareClass);
+        const txContext = { address, centrifugeVault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
         // transaction, so an account switch can never leave a stale signer.
@@ -257,16 +257,16 @@ export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
   shareClassKey,
-  vaultAddress
+  centrifugeVaultAddress
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
-  vaultAddress: Address;
+  centrifugeVaultAddress: Address;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey, vaultAddress })
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey, centrifugeVaultAddress })
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });

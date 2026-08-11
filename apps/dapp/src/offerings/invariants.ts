@@ -8,7 +8,7 @@ import { DEPOSIT_TOKENS } from '@/types/constants';
 type RegisteredOffering = {
   slug: string;
   shareClass: { key: string };
-  vaults: Partial<Record<CentrifugeNetwork, { address: string; deployable: boolean }>>;
+  centrifugeVaults: Partial<Record<CentrifugeNetwork, { address: string; deployable: boolean }>>;
 };
 
 type CatalogEntries = Record<
@@ -90,31 +90,31 @@ export function assertOfferingRegistryInvariants({
 
     const claimedNetworks = new Set<CentrifugeNetwork>([
       ...(Object.keys(entry.networks) as Array<CentrifugeNetwork>),
-      ...(Object.keys(offering.vaults) as Array<CentrifugeNetwork>)
+      ...(Object.keys(offering.centrifugeVaults) as Array<CentrifugeNetwork>)
     ]);
 
     for (const network of claimedNetworks) {
       const catalogEntry = entry.networks[network];
-      const vault = offering.vaults[network];
+      const centrifugeVault = offering.centrifugeVaults[network];
 
-      // A half-claim would serve a page with no vault or a vault with no
+      // A half-claim would serve a page with no Centrifuge vault or a Centrifuge vault with no
       // catalog identity — both sides claim a network, or neither does.
-      if (!catalogEntry || !vault)
+      if (!catalogEntry || !centrifugeVault)
         throw new Error(
           `Offering "${offering.slug}" claims "${network}" in ${
-            catalogEntry ? 'the catalog but not its vaults' : 'its vaults but not the catalog'
+            catalogEntry ? 'the catalog but not its Centrifuge vaults' : 'its Centrifuge vaults but not the catalog'
           }.`
         );
 
       // The two deployable flags are one launch switch seen from two files.
       // Half-flipped they build green while the dApp serves zero Offerings and
       // the catalog-driven surfaces count a class the dApp will not route.
-      if (catalogEntry.deployable !== vault.deployable)
+      if (catalogEntry.deployable !== centrifugeVault.deployable)
         throw new Error(
           `Share class "${offering.shareClass.key}" on "${network}" is ${
             catalogEntry.deployable
-              ? 'catalog-deployable but its vault is not'
-              : 'vault-deployable but its catalog entry is not'
+              ? 'catalog-deployable but its Centrifuge vault is not'
+              : 'Centrifuge-vault-deployable but its catalog entry is not'
           }. Flip both flags together.`
         );
 
@@ -130,14 +130,14 @@ export function assertOfferingRegistryInvariants({
           `Share class "${offering.shareClass.key}" on "${network}" is deployable but carries placeholder identity values.`
         );
 
-      if (vault.deployable && ZERO_HEX.test(vault.address))
+      if (centrifugeVault.deployable && ZERO_HEX.test(centrifugeVault.address))
         throw new Error(
-          `The "${offering.slug}" Offering's vault on "${network}" is deployable but carries a placeholder address.`
+          `The "${offering.slug}" Offering's Centrifuge vault on "${network}" is deployable but carries a placeholder address.`
         );
     }
   }
 
-  // Vault addresses must be unique per network across every registered entry,
+  // Centrifuge-vault addresses must be unique per network across every registered entry,
   // staged or live — two Offerings sharing one would decode each other's
   // receipts. Placeholder zeros are excluded: staged launches legitimately
   // share them until values are operator-verified. (Catalog-internal identity
@@ -145,18 +145,18 @@ export function assertOfferingRegistryInvariants({
   // import-time sweep in @zivoe/centrifuge-indexer, so landing-only builds
   // are guarded too.)
   const allNetworks = new Set<CentrifugeNetwork>(
-    offerings.flatMap((offering) => Object.keys(offering.vaults) as Array<CentrifugeNetwork>)
+    offerings.flatMap((offering) => Object.keys(offering.centrifugeVaults) as Array<CentrifugeNetwork>)
   );
 
   for (const network of allNetworks) {
     assertUnique({
       values: offerings
         .flatMap((offering) => {
-          const vault = offering.vaults[network];
-          return vault ? [vault.address.toLowerCase()] : [];
+          const centrifugeVault = offering.centrifugeVaults[network];
+          return centrifugeVault ? [centrifugeVault.address.toLowerCase()] : [];
         })
         .filter((address) => !ZERO_HEX.test(address)),
-      message: (address) => `Vault ${address} is claimed by two share classes on "${network}".`
+      message: (address) => `Centrifuge vault ${address} is claimed by two share classes on "${network}".`
     });
   }
 }

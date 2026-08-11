@@ -12,7 +12,7 @@ export const ZSMB_OFFERING: Offering = {
   cardArtworkSrc: '/offering-zsmb-card.svg',
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
-  vaults: {
+  centrifugeVaults: {
     sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
     mainnet: { address: '0x50aE66E07c6311C2eE4a327378ddf33e46BEe6Bf', deployable: true }
   },

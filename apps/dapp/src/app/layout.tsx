@@ -14,7 +14,7 @@ import { env } from '@/env';
 import Providers, { wagmiConfig } from './_components/providers';
 
 // Mirrors the marketing site's title and description on purpose: this is also
-// the fallback link preview for every vault page, so the two surfaces must not
+// the fallback link preview for every Offering page, so the two surfaces must not
 // describe Zivoe differently.
 const title = 'Zivoe | The Private Credit Layer for Stablecoins';
 const description =

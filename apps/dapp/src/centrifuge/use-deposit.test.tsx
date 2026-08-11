@@ -20,14 +20,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { transactionAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { FIXTURE_IDENTITY, FIXTURE_VAULT } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { CENTRIFUGE_ENV, useDeposit } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const releaseTransactionSigner = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn((_signer: unknown) => releaseTransactionSigner));
-vi.mock('./client', () => ({ getVault, setTransactionSigner }));
+vi.mock('./client', () => ({ getCentrifugeVault, setTransactionSigner }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -67,7 +67,7 @@ function depositReceipt({ withDepositLog = true }: { withDepositLog?: boolean } 
   const logs = withDepositLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
           topics: encodeEventTopics({
             abi: DEPOSIT_EVENT_ABI,
             eventName: 'Deposit',
@@ -85,7 +85,7 @@ function depositReceipt({ withDepositLog = true }: { withDepositLog?: boolean } 
  * Fakes the SDK's transaction observable the way the real SDK behaves: it asks
  * the installed signer to send, then emits pending and confirmed statuses.
  */
-function fakeVault({ receipt }: { receipt: TransactionReceipt }) {
+function fakeCentrifugeVault({ receipt }: { receipt: TransactionReceipt }) {
   return {
     syncDeposit: () => ({
       // The real SDK Transaction is also a PromiseLike; awaiting it bare runs
@@ -272,7 +272,7 @@ beforeEach(() => {
   getDefaultStore().set(transactionAtom, undefined);
 
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
-  getVault.mockResolvedValue(fakeVault({ receipt: depositReceipt() }));
+  getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ receipt: depositReceipt() }));
   getWalletClient.mockResolvedValue({ request: walletRequest });
   walletRequest.mockResolvedValue(TX_HASH);
   publicClientCall.mockResolvedValue({ data: '0x' });
@@ -296,8 +296,8 @@ describe('useDeposit', () => {
       expect.objectContaining({ account: INVESTOR, to: CENTRIFUGE_ENV.vaultRouterAddress, data: '0xdeadbeef' })
     );
 
-    // The vault comes from the identity parameter, not any ambient config.
-    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    // The Centrifuge vault comes from the identity parameter, not any ambient config.
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
 
     // Success dialog carries the transacted identity and the exact decoded USDC-in / zFIX-out.
     expect(getDefaultStore().get(transactionAtom)).toEqual({
@@ -330,8 +330,8 @@ describe('useDeposit', () => {
           CENTRIFUGE_ENV.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_VAULT])
+        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
       ])
     );
 
@@ -368,7 +368,7 @@ describe('useDeposit', () => {
     expect(getDefaultStore().get(transactionAtom)).toBeUndefined();
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: "This vault can't accept that deposit right now. Try a smaller amount or try again later."
+      title: "This deposit can't be accepted right now. Try a smaller amount or try again later."
     });
 
     // Settled non-rejection failures still run the invalidations.
@@ -377,7 +377,7 @@ describe('useDeposit', () => {
   });
 
   it('degrades to a generic success when the receipt cannot be decoded', async () => {
-    getVault.mockResolvedValue(fakeVault({ receipt: depositReceipt({ withDepositLog: false }) }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ receipt: depositReceipt({ withDepositLog: false }) }));
 
     const { wrapper, invalidateSpy } = createWrapper();
     const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -415,7 +415,7 @@ describe('useDeposit', () => {
   });
 
   it('fails the action when a later step of a multi-transaction deposit is rejected, instead of resolving with the approve receipt', async () => {
-    getVault.mockResolvedValue(fakeVaultApproveThenFailingInvest());
+    getCentrifugeVault.mockResolvedValue(fakeVaultApproveThenFailingInvest());
     walletRequest.mockResolvedValueOnce(APPROVE_HASH).mockRejectedValueOnce(new Error('User rejected the request'));
     // If the chain fallback ran, it would find the confirmed approve receipt —
     // the test must fail loudly on a false success, not on a missing mock.
@@ -448,7 +448,7 @@ describe('useDeposit', () => {
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    getVault.mockResolvedValue(fakeVault({ receipt: depositReceipt() }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ receipt: depositReceipt() }));
     setTransactionSigner.mockClear();
 
     act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
@@ -506,7 +506,7 @@ describe('useDeposit', () => {
   it('keeps the decoded copy when a real viem walletClient wraps the simulation error', async () => {
     // custom(signer) transport buries the simulation's AppError in a
     // TransactionExecutionError → UnknownRpcError cause chain.
-    getVault.mockResolvedValue(fakeVaultThroughViemWallet());
+    getCentrifugeVault.mockResolvedValue(fakeVaultThroughViemWallet());
     walletRequest.mockImplementation(({ method }: { method: string }) =>
       Promise.resolve(method === 'eth_chainId' ? '0xaa36a7' : TX_HASH)
     );
@@ -526,13 +526,13 @@ describe('useDeposit', () => {
     expect(walletRequest).not.toHaveBeenCalledWith(expect.objectContaining({ method: 'eth_sendTransaction' }));
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
-      title: "This vault can't accept that deposit right now. Try a smaller amount or try again later."
+      title: "This deposit can't be accepted right now. Try a smaller amount or try again later."
     });
   });
 
   it('renders the failure dialog when the transaction reverts on-chain', async () => {
     const revertedReceipt = { status: 'reverted', transactionHash: TX_HASH, logs: [] } as unknown as TransactionReceipt;
-    getVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt }));
+    getCentrifugeVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -558,7 +558,9 @@ describe('useDeposit', () => {
 
   it('recovers the reverted receipt from the chain when the SDK error loses it', async () => {
     const revertedReceipt = { status: 'reverted', transactionHash: TX_HASH, logs: [] } as unknown as TransactionReceipt;
-    getVault.mockResolvedValue(fakeVaultRevertingOnChain({ receipt: revertedReceipt, errorCarriesReceipt: false }));
+    getCentrifugeVault.mockResolvedValue(
+      fakeVaultRevertingOnChain({ receipt: revertedReceipt, errorCarriesReceipt: false })
+    );
     publicClientGetReceipt.mockResolvedValue(revertedReceipt);
 
     const { wrapper } = createWrapper();
@@ -579,7 +581,7 @@ describe('useDeposit', () => {
   });
 
   it('maps wrong-network SDK errors to product copy', async () => {
-    getVault.mockResolvedValue(
+    getCentrifugeVault.mockResolvedValue(
       fakeVaultFailingWith(
         new Error(
           'Wallet is connected to chainId=1 but transaction targets chainId=11155111. ' +

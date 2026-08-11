@@ -6,7 +6,7 @@ import OfferingIdentity, { OfferingStatusBadge } from '@/components/offering-ide
 import { type Offering } from '@/offerings';
 
 /**
- * Back link over an identity row — the mock's vault-page header, minus the
+ * Back link over an identity row — the mock's Offering-page header, minus the
  * Standard/Identity/Dashboard switcher. The link goes to the homepage, which
  * is the Offerings list this page was reached from.
  */

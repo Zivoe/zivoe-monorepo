@@ -75,7 +75,7 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useVaultCapacity: () =>
+  useCentrifugeVaultCapacity: () =>
     mocks.capacityIsError
       ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
       : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
@@ -275,7 +275,7 @@ describe('DepositFlow', () => {
     enterAmount('1');
 
     expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
-    expect(screen.getByText(/You must be whitelisted to interact with this offer/)).toBeTruthy();
+    expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
     expect(getInput('Deposit').disabled).toBe(true);
 
     await press('Wallet Not Whitelisted');

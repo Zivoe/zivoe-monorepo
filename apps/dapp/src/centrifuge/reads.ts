@@ -1,8 +1,10 @@
-import { type VaultEntity } from './entities';
-import { type InvestorWhitelist, type RedemptionPosition, type VaultCapacity } from './types';
+import { type CentrifugeVaultEntity } from './entities';
+import { type CentrifugeVaultCapacity, type InvestorWhitelist, type RedemptionPosition } from './types';
 
-export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapacity> {
-  const details = await vault.details();
+export async function readCentrifugeVaultCapacity(
+  centrifugeVault: CentrifugeVaultEntity
+): Promise<CentrifugeVaultCapacity> {
+  const details = await centrifugeVault.details();
 
   return { maxDeposit: details.maxDeposit.toBigInt() };
 }
@@ -14,13 +16,13 @@ export async function readVaultCapacity(vault: VaultEntity): Promise<VaultCapaci
  * more than that (see InvestorWhitelist).
  */
 export async function readInvestorWhitelist({
-  vault,
+  centrifugeVault,
   investor
 }: {
-  vault: VaultEntity;
+  centrifugeVault: CentrifugeVaultEntity;
   investor: `0x${string}`;
 }): Promise<InvestorWhitelist> {
-  const investment = await vault.investment(investor);
+  const investment = await centrifugeVault.investment(investor);
 
   return {
     canReceiveShares: investment.isAllowedToDeposit,
@@ -30,13 +32,13 @@ export async function readInvestorWhitelist({
 
 /** The SDK's `investment` vocabulary survives only here, at the SDK boundary. */
 export async function readRedemptionPosition({
-  vault,
+  centrifugeVault,
   investor
 }: {
-  vault: VaultEntity;
+  centrifugeVault: CentrifugeVaultEntity;
   investor: `0x${string}`;
 }): Promise<RedemptionPosition> {
-  const investment = await vault.investment(investor);
+  const investment = await centrifugeVault.investment(investor);
 
   return {
     pendingRedeemShares: investment.pendingRedeemShares.toBigInt(),

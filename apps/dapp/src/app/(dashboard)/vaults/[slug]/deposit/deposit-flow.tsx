@@ -30,10 +30,10 @@ import { TOKEN_INFO } from '@/components/token-info';
 import {
   CENTRIFUGE_ENV,
   isPriceUnavailableError,
+  useCentrifugeVaultCapacity,
   useDeposit,
   useDepositPreview,
-  useInvestorWhitelist,
-  useVaultCapacity
+  useInvestorWhitelist
 } from '@/centrifuge';
 
 import { useOfferingIdentity, useOfferingStatus } from '../offering-provider';
@@ -63,12 +63,12 @@ export function DepositFlow() {
   const usdcBalance = useBalance({ tokenAddress: USDC.address });
   const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
-  const capacity = useVaultCapacity({ shareClass: share });
+  const capacity = useCentrifugeVaultCapacity({ shareClass: share });
   const whitelist = useInvestorWhitelist({ shareClass: share });
 
   // Only a definitive `false` gates anything. A failed read is a fetch problem
   // and not a verdict about this wallet, so it leaves the flow alone and lets
-  // the pre-sign simulation decode the real revert if the vault does refuse.
+  // the pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
   const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canReceiveShares;
 
   const balance = usdcBalance.data ?? 0n;
@@ -132,8 +132,8 @@ export function DepositFlow() {
   // The two blocks differ in what they say about the future. A resolving or
   // failed preview may still clear on its own, so it only gates the action
   // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
-  // it clears is reasonable. A deploying Offering, a vault with no capacity
-  // and a wallet the vault will not admit are settled answers, so they lock
+  // it clears is reasonable. A deploying Offering, a Centrifuge vault with no capacity
+  // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
   // the form itself: there is no amount worth entering.
   const isFormLocked =
     isPrereqsLoading ||
@@ -278,7 +278,7 @@ export function DepositFlow() {
         endContent={<TokenDisplay symbol={share.symbol} />}
       />
 
-      {/* Outside ConnectedAccount on purpose: a deploying Offering and a vault
+      {/* Outside ConnectedAccount on purpose: a deploying Offering and a Centrifuge vault
           with no capacity are both decided without reference to any wallet, so
           prompting for one would only offer a connection that leads nowhere. */}
       {isOfferingDeploying ? (
@@ -337,7 +337,7 @@ export function DepositFlow() {
         </ConnectedAccount>
       )}
 
-      {/* Why the action above is disabled. The deploying status and the vault's
+      {/* Why the action above is disabled. The deploying status and the Centrifuge vault's
           capacity are Offering facts, so they render whether or not a wallet is
           connected; the whitelist verdict only exists once one is. */}
       {isOfferingDeploying ? (

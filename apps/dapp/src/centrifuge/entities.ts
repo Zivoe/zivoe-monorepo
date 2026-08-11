@@ -27,8 +27,8 @@ export type TransactionEntity = {
   }): { unsubscribe(): void };
 };
 
-export type VaultEntity = {
-  /** The vault's contract address — asserted against the configured one at resolution. */
+export type CentrifugeVaultEntity = {
+  /** The Centrifuge vault's contract address — asserted against the configured one at resolution. */
   address: `0x${string}`;
   details(): PromiseLike<{
     maxDeposit: BalanceLike;
@@ -39,7 +39,7 @@ export type VaultEntity = {
     asset: { decimals: number };
   }>;
   investment(investor: `0x${string}`): PromiseLike<{
-    /** The vault's own `isPermissioned` answer for this wallet. */
+    /** The Centrifuge vault's own `isPermissioned` answer for this wallet. */
     isAllowedToDeposit: boolean;
     /** The share token's transfer hook, checked against the escrow. */
     isAllowedToRedeem: boolean;

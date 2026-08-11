@@ -10,7 +10,7 @@ import { EMAILS } from '@/lib/utils';
 export function NotWhitelistedCallout() {
   return (
     <Callout variant="warning">
-      You must be whitelisted to interact with this offer. Contact us at{' '}
+      You must be whitelisted to interact with this vault. Contact us at{' '}
       <a href={`mailto:${EMAILS.INQUIRE}`} className="underline underline-offset-4 hover:no-underline">
         {EMAILS.INQUIRE}
       </a>{' '}
