@@ -130,7 +130,12 @@ export function useDeposit({
           spender: CENTRIFUGE_ENV.vaultRouterAddress
         })
       });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key }) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.app.vaultCapacity({
+          shareClassKey: shareClass.key,
+          vaultAddress: shareClass.vaultAddress
+        })
+      });
     }
   });
 }

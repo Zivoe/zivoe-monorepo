@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY, FIXTURE_VAULT } from '@/test/fixtures';
 
 import { useRequestRedeem } from './index';
 
@@ -140,7 +140,7 @@ describe('useRequestRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_VAULT])
       ])
     );
 

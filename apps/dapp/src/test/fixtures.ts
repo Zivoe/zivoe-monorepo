@@ -19,3 +19,6 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
     vaultAddress: '0xfafafafafafafafafafafafafafafafafafafafa'
   }
 };
+
+/** The fixture's vault address as query keys carry it — lowercased, like the key builder. */
+export const FIXTURE_VAULT = FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase();

@@ -20,6 +20,22 @@ type ShareClassProps = {
   shareClassKey: string;
 };
 
+/**
+ * Vault dimension for the keys whose read one Centrifuge vault answers, rather
+ * than the share class as a whole. A class carries one vault per network today
+ * and would carry several the day it accepts a second deposit asset — and every
+ * key below resolves through `vault.investment`/`vault.details` or reads the
+ * vault address directly, so the address is what makes two answers differ.
+ * Keyed by class AND address for the same reason `getVault` memoizes by both.
+ * Lowercased because the address arrives from configuration and could differ
+ * from a resolved one in checksum casing alone.
+ */
+type VaultProps = ShareClassProps & {
+  vaultAddress: Address;
+};
+
+const vaultScope = ({ shareClassKey, vaultAddress }: VaultProps) => [shareClassKey, vaultAddress.toLowerCase()];
+
 const account = {
   by: ({ accountAddress }: AccountProps) => ['ACCOUNT', accountAddress],
   balance: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'BALANCE'],
@@ -32,27 +48,29 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  redemptionPosition: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+  redemptionPosition: ({ accountAddress, ...vault }: AccountProps & VaultProps) => [
     ...account.by({ accountAddress }),
     'REDEMPTION_POSITION',
-    shareClassKey
+    ...vaultScope(vault)
   ],
-  investorWhitelist: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+  investorWhitelist: ({ accountAddress, ...vault }: AccountProps & VaultProps) => [
     ...account.by({ accountAddress }),
     'INVESTOR_WHITELIST',
-    shareClassKey
+    ...vaultScope(vault)
   ]
 };
 
 const app = {
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
-  vaultCapacity: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'VAULT_CAPACITY'],
-  depositPreview: ({ shareClassKey, assets }: ShareClassProps & { assets: bigint }) => [
+  vaultCapacity: (vault: VaultProps) => ['CENTRIFUGE', ...vaultScope(vault), 'VAULT_CAPACITY'],
+  depositPreview: ({ assets, ...vault }: VaultProps & { assets: bigint }) => [
     'CENTRIFUGE',
-    shareClassKey,
+    ...vaultScope(vault),
     'DEPOSIT_PREVIEW',
     assets.toString()
   ],
+  // Class-scoped on purpose: NAV and Token Price are facts about the share
+  // class, and the indexer answers them without a vault.
   shareMetrics: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'SHARE_METRICS']
 };
 

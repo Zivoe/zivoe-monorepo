@@ -103,7 +103,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.shareClass.key
+        shareClassKey: identity.shareClass.key,
+        vaultAddress: identity.shareClass.vaultAddress
       });
       config.invalidateExtra?.(ctx);
     },
@@ -255,15 +256,17 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
-  shareClassKey
+  shareClassKey,
+  vaultAddress
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
+  vaultAddress: Address;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey })
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey, vaultAddress })
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });

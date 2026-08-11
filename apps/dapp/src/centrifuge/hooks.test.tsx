@@ -74,14 +74,38 @@ describe('useVaultCapacity', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY'])).toEqual({
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', SHARE_CLASS.vaultAddress, 'VAULT_CAPACITY'])).toEqual({
       maxDeposit: 5_000_000000n
+    });
+  });
+
+  // The reason the key carries the address: one share class can carry several
+  // vaults (one per network today, one per deposit asset later), and each
+  // answers maxDeposit for itself. A class-only key would serve the first
+  // vault's capacity for the second.
+  it('keeps two vaults of one share class in separate cache entries', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const otherVault = { ...SHARE_CLASS, vaultAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc' } as const;
+
+    const first = renderHook(() => useVaultCapacity({ shareClass: SHARE_CLASS }), { wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+
+    getVault.mockImplementation(() =>
+      Promise.resolve({ details: () => Promise.resolve({ maxDeposit: balance(9_000_000000n, 6) }) })
+    );
+    const second = renderHook(() => useVaultCapacity({ shareClass: otherVault }), { wrapper });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+
+    expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
+    expect(second.result.current.data).toEqual({ maxDeposit: 9_000_000000n });
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', otherVault.vaultAddress, 'VAULT_CAPACITY'])).toEqual({
+      maxDeposit: 9_000_000000n
     });
   });
 });
 
 describe('useDepositPreview', () => {
-  it('quotes shares from the handed vault previewDeposit and caches under the share-class key', async () => {
+  it('quotes shares from the handed vault previewDeposit and caches under the vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useDepositPreview({ shareClass: SHARE_CLASS, assets: 100_000000n }), {
       wrapper
@@ -96,7 +120,9 @@ describe('useDepositPreview', () => {
         args: [100_000000n]
       })
     );
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', '100000000'])).toEqual({
+    expect(
+      queryClient.getQueryData(['CENTRIFUGE', 'zfix', SHARE_CLASS.vaultAddress, 'DEPOSIT_PREVIEW', '100000000'])
+    ).toEqual({
       shares: 50_000000000000000000n
     });
   });
@@ -122,7 +148,7 @@ describe('useDepositPreview', () => {
 });
 
 describe('useRedemptionPosition', () => {
-  it('returns the plain domain fields under the account and share-class key', async () => {
+  it('returns the plain domain fields under the account and vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
 
@@ -135,7 +161,9 @@ describe('useRedemptionPosition', () => {
       hasPendingCancelRedeemRequest: false
     });
     expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])).toBeDefined();
+    expect(
+      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', SHARE_CLASS.vaultAddress])
+    ).toBeDefined();
   });
 
   it('does not read without a connected wallet', () => {
@@ -150,14 +178,16 @@ describe('useRedemptionPosition', () => {
 });
 
 describe('useInvestorWhitelist', () => {
-  it('returns both vault verdicts under the account and share-class key', async () => {
+  it('returns both vault verdicts under the account and vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useInvestorWhitelist({ shareClass: SHARE_CLASS }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true });
     expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix'])).toBeDefined();
+    expect(
+      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix', SHARE_CLASS.vaultAddress])
+    ).toBeDefined();
   });
 
   it('reports a blocked wallet rather than throwing', async () => {

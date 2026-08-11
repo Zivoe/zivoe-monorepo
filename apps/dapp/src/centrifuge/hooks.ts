@@ -23,7 +23,11 @@ export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedSha
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: queryKeys.account.investorWhitelist({ accountAddress: address, shareClassKey: shareClass.key }),
+    queryKey: queryKeys.account.investorWhitelist({
+      accountAddress: address,
+      shareClassKey: shareClass.key,
+      vaultAddress: shareClass.vaultAddress
+    }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
     queryFn: !address
       ? skipToken
@@ -33,7 +37,7 @@ export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedSha
 
 export function useVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
   return useQuery({
-    queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key }),
+    queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key, vaultAddress: shareClass.vaultAddress }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
     queryFn: async () => readVaultCapacity(await getVault(shareClass))
@@ -60,7 +64,11 @@ export function useDepositPreview({ shareClass, assets }: { shareClass: Transact
   const web3 = usePublicClient();
 
   return useQuery({
-    queryKey: queryKeys.app.depositPreview({ shareClassKey: shareClass.key, assets }),
+    queryKey: queryKeys.app.depositPreview({
+      shareClassKey: shareClass.key,
+      vaultAddress: shareClass.vaultAddress,
+      assets
+    }),
     meta: { skipErrorToast: true },
     queryFn:
       assets <= 0n || !web3
@@ -80,7 +88,11 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey: shareClass.key }),
+    queryKey: queryKeys.account.redemptionPosition({
+      accountAddress: address,
+      shareClassKey: shareClass.key,
+      vaultAddress: shareClass.vaultAddress
+    }),
     meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
