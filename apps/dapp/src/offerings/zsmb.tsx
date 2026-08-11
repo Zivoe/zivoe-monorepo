@@ -22,9 +22,8 @@ export const ZSMB_OFFERING: Offering = {
   targetApyPercent: 14,
 
   about: [
-    'zSMB provides short-duration financing to small and medium-sized businesses across the United States, a multi-hundred-billion-dollar market that sits at the core of the American economy. Demand for credit in this segment consistently outpaces traditional supply, creating a durable lending opportunity with attractive risk-adjusted pricing that institutional credit managers have made a cornerstone of private credit allocations.',
-    'Zivoe deploys capital through asset-backed credit facilities with established originators of these loans. Each facility is collateralized by the underlying advances made to businesses, meaning investor capital is secured by a large, diversified pool of receivables rather than any single borrower. These facilities are typically overcollateralized, with collateral value exceeding the capital Zivoe extends, providing a built-in cushion against portfolio losses alongside performance covenants and ongoing monitoring.',
-    "zSMB is a yield-bearing token that delivers returns through price appreciation: as the underlying facilities generate interest income, the token's price steadily increases to reflect the growing value of the portfolio."
+    'Zivoe’s tokenized small-business financing vault. Capital supplied through zSMB supports short-duration financing to small and medium-sized businesses across the United States. Zivoe provides secured financing to approved lending partners, which originate and service the underlying loans and collect borrower repayments.',
+    'The facilities are secured by the underlying receivables and monitored against defined credit and performance standards. Participation involves risk, including possible loss of capital. Returns are not guaranteed. Review the vault details and applicable disclosures before participating.'
   ],
 
   details: {
