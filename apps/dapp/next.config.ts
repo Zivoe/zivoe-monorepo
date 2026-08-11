@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/meet/thor',
-        destination: 'https://calendly.com/thor-zivoe/conversation',
+        destination: 'https://calendar.app.google/jGZfcqhB1fQNG5Hg6',
         permanent: false
       },
       {
