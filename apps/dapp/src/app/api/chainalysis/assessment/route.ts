@@ -6,6 +6,7 @@ import { ipAddress } from '@vercel/functions';
 import { getAddress } from 'viem';
 import { z } from 'zod';
 
+import { auth } from '@/server/auth';
 import { type ChainalysisAssessment, getChainalysisAssessment } from '@/server/chainalysis/assessment';
 import { redis } from '@/server/clients/redis';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
@@ -33,24 +34,41 @@ const handler = async (req: NextRequest): ApiResponse<ChainalysisAssessment> => 
   Sentry.setTag('source', 'API');
   Sentry.setTag('flow', FLOW);
 
+  // Every legitimate caller is behind OnboardingGuard, so an anonymous request
+  // is never the dapp — reject it before spending Redis or Chainalysis calls.
+  const sessionRes = await handlePromise(auth.api.getSession({ headers: req.headers }));
+
+  if (sessionRes.err) {
+    throw new ApiError({ message: 'Error verifying session', status: 500, exception: sessionRes.err });
+  }
+
+  const user = sessionRes.res?.user;
+  if (!user) throw new ApiError({ message: 'Unauthorized', status: 401, capture: false });
+
   const headers = new Headers();
   const ip = ipAddress(req) ?? '127.0.0.1';
-  const rateLimitRes = await handlePromise(ratelimit.limit(`${ip}:chainalysis`));
 
-  if (rateLimitRes.err || !rateLimitRes.res) {
+  // Per-user limit is the primary guard; the IP limit backstops many accounts
+  // sharing one machine.
+  const [userLimitRes, ipLimitRes] = await Promise.all([
+    handlePromise(ratelimit.limit(`chainalysis:user:${user.id}`)),
+    handlePromise(ratelimit.limit(`chainalysis:ip:${ip}`))
+  ]);
+
+  if (userLimitRes.err || !userLimitRes.res || ipLimitRes.err || !ipLimitRes.res) {
     throw new ApiError({
       message: 'Error checking rate limit',
       status: 500,
-      exception: rateLimitRes.err
+      exception: userLimitRes.err ?? ipLimitRes.err
     });
   }
 
-  const rateLimit = rateLimitRes.res;
+  const userLimit = userLimitRes.res;
 
-  headers.set('X-RateLimit-Limit', rateLimit.limit.toString());
-  headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString());
+  headers.set('X-RateLimit-Limit', userLimit.limit.toString());
+  headers.set('X-RateLimit-Remaining', userLimit.remaining.toString());
 
-  if (!rateLimit.success) {
+  if (!userLimit.success || !ipLimitRes.res.success) {
     throw new ApiError({ message: 'The request has been rate limited.', status: 429, headers, capture: false });
   }
 
