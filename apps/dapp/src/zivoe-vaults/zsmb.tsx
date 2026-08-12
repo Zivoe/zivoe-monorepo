@@ -13,8 +13,8 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVault = {
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
   centrifugeVaults: {
-    sepolia: { address: '0x8D46D06C0D274F9e277e71606Db602e57A055644', deployable: true },
-    mainnet: { address: '0x50aE66E07c6311C2eE4a327378ddf33e46BEe6Bf', deployable: true }
+    sepolia: { address: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6', deployable: true },
+    mainnet: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true }
   },
   shareTokenDescription: 'Zivoe SMB Credit',
   targetApyPercent: 14,

@@ -7,7 +7,6 @@ import { env } from '@/env';
 import { type TransactionIdentity } from '@/centrifuge/types';
 
 import { assertZivoeVaultRegistryInvariants } from './invariants';
-import { ZALT_ZIVOE_VAULT } from './zalt';
 import { type ZivoeVault } from './zivoe-vault';
 import { ZSMB_ZIVOE_VAULT } from './zsmb';
 
@@ -22,7 +21,6 @@ export {
   type ZivoeVaultStatus
 } from './zivoe-vault';
 export { zivoeVaultNetworkDisplays } from './network-display';
-export { ZALT_ZIVOE_VAULT } from './zalt';
 export { ZSMB_ZIVOE_VAULT } from './zsmb';
 
 /**
@@ -32,8 +30,7 @@ export { ZSMB_ZIVOE_VAULT } from './zsmb';
  * without the module that gives it a card, a route, and display info.
  */
 const REGISTERED_ZIVOE_VAULTS = {
-  zsmb: ZSMB_ZIVOE_VAULT,
-  zalt: ZALT_ZIVOE_VAULT
+  zsmb: ZSMB_ZIVOE_VAULT
 } satisfies Record<ShareClassKey, ZivoeVault>;
 
 const ALL_ZIVOE_VAULTS: Array<ZivoeVault> = Object.values(REGISTERED_ZIVOE_VAULTS);

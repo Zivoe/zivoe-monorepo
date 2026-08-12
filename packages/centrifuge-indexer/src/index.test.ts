@@ -48,8 +48,8 @@ describe('share-class catalog', () => {
       symbol: 'zSMB',
       decimals: 18,
       poolId: '281474976720680',
-      scId: '0x00010000000027280000000000000001',
-      shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
+      scId: '0x00010000000027280000000000000002',
+      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
     });
   });
 
@@ -712,11 +712,11 @@ describe('createDailyNegativeYieldReporter', () => {
     const now = new Date('2026-07-22T12:00:00Z');
 
     reportNegativeYield({ shareClassKey: 'zsmb', negativeYield30d: -1n, now });
-    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
-    reportNegativeYield({ shareClassKey: 'zalt', negativeYield30d: -2n, now });
+    reportNegativeYield({ shareClassKey: 'zother', negativeYield30d: -2n, now });
+    reportNegativeYield({ shareClassKey: 'zother', negativeYield30d: -2n, now });
 
     expect(report).toHaveBeenCalledTimes(2);
     expect(report).toHaveBeenNthCalledWith(1, { shareClassKey: 'zsmb', negativeYield30d: -1n });
-    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zalt', negativeYield30d: -2n });
+    expect(report).toHaveBeenNthCalledWith(2, { shareClassKey: 'zother', negativeYield30d: -2n });
   });
 });

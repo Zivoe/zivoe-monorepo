@@ -37,25 +37,6 @@ export const SHARE_CLASS_CATALOG = {
     networks: {
       sepolia: {
         poolId: '281474976720680',
-        scId: '0x00010000000027280000000000000001',
-        shareTokenAddress: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c',
-        deployable: true
-      },
-
-      mainnet: {
-        poolId: '281474976710674',
-        scId: '0x00010000000000120000000000000001',
-        shareTokenAddress: '0xCCE288D1F14A6290E7946b9786231AAb54bf1FEC',
-        deployable: true
-      }
-    }
-  },
-  zalt: {
-    symbol: 'zALT',
-    decimals: 18,
-    networks: {
-      sepolia: {
-        poolId: '281474976720680',
         scId: '0x00010000000027280000000000000002',
         shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
         deployable: true
