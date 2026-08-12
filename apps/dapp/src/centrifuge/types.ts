@@ -4,39 +4,39 @@ import { type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
 
 /**
  * The share class a hook transacts and reads against — resolved from the
- * catalog and vault map in the app, a synthetic fixture in tests. Composed
+ * catalog and Centrifuge-vault map in the app, a synthetic fixture in tests. Composed
  * from the catalog's identity shape so a new identity field cannot be added
  * in one package and forgotten here, with `key`/`symbol` widened to plain
  * strings on purpose: the module stays a pure, testable boundary with no
  * registry coupling (this import is type-only).
  */
 export type TransactedShareClass = Omit<ShareClassIdentity, 'key' | 'symbol'> & {
-  /** Share-class id — the identity dimension of caches, query keys and vault memoization. */
+  /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization. */
   key: string;
   symbol: string;
-  vaultAddress: Address;
+  centrifugeVaultAddress: Address;
 };
 
 /** Identity a Transaction Hook stamps on copy, analytics, Sentry, and the payload. */
 export type TransactionIdentity = {
-  /** Offering slug — the stable public identity alongside token symbols. */
-  offeringSlug: string;
+  /** Zivoe Vault slug — the stable public identity alongside token symbols. */
+  zivoeVaultSlug: string;
   shareClass: TransactedShareClass;
 };
 
-export type VaultCapacity = {
-  /** Vault-level reserve capacity in USDC base units — never investor-scoped. */
+export type CentrifugeVaultCapacity = {
+  /** Centrifuge-vault reserve capacity in USDC base units — never investor-scoped. */
   maxDeposit: bigint;
 };
 
 export type DepositPreview = {
-  /** Share amount in share-token base units, quoted by the vault's own previewDeposit. */
+  /** Share amount in share-token base units, quoted by the Centrifuge vault's own previewDeposit. */
   shares: bigint;
 };
 
 /**
  * The share token's transfer hook, asked about one wallet in the two
- * directions the flows move shares. Every Offering's vault is whitelisted, so
+ * directions the flows move shares. Every Zivoe Vault's Centrifuge vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
  * wallet's transaction reverts on-chain, which no form validation would catch.
  *
@@ -52,7 +52,7 @@ export type InvestorWhitelist = {
    * shares a cancellation returns: the protocol checks a cancellation with
    * this same call (AsyncRequestManager `cancelRedeemRequest`), and returning
    * shares from escrow is a transfer into the wallet. It is the identical read
-   * the vault's own `isPermissioned` performs.
+   * the Centrifuge vault's own `isPermissioned` performs.
    */
   canReceiveShares: boolean;
   /**

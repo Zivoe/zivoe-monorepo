@@ -6,7 +6,7 @@ export {
   useDepositPreview,
   useInvestorWhitelist,
   useRedemptionPosition,
-  useVaultCapacity
+  useCentrifugeVaultCapacity
 } from './hooks';
 export { useCancelRedeem } from './use-cancel-redeem';
 export { useClaimRedeem } from './use-claim-redeem';
@@ -19,5 +19,5 @@ export type {
   RedemptionPosition,
   TransactedShareClass,
   TransactionIdentity,
-  VaultCapacity
+  CentrifugeVaultCapacity
 } from './types';

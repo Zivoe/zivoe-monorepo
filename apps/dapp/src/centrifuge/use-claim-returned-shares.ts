@@ -16,7 +16,7 @@ import useCentrifugeTx from './useCentrifugeTx';
 function claimReturnedSharesCopy({ share }: { share: string }) {
   return {
     simulationErrors: {
-      VaultNotLinked: 'Claims are temporarily unavailable for this vault.',
+      VaultNotLinked: 'Claims are temporarily unavailable. Try again later.',
       TransferNotAllowed: "These shares can't be claimed to this wallet right now.",
       TransferBlocked: "These shares can't be claimed to this wallet right now.",
       ShareTokenTransferFailed: `Returned ${share} is temporarily unavailable. Try again later.`,
@@ -44,7 +44,7 @@ type ClaimReturnedSharesVariables = {
 };
 
 /**
- * Claims Returned Shares via the same aggregate vault claim as useClaimRedeem —
+ * Claims Returned Shares via the same aggregate Centrifuge-vault claim as useClaimRedeem —
  * the SDK empties the Returned Shares bucket first, so only mount this behind
  * `claimableCancelRedeemShares > 0`.
  */
@@ -64,11 +64,11 @@ export function useClaimReturnedShares({
     // Fail early when the Returned Shares bucket is already empty. The
     // exact-call gate below closes the remaining race if the SDK's later read
     // falls through to redemption USDC while building the aggregate claim.
-    action: async (_, { vault, address }) => {
-      const position = await readRedemptionPosition({ vault, investor: address });
+    action: async (_, { centrifugeVault, address }) => {
+      const position = await readRedemptionPosition({ centrifugeVault, investor: address });
       if (position.claimableCancelRedeemShares <= 0n) throw new AppError({ message: copy.guard, capture: false });
 
-      return { tx: vault.claim() };
+      return { tx: centrifugeVault.claim() };
     },
 
     expectedCall: (_, { address }) => ({
@@ -76,7 +76,7 @@ export function useClaimReturnedShares({
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimCancelRedeemRequest',
-        args: [shareClass.vaultAddress, address, address]
+        args: [shareClass.centrifugeVaultAddress, address, address]
       }),
       mismatchMessage: copy.mismatch
     }),

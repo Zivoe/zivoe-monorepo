@@ -13,9 +13,12 @@ import { env } from '@/env';
 
 import Providers, { wagmiConfig } from './_components/providers';
 
-const title = 'Zivoe | RWA Credit Protocol';
+// Mirrors the marketing site's title and description on purpose: this is also
+// the fallback link preview for every Zivoe Vault page, so the two surfaces must not
+// describe Zivoe differently.
+const title = 'Zivoe | The Private Credit Layer for Stablecoins';
 const description =
-  'Zivoe is a real-world asset (RWA) credit protocol offering qualified users tokenized exposure to private credit.';
+  'Zivoe brings private credit on-chain through one unified platform built for institutional and stablecoin capital.';
 
 const image = {
   url: 'https://zivoe.com/zivoe-hero.jpg',

@@ -20,12 +20,6 @@ export function ContactCtaSection({
         >
           {ctaText}
         </Link>
-        <Text className="text-sm m-0 mt-3 text-neutral-500">
-          Or reach out on Telegram{' '}
-          <Link href={`${BASE_URL}/telegram/thor`} className="text-primary-600 underline">
-            @thorabbasi
-          </Link>
-        </Text>
       </Section>
 
       <Section className="mt-6">

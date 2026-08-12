@@ -13,8 +13,8 @@ import { AppError, handlePromise } from '@/lib/utils';
 
 import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
 
-import { getVault, setTransactionSigner } from './client';
-import { type TransactionEntity, type VaultEntity } from './entities';
+import { getCentrifugeVault, setTransactionSigner } from './client';
+import { type CentrifugeVaultEntity, type TransactionEntity } from './entities';
 import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSigner } from './simulate';
 import { type TransactionIdentity } from './types';
 
@@ -29,13 +29,13 @@ type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
  */
 const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
-type CentrifugeTxContext = { address: Address; vault: VaultEntity; publicClient: PublicClient };
+type CentrifugeTxContext = { address: Address; centrifugeVault: CentrifugeVaultEntity; publicClient: PublicClient };
 
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'offeringSlug'> & {
-  /** The Offering identity this transaction runs against — vault, tokens, analytics slug. */
+export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'zivoeVaultSlug'> & {
+  /** The Zivoe Vault identity this transaction runs against — Centrifuge vault, tokens, analytics slug. */
   identity: TransactionIdentity;
   /**
    * Flow-specific invalidations beyond the driver's share-class-scoped set —
@@ -80,12 +80,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   return useTxLifecycle({
     ...config,
 
-    // The Offering slug rides every analytics event, and the lifecycle
-    // derives the Sentry tag/extra from `offeringSlug` below — the driver
+    // The Zivoe Vault slug rides every analytics event, and the lifecycle
+    // derives the Sentry tag/extra from `zivoeVaultSlug` below — the driver
     // adds only what the lifecycle cannot know: the share-class key.
     analytics: analytics && {
       ...analytics,
-      input: (vars, ctx) => ({ ...analytics.input(vars, ctx), offeringSlug: identity.offeringSlug })
+      input: (vars, ctx) => ({ ...analytics.input(vars, ctx), zivoeVaultSlug: identity.zivoeVaultSlug })
     },
     sentryExtras: (vars) => ({
       ...(config.sentryExtras ?? toSentryExtras)(vars),
@@ -94,7 +94,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
     // The payload's slug is stamped by the lifecycle itself, uniformly for
     // both drivers (approvals included) and for the fallback payload.
-    offeringSlug: identity.offeringSlug,
+    zivoeVaultSlug: identity.zivoeVaultSlug,
 
     // Every Centrifuge transaction moves share-class-scoped state, so the
     // driver owns the invalidation — stamped once here (like the slug above)
@@ -103,7 +103,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.shareClass.key
+        shareClassKey: identity.shareClass.key,
+        centrifugeVaultAddress: identity.shareClass.centrifugeVaultAddress
       });
       config.invalidateExtra?.(ctx);
     },
@@ -132,8 +133,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const vault = await getVault(identity.shareClass);
-        const txContext = { address, vault, publicClient };
+        const centrifugeVault = await getCentrifugeVault(identity.shareClass);
+        const txContext = { address, centrifugeVault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
         // transaction, so an account switch can never leave a stale signer.
@@ -255,15 +256,17 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
-  shareClassKey
+  shareClassKey,
+  centrifugeVaultAddress
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
+  centrifugeVaultAddress: Address;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey })
+    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey, centrifugeVaultAddress })
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });

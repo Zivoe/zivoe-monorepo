@@ -7,10 +7,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { useDepositPreview, useInvestorWhitelist, useRedemptionPosition, useVaultCapacity } from './index';
+import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorWhitelist, useRedemptionPosition } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
-vi.mock('./client', () => ({ getVault }));
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
+vi.mock('./client', () => ({ getCentrifugeVault }));
 
 const readContract = vi.hoisted(() => vi.fn());
 vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
@@ -33,7 +33,7 @@ function balance(value: bigint, decimals = 18) {
 // The whitelist fixture stays in the SDK's own deposit/redeem vocabulary —
 // the rename to canReceiveShares/canRequestRedemption happens in the read, and
 // a fixture written in domain terms would assert the mapping against itself.
-function fakeVault({ whitelist = { isAllowedToDeposit: true, isAllowedToRedeem: true } } = {}) {
+function fakeCentrifugeVault({ whitelist = { isAllowedToDeposit: true, isAllowedToRedeem: true } } = {}) {
   return {
     details: () => Promise.resolve({ maxDeposit: balance(5_000_000000n, 6) }),
     investment: () =>
@@ -61,27 +61,58 @@ function createWrapper() {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  getVault.mockImplementation(() => Promise.resolve(fakeVault()));
+  getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault()));
   readContract.mockResolvedValue(50_000000000000000000n);
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
 });
 
-describe('useVaultCapacity', () => {
-  it('reads the handed share class vault and caches under its key', async () => {
+describe('useCentrifugeVaultCapacity', () => {
+  it("reads the handed share class's Centrifuge vault and caches under its key", async () => {
     const { queryClient, wrapper } = createWrapper();
-    const { result } = renderHook(() => useVaultCapacity({ shareClass: SHARE_CLASS }), { wrapper });
+    const { result } = renderHook(() => useCentrifugeVaultCapacity({ shareClass: SHARE_CLASS }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
-    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY'])).toEqual({
+    expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(
+      queryClient.getQueryData(['CENTRIFUGE', 'zfix', SHARE_CLASS.centrifugeVaultAddress, 'VAULT_CAPACITY'])
+    ).toEqual({
       maxDeposit: 5_000_000000n
+    });
+  });
+
+  // The reason the key carries the address: one share class can carry several
+  // Centrifuge vaults (one per network today, one per deposit asset later), and each
+  // answers maxDeposit for itself. A class-only key would serve the first
+  // Centrifuge vault's capacity for the second.
+  it('keeps two Centrifuge vaults of one share class in separate cache entries', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const otherCentrifugeVault = {
+      ...SHARE_CLASS,
+      centrifugeVaultAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+    } as const;
+
+    const first = renderHook(() => useCentrifugeVaultCapacity({ shareClass: SHARE_CLASS }), { wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve({ details: () => Promise.resolve({ maxDeposit: balance(9_000_000000n, 6) }) })
+    );
+    const second = renderHook(() => useCentrifugeVaultCapacity({ shareClass: otherCentrifugeVault }), { wrapper });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+
+    expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
+    expect(second.result.current.data).toEqual({ maxDeposit: 9_000_000000n });
+    expect(
+      queryClient.getQueryData(['CENTRIFUGE', 'zfix', otherCentrifugeVault.centrifugeVaultAddress, 'VAULT_CAPACITY'])
+    ).toEqual({
+      maxDeposit: 9_000_000000n
     });
   });
 });
 
 describe('useDepositPreview', () => {
-  it('quotes shares from the handed vault previewDeposit and caches under the share-class key', async () => {
+  it("quotes shares from the handed Centrifuge vault's previewDeposit and caches under the Centrifuge-vault key", async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useDepositPreview({ shareClass: SHARE_CLASS, assets: 100_000000n }), {
       wrapper
@@ -91,12 +122,20 @@ describe('useDepositPreview', () => {
     expect(result.current.data).toEqual({ shares: 50_000000000000000000n });
     expect(readContract).toHaveBeenCalledWith(
       expect.objectContaining({
-        address: SHARE_CLASS.vaultAddress,
+        address: SHARE_CLASS.centrifugeVaultAddress,
         functionName: 'previewDeposit',
         args: [100_000000n]
       })
     );
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', '100000000'])).toEqual({
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        SHARE_CLASS.centrifugeVaultAddress,
+        'DEPOSIT_PREVIEW',
+        '100000000'
+      ])
+    ).toEqual({
       shares: 50_000000000000000000n
     });
   });
@@ -122,7 +161,7 @@ describe('useDepositPreview', () => {
 });
 
 describe('useRedemptionPosition', () => {
-  it('returns the plain domain fields under the account and share-class key', async () => {
+  it('returns the plain domain fields under the account and Centrifuge-vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
 
@@ -134,8 +173,10 @@ describe('useRedemptionPosition', () => {
       claimableCancelRedeemShares: 60_000000000000000000n,
       hasPendingCancelRedeemRequest: false
     });
-    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])).toBeDefined();
+    expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(
+      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', SHARE_CLASS.centrifugeVaultAddress])
+    ).toBeDefined();
   });
 
   it('does not read without a connected wallet', () => {
@@ -145,24 +186,26 @@ describe('useRedemptionPosition', () => {
     const { result } = renderHook(() => useRedemptionPosition({ shareClass: SHARE_CLASS }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
-    expect(getVault).not.toHaveBeenCalled();
+    expect(getCentrifugeVault).not.toHaveBeenCalled();
   });
 });
 
 describe('useInvestorWhitelist', () => {
-  it('returns both vault verdicts under the account and share-class key', async () => {
+  it('returns both Centrifuge-vault verdicts under the account and Centrifuge-vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useInvestorWhitelist({ shareClass: SHARE_CLASS }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true });
-    expect(getVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix'])).toBeDefined();
+    expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
+    expect(
+      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix', SHARE_CLASS.centrifugeVaultAddress])
+    ).toBeDefined();
   });
 
   it('reports a blocked wallet rather than throwing', async () => {
-    getVault.mockImplementation(() =>
-      Promise.resolve(fakeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }))
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }))
     );
 
     const { wrapper } = createWrapper();
@@ -176,8 +219,8 @@ describe('useInvestorWhitelist', () => {
     // The protocol answers these with different calls, and the redeem panel
     // gates different actions on each — a swap here would silently move which
     // buttons a wallet loses once it is no longer whitelisted.
-    getVault.mockImplementation(() =>
-      Promise.resolve(fakeVault({ whitelist: { isAllowedToDeposit: true, isAllowedToRedeem: false } }))
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: true, isAllowedToRedeem: false } }))
     );
 
     const { wrapper } = createWrapper();
@@ -194,6 +237,6 @@ describe('useInvestorWhitelist', () => {
     const { result } = renderHook(() => useInvestorWhitelist({ shareClass: SHARE_CLASS }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
-    expect(getVault).not.toHaveBeenCalled();
+    expect(getCentrifugeVault).not.toHaveBeenCalled();
   });
 });

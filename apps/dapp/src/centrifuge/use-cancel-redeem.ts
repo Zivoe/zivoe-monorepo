@@ -13,7 +13,7 @@ function cancelRedeemCopy({ asset, share }: { asset: string; share: string }) {
     simulationErrors: {
       NoPendingRequest: 'There is no redemption request to cancel.',
       CancellationIsPending: 'Your cancellation is already being processed.',
-      VaultNotLinked: 'Cancellations are temporarily unavailable for this vault.',
+      VaultNotLinked: 'Cancellations are temporarily unavailable. Try again later.',
       TransferNotAllowed: "This cancellation can't be submitted from this wallet right now.",
       TransferBlocked: "This cancellation can't be submitted from this wallet right now.",
       Paused: 'Redemptions are temporarily paused. Try again later.',
@@ -55,14 +55,14 @@ export function useCancelRedeem({
   return useCentrifugeTx<CancelRedeemVariables>({
     identity,
 
-    // No position/vault re-reads here: the SDK re-checks the pending order
+    // No position/Centrifuge-vault re-reads here: the SDK re-checks the pending order
     // itself ('No order to cancel' maps below), and the exact-call simulation
     // is the authoritative pre-sign gate (CancellationIsPending surfaces as
     // decoded copy if a second cancel races in).
-    action: ({ pendingShares }, { vault }) => {
+    action: ({ pendingShares }, { centrifugeVault }) => {
       if (pendingShares <= 0n) throw new AppError({ message: 'No redemption request to cancel' });
 
-      return { tx: vault.cancelRedeemRequest() };
+      return { tx: centrifugeVault.cancelRedeemRequest() };
     },
 
     simulationErrorCopy: copy.simulationErrors,

@@ -10,14 +10,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { CENTRIFUGE_ENV, useClaimReturnedShares } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
 const clearTransactionSigner = vi.hoisted(() => vi.fn());
-vi.mock('./client', () => ({ getVault, setTransactionSigner, clearTransactionSigner }));
+vi.mock('./client', () => ({ getCentrifugeVault, setTransactionSigner, clearTransactionSigner }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -50,12 +50,12 @@ const RETURNED_SHARES = 4n * 10n ** 18n;
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
 });
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [FIXTURE_IDENTITY.shareClass.vaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
 });
 
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
@@ -66,7 +66,7 @@ function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) 
   const logs = withClaimLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.vaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
           topics: encodeEventTopics({
             abi: CANCEL_REDEEM_CLAIM_EVENT_ABI,
             eventName: 'CancelRedeemClaim',
@@ -84,7 +84,7 @@ const claimSpy = vi.fn();
 
 const balance = (value: bigint) => ({ toBigInt: () => value });
 
-function fakeVault({
+function fakeCentrifugeVault({
   receipt = claimReceipt(),
   claimError,
   claimableCancelRedeemShares = 60_000000000000000000n,
@@ -170,7 +170,7 @@ beforeEach(() => {
   getDefaultStore().set(transactionAtom, undefined);
 
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
-  getVault.mockResolvedValue(fakeVault());
+  getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault());
   getWalletClient.mockResolvedValue({ request: walletRequest });
   walletRequest.mockResolvedValue(TX_HASH);
   publicClientCall.mockResolvedValue({ data: '0x' });
@@ -190,11 +190,11 @@ describe('useClaimReturnedShares', () => {
     expect(walletRequest).toHaveBeenCalledOnce();
 
     // Identity follows the hook parameter: the fixture share class resolves
-    // the vault and the Offering slug rides the analytics captures.
-    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    // the Centrifuge vault and the Zivoe Vault slug rides the analytics captures.
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_claim_returned_receipt',
-      expect.objectContaining({ offering_slug: 'fixture-offering', token_out: 'zFIX' })
+      expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_out: 'zFIX' })
     );
 
     expect(getDefaultStore().get(transactionAtom)).toEqual({
@@ -202,7 +202,7 @@ describe('useClaimReturnedShares', () => {
       title: 'zFIX Claimed',
       description: 'Your zFIX has been returned to your wallet.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: { claimReturnedShares: { share: { symbol: 'zFIX', decimals: 8 }, shares: RETURNED_SHARES } }
     });
 
@@ -210,13 +210,13 @@ describe('useClaimReturnedShares', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
       ])
     );
   });
 
   it("maps the SDK's no-claimable-funds error to product copy, before any wallet interaction", async () => {
-    getVault.mockResolvedValue(fakeVault({ claimError: new Error('No claimable funds') }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimError: new Error('No claimable funds') }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -232,7 +232,7 @@ describe('useClaimReturnedShares', () => {
   });
 
   it('blocks the claim when no Returned Shares are claimable, before any wallet interaction', async () => {
-    getVault.mockResolvedValue(fakeVault({ claimableCancelRedeemShares: 0n }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimableCancelRedeemShares: 0n }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -248,7 +248,7 @@ describe('useClaimReturnedShares', () => {
   });
 
   it('rejects an SDK bucket switch before the wallet can claim USDC as Returned Shares', async () => {
-    getVault.mockResolvedValue(fakeVault({ claimData: CLAIM_REDEEM_DATA }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: CLAIM_REDEEM_DATA }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -266,7 +266,7 @@ describe('useClaimReturnedShares', () => {
   });
 
   it('does not report a successful zFIX claim when the receipt cannot be decoded', async () => {
-    getVault.mockResolvedValue(fakeVault({ receipt: claimReceipt({ withClaimLog: false }) }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ receipt: claimReceipt({ withClaimLog: false }) }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
@@ -279,7 +279,7 @@ describe('useClaimReturnedShares', () => {
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the zFIX claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering'
+      zivoeVaultSlug: 'fixture-zivoe-vault'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

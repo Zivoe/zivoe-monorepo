@@ -4,7 +4,7 @@ import { atom } from 'jotai';
  * Token identity snapshotted onto the payload at mutation time. The receipt
  * dialog renders exclusively from these — never from the ambient page's
  * configuration — so a transaction confirming after navigation to another
- * Offering keeps its own labels and decimals.
+ * Zivoe Vault keeps its own labels and decimals.
  */
 export type TransactionTokenSnapshot = {
   symbol: string;
@@ -16,8 +16,8 @@ export type TransactionData = {
   title: string;
   description: string;
   hash: string;
-  /** Stable identity of the Offering transacted on — stamped centrally by the transaction lifecycle. */
-  offeringSlug?: string;
+  /** Stable identity of the Zivoe Vault transacted on — stamped centrally by the transaction lifecycle. */
+  zivoeVaultSlug?: string;
   meta?: {
     approve?: {
       token: TransactionTokenSnapshot;

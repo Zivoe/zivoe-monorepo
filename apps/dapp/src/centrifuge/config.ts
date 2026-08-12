@@ -5,9 +5,9 @@ import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork, type ShareClassIdenti
 import { env } from '@/env';
 
 /**
- * Facts of the deployment network itself, shared by every Offering: one chain,
+ * Facts of the deployment network itself, shared by every Zivoe Vault: one chain,
  * one SDK environment, one indexer, one VaultRouter, one deposit asset. These
- * stay a singleton by design — per-Offering variability lives in
+ * stay a singleton by design — per-Zivoe-Vault variability lives in
  * ShareClassConfig.
  */
 type CentrifugeEnvironment = {
@@ -18,7 +18,7 @@ type CentrifugeEnvironment = {
   indexerUrl: string;
   /** Deposits route through the VaultRouter — the USDC approval spender. */
   vaultRouterAddress: Address;
-  /** The one deposit asset every Offering accepts — a global product assumption. */
+  /** The one deposit asset every Zivoe Vault accepts — a global product assumption. */
   usdc: { address: Address; symbol: string; decimals: number };
 };
 

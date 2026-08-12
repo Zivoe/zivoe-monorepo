@@ -9,14 +9,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useRequestRedeem } from './index';
 
-const getVault = vi.hoisted(() => vi.fn());
+const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
 const clearTransactionSigner = vi.hoisted(() => vi.fn());
-vi.mock('./client', () => ({ getVault, setTransactionSigner, clearTransactionSigner }));
+vi.mock('./client', () => ({ getCentrifugeVault, setTransactionSigner, clearTransactionSigner }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -46,7 +46,7 @@ const TX_HASH = '0x4444444444444444444444444444444444444444444444444444444444444
 const SHARES = 200_00000000n;
 const ESTIMATED_ASSETS = 198_000000n;
 
-function fakeVault({ redeemError }: { redeemError?: Error } = {}) {
+function fakeCentrifugeVault({ redeemError }: { redeemError?: Error } = {}) {
   const receipt = { status: 'success', transactionHash: TX_HASH, logs: [] } as unknown as TransactionReceipt;
 
   return {
@@ -102,7 +102,7 @@ beforeEach(() => {
   getDefaultStore().set(transactionAtom, undefined);
 
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
-  getVault.mockResolvedValue(fakeVault());
+  getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault());
   getWalletClient.mockResolvedValue({ request: walletRequest });
   walletRequest.mockResolvedValue(TX_HASH);
   publicClientCall.mockResolvedValue({ data: '0x' });
@@ -116,7 +116,7 @@ describe('useRequestRedeem', () => {
     act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(getVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
 
     const dialog = getDefaultStore().get(transactionAtom);
     expect(dialog).toEqual({
@@ -124,7 +124,7 @@ describe('useRequestRedeem', () => {
       title: 'Redemption Requested',
       description: 'Your final USDC amount is determined when your request is processed.',
       hash: TX_HASH,
-      offeringSlug: 'fixture-offering',
+      zivoeVaultSlug: 'fixture-zivoe-vault',
       meta: {
         redeem: {
           share: { symbol: 'zFIX', decimals: 8 },
@@ -140,14 +140,14 @@ describe('useRequestRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
       ])
     );
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_submitted',
       expect.objectContaining({
-        offering_slug: 'fixture-offering',
+        zivoe_vault_slug: 'fixture-zivoe-vault',
         token_in: 'zFIX',
         token_out: 'USDC',
         amount_in_raw: SHARES.toString()
@@ -156,7 +156,7 @@ describe('useRequestRedeem', () => {
   });
 
   it("maps the SDK's own balance pre-check to product copy, before any wallet interaction", async () => {
-    getVault.mockResolvedValue(fakeVault({ redeemError: new Error('Insufficient balance') }));
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ redeemError: new Error('Insufficient balance') }));
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useRequestRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });

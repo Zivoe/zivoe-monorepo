@@ -17,14 +17,14 @@ export type ShareClassNetworkEntry = {
 export type ShareClassCatalogEntry = {
   symbol: string;
   decimals: number;
-  /** Networks the share class is staged or live on — absent means not offered there. */
+  /** Networks the share class is staged or live on — absent means not available there. */
   networks: Partial<Record<CentrifugeNetwork, ShareClassNetworkEntry>>;
 };
 
 /**
  * Every Centrifuge share class Zivoe integrates, as pure serializable data —
  * the single source both apps derive share-class identity from. Adding a class
- * means adding an entry here (plus an Offering module in the dApp); reviews of
+ * means adding an entry here (plus a Zivoe Vault module in the dApp); reviews of
  * new entries must verify the values on-chain and that the pool is
  * USD-denominated. Flip `deployable` only once the indexer prices the class on
  * that network: the aggregated NAV read is fail-closed, so a live-but-unpriced
@@ -106,7 +106,7 @@ export function assertShareClassCatalogInvariants(catalog: CatalogLike = SHARE_C
 
   for (const [key, entry] of Object.entries(catalog)) {
     // Decimals scale every parseUnits and NAV division, and are the one money
-    // field whose only other guard (the chain assertion at vault resolution)
+    // field whose only other guard (the chain assertion at Centrifuge-vault resolution)
     // fires after the UI and server have already formatted with the value.
     // 36 is comfortably past any real ERC-20; beyond it is a typo, not a token.
     if (!Number.isInteger(entry.decimals) || entry.decimals < 0 || entry.decimals > 36)
@@ -190,7 +190,7 @@ export function getShareClassIdentity({
   const entry = SHARE_CLASS_CATALOG[key];
   const onNetwork = entry.networks[network];
 
-  if (!onNetwork) throw new Error(`Share class "${key}" is not offered on "${network}".`);
+  if (!onNetwork) throw new Error(`Share class "${key}" is not available on "${network}".`);
 
   if (!onNetwork.deployable)
     throw new Error(

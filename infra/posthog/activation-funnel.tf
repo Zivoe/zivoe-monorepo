@@ -78,7 +78,7 @@ resource "posthog_insight" "zivoe_dapp_activation_all_deposits" {
 
 resource "posthog_insight" "zivoe_dapp_activation_approval_path" {
   name        = "Zivoe Dapp - Activation Funnel - Approval Path"
-  description = "Drop-off from sign-up through onboarding, wallet connection, token approval, deposit start, and UI deposit receipt for users who need ERC-20 approval. This excludes users with existing allowance."
+  description = "Drop-off from sign-up through onboarding, wallet connection, token approval, deposit start, and UI deposit receipt for users who need ERC-20 approval. This excludes permit-only deposits and users with existing allowance."
   tags        = ["terraform", "dapp", "activation", "approval"]
 
   query_json = jsonencode({
@@ -426,7 +426,7 @@ resource "posthog_insight" "zivoe_dapp_redemption_lifecycle" {
 
 resource "posthog_insight" "zivoe_dapp_confirmed_deposit_volume_by_token" {
   name        = "Zivoe Dapp - Confirmed Deposit Volume by Token"
-  description = "Sums confirmed deposit output volume in zSMB, broken down by input token."
+  description = "Sums confirmed deposit output volume in zVLT, broken down by input token."
   tags        = ["terraform", "dapp", "deposit", "volume"]
 
   query_json = jsonencode({
@@ -525,9 +525,125 @@ resource "posthog_insight" "zivoe_dapp_confirmed_redemption_volume" {
   ]
 }
 
+# The monitor-confirmed volume insights above retain the legacy protocol's
+# history. These receipt insights track the replacement Centrifuge flows.
+resource "posthog_insight" "zivoe_dapp_centrifuge_deposit_receipt_volume_by_vault" {
+  name        = "Zivoe Dapp - Centrifuge Deposit Receipt Share Volume by Vault"
+  description = "Sums successful Centrifuge deposit receipt output volume in vault shares, broken down by output token."
+  tags        = ["terraform", "dapp", "centrifuge", "deposit", "volume"]
+
+  query_json = jsonencode({
+    kind = "InsightVizNode"
+    source = {
+      kind     = "TrendsQuery"
+      interval = "day"
+
+      dateRange = {
+        date_from    = "-30d"
+        date_to      = null
+        explicitDate = false
+      }
+
+      filterTestAccounts = true
+
+      series = [
+        {
+          kind        = "EventsNode"
+          event       = "tx:deposit_receipt"
+          name        = "tx:deposit_receipt"
+          custom_name = "Deposit receipt share volume"
+          math        = "hogql"
+          math_hogql  = "sum(toFloat(properties.amount_out_raw) / 1000000000000000000)"
+          properties = [
+            {
+              key      = "token_out"
+              type     = "event"
+              value    = ["zSMB", "zALT"]
+              operator = "exact"
+            },
+          ]
+        },
+      ]
+
+      breakdownFilter = {
+        breakdown      = "token_out"
+        breakdown_type = "event"
+      }
+
+      trendsFilter = {
+        display                 = "ActionsBarValue"
+        aggregationAxisFormat   = "numeric"
+        showAlertThresholdLines = false
+        showLegend              = true
+        showPercentStackView    = false
+        showValuesOnSeries      = true
+        smoothingIntervals      = 1
+        yAxisScaleType          = "linear"
+      }
+    }
+  })
+
+  dashboard_ids = [
+    posthog_dashboard.zivoe_dapp_activation_funnel.id,
+  ]
+}
+
+resource "posthog_insight" "zivoe_dapp_centrifuge_redemption_claim_volume_by_vault" {
+  name        = "Zivoe Dapp - Centrifuge Redemption Claim Volume by Vault"
+  description = "Sums successful Centrifuge redemption claim receipt output volume in USDC, broken down by input vault token."
+  tags        = ["terraform", "dapp", "centrifuge", "redemption", "volume"]
+
+  query_json = jsonencode({
+    kind = "InsightVizNode"
+    source = {
+      kind     = "TrendsQuery"
+      interval = "day"
+
+      dateRange = {
+        date_from    = "-30d"
+        date_to      = null
+        explicitDate = false
+      }
+
+      filterTestAccounts = true
+
+      series = [
+        {
+          kind        = "EventsNode"
+          event       = "tx:redeem_claim_receipt"
+          name        = "tx:redeem_claim_receipt"
+          custom_name = "Redemption claim volume"
+          math        = "hogql"
+          math_hogql  = "sum(toFloat(properties.amount_out_raw) / 1000000)"
+        },
+      ]
+
+      breakdownFilter = {
+        breakdown      = "token_in"
+        breakdown_type = "event"
+      }
+
+      trendsFilter = {
+        display                 = "ActionsLineGraph"
+        aggregationAxisFormat   = "numeric"
+        showAlertThresholdLines = false
+        showLegend              = true
+        showPercentStackView    = false
+        showValuesOnSeries      = false
+        smoothingIntervals      = 1
+        yAxisScaleType          = "linear"
+      }
+    }
+  })
+
+  dashboard_ids = [
+    posthog_dashboard.zivoe_dapp_activation_funnel.id,
+  ]
+}
+
 resource "posthog_insight" "zivoe_dapp_authorization_friction" {
   name        = "Zivoe Dapp - Authorization Friction"
-  description = "Compares approval starts, successes, signature rejections, and failures. Approval events can come from deposit or redemption allowance flows. Permit flows were retired with the legacy protocol."
+  description = "Compares approval and permit starts, successes, signature rejections, and failures. Approval events can come from deposit or redemption allowance flows; permit events are deposit-only."
   tags        = ["terraform", "dapp", "authorization", "deposit", "redemption"]
 
   query_json = jsonencode({
@@ -578,6 +694,34 @@ resource "posthog_insight" "zivoe_dapp_authorization_friction" {
           event       = "tx:approval_failed"
           name        = "tx:approval_failed"
           custom_name = "Approval failed"
+          math        = "total"
+        },
+        {
+          kind        = "EventsNode"
+          event       = "tx:permit_started"
+          name        = "tx:permit_started"
+          custom_name = "Permit started"
+          math        = "total"
+        },
+        {
+          kind        = "EventsNode"
+          event       = "tx:permit_signed"
+          name        = "tx:permit_signed"
+          custom_name = "Permit signed"
+          math        = "total"
+        },
+        {
+          kind        = "EventsNode"
+          event       = "tx:permit_signature_rejected"
+          name        = "tx:permit_signature_rejected"
+          custom_name = "Permit signature rejected"
+          math        = "total"
+        },
+        {
+          kind        = "EventsNode"
+          event       = "tx:permit_failed"
+          name        = "tx:permit_failed"
+          custom_name = "Permit failed"
           math        = "total"
         },
       ]
@@ -799,6 +943,50 @@ resource "posthog_dashboard_layout" "zivoe_dapp_activation_funnel" {
           w    = 1
           x    = 0
           y    = 52
+        }
+      })
+    },
+    {
+      insight_id       = posthog_insight.zivoe_dapp_centrifuge_deposit_receipt_volume_by_vault.id
+      show_description = true
+      layouts_json = jsonencode({
+        sm = {
+          h    = 6
+          minH = 4
+          minW = 4
+          w    = 6
+          x    = 0
+          y    = 38
+        }
+        xs = {
+          h    = 6
+          minH = 4
+          minW = 1
+          w    = 1
+          x    = 0
+          y    = 58
+        }
+      })
+    },
+    {
+      insight_id       = posthog_insight.zivoe_dapp_centrifuge_redemption_claim_volume_by_vault.id
+      show_description = true
+      layouts_json = jsonencode({
+        sm = {
+          h    = 6
+          minH = 4
+          minW = 4
+          w    = 6
+          x    = 6
+          y    = 38
+        }
+        xs = {
+          h    = 6
+          minH = 4
+          minW = 1
+          w    = 1
+          x    = 0
+          y    = 64
         }
       })
     },

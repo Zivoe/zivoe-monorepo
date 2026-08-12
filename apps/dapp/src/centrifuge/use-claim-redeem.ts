@@ -16,7 +16,7 @@ import useCentrifugeTx from './useCentrifugeTx';
 function claimRedeemCopy({ asset, share }: { asset: string; share: string }) {
   return {
     simulationErrors: {
-      VaultNotLinked: 'Claims are temporarily unavailable for this vault.',
+      VaultNotLinked: 'Claims are temporarily unavailable. Try again later.',
       TransferNotAllowed: "These proceeds can't be claimed to this wallet right now.",
       TransferBlocked: "These proceeds can't be claimed to this wallet right now.",
       ExceedsRedeemLimits: 'Your claimable amount changed. Refresh and try again.',
@@ -62,11 +62,11 @@ export function useClaimRedeem({
     // Fail early when Returned Shares are already visible. The exact-call gate
     // below closes the remaining race if the SDK's later read sees a different
     // bucket while it builds the aggregate claim.
-    action: async (_, { vault, address }) => {
-      const position = await readRedemptionPosition({ vault, investor: address });
+    action: async (_, { centrifugeVault, address }) => {
+      const position = await readRedemptionPosition({ centrifugeVault, investor: address });
       if (position.claimableCancelRedeemShares > 0n) throw new AppError({ message: copy.guard, capture: false });
 
-      return { tx: vault.claim() };
+      return { tx: centrifugeVault.claim() };
     },
 
     expectedCall: (_, { address }) => ({
@@ -74,7 +74,7 @@ export function useClaimRedeem({
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimRedeem',
-        args: [shareClass.vaultAddress, address, address]
+        args: [shareClass.centrifugeVaultAddress, address, address]
       }),
       mismatchMessage: copy.mismatch
     }),

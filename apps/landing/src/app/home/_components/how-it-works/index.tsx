@@ -12,7 +12,7 @@ export default function HowItWorks() {
     <Container className="w-fit justify-between gap-20 py-10 sm:px-10 sm:py-20 md:w-140 md:px-0 xl:w-auto xl:flex-row xl:items-start xl:px-26 xl:py-40 2xl:px-48">
       <div className="flex w-full flex-col gap-10 sm:items-center sm:gap-16 xl:gap-20">
         <div className="flex flex-col gap-8 sm:items-center">
-          <p className="font-heading! text-small text-primary sm:text-leading">Simplified, For You</p>
+          <p className="font-heading! text-small text-primary sm:text-leading">How It Works</p>
 
           <div className="flex flex-col gap-4 sm:items-center">
             <h2 className="text-h6 text-primary sm:text-center sm:text-h4 xl:text-h2">Get Started in Three Steps</h2>

@@ -37,7 +37,7 @@ function renderLifecycle(overrides: {
         pendingToast: () => 'pending',
         errorToast: () => 'error',
         sentryFlow: 'test-flow',
-        offeringSlug: 'test-offering',
+        zivoeVaultSlug: 'test-zivoe-vault',
         transactionData:
           overrides.transactionData ??
           ((receipt) => ({ type: 'SUCCESS', title: 'ok', description: 'ok', hash: receipt.transactionHash })),
@@ -55,7 +55,7 @@ describe('useTxLifecycle', () => {
     getDefaultStore().set(transactionAtom, undefined);
   });
 
-  it('falls back to a minimal payload that still carries the Offering slug when payload construction throws', async () => {
+  it('falls back to a minimal payload that still carries the ZivoeVault slug when payload construction throws', async () => {
     const rendered = renderLifecycle({
       transactionData: () => {
         throw new Error('payload boom');
@@ -72,12 +72,12 @@ describe('useTxLifecycle', () => {
     expect(getDefaultStore().get(transactionAtom)).toMatchObject({
       type: 'SUCCESS',
       title: 'Transaction Confirmed',
-      offeringSlug: 'test-offering'
+      zivoeVaultSlug: 'test-zivoe-vault'
     });
     expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({
-        tags: expect.objectContaining({ stage: 'payload', offering: 'test-offering' }),
+        tags: expect.objectContaining({ stage: 'payload', zivoeVault: 'test-zivoe-vault' }),
         extra: expect.objectContaining({ txHash: RECEIPT.transactionHash })
       })
     );
@@ -99,7 +99,7 @@ describe('useTxLifecycle', () => {
     expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({
-        tags: expect.objectContaining({ stage: 'invalidate', offering: 'test-offering' }),
+        tags: expect.objectContaining({ stage: 'invalidate', zivoeVault: 'test-zivoe-vault' }),
         extra: expect.objectContaining({ txHash: RECEIPT.transactionHash })
       })
     );

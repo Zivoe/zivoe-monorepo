@@ -44,28 +44,6 @@ export default function Footer() {
 
         <div className="mt-16 flex w-full flex-col justify-between gap-8 lg:mt-14 lg:flex-row">
           <p className="text-small text-base">{copyrightLine()}</p>
-
-          <div className="order-2 flex gap-8 lg:order-1">
-            <Link
-              href="https://docs.zivoe.com/terms/terms-of-use-privacy-policy"
-              target="_blank"
-              hideExternalLinkIcon
-              variant="link-base"
-              size="s"
-            >
-              Terms of Use
-            </Link>
-
-            <Link
-              href="https://docs.zivoe.com/terms/reg-s-compliance"
-              target="_blank"
-              hideExternalLinkIcon
-              variant="link-base"
-              size="s"
-            >
-              Reg S Compliance
-            </Link>
-          </div>
         </div>
 
         <p className="mt-12 text-extraSmall text-disabled lg:mt-20">
@@ -113,7 +91,16 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     title: 'Company',
     links: [
       { href: '/team', label: 'Team' },
-      { href: `mailto:${EMAILS.INQUIRE}`, label: 'Contact Us' }
+      { href: `mailto:${EMAILS.INQUIRE}`, label: EMAILS.INQUIRE }
+    ]
+  },
+
+  // The documents keep their published names; only the footer labels changed.
+  {
+    title: 'Legal',
+    links: [
+      { href: 'https://docs.zivoe.com/terms/terms-of-use-privacy-policy', label: 'Privacy Policy', target: '_blank' },
+      { href: 'https://docs.zivoe.com/terms/reg-s-compliance', label: 'Disclosures', target: '_blank' }
     ]
   }
 ];

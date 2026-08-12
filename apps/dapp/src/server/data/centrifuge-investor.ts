@@ -28,7 +28,7 @@ const anyInvestorTransactionSchema = z.object({
  * True when any investor-transaction row exists across every live share class
  * for the given wallets — any lifecycle type, so holders-by-transfer are never
  * nagged, deposited-then-redeemed users stay suppressed, and an investor in
- * any Offering is never nagged to deposit into a platform they already use.
+ * any Zivoe Vault is never nagged to deposit into a platform they already use.
  */
 export async function hasAnyInvestorTransaction({
   shareClassKeys,

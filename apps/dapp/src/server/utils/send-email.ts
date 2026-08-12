@@ -47,7 +47,7 @@ export async function sendOnboardingReminderEmail({ to, name, userId }: { to: st
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
         replyTo: EMAILS.INQUIRE,
         to,
-        subject: 'Almost There',
+        subject: 'Need help completing your Zivoe onboarding?',
         html,
         headers: oneClickHeaders
       },
@@ -99,7 +99,7 @@ export async function sendFirstDepositReminderEmail({
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
         replyTo: EMAILS.INQUIRE,
         to,
-        subject: 'Getting Started',
+        subject: 'Ready to put your stablecoins to work?',
         html,
         headers: oneClickHeaders
       },
@@ -130,7 +130,7 @@ export async function sendSecondDepositReminderEmail({
         from: 'Thor from Zivoe <hello@auth.zivoe.com>',
         replyTo: EMAILS.INQUIRE,
         to,
-        subject: 'Last Nudge',
+        subject: 'Still interested in Zivoe?',
         html,
         headers: oneClickHeaders
       },

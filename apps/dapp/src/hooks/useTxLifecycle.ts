@@ -132,12 +132,12 @@ export type TxSharedConfig<TVariables> = {
   /** Extras attached to the Sentry capture; defaults to the mutation variables. */
   sentryExtras?: (vars: TVariables) => Record<string, unknown>;
   /**
-   * Offering the transaction runs against — stamped onto the dialog payload
-   * (built and fallback alike) and derived into the `offering` Sentry tag and
-   * `offeringSlug` extra, so every driver carries the same stable Offering
+   * Zivoe Vault the transaction runs against — stamped onto the dialog payload
+   * (built and fallback alike) and derived into the `zivoeVault` Sentry tag and
+   * `zivoeVaultSlug` extra, so every driver carries the same stable Zivoe Vault
    * identity without per-driver stamps.
    */
-  offeringSlug?: string;
+  zivoeVaultSlug?: string;
   /**
    * Maps the confirmed receipt to the transaction dialog payload. Runs inside
    * the mutation, so the payload snapshots the identity the hook was handed
@@ -206,12 +206,14 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const setTransaction = useSetAtom(transactionAtom);
 
   // The extras default is resolved once here — capture sites below must not
-  // each re-implement the fallback — and the Offering identity is derived
+  // each re-implement the fallback — and the Zivoe Vault identity is derived
   // into tags/extras from the one slug field instead of per-driver stamps.
   const resolvedExtras = config.sentryExtras ?? toSentryExtras;
-  const sentryTags = config.offeringSlug ? { offering: config.offeringSlug, ...config.sentryTags } : config.sentryTags;
+  const sentryTags = config.zivoeVaultSlug
+    ? { zivoeVault: config.zivoeVaultSlug, ...config.sentryTags }
+    : config.sentryTags;
   const sentryExtras = (vars: TVariables) =>
-    config.offeringSlug ? { ...resolvedExtras(vars), offeringSlug: config.offeringSlug } : resolvedExtras(vars);
+    config.zivoeVaultSlug ? { ...resolvedExtras(vars), zivoeVaultSlug: config.zivoeVaultSlug } : resolvedExtras(vars);
 
   const [isTxPending, setIsTxPending] = useState(false);
 
@@ -302,7 +304,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         }
 
         // Stamped after the fallback so every payload shape carries the slug.
-        if (config.offeringSlug) transactionData = { ...transactionData, offeringSlug: config.offeringSlug };
+        if (config.zivoeVaultSlug) transactionData = { ...transactionData, zivoeVaultSlug: config.zivoeVaultSlug };
 
         // Same rule as the payload above: a throw after the receipt must never
         // re-classify a settled transaction as failed — capture and move on.

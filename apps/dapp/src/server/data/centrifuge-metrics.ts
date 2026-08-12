@@ -20,7 +20,7 @@ import {
 import { env } from '@/env';
 
 import { sharesToValueD18 } from '@/centrifuge/config';
-import { OFFERINGS } from '@/offerings';
+import { ZIVOE_VAULTS } from '@/zivoe-vaults';
 
 export type CentrifugeDailySnapshot = {
   /** UTC start (ms) of the day whose close this point records. */
@@ -139,7 +139,7 @@ const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-shar
  * inside the cache, hide-and-capture outside.
  */
 export const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | undefined> => {
-  const shareClassKeys = OFFERINGS.map((offering) => offering.shareClass.key);
+  const shareClassKeys = ZIVOE_VAULTS.map((zivoeVault) => zivoeVault.shareClass.key);
 
   try {
     return await cachedShareClassNavs(shareClassKeys);

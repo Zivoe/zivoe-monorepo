@@ -17,8 +17,8 @@ function depositCopy({ asset, share }: { asset: string; share: string }) {
     simulationErrors: {
       InsufficientBalance: `You don't have enough ${asset} for this deposit.`,
       InsufficientAllowance: `Your ${asset} approval is no longer sufficient. Approve the amount again and retry.`,
-      ExceedsMaxDeposit: "This vault can't accept that deposit right now. Try a smaller amount or try again later.",
-      ExceedsMaxMint: "This vault can't accept that deposit right now. Try a smaller amount or try again later.",
+      ExceedsMaxDeposit: "This deposit can't be accepted right now. Try a smaller amount or try again later.",
+      ExceedsMaxMint: "This deposit can't be accepted right now. Try a smaller amount or try again later.",
       InvalidPrice: 'The current deposit price is unavailable. Try again later.',
       RestrictionsFailed: "This deposit can't be completed for this wallet right now.",
       TransferBlocked: "This deposit can't be completed for this wallet right now."
@@ -60,11 +60,11 @@ export function useDeposit({
     // No balance/capacity re-reads here: the form guards against the cached
     // queries, and the exact-call simulation is the authoritative pre-sign gate
     // (it exercises the real revert paths and surfaces the decoded copy).
-    action: async ({ assets, previewShares }, { vault }) => {
+    action: async ({ assets, previewShares }, { centrifugeVault }) => {
       if (assets <= 0n) throw new AppError({ message: 'No amount to deposit' });
       if (previewShares <= 0n) throw new AppError({ message: 'Missing deposit preview' });
 
-      return { tx: vault.syncDeposit(new Balance(assets, usdc.decimals)) };
+      return { tx: centrifugeVault.syncDeposit(new Balance(assets, usdc.decimals)) };
     },
 
     simulationErrorCopy: copy.simulationErrors,
@@ -130,7 +130,12 @@ export function useDeposit({
           spender: CENTRIFUGE_ENV.vaultRouterAddress
         })
       });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.app.vaultCapacity({ shareClassKey: shareClass.key }) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.app.centrifugeVaultCapacity({
+          shareClassKey: shareClass.key,
+          centrifugeVaultAddress: shareClass.centrifugeVaultAddress
+        })
+      });
     }
   });
 }
