@@ -18,7 +18,7 @@
     "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove"
   },
   "dependencies": {
-    "@centrifuge/sdk": "1.22.0",
+    "@centrifuge/sdk": "1.24.1",
     "@dynamic-labs/ethereum": "4.92.3",
     "@dynamic-labs/sdk-react-core": "4.92.3",
     "@dynamic-labs/wagmi-connector": "4.92.3",
