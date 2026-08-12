@@ -7,8 +7,9 @@ import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
  * The fixed Details row set, in render order — one list owns both the rows
- * and their order. Zivoe Vaults stay comparable line by line because the labels
- * never vary per module; a new row is a deliberate addition here. Rows whose
+ * and their order. The labels never vary per module, so Zivoe Vaults stay
+ * comparable line by line as more launch; a new row is a deliberate addition
+ * here. Rows whose
  * fact the catalog already owns are DERIVED at render and cannot be authored
  * by a module (two sources for one fact would drift) — the typed record
  * below forces every module to fill exactly the authored rows.
@@ -18,7 +19,6 @@ export const ZIVOE_VAULT_DETAIL_LABELS = [
   'Ticker',
   'Asset Type',
   'Geography',
-  'Inception',
   'Entry/exit fees',
   'Redemptions',
   'Eligibility',

@@ -26,7 +26,6 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVault = {
 
   details: {
     Geography: 'United States',
-    Inception: 'August 8 2026',
     'Entry/exit fees': 'None',
     Redemptions: 'Processed weekly',
     Eligibility: 'U.S. accredited investors & eligible non-U.S. persons'
