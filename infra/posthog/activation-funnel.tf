@@ -558,7 +558,7 @@ resource "posthog_insight" "zivoe_dapp_centrifuge_deposit_receipt_volume_by_vaul
             {
               key      = "token_out"
               type     = "event"
-              value    = ["zSMB", "zALT"]
+              value    = ["zSMB"]
               operator = "exact"
             },
           ]

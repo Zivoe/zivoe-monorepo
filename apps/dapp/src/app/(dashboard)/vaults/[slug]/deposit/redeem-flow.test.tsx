@@ -14,7 +14,7 @@ import RedeemFlow from './redeem-flow';
 
 const { USDC_ADDRESS, ZSMB_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZSMB_ADDRESS: '0xc0cE8aFcb1D3299A3445575EA426c1b313298B4c'
+  ZSMB_ADDRESS: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
 }));
 
 const D18 = 10n ** 18n;
