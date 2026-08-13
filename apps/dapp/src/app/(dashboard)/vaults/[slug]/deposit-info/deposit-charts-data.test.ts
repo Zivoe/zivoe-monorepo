@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { type ShareStatsPayload } from '@zivoe/centrifuge-indexer';
 
-import { formatChartValue, parseChartData } from './deposit-charts-data';
+import { parseChartData } from './deposit-charts-data';
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
@@ -43,7 +43,8 @@ describe('parseChartData', () => {
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
     expect(chart?.data[2]?.day).toBe('3 Jul 2026');
-    expect(chart?.headline).toBe(formatChartValue({ value: 105, type: 'NAV' }));
+    // Literal string so a NAV/Token-Price formatter swap can't pass silently.
+    expect(chart?.headline).toBe('$105');
   });
 
   it('supersedes a same-day price-event bucket with the live overlay', () => {
@@ -76,6 +77,6 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data).toHaveLength(2);
-    expect(chart?.headline).toBe(formatChartValue({ value: 1.07, type: 'Token Price' }));
+    expect(chart?.headline).toBe('$1.07');
   });
 });
