@@ -20,7 +20,7 @@ export default function DepositStats({
     <InfoSection title="Stats" icon={<ChartIcon />}>
       {/* Full NAV amounts can outgrow narrow viewports; wrapping beats
           clipping since no box can shrink (whitespace-nowrap values). */}
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="flex flex-wrap justify-between gap-6">
         <Box title="NAV" icon={<BankIcon />} value={`$${formatNav(nav)}`} />
 
         <Box

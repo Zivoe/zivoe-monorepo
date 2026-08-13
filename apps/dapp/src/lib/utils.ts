@@ -80,7 +80,10 @@ export const formatNav = (nav: number) => floorToDecimals(nav, 0).toLocaleString
 
 // Token price displays: truncated at 4 decimals, trailing zeros trimmed down
 // to the familiar 2-decimal money shape (1.12345 -> 1.1234, 1.13 -> 1.13).
-export const formatTokenPrice = (price: number) => floorToDecimals(price, 4).toFixed(4).replace(/(\.\d{2}\d*?)0+$/, '$1');
+export const formatTokenPrice = (price: number) =>
+  floorToDecimals(price, 4)
+    .toFixed(4)
+    .replace(/(\.\d{2}\d*?)0+$/, '$1');
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 
