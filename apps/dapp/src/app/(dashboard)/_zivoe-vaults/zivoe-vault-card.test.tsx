@@ -43,6 +43,8 @@ describe('ZivoeVaultCard', () => {
 
     expect(disclosureTrigger.closest('a')).toBeNull();
     expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
+    // NAV renders as the full dollar amount, no k/M suffix.
+    expect(screen.getByText('$112,000')).toBeTruthy();
     expect(screen.getByRole('link', { name: `View ${ZSMB_ZIVOE_VAULT.name}` }).getAttribute('href')).toBe(
       `/vaults/${ZSMB_ZIVOE_VAULT.slug}`
     );

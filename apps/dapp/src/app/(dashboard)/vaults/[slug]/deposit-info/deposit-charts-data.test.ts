@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { type ShareStatsPayload } from '@zivoe/centrifuge-indexer';
 
-import { formatChartValue, parseChartData } from './deposit-charts-data';
+import { parseChartData } from './deposit-charts-data';
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
@@ -43,7 +43,8 @@ describe('parseChartData', () => {
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
     expect(chart?.data[2]?.day).toBe('3 Jul 2026');
-    expect(chart?.headline).toBe(formatChartValue(105));
+    // Literal string so a NAV/Token-Price formatter swap can't pass silently.
+    expect(chart?.headline).toBe('$105');
   });
 
   it('supersedes a same-day price-event bucket with the live overlay', () => {
@@ -67,6 +68,54 @@ describe('parseChartData', () => {
     expect(nav?.data.map((point) => point.data)).toEqual([104]);
   });
 
+  it('snaps the price axis to even nice-step gridlines with headroom above the peak', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { sharePrice: 0.01 }), close(day2, { sharePrice: 1.13 })],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.domain).toEqual([0, 1.25]);
+    expect(chart?.ticks).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25]);
+  });
+
+  it('keeps the 0.99 par baseline in view for a flat near-par price series', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { sharePrice: 1.07 }), close(day2, { sharePrice: 1.07 })],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.domain).toEqual([0.98, 1.08]);
+    expect(chart?.ticks).toEqual([0.98, 1, 1.02, 1.04, 1.06, 1.08]);
+  });
+
+  it('gives the NAV axis snapped ticks that end at the domain edges', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 1_670_000 })],
+      current: null,
+      typeIndex: NAV,
+      todayStartMs: today
+    });
+
+    expect(chart?.domain).toEqual([0, 2_000_000]);
+    expect(chart?.ticks).toEqual([0, 500_000, 1_000_000, 1_500_000, 2_000_000]);
+  });
+
+  it('keeps a finite snapped axis for a dust-sized NAV range', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 3.47e-16 })],
+      current: null,
+      typeIndex: NAV,
+      todayStartMs: today
+    });
+
+    expect(chart?.domain).toEqual([0, 1e-9]);
+    expect(chart?.ticks).toEqual([0, 1e-9]);
+  });
+
   it('falls back to the newest plotted close when the current payload is unavailable', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { sharePrice: 1.05 }), close(day2, { sharePrice: 1.07 })],
@@ -76,6 +125,6 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data).toHaveLength(2);
-    expect(chart?.headline).toBe(formatChartValue(1.07));
+    expect(chart?.headline).toBe('$1.07');
   });
 });

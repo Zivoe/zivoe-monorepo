@@ -16,10 +16,10 @@ export const truncateAddress = (address: string | undefined) => {
 };
 
 export function customNumber(number: number) {
-  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000)}M`;
-  else if (number >= 1_000) return `${floorToDecimals(number / 1_000)}k`;
+  if (number >= 1_000_000) return `${floorToDecimals(number / 1_000_000).toFixed(2)}M`;
+  else if (number >= 1_000) return `${floorToDecimals(number / 1_000).toFixed(2)}k`;
   else {
-    return floorToDecimals(number);
+    return floorToDecimals(number).toFixed(2);
   }
 }
 
@@ -28,9 +28,9 @@ export const formatBigIntToReadable = (value: bigint, decimals?: number) => {
   const numericValue = Number(inEther);
 
   if (numericValue >= 1_000_000) {
-    return `${floorToDecimals(numericValue / 1_000_000)}M`;
+    return `${floorToDecimals(numericValue / 1_000_000).toFixed(2)}M`;
   } else if (numericValue >= 1_000) {
-    return `${floorToDecimals(numericValue / 1_000)}k`;
+    return `${floorToDecimals(numericValue / 1_000).toFixed(2)}k`;
   } else {
     // Cents only survive below the k/M thresholds, and this is the range where
     // a receipt sits beside a claim row showing the same amount — so share the
@@ -66,12 +66,24 @@ export const formatBigIntWithCommas = ({
 const floorToDecimals = (num: number, decimals = 2) => {
   const multiplier = Math.pow(10, decimals);
   // Scaling first introduces representation error (1.14 * 100 is
-  // 113.99999999999999), which floors a whole cent off the value. Round that
-  // noise away before flooring. The guard is coarser than it looks — anything
-  // within 0.0005 of the next step rounds up — so this is only safe for the
-  // k/M summaries it now serves, where that margin is far below what is shown.
-  return (Math.floor(Math.round(num * multiplier * 1000) / 1000) / multiplier).toFixed(decimals);
+  // 113.99999999999999), which floors a whole display unit off the value.
+  // Round that noise away before flooring: anything within 5e-7 of the next
+  // step rounds up — wide enough to absorb bigint-D18 / 1e18 conversion
+  // noise, yet far enough below display precision that genuine near-boundary
+  // values still truncate down.
+  return Math.floor(Math.round(num * multiplier * 1e6) / 1e6) / multiplier;
 };
+
+// NAV displays: the full dollar amount with separators, truncated to whole
+// dollars (values arrive as navD18 / 1e18).
+export const formatNav = (nav: number) => floorToDecimals(nav, 0).toLocaleString('en-US');
+
+// Token price displays: truncated at 4 decimals, trailing zeros trimmed down
+// to the familiar 2-decimal money shape (1.12345 -> 1.1234, 1.13 -> 1.13).
+export const formatTokenPrice = (price: number) =>
+  floorToDecimals(price, 4)
+    .toFixed(4)
+    .replace(/(\.\d{2}\d*?)0+$/, '$1');
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 

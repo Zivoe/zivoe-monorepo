@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { formatBigIntToReadable, formatBigIntWithCommas } from './utils';
+import { formatBigIntToReadable, formatBigIntWithCommas, formatNav, formatTokenPrice } from './utils';
 
 // The module's toast import drags in the React runtime; the formatter is pure.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
@@ -54,5 +54,48 @@ describe('formatBigIntToReadable', () => {
   it('still summarises larger balances with k and M suffixes', () => {
     expect(formatBigIntToReadable(1_500_000000n, 6)).toBe('1.50k');
     expect(formatBigIntToReadable(2_500_000_000000n, 6)).toBe('2.50M');
+  });
+});
+
+describe('formatNav', () => {
+  it('shows the full dollar amount with separators, truncated to whole dollars', () => {
+    expect(formatNav(1_672_345.67)).toBe('1,672,345');
+    expect(formatNav(999.99)).toBe('999');
+    expect(formatNav(0)).toBe('0');
+  });
+
+  it('keeps exact amounts the navD18 / 1e18 path lands a hair under the integer', () => {
+    // Both doubles genuinely sit below the exact value (…64.99999999999954,
+    // …08.9999999998836); a bare Math.floor would lose a whole dollar.
+    expect(formatNav(Number(2_365n * 10n ** 18n) / 1e18)).toBe('2,365');
+    expect(formatNav(Number(1_000_009n * 10n ** 18n) / 1e18)).toBe('1,000,009');
+  });
+
+  it('truncates genuine near-boundary values instead of rounding up', () => {
+    expect(formatNav(999.9996)).toBe('999');
+    expect(formatNav(112_000.9996)).toBe('112,000');
+  });
+});
+
+describe('formatTokenPrice', () => {
+  it('truncates at four decimals instead of rounding', () => {
+    expect(formatTokenPrice(1.12345)).toBe('1.1234');
+    expect(formatTokenPrice(1.99999)).toBe('1.9999');
+  });
+
+  it('trims trailing zeros down to a two-decimal minimum', () => {
+    expect(formatTokenPrice(1.13)).toBe('1.13');
+    expect(formatTokenPrice(1.123)).toBe('1.123');
+    expect(formatTokenPrice(1)).toBe('1.00');
+  });
+
+  it('keeps exact prices the sharePriceD18 / 1e18 path lands a hair under', () => {
+    // 1.13 arrives as 1.1299999999999998934; a bare truncation shows 1.1299.
+    expect(formatTokenPrice(Number(1_130_000_000_000_000_000n) / 1e18)).toBe('1.13');
+  });
+
+  it('truncates genuine near-boundary prices instead of rounding up', () => {
+    expect(formatTokenPrice(1.129999999)).toBe('1.1299');
+    expect(formatTokenPrice(2.00009999)).toBe('2.00');
   });
 });

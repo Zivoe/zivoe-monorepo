@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 
 import { BankIcon, ChartIcon, MoneyIcon, TrendingIcon } from '@zivoe/ui/icons';
 
-import { customNumber } from '@/lib/utils';
+import { formatNav, formatTokenPrice } from '@/lib/utils';
 
 import InfoSection from '@/components/info-section';
 import TargetApyDisclosure from '@/components/target-apy-disclosure';
@@ -18,8 +18,10 @@ export default function DepositStats({
 }) {
   return (
     <InfoSection title="Stats" icon={<ChartIcon />}>
-      <div className="flex justify-between gap-4">
-        <Box title="NAV" icon={<BankIcon />} value={`$${customNumber(nav)}`} />
+      {/* Full NAV amounts can outgrow narrow viewports; wrapping beats
+          clipping since no box can shrink (whitespace-nowrap values). */}
+      <div className="flex flex-wrap justify-between gap-6">
+        <Box title="NAV" icon={<BankIcon />} value={`$${formatNav(nav)}`} />
 
         <Box
           title="Target APY"
@@ -28,7 +30,7 @@ export default function DepositStats({
           help={<TargetApyDisclosure triggerClassName="-ml-1" />}
         />
 
-        <Box title="Token Price" icon={<MoneyIcon />} value={`$${customNumber(sharePrice)}`} />
+        <Box title="Token Price" icon={<MoneyIcon />} value={`$${formatTokenPrice(sharePrice)}`} />
       </div>
     </InfoSection>
   );

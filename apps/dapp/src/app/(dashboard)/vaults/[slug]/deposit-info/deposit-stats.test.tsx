@@ -27,14 +27,15 @@ describe('DepositStats', () => {
     render(<DepositStats nav={112000} sharePrice={1.0725} targetApyPercent={14} />);
 
     expect(screen.getByText('NAV')).toBeTruthy();
-    expect(screen.getByText('$112.00k')).toBeTruthy();
+    // Full amount, no k/M suffix, truncated to whole dollars.
+    expect(screen.getByText('$112,000')).toBeTruthy();
     expect(screen.getByText('Target APY')).toBeTruthy();
     expect(screen.getByText('14%')).toBeTruthy();
     // The Target APY number never renders without its disclosure.
     expect(screen.getByLabelText('About Target APY')).toBeTruthy();
     expect(screen.getByText(/Target APY is a gross annualized target before fees and expenses/)).toBeTruthy();
     expect(screen.getByText('Token Price')).toBeTruthy();
-    // Two decimals, floored — the same treatment NAV gets.
-    expect(screen.getByText('$1.07')).toBeTruthy();
+    // Up to four decimals, truncated.
+    expect(screen.getByText('$1.0725')).toBeTruthy();
   });
 });

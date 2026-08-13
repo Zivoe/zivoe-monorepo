@@ -12,7 +12,7 @@ import { ChartIcon } from '@zivoe/ui/icons';
 
 import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
-import { customNumber } from '@/lib/utils';
+import { customNumber, formatTokenPrice } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -80,6 +80,9 @@ export default function DepositCharts({
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 
+            {/* Axis ticks intentionally keep the compact form — k/M for NAV,
+                trimmed money-shape prices for Token Price — while the
+                headline and tooltip show the full formatted values. */}
             <YAxis
               tickLine={false}
               hide={isMobile}
@@ -89,7 +92,7 @@ export default function DepositCharts({
               scale="linear"
               domain={chart.domain}
               ticks={chart.ticks}
-              tickFormatter={(value) => (chart.type === 'NAV' ? customNumber(value) : value)}
+              tickFormatter={(value) => (chart.type === 'NAV' ? customNumber(value) : formatTokenPrice(value))}
             />
 
             <ChartTooltip
@@ -104,7 +107,7 @@ export default function DepositCharts({
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="font-heading! text-regular text-primary tabular-nums">
-                          {formatChartValue(Number(value))}
+                          {formatChartValue({ value: Number(value), type: chart.type })}
                         </span>
                         <span className="text-small text-secondary">{date}</span>
                       </div>

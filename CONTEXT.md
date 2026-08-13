@@ -57,11 +57,11 @@ What a flow hands every Centrifuge Transaction Hook: `{ zivoeVaultSlug, shareCla
 _Avoid_: vault context
 
 **NAV**:
-Net Asset Value: the user-facing name for a share class's value — Token Price × total issuance. Internals and the indexer use `nav`/`navD18` too, so the term stays consistent from data through presentation.
+Net Asset Value: the user-facing name for a share class's value — Token Price × total issuance. Displayed as the full dollar amount truncated to whole dollars; only the chart Y axis keeps the compact k/M form. Internals and the indexer use `nav`/`navD18` too, so the term stays consistent from data through presentation.
 _Avoid_: alternate names for this metric
 
 **Token Price**:
-The user-facing name for the share token's price, shown to two decimals like NAV. Internals deliberately keep `sharePrice`/`sharePriceD18`, matching the SDK and indexer vocabulary — do not rename them.
+The user-facing name for the share token's price, shown truncated to at most four decimals (trailing zeros trimmed, two-decimal minimum). Internals deliberately keep `sharePrice`/`sharePriceD18`, matching the SDK and indexer vocabulary — do not rename them.
 _Avoid_: Share Price in user-facing copy
 
 **Redemption Position**:
