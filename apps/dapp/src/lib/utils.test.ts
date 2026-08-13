@@ -64,8 +64,16 @@ describe('formatNav', () => {
     expect(formatNav(0)).toBe('0');
   });
 
-  it('keeps exact amounts along the navD18 / 1e18 production path', () => {
-    expect(formatNav(Number(1_672_345n * 10n ** 18n) / 1e18)).toBe('1,672,345');
+  it('keeps exact amounts the navD18 / 1e18 path lands a hair under the integer', () => {
+    // Both doubles genuinely sit below the exact value (…64.99999999999954,
+    // …08.9999999998836); a bare Math.floor would lose a whole dollar.
+    expect(formatNav(Number(2_365n * 10n ** 18n) / 1e18)).toBe('2,365');
+    expect(formatNav(Number(1_000_009n * 10n ** 18n) / 1e18)).toBe('1,000,009');
+  });
+
+  it('truncates genuine near-boundary values instead of rounding up', () => {
+    expect(formatNav(999.9996)).toBe('999');
+    expect(formatNav(112_000.9996)).toBe('112,000');
   });
 });
 
@@ -81,8 +89,13 @@ describe('formatTokenPrice', () => {
     expect(formatTokenPrice(1)).toBe('1.00');
   });
 
-  it('keeps exact prices along the sharePriceD18 / 1e18 production path', () => {
+  it('keeps exact prices the sharePriceD18 / 1e18 path lands a hair under', () => {
+    // 1.13 arrives as 1.1299999999999998934; a bare truncation shows 1.1299.
     expect(formatTokenPrice(Number(1_130_000_000_000_000_000n) / 1e18)).toBe('1.13');
-    expect(formatTokenPrice(Number(1_072_500_000_000_000_000n) / 1e18)).toBe('1.0725');
+  });
+
+  it('truncates genuine near-boundary prices instead of rounding up', () => {
+    expect(formatTokenPrice(1.129999999)).toBe('1.1299');
+    expect(formatTokenPrice(2.00009999)).toBe('2.00');
   });
 });
