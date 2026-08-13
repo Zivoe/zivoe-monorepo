@@ -9,7 +9,8 @@ import { formatNav, formatTokenPrice } from '@/lib/utils';
 export const CHART_TYPES = ['Token Price', 'NAV'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
-// Headline and tooltip values; only the Y axis keeps the compact k/M form.
+// Headline and tooltip values; the Y axis alone keeps its compact form (see
+// the tick formatter in deposit-charts.tsx).
 export function formatChartValue({ value, type }: { value: number; type: ChartType }) {
   return type === 'NAV' ? `$${formatNav(value)}` : `$${formatTokenPrice(value)}`;
 }

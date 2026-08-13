@@ -80,6 +80,9 @@ export default function DepositCharts({
               tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
             />
 
+            {/* Axis ticks intentionally keep the compact form — k/M for NAV,
+                raw cent values for Token Price — while the headline and
+                tooltip show the full formatted values. */}
             <YAxis
               tickLine={false}
               hide={isMobile}
