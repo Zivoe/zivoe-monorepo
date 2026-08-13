@@ -15,6 +15,39 @@ export function formatChartValue({ value, type }: { value: number; type: ChartTy
   return type === 'NAV' ? `$${formatNav(value)}` : `$${formatTokenPrice(value)}`;
 }
 
+// Kill float noise from step arithmetic (0.98 + 0.02 -> 1, not 1.0000000000000002).
+const snap = (value: number) => Number(value.toFixed(10));
+
+/**
+ * Shared "nice axis" for both charts: pick a 1/2/2.5/5 × 10^n step targeting
+ * ~5 gridline intervals, then snap the domain to step multiples so the first
+ * and last gridlines are the domain edges — spacing stays even and the line
+ * keeps at least a quarter-step of air at both ends (the floor never dips
+ * below zero for these non-negative series).
+ */
+function niceAxis({ min, max }: { min: number; max: number }): { domain: [number, number]; ticks: Array<number> } {
+  // The 1e-9 clamp sits far below display granularity but above snap's
+  // toFixed(10) horizon, so a wei-dust range can't collapse the step to zero
+  // and NaN the domain.
+  const rawStep = Math.max((max - min) / 5 || Math.max(Math.abs(max), 1) / 5, 1e-9);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const step =
+    [1, 2, 2.5, 5].map((unit) => snap(unit * magnitude)).find((candidate) => candidate >= rawStep) ??
+    snap(10 * magnitude);
+
+  let floor = snap(Math.floor(snap(min / step)) * step);
+  if (min - floor < step / 4) floor = snap(floor - step);
+  if (min >= 0 && floor < 0) floor = 0;
+
+  let top = snap(Math.ceil(snap(max / step)) * step);
+  if (top - max < step / 4) top = snap(top + step);
+
+  const intervals = Math.round((top - floor) / step);
+  const ticks = Array.from({ length: intervals + 1 }, (_, index) => snap(floor + index * step));
+
+  return { domain: [floor, top], ticks };
+}
+
 function formatDayLabel(timestampMs: number) {
   const date = new Date(timestampMs);
   const day = date.getUTCDate();
@@ -72,40 +105,17 @@ export const parseChartData = ({
 
   const values = data.map((d) => d.data);
 
-  if (type === 'Token Price' && values.length > 0) {
-    const maxValue = Math.max(...values);
-
-    // Round up to the next cent; the 4-decimal pre-round keeps float noise
-    // (1.07 * 100 === 107.00000000000001) from adding a phantom cent.
-    let roundedMax = Math.ceil(Math.round(maxValue * 10000) / 100) / 100;
-
-    // Guarantee visible headroom so the line never rides the top gridline.
-    if (roundedMax - maxValue < 0.005) roundedMax = Math.round((roundedMax + 0.01) * 100) / 100;
-
-    // Floor mirrors the ceiling: round down to the cent with visible footroom,
-    // capped at the familiar 0.99 par baseline. A hardcoded 0.99 floor would
-    // clip sub-par closes off-chart and invert the domain once every close
-    // sits below it.
-    const minValue = Math.min(...values);
-    let roundedMin = Math.floor(Math.round(minValue * 10000) / 100) / 100;
-    if (minValue - roundedMin < 0.005) roundedMin = Math.round((roundedMin - 0.01) * 100) / 100;
-    const floor = Math.min(0.99, roundedMin);
-
-    domain = [floor, roundedMax];
-
-    // One-cent ticks in the usual near-par band; widen the step when a
-    // drawdown stretches the axis so labels stay readable.
-    const stepCents = Math.max(1, Math.ceil(Math.round((roundedMax - floor) * 100) / 12));
-    ticks = [];
-    for (let tick = floor; tick <= roundedMax; tick = Math.round((tick + stepCents / 100) * 100) / 100) {
-      ticks.push(tick);
-    }
-  } else if (values.length > 0) {
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    domain = [Math.max(0, minValue * 0.95), maxValue * 1.05];
-  } else {
+  if (values.length === 0) {
     domain = [0, 1];
+  } else if (type === 'Token Price') {
+    // The axis floor never sits above the familiar 0.99 par baseline, which
+    // also gives a flat near-par series a non-degenerate range to step over.
+    // A hardcoded 0.99 floor would clip sub-par closes off-chart.
+    ({ domain, ticks } = niceAxis({ min: Math.min(0.99, ...values), max: Math.max(...values) }));
+  } else {
+    // Pad NAV by ±5% context before snapping so a flat series still reads as
+    // a zoomed-out band instead of magnified day-to-day noise.
+    ({ domain, ticks } = niceAxis({ min: Math.min(...values) * 0.95, max: Math.max(...values) * 1.05 }));
   }
 
   return {
