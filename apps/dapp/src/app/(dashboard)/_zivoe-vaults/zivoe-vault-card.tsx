@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
-import { customNumber } from '@/lib/utils';
+import { formatNav } from '@/lib/utils';
 
 import TargetApyDisclosure from '@/components/target-apy-disclosure';
 import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/zivoe-vault-icons';
@@ -50,7 +50,7 @@ export default function ZivoeVaultCard({
             value={`${zivoeVault.targetApyPercent}%`}
             help={<TargetApyDisclosure triggerClassName="relative z-20" />}
           />
-          <Term label="NAV" value={nav !== null ? `$${customNumber(nav)}` : '—'} />
+          <Term label="NAV" value={nav !== null ? `$${formatNav(nav)}` : '—'} />
           <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons />} />
           <Term label="Available on" value={<AcceptedChainIcons zivoeVault={zivoeVault} />} />
         </div>

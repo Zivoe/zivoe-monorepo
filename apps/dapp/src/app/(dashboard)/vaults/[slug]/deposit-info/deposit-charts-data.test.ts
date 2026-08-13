@@ -43,7 +43,7 @@ describe('parseChartData', () => {
 
     expect(chart?.data.map((point) => point.data)).toEqual([100, 104, 105]);
     expect(chart?.data[2]?.day).toBe('3 Jul 2026');
-    expect(chart?.headline).toBe(formatChartValue(105));
+    expect(chart?.headline).toBe(formatChartValue({ value: 105, type: 'NAV' }));
   });
 
   it('supersedes a same-day price-event bucket with the live overlay', () => {
@@ -76,6 +76,6 @@ describe('parseChartData', () => {
     });
 
     expect(chart?.data).toHaveLength(2);
-    expect(chart?.headline).toBe(formatChartValue(1.07));
+    expect(chart?.headline).toBe(formatChartValue({ value: 1.07, type: 'Token Price' }));
   });
 });

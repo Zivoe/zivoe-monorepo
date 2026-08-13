@@ -4,13 +4,14 @@ import { type ShareStatsPayload } from '@zivoe/centrifuge-indexer';
 
 import { type CentrifugeDailySnapshot } from '@/server/data/centrifuge-metrics';
 
-import { customNumber } from '@/lib/utils';
+import { formatNav, formatTokenPrice } from '@/lib/utils';
 
 export const CHART_TYPES = ['Token Price', 'NAV'] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
-export function formatChartValue(value: number) {
-  return `$${customNumber(value)}`;
+// Headline and tooltip values; only the Y axis keeps the compact k/M form.
+export function formatChartValue({ value, type }: { value: number; type: ChartType }) {
+  return type === 'NAV' ? `$${formatNav(value)}` : `$${formatTokenPrice(value)}`;
 }
 
 function formatDayLabel(timestampMs: number) {
@@ -59,10 +60,10 @@ export const parseChartData = ({
   // The headline is the current metric, never an older point restamped as
   // current — only a missing payload falls back to the newest plotted close.
   let headline: string | undefined;
-  if (currentValue !== undefined) headline = formatChartValue(currentValue);
+  if (currentValue !== undefined) headline = formatChartValue({ value: currentValue, type });
   else {
     const lastPoint = data[data.length - 1];
-    if (lastPoint) headline = formatChartValue(lastPoint.data);
+    if (lastPoint) headline = formatChartValue({ value: lastPoint.data, type });
   }
 
   let domain: [number, number];

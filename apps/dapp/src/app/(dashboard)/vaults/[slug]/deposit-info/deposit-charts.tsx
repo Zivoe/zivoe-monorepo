@@ -104,7 +104,7 @@ export default function DepositCharts({
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="font-heading! text-regular text-primary tabular-nums">
-                          {formatChartValue(Number(value))}
+                          {formatChartValue({ value: Number(value), type: chart.type })}
                         </span>
                         <span className="text-small text-secondary">{date}</span>
                       </div>

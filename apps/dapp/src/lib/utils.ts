@@ -69,9 +69,20 @@ const floorToDecimals = (num: number, decimals = 2) => {
   // 113.99999999999999), which floors a whole cent off the value. Round that
   // noise away before flooring. The guard is coarser than it looks — anything
   // within 0.0005 of the next step rounds up — so this is only safe for the
-  // k/M summaries it now serves, where that margin is far below what is shown.
+  // k/M summaries and token prices it serves, where that margin is far below
+  // what is shown.
   return (Math.floor(Math.round(num * multiplier * 1000) / 1000) / multiplier).toFixed(decimals);
 };
+
+// NAV displays: the full dollar amount with separators, truncated to whole
+// dollars. Values arrive as navD18 / 1e18, so round the float noise away
+// before flooring — a hair under the exact integer would otherwise lose a
+// whole dollar.
+export const formatNav = (nav: number) => Math.floor(Math.round(nav * 1000) / 1000).toLocaleString('en-US');
+
+// Token price displays: truncated at 4 decimals, trailing zeros trimmed down
+// to the familiar 2-decimal money shape (1.12345 -> 1.1234, 1.13 -> 1.13).
+export const formatTokenPrice = (price: number) => floorToDecimals(price, 4).replace(/(\.\d{2}\d*?)0+$/, '$1');
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 
