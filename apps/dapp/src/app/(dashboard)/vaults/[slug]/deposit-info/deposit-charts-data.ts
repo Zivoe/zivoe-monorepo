@@ -20,16 +20,20 @@ const snap = (value: number) => Number(value.toFixed(10));
 
 /**
  * Shared "nice axis" for both charts: pick a 1/2/2.5/5 × 10^n step targeting
- * ~5 gridline intervals, then snap the domain to step multiples so the first
+ * ~4 gridline intervals, then snap the domain to step multiples so the first
  * and last gridlines are the domain edges — spacing stays even and the line
  * keeps at least a quarter-step of air at both ends (the floor never dips
  * below zero for these non-negative series).
  */
-function niceAxis({ min, max }: { min: number; max: number }): { domain: [number, number]; ticks: Array<number> } {
+function niceAxis({ min, max }: { min: number; max: number }): {
+  domain: [number, number];
+  step: number;
+  ticks: Array<number>;
+} {
   // The 1e-9 clamp sits far below display granularity but above snap's
   // toFixed(10) horizon, so a wei-dust range can't collapse the step to zero
   // and NaN the domain.
-  const rawStep = Math.max((max - min) / 5 || Math.max(Math.abs(max), 1) / 5, 1e-9);
+  const rawStep = Math.max((max - min) / 4 || Math.max(Math.abs(max), 1) / 4, 1e-9);
   const magnitude = 10 ** Math.floor(Math.log10(rawStep));
   const step =
     [1, 2, 2.5, 5].map((unit) => snap(unit * magnitude)).find((candidate) => candidate >= rawStep) ??
@@ -45,8 +49,14 @@ function niceAxis({ min, max }: { min: number; max: number }): { domain: [number
   const intervals = Math.round((top - floor) / step);
   const ticks = Array.from({ length: intervals + 1 }, (_, index) => snap(floor + index * step));
 
-  return { domain: [floor, top], ticks };
+  return { domain: [floor, top], step, ticks };
 }
+
+// Decimals so adjacent price ticks stay distinct; min 2 keeps the money shape.
+const stepDecimals = (step: number) => {
+  const fraction = step.toFixed(10).replace(/0+$/, '').split('.')[1] ?? '';
+  return Math.max(2, fraction.length);
+};
 
 function formatDayLabel(timestampMs: number) {
   const date = new Date(timestampMs);
@@ -105,21 +115,24 @@ export const parseChartData = ({
   }
 
   let domain: [number, number];
+  let step = 1;
   let ticks: Array<number> | undefined;
 
   const values = data.map((d) => d.data);
 
   if (values.length === 0) {
     domain = [0, 1];
-  } else if (type === 'Token Price') {
-    // The axis floor never sits above the familiar 0.99 par baseline, which
-    // also gives a flat near-par series a non-degenerate range to step over.
-    // A hardcoded 0.99 floor would clip sub-par closes off-chart.
-    ({ domain, ticks } = niceAxis({ min: Math.min(0.99, ...values), max: Math.max(...values) }));
   } else {
-    // Pad NAV by ±5% context before snapping so a flat series still reads as
-    // a zoomed-out band instead of magnified day-to-day noise.
-    ({ domain, ticks } = niceAxis({ min: Math.min(...values) * 0.95, max: Math.max(...values) * 1.05 }));
+    // Pad by 15% of the data range so any move fills a readable share of the
+    // chart; the min-span floor keeps a near-flat series from magnifying noise.
+    const low = Math.min(...values);
+    const high = Math.max(...values);
+    const minSpan = type === 'Token Price' ? 0.0004 : Math.max(high * 0.01, 1);
+    const span = Math.max(high - low, minSpan);
+    const pad = span * 0.15 + (span - (high - low)) / 2;
+
+    // Clamp the padded floor at zero for these non-negative series.
+    ({ domain, step, ticks } = niceAxis({ min: Math.max(0, low - pad), max: high + pad }));
   }
 
   return {
@@ -127,6 +140,7 @@ export const parseChartData = ({
     headline,
     type,
     domain,
-    ticks
+    ticks,
+    tickDecimals: stepDecimals(step)
   };
 };
