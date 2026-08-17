@@ -76,11 +76,26 @@ describe('parseChartData', () => {
       todayStartMs: today
     });
 
-    expect(chart?.domain).toEqual([0, 1.25]);
-    expect(chart?.ticks).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25]);
+    expect(chart?.domain).toEqual([0, 1.5]);
+    expect(chart?.ticks).toEqual([0, 0.5, 1, 1.5]);
+    expect(chart?.tickDecimals).toBe(2);
   });
 
-  it('keeps the 0.99 par baseline in view for a flat near-par price series', () => {
+  it('fits the price axis to a basis-point move so the rise is visible', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { sharePrice: 1.1347863 }), close(day2, { sharePrice: 1.1350468 })],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    // The 0.00026 range widens to the 0.0004 min-span guard.
+    expect(chart?.domain).toEqual([1.1346, 1.1354]);
+    expect(chart?.ticks).toEqual([1.1346, 1.1348, 1.135, 1.1352, 1.1354]);
+    expect(chart?.tickDecimals).toBe(4);
+  });
+
+  it('widens a perfectly flat price series to the min-span window', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { sharePrice: 1.07 }), close(day2, { sharePrice: 1.07 })],
       current: null,
@@ -88,23 +103,77 @@ describe('parseChartData', () => {
       todayStartMs: today
     });
 
-    expect(chart?.domain).toEqual([0.98, 1.08]);
-    expect(chart?.ticks).toEqual([0.98, 1, 1.02, 1.04, 1.06, 1.08]);
+    expect(chart?.domain).toEqual([1.0696, 1.0704]);
+    expect(chart?.ticks).toEqual([1.0696, 1.0698, 1.07, 1.0702, 1.0704]);
+  });
+
+  it('drops the leading zero closes but keeps zeros once the series is funded', () => {
+    const day3 = day1 + 3 * DAY_MS;
+    const day4 = day1 + 4 * DAY_MS;
+
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 0 }), close(day3, { nav: 100 }), close(day4, { nav: 0 })],
+      current: null,
+      typeIndex: NAV,
+      todayStartMs: day1 + 5 * DAY_MS
+    });
+
+    expect(chart?.data.map((point) => point.data)).toEqual([100, 0]);
+    expect(chart?.data[0]?.day).toBe('4 Jul 2026');
+  });
+
+  it('drops the leading zero closes from the Token Price series too', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { sharePrice: 0 }), close(day2, { sharePrice: 1.05 })],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.data.map((point) => point.data)).toEqual([1.05]);
+  });
+
+  it('plots nothing while every value including the live overlay is still zero', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 0 })],
+      current: payload({ navD18: '0' }),
+      typeIndex: NAV,
+      todayStartMs: today
+    });
+
+    expect(chart?.data).toEqual([]);
+    expect(chart?.domain).toEqual([0, 1]);
+    // The headline still reports the live value with nothing plotted.
+    expect(chart?.headline).toBe('$0');
   });
 
   it('gives the NAV axis snapped ticks that end at the domain edges', () => {
     const chart = parseChartData({
-      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 1_670_000 })],
+      // Leading zeros are trimmed, so the floor comes from a small funded close.
+      snapshots: [close(day1, { nav: 1 }), close(day2, { nav: 1_670_000 })],
       current: null,
       typeIndex: NAV,
       todayStartMs: today
     });
 
-    expect(chart?.domain).toEqual([0, 2_000_000]);
-    expect(chart?.ticks).toEqual([0, 500_000, 1_000_000, 1_500_000, 2_000_000]);
+    expect(chart?.domain).toEqual([0, 2_500_000]);
+    expect(chart?.ticks).toEqual([0, 500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000]);
   });
 
-  it('keeps a finite snapped axis for a dust-sized NAV range', () => {
+  it('zooms the NAV axis to a small accrual on a large base', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 1_322_884.92 }), close(day2, { nav: 1_674_661.85 })],
+      current: null,
+      typeIndex: NAV,
+      todayStartMs: today
+    });
+
+    // The floor tracks the data instead of zero.
+    expect(chart?.domain).toEqual([1_200_000, 1_800_000]);
+    expect(chart?.ticks).toEqual([1_200_000, 1_400_000, 1_600_000, 1_800_000]);
+  });
+
+  it('holds a dust-sized NAV to the absolute min-span floor instead of magnifying it', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { nav: 3.47e-16 })],
       current: null,
@@ -112,8 +181,33 @@ describe('parseChartData', () => {
       todayStartMs: today
     });
 
-    expect(chart?.domain).toEqual([0, 1e-9]);
-    expect(chart?.ticks).toEqual([0, 1e-9]);
+    expect(chart?.domain).toEqual([0, 0.8]);
+    expect(chart?.ticks).toEqual([0, 0.2, 0.4, 0.6, 0.8]);
+  });
+
+  it('strides day ticks evenly, anchored at the newest point', () => {
+    const snapshots = Array.from({ length: 10 }, (_, index) => close(day1 + index * DAY_MS));
+
+    const chart = parseChartData({
+      snapshots,
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: day1 + 10 * DAY_MS
+    });
+
+    // 10 days at a 2-day stride: every other day, newest always labeled.
+    expect(chart?.xTicks).toEqual([1, 3, 5, 7, 9].map((index) => day1 + index * DAY_MS));
+  });
+
+  it('labels every day when the series is short', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1), close(day2)],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.xTicks).toEqual([day1, day2]);
   });
 
   it('falls back to the newest plotted close when the current payload is unavailable', () => {
