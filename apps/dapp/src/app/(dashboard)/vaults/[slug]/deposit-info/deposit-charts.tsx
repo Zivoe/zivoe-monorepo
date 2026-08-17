@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 
 import { type Key } from 'react-aria-components';
-import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
+import { AreaChart, CartesianGrid, Area as ReArea, Text, XAxis, YAxis } from 'recharts';
 
 import { type ShareStatsPayload, getUtcDayStartSeconds } from '@zivoe/centrifuge-indexer';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
@@ -16,9 +16,33 @@ import { customNumber } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-import { CHART_TYPES, formatChartValue, parseChartData } from './deposit-charts-data';
+import { CHART_TYPES, formatChartValue, formatDayTick, parseChartData } from './deposit-charts-data';
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
+
+// Recharts centers each label under its tick, which clips the edge labels
+// against the plot bounds — align the last one right (and a flush-left first
+// one left) instead. Passing through recharts' own Text keeps the default
+// tick styling.
+function DayTick({
+  index,
+  visibleTicksCount,
+  payload,
+  ...textProps
+}: {
+  index?: number;
+  visibleTicksCount?: number;
+  payload?: { value: number };
+} & Omit<ComponentProps<typeof Text>, 'children'>) {
+  const isLast = index === (visibleTicksCount ?? 0) - 1;
+  const isFlushLeft = index === 0 && Number(textProps.x ?? 0) <= 20;
+
+  return (
+    <Text {...textProps} textAnchor={isLast ? 'end' : isFlushLeft ? 'start' : 'middle'}>
+      {payload === undefined ? '' : formatDayTick(payload.value)}
+    </Text>
+  );
+}
 
 export default function DepositCharts({
   snapshots,
@@ -72,12 +96,19 @@ export default function DepositCharts({
           <AreaChart accessibilityLayer data={chart.data} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} />
 
+            {/* A numeric time axis with precomputed evenly-strided day ticks —
+                a category axis lets recharts drop colliding labels ad hoc,
+                which leaves uneven gaps in the label row. */}
             <XAxis
-              dataKey="day"
+              dataKey="ts"
+              type="number"
+              scale="linear"
+              domain={['dataMin', 'dataMax']}
+              ticks={chart.xTicks}
+              interval={0}
               tickLine={false}
               axisLine={false}
-              minTickGap={32}
-              tickFormatter={(value) => value.replace(/\s\d{4}$/, '')}
+              tick={DayTick}
             />
 
             {/* Axis ticks intentionally keep the compact form — k/M for NAV,

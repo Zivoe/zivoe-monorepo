@@ -185,6 +185,31 @@ describe('parseChartData', () => {
     expect(chart?.ticks).toEqual([0, 0.2, 0.4, 0.6, 0.8]);
   });
 
+  it('strides day ticks evenly, anchored at the newest point', () => {
+    const snapshots = Array.from({ length: 10 }, (_, index) => close(day1 + index * DAY_MS));
+
+    const chart = parseChartData({
+      snapshots,
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: day1 + 10 * DAY_MS
+    });
+
+    // 10 days at a 2-day stride: every other day, newest always labeled.
+    expect(chart?.xTicks).toEqual([1, 3, 5, 7, 9].map((index) => day1 + index * DAY_MS));
+  });
+
+  it('labels every day when the series is short', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1), close(day2)],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.xTicks).toEqual([day1, day2]);
+  });
+
   it('falls back to the newest plotted close when the current payload is unavailable', () => {
     const chart = parseChartData({
       snapshots: [close(day1, { sharePrice: 1.05 }), close(day2, { sharePrice: 1.07 })],

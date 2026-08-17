@@ -58,6 +58,8 @@ const stepDecimals = (step: number) => {
   return Math.max(2, fraction.length);
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function formatDayLabel(timestampMs: number) {
   const date = new Date(timestampMs);
   const day = date.getUTCDate();
@@ -65,6 +67,9 @@ function formatDayLabel(timestampMs: number) {
   const year = date.getUTCFullYear();
   return `${day} ${month} ${year}`;
 }
+
+// X-axis tick labels drop the year; the tooltip keeps the full form.
+export const formatDayTick = (timestampMs: number) => formatDayLabel(timestampMs).replace(/\s\d{4}$/, '');
 
 /**
  * Chart series and headline for one metric: the daily close series plus a live
@@ -90,16 +95,18 @@ export const parseChartData = ({
     // below supersedes it.
     .filter((item) => item.timestampMs < todayStartMs)
     .map((item) => ({
+      ts: item.timestampMs,
       day: formatDayLabel(item.timestampMs),
       data: type === 'Token Price' ? item.sharePrice : item.nav
     }))
-    .filter((item): item is { day: string; data: number } => item.data !== null);
+    .filter((item): item is { ts: number; day: string; data: number } => item.data !== null);
 
   const currentValue = current
     ? Number(type === 'Token Price' ? current.sharePriceD18 : current.navD18) / 1e18
     : undefined;
 
-  if (currentValue !== undefined) series.push({ day: formatDayLabel(todayStartMs), data: currentValue });
+  if (currentValue !== undefined)
+    series.push({ ts: todayStartMs, day: formatDayLabel(todayStartMs), data: currentValue });
 
   // Drop the zero-valued days a share class records before it is funded
   const firstFundedIndex = series.findIndex((point) => point.data !== 0);
@@ -112,6 +119,17 @@ export const parseChartData = ({
   else {
     const lastPoint = data[data.length - 1];
     if (lastPoint) headline = formatChartValue({ value: lastPoint.data, type });
+  }
+
+  // Day ticks at an even stride anchored at the newest point, so label
+  // spacing stays fixed instead of recharts dropping colliding labels ad hoc.
+  const xTicks: Array<number> = [];
+  const firstTs = data[0]?.ts;
+  const lastTs = data[data.length - 1]?.ts;
+  if (firstTs !== undefined && lastTs !== undefined) {
+    const dayCount = Math.round((lastTs - firstTs) / DAY_MS) + 1;
+    const stride = Math.max(1, Math.ceil(dayCount / 7)) * DAY_MS;
+    for (let ts = lastTs; ts >= firstTs; ts -= stride) xTicks.unshift(ts);
   }
 
   let domain: [number, number];
@@ -141,6 +159,7 @@ export const parseChartData = ({
     type,
     domain,
     ticks,
+    xTicks,
     tickDecimals: stepDecimals(step)
   };
 };
