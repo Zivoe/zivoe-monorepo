@@ -92,9 +92,51 @@ describe('parseChartData', () => {
     expect(chart?.ticks).toEqual([0.98, 1, 1.02, 1.04, 1.06, 1.08]);
   });
 
+  it('drops the leading zero closes but keeps zeros once the series is funded', () => {
+    const day3 = day1 + 3 * DAY_MS;
+    const day4 = day1 + 4 * DAY_MS;
+
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 0 }), close(day3, { nav: 100 }), close(day4, { nav: 0 })],
+      current: null,
+      typeIndex: NAV,
+      todayStartMs: day1 + 5 * DAY_MS
+    });
+
+    expect(chart?.data.map((point) => point.data)).toEqual([100, 0]);
+    expect(chart?.data[0]?.day).toBe('4 Jul 2026');
+  });
+
+  it('drops the leading zero closes from the Token Price series too', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { sharePrice: 0 }), close(day2, { sharePrice: 1.05 })],
+      current: null,
+      typeIndex: TOKEN_PRICE,
+      todayStartMs: today
+    });
+
+    expect(chart?.data.map((point) => point.data)).toEqual([1.05]);
+  });
+
+  it('plots nothing while every value including the live overlay is still zero', () => {
+    const chart = parseChartData({
+      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 0 })],
+      current: payload({ navD18: '0' }),
+      typeIndex: NAV,
+      todayStartMs: today
+    });
+
+    expect(chart?.data).toEqual([]);
+    expect(chart?.domain).toEqual([0, 1]);
+    // The headline still reports the live value with nothing plotted.
+    expect(chart?.headline).toBe('$0');
+  });
+
   it('gives the NAV axis snapped ticks that end at the domain edges', () => {
     const chart = parseChartData({
-      snapshots: [close(day1, { nav: 0 }), close(day2, { nav: 1_670_000 })],
+      // A leading zero would be trimmed away, so the axis floor comes from a
+      // small funded close instead.
+      snapshots: [close(day1, { nav: 1 }), close(day2, { nav: 1_670_000 })],
       current: null,
       typeIndex: NAV,
       todayStartMs: today

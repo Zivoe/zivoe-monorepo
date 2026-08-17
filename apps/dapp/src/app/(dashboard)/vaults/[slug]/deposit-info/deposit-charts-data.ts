@@ -75,7 +75,7 @@ export const parseChartData = ({
   const type = CHART_TYPES[Number(typeIndex)];
   if (!type) return undefined;
 
-  const data = snapshots
+  const series = snapshots
     // A same-day price event can leave a bucket for today; the live overlay
     // below supersedes it.
     .filter((item) => item.timestampMs < todayStartMs)
@@ -89,7 +89,11 @@ export const parseChartData = ({
     ? Number(type === 'Token Price' ? current.sharePriceD18 : current.navD18) / 1e18
     : undefined;
 
-  if (currentValue !== undefined) data.push({ day: formatDayLabel(todayStartMs), data: currentValue });
+  if (currentValue !== undefined) series.push({ day: formatDayLabel(todayStartMs), data: currentValue });
+
+  // Drop the zero-valued days a share class records before it is funded
+  const firstFundedIndex = series.findIndex((point) => point.data !== 0);
+  const data = firstFundedIndex === -1 ? [] : series.slice(firstFundedIndex);
 
   // The headline is the current metric, never an older point restamped as
   // current — only a missing payload falls back to the newest plotted close.
