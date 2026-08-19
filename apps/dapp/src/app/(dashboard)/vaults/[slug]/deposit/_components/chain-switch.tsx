@@ -1,6 +1,6 @@
 'use client';
 
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 import { useConnection, useSwitchChain } from 'wagmi';
 
@@ -31,7 +31,9 @@ const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.se
 // prompt while any switch is already in flight. Counted, not boolean —
 // prompts can overlap (the selector deliberately stays unlocked during a
 // switch), and mutation callbacks fire per mutation, so an earlier prompt
-// settling must not mark a still-open later prompt as done.
+// settling must not mark a still-open later prompt as done. Read only by
+// SwitchChainButton — the flows write it without subscribing, so they do not
+// re-render per prompt.
 const pendingSwitchCountAtom = atom(0);
 
 /** The switch mutation and wallet gate — module-private; only written in event handlers. */
@@ -40,7 +42,7 @@ function useChainSwitch() {
   const { chainId: walletChainId } = useConnection();
   const identities = useZivoeVaultIdentities();
 
-  const [pendingSwitchCount, setPendingSwitchCount] = useAtom(pendingSwitchCountAtom);
+  const setPendingSwitchCount = useSetAtom(pendingSwitchCountAtom);
   const { mutate: switchChainMutate } = useSwitchChain({
     mutation: {
       onMutate: () => setPendingSwitchCount((count) => count + 1),
@@ -65,7 +67,7 @@ function useChainSwitch() {
 
   const switchToChain = (chain: CentrifugeChain) => switchChainMutate({ chainId: getChainId(chain) });
 
-  return { isWalletOffChain, switchToChain, isSwitchPending: pendingSwitchCount > 0 };
+  return { isWalletOffChain, switchToChain };
 }
 
 /**
@@ -119,7 +121,8 @@ export function useSelectedChain() {
 /** The one clear step an out-of-place wallet sees in place of every action. */
 export function SwitchChainButton() {
   const { selectedChain } = useSelectedChain();
-  const { switchToChain, isSwitchPending } = useChainSwitch();
+  const { switchToChain } = useChainSwitch();
+  const isSwitchPending = useAtomValue(pendingSwitchCountAtom) > 0;
 
   return (
     <Button
