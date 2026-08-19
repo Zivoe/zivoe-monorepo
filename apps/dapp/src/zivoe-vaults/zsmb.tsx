@@ -16,9 +16,7 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVault = {
     sepolia: { address: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6', deployable: true },
     'base-sepolia': { address: '0x8aBb393C433375401EEeae24557475C3f36f5025', deployable: true },
     ethereum: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true },
-    // Staged second mainnet chain: flip together with the catalog entry once
-    // ops deploys the Centrifuge vault.
-    monad: { address: '0x0000000000000000000000000000000000000000', deployable: false }
+    pharos: { address: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6', deployable: true }
   },
   shareTokenDescription: 'Zivoe SMB Credit',
   targetApyPercent: 14,

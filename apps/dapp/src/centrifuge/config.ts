@@ -53,12 +53,10 @@ const CHAIN_CONSTANTS: Record<
     usdc: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 },
     deployable: true
   },
-  // Staged: fill with operator-verified values when ops deploys the
-  // Centrifuge vault on Monad (VaultRouter and Circle-native USDC).
-  monad: {
-    vaultRouterAddress: '0x0000000000000000000000000000000000000000',
-    usdc: { address: '0x0000000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
-    deployable: false
+  pharos: {
+    vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: { address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', symbol: 'USDC', decimals: 6 },
+    deployable: true
   }
 };
 

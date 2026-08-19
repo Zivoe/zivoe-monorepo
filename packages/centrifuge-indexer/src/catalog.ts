@@ -75,9 +75,9 @@ export const SHARE_CLASS_CATALOG = {
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             deployable: true
           },
-          monad: {
-            shareTokenAddress: '0x0000000000000000000000000000000000000000',
-            deployable: false
+          pharos: {
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            deployable: true
           }
         }
       }

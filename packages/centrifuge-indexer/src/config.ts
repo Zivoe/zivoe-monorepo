@@ -21,7 +21,7 @@ export type CentrifugeEnvironment = (typeof CENTRIFUGE_ENVIRONMENTS)[number];
 // its deployment's default (DEFAULT_CHAIN, analytics fallback) and drives the
 // chain selectors' ordering — insert new chains behind the ones they should
 // not displace.
-export const CENTRIFUGE_CHAINS = ['ethereum', 'monad', 'sepolia', 'base-sepolia'] as const;
+export const CENTRIFUGE_CHAINS = ['ethereum', 'pharos', 'sepolia', 'base-sepolia'] as const;
 
 export type CentrifugeChain = (typeof CENTRIFUGE_CHAINS)[number];
 
@@ -33,7 +33,7 @@ export type CentrifugeChainFacts = {
 
 export const CENTRIFUGE_CHAIN_FACTS: Record<CentrifugeChain, CentrifugeChainFacts> = {
   ethereum: { chainId: 1, environment: 'mainnet' },
-  monad: { chainId: 143, environment: 'mainnet' },
+  pharos: { chainId: 1672, environment: 'mainnet' },
   sepolia: { chainId: 11155111, environment: 'testnet' },
   'base-sepolia': { chainId: 84532, environment: 'testnet' }
 };

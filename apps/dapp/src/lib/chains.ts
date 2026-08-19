@@ -1,5 +1,5 @@
-import { type Chain } from 'viem';
-import { baseSepolia, mainnet, monad, sepolia } from 'viem/chains';
+import { type Chain, defineChain } from 'viem';
+import { baseSepolia, mainnet, sepolia } from 'viem/chains';
 
 import { CENTRIFUGE_CHAIN_FACTS, type CentrifugeChain, chainsOfEnvironment } from '@zivoe/centrifuge-indexer';
 
@@ -27,9 +27,23 @@ if (!firstActiveChain) throw new Error(`Environment "${ACTIVE_ENVIRONMENT}" has 
  */
 export const DEFAULT_CHAIN: CentrifugeChain = firstActiveChain;
 
+/**
+ * viem ships no Pharos definition, so the app declares it — matching the one
+ * the Centrifuge SDK carries internally, since both must act on the same
+ * chain. It is also the source Dynamic's custom-network entry is built from,
+ * Dynamic having no native Pharos support either.
+ */
+export const pharos = defineChain({
+  id: 1672,
+  name: 'Pharos Mainnet',
+  nativeCurrency: { name: 'PharosCoin', symbol: 'PROS', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.pharos.xyz'] } },
+  blockExplorers: { default: { name: 'Pharos Explorer', url: 'https://pharosscan.xyz' } }
+});
+
 const VIEM_CHAINS: Record<CentrifugeChain, Chain> = {
   ethereum: mainnet,
-  monad,
+  pharos,
   sepolia,
   'base-sepolia': baseSepolia
 };
@@ -58,7 +72,7 @@ export function getChainId(chain: CentrifugeChain): number {
 // every chain of its environment enabled.
 const ALCHEMY_NETWORK: Record<CentrifugeChain, string> = {
   ethereum: 'eth-mainnet',
-  monad: 'monad-mainnet',
+  pharos: 'pharos-mainnet',
   sepolia: 'eth-sepolia',
   'base-sepolia': 'base-sepolia'
 };

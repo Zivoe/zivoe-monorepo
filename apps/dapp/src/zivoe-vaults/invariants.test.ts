@@ -9,7 +9,7 @@ const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_SC_ID = '0x00000000000000000000000000000000';
 
-type ChainName = 'sepolia' | 'base-sepolia' | 'ethereum' | 'monad';
+type ChainName = 'sepolia' | 'base-sepolia' | 'ethereum' | 'pharos';
 
 type Registration = {
   zivoeVault: {

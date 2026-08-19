@@ -44,7 +44,7 @@ afterEach(() => {
 
 describe('environment/chain facts', () => {
   it('partitions every chain into exactly one environment', () => {
-    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'monad']);
+    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos']);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
   });
 });
@@ -73,10 +73,17 @@ describe('share-class catalog', () => {
     });
   });
 
-  it('refuses to resolve a staged placeholder chain instead of serving zeros', () => {
-    // The real staged entry: zSMB's second mainnet chain awaits the ops
-    // deployment.
-    expect(() => getShareClassChainIdentity({ chain: 'monad', key: 'zsmb' })).toThrow(/non-deployable placeholder/);
+  it('resolves the second mainnet chain with its deterministically shared token address', () => {
+    expect(getShareClassChainIdentity({ chain: 'pharos', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'pharos',
+      chainId: 1672,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8'
+    });
   });
 
   it('resolves the second testnet chain with its deterministically shared token address', () => {
@@ -138,7 +145,7 @@ describe('assertShareClassCatalogInvariants', () => {
     scId: string;
     shareTokenAddress: string;
     environment?: 'testnet' | 'mainnet';
-    chain?: 'sepolia' | 'base-sepolia' | 'ethereum' | 'monad';
+    chain?: 'sepolia' | 'base-sepolia' | 'ethereum' | 'pharos';
     deployable?: boolean;
   }) {
     return {
