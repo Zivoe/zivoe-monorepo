@@ -1,6 +1,6 @@
 import { DEPOSIT_TOKENS } from '@/types/constants';
 
-import { type ZivoeVault, zivoeVaultNetworkDisplays } from '@/zivoe-vaults';
+import { type ZivoeVault, zivoeVaultChainDisplays } from '@/zivoe-vaults';
 
 import { TOKEN_INFO } from './token-info';
 
@@ -24,7 +24,7 @@ export function AcceptedStablecoinIcons() {
 export function AcceptedChainIcons({ zivoeVault }: { zivoeVault: ZivoeVault }) {
   return (
     <IconRow>
-      {zivoeVaultNetworkDisplays(zivoeVault).map(({ label, Icon }) => (
+      {zivoeVaultChainDisplays(zivoeVault).map(({ label, Icon }) => (
         <Logo key={label} label={label}>
           <Icon />
         </Logo>

@@ -6,12 +6,12 @@
  *   lives in exactly one environment (testnet for testing, mainnet for
  *   production).
  * - A CHAIN is one spoke network inside an environment, where share-class
- *   token instances and vaults are actually deployed. A deployment activates
- *   an ordered subset of its environment's chains.
+ *   token instances and Centrifuge vaults are actually deployed. A deployment
+ *   activates an ordered subset of its environment's chains.
  *
  * Hub-level facts (pool ids, share-class ids, prices, NAV) are identical
- * across every chain of an environment; token/vault addresses and wallet
- * state are per-chain.
+ * across every chain of an environment; token and Centrifuge-vault addresses
+ * and wallet state are per-chain.
  */
 export const CENTRIFUGE_ENVIRONMENTS = ['mainnet', 'testnet'] as const;
 

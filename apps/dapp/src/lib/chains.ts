@@ -6,7 +6,7 @@ import { CENTRIFUGE_CHAIN_FACTS, type CentrifugeChain, chainsOfEnvironment } fro
 import { env } from '@/env';
 
 /**
- * The deployment's network universe, NODE_ENV-style: testnet for development
+ * The deployment's environment, NODE_ENV-style: testnet for development
  * and previews, mainnet for production. Every chain of the environment is
  * active; which of them a Zivoe Vault actually serves is the deployable flags'
  * business (catalog + Zivoe Vault modules), not the env var's.

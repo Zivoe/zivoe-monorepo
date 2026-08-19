@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN, getChainId } from '@/lib/network';
+import { DEFAULT_CHAIN, getChainId } from '@/lib/chains';
 import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =

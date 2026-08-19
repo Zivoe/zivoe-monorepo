@@ -6,7 +6,7 @@ import { createPublicClient, fallback, http } from 'viem';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { DEFAULT_CHAIN, getChainRpcUrls, getViemChain } from '@/lib/network';
+import { DEFAULT_CHAIN, getChainRpcUrls, getViemChain } from '@/lib/chains';
 
 /**
  * Server viem client per chain, request-cached. Currently unreferenced by

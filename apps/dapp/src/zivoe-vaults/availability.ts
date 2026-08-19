@@ -1,6 +1,6 @@
 import { type CentrifugeChain, SHARE_CLASS_CATALOG, type ShareClassCatalogEntry } from '@zivoe/centrifuge-indexer';
 
-import { ACTIVE_CHAINS, ACTIVE_ENVIRONMENT } from '@/lib/network';
+import { ACTIVE_CHAINS, ACTIVE_ENVIRONMENT } from '@/lib/chains';
 
 import { type ZivoeVault } from './zivoe-vault';
 

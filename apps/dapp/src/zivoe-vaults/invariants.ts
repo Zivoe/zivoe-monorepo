@@ -109,8 +109,8 @@ export function assertZivoeVaultRegistryInvariants({
     const catalogChains = new Set(
       Object.values(entry.environments).flatMap((onEnvironment) => Object.keys(onEnvironment.chains))
     ) as Set<CentrifugeChain>;
-    const vaultChains = new Set(Object.keys(zivoeVault.centrifugeVaults)) as Set<CentrifugeChain>;
-    const claimedChains = new Set<CentrifugeChain>([...catalogChains, ...vaultChains]);
+    const centrifugeVaultChains = new Set(Object.keys(zivoeVault.centrifugeVaults)) as Set<CentrifugeChain>;
+    const claimedChains = new Set<CentrifugeChain>([...catalogChains, ...centrifugeVaultChains]);
 
     for (const chain of claimedChains) {
       const environment = CENTRIFUGE_CHAIN_FACTS[chain].environment;

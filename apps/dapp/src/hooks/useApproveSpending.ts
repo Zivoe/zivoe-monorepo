@@ -3,7 +3,7 @@ import { type Address } from 'viem/accounts';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { getChainId } from '@/lib/network';
+import { getChainId } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';

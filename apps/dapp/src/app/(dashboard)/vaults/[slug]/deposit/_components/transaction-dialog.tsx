@@ -11,7 +11,7 @@ import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { getViemChain } from '@/lib/network';
+import { getViemChain } from '@/lib/chains';
 import { type TransactionTokenSnapshot, transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 

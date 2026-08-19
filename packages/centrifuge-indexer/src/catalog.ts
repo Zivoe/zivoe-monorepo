@@ -26,14 +26,14 @@ export type ShareClassEnvironmentEntry = {
   poolId: string;
   /** The share-class id — the indexer's token / token-snapshot entity id. */
   scId: `0x${string}`;
-  /** Spoke chains the share class is staged or live on — absent means not offered there. */
+  /** Spoke chains the share class is staged or live on — absent means not available there. */
   chains: Partial<Record<CentrifugeChain, ShareClassChainEntry>>;
 };
 
 export type ShareClassCatalogEntry = {
   symbol: string;
   decimals: number;
-  /** Environments the share class is staged or live on — absent means not offered there. */
+  /** Environments the share class is staged or live on — absent means not available there. */
   environments: Partial<Record<CentrifugeEnvironment, ShareClassEnvironmentEntry>>;
 };
 
@@ -42,7 +42,7 @@ export type ShareClassCatalogEntry = {
  * the single source both apps derive share-class identity from. Adding a class
  * means adding an entry here (plus a Zivoe Vault module in the dApp); reviews of
  * new entries must verify the values on-chain and that the pool is
- * USD-denominated. Flip a chain's `deployable` only once the vault is deployed
+ * USD-denominated. Flip a chain's `deployable` only once the Centrifuge vault is deployed
  * AND the indexer prices the class on that chain: the aggregated NAV read is
  * fail-closed, so a live-but-unpriced entry hides the whole-book number on
  * every surface until it is indexed.
@@ -266,7 +266,7 @@ export function getShareClassIdentity({
 /**
  * Resolves a share-class id to its identity on one spoke chain (the chain
  * implies the environment). Fails loudly for ids the catalog does not know,
- * chains the class is not offered on, and staged placeholders.
+ * chains the class is not available on, and staged placeholders.
  */
 export function getShareClassChainIdentity({
   chain,
@@ -289,7 +289,7 @@ export function getShareClassChainIdentity({
     chain
   ];
 
-  if (!onChain) throw new Error(`Share class "${key}" is not offered on "${chain}".`);
+  if (!onChain) throw new Error(`Share class "${key}" is not available on "${chain}".`);
 
   if (!onChain.deployable)
     throw new Error(

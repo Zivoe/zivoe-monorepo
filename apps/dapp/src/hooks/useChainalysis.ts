@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useConnection } from 'wagmi';
 
-import { isActiveChainId } from '@/lib/network';
+import { isActiveChainId } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 import { handlePromise } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ export const useChainalysis = () => {
   const { address } = useAccount();
 
   const { chainId } = useConnection();
-  const isValidNetwork = isActiveChainId(chainId);
+  const isActiveChain = isActiveChainId(chainId);
 
   const { data, isPending, isFetching, isSuccess } = useQuery({
     queryKey: queryKeys.account.chainalysis({ accountAddress: address }),
@@ -36,7 +36,7 @@ export const useChainalysis = () => {
       return (parsedResponse as ApiResponseSuccess<Assessment>).data;
     },
 
-    enabled: !!(address && isValidNetwork),
+    enabled: !!(address && isActiveChain),
     staleTime: 60 * 60 * 1000,
     retry: false,
     meta: { toastErrorMessage: 'Error Assessing Account Risk!' }

@@ -8,7 +8,7 @@ import {
   ZERO_HEX
 } from '@zivoe/centrifuge-indexer';
 
-import { ACTIVE_ENVIRONMENT } from '@/lib/network';
+import { ACTIVE_ENVIRONMENT } from '@/lib/chains';
 
 /**
  * Facts of the deployment's Centrifuge environment, shared by every Zivoe
@@ -86,7 +86,7 @@ export function isChainConfigDeployable(chain: CentrifugeChain): boolean {
 /**
  * USDC's base-unit scale — a global product assumption (Circle-native USDC is
  * 6 decimals on every chain Zivoe serves), asserted per chain against the
- * vault's own answer at resolution. Hub-level conversions use this constant;
+ * Centrifuge vault's own answer at resolution. Hub-level conversions use this constant;
  * chain-scoped code reads decimals off its CentrifugeChainConfig.
  */
 const USDC_DECIMALS = 6;

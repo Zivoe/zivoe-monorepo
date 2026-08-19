@@ -23,7 +23,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
  * Deployment-scoped on purpose: deriving from the whole catalog would
  * advertise chains this environment does not serve.
  */
-export function zivoeVaultNetworkDisplays(zivoeVault: ZivoeVault) {
+export function zivoeVaultChainDisplays(zivoeVault: ZivoeVault) {
   const displays = zivoeVaultChains(zivoeVault).map((chain) => CHAIN_DISPLAY[chain]);
   return [...new Map(displays.map((display) => [display.label, display])).values()];
 }

@@ -21,7 +21,7 @@ import { trackWalletConnection } from '@/server/actions/track-wallet-connection'
 
 import { authClient, useSession } from '@/lib/auth-client';
 import { getQueryClient } from '@/lib/get-query-client';
-import { ACTIVE_CHAINS, ACTIVE_CHAIN_IDS, getChainRpcUrls, getViemChain } from '@/lib/network';
+import { ACTIVE_CHAINS, ACTIVE_CHAIN_IDS, getChainRpcUrls, getViemChain } from '@/lib/chains';
 import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';

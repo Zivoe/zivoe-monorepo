@@ -165,7 +165,7 @@ describe('useSelectedChain', () => {
   });
 
   it("falls back to the first chain when the stored selection is not live on this Zivoe Vault's page", () => {
-    // One store across two pages, like a client-side navigation between vaults.
+    // One store across two pages, like a client-side navigation between Zivoe Vaults.
     const store = createStore();
 
     const firstPage = renderConsumers({
@@ -177,7 +177,7 @@ describe('useSelectedChain', () => {
     expect(screen.getByText('a: base-sepolia')).toBeTruthy();
     firstPage.unmount();
 
-    // The next vault serves sepolia only — the leftover selection must not stick.
+    // The next Zivoe Vault serves sepolia only — the leftover selection must not stick.
     renderConsumers({ store, chains: ['sepolia'], children: <Consumer label="b" select="sepolia" /> });
     expect(screen.getByText('b: sepolia')).toBeTruthy();
   });

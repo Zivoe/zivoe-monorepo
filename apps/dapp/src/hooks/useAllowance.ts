@@ -6,7 +6,7 @@ import { usePublicClient } from 'wagmi';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { getChainId } from '@/lib/network';
+import { getChainId } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 
 import { useAccount } from './useAccount';

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } fr
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger } from '@zivoe/ui/core/select';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { CHAIN_DISPLAY } from '@/zivoe-vaults/network-display';
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 /** The token whose chain instances the selector offers — USDC on the deposit tab, the share token on redeem. */
 export type ChainSelectorToken = {

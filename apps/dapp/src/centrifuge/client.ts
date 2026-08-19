@@ -1,6 +1,6 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
-import { ACTIVE_CHAINS, getChainId, getChainRpcUrls } from '@/lib/network';
+import { ACTIVE_CHAINS, getChainId, getChainRpcUrls } from '@/lib/chains';
 import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_ENV } from './config';
@@ -75,14 +75,6 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
 }
 
 /**
- * Resolves the share class's Centrifuge vault and asserts the configuration against the
- * chain's own answers: the SDK-resolved Centrifuge-vault address must equal the
- * configured one (two sources for one fact, checked once), and the Centrifuge vault must
- * report the sync-deposit/async-redeem shape the flows are built around. A
- * misconfigured or async-deposit class fails loudly at first use instead of
- * breaking mid-transaction.
- */
-/**
  * The SDK keeps no public accessor for its per-chain protocol addresses, so
  * the VaultRouter assertion reads the same internal query the SDK's own
  * writes resolve the router from. The dependency is version-pinned, and a
@@ -90,6 +82,14 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
  */
 type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` }> };
 
+/**
+ * Resolves the share class's Centrifuge vault and asserts the configuration against the
+ * chain's own answers: the SDK-resolved Centrifuge-vault address must equal the
+ * configured one (two sources for one fact, checked once), and the Centrifuge vault must
+ * report the sync-deposit/async-redeem shape the flows are built around. A
+ * misconfigured or async-deposit class fails loudly at first use instead of
+ * breaking mid-transaction.
+ */
 async function resolveCentrifugeVault(shareClass: TransactedShareClass): Promise<CentrifugeVaultEntity> {
   const centrifuge = getCentrifuge();
 

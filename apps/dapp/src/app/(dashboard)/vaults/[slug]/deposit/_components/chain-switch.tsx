@@ -7,11 +7,11 @@ import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { getChainId } from '@/lib/network';
+import { getChainId } from '@/lib/chains';
 
 import { useAccount } from '@/hooks/useAccount';
 
-import { CHAIN_DISPLAY } from '@/zivoe-vaults/network-display';
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 

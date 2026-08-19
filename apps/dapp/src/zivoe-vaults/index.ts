@@ -1,6 +1,6 @@
 import { type CentrifugeChain, type ShareClassKey, getShareClassChainIdentity } from '@zivoe/centrifuge-indexer';
 
-import { ACTIVE_CHAINS } from '@/lib/network';
+import { ACTIVE_CHAINS } from '@/lib/chains';
 
 import { getChainConfig, isChainConfigDeployable } from '@/centrifuge/config';
 // Type-only on purpose: server components import this module, and runtime
@@ -23,7 +23,7 @@ export {
   type ZivoeVaultStatus
 } from './zivoe-vault';
 export { zivoeVaultChains } from './availability';
-export { zivoeVaultNetworkDisplays } from './network-display';
+export { zivoeVaultChainDisplays } from './chain-display';
 export { ZSMB_ZIVOE_VAULT } from './zsmb';
 
 /**
