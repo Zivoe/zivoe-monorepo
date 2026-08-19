@@ -51,9 +51,7 @@ export function DepositFlow() {
     selectedIdentity: identity,
     selectedChain,
     setSelectedChain,
-    needsChainSwitch,
-    switchToChain,
-    isSwitchPending
+    needsChainSwitch
   } = useSelectedChain();
 
   const share = identity.shareClass;
@@ -315,11 +313,7 @@ export function DepositFlow() {
       ) : (
         <ConnectedAccount>
           {needsChainSwitch ? (
-            <SwitchChainButton
-              chain={selectedChain}
-              onSwitch={() => switchToChain(selectedChain)}
-              isPending={isSwitchPending}
-            />
+            <SwitchChainButton />
           ) : isPrereqsLoading ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
           ) : isNotWhitelisted ? (

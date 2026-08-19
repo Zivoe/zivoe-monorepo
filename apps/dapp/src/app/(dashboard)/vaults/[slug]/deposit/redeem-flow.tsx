@@ -47,13 +47,11 @@ type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
   const {
-    chains,
+    identities,
     selectedIdentity: identity,
     selectedChain,
     setSelectedChain,
-    needsChainSwitch,
-    switchToChain,
-    isSwitchPending
+    needsChainSwitch
   } = useSelectedChain();
 
   const share = identity.shareClass;
@@ -355,9 +353,10 @@ export default function RedeemFlow() {
                   <ChainTokenSelector
                     title="Select Asset"
                     token={shareSelectorToken}
-                    rows={chains.map((chain) => ({ chain }))}
+                    rows={identities.map((rowIdentity) => ({ chain: rowIdentity.shareClass.chain }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
+                    // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
                     isDisabled={isPrereqsLoading || isMutationPending}
                   />
                 </div>
@@ -399,11 +398,7 @@ export default function RedeemFlow() {
 
       <ConnectedAccount>
         {needsChainSwitch ? (
-          <SwitchChainButton
-            chain={selectedChain}
-            onSwitch={() => switchToChain(selectedChain)}
-            isPending={isSwitchPending}
-          />
+          <SwitchChainButton />
         ) : isPrereqsLoading ? (
           <Button fullWidth isPending={true} pendingContent="Loading..." />
         ) : isCancellationProcessing ? (
