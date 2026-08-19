@@ -75,6 +75,8 @@ function useChainSwitch() {
  * selection survives tab switches. Defaults to the first live chain, and the
  * identity comes from the same non-empty list the selection is validated
  * against, so a selected chain without an identity is unrepresentable.
+ * With nothing stored, the wallet's connected chain wins when it is live on
+ * this page (ground truth on a first visit), then the first live chain.
  * Selecting a chain the wallet is not on prompts the switch immediately; the
  * wallet-facing plumbing itself stays module-internal (SwitchChainButton is
  * the only other consumer), and a refused switch surfaces as a toast rather
@@ -87,10 +89,13 @@ function useChainSwitch() {
  */
 export function useSelectedChain() {
   const identities = useZivoeVaultIdentities();
+  const { chainId: walletChainId } = useConnection();
 
   const [storedChain, setStoredChain] = useAtom(selectedChainAtom);
   const selectedIdentity =
-    identities.find((identity) => identity.centrifugeVault.chain === storedChain) ?? identities[0];
+    identities.find((identity) => identity.centrifugeVault.chain === storedChain) ??
+    identities.find((identity) => getChainId(identity.centrifugeVault.chain) === walletChainId) ??
+    identities[0];
   const selectedChain = selectedIdentity.centrifugeVault.chain;
 
   const { isWalletOffChain, switchToChain } = useChainSwitch();

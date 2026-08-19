@@ -239,6 +239,39 @@ describe('useSelectedChain', () => {
     expect(screen.getByText('Switch to Base')).toBeTruthy();
   });
 
+  it("defaults to the wallet's connected chain when nothing is stored — and needs no switch there", () => {
+    mocks.walletChainId = 84532;
+    renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: <Consumer label="deposit" select="sepolia" />
+    });
+
+    expect(screen.getByText('deposit: base-sepolia')).toBeTruthy();
+    expect(screen.getByText('deposit-no-switch')).toBeTruthy();
+  });
+
+  it("prefers a persisted selection over the wallet's chain on a fresh mount", () => {
+    mocks.walletChainId = 84532;
+    const firstLoad = renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: <Consumer label="a" select="sepolia" />
+    });
+    fireEvent.click(screen.getByText('a-select'));
+    expect(screen.getByText('a: sepolia')).toBeTruthy();
+    firstLoad.unmount();
+
+    // The wallet still sits on base-sepolia, but the user's explicit choice wins.
+    renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: <Consumer label="b" select="sepolia" />
+    });
+    expect(screen.getByText('b: sepolia')).toBeTruthy();
+    expect(screen.getByText('b-switch-needed')).toBeTruthy();
+  });
+
   it('restores the persisted selection on a fresh mount, like a page refresh', () => {
     // Fresh Jotai stores model separate page loads: only localStorage carries over.
     const firstLoad = renderConsumers({
