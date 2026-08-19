@@ -10,9 +10,12 @@ import { fetchShareClassNavs, listShareClassKeys } from '@zivoe/centrifuge-index
 
 import { env } from '@/env';
 
+// The landing is chain-agnostic: NAV and the indexer are hub-level facts, so
+// the environment is all it needs.
+const environment = env.NEXT_PUBLIC_NETWORK_ENV;
+
 const fetchHeroNavs = async (): Promise<Record<string, string>> => {
-  const network = env.NEXT_PUBLIC_NETWORK;
-  return fetchShareClassNavs({ network, shareClassKeys: listShareClassKeys(network) });
+  return fetchShareClassNavs({ environment, shareClassKeys: listShareClassKeys(environment) });
 };
 
 const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs'], { revalidate: 30 });
@@ -37,7 +40,7 @@ const getShareClassNavs = reactCache(async (): Promise<Record<string, string> | 
     // is down" — this read fails as one unit for the whole book.
     Sentry.captureException(error, {
       tags: { source: 'SERVER' },
-      extra: { shareClassKeys: listShareClassKeys(env.NEXT_PUBLIC_NETWORK) }
+      extra: { shareClassKeys: listShareClassKeys(environment) }
     });
   }
 });

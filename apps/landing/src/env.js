@@ -14,7 +14,7 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
-    NEXT_PUBLIC_NETWORK: z.enum(['mainnet', 'sepolia']),
+    NEXT_PUBLIC_NETWORK_ENV: z.enum(['mainnet', 'testnet']),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
@@ -25,7 +25,7 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_NETWORK: process.env.NEXT_PUBLIC_NETWORK,
+    NEXT_PUBLIC_NETWORK_ENV: process.env.NEXT_PUBLIC_NETWORK_ENV,
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
     BEEHIIV_API_KEY: process.env.BEEHIIV_API_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
