@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { type ReactNode } from 'react';
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Provider as JotaiProvider, createStore } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,7 +11,7 @@ import { type TransactionIdentity } from '@/centrifuge';
 import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 
 import { ZivoeVaultIdentityProvider } from '../../zivoe-vault-provider';
-import { useSelectedChain } from './chain-switch';
+import { SwitchChainButton, useSelectedChain } from './chain-switch';
 
 const CHAIN_IDS = { sepolia: 11155111, 'base-sepolia': 84532 } as const;
 
@@ -27,6 +27,8 @@ type SwitchMocks = {
   toast: ReturnType<typeof vi.fn>;
   /** The reconnecting-wallet test clears it to model an unknown chain. */
   walletChainId: number | undefined;
+  /** One entry per unsettled prompt — a test settles them explicitly, in any order. */
+  settlePending: Array<() => void>;
 };
 
 const mocks = vi.hoisted(
@@ -34,16 +36,33 @@ const mocks = vi.hoisted(
     switchChain: vi.fn(),
     switchError: undefined,
     toast: vi.fn(),
-    walletChainId: 11155111
+    walletChainId: 11155111,
+    settlePending: []
   })
 );
 
+// Mirrors the real mutation lifecycle order (onMutate → onError → onSettled)
+// so the module's shared pending count is actually exercised: a rejected
+// switch settles immediately; a granted prompt stays open until the test
+// settles it.
 vi.mock('wagmi', () => ({
   useConnection: () => ({ chainId: mocks.walletChainId }),
-  useSwitchChain: (options?: { mutation?: { onError?: (error: Error, vars: { chainId: number }) => void } }) => ({
+  useSwitchChain: (options?: {
+    mutation?: {
+      onMutate?: (vars: { chainId: number }) => void;
+      onError?: (error: Error, vars: { chainId: number }) => void;
+      onSettled?: () => void;
+    };
+  }) => ({
     mutate: (vars: { chainId: number }) => {
       mocks.switchChain(vars);
-      if (mocks.switchError) options?.mutation?.onError?.(mocks.switchError, vars);
+      options?.mutation?.onMutate?.(vars);
+      if (mocks.switchError) {
+        options?.mutation?.onError?.(mocks.switchError, vars);
+        options?.mutation?.onSettled?.();
+      } else {
+        mocks.settlePending.push(() => options?.mutation?.onSettled?.());
+      }
     },
     isPending: false
   })
@@ -51,7 +70,23 @@ vi.mock('wagmi', () => ({
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: mocks.toast, Toaster: () => null }));
 // Imported by the module under test; the workspace package does not transform
 // under vitest (same mocks as the flow suites).
-vi.mock('@zivoe/ui/core/button', () => ({ Button: () => null }));
+vi.mock('@zivoe/ui/core/button', () => ({
+  Button: ({
+    children,
+    isPending,
+    pendingContent,
+    onPress
+  }: {
+    children?: ReactNode;
+    isPending?: boolean;
+    pendingContent?: ReactNode;
+    onPress?: () => void;
+  }) => (
+    <button type="button" onClick={onPress}>
+      {isPending && pendingContent ? pendingContent : children}
+    </button>
+  )
+}));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
@@ -101,6 +136,7 @@ afterEach(() => {
   mocks.toast.mockClear();
   mocks.switchError = undefined;
   mocks.walletChainId = 11155111;
+  mocks.settlePending.length = 0;
 });
 
 describe('useSelectedChain', () => {
@@ -171,6 +207,35 @@ describe('useSelectedChain', () => {
 
     fireEvent.click(screen.getByText('deposit-select'));
     expect(mocks.switchChain).not.toHaveBeenCalled();
+  });
+
+  it('keeps the switch button pending until the LAST of overlapping prompts settles', () => {
+    renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: (
+        <>
+          <Consumer label="deposit" select="base-sepolia" />
+          <SwitchChainButton />
+        </>
+      )
+    });
+
+    // Two prompts in flight: the selector deliberately stays unlocked during
+    // a switch, so re-selecting fires a second prompt before the first
+    // settles.
+    fireEvent.click(screen.getByText('deposit-select'));
+    fireEvent.click(screen.getByText('deposit-select'));
+    expect(mocks.settlePending).toHaveLength(2);
+    expect(screen.getByText('Switching Network...')).toBeTruthy();
+
+    // The FIRST prompt settling must not free the button — the second prompt
+    // is still open, and an enabled button would offer a third.
+    act(() => mocks.settlePending[0]?.());
+    expect(screen.getByText('Switching Network...')).toBeTruthy();
+
+    act(() => mocks.settlePending[1]?.());
+    expect(screen.getByText('Switch to Base')).toBeTruthy();
   });
 
   it("falls back to the first chain when the stored selection is not live on this Zivoe Vault's page", () => {

@@ -23,9 +23,12 @@ const selectedChainAtom = atom<CentrifugeChain | undefined>(undefined);
 
 // Shared across every consumer of the switch mutation (the flows'
 // selection-triggered prompt and SwitchChainButton are separate hook
-// instances): one pending state means the button can never offer a second
-// prompt while any switch is already in flight.
-const isSwitchPendingAtom = atom(false);
+// instances): one pending state means the button can never offer another
+// prompt while any switch is already in flight. Counted, not boolean —
+// prompts can overlap (the selector deliberately stays unlocked during a
+// switch), and mutation callbacks fire per mutation, so an earlier prompt
+// settling must not mark a still-open later prompt as done.
+const pendingSwitchCountAtom = atom(0);
 
 /** The switch mutation and wallet gate — module-private; only written in event handlers. */
 function useChainSwitch() {
@@ -33,11 +36,11 @@ function useChainSwitch() {
   const { chainId: walletChainId } = useConnection();
   const identities = useZivoeVaultIdentities();
 
-  const [isSwitchPending, setIsSwitchPending] = useAtom(isSwitchPendingAtom);
+  const [pendingSwitchCount, setPendingSwitchCount] = useAtom(pendingSwitchCountAtom);
   const { mutate: switchChainMutate } = useSwitchChain({
     mutation: {
-      onMutate: () => setIsSwitchPending(true),
-      onSettled: () => setIsSwitchPending(false),
+      onMutate: () => setPendingSwitchCount((count) => count + 1),
+      onSettled: () => setPendingSwitchCount((count) => count - 1),
       onError: (_error, { chainId }) => {
         const chain = identities
           .map((identity) => identity.centrifugeVault.chain)
@@ -58,7 +61,7 @@ function useChainSwitch() {
 
   const switchToChain = (chain: CentrifugeChain) => switchChainMutate({ chainId: getChainId(chain) });
 
-  return { isWalletOffChain, switchToChain, isSwitchPending };
+  return { isWalletOffChain, switchToChain, isSwitchPending: pendingSwitchCount > 0 };
 }
 
 /**
