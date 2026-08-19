@@ -35,7 +35,9 @@ const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
 });
 
 // A fresh jotai store per render: the shared selected-chain atom must not
-// leak a selection from one test into the next.
+// leak a selection from one test into the next. The atom also persists to
+// localStorage, which test/setup.ts clears after each test — store freshness
+// alone no longer isolates the selection.
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
     <JotaiProvider>

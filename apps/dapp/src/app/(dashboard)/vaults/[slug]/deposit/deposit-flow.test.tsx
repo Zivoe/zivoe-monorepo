@@ -27,7 +27,9 @@ const { USDC_ADDRESS, ROUTER_ADDRESS, BASE_USDC_ADDRESS, BASE_ROUTER_ADDRESS } =
 const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
 // A fresh jotai store per render: the shared selected-chain atom must not
-// leak a selection from one test into the next.
+// leak a selection from one test into the next. The atom also persists to
+// localStorage, which test/setup.ts clears after each test — store freshness
+// alone no longer isolates the selection.
 function renderFlow(status: ZivoeVaultStatus = 'Open') {
   return render(
     <JotaiProvider>
