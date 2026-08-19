@@ -22,7 +22,10 @@ import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 // so a value left behind by another Zivoe Vault — or by a deploy that dropped
 // a chain — falls back to the first chain unless it is live here too, with no
 // reset lifecycle. Default getOnInit keeps SSR safe: server and first client
-// render use the first chain, and the stored value syncs in on mount.
+// render use the first chain, and the stored value syncs in on mount. The
+// default storage also follows the browser's storage event, so open tabs
+// share one live selection — intended: one user, one selection, the same way
+// the wallet's own chain is shared across tabs.
 const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.selected-chain', undefined);
 
 // Shared across every consumer of the switch mutation (the flows'
