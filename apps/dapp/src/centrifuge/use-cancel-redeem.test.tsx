@@ -128,7 +128,7 @@ describe('useCancelRedeem', () => {
 
     // One transaction, no arguments — the Cancellation always covers the full
     // remaining pending amount — against the Centrifuge vault of the identity parameter.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
     expect(cancelSpy).toHaveBeenCalledOnce();
     expect(cancelSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();

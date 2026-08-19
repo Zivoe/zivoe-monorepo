@@ -56,8 +56,7 @@ export function useRequestRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
-  const usdc = shareClass.usdc;
+  const { usdc, shareClass } = identity.centrifugeVault;
   const copy = requestRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<RequestRedeemVariables>({
@@ -80,7 +79,7 @@ export function useRequestRedeem({
       flow: 'redeem',
       input: ({ shares, estimatedAssets }, { address }) => ({
         walletAddress: address,
-        chainId: shareClass.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
         tokenOut: usdc.symbol,
         amountInRaw: shares,

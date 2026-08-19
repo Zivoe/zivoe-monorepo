@@ -4,7 +4,7 @@ import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { assertZivoeVaultRegistryInvariants } from './invariants';
 
-const FIXTURE_SHARE_CLASS = FIXTURE_IDENTITY.shareClass;
+const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_SC_ID = '0x00000000000000000000000000000000';
@@ -73,11 +73,11 @@ function assertRegistry(registrations: Array<Registration>) {
 }
 
 const fixture = makeRegistration({
-  key: FIXTURE_SHARE_CLASS.key,
+  key: FIXTURE_CENTRIFUGE_VAULT.shareClass.key,
   slug: 'fixture-zivoe-vault',
-  scId: FIXTURE_SHARE_CLASS.scId,
-  shareTokenAddress: FIXTURE_SHARE_CLASS.shareTokenAddress,
-  centrifugeVaultAddress: FIXTURE_SHARE_CLASS.centrifugeVaultAddress
+  scId: FIXTURE_CENTRIFUGE_VAULT.shareClass.scId,
+  shareTokenAddress: FIXTURE_CENTRIFUGE_VAULT.shareClass.shareTokenAddress,
+  centrifugeVaultAddress: FIXTURE_CENTRIFUGE_VAULT.address
 });
 
 const other = makeRegistration({
@@ -202,7 +202,7 @@ describe('assertZivoeVaultRegistryInvariants', () => {
     // duplicate key, so the case-insensitive sweep is the reachable guard.
     const duplicate: Registration = {
       ...other,
-      zivoeVault: { ...other.zivoeVault, shareClass: { key: FIXTURE_SHARE_CLASS.key.toUpperCase() } }
+      zivoeVault: { ...other.zivoeVault, shareClass: { key: FIXTURE_CENTRIFUGE_VAULT.shareClass.key.toUpperCase() } }
     };
 
     expect(() =>
@@ -211,7 +211,7 @@ describe('assertZivoeVaultRegistryInvariants', () => {
           [fixture.zivoeVault.shareClass.key]: fixture.zivoeVault,
           [duplicate.zivoeVault.shareClass.key]: duplicate.zivoeVault
         },
-        catalog: { [FIXTURE_SHARE_CLASS.key]: fixture.catalogEntry }
+        catalog: { [FIXTURE_CENTRIFUGE_VAULT.shareClass.key]: fixture.catalogEntry }
       })
     ).toThrow(/registered by two Zivoe Vaults/);
   });
@@ -325,7 +325,7 @@ describe('assertZivoeVaultRegistryInvariants', () => {
             ...other.zivoeVault,
             // Case-shifted on purpose: identity comparisons must be case-insensitive.
             centrifugeVaults: {
-              sepolia: { address: FIXTURE_SHARE_CLASS.centrifugeVaultAddress.toUpperCase(), deployable: true }
+              sepolia: { address: FIXTURE_CENTRIFUGE_VAULT.address.toUpperCase(), deployable: true }
             }
           }
         }

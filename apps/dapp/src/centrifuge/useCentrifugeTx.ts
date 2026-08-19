@@ -82,7 +82,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   // Pinned to the identity's chain: simulation, receipt fallbacks and reads
   // must run where the Centrifuge vault lives, not wherever the wallet
   // happens to be.
-  const publicClient = usePublicClient({ chainId: identity.shareClass.chainId });
+  const publicClient = usePublicClient({ chainId: identity.centrifugeVault.chainId });
 
   return useTxLifecycle({
     ...config,
@@ -96,15 +96,15 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
     },
     sentryExtras: (vars) => ({
       ...(config.sentryExtras ?? toSentryExtras)(vars),
-      shareClassKey: identity.shareClass.key,
-      chain: identity.shareClass.chain
+      shareClassKey: identity.centrifugeVault.shareClass.key,
+      chain: identity.centrifugeVault.chain
     }),
 
     // The payload's slug and chain are stamped by the lifecycle itself,
     // uniformly for both drivers (approvals included) and for the fallback
     // payload.
     zivoeVaultSlug: identity.zivoeVaultSlug,
-    chain: identity.shareClass.chain,
+    chain: identity.centrifugeVault.chain,
 
     // Every Centrifuge transaction moves share-class-scoped state, so the
     // driver owns the invalidation — stamped once here (like the slug above)
@@ -113,7 +113,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.shareClass.key
+        shareClassKey: identity.centrifugeVault.shareClass.key
       });
       config.invalidateExtra?.(ctx);
     },
@@ -142,7 +142,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const centrifugeVault = await getCentrifugeVault(identity.shareClass);
+        const centrifugeVault = await getCentrifugeVault(identity.centrifugeVault);
         const txContext = { address, centrifugeVault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -150,7 +150,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         // Requested for the identity's chain — the CTA gates on the wallet
         // already sitting there, and the SDK re-asserts before submitting.
         const { err: walletErr, res: walletClient } = await handlePromise(
-          getWalletClient(wagmiConfig, { chainId: identity.shareClass.chainId })
+          getWalletClient(wagmiConfig, { chainId: identity.centrifugeVault.chainId })
         );
         if (walletErr || !walletClient) throw normalizeWalletClientError(walletErr);
 

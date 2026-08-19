@@ -50,12 +50,12 @@ const RETURNED_SHARES = 4n * 10n ** 18n;
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
@@ -66,7 +66,7 @@ function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) 
   const logs = withClaimLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase(),
           topics: encodeEventTopics({
             abi: CANCEL_REDEEM_CLAIM_EVENT_ABI,
             eventName: 'CancelRedeemClaim',
@@ -134,7 +134,7 @@ function fakeCentrifugeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress,
+                    to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -191,7 +191,7 @@ describe('useClaimReturnedShares', () => {
 
     // Identity follows the hook parameter: the fixture share class resolves
     // the Centrifuge vault and the Zivoe Vault slug rides the analytics captures.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_claim_returned_receipt',
       expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_out: 'zFIX' })

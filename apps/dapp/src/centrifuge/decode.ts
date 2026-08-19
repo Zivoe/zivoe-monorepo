@@ -51,7 +51,7 @@ function createCentrifugeVaultReceiptDecoder<
     receipt: TransactionReceipt;
     identity: TransactionIdentity;
   }): TAmounts | undefined {
-    const { centrifugeVaultAddress } = identity.shareClass;
+    const centrifugeVaultAddress = identity.centrifugeVault.address;
     const byCentrifugeVault = decodedReceipts.get(receipt) ?? new Map<string, TAmounts | undefined>();
     const centrifugeVaultKey = centrifugeVaultAddress.toLowerCase();
     if (byCentrifugeVault.has(centrifugeVaultKey)) return byCentrifugeVault.get(centrifugeVaultKey);

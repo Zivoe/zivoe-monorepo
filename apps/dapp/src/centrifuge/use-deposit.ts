@@ -49,8 +49,7 @@ export function useDeposit({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
-  const { usdc, vaultRouterAddress } = shareClass;
+  const { usdc, vaultRouterAddress, shareClass } = identity.centrifugeVault;
   const copy = depositCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<DepositVariables>({
@@ -73,7 +72,7 @@ export function useDeposit({
       flow: 'deposit',
       input: ({ assets, previewShares }, { address }) => ({
         walletAddress: address,
-        chainId: shareClass.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenIn: usdc.symbol,
         tokenOut: shareClass.symbol,
         amountInRaw: assets,
@@ -125,13 +124,16 @@ export function useDeposit({
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
-          chain: shareClass.chain,
+          chain: identity.centrifugeVault.chain,
           contract: usdc.address,
           spender: vaultRouterAddress
         })
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.app.centrifugeVaultCapacity({ shareClassKey: shareClass.key, chain: shareClass.chain })
+        queryKey: queryKeys.app.centrifugeVaultCapacity({
+          shareClassKey: shareClass.key,
+          chain: identity.centrifugeVault.chain
+        })
       });
     }
   });

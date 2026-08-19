@@ -76,8 +76,8 @@ function mixedReceipt(): TransactionReceipt {
     status: 'success',
     transactionHash: TX_HASH,
     logs: [
-      depositLog({ centrifugeVaultAddress: ZSMB_IDENTITY.shareClass.centrifugeVaultAddress, ...ZSMB_AMOUNTS }),
-      depositLog({ centrifugeVaultAddress: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, ...FIXTURE_AMOUNTS })
+      depositLog({ centrifugeVaultAddress: ZSMB_IDENTITY.centrifugeVault.address, ...ZSMB_AMOUNTS }),
+      depositLog({ centrifugeVaultAddress: FIXTURE_IDENTITY.centrifugeVault.address, ...FIXTURE_AMOUNTS })
     ]
   } as unknown as TransactionReceipt;
 }
@@ -131,8 +131,8 @@ describe('two share classes side by side', () => {
     await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
-    expect(getCentrifugeVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.shareClass);
-    expect(getCentrifugeVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.centrifugeVault);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.centrifugeVault);
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
@@ -260,7 +260,7 @@ describe('two share classes side by side', () => {
     // The invalidations are pinned the same way: they refetch the
     // mutation-time class's scope, never the re-rendered one's.
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
-    expect(invalidatedKeys.some((key) => key.includes(ZSMB_IDENTITY.shareClass.key))).toBe(true);
-    expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.shareClass.key))).toBe(false);
+    expect(invalidatedKeys.some((key) => key.includes(ZSMB_IDENTITY.centrifugeVault.shareClass.key))).toBe(true);
+    expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.centrifugeVault.shareClass.key))).toBe(false);
   });
 });

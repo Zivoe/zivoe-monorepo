@@ -87,7 +87,11 @@ export function resolveTransactionIdentity(
   zivoeVault: Pick<ZivoeVault, 'slug' | 'shareClass' | 'centrifugeVaults'>,
   chain: CentrifugeChain
 ): TransactionIdentity {
-  const identity = getShareClassChainIdentity({ chain, key: zivoeVault.shareClass.key });
+  const {
+    chain: identityChain,
+    chainId,
+    ...shareClass
+  } = getShareClassChainIdentity({ chain, key: zivoeVault.shareClass.key });
   const centrifugeVault = zivoeVault.centrifugeVaults[chain];
 
   if (!centrifugeVault?.deployable)
@@ -100,7 +104,14 @@ export function resolveTransactionIdentity(
 
   return {
     zivoeVaultSlug: zivoeVault.slug,
-    shareClass: { ...identity, centrifugeVaultAddress: centrifugeVault.address, usdc, vaultRouterAddress }
+    centrifugeVault: {
+      chain: identityChain,
+      chainId,
+      address: centrifugeVault.address,
+      usdc,
+      vaultRouterAddress,
+      shareClass
+    }
   };
 }
 

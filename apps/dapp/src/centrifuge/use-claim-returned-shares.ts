@@ -54,7 +54,7 @@ export function useClaimReturnedShares({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
+  const { vaultRouterAddress, shareClass } = identity.centrifugeVault;
   const copy = claimReturnedSharesCopy({ share: shareClass.symbol });
 
   return useCentrifugeTx<ClaimReturnedSharesVariables>({
@@ -71,11 +71,11 @@ export function useClaimReturnedShares({
     },
 
     expectedCall: (_, { address }) => ({
-      to: shareClass.vaultRouterAddress,
+      to: vaultRouterAddress,
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimCancelRedeemRequest',
-        args: [shareClass.centrifugeVaultAddress, address, address]
+        args: [identity.centrifugeVault.address, address, address]
       }),
       mismatchMessage: copy.mismatch
     }),
@@ -87,7 +87,7 @@ export function useClaimReturnedShares({
       flow: 'redeem_claim_returned',
       input: ({ returnedShares }, { address }) => ({
         walletAddress: address,
-        chainId: shareClass.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenOut: shareClass.symbol,
         amountOutRaw: returnedShares
       }),

@@ -10,23 +10,25 @@ import { getChainConfig } from '@/centrifuge/config';
  */
 export const FIXTURE_IDENTITY: TransactionIdentity = {
   zivoeVaultSlug: 'fixture-zivoe-vault',
-  shareClass: {
-    key: 'zfix',
-    symbol: 'zFIX',
-    decimals: 8,
-    poolId: '281474976999999',
-    scId: '0x000100000000ffff0000000000000001',
+  centrifugeVault: {
     // The test deployment's single active chain (see test/setup.ts) — the
     // hooks pin their clients to this chainId, and read the chain's real
     // USDC/VaultRouter facts off the identity like the app resolves them.
     chain: 'sepolia',
     chainId: 11155111,
-    shareTokenAddress: '0xf1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1',
-    centrifugeVaultAddress: '0xfafafafafafafafafafafafafafafafafafafafa',
+    address: '0xfafafafafafafafafafafafafafafafafafafafa',
     usdc: getChainConfig('sepolia').usdc,
-    vaultRouterAddress: getChainConfig('sepolia').vaultRouterAddress
+    vaultRouterAddress: getChainConfig('sepolia').vaultRouterAddress,
+    shareClass: {
+      key: 'zfix',
+      symbol: 'zFIX',
+      decimals: 8,
+      poolId: '281474976999999',
+      scId: '0x000100000000ffff0000000000000001',
+      shareTokenAddress: '0xf1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1'
+    }
   }
 };
 
 /** The fixture's Centrifuge-vault address as query keys carry it — lowercased, like the key builder. */
-export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase();
+export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase();

@@ -51,8 +51,7 @@ export function useClaimRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
-  const { usdc, vaultRouterAddress } = shareClass;
+  const { usdc, vaultRouterAddress, shareClass } = identity.centrifugeVault;
   const copy = claimRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<ClaimRedeemVariables>({
@@ -73,7 +72,7 @@ export function useClaimRedeem({
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimRedeem',
-        args: [shareClass.centrifugeVaultAddress, address, address]
+        args: [identity.centrifugeVault.address, address, address]
       }),
       mismatchMessage: copy.mismatch
     }),
@@ -85,7 +84,7 @@ export function useClaimRedeem({
       flow: 'redeem_claim',
       input: ({ claimableAssets }, { address }) => ({
         walletAddress: address,
-        chainId: shareClass.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
         tokenOut: usdc.symbol,
         amountOutRaw: claimableAssets

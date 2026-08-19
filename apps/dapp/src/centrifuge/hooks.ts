@@ -10,7 +10,7 @@ import { useAccount } from '@/hooks/useAccount';
 
 import { getCentrifugeVault } from './client';
 import { readCentrifugeVaultCapacity, readInvestorWhitelist, readRedemptionPosition } from './reads';
-import { type TransactedShareClass } from './types';
+import { type TransactedCentrifugeVault } from './types';
 
 /**
  * Whether this share class's Centrifuge vault admits the connected wallet. Every flow's
@@ -19,28 +19,32 @@ import { type TransactedShareClass } from './types';
  * check the form could run. Skipped without a wallet — there is nothing to
  * ask about until one connects.
  */
-export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedShareClass }) {
+export function useInvestorWhitelist({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
 
   return useQuery({
     queryKey: queryKeys.account.investorWhitelist({
       accountAddress: address,
-      shareClassKey: shareClass.key,
-      chain: shareClass.chain
+      shareClassKey: centrifugeVault.shareClass.key,
+      chain: centrifugeVault.chain
     }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
     queryFn: !address
       ? skipToken
-      : async () => readInvestorWhitelist({ centrifugeVault: await getCentrifugeVault(shareClass), investor: address })
+      : async () =>
+          readInvestorWhitelist({ centrifugeVault: await getCentrifugeVault(centrifugeVault), investor: address })
   });
 }
 
-export function useCentrifugeVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
+export function useCentrifugeVaultCapacity({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   return useQuery({
-    queryKey: queryKeys.app.centrifugeVaultCapacity({ shareClassKey: shareClass.key, chain: shareClass.chain }),
+    queryKey: queryKeys.app.centrifugeVaultCapacity({
+      shareClassKey: centrifugeVault.shareClass.key,
+      chain: centrifugeVault.chain
+    }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
-    queryFn: async () => readCentrifugeVaultCapacity(await getCentrifugeVault(shareClass))
+    queryFn: async () => readCentrifugeVaultCapacity(await getCentrifugeVault(centrifugeVault))
   });
 }
 
@@ -60,11 +64,21 @@ export function isPriceUnavailableError(error: unknown): boolean {
  * The Centrifuge vault contract's own previewDeposit answer — the authoritative mint
  * quote, including whatever rounding the contract applies at execution.
  */
-export function useDepositPreview({ shareClass, assets }: { shareClass: TransactedShareClass; assets: bigint }) {
-  const web3 = usePublicClient({ chainId: shareClass.chainId });
+export function useDepositPreview({
+  centrifugeVault,
+  assets
+}: {
+  centrifugeVault: TransactedCentrifugeVault;
+  assets: bigint;
+}) {
+  const web3 = usePublicClient({ chainId: centrifugeVault.chainId });
 
   return useQuery({
-    queryKey: queryKeys.app.depositPreview({ shareClassKey: shareClass.key, chain: shareClass.chain, assets }),
+    queryKey: queryKeys.app.depositPreview({
+      shareClassKey: centrifugeVault.shareClass.key,
+      chain: centrifugeVault.chain,
+      assets
+    }),
     meta: { skipErrorToast: true },
     queryFn:
       assets <= 0n || !web3
@@ -72,7 +86,7 @@ export function useDepositPreview({ shareClass, assets }: { shareClass: Transact
         : async () => ({
             shares: await web3.readContract({
               abi: CENTRIFUGE_VAULT_PREVIEW_ABI,
-              address: shareClass.centrifugeVaultAddress,
+              address: centrifugeVault.address,
               functionName: 'previewDeposit',
               args: [assets]
             })
@@ -80,14 +94,14 @@ export function useDepositPreview({ shareClass, assets }: { shareClass: Transact
   });
 }
 
-export function useRedemptionPosition({ shareClass }: { shareClass: TransactedShareClass }) {
+export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
 
   return useQuery({
     queryKey: queryKeys.account.redemptionPosition({
       accountAddress: address,
-      shareClassKey: shareClass.key,
-      chain: shareClass.chain
+      shareClassKey: centrifugeVault.shareClass.key,
+      chain: centrifugeVault.chain
     }),
     meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub
@@ -100,6 +114,7 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
       state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
     queryFn: !address
       ? skipToken
-      : async () => readRedemptionPosition({ centrifugeVault: await getCentrifugeVault(shareClass), investor: address })
+      : async () =>
+          readRedemptionPosition({ centrifugeVault: await getCentrifugeVault(centrifugeVault), investor: address })
   });
 }

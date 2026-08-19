@@ -17,7 +17,7 @@ export type {
   DepositPreview,
   InvestorWhitelist,
   RedemptionPosition,
-  TransactedShareClass,
+  TransactedCentrifugeVault,
   TransactionIdentity,
   CentrifugeVaultCapacity
 } from './types';

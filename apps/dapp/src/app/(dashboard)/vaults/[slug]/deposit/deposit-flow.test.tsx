@@ -86,11 +86,11 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useCentrifugeVaultCapacity: ({ shareClass }: { shareClass: { chain: string } }) =>
+  useCentrifugeVaultCapacity: ({ centrifugeVault }: { centrifugeVault: { chain: string } }) =>
     mocks.capacityIsError
       ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
       : {
-          data: { maxDeposit: shareClass.chain === 'base-sepolia' ? mocks.baseCapacity : mocks.capacity },
+          data: { maxDeposit: centrifugeVault.chain === 'base-sepolia' ? mocks.baseCapacity : mocks.capacity },
           isError: false,
           isFetching: false,
           isPending: false,
@@ -507,14 +507,17 @@ describe('DepositFlow across two chains', () => {
   // and router instances.
   const BASE_IDENTITY = {
     ...TEST_IDENTITY,
-    shareClass: {
-      ...TEST_IDENTITY.shareClass,
+    centrifugeVault: {
+      ...TEST_IDENTITY.centrifugeVault,
       chain: 'base-sepolia' as const,
       chainId: 84532,
-      shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' as const,
-      centrifugeVaultAddress: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
+      address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
       usdc: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
-      vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`
+      vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`,
+      shareClass: {
+        ...TEST_IDENTITY.centrifugeVault.shareClass,
+        shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' as const
+      }
     }
   };
 

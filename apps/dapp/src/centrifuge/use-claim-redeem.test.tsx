@@ -52,12 +52,12 @@ const CLAIMABLE_SHARES = 140_190000000000000000n;
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 
 const WITHDRAW_EVENT_ABI = parseAbi([
@@ -68,7 +68,7 @@ function claimReceipt({ withWithdrawLog = true }: { withWithdrawLog?: boolean } 
   const logs = withWithdrawLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase(),
           topics: encodeEventTopics({
             abi: WITHDRAW_EVENT_ABI,
             eventName: 'Withdraw',
@@ -136,7 +136,7 @@ function fakeCentrifugeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress,
+                    to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -188,7 +188,7 @@ describe('useClaimRedeem', () => {
 
     // One transaction against the parameterized share class's Centrifuge vault, default
     // receiver/controller (the investor).
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
     expect(claimSpy).toHaveBeenCalledOnce();
     expect(claimSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();

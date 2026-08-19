@@ -40,7 +40,7 @@ function useChainSwitch() {
       onSettled: () => setIsSwitchPending(false),
       onError: (_error, { chainId }) => {
         const chain = identities
-          .map((identity) => identity.shareClass.chain)
+          .map((identity) => identity.centrifugeVault.chain)
           .find((candidate) => getChainId(candidate) === chainId);
         toast({
           type: 'error',
@@ -82,8 +82,9 @@ export function useSelectedChain() {
   const identities = useZivoeVaultIdentities();
 
   const [storedChain, setStoredChain] = useAtom(selectedChainAtom);
-  const selectedIdentity = identities.find((identity) => identity.shareClass.chain === storedChain) ?? identities[0];
-  const selectedChain = selectedIdentity.shareClass.chain;
+  const selectedIdentity =
+    identities.find((identity) => identity.centrifugeVault.chain === storedChain) ?? identities[0];
+  const selectedChain = selectedIdentity.centrifugeVault.chain;
 
   const { isWalletOffChain, switchToChain } = useChainSwitch();
 

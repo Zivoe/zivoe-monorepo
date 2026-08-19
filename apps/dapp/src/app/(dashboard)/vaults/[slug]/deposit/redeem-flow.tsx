@@ -23,7 +23,7 @@ import ConnectedAccount from '@/components/connected-account';
 import { getTokenInfo } from '@/components/token-info';
 
 import {
-  type TransactedShareClass,
+  type TransactedCentrifugeVault,
   sharesToUsdc,
   sharesToValueD18,
   useCancelRedeem,
@@ -54,8 +54,9 @@ export default function RedeemFlow() {
     needsChainSwitch
   } = useSelectedChain();
 
-  const share = identity.shareClass;
-  const usdc = share.usdc;
+  const { centrifugeVault } = identity;
+  const share = centrifugeVault.shareClass;
+  const usdc = centrifugeVault.usdc;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -63,9 +64,9 @@ export default function RedeemFlow() {
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
-  const position = useRedemptionPosition({ shareClass: share });
+  const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
-  const whitelist = useInvestorWhitelist({ shareClass: share });
+  const whitelist = useInvestorWhitelist({ centrifugeVault });
 
   // Two gates, because the whitelist does not fall along this panel's own
   // lines. Only a definitive `false` gates anything: a failed read is a fetch
@@ -298,13 +299,13 @@ export default function RedeemFlow() {
       )}
 
       {isCancellationProcessing ? (
-        <CancellationProcessingStrip pendingShares={pendingShares} shareClass={share} />
+        <CancellationProcessingStrip pendingShares={pendingShares} centrifugeVault={centrifugeVault} />
       ) : (
         pendingShares > 0n && (
           <RedemptionProcessingStrip
             pendingShares={pendingShares}
             sharePrice={sharePrice}
-            shareClass={share}
+            centrifugeVault={centrifugeVault}
             cancel={{
               onPress: handleCancelRedeem,
               isDisabled: isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
@@ -353,7 +354,7 @@ export default function RedeemFlow() {
                   <ChainTokenSelector
                     title="Select Asset"
                     token={shareSelectorToken}
-                    rows={identities.map((rowIdentity) => ({ chain: rowIdentity.shareClass.chain }))}
+                    rows={identities.map((rowIdentity) => ({ chain: rowIdentity.centrifugeVault.chain }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
                     // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
@@ -445,12 +446,12 @@ export default function RedeemFlow() {
 function RedemptionProcessingStrip({
   pendingShares,
   sharePrice,
-  shareClass,
+  centrifugeVault,
   cancel
 }: {
   pendingShares: bigint;
   sharePrice: bigint | undefined;
-  shareClass: TransactedShareClass;
+  centrifugeVault: TransactedCentrifugeVault;
   cancel: {
     onPress: () => void;
     isDisabled: boolean;
@@ -460,7 +461,7 @@ function RedemptionProcessingStrip({
     isTxPending: boolean;
   };
 }) {
-  const usdc = shareClass.usdc;
+  const { usdc, shareClass } = centrifugeVault;
   const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
 
   return (
@@ -499,11 +500,12 @@ function RedemptionProcessingStrip({
 
 function CancellationProcessingStrip({
   pendingShares,
-  shareClass
+  centrifugeVault
 }: {
   pendingShares: bigint;
-  shareClass: TransactedShareClass;
+  centrifugeVault: TransactedCentrifugeVault;
 }) {
+  const { shareClass } = centrifugeVault;
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">

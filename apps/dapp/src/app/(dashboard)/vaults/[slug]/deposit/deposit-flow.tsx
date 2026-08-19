@@ -54,8 +54,9 @@ export function DepositFlow() {
     needsChainSwitch
   } = useSelectedChain();
 
-  const share = identity.shareClass;
-  const { usdc, vaultRouterAddress } = share;
+  const { centrifugeVault } = identity;
+  const share = centrifugeVault.shareClass;
+  const { usdc, vaultRouterAddress } = centrifugeVault;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -67,8 +68,8 @@ export function DepositFlow() {
   const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ chain: selectedChain, contract: usdc.address, spender: vaultRouterAddress });
-  const capacity = useCentrifugeVaultCapacity({ shareClass: share });
-  const whitelist = useInvestorWhitelist({ shareClass: share });
+  const capacity = useCentrifugeVaultCapacity({ centrifugeVault });
+  const whitelist = useInvestorWhitelist({ centrifugeVault });
 
   // Only a definitive `false` gates anything. A failed read is a fetch problem
   // and not a verdict about this wallet, so it leaves the flow alone and lets
@@ -104,7 +105,7 @@ export function DepositFlow() {
   // amount's successful response renders.
   const { debouncedValue: debouncedDeposit, isDebouncing } = useDebouncedValue({ value: deposit });
   const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, usdc.decimals) : undefined;
-  const preview = useDepositPreview({ shareClass: share, assets: debouncedRaw ?? 0n });
+  const preview = useDepositPreview({ centrifugeVault, assets: debouncedRaw ?? 0n });
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
   const previewShares = hasDepositRaw && isPreviewCurrent ? preview.data?.shares : undefined;
@@ -255,7 +256,7 @@ export function DepositFlow() {
                     title="Select Asset"
                     token={TOKEN_INFO.USDC}
                     rows={identities.map((rowIdentity) => ({
-                      chain: rowIdentity.shareClass.chain,
+                      chain: rowIdentity.centrifugeVault.chain,
                       detail: <ChainUsdcBalanceDetail identity={rowIdentity} />
                     }))}
                     selectedChain={selectedChain}
@@ -381,7 +382,7 @@ export function DepositFlow() {
 /** The wallet's USDC balance on one chain's identity — the selector row's right-hand detail. */
 function ChainUsdcBalanceDetail({ identity }: { identity: TransactionIdentity }) {
   const account = useAccount();
-  const { chain, usdc } = identity.shareClass;
+  const { chain, usdc } = identity.centrifugeVault;
   const balance = useBalance({ chain, tokenAddress: usdc.address });
 
   if (!account.address) return null;

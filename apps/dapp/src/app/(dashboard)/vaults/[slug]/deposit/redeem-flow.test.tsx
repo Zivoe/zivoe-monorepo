@@ -150,10 +150,10 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useRedemptionPosition: ({ shareClass }: { shareClass: { chain: string } }) => ({
+  useRedemptionPosition: ({ centrifugeVault }: { centrifugeVault: { chain: string } }) => ({
     isError: mocks.positionIsError,
     isFetching: false,
-    data: mocks.positionIsError ? undefined : positionFor(shareClass.chain)
+    data: mocks.positionIsError ? undefined : positionFor(centrifugeVault.chain)
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
@@ -618,12 +618,15 @@ describe('RedeemFlow across two chains', () => {
   // The second chain's identity: same class, its own share-token and Centrifuge-vault instances.
   const BASE_IDENTITY = {
     ...TEST_IDENTITY,
-    shareClass: {
-      ...TEST_IDENTITY.shareClass,
+    centrifugeVault: {
+      ...TEST_IDENTITY.centrifugeVault,
       chain: 'base-sepolia' as const,
       chainId: 84532,
-      shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}`,
-      centrifugeVaultAddress: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const
+      address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
+      shareClass: {
+        ...TEST_IDENTITY.centrifugeVault.shareClass,
+        shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}`
+      }
     }
   };
 

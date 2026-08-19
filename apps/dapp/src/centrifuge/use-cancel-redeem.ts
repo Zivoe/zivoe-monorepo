@@ -48,8 +48,8 @@ export function useCancelRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
-  const copy = cancelRedeemCopy({ asset: shareClass.usdc.symbol, share: shareClass.symbol });
+  const { usdc, shareClass } = identity.centrifugeVault;
+  const copy = cancelRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<CancelRedeemVariables>({
     identity,
@@ -71,7 +71,7 @@ export function useCancelRedeem({
       flow: 'redeem_cancel',
       input: ({ pendingShares }, { address }) => ({
         walletAddress: address,
-        chainId: shareClass.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
         amountInRaw: pendingShares
       })

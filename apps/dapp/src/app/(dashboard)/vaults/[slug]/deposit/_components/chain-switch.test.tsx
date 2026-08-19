@@ -15,19 +15,31 @@ import { useSelectedChain } from './chain-switch';
 
 const CHAIN_IDS = { sepolia: 11155111, 'base-sepolia': 84532 } as const;
 
-/** The fixture identity re-pinned to one chain — the hook reads only shareClass.chain. */
+/** The fixture identity re-pinned to one chain — the hook reads only centrifugeVault.chain. */
 function identityOn(chain: keyof typeof CHAIN_IDS): TransactionIdentity {
-  return { ...FIXTURE_IDENTITY, shareClass: { ...FIXTURE_IDENTITY.shareClass, chain, chainId: CHAIN_IDS[chain] } };
+  return {
+    ...FIXTURE_IDENTITY,
+    centrifugeVault: { ...FIXTURE_IDENTITY.centrifugeVault, chain, chainId: CHAIN_IDS[chain] }
+  };
 }
 
-const mocks = vi.hoisted(() => ({
-  switchChain: vi.fn(),
-  // Set to make the next switch fail through the hook's mutation onError.
-  switchError: undefined as Error | undefined,
-  toast: vi.fn(),
-  // number | undefined: the reconnecting-wallet test clears it to model an unknown chain.
-  walletChainId: 11155111 as number | undefined
-}));
+type SwitchMocks = {
+  switchChain: ReturnType<typeof vi.fn>;
+  /** Set to make the next switch fail through the hook's mutation onError. */
+  switchError: Error | undefined;
+  toast: ReturnType<typeof vi.fn>;
+  /** The reconnecting-wallet test clears it to model an unknown chain. */
+  walletChainId: number | undefined;
+};
+
+const mocks = vi.hoisted(
+  (): SwitchMocks => ({
+    switchChain: vi.fn(),
+    switchError: undefined,
+    toast: vi.fn(),
+    walletChainId: 11155111
+  })
+);
 
 vi.mock('wagmi', () => ({
   useConnection: () => ({ chainId: mocks.walletChainId }),

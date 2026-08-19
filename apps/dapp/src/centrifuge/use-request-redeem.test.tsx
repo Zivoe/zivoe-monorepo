@@ -116,7 +116,7 @@ describe('useRequestRedeem', () => {
     act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
 
     const dialog = getDefaultStore().get(transactionAtom);
     expect(dialog).toEqual({

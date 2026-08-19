@@ -67,7 +67,7 @@ function depositReceipt({ withDepositLog = true }: { withDepositLog?: boolean } 
   const logs = withDepositLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase(),
           topics: encodeEventTopics({
             abi: DEPOSIT_EVENT_ABI,
             eventName: 'Deposit',
@@ -108,7 +108,12 @@ function fakeCentrifugeVault({ receipt }: { receipt: TransactionReceipt }) {
             await signer.request({
               method: 'eth_sendTransaction',
               params: [
-                { from: INVESTOR, to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress, data: '0xdeadbeef', value: '0x0' }
+                {
+                  from: INVESTOR,
+                  to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
+                  data: '0xdeadbeef',
+                  value: '0x0'
+                }
               ]
             });
             observer.next({ type: 'TransactionPending', hash: TX_HASH });
@@ -240,7 +245,7 @@ function fakeVaultThroughViemWallet() {
 
             observer.next({ type: 'SigningTransaction' });
             const hash = await walletClient.sendTransaction({
-              to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress,
+              to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
               data: '0xdeadbeef',
               value: 0n
             });
@@ -297,13 +302,13 @@ describe('useDeposit', () => {
     expect(publicClientCall).toHaveBeenCalledWith(
       expect.objectContaining({
         account: INVESTOR,
-        to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress,
+        to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
         data: '0xdeadbeef'
       })
     );
 
     // The Centrifuge vault comes from the identity parameter, not any ambient config.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
 
     // Success dialog carries the transacted identity and the exact decoded USDC-in / zFIX-out.
     expect(getDefaultStore().get(transactionAtom)).toEqual({
@@ -334,8 +339,8 @@ describe('useDeposit', () => {
           INVESTOR,
           'ALLOWANCE',
           'sepolia',
-          FIXTURE_IDENTITY.shareClass.usdc.address,
-          FIXTURE_IDENTITY.shareClass.vaultRouterAddress
+          FIXTURE_IDENTITY.centrifugeVault.usdc.address,
+          FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
@@ -353,7 +358,7 @@ describe('useDeposit', () => {
         token_in: 'USDC',
         token_out: 'zFIX',
         zivoe_vault_slug: 'fixture-zivoe-vault',
-        chain_id: FIXTURE_IDENTITY.shareClass.chainId,
+        chain_id: FIXTURE_IDENTITY.centrifugeVault.chainId,
         receipt_status: 'success'
       })
     );
