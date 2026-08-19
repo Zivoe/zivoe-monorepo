@@ -239,6 +239,25 @@ describe('useSelectedChain', () => {
     expect(screen.getByText('Switch to Base')).toBeTruthy();
   });
 
+  it('restores the persisted selection on a fresh mount, like a page refresh', () => {
+    // Fresh Jotai stores model separate page loads: only localStorage carries over.
+    const firstLoad = renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: <Consumer label="a" select="base-sepolia" />
+    });
+    fireEvent.click(screen.getByText('a-select'));
+    expect(screen.getByText('a: base-sepolia')).toBeTruthy();
+    firstLoad.unmount();
+
+    renderConsumers({
+      store: createStore(),
+      chains: ['sepolia', 'base-sepolia'],
+      children: <Consumer label="b" select="sepolia" />
+    });
+    expect(screen.getByText('b: base-sepolia')).toBeTruthy();
+  });
+
   it("falls back to the first chain when the stored selection is not live on this Zivoe Vault's page", () => {
     // One store across two pages, like a client-side navigation between Zivoe Vaults.
     const store = createStore();

@@ -1,6 +1,7 @@
 'use client';
 
 import { atom, useAtom } from 'jotai';
+import { atomWithStorage } from 'jotai/utils';
 import { useConnection, useSwitchChain } from 'wagmi';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
@@ -16,10 +17,13 @@ import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 
 // Module-private on purpose: useSelectedChain is the one reader and writer.
-// The atom stores the RAW selection; validity is derived against the page's
-// chains at read time, so a value left behind by another Zivoe Vault falls
-// back to the first chain unless it is live here too — no reset lifecycle.
-const selectedChainAtom = atom<CentrifugeChain | undefined>(undefined);
+// The atom stores the RAW selection, persisted to localStorage so it survives
+// a page refresh; validity is derived against the page's chains at read time,
+// so a value left behind by another Zivoe Vault — or by a deploy that dropped
+// a chain — falls back to the first chain unless it is live here too, with no
+// reset lifecycle. Default getOnInit keeps SSR safe: server and first client
+// render use the first chain, and the stored value syncs in on mount.
+const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.selected-chain', undefined);
 
 // Shared across every consumer of the switch mutation (the flows'
 // selection-triggered prompt and SwitchChainButton are separate hook
