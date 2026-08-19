@@ -18,7 +18,10 @@ const fetchHeroNavs = async (): Promise<Record<string, string>> => {
   return fetchShareClassNavs({ environment, shareClassKeys: listShareClassKeys(environment) });
 };
 
-const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs'], { revalidate: 30 });
+// The environment reaches the fetch through module state, not an argument, so
+// it must be an explicit keyPart: deployments sharing a data cache must not
+// share entries across environments.
+const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs', environment], { revalidate: 30 });
 
 /**
  * NAV per live share class from the shared catalog. Note the dApp homepage

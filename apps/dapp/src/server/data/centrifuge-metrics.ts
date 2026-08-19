@@ -73,7 +73,14 @@ async function fetchDailySnapshotRows(shareClassKey: ShareClassKey): Promise<Arr
  * share-class key argument is part of the cache key (serialized by
  * unstable_cache), so entries split per share class.
  */
-const cachedDailySnapshotRows = nextCache(fetchDailySnapshotRows, ['centrifuge-daily-snapshots'], { revalidate: 900 });
+// The environment reaches every fetch through module state, not an argument,
+// so it must be an explicit keyPart (here and on the two caches below):
+// deployments sharing a data cache must not share entries across environments.
+const cachedDailySnapshotRows = nextCache(
+  fetchDailySnapshotRows,
+  ['centrifuge-daily-snapshots', CENTRIFUGE_ENV.environment],
+  { revalidate: 900 }
+);
 
 /**
  * Daily close series from pool creation onward — one point per closed UTC day
@@ -123,7 +130,11 @@ async function fetchAggregatedNavRows(shareClassKeys: Array<string>): Promise<Re
   return fetchShareClassNavs({ environment: CENTRIFUGE_ENV.environment, shareClassKeys });
 }
 
-const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-share-class-navs'], { revalidate: 30 });
+const cachedShareClassNavs = nextCache(
+  fetchAggregatedNavRows,
+  ['centrifuge-share-class-navs', CENTRIFUGE_ENV.environment],
+  { revalidate: 30 }
+);
 
 /**
  * NAV per listed share class, keyed by share-class key (18-decimal USD decimal
@@ -158,7 +169,11 @@ async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareS
   return payload;
 }
 
-const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics'], { revalidate: 30 });
+const cachedCurrentMetrics = nextCache(
+  fetchCurrentMetrics,
+  ['centrifuge-current-share-metrics', CENTRIFUGE_ENV.environment],
+  { revalidate: 30 }
+);
 
 /**
  * Current Share Price / NAV / 30-day Trailing APY for one share class as the
