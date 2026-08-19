@@ -33,7 +33,7 @@ export const DEFAULT_CHAIN: CentrifugeChain = firstActiveChain;
  * chain. It is also the source Dynamic's custom-network entry is built from,
  * Dynamic having no native Pharos support either.
  */
-export const pharos = defineChain({
+const pharos = defineChain({
   id: 1672,
   name: 'Pharos Mainnet',
   nativeCurrency: { name: 'PharosCoin', symbol: 'PROS', decimals: 18 },
