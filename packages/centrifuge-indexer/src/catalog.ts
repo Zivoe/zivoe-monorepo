@@ -275,34 +275,28 @@ export function getShareClassChainIdentity({
   chain: CentrifugeChain;
   key: string;
 }): ShareClassChainIdentity {
-  if (!isShareClassKey(key)) throw new Error(`Share class "${key}" is not in the catalog.`);
-
   const { environment, chainId } = CENTRIFUGE_CHAIN_FACTS[chain];
-  const entry = SHARE_CLASS_CATALOG[key];
+
+  // The hub half delegates — one trust boundary and one assembly, so a hub
+  // field added to ShareClassIdentity cannot be forgotten here.
+  const identity = getShareClassIdentity({ environment, key });
+
   // Viewed structurally at the lookup only: the as-const catalog narrows each
   // entry's chain record to its literal keys, which the open CentrifugeChain
-  // index cannot address — while `entry` itself must stay narrow so `symbol`
-  // keeps its union type.
-  const onEnvironment = (entry as ShareClassCatalogEntry).environments[environment];
-  const onChain = onEnvironment?.chains[chain];
+  // index cannot address — while the delegate above already resolved the
+  // narrow entry, so `symbol` keeps its union type.
+  const onChain = (SHARE_CLASS_CATALOG[identity.key] as ShareClassCatalogEntry).environments[environment]?.chains[
+    chain
+  ];
 
-  if (!onEnvironment || !onChain) throw new Error(`Share class "${key}" is not offered on "${chain}".`);
+  if (!onChain) throw new Error(`Share class "${key}" is not offered on "${chain}".`);
 
   if (!onChain.deployable)
     throw new Error(
       `Share class "${key}" on "${chain}" is a non-deployable placeholder. Replace it with operator-verified values before deploying.`
     );
 
-  return {
-    key,
-    symbol: entry.symbol,
-    decimals: entry.decimals,
-    poolId: onEnvironment.poolId,
-    scId: onEnvironment.scId,
-    chain,
-    chainId,
-    shareTokenAddress: onChain.shareTokenAddress
-  };
+  return { ...identity, chain, chainId, shareTokenAddress: onChain.shareTokenAddress };
 }
 
 /** Structural view for the listing helpers — tests inject synthetic catalogs. */
