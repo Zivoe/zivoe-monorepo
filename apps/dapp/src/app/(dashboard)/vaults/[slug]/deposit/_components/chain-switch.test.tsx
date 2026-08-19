@@ -25,7 +25,8 @@ const mocks = vi.hoisted(() => ({
   // Set to make the next switch fail through the hook's mutation onError.
   switchError: undefined as Error | undefined,
   toast: vi.fn(),
-  walletChainId: 11155111
+  // number | undefined: the reconnecting-wallet test clears it to model an unknown chain.
+  walletChainId: 11155111 as number | undefined
 }));
 
 vi.mock('wagmi', () => ({
