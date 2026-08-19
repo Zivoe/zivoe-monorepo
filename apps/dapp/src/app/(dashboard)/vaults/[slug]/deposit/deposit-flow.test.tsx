@@ -6,6 +6,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, type ZivoeVaultStatus, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
@@ -254,27 +255,30 @@ async function press(name: string) {
   });
 }
 
+/** One baseline for both suites — the mock surface is shared, so its reset must be too. */
+function resetMocks() {
+  vi.clearAllMocks();
+  mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
+  mocks.allowance = 0n;
+  mocks.whitelistIsAllowed = true;
+  mocks.whitelistIsError = false;
+  mocks.capacity = 5_000000n;
+  mocks.baseCapacity = 5_000000n;
+  mocks.capacityIsError = false;
+  mocks.isDebouncing = false;
+  mocks.previewError = undefined;
+  mocks.previewIsError = false;
+  mocks.previewIsFetching = false;
+  mocks.staleDebouncedValue = undefined;
+  mocks.usdcBalance = 10_000000n;
+  mocks.baseUsdcBalance = 3_000000n;
+  mocks.walletChainId = 11155111;
+}
+
 describe('DepositFlow', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
-    mocks.allowance = 0n;
-    mocks.whitelistIsAllowed = true;
-    mocks.whitelistIsError = false;
-    mocks.capacity = 5_000000n;
-    mocks.baseCapacity = 5_000000n;
-    mocks.capacityIsError = false;
-    mocks.isDebouncing = false;
-    mocks.previewError = undefined;
-    mocks.previewIsError = false;
-    mocks.previewIsFetching = false;
-    mocks.staleDebouncedValue = undefined;
-    mocks.usdcBalance = 10_000000n;
-    mocks.baseUsdcBalance = 3_000000n;
-    mocks.walletChainId = 11155111;
-  });
+  beforeEach(resetMocks);
 
   it('never renders or enables an old quote during the debounce window', () => {
     // Typed 2 while the debounced value still says 1 — the stale quote and
@@ -484,42 +488,16 @@ describe('DepositFlow', () => {
 describe('DepositFlow across two chains', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
-    mocks.allowance = 0n;
-    mocks.whitelistIsAllowed = true;
-    mocks.whitelistIsError = false;
-    mocks.capacity = 5_000000n;
-    mocks.baseCapacity = 5_000000n;
-    mocks.capacityIsError = false;
-    mocks.isDebouncing = false;
-    mocks.previewError = undefined;
-    mocks.previewIsError = false;
-    mocks.previewIsFetching = false;
-    mocks.staleDebouncedValue = undefined;
-    mocks.usdcBalance = 10_000000n;
-    mocks.baseUsdcBalance = 3_000000n;
-    mocks.walletChainId = 11155111;
-  });
+  beforeEach(resetMocks);
 
   // The second chain's identity: same class, its own Centrifuge-vault, USDC
   // and router instances.
-  const BASE_IDENTITY = {
-    ...TEST_IDENTITY,
-    centrifugeVault: {
-      ...TEST_IDENTITY.centrifugeVault,
-      chain: 'base-sepolia' as const,
-      chainId: 84532,
-      address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
-      usdc: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
-      vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`,
-      shareClass: {
-        ...TEST_IDENTITY.centrifugeVault.shareClass,
-        shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' as const
-      }
-    }
-  };
+  const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
+    address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
+    usdc: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
+    vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`,
+    shareClass: { shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' }
+  });
 
   function renderTwoChainFlow() {
     return render(

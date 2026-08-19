@@ -1,4 +1,6 @@
-import { type TransactionIdentity } from '@/centrifuge';
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+
+import { type TransactedCentrifugeVault, type TransactionIdentity } from '@/centrifuge';
 import { getChainConfig } from '@/centrifuge/config';
 
 /**
@@ -32,3 +34,31 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
 
 /** The fixture's Centrifuge-vault address as query keys carry it — lowercased, like the key builder. */
 export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase();
+
+/**
+ * An identity re-pinned to another chain — the shared shape behind every
+ * suite's "same class, second chain" fixture, so the spreads cannot drift
+ * apart. The chainId comes from the real chain config; the per-chain
+ * instances (Centrifuge-vault address, USDC, router, share token) stay
+ * overridable so a suite can pin deliberately distinct addresses per chain.
+ */
+export function identityOnChain(
+  base: TransactionIdentity,
+  chain: CentrifugeChain,
+  overrides: Partial<Omit<TransactedCentrifugeVault, 'chain' | 'chainId' | 'shareClass'>> & {
+    shareClass?: Partial<TransactedCentrifugeVault['shareClass']>;
+  } = {}
+): TransactionIdentity {
+  const { shareClass: shareClassOverrides, ...centrifugeVaultOverrides } = overrides;
+
+  return {
+    ...base,
+    centrifugeVault: {
+      ...base.centrifugeVault,
+      chain,
+      chainId: getChainConfig(chain).chainId,
+      ...centrifugeVaultOverrides,
+      shareClass: { ...base.centrifugeVault.shareClass, ...shareClassOverrides }
+    }
+  };
+}

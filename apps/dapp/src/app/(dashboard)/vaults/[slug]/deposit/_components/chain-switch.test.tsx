@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
 import { type TransactionIdentity } from '@/centrifuge';
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 
 import { ZivoeVaultIdentityProvider } from '../../zivoe-vault-provider';
 import { useSelectedChain } from './chain-switch';
@@ -17,10 +17,7 @@ const CHAIN_IDS = { sepolia: 11155111, 'base-sepolia': 84532 } as const;
 
 /** The fixture identity re-pinned to one chain — the hook reads only centrifugeVault.chain. */
 function identityOn(chain: keyof typeof CHAIN_IDS): TransactionIdentity {
-  return {
-    ...FIXTURE_IDENTITY,
-    centrifugeVault: { ...FIXTURE_IDENTITY.centrifugeVault, chain, chainId: CHAIN_IDS[chain] }
-  };
+  return identityOnChain(FIXTURE_IDENTITY, chain);
 }
 
 type SwitchMocks = {

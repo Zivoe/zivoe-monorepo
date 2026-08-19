@@ -6,7 +6,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
@@ -265,27 +265,30 @@ function getButton(name: string): HTMLButtonElement {
   return button;
 }
 
+/** One baseline for both suites — the mock surface is shared, so its reset must be too. */
+function resetMocks() {
+  vi.clearAllMocks();
+  mocks.canReceiveShares = true;
+  mocks.canRequestRedemption = true;
+  mocks.whitelistIsError = false;
+  mocks.claimableAssets = 0n;
+  mocks.hasPendingCancel = false;
+  mocks.metricsIsError = false;
+  mocks.metricsIsFetching = false;
+  mocks.pendingShares = 0n;
+  mocks.positionIsError = false;
+  mocks.returnedShares = 0n;
+  mocks.sharePrice = 1_070000000000000000n;
+  mocks.zSmbBalance = 10n * 10n ** 18n;
+  mocks.baseShareBalance = 0n;
+  mocks.baseClaimableAssets = 0n;
+  mocks.walletChainId = 11155111;
+}
+
 describe('RedeemFlow', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.canReceiveShares = true;
-    mocks.canRequestRedemption = true;
-    mocks.whitelistIsError = false;
-    mocks.claimableAssets = 0n;
-    mocks.hasPendingCancel = false;
-    mocks.metricsIsError = false;
-    mocks.metricsIsFetching = false;
-    mocks.pendingShares = 0n;
-    mocks.positionIsError = false;
-    mocks.returnedShares = 0n;
-    mocks.sharePrice = 1_070000000000000000n;
-    mocks.zSmbBalance = 10n * 10n ** 18n;
-    mocks.baseShareBalance = 0n;
-    mocks.baseClaimableAssets = 0n;
-    mocks.walletChainId = 11155111;
-  });
+  beforeEach(resetMocks);
 
   it('names the wallet and blocks the request when the vault does not admit it', async () => {
     mocks.canRequestRedemption = false;
@@ -599,39 +602,13 @@ describe('RedeemFlow', () => {
 describe('RedeemFlow across two chains', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.canReceiveShares = true;
-    mocks.canRequestRedemption = true;
-    mocks.whitelistIsError = false;
-    mocks.claimableAssets = 0n;
-    mocks.hasPendingCancel = false;
-    mocks.metricsIsError = false;
-    mocks.metricsIsFetching = false;
-    mocks.pendingShares = 0n;
-    mocks.positionIsError = false;
-    mocks.returnedShares = 0n;
-    mocks.sharePrice = 1_070000000000000000n;
-    mocks.zSmbBalance = 10n * 10n ** 18n;
-    mocks.baseShareBalance = 0n;
-    mocks.baseClaimableAssets = 0n;
-    mocks.walletChainId = 11155111;
-  });
+  beforeEach(resetMocks);
 
   // The second chain's identity: same class, its own share-token and Centrifuge-vault instances.
-  const BASE_IDENTITY = {
-    ...TEST_IDENTITY,
-    centrifugeVault: {
-      ...TEST_IDENTITY.centrifugeVault,
-      chain: 'base-sepolia' as const,
-      chainId: 84532,
-      address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
-      shareClass: {
-        ...TEST_IDENTITY.centrifugeVault.shareClass,
-        shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}`
-      }
-    }
-  };
+  const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
+    address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
+    shareClass: { shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}` }
+  });
 
   function renderTwoChainFlow() {
     return render(
