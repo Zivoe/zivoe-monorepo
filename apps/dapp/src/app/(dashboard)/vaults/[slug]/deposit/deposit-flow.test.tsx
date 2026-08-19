@@ -563,7 +563,9 @@ describe('DepositFlow across two chains', () => {
     mocks.whitelistIsAllowed = false;
     renderTwoChainFlow();
 
-    const triggers = screen.getAllByRole('button', { name: 'USDC' });
+    // The trigger's accessible name is the token label plus the selected
+    // chain's display label (sepolia advertises its Ethereum family).
+    const triggers = screen.getAllByRole('button', { name: 'USDC Ethereum' });
     expect(triggers.length).toBeGreaterThan(0);
     for (const trigger of triggers) expect(trigger.hasAttribute('disabled')).toBe(false);
 

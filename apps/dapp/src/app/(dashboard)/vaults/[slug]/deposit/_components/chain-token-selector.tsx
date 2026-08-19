@@ -50,6 +50,24 @@ export function ChainBadgedTokenIcon({
   );
 }
 
+/**
+ * The trigger's identity: the chain-badged token icon, the token's symbol, and
+ * the chain it transacts on underneath — so the selected network is readable
+ * without opening the selector.
+ */
+function ChainTokenTriggerContent({ token, chain }: { token: ChainSelectorToken; chain: CentrifugeChain }) {
+  return (
+    <div className="flex items-center gap-2">
+      <ChainBadgedTokenIcon chain={chain} icon={token.icon} className="size-5" />
+
+      <div className="flex flex-col items-start">
+        <span className="text-small leading-4">{token.label}</span>
+        <span className="text-extraSmall leading-none text-tertiary">{CHAIN_DISPLAY[chain].label}</span>
+      </div>
+    </div>
+  );
+}
+
 export type ChainSelectorRow = {
   chain: CentrifugeChain;
   /** Optional right-hand detail on the dialog row (e.g. the chain's balance). */
@@ -82,13 +100,10 @@ export function ChainTokenSelector({
       <Dialog>
         <SelectTrigger
           variant="border-light"
-          className="hidden w-29.75 justify-between gap-2 lg:flex"
+          className="hidden h-auto w-34 justify-between gap-2 py-1 lg:flex"
           isDisabled={isDisabled}
         >
-          <div className="flex items-center gap-2">
-            <ChainBadgedTokenIcon chain={selectedChain} icon={token.icon} className="size-4" />
-            {token.label}
-          </div>
+          <ChainTokenTriggerContent token={token} chain={selectedChain} />
         </SelectTrigger>
 
         <DialogContent dialogClassName="gap-0" showCloseButton={false}>
@@ -140,11 +155,8 @@ export function ChainTokenSelector({
         }}
         isDisabled={isDisabled}
       >
-        <SelectTrigger variant="border-light" className="w-29.75 justify-between gap-2 lg:hidden">
-          <div className="flex items-center gap-2">
-            <ChainBadgedTokenIcon chain={selectedChain} icon={token.icon} className="size-4" />
-            {token.label}
-          </div>
+        <SelectTrigger variant="border-light" className="h-auto w-34 justify-between gap-2 py-1 lg:hidden">
+          <ChainTokenTriggerContent token={token} chain={selectedChain} />
         </SelectTrigger>
 
         <SelectPopover>
