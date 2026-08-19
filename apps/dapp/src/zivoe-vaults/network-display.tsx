@@ -1,23 +1,29 @@
 import { type ComponentType } from 'react';
 
-import { type CentrifugeNetwork, getShareClassNetworks } from '@zivoe/centrifuge-indexer';
-import { EthereumIcon } from '@zivoe/ui/icons';
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+import { BaseIcon, EthereumIcon, MonadIcon } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
+import { zivoeVaultChains } from './availability';
 import { type ZivoeVault } from './zivoe-vault';
 
-/** Network branding per Centrifuge network — a testnet advertises its mainnet family. */
-const NETWORK_DISPLAY: Record<CentrifugeNetwork, { label: string; Icon: ComponentType<IconProps> }> = {
-  mainnet: { label: 'Ethereum', Icon: EthereumIcon },
-  sepolia: { label: 'Ethereum', Icon: EthereumIcon }
+/** Chain branding per spoke chain — a testnet chain advertises its mainnet family. */
+export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: ComponentType<IconProps> }> = {
+  ethereum: { label: 'Ethereum', Icon: EthereumIcon },
+  sepolia: { label: 'Ethereum', Icon: EthereumIcon },
+  monad: { label: 'Monad', Icon: MonadIcon },
+  'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 
 /**
- * Networks the Zivoe Vault's share class is live on per the catalog, deduped by
- * display family — the one derivation behind every "available networks"
- * surface (listing card chips, the Details row), so they can never disagree.
+ * Chains the Zivoe Vault is live on IN THIS DEPLOYMENT (active chains whose
+ * catalog entry and Centrifuge vault are both deployable), deduped by display
+ * family — the one derivation behind every "available networks" surface
+ * (listing card chips, the Details row), so they can never disagree.
+ * Deployment-scoped on purpose: deriving from the whole catalog would
+ * advertise chains this environment does not serve.
  */
 export function zivoeVaultNetworkDisplays(zivoeVault: ZivoeVault) {
-  const displays = getShareClassNetworks(zivoeVault.shareClass.key).map((network) => NETWORK_DISPLAY[network]);
+  const displays = zivoeVaultChains(zivoeVault).map((chain) => CHAIN_DISPLAY[chain]);
   return [...new Map(displays.map((display) => [display.label, display])).values()];
 }

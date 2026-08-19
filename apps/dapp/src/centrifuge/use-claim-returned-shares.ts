@@ -6,7 +6,6 @@ import { encodeFunctionData } from 'viem';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV } from './config';
 import { decodeClaimReturnedSharesReceipt } from './decode';
 import { readRedemptionPosition } from './reads';
 import { type TransactionIdentity } from './types';
@@ -72,7 +71,7 @@ export function useClaimReturnedShares({
     },
 
     expectedCall: (_, { address }) => ({
-      to: CENTRIFUGE_ENV.vaultRouterAddress,
+      to: shareClass.vaultRouterAddress,
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimCancelRedeemRequest',
@@ -88,7 +87,7 @@ export function useClaimReturnedShares({
       flow: 'redeem_claim_returned',
       input: ({ returnedShares }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_ENV.chainId,
+        chainId: shareClass.chainId,
         tokenOut: shareClass.symbol,
         amountOutRaw: returnedShares
       }),

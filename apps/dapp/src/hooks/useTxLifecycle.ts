@@ -7,6 +7,8 @@ import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-q
 import { useSetAtom } from 'jotai';
 import { type Address, type TransactionReceipt } from 'viem';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+
 import {
   type AnalyticsEvent,
   type TransactionAnalyticsInput,
@@ -139,6 +141,14 @@ export type TxSharedConfig<TVariables> = {
    */
   zivoeVaultSlug?: string;
   /**
+   * Chain the transaction executes on — stamped onto the dialog payload (the
+   * explorer link resolves from it) and derived into the `chain` Sentry tag,
+   * same central-stamp pattern as zivoeVaultSlug. A function when the chain is
+   * per-mutation (approvals follow the selected chain); a plain value when
+   * it is hook identity (the Centrifuge driver's).
+   */
+  chain?: CentrifugeChain | ((vars: TVariables) => CentrifugeChain);
+  /**
    * Maps the confirmed receipt to the transaction dialog payload. Runs inside
    * the mutation, so the payload snapshots the identity the hook was handed
    * when the transaction started — the mutation observer re-syncs its
@@ -154,8 +164,10 @@ export type TxSharedConfig<TVariables> = {
    * the options the mutation started with, so a hook re-rendered under
    * another identity mid-flight can never refetch the wrong scope. Only what
    * runs inside the mutation is pinned: onError/errorToast/sentry* are
-   * observer callbacks and read the latest render's options (cross-identity
-   * re-renders are unreachable today — the route keys the subtree by slug).
+   * observer callbacks and read the latest render's options. Cross-identity
+   * re-renders during a pending write are held off by the FLOWS — the chain
+   * selectors and tabs lock while a mutation is pending — so keep that lock
+   * in place before loosening any selector gating.
    */
   invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };
@@ -206,12 +218,19 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const setTransaction = useSetAtom(transactionAtom);
 
   // The extras default is resolved once here — capture sites below must not
-  // each re-implement the fallback — and the Zivoe Vault identity is derived
-  // into tags/extras from the one slug field instead of per-driver stamps.
+  // each re-implement the fallback — and the Zivoe Vault/chain identity is
+  // derived into tags/extras from the config fields instead of per-driver
+  // stamps. Tags take vars because the chain can be per-mutation.
   const resolvedExtras = config.sentryExtras ?? toSentryExtras;
-  const sentryTags = config.zivoeVaultSlug
-    ? { zivoeVault: config.zivoeVaultSlug, ...config.sentryTags }
-    : config.sentryTags;
+  const resolveChain = (vars: TVariables) => (typeof config.chain === 'function' ? config.chain(vars) : config.chain);
+  const sentryTags = (vars: TVariables) => {
+    const chain = resolveChain(vars);
+    return {
+      ...(config.zivoeVaultSlug ? { zivoeVault: config.zivoeVaultSlug } : {}),
+      ...(chain ? { chain } : {}),
+      ...config.sentryTags
+    };
+  };
   const sentryExtras = (vars: TVariables) =>
     config.zivoeVaultSlug ? { ...resolvedExtras(vars), zivoeVaultSlug: config.zivoeVaultSlug } : resolvedExtras(vars);
 
@@ -245,7 +264,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
       // failures stay distinguishable in Sentry triage.
       const captureMutationError = (error: unknown, { stage, txHash }: { stage: string; txHash?: string }) =>
         Sentry.captureException(error, {
-          tags: { source: 'MUTATION', flow: config.sentryFlow, stage, ...sentryTags },
+          tags: { source: 'MUTATION', flow: config.sentryFlow, stage, ...sentryTags(vars) },
           extra: { ...sentryExtras(vars), ...(txHash ? { txHash } : {}) }
         });
 
@@ -303,8 +322,11 @@ export default function useTxLifecycle<TVariables, TPrepared>(
                 };
         }
 
-        // Stamped after the fallback so every payload shape carries the slug.
+        // Stamped after the fallback so every payload shape carries the
+        // identity — the dialog resolves its explorer link from `chain`.
         if (config.zivoeVaultSlug) transactionData = { ...transactionData, zivoeVaultSlug: config.zivoeVaultSlug };
+        const chain = resolveChain(vars);
+        if (chain) transactionData = { ...transactionData, chain };
 
         // Same rule as the payload above: a throw after the receipt must never
         // re-classify a settled transaction as failed — capture and move on.
@@ -348,7 +370,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         defaultToastMsg: config.errorToast(vars),
         sentry: {
           flow: config.sentryFlow,
-          tags: sentryTags,
+          tags: sentryTags(vars),
           extras: sentryExtras(vars)
         }
       });

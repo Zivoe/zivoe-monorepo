@@ -4,12 +4,18 @@ import { cache } from 'react';
 
 import { createPublicClient, fallback, http } from 'viem';
 
-import { NETWORK_CHAIN, NETWORK_RPC_URLS } from '@/lib/network';
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-export const getWeb3Client = cache(() => {
+import { DEFAULT_CHAIN, getChainRpcUrls, getViemChain } from '@/lib/network';
+
+/**
+ * Server viem client per chain, request-cached. Currently unreferenced by
+ * live code (archived consumers only) — kept chain-parameterized so an
+ * un-archived caller cannot silently read the wrong chain.
+ */
+export const getWeb3Client = cache((chain: CentrifugeChain = DEFAULT_CHAIN) => {
   return createPublicClient({
-    chain: NETWORK_CHAIN,
-    transport:
-      NETWORK_RPC_URLS.length > 0 ? fallback(NETWORK_RPC_URLS.map((url) => http(url, { batch: true }))) : http()
+    chain: getViemChain(chain),
+    transport: fallback(getChainRpcUrls(chain).map((url) => http(url, { batch: true })))
   });
 });

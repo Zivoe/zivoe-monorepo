@@ -1,6 +1,6 @@
 import Centrifuge, { PoolId, ShareClassId } from '@centrifuge/sdk';
 
-import { NETWORK_RPC_URLS } from '@/lib/network';
+import { ACTIVE_CHAINS, getChainId, getChainRpcUrls } from '@/lib/network';
 import { AppError } from '@/lib/utils';
 
 import { CENTRIFUGE_ENV } from './config';
@@ -15,10 +15,15 @@ function getCentrifuge(): Centrifuge {
   if (typeof window === 'undefined')
     throw new Error('The Centrifuge SDK client is client-only and must never be constructed on the server.');
 
+  // One client serves every active chain: the SDK routes per-chain calls by
+  // chainId, and each chain's ordered URL list (dedicated endpoint first,
+  // public failover after) replaces the SDK's own defaults.
+  const rpcUrls = Object.fromEntries(ACTIVE_CHAINS.map((chain) => [getChainId(chain), getChainRpcUrls(chain)]));
+
   client ??= new Centrifuge({
     environment: CENTRIFUGE_ENV.environment,
     indexerUrl: CENTRIFUGE_ENV.indexerUrl,
-    ...(NETWORK_RPC_URLS.length > 0 ? { rpcUrls: { [CENTRIFUGE_ENV.chainId]: NETWORK_RPC_URLS } } : {}),
+    rpcUrls,
     permitDisabled: true,
     disableRepeatOnEvents: true
   });
@@ -26,13 +31,14 @@ function getCentrifuge(): Centrifuge {
   return client;
 }
 
-/** Centrifuge-vault resolution is memoized per share class and Centrifuge vault; a failed resolve retries on the next call. */
+/** Centrifuge-vault resolution is memoized per share class, chain and Centrifuge vault; a failed resolve retries on the next call. */
 export function getCentrifugeVault(shareClass: TransactedShareClass): Promise<CentrifugeVaultEntity> {
-  // The Centrifuge-vault address is part of the key: a memo keyed by class alone would
-  // let one cached Centrifuge vault answer for a different address under the same key,
-  // skipping resolveCentrifugeVault's address assertion (e.g. the day a class carries a
-  // second deposit asset's Centrifuge vault).
-  const memoKey = `${shareClass.key}:${shareClass.centrifugeVaultAddress.toLowerCase()}`;
+  // The chain and Centrifuge-vault address are part of the key: a memo keyed
+  // by class alone would let one chain's cached Centrifuge vault answer for
+  // another chain (or for a different address under the same key), skipping
+  // resolveCentrifugeVault's assertions — deterministic deploys make
+  // same-address Centrifuge vaults on two chains perfectly plausible.
+  const memoKey = `${shareClass.key}:${shareClass.chain}:${shareClass.centrifugeVaultAddress.toLowerCase()}`;
 
   const existing = centrifugeVaultPromises.get(memoKey);
   if (existing) return existing;
@@ -80,25 +86,29 @@ async function resolveCentrifugeVault(shareClass: TransactedShareClass): Promise
   const centrifuge = getCentrifuge();
 
   const [centrifugeId, pool] = await Promise.all([
-    centrifuge.id(CENTRIFUGE_ENV.chainId),
+    centrifuge.id(shareClass.chainId),
     centrifuge.pool(new PoolId(shareClass.poolId))
   ]);
 
-  const centrifugeVault = await pool.vault(
-    centrifugeId,
-    new ShareClassId(shareClass.scId),
-    CENTRIFUGE_ENV.usdc.address
-  );
+  const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(shareClass.scId), shareClass.usdc.address);
 
   if (centrifugeVault.address.toLowerCase() !== shareClass.centrifugeVaultAddress.toLowerCase())
     throw new Error(
-      `The SDK resolved Centrifuge vault ${centrifugeVault.address} for share class "${shareClass.key}", but ${shareClass.centrifugeVaultAddress} is configured. Fix the configuration before transacting.`
+      `The SDK resolved Centrifuge vault ${centrifugeVault.address} for share class "${shareClass.key}" on "${shareClass.chain}", but ${shareClass.centrifugeVaultAddress} is configured. Fix the configuration before transacting.`
     );
 
   const details = await centrifugeVault.details();
   if (!details.isSyncDeposit || details.isSyncRedeem)
     throw new Error(
-      `The Centrifuge vault for share class "${shareClass.key}" is not sync-deposit/async-redeem. The flows do not support this Centrifuge-vault shape.`
+      `The Centrifuge vault for share class "${shareClass.key}" on "${shareClass.chain}" is not sync-deposit/async-redeem. The flows do not support this Centrifuge-vault shape.`
+    );
+
+  // The share token address is hand-entered per chain and nothing else
+  // validates it (the hub reads filter by scId): a typo would misread wallet
+  // balances while every metric renders fine, failing only at simulate.
+  if (details.share.address.toLowerCase() !== shareClass.shareTokenAddress.toLowerCase())
+    throw new Error(
+      `Share class "${shareClass.key}" is configured with share token ${shareClass.shareTokenAddress} on "${shareClass.chain}" but the Centrifuge vault reports ${details.share.address}. Fix the catalog before transacting.`
     );
 
   // Decimals are hand-entered configuration scaling every parseUnits and
@@ -106,12 +116,12 @@ async function resolveCentrifugeVault(shareClass: TransactedShareClass): Promise
   // tokens are asserted against the chain's own answer in this same pass.
   if (details.share.decimals !== shareClass.decimals)
     throw new Error(
-      `Share class "${shareClass.key}" is configured with ${shareClass.decimals} decimals but its share token reports ${details.share.decimals}. Fix the catalog before transacting.`
+      `Share class "${shareClass.key}" is configured with ${shareClass.decimals} decimals but its share token on "${shareClass.chain}" reports ${details.share.decimals}. Fix the catalog before transacting.`
     );
 
-  if (details.asset.decimals !== CENTRIFUGE_ENV.usdc.decimals)
+  if (details.asset.decimals !== shareClass.usdc.decimals)
     throw new Error(
-      `USDC is configured with ${CENTRIFUGE_ENV.usdc.decimals} decimals but the Centrifuge vault's asset reports ${details.asset.decimals}. Fix the environment config before transacting.`
+      `USDC on "${shareClass.chain}" is configured with ${shareClass.usdc.decimals} decimals but the Centrifuge vault's asset reports ${details.asset.decimals}. Fix the chain config before transacting.`
     );
 
   return centrifugeVault;

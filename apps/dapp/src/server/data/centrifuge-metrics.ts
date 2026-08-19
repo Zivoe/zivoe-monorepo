@@ -17,9 +17,7 @@ import {
   toShareStatsPayload
 } from '@zivoe/centrifuge-indexer';
 
-import { env } from '@/env';
-
-import { sharesToValueD18 } from '@/centrifuge/config';
+import { CENTRIFUGE_ENV, sharesToValueD18 } from '@/centrifuge/config';
 import { ZIVOE_VAULTS } from '@/zivoe-vaults';
 
 export type CentrifugeDailySnapshot = {
@@ -46,7 +44,7 @@ type RawDailySnapshot = {
 
 async function fetchDailySnapshotRows(shareClassKey: ShareClassKey): Promise<Array<RawDailySnapshot>> {
   const { snapshots, truncated } = await fetchDailyTokenSnapshots({
-    network: env.NEXT_PUBLIC_NETWORK,
+    environment: CENTRIFUGE_ENV.environment,
     shareClassKey
   });
 
@@ -89,7 +87,7 @@ const cachedDailySnapshotRows = nextCache(fetchDailySnapshotRows, ['centrifuge-d
 export const getCentrifugeDailySnapshots = reactCache(
   async (shareClassKey: ShareClassKey): Promise<Array<CentrifugeDailySnapshot> | undefined> => {
     try {
-      const shareClass = getShareClassIdentity({ network: env.NEXT_PUBLIC_NETWORK, key: shareClassKey });
+      const shareClass = getShareClassIdentity({ environment: CENTRIFUGE_ENV.environment, key: shareClassKey });
       const rows = await cachedDailySnapshotRows(shareClassKey);
 
       return rows.map((row): CentrifugeDailySnapshot => {
@@ -122,7 +120,7 @@ export const getCentrifugeDailySnapshots = reactCache(
 
 /** One multi-class query over the given share classes — the aggregated surfaces' single read. */
 async function fetchAggregatedNavRows(shareClassKeys: Array<string>): Promise<Record<string, string>> {
-  return fetchShareClassNavs({ network: env.NEXT_PUBLIC_NETWORK, shareClassKeys });
+  return fetchShareClassNavs({ environment: CENTRIFUGE_ENV.environment, shareClassKeys });
 }
 
 const cachedShareClassNavs = nextCache(fetchAggregatedNavRows, ['centrifuge-share-class-navs'], { revalidate: 30 });
@@ -154,7 +152,7 @@ async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareS
   // negativeYield30d is deliberately not alerted on while APY is unrendered —
   // the projection already nulls it; restore the daily reporter with APY.
   const { payload } = toShareStatsPayload(
-    await fetchCurrentShareMetrics({ network: env.NEXT_PUBLIC_NETWORK, shareClassKey })
+    await fetchCurrentShareMetrics({ environment: CENTRIFUGE_ENV.environment, shareClassKey })
   );
 
   return payload;

@@ -74,21 +74,20 @@ describe('useCentrifugeVaultCapacity', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(
-      queryClient.getQueryData(['CENTRIFUGE', 'zfix', SHARE_CLASS.centrifugeVaultAddress, 'VAULT_CAPACITY'])
-    ).toEqual({
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia'])).toEqual({
       maxDeposit: 5_000_000000n
     });
   });
 
-  // The reason the key carries the address: one share class can carry several
-  // Centrifuge vaults (one per network today, one per deposit asset later), and each
-  // answers maxDeposit for itself. A class-only key would serve the first
-  // Centrifuge vault's capacity for the second.
-  it('keeps two Centrifuge vaults of one share class in separate cache entries', async () => {
+  // The reason the key carries the chain: one share class carries one
+  // Centrifuge vault per chain, and each answers maxDeposit for itself. A
+  // class-only key would serve the first chain's capacity for the second.
+  it("keeps two chains' Centrifuge vaults of one share class in separate cache entries", async () => {
     const { queryClient, wrapper } = createWrapper();
-    const otherCentrifugeVault = {
+    const otherChainCentrifugeVault = {
       ...SHARE_CLASS,
+      chain: 'base-sepolia',
+      chainId: 84532,
       centrifugeVaultAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
     } as const;
 
@@ -98,14 +97,14 @@ describe('useCentrifugeVaultCapacity', () => {
     getCentrifugeVault.mockImplementation(() =>
       Promise.resolve({ details: () => Promise.resolve({ maxDeposit: balance(9_000_000000n, 6) }) })
     );
-    const second = renderHook(() => useCentrifugeVaultCapacity({ shareClass: otherCentrifugeVault }), { wrapper });
+    const second = renderHook(() => useCentrifugeVaultCapacity({ shareClass: otherChainCentrifugeVault }), {
+      wrapper
+    });
     await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
 
     expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(second.result.current.data).toEqual({ maxDeposit: 9_000_000000n });
-    expect(
-      queryClient.getQueryData(['CENTRIFUGE', 'zfix', otherCentrifugeVault.centrifugeVaultAddress, 'VAULT_CAPACITY'])
-    ).toEqual({
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'base-sepolia'])).toEqual({
       maxDeposit: 9_000_000000n
     });
   });
@@ -127,15 +126,7 @@ describe('useDepositPreview', () => {
         args: [100_000000n]
       })
     );
-    expect(
-      queryClient.getQueryData([
-        'CENTRIFUGE',
-        'zfix',
-        SHARE_CLASS.centrifugeVaultAddress,
-        'DEPOSIT_PREVIEW',
-        '100000000'
-      ])
-    ).toEqual({
+    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', 'sepolia', '100000000'])).toEqual({
       shares: 50_000000000000000000n
     });
   });
@@ -174,9 +165,7 @@ describe('useRedemptionPosition', () => {
       hasPendingCancelRedeemRequest: false
     });
     expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(
-      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', SHARE_CLASS.centrifugeVaultAddress])
-    ).toBeDefined();
+    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])).toBeDefined();
   });
 
   it('does not read without a connected wallet', () => {
@@ -198,9 +187,7 @@ describe('useInvestorWhitelist', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true });
     expect(getCentrifugeVault).toHaveBeenCalledWith(SHARE_CLASS);
-    expect(
-      queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix', SHARE_CLASS.centrifugeVaultAddress])
-    ).toBeDefined();
+    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix', 'sepolia'])).toBeDefined();
   });
 
   it('reports a blocked wallet rather than throwing', async () => {

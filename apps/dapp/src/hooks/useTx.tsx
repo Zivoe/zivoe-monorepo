@@ -15,8 +15,8 @@ import {
   type TransactionReceipt,
   parseEventLogs
 } from 'viem';
-import { usePublicClient, useWriteContract } from 'wagmi';
-import { type WriteContractParameters } from 'wagmi/actions';
+import { useConfig, useWriteContract } from 'wagmi';
+import { type WriteContractParameters, getPublicClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
@@ -51,7 +51,10 @@ export type TxParams<
   undefined,
   Address | undefined
 > &
-  WriteContractParameters<TAbi, TFunctionName>;
+  WriteContractParameters<TAbi, TFunctionName> & {
+    /** Required, not optional: every read (simulate, receipt wait) follows this pin, so a driver cannot silently ride the wallet's current chain. */
+    chainId: number;
+  };
 
 export type TxConfig<TVariables, TParams extends TxParams> = TxSharedConfig<TVariables> & {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
@@ -91,10 +94,15 @@ export function parseReceiptEvent<TAbi extends Abi, TEventName extends ContractE
  * comes in through the config.
  */
 export default function useTx<TVariables, TParams extends TxParams>(config: TxConfig<TVariables, TParams>) {
-  const publicClient = usePublicClient();
+  const wagmiConfig = useConfig();
   const { mutateAsync: writeContract } = useWriteContract();
 
+  // Reads follow the params' pinned chain (TxParams requires chainId), so a
+  // write can never silently simulate against the wallet's current chain.
+  const publicClientFor = (params: TParams) => getPublicClient(wagmiConfig, { chainId: params.chainId });
+
   const simulateTx = async (params: TParams, address: Address | undefined) => {
+    const publicClient = publicClientFor(params);
     if (!publicClient) throw new Error('Public client not found');
 
     const { err } = await handlePromise(publicClient.simulateContract({ ...params, account: address }));
@@ -134,14 +142,17 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
   };
 
   const waitForTxReceipt = async ({
+    params,
     hash,
     pendingMessage,
     setIsTxPending
   }: {
+    params: TParams;
     hash: Hash;
     pendingMessage: string;
     setIsTxPending: (isPending: boolean) => void;
   }) => {
+    const publicClient = publicClientFor(params);
     if (!publicClient) throw new Error('Public client not found');
 
     setIsTxPending(true);
@@ -169,7 +180,7 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
       onTxHash(hash);
       capture(choreography?.submitted, { txHash: hash });
 
-      return waitForTxReceipt({ hash, pendingMessage: config.pendingToast(vars), setIsTxPending });
+      return waitForTxReceipt({ params, hash, pendingMessage: config.pendingToast(vars), setIsTxPending });
     }
   });
 }

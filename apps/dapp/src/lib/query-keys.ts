@@ -12,7 +12,7 @@ type AccountProps = {
  *
  * The catalog key rather than the on-chain scId, by choice: it is the same
  * handle Centrifuge-vault memoization, invalidations, and server cache arguments use,
- * the registry invariants pin it 1:1 to an scId per network, and keys are
+ * the registry invariants pin it 1:1 to an scId per environment, and keys are
  * permanent once registered. Query caches are ephemeral besides — even a
  * rename would cost one cold fetch, not correctness.
  */
@@ -21,63 +21,76 @@ type ShareClassProps = {
 };
 
 /**
- * Vault dimension for the keys whose read one Centrifuge vault answers, rather
- * than the share class as a whole. A class carries one Centrifuge vault per network today
- * and would carry several the day it accepts a second deposit asset — and every
- * key below resolves through `centrifugeVault.investment`/`centrifugeVault.details` or reads the
- * Centrifuge-vault address directly, so the address is what makes two answers differ.
- * Keyed by class AND address for the same reason `getCentrifugeVault` memoizes by both.
- * Lowercased because the address arrives from configuration and could differ
- * from a resolved one in checksum casing alone.
+ * Chain dimension of every chain-scoped key: wallet balances, Centrifuge-vault
+ * state and positions differ per spoke chain even for one share class, and one
+ * address can legitimately exist on two chains (deterministic deploys), so the
+ * token address alone cannot split the cache. Appended AFTER the share-class
+ * key so class-scoped invalidations keep prefix-matching every chain's entries.
  */
-type CentrifugeVaultProps = ShareClassProps & {
-  centrifugeVaultAddress: Address;
+type ChainProps = {
+  chain: string;
 };
-
-const centrifugeVaultScope = ({ shareClassKey, centrifugeVaultAddress }: CentrifugeVaultProps) => [
-  shareClassKey,
-  centrifugeVaultAddress.toLowerCase()
-];
 
 const account = {
   by: ({ accountAddress }: AccountProps) => ['ACCOUNT', accountAddress],
   balance: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'BALANCE'],
-  balanceOf: ({ accountAddress, id }: AccountProps & { id: Address }) => [...account.balance({ accountAddress }), id],
-  allowance: ({ accountAddress, contract, spender }: AccountProps & { contract: Address; spender: Address }) => [
+  balanceOf: ({ accountAddress, chain, id }: AccountProps & ChainProps & { id: Address }) => [
+    ...account.balance({ accountAddress }),
+    chain,
+    id
+  ],
+  allowance: ({
+    accountAddress,
+    chain,
+    contract,
+    spender
+  }: AccountProps & ChainProps & { contract: Address; spender: Address }) => [
     ...account.by({ accountAddress }),
     'ALLOWANCE',
+    chain,
     contract,
     spender
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  redemptionPosition: ({ accountAddress, ...vault }: AccountProps & CentrifugeVaultProps) => [
+  // Prefix/leaf pair, like balance/balanceOf: invalidations sweep every
+  // chain's entries via the prefix, while a read site cannot compile without
+  // naming its chain — an optional chain here would let one entry silently
+  // serve every chain.
+  redemptionPositions: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
     ...account.by({ accountAddress }),
     'REDEMPTION_POSITION',
-    ...centrifugeVaultScope(vault)
+    shareClassKey
   ],
-  investorWhitelist: ({ accountAddress, ...vault }: AccountProps & CentrifugeVaultProps) => [
+  redemptionPosition: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
+    ...account.redemptionPositions({ accountAddress, shareClassKey }),
+    chain
+  ],
+  investorWhitelist: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
     ...account.by({ accountAddress }),
     'INVESTOR_WHITELIST',
-    ...centrifugeVaultScope(vault)
+    shareClassKey,
+    chain
   ]
 };
 
 const app = {
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
-  centrifugeVaultCapacity: (vault: CentrifugeVaultProps) => [
+  centrifugeVaultCapacity: ({ shareClassKey, chain }: ShareClassProps & ChainProps) => [
     'CENTRIFUGE',
-    ...centrifugeVaultScope(vault),
-    'VAULT_CAPACITY'
+    shareClassKey,
+    'VAULT_CAPACITY',
+    chain
   ],
-  depositPreview: ({ assets, ...vault }: CentrifugeVaultProps & { assets: bigint }) => [
+  depositPreview: ({ shareClassKey, chain, assets }: ShareClassProps & ChainProps & { assets: bigint }) => [
     'CENTRIFUGE',
-    ...centrifugeVaultScope(vault),
+    shareClassKey,
     'DEPOSIT_PREVIEW',
+    chain,
     assets.toString()
   ],
-  // Class-scoped on purpose: NAV and Token Price are facts about the share
-  // class, and the indexer answers them without a Centrifuge vault.
+  // Hub-level on purpose: Share Price / NAV / APY are identical across the
+  // environment's chains, so a chain dimension would only split the cache.
   shareMetrics: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'SHARE_METRICS']
 };
 

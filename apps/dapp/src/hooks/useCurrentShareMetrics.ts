@@ -4,7 +4,7 @@ import { type ShareStatsPayload, fetchCurrentShareMetrics, toShareStatsPayload }
 
 import { queryKeys } from '@/lib/query-keys';
 
-import { env } from '@/env';
+import { CENTRIFUGE_ENV } from '@/centrifuge/config';
 
 /**
  * Browser refetches run the same document and projection the server caches,
@@ -13,7 +13,7 @@ import { env } from '@/env';
  */
 async function fetchShareStatsPayload(shareClassKey: string): Promise<ShareStatsPayload> {
   const { payload } = toShareStatsPayload(
-    await fetchCurrentShareMetrics({ network: env.NEXT_PUBLIC_NETWORK, shareClassKey })
+    await fetchCurrentShareMetrics({ environment: CENTRIFUGE_ENV.environment, shareClassKey })
   );
   return payload;
 }

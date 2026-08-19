@@ -9,23 +9,30 @@ const FIXTURE_SHARE_CLASS = FIXTURE_IDENTITY.shareClass;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_SC_ID = '0x00000000000000000000000000000000';
 
-type NetworkName = 'sepolia' | 'mainnet';
+type ChainName = 'sepolia' | 'base-sepolia' | 'ethereum' | 'monad';
 
 type Registration = {
   zivoeVault: {
     slug: string;
     shareClass: { key: string };
-    centrifugeVaults: Partial<Record<NetworkName, { address: string; deployable: boolean }>>;
+    centrifugeVaults: Partial<Record<ChainName, { address: string; deployable: boolean }>>;
   };
   catalogEntry: {
     symbol: string;
-    networks: Partial<
-      Record<NetworkName, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
+    environments: Partial<
+      Record<
+        'testnet' | 'mainnet',
+        {
+          poolId: string;
+          scId: string;
+          chains: Partial<Record<ChainName, { shareTokenAddress: string; deployable: boolean }>>;
+        }
+      >
     >;
   };
 };
 
-/** One registered class — the module half and its catalog half, live on sepolia. */
+/** One registered class — the module half and its catalog half, live on sepolia (testnet). */
 function makeRegistration({
   key,
   slug = `${key}-zivoe-vault`,
@@ -47,7 +54,9 @@ function makeRegistration({
     },
     catalogEntry: {
       symbol: `z${key}`,
-      networks: { sepolia: { poolId: '77', scId, shareTokenAddress, deployable: true } }
+      environments: {
+        testnet: { poolId: '77', scId, chains: { sepolia: { shareTokenAddress, deployable: true } } }
+      }
     }
   };
 }
@@ -79,20 +88,24 @@ const other = makeRegistration({
 });
 
 describe('assertZivoeVaultRegistryInvariants', () => {
-  it('accepts a registry of distinct identities, including shared placeholder zeros on a staged network', () => {
+  it('accepts a registry of distinct identities, including shared placeholder zeros on a staged chain', () => {
     const staged = (registration: Registration): Registration => ({
       zivoeVault: {
         ...registration.zivoeVault,
         centrifugeVaults: {
           ...registration.zivoeVault.centrifugeVaults,
-          mainnet: { address: ZERO_ADDRESS, deployable: false }
+          ethereum: { address: ZERO_ADDRESS, deployable: false }
         }
       },
       catalogEntry: {
         ...registration.catalogEntry,
-        networks: {
-          ...registration.catalogEntry.networks,
-          mainnet: { poolId: '0', scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS, deployable: false }
+        environments: {
+          ...registration.catalogEntry.environments,
+          mainnet: {
+            poolId: '0',
+            scId: ZERO_SC_ID,
+            chains: { ethereum: { shareTokenAddress: ZERO_ADDRESS, deployable: false } }
+          }
         }
       }
     });
@@ -100,30 +113,61 @@ describe('assertZivoeVaultRegistryInvariants', () => {
     expect(() => assertRegistry([staged(fixture), staged(other)])).not.toThrow();
   });
 
-  it('accepts a testnet-only class next to one also claiming mainnet', () => {
-    const withMainnet: Registration = {
+  it('accepts a testnet-only class next to one also claiming a mainnet chain', () => {
+    const withEthereum: Registration = {
       zivoeVault: {
         ...other.zivoeVault,
         centrifugeVaults: {
           ...other.zivoeVault.centrifugeVaults,
-          mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
+          ethereum: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
       catalogEntry: {
         ...other.catalogEntry,
-        networks: {
-          ...other.catalogEntry.networks,
+        environments: {
+          ...other.catalogEntry.environments,
           mainnet: {
             poolId: '88',
             scId: '0x000100000000ffff0000000000000001',
-            shareTokenAddress: '0xfafafafafafafafafafafafafafafafafafafafa',
-            deployable: true
+            chains: {
+              ethereum: { shareTokenAddress: '0xfafafafafafafafafafafafafafafafafafafafa', deployable: true }
+            }
           }
         }
       }
     };
 
-    expect(() => assertRegistry([fixture, withMainnet])).not.toThrow();
+    expect(() => assertRegistry([fixture, withEthereum])).not.toThrow();
+  });
+
+  it('accepts one Centrifuge-vault address reused across two chains — deterministic deploys are legitimate', () => {
+    const centrifugeVaultAddress = other.zivoeVault.centrifugeVaults.sepolia?.address;
+    const onEnvironment = other.catalogEntry.environments.testnet;
+    if (!centrifugeVaultAddress || !onEnvironment) throw new Error('the "other" registration must claim sepolia');
+
+    const twoChains: Registration = {
+      zivoeVault: {
+        ...other.zivoeVault,
+        centrifugeVaults: {
+          sepolia: { address: centrifugeVaultAddress, deployable: true },
+          'base-sepolia': { address: centrifugeVaultAddress, deployable: true }
+        }
+      },
+      catalogEntry: {
+        ...other.catalogEntry,
+        environments: {
+          testnet: {
+            ...onEnvironment,
+            chains: {
+              ...onEnvironment.chains,
+              'base-sepolia': { shareTokenAddress: '0xdadadadadadadadadadadadadadadadadadadada', deployable: true }
+            }
+          }
+        }
+      }
+    };
+
+    expect(() => assertRegistry([twoChains])).not.toThrow();
   });
 
   it('throws on a duplicate slug, compared case-insensitively', () => {
@@ -196,7 +240,7 @@ describe('assertZivoeVaultRegistryInvariants', () => {
     ).toThrow(/not in the catalog/);
   });
 
-  it('throws on a half-claimed network, in both directions', () => {
+  it('throws on a half-claimed chain, in both directions', () => {
     const catalogOnly: Registration = {
       ...other,
       zivoeVault: { ...other.zivoeVault, centrifugeVaults: {} }
@@ -207,7 +251,7 @@ describe('assertZivoeVaultRegistryInvariants', () => {
 
     const centrifugeVaultOnly: Registration = {
       ...other,
-      catalogEntry: { ...other.catalogEntry, networks: {} }
+      catalogEntry: { ...other.catalogEntry, environments: {} }
     };
     expect(() => assertRegistry([centrifugeVaultOnly])).toThrow(
       /claims "sepolia" in its Centrifuge vaults but not the catalog/
@@ -216,11 +260,13 @@ describe('assertZivoeVaultRegistryInvariants', () => {
 
   it('throws when the catalog and Centrifuge-vault deployable flags disagree, in both directions', () => {
     const sepoliaCentrifugeVault = other.zivoeVault.centrifugeVaults.sepolia;
-    const sepoliaEntry = other.catalogEntry.networks.sepolia;
-    if (!sepoliaCentrifugeVault || !sepoliaEntry) throw new Error('the "other" registration must claim sepolia');
+    const onEnvironment = other.catalogEntry.environments.testnet;
+    const sepoliaEntry = onEnvironment?.chains.sepolia;
+    if (!sepoliaCentrifugeVault || !onEnvironment || !sepoliaEntry)
+      throw new Error('the "other" registration must claim sepolia');
 
-    // The exact staging state a mainnet cutover passes through: one half
-    // flipped live, the other still a verified-but-staged entry.
+    // The exact staging state a cutover passes through: one half flipped
+    // live, the other still a verified-but-staged entry.
     const catalogLiveCentrifugeVaultStaged: Registration = {
       ...other,
       zivoeVault: {
@@ -236,7 +282,9 @@ describe('assertZivoeVaultRegistryInvariants', () => {
       ...other,
       catalogEntry: {
         ...other.catalogEntry,
-        networks: { sepolia: { ...sepoliaEntry, deployable: false } }
+        environments: {
+          testnet: { ...onEnvironment, chains: { sepolia: { ...sepoliaEntry, deployable: false } } }
+        }
       }
     };
     expect(() => assertRegistry([centrifugeVaultLiveCatalogStaged])).toThrow(
@@ -249,7 +297,13 @@ describe('assertZivoeVaultRegistryInvariants', () => {
       ...other,
       catalogEntry: {
         ...other.catalogEntry,
-        networks: { sepolia: { poolId: '0', scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS, deployable: true } }
+        environments: {
+          testnet: {
+            poolId: '0',
+            scId: ZERO_SC_ID,
+            chains: { sepolia: { shareTokenAddress: ZERO_ADDRESS, deployable: true } }
+          }
+        }
       }
     };
     expect(() => assertRegistry([flippedCatalog])).toThrow(/deployable but carries placeholder identity values/);
@@ -279,31 +333,35 @@ describe('assertZivoeVaultRegistryInvariants', () => {
     ).toThrow(/Centrifuge vault .* is claimed by two share classes/);
   });
 
-  it('throws on a duplicate Centrifuge vault on a non-active network — the sweep covers every claimed network', () => {
-    const onMainnet = (registration: Registration, index: number): Registration => ({
+  it('throws on a duplicate Centrifuge vault on a non-active chain — the sweep covers every claimed chain', () => {
+    const onEthereum = (registration: Registration, index: number): Registration => ({
       zivoeVault: {
         ...registration.zivoeVault,
         centrifugeVaults: {
           ...registration.zivoeVault.centrifugeVaults,
-          mainnet: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
+          ethereum: { address: '0xadadadadadadadadadadadadadadadadadadadad', deployable: true }
         }
       },
       catalogEntry: {
         ...registration.catalogEntry,
-        networks: {
-          ...registration.catalogEntry.networks,
+        environments: {
+          ...registration.catalogEntry.environments,
           mainnet: {
             poolId: '99',
             scId: `0x000100000000dddd000000000000000${index}`,
-            shareTokenAddress: `0xcccccccccccccccccccccccccccccccccccccc${index}0`,
-            deployable: true
+            chains: {
+              ethereum: {
+                shareTokenAddress: `0xcccccccccccccccccccccccccccccccccccccc${index}0`,
+                deployable: true
+              }
+            }
           }
         }
       }
     });
 
-    expect(() => assertRegistry([onMainnet(fixture, 1), onMainnet(other, 2)])).toThrow(
-      /Centrifuge vault .* is claimed by two share classes on "mainnet"/
+    expect(() => assertRegistry([onEthereum(fixture, 1), onEthereum(other, 2)])).toThrow(
+      /Centrifuge vault .* is claimed by two share classes on "ethereum"/
     );
   });
 });

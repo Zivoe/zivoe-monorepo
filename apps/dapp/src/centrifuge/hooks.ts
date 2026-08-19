@@ -26,7 +26,7 @@ export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedSha
     queryKey: queryKeys.account.investorWhitelist({
       accountAddress: address,
       shareClassKey: shareClass.key,
-      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
+      chain: shareClass.chain
     }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
     queryFn: !address
@@ -37,10 +37,7 @@ export function useInvestorWhitelist({ shareClass }: { shareClass: TransactedSha
 
 export function useCentrifugeVaultCapacity({ shareClass }: { shareClass: TransactedShareClass }) {
   return useQuery({
-    queryKey: queryKeys.app.centrifugeVaultCapacity({
-      shareClassKey: shareClass.key,
-      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
-    }),
+    queryKey: queryKeys.app.centrifugeVaultCapacity({ shareClassKey: shareClass.key, chain: shareClass.chain }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
     queryFn: async () => readCentrifugeVaultCapacity(await getCentrifugeVault(shareClass))
@@ -64,14 +61,10 @@ export function isPriceUnavailableError(error: unknown): boolean {
  * quote, including whatever rounding the contract applies at execution.
  */
 export function useDepositPreview({ shareClass, assets }: { shareClass: TransactedShareClass; assets: bigint }) {
-  const web3 = usePublicClient();
+  const web3 = usePublicClient({ chainId: shareClass.chainId });
 
   return useQuery({
-    queryKey: queryKeys.app.depositPreview({
-      shareClassKey: shareClass.key,
-      centrifugeVaultAddress: shareClass.centrifugeVaultAddress,
-      assets
-    }),
+    queryKey: queryKeys.app.depositPreview({ shareClassKey: shareClass.key, chain: shareClass.chain, assets }),
     meta: { skipErrorToast: true },
     queryFn:
       assets <= 0n || !web3
@@ -94,7 +87,7 @@ export function useRedemptionPosition({ shareClass }: { shareClass: TransactedSh
     queryKey: queryKeys.account.redemptionPosition({
       accountAddress: address,
       shareClassKey: shareClass.key,
-      centrifugeVaultAddress: shareClass.centrifugeVaultAddress
+      chain: shareClass.chain
     }),
     meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub

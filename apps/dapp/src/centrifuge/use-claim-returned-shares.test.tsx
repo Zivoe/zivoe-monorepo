@@ -10,9 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { CENTRIFUGE_ENV, useClaimReturnedShares } from './index';
+import { useClaimReturnedShares } from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
@@ -134,7 +134,7 @@ function fakeCentrifugeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: CENTRIFUGE_ENV.vaultRouterAddress,
+                    to: FIXTURE_IDENTITY.shareClass.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -203,6 +203,7 @@ describe('useClaimReturnedShares', () => {
       description: 'Your zFIX has been returned to your wallet.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: { claimReturnedShares: { share: { symbol: 'zFIX', decimals: 8 }, shares: RETURNED_SHARES } }
     });
 
@@ -210,7 +211,7 @@ describe('useClaimReturnedShares', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
   });
@@ -279,7 +280,8 @@ describe('useClaimReturnedShares', () => {
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the zFIX claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      zivoeVaultSlug: 'fixture-zivoe-vault'
+      zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

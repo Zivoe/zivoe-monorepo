@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { CENTRIFUGE_ENV } from './config';
 import { type TransactedShareClass } from './types';
 
 const sdk = vi.hoisted(() => ({
@@ -43,12 +42,14 @@ function fakeSdkCentrifugeVault({
   isSyncDeposit = true,
   isSyncRedeem = false,
   shareDecimals = SHARE_CLASS.decimals,
-  assetDecimals = CENTRIFUGE_ENV.usdc.decimals
+  shareTokenAddress = SHARE_CLASS.shareTokenAddress,
+  assetDecimals = SHARE_CLASS.usdc.decimals
 }: {
   address: string;
   isSyncDeposit?: boolean;
   isSyncRedeem?: boolean;
   shareDecimals?: number;
+  shareTokenAddress?: string;
   assetDecimals?: number;
 }) {
   return {
@@ -57,7 +58,7 @@ function fakeSdkCentrifugeVault({
       Promise.resolve({
         isSyncDeposit,
         isSyncRedeem,
-        share: { decimals: shareDecimals },
+        share: { address: shareTokenAddress, decimals: shareDecimals },
         asset: { decimals: assetDecimals }
       })
   };
@@ -154,13 +155,27 @@ describe('getCentrifugeVault', () => {
     await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the catalog before transacting/);
   });
 
+  it('fails loudly when the catalog share token address disagrees with the Centrifuge vault on chain', async () => {
+    // The scId-filtered hub reads never touch this address, so this assertion
+    // is the only automated check a catalog shareTokenAddress gets.
+    const vault = fakeSdkCentrifugeVault({
+      address: SHARE_CLASS.centrifugeVaultAddress,
+      shareTokenAddress: '0xdddddddddddddddddddddddddddddddddddddddd'
+    });
+    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: vault }));
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/but the Centrifuge vault reports/);
+  });
+
   it('fails loudly when the configured USDC decimals disagree with the Centrifuge-vault asset on chain', async () => {
     const vault = fakeSdkCentrifugeVault({ address: SHARE_CLASS.centrifugeVaultAddress, assetDecimals: 18 });
     sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [SHARE_CLASS.scId]: vault }));
 
     const { getCentrifugeVault } = await loadClient();
 
-    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the environment config before transacting/);
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the chain config before transacting/);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {

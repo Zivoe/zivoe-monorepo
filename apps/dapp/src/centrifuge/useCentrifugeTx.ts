@@ -34,7 +34,10 @@ type CentrifugeTxContext = { address: Address; centrifugeVault: CentrifugeVaultE
 /** Wallet-connected clients resolved by the pre-started guards. */
 type CentrifugeClients = { address: Address; publicClient: PublicClient };
 
-export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'invalidate' | 'zivoeVaultSlug'> & {
+export type CentrifugeTxConfig<TVariables> = Omit<
+  TxSharedConfig<TVariables>,
+  'invalidate' | 'zivoeVaultSlug' | 'chain'
+> & {
   /** The Zivoe Vault identity this transaction runs against — Centrifuge vault, tokens, analytics slug. */
   identity: TransactionIdentity;
   /**
@@ -73,9 +76,13 @@ export type CentrifugeTxConfig<TVariables> = Omit<TxSharedConfig<TVariables>, 'i
  */
 export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<TVariables>) {
   const wagmiConfig = useConfig();
-  const publicClient = usePublicClient();
 
   const { identity, analytics } = config;
+
+  // Pinned to the identity's chain: simulation, receipt fallbacks and reads
+  // must run where the Centrifuge vault lives, not wherever the wallet
+  // happens to be.
+  const publicClient = usePublicClient({ chainId: identity.shareClass.chainId });
 
   return useTxLifecycle({
     ...config,
@@ -89,12 +96,15 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
     },
     sentryExtras: (vars) => ({
       ...(config.sentryExtras ?? toSentryExtras)(vars),
-      shareClassKey: identity.shareClass.key
+      shareClassKey: identity.shareClass.key,
+      chain: identity.shareClass.chain
     }),
 
-    // The payload's slug is stamped by the lifecycle itself, uniformly for
-    // both drivers (approvals included) and for the fallback payload.
+    // The payload's slug and chain are stamped by the lifecycle itself,
+    // uniformly for both drivers (approvals included) and for the fallback
+    // payload.
     zivoeVaultSlug: identity.zivoeVaultSlug,
+    chain: identity.shareClass.chain,
 
     // Every Centrifuge transaction moves share-class-scoped state, so the
     // driver owns the invalidation — stamped once here (like the slug above)
@@ -103,8 +113,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.shareClass.key,
-        centrifugeVaultAddress: identity.shareClass.centrifugeVaultAddress
+        shareClassKey: identity.shareClass.key
       });
       config.invalidateExtra?.(ctx);
     },
@@ -138,8 +147,12 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 
         // Lazy signer resolution: the current wallet client is fetched per
         // transaction, so an account switch can never leave a stale signer.
-        const { err: walletErr, res: walletClient } = await handlePromise(getWalletClient(wagmiConfig));
-        if (walletErr || !walletClient) throw new AppError({ message: 'Wallet not connected', exception: walletErr });
+        // Requested for the identity's chain — the CTA gates on the wallet
+        // already sitting there, and the SDK re-asserts before submitting.
+        const { err: walletErr, res: walletClient } = await handlePromise(
+          getWalletClient(wagmiConfig, { chainId: identity.shareClass.chainId })
+        );
+        if (walletErr || !walletClient) throw normalizeWalletClientError(walletErr);
 
         const signer = createSimulationSigner({
           walletClient,
@@ -256,17 +269,15 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
 export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
-  shareClassKey,
-  centrifugeVaultAddress
+  shareClassKey
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
-  centrifugeVaultAddress: Address;
 }) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPosition({ accountAddress: address, shareClassKey, centrifugeVaultAddress })
+    queryKey: queryKeys.account.redemptionPositions({ accountAddress: address, shareClassKey })
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });
@@ -310,6 +321,24 @@ function findAppError(err: unknown): AppError | undefined {
     if (current instanceof AppError) return current;
   }
   return undefined;
+}
+
+/**
+ * getWalletClient fails for more than a missing connection: wagmi re-reads
+ * the connector's LIVE chain and throws a mismatch when it drifted from the
+ * requested one between the CTA's gate and the click — 'Wallet not connected'
+ * on a plainly-connected wallet would mislead both the user and Sentry.
+ * (A wallet on a chain outside the app's allow-list never reaches here:
+ * Dynamic's networkValidationMode overlay intercepts it first.)
+ */
+function normalizeWalletClientError(err: unknown): AppError {
+  const isChainMismatch = err instanceof Error && err.name === 'ConnectorChainMismatchError';
+  return new AppError({
+    message: isChainMismatch
+      ? 'Your wallet is connected to the wrong network. Switch networks and try again.'
+      : 'Wallet not connected',
+    exception: err
+  });
 }
 
 function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, string>): unknown {

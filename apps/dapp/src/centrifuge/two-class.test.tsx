@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { type TransactionIdentity, useDeposit } from './index';
@@ -42,8 +42,7 @@ const DEPOSIT_EVENT_ABI = parseAbi([
 ]);
 
 /** The zSMB identity as the app resolves it, next to the synthetic fixture class. */
-const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
-const ZSMB_CENTRIFUGE_VAULT = ZSMB_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase();
+const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
 const ZSMB_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
 const FIXTURE_AMOUNTS = { assets: 250_000000n, shares: 233_64485981n };
@@ -138,10 +137,10 @@ describe('two share classes side by side', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['CENTRIFUGE', 'zsmb', ZSMB_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb', ZSMB_CENTRIFUGE_VAULT]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT]),
+        JSON.stringify(['CENTRIFUGE', 'zsmb', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
         JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])

@@ -6,7 +6,6 @@ import { encodeFunctionData } from 'viem';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV } from './config';
 import { decodeClaimRedeemReceipt } from './decode';
 import { readRedemptionPosition } from './reads';
 import { type TransactionIdentity } from './types';
@@ -53,7 +52,7 @@ export function useClaimRedeem({
   onSuccessClose?: () => void;
 }) {
   const { shareClass } = identity;
-  const usdc = CENTRIFUGE_ENV.usdc;
+  const { usdc, vaultRouterAddress } = shareClass;
   const copy = claimRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<ClaimRedeemVariables>({
@@ -70,7 +69,7 @@ export function useClaimRedeem({
     },
 
     expectedCall: (_, { address }) => ({
-      to: CENTRIFUGE_ENV.vaultRouterAddress,
+      to: vaultRouterAddress,
       data: encodeFunctionData({
         abi: ABI.VaultRouter,
         functionName: 'claimRedeem',
@@ -86,7 +85,7 @@ export function useClaimRedeem({
       flow: 'redeem_claim',
       input: ({ claimableAssets }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_ENV.chainId,
+        chainId: shareClass.chainId,
         tokenIn: shareClass.symbol,
         tokenOut: usdc.symbol,
         amountOutRaw: claimableAssets

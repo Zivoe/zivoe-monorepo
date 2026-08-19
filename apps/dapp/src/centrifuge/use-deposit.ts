@@ -6,7 +6,6 @@ import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV } from './config';
 import { decodeSyncDepositReceipt } from './decode';
 import { type TransactionIdentity } from './types';
 import useCentrifugeTx from './useCentrifugeTx';
@@ -51,7 +50,7 @@ export function useDeposit({
   onSuccessClose?: () => void;
 }) {
   const { shareClass } = identity;
-  const usdc = CENTRIFUGE_ENV.usdc;
+  const { usdc, vaultRouterAddress } = shareClass;
   const copy = depositCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<DepositVariables>({
@@ -74,7 +73,7 @@ export function useDeposit({
       flow: 'deposit',
       input: ({ assets, previewShares }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_ENV.chainId,
+        chainId: shareClass.chainId,
         tokenIn: usdc.symbol,
         tokenOut: shareClass.symbol,
         amountInRaw: assets,
@@ -126,15 +125,13 @@ export function useDeposit({
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
+          chain: shareClass.chain,
           contract: usdc.address,
-          spender: CENTRIFUGE_ENV.vaultRouterAddress
+          spender: vaultRouterAddress
         })
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.app.centrifugeVaultCapacity({
-          shareClassKey: shareClass.key,
-          centrifugeVaultAddress: shareClass.centrifugeVaultAddress
-        })
+        queryKey: queryKeys.app.centrifugeVaultCapacity({ shareClassKey: shareClass.key, chain: shareClass.chain })
       });
     }
   });

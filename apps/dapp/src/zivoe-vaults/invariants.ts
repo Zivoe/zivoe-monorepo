@@ -1,4 +1,11 @@
-import { type CentrifugeNetwork, SHARE_CLASS_CATALOG, ZERO_HEX, assertUnique } from '@zivoe/centrifuge-indexer';
+import {
+  CENTRIFUGE_CHAIN_FACTS,
+  type CentrifugeChain,
+  type CentrifugeEnvironment,
+  SHARE_CLASS_CATALOG,
+  ZERO_HEX,
+  assertUnique
+} from '@zivoe/centrifuge-indexer';
 
 import { DEPOSIT_TOKENS } from '@/types/constants';
 
@@ -8,15 +15,22 @@ import { DEPOSIT_TOKENS } from '@/types/constants';
 type RegisteredZivoeVault = {
   slug: string;
   shareClass: { key: string };
-  centrifugeVaults: Partial<Record<CentrifugeNetwork, { address: string; deployable: boolean }>>;
+  centrifugeVaults: Partial<Record<CentrifugeChain, { address: string; deployable: boolean }>>;
 };
 
 type CatalogEntries = Record<
   string,
   {
     symbol: string;
-    networks: Partial<
-      Record<CentrifugeNetwork, { poolId: string; scId: string; shareTokenAddress: string; deployable: boolean }>
+    environments: Partial<
+      Record<
+        CentrifugeEnvironment,
+        {
+          poolId: string;
+          scId: string;
+          chains: Partial<Record<CentrifugeChain, { shareTokenAddress: string; deployable: boolean }>>;
+        }
+      >
     >;
   }
 >;
@@ -28,10 +42,11 @@ const SLUG_SHAPE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * guard pattern. Registering a new Zivoe Vault either works end to end or fails
  * the build loudly; production traffic never sees a misregistration.
  *
- * Checked across EVERY network the registration claims, not only the active
- * one: mainnet values are registered from testnet-deployed branches, and
- * cutover is the expensive time to find a duplicate. Exported (with an
- * injectable catalog) so the fixture sweep can exercise every guard.
+ * Checked across EVERY chain the registration claims, in EVERY environment —
+ * not only the active ones: mainnet values are registered from
+ * testnet-deployed branches, and cutover is the expensive time to find a
+ * duplicate. Exported (with an injectable catalog) so the fixture sweep can
+ * exercise every guard.
  */
 export function assertZivoeVaultRegistryInvariants({
   zivoeVaults: registered,
@@ -88,30 +103,37 @@ export function assertZivoeVaultRegistryInvariants({
     if (DEPOSIT_TOKENS.some((token) => token.toLowerCase() === entry.symbol.toLowerCase()))
       throw new Error(`Share class "${zivoeVault.shareClass.key}" claims the deposit asset symbol "${entry.symbol}".`);
 
-    const claimedNetworks = new Set<CentrifugeNetwork>([
-      ...(Object.keys(entry.networks) as Array<CentrifugeNetwork>),
-      ...(Object.keys(zivoeVault.centrifugeVaults) as Array<CentrifugeNetwork>)
-    ]);
+    // Chains claimed by either side, paired through the chain's own
+    // environment: the catalog files a chain under its environment entry,
+    // the Centrifuge-vault map claims chains globally.
+    const catalogChains = new Set(
+      Object.values(entry.environments).flatMap((onEnvironment) => Object.keys(onEnvironment.chains))
+    ) as Set<CentrifugeChain>;
+    const vaultChains = new Set(Object.keys(zivoeVault.centrifugeVaults)) as Set<CentrifugeChain>;
+    const claimedChains = new Set<CentrifugeChain>([...catalogChains, ...vaultChains]);
 
-    for (const network of claimedNetworks) {
-      const catalogEntry = entry.networks[network];
-      const centrifugeVault = zivoeVault.centrifugeVaults[network];
+    for (const chain of claimedChains) {
+      const environment = CENTRIFUGE_CHAIN_FACTS[chain].environment;
+      const onEnvironment = entry.environments[environment];
+      const catalogEntry = onEnvironment?.chains[chain];
+      const centrifugeVault = zivoeVault.centrifugeVaults[chain];
 
       // A half-claim would serve a page with no Centrifuge vault or a Centrifuge vault with no
-      // catalog identity — both sides claim a network, or neither does.
+      // catalog identity — both sides claim a chain, or neither does.
       if (!catalogEntry || !centrifugeVault)
         throw new Error(
-          `Zivoe Vault "${zivoeVault.slug}" claims "${network}" in ${
+          `Zivoe Vault "${zivoeVault.slug}" claims "${chain}" in ${
             catalogEntry ? 'the catalog but not its Centrifuge vaults' : 'its Centrifuge vaults but not the catalog'
           }.`
         );
 
       // The two deployable flags are one launch switch seen from two files.
-      // Half-flipped they build green while the dApp serves zero Zivoe Vaults and
-      // the catalog-driven surfaces count a class the dApp will not route.
+      // Half-flipped they build green while the dApp serves zero chains for
+      // the class and the catalog-driven surfaces count a chain the dApp will
+      // not transact on.
       if (catalogEntry.deployable !== centrifugeVault.deployable)
         throw new Error(
-          `Share class "${zivoeVault.shareClass.key}" on "${network}" is ${
+          `Share class "${zivoeVault.shareClass.key}" on "${chain}" is ${
             catalogEntry.deployable
               ? 'catalog-deployable but its Centrifuge vault is not'
               : 'Centrifuge-vault-deployable but its catalog entry is not'
@@ -119,44 +141,48 @@ export function assertZivoeVaultRegistryInvariants({
         );
 
       // deployable: true asserts operator-verified values — zero values under
-      // that flag are a flipped flag, not a staged launch.
+      // that flag are a flipped flag, not a staged launch. The hub-level ids
+      // are checked here too: a deployable chain under an environment whose
+      // poolId/scId are placeholders would query the indexer for nothing.
       if (
         catalogEntry.deployable &&
-        (isZeroPoolId(catalogEntry.poolId) ||
-          ZERO_HEX.test(catalogEntry.scId) ||
+        (isZeroPoolId(onEnvironment.poolId) ||
+          ZERO_HEX.test(onEnvironment.scId) ||
           ZERO_HEX.test(catalogEntry.shareTokenAddress))
       )
         throw new Error(
-          `Share class "${zivoeVault.shareClass.key}" on "${network}" is deployable but carries placeholder identity values.`
+          `Share class "${zivoeVault.shareClass.key}" on "${chain}" is deployable but carries placeholder identity values.`
         );
 
       if (centrifugeVault.deployable && ZERO_HEX.test(centrifugeVault.address))
         throw new Error(
-          `The "${zivoeVault.slug}" Zivoe Vault's Centrifuge vault on "${network}" is deployable but carries a placeholder address.`
+          `The "${zivoeVault.slug}" Zivoe Vault's Centrifuge vault on "${chain}" is deployable but carries a placeholder address.`
         );
     }
   }
 
-  // Centrifuge-vault addresses must be unique per network across every registered entry,
-  // staged or live — two Zivoe Vaults sharing one would decode each other's
-  // receipts. Placeholder zeros are excluded: staged launches legitimately
-  // share them until values are operator-verified. (Catalog-internal identity
-  // uniqueness — symbols, scIds, share tokens — is the catalog's own
-  // import-time sweep in @zivoe/centrifuge-indexer, so landing-only builds
-  // are guarded too.)
-  const allNetworks = new Set<CentrifugeNetwork>(
-    zivoeVaults.flatMap((zivoeVault) => Object.keys(zivoeVault.centrifugeVaults) as Array<CentrifugeNetwork>)
+  // Centrifuge-vault addresses must be unique per chain across every
+  // registered entry, staged or live — two Zivoe Vaults sharing one would
+  // decode each other's receipts. Per CHAIN, not per environment: one address
+  // on two chains is legitimate under deterministic deployment and must not
+  // false-positive. Placeholder zeros are excluded: staged launches
+  // legitimately share them until values are operator-verified.
+  // (Catalog-internal identity uniqueness — symbols, scIds, share tokens — is
+  // the catalog's own import-time sweep in @zivoe/centrifuge-indexer, so
+  // landing-only builds are guarded too.)
+  const allChains = new Set<CentrifugeChain>(
+    zivoeVaults.flatMap((zivoeVault) => Object.keys(zivoeVault.centrifugeVaults) as Array<CentrifugeChain>)
   );
 
-  for (const network of allNetworks) {
+  for (const chain of allChains) {
     assertUnique({
       values: zivoeVaults
         .flatMap((zivoeVault) => {
-          const centrifugeVault = zivoeVault.centrifugeVaults[network];
+          const centrifugeVault = zivoeVault.centrifugeVaults[chain];
           return centrifugeVault ? [centrifugeVault.address.toLowerCase()] : [];
         })
         .filter((address) => !ZERO_HEX.test(address)),
-      message: (address) => `Centrifuge vault ${address} is claimed by two share classes on "${network}".`
+      message: (address) => `Centrifuge vault ${address} is claimed by two share classes on "${chain}".`
     });
   }
 }

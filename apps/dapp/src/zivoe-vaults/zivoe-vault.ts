@@ -2,7 +2,7 @@ import { type ComponentType, type ReactNode } from 'react';
 
 import { type Address } from 'viem';
 
-import { type CentrifugeNetwork, type ShareClassKey } from '@zivoe/centrifuge-indexer';
+import { type CentrifugeChain, type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
@@ -34,13 +34,13 @@ export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted 
 export type AuthoredDetailLabel = Exclude<ZivoeVaultDetailLabel, DerivedDetailLabel>;
 
 /**
- * The Centrifuge vault instantiating the share class for USDC on one network —
- * Centrifuge's narrow sense of the word, not the product Vault users see.
+ * The Centrifuge vault instantiating the share class for USDC on one spoke
+ * chain — Centrifuge's narrow sense of the word, not the product Vault users see.
  */
 export type CentrifugeVault = {
   address: Address;
   /**
-   * False while the address is a placeholder for a network the launch is
+   * False while the address is a placeholder for a chain the launch is
    * staged on — resolving it throws rather than decoding receipts against
    * the zero address (which silently matches nothing).
    */
@@ -76,12 +76,13 @@ export type ZivoeVaultIdentity = {
     key: ShareClassKey;
   };
   /**
-   * dApp-only identity: the Centrifuge vault per network this Zivoe Vault claims —
+   * dApp-only identity: the Centrifuge vault per spoke chain this Zivoe Vault claims —
    * collocated here so a launch is a catalog entry plus this one module,
    * with no third map to keep in sync. The registry invariants force the
-   * claimed networks to match the catalog's, both ways.
+   * claimed chains to match the catalog's, both ways. Which of these chains
+   * a deployment actually serves is the intersection with ACTIVE_CHAINS.
    */
-  centrifugeVaults: Partial<Record<CentrifugeNetwork, CentrifugeVault>>;
+  centrifugeVaults: Partial<Record<CentrifugeChain, CentrifugeVault>>;
 };
 
 export type ZivoeVaultPresentation = {

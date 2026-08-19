@@ -3,7 +3,6 @@
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV } from './config';
 import { type TransactionIdentity } from './types';
 import useCentrifugeTx from './useCentrifugeTx';
 
@@ -50,7 +49,7 @@ export function useCancelRedeem({
   onSuccessClose?: () => void;
 }) {
   const { shareClass } = identity;
-  const copy = cancelRedeemCopy({ asset: CENTRIFUGE_ENV.usdc.symbol, share: shareClass.symbol });
+  const copy = cancelRedeemCopy({ asset: shareClass.usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<CancelRedeemVariables>({
     identity,
@@ -72,7 +71,7 @@ export function useCancelRedeem({
       flow: 'redeem_cancel',
       input: ({ pendingShares }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_ENV.chainId,
+        chainId: shareClass.chainId,
         tokenIn: shareClass.symbol,
         amountInRaw: pendingShares
       })

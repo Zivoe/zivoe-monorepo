@@ -1,4 +1,5 @@
 import { type TransactionIdentity } from '@/centrifuge';
+import { getChainConfig } from '@/centrifuge/config';
 
 /**
  * A synthetic share class for hook tests — deliberately distinct symbol and
@@ -15,8 +16,15 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
     decimals: 8,
     poolId: '281474976999999',
     scId: '0x000100000000ffff0000000000000001',
+    // The test deployment's single active chain (see test/setup.ts) — the
+    // hooks pin their clients to this chainId, and read the chain's real
+    // USDC/VaultRouter facts off the identity like the app resolves them.
+    chain: 'sepolia',
+    chainId: 11155111,
     shareTokenAddress: '0xf1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1',
-    centrifugeVaultAddress: '0xfafafafafafafafafafafafafafafafafafafafa'
+    centrifugeVaultAddress: '0xfafafafafafafafafafafafafafafafafafafafa',
+    usdc: getChainConfig('sepolia').usdc,
+    vaultRouterAddress: getChainConfig('sepolia').vaultRouterAddress
   }
 };
 

@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/nextjs';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-aria-components';
-import { mainnet, sepolia } from 'viem/chains';
+import { type Chain } from 'viem';
 import { type State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
 import { Toaster } from '@zivoe/ui/core/sonner';
@@ -21,7 +21,7 @@ import { trackWalletConnection } from '@/server/actions/track-wallet-connection'
 
 import { authClient, useSession } from '@/lib/auth-client';
 import { getQueryClient } from '@/lib/get-query-client';
-import { NETWORK_CHAIN } from '@/lib/network';
+import { ACTIVE_CHAINS, ACTIVE_CHAIN_IDS, getChainRpcUrls, getViemChain } from '@/lib/network';
 import { handlePromise } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -38,27 +38,24 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   appName: 'Zivoe',
   mobileExperience: 'redirect',
   overrides: {
-    evmNetworks: (networks) => networks.filter((network) => Number(network.chainId) === NETWORK_CHAIN.id)
+    // Filters Dynamic's dashboard-provided list, so a chain must ALSO be
+    // enabled in the Dynamic dashboard to reach the app.
+    evmNetworks: (networks) => networks.filter((network) => ACTIVE_CHAIN_IDS.includes(Number(network.chainId)))
   }
 };
 
+const activeViemChains = ACTIVE_CHAINS.map(getViemChain) as [Chain, ...Array<Chain>];
+
 export const wagmiConfig = createConfig({
-  chains: [NETWORK_CHAIN],
+  chains: activeViemChains,
   multiInjectedProviderDiscovery: false,
   ssr: true,
   storage: createStorage({
     storage: cookieStorage
   }),
-  transports: {
-    [mainnet.id]: fallback([
-      http(env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY),
-      http(env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY)
-    ]),
-    [sepolia.id]: fallback([
-      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY),
-      http(env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY)
-    ])
-  }
+  transports: Object.fromEntries(
+    ACTIVE_CHAINS.map((chain) => [getViemChain(chain).id, fallback(getChainRpcUrls(chain).map((url) => http(url)))])
+  )
 });
 
 export default function Providers({

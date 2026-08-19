@@ -1,14 +1,88 @@
-import { mainnet, sepolia } from 'viem/chains';
+import { type Chain } from 'viem';
+import { baseSepolia, mainnet, monad, sepolia } from 'viem/chains';
+
+import { CENTRIFUGE_CHAIN_FACTS, type CentrifugeChain, chainsOfEnvironment } from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
 
-// One network per deployment: NEXT_PUBLIC_NETWORK selects the single chain and
-// its fallback RPC URLs for every web3 client in the app (wagmi, server reads,
-// and the Centrifuge SDK).
-export const NETWORK_CHAIN = env.NEXT_PUBLIC_NETWORK === 'mainnet' ? mainnet : sepolia;
+/**
+ * The deployment's network universe, NODE_ENV-style: testnet for development
+ * and previews, mainnet for production. Every chain of the environment is
+ * active; which of them a Zivoe Vault actually serves is the deployable flags'
+ * business (catalog + Zivoe Vault modules), not the env var's.
+ */
+export const ACTIVE_ENVIRONMENT = env.NEXT_PUBLIC_NETWORK_ENV;
 
-export const NETWORK_RPC_URLS = (
-  env.NEXT_PUBLIC_NETWORK === 'mainnet'
-    ? [env.NEXT_PUBLIC_MAINNET_RPC_URL_PRIMARY, env.NEXT_PUBLIC_MAINNET_RPC_URL_SECONDARY]
-    : [env.NEXT_PUBLIC_SEPOLIA_RPC_URL_PRIMARY, env.NEXT_PUBLIC_SEPOLIA_RPC_URL_SECONDARY]
-).filter((url): url is string => Boolean(url));
+export const ACTIVE_CHAINS: Array<CentrifugeChain> = chainsOfEnvironment(ACTIVE_ENVIRONMENT);
+
+const [firstActiveChain] = ACTIVE_CHAINS;
+// Unreachable — both environments carry chains — but it types the export.
+if (!firstActiveChain) throw new Error(`Environment "${ACTIVE_ENVIRONMENT}" has no chains.`);
+
+/**
+ * The environment's canonical chain (ethereum / sepolia) — the fallback for
+ * chain-agnostic surfaces only (analytics chain_id, the archived server
+ * client). NOT the flow selectors' default: those default to the Zivoe
+ * Vault's own first live chain, which can differ once a launch is staged.
+ */
+export const DEFAULT_CHAIN: CentrifugeChain = firstActiveChain;
+
+const VIEM_CHAINS: Record<CentrifugeChain, Chain> = {
+  ethereum: mainnet,
+  monad,
+  sepolia,
+  'base-sepolia': baseSepolia
+};
+
+// Two hardcoded sources for one fact, cross-checked once at import: the viem
+// chain wagmi/wallets act on must be the chain the catalog reasons about.
+for (const [chain, viemChain] of Object.entries(VIEM_CHAINS) as Array<[CentrifugeChain, Chain]>) {
+  if (viemChain.id !== CENTRIFUGE_CHAIN_FACTS[chain].chainId)
+    throw new Error(
+      `Chain "${chain}" maps to viem chain id ${String(viemChain.id)} but the catalog declares ${String(
+        CENTRIFUGE_CHAIN_FACTS[chain].chainId
+      )}.`
+    );
+}
+
+export function getViemChain(chain: CentrifugeChain): Chain {
+  return VIEM_CHAINS[chain];
+}
+
+export function getChainId(chain: CentrifugeChain): number {
+  return CENTRIFUGE_CHAIN_FACTS[chain].chainId;
+}
+
+// Alchemy's per-network subdomain for each chain — the environment's one key
+// fans out to a distinct URL per chain, so the key's Alchemy app must have
+// every chain of its environment enabled.
+const ALCHEMY_NETWORK: Record<CentrifugeChain, string> = {
+  ethereum: 'eth-mainnet',
+  monad: 'monad-mainnet',
+  sepolia: 'eth-sepolia',
+  'base-sepolia': 'base-sepolia'
+};
+
+/**
+ * Ordered RPC URLs for one chain: the deployment's dedicated Alchemy endpoint
+ * first (when the chain environment's key is configured — testnet's is
+ * optional), then the chain's viem public defaults as failover. Every
+ * consumer (wagmi transports, the Centrifuge SDK, server reads) rides this
+ * one list, so an Alchemy incident degrades to public RPCs instead of taking
+ * down every read and receipt wait.
+ */
+export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
+  const key =
+    CENTRIFUGE_CHAIN_FACTS[chain].environment === 'mainnet'
+      ? env.NEXT_PUBLIC_MAINNET_ALCHEMY_KEY
+      : env.NEXT_PUBLIC_TESTNET_ALCHEMY_KEY;
+
+  const alchemyUrl = key ? `https://${ALCHEMY_NETWORK[chain]}.g.alchemy.com/v2/${key}` : undefined;
+  return [...(alchemyUrl ? [alchemyUrl] : []), ...VIEM_CHAINS[chain].rpcUrls.default.http];
+}
+
+export const ACTIVE_CHAIN_IDS: Array<number> = ACTIVE_CHAINS.map(getChainId);
+
+export function isActiveChainId(chainId: number | undefined): boolean {
+  return chainId !== undefined && ACTIVE_CHAIN_IDS.includes(chainId);
+}

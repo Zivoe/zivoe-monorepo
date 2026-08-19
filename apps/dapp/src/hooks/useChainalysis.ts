@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useConnection } from 'wagmi';
 
+import { isActiveChainId } from '@/lib/network';
 import { queryKeys } from '@/lib/query-keys';
 import { handlePromise } from '@/lib/utils';
 
 import { type ApiResponseError, type ApiResponseSuccess } from '@/app/api/utils';
-
-import { CENTRIFUGE_ENV } from '@/centrifuge';
 
 import { useAccount } from './useAccount';
 
@@ -20,7 +19,7 @@ export const useChainalysis = () => {
   const { address } = useAccount();
 
   const { chainId } = useConnection();
-  const isValidNetwork = chainId === CENTRIFUGE_ENV.chainId;
+  const isValidNetwork = isActiveChainId(chainId);
 
   const { data, isPending, isFetching, isSuccess } = useQuery({
     queryKey: queryKeys.account.chainalysis({ accountAddress: address }),
