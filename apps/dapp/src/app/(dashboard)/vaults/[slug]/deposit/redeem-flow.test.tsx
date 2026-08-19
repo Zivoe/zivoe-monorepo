@@ -107,22 +107,26 @@ vi.mock('wagmi', () => ({
 }));
 // Reduced to its contract — one selectable row per chain, plus the token
 // label the flow hands it — so the suite can drive selection without the
-// dialog/select scaffolding.
+// dialog/select scaffolding. isDisabled must reach the row buttons: it is
+// how this suite asserts the flow's selector gating (chain-agnostic locks
+// only, never per-chain verdicts).
 vi.mock('./_components/chain-token-selector', () => ({
   ChainTokenSelector: ({
     token,
     rows,
-    onSelect
+    onSelect,
+    isDisabled
   }: {
     token: { label: string };
     rows: Array<{ chain: string; detail?: React.ReactNode }>;
     onSelect: (chain: never) => void;
+    isDisabled?: boolean;
   }) => (
     <div>
       <span>Selector token: {token.label}</span>
       {rows.map((row) => (
         <div key={row.chain}>
-          <button type="button" onClick={() => onSelect(row.chain as never)}>
+          <button type="button" disabled={isDisabled} onClick={() => onSelect(row.chain as never)}>
             Select {row.chain}
           </button>
           {row.detail}
@@ -673,6 +677,26 @@ describe('RedeemFlow across two chains', () => {
       fireEvent.click(getButton('Switch to Base'));
     });
     expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+  });
+
+  it('keeps the chain selector usable when the selected chain blocks redemptions', async () => {
+    // Not-whitelisted locks the form, but it is a verdict about the SELECTED
+    // chain — switching away is the escape, so the selector must not inherit
+    // the form lock (chain-agnostic locks only; the rule lives on
+    // useSelectedChain's doc).
+    mocks.canRequestRedemption = false;
+    renderTwoChainFlow();
+
+    const rowButton = screen.getByRole('button', { name: 'Select base-sepolia' });
+    expect((rowButton as HTMLButtonElement).disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(rowButton);
+    });
+
+    // The selection moved: the wallet still sits on sepolia, so the switch
+    // CTA takes over the main action.
+    expect(getButton('Switch to Base')).toBeTruthy();
   });
 });
 

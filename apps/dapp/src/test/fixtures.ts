@@ -39,9 +39,11 @@ export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault.address
 /**
  * An identity re-pinned to another chain — the shared shape behind every
  * suite's "same class, second chain" fixture, so the spreads cannot drift
- * apart. The chainId comes from the real chain config; the per-chain
- * instances (Centrifuge-vault address, USDC, router, share token) stay
- * overridable so a suite can pin deliberately distinct addresses per chain.
+ * apart. Every chain fact (chainId, USDC, router, cancellation support)
+ * comes from the real chain config, exactly as resolveTransactionIdentity
+ * sources it; only the per-vault instances (Centrifuge-vault address, share
+ * token) stay on the base identity. All of it is overridable when a suite
+ * needs deliberately distinct values per chain.
  */
 export function identityOnChain(
   base: TransactionIdentity,
@@ -51,14 +53,17 @@ export function identityOnChain(
   } = {}
 ): TransactionIdentity {
   const { shareClass: shareClassOverrides, ...centrifugeVaultOverrides } = overrides;
+  const chainConfig = getChainConfig(chain);
 
   return {
     ...base,
     centrifugeVault: {
       ...base.centrifugeVault,
       chain,
-      chainId: getChainConfig(chain).chainId,
-      supportsRedeemCancellation: getChainConfig(chain).supportsRedeemCancellation,
+      chainId: chainConfig.chainId,
+      usdc: chainConfig.usdc,
+      vaultRouterAddress: chainConfig.vaultRouterAddress,
+      supportsRedeemCancellation: chainConfig.supportsRedeemCancellation,
       ...centrifugeVaultOverrides,
       shareClass: { ...base.centrifugeVault.shareClass, ...shareClassOverrides }
     }
