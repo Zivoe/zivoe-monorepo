@@ -3,20 +3,27 @@ export {
   ZERO_HEX,
   assertShareClassCatalogInvariants,
   assertUnique,
+  getShareClassChainIdentity,
   getShareClassIdentity,
-  getShareClassNetworks,
   listShareClassKeys,
   type ShareClassCatalogEntry,
+  type ShareClassChainEntry,
+  type ShareClassChainIdentity,
+  type ShareClassEnvironmentEntry,
   type ShareClassIdentity,
   type ShareClassKey,
-  type ShareClassNetworkEntry,
   type ShareClassSymbol
 } from './catalog';
 export {
-  CENTRIFUGE_NETWORKS,
-  CENTRIFUGE_NETWORK_FACTS,
-  type CentrifugeNetwork,
-  type CentrifugeNetworkFacts
+  CENTRIFUGE_CHAINS,
+  CENTRIFUGE_CHAIN_FACTS,
+  CENTRIFUGE_ENVIRONMENTS,
+  CENTRIFUGE_ENVIRONMENT_FACTS,
+  chainsOfEnvironment,
+  type CentrifugeChain,
+  type CentrifugeChainFacts,
+  type CentrifugeEnvironment,
+  type CentrifugeEnvironmentFacts
 } from './config';
 export { CentrifugeIndexerError, fetchCentrifugeIndexer, type CentrifugeIndexerErrorKind } from './fetch';
 export { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from './graphql';

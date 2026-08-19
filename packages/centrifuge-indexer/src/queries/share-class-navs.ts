@@ -1,16 +1,20 @@
 import { z } from 'zod';
 
 import { getShareClassIdentity } from '../catalog';
-import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
 import { navD18 } from '../units';
+import { requireAgreeingTokenRows } from './token-rows';
 
+// Filtered by tokenId (the hub-level share-class id), not by token address:
+// addresses are per-chain facts, and NAV is a hub-level figure that must not
+// depend on which chains the class happens to be instantiated on.
 const SHARE_CLASS_NAVS_QUERY = graphql(`
-  query ShareClassNavs($shareTokenAddresses: [String]) {
-    tokenInstances(where: { address_in: $shareTokenAddresses }) {
+  query ShareClassNavs($tokenIds: [String]) {
+    tokenInstances(where: { tokenId_in: $tokenIds }) {
       items {
-        address
+        tokenId
         token {
           tokenPrice
           totalIssuance
@@ -31,7 +35,7 @@ const dataSchema = z.object({
   tokenInstances: z.object({
     items: z.array(
       z.object({
-        address: z.string(),
+        tokenId: z.string(),
         token: z.object({
           tokenPrice: positiveIntegerString,
           totalIssuance: integerString,
@@ -50,58 +54,47 @@ const dataSchema = z.object({
  * read, so a partial book can never render as the whole one.
  */
 export async function fetchShareClassNavs({
-  network,
+  environment,
   shareClassKeys,
   fetchOptions
 }: {
-  network: CentrifugeNetwork;
+  environment: CentrifugeEnvironment;
   shareClassKeys: Array<string>;
   fetchOptions?: RequestInit;
 }): Promise<Record<string, string>> {
   if (shareClassKeys.length === 0) return {};
 
-  const identities = shareClassKeys.map((key) => getShareClassIdentity({ network, key }));
+  const identities = shareClassKeys.map((key) => getShareClassIdentity({ environment, key }));
 
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
+    indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
     query: SHARE_CLASS_NAVS_QUERY,
-    variables: { shareTokenAddresses: identities.map((identity) => identity.shareTokenAddress.toLowerCase()) },
+    variables: { tokenIds: identities.map((identity) => identity.scId) },
     dataSchema,
     fetchOptions
   });
 
-  // TokenInstance is a per-chain entity and the environment shares one
-  // indexer, so a class instantiated on several spoke chains legitimately
-  // returns one row per chain — each carrying the same hub-level `token`
-  // payload. Rows are corrupt only when they disagree for one address: that
-  // fails closed instead of last-write-winning into a published NAV figure.
-  const tokensByAddress = new Map<string, (typeof data.tokenInstances.items)[number]['token']>();
-
+  const rowsByScId = new Map<string, Array<(typeof data.tokenInstances.items)[number]['token']>>();
   for (const item of data.tokenInstances.items) {
-    const address = item.address.toLowerCase();
-    const existing = tokensByAddress.get(address);
-
-    if (
-      existing &&
-      (existing.tokenPrice !== item.token.tokenPrice ||
-        existing.totalIssuance !== item.token.totalIssuance ||
-        existing.decimals !== item.token.decimals)
-    )
-      throw new CentrifugeIndexerError({
-        kind: 'validation',
-        message: `The indexer returned conflicting share-token rows for ${address} on ${network}.`
-      });
-
-    tokensByAddress.set(address, item.token);
+    const rows = rowsByScId.get(item.tokenId) ?? [];
+    rows.push(item.token);
+    rowsByScId.set(item.tokenId, rows);
   }
 
   return Object.fromEntries(
     identities.map((identity) => {
-      const token = tokensByAddress.get(identity.shareTokenAddress.toLowerCase());
+      const token = requireAgreeingTokenRows({
+        rows: rowsByScId.get(identity.scId) ?? [],
+        conflictError: () =>
+          new CentrifugeIndexerError({
+            kind: 'validation',
+            message: `The indexer returned conflicting share-token rows for ${identity.scId} on ${environment}.`
+          })
+      });
       if (!token)
         throw new CentrifugeIndexerError({
           kind: 'validation',
-          message: `Share token ${identity.shareTokenAddress} is not indexed on ${network}.`
+          message: `Share class "${identity.key}" is not indexed on ${environment}.`
         });
 
       const nav = navD18({

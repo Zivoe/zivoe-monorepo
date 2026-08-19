@@ -1,14 +1,18 @@
 import { z } from 'zod';
 
 import { getShareClassIdentity } from '../catalog';
-import { CENTRIFUGE_NETWORK_FACTS, type CentrifugeNetwork } from '../config';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
 import { navD18, rayToPercent } from '../units';
+import { requireAgreeingTokenRows } from './token-rows';
 
+// Filtered by tokenId (the hub-level share-class id), not by token address:
+// addresses are per-chain facts, while these metrics are hub-level and must
+// not depend on which chains the class happens to be instantiated on.
 const CURRENT_SHARE_METRICS_QUERY = graphql(`
-  query CurrentShareMetrics($shareTokenAddress: String!, $tokenId: String!) {
-    tokenInstances(where: { address: $shareTokenAddress }) {
+  query CurrentShareMetrics($tokenId: String!) {
+    tokenInstances(where: { tokenId: $tokenId }) {
       items {
         token {
           tokenPrice
@@ -137,31 +141,37 @@ export function createDailyNegativeYieldReporter(
 }
 
 export async function fetchCurrentShareMetrics({
-  network,
+  environment,
   shareClassKey,
   fetchOptions
 }: {
-  network: CentrifugeNetwork;
+  environment: CentrifugeEnvironment;
   shareClassKey: string;
   fetchOptions?: RequestInit;
 }): Promise<CurrentShareMetrics> {
-  const shareClass = getShareClassIdentity({ network, key: shareClassKey });
+  const shareClass = getShareClassIdentity({ environment, key: shareClassKey });
 
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
+    indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
     query: CURRENT_SHARE_METRICS_QUERY,
-    variables: { shareTokenAddress: shareClass.shareTokenAddress.toLowerCase(), tokenId: shareClass.scId },
+    variables: { tokenId: shareClass.scId },
     dataSchema,
     fetchOptions
   });
 
-  const token = data.tokenInstances.items[0]?.token;
+  const token = requireAgreeingTokenRows({
+    rows: data.tokenInstances.items.map((item) => item.token),
+    conflictError: () =>
+      new CentrifugeIndexerError({
+        kind: 'validation',
+        message: `The indexer returned conflicting share-token rows for "${shareClass.key}" on ${environment}.`
+      })
+  });
   if (!token)
     throw new CentrifugeIndexerError({
       kind: 'validation',
-      message: `Share token ${shareClass.shareTokenAddress} is not indexed on ${network}.`
+      message: `Share class "${shareClass.key}" is not indexed on ${environment}.`
     });
-
   const sharePrice = BigInt(token.tokenPrice);
   const totalIssuance = BigInt(token.totalIssuance);
   const newestYield = data.tokenSnapshots.items[0]?.yield30dComp365 ?? null;
