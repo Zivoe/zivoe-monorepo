@@ -45,8 +45,8 @@ One whole Centrifuge protocol universe — one hub, one SDK environment flag, on
 _Avoid_: network (the retired term that meant both this and Chain)
 
 **Chain**:
-One spoke network inside an Environment (`ethereum`, `pharos`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE_ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the deployable flags' business, and every chain-scoped query key and vault memo carries the chain.
-_Avoid_: network (ambiguous)
+One spoke network inside an Environment (`ethereum`, `pharos`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE*ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the deployable flags' business, and every chain-scoped query key and vault memo carries the chain.
+\_Avoid*: network (ambiguous)
 
 **Share Class Catalog**:
 The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/catalog.ts`): symbol, decimals, and per-environment hub identity (pool id, scId) with per-chain token instances, `deployable: false` marking staged placeholder chains. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import.
