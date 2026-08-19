@@ -339,10 +339,13 @@ describe('DepositFlow', () => {
     expect(mocks.approve).toHaveBeenCalled();
   });
 
-  it('drops the capacity cap rather than the action when the capacity read fails', async () => {
+  it('drops the capacity cap but withholds Approve when the capacity read fails', async () => {
     // With no capacity there is nothing to validate against, so the cap simply
     // stops applying — 7 USDC clears a form that a successful 5 USDC read
-    // would reject. ExceedsMaxDeposit still surfaces from the simulation.
+    // would reject. The action stays live as Deposit, whose exact-call
+    // simulation re-resolves the chain config before anything is signed —
+    // but Approve is withheld: an approval signs clean against any spender,
+    // so it demands the resolution proof that capacity's success carries.
     mocks.capacityIsError = true;
 
     renderFlow();
@@ -351,7 +354,8 @@ describe('DepositFlow', () => {
     await act(async () => enterAmount('7'));
 
     expect(screen.queryByText(/exceeds current vault capacity/)).toBeNull();
-    expect(getButton('Approve').disabled).toBe(false);
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(getButton('Deposit').disabled).toBe(false);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {

@@ -78,6 +78,14 @@ export function DepositFlow() {
   const maxDeposit = capacity.data?.maxDeposit;
   const isCapacityUnavailable = capacity.isSuccess && capacity.data.maxDeposit <= 0n;
 
+  // Approve is the one signature no simulation vets (an ERC-20 approval
+  // signs clean against any spender), so unlike the fail-open reads above it
+  // demands positive proof that this chain's config passed the resolution
+  // assertions: capacity's queryFn resolves the Centrifuge vault, so its
+  // success is that proof. Deposit needs no such gate — its driver re-resolves
+  // and throws before anything is signed.
+  const canOfferApproval = capacity.isSuccess;
+
   const form = useForm<DepositForm>({
     resolver: zodResolver(
       z.object({
@@ -319,7 +327,7 @@ export function DepositFlow() {
             <Button fullWidth isDisabled>
               Wallet Not Whitelisted
             </Button>
-          ) : hasDepositRaw && !hasEnoughAllowance ? (
+          ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
             <Button
               fullWidth
               onPress={() => void handleApprove()}
