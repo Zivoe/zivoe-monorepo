@@ -11,7 +11,7 @@ import { queryKeys } from '@/lib/query-keys';
 import Container from '@/components/container';
 import Page from '@/components/page';
 
-import { getZivoeVault, resolveTransactionIdentity } from '@/zivoe-vaults';
+import { getZivoeVault, resolveZivoeVaultIdentities } from '@/zivoe-vaults';
 
 import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
@@ -46,8 +46,9 @@ export default async function ZivoeVaultPage({
   const zivoeVault = getZivoeVault(slug);
   if (!zivoeVault) notFound();
 
-  // Resolved once here; client trees read only this serializable object.
-  const identity = resolveTransactionIdentity(zivoeVault);
+  // Resolved once here, one identity per live chain; client trees read only
+  // these serializable objects.
+  const identities = resolveZivoeVaultIdentities(zivoeVault);
 
   const validatedView = depositPageViewSchema.safeParse(view);
 
@@ -78,7 +79,7 @@ export default async function ZivoeVaultPage({
         <HydrationBoundary state={dehydrate(queryClient)}>
           {/* Keyed by slug so no component state can leak across Zivoe Vaults. */}
           <Page key={zivoeVault.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <ZivoeVaultIdentityProvider identity={identity} status={zivoeVault.status}>
+            <ZivoeVaultIdentityProvider identities={identities} status={zivoeVault.status}>
               <DepositInfo zivoeVault={zivoeVault} />
               <Deposit initialView={validatedView.success ? validatedView.data : null} />
             </ZivoeVaultIdentityProvider>

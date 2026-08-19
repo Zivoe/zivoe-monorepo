@@ -20,9 +20,9 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
+import { getTokenInfo } from '@/components/token-info';
 
 import {
-  CENTRIFUGE_ENV,
   type TransactedShareClass,
   sharesToUsdc,
   sharesToValueD18,
@@ -34,7 +34,8 @@ import {
   useRequestRedeem
 } from '@/centrifuge';
 
-import { useZivoeVaultIdentity } from '../zivoe-vault-provider';
+import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
+import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
@@ -42,21 +43,28 @@ import { TokenDisplay } from './_components/token-display';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
-// The one deposit asset every Zivoe Vault accepts — a network-level fact.
-const USDC = CENTRIFUGE_ENV.usdc;
-
 type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
-  const identity = useZivoeVaultIdentity();
+  const {
+    chains,
+    selectedIdentity: identity,
+    selectedChain,
+    setSelectedChain,
+    needsChainSwitch,
+    switchToChain,
+    isSwitchPending
+  } = useSelectedChain();
+
   const share = identity.shareClass;
+  const usdc = share.usdc;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
-  const usdcBalance = useBalance({ tokenAddress: USDC.address });
+  const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
+  const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
   const position = useRedemptionPosition({ shareClass: share });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
   const whitelist = useInvestorWhitelist({ shareClass: share });
@@ -64,7 +72,7 @@ export default function RedeemFlow() {
   // Two gates, because the whitelist does not fall along this panel's own
   // lines. Only a definitive `false` gates anything: a failed read is a fetch
   // problem and not a verdict, so it leaves both alone and lets the pre-sign
-  // simulation decode the real revert if the vault does refuse.
+  // simulation decode the real revert if the Centrifuge vault does refuse.
   //
   // Claiming settled USDC is deliberately under neither: the protocol exempts
   // a redeem claim from the whitelist (and USDC carries no transfer hook), so
@@ -131,6 +139,10 @@ export default function RedeemFlow() {
 
   const isMutationPending =
     requestRedeem.isPending || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
+  // Every write on this tab (request, cancel, both claims) executes on the
+  // selected chain, so one gate serves them all: the strips' buttons disable
+  // and the main action becomes the switch.
+  const isWriteBlocked = isPrereqsLoading || needsChainSwitch;
   /**
    * All four writes share one transaction path, so each control waits out the
    * other three. Pass the control's own pending flag — its own run is already
@@ -138,8 +150,8 @@ export default function RedeemFlow() {
    */
   const isOtherMutationPending = (isSelfPending: boolean) => isMutationPending && !isSelfPending;
   // Cancellation Processing locks the whole form: a new request would revert
-  // on-chain until the hub finishes the unwind. A wallet the vault will not
-  // admit locks it for the same reason — there is no amount worth entering.
+  // on-chain until the hub finishes the unwind. A wallet the Centrifuge vault
+  // will not admit locks it for the same reason — there is no amount worth entering.
   // Only the request gate applies here: a wallet that may still send shares to
   // escrow can use this form even when its share moves back are blocked.
   const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotWhitelisted;
@@ -178,9 +190,10 @@ export default function RedeemFlow() {
     );
   };
 
+  // Balance verdicts are wallet- and chain-scoped — see the deposit tab.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, form]);
+  }, [account.address, selectedChain, form]);
 
   const handleClaim = () => {
     if (claimableAssets <= 0n) return;
@@ -200,7 +213,11 @@ export default function RedeemFlow() {
     claimReturnedShares.mutate({ returnedShares });
   };
 
-  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, USDC.decimals) : '';
+  // Display entry for the share token; the fixture classes tests hand in have
+  // none, so the selector falls back to the bare symbol without an icon.
+  const shareSelectorToken = getTokenInfo(share.symbol) ?? { label: share.symbol, icon: null };
+
+  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, usdc.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isEstimateLoading ? '' : undefined;
@@ -221,7 +238,7 @@ export default function RedeemFlow() {
                 onPress={handleClaimReturnedShares}
                 size="s"
                 isDisabled={
-                  isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
+                  isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
                 }
                 isPending={claimReturnedShares.isPending}
                 pendingContent={
@@ -247,7 +264,7 @@ export default function RedeemFlow() {
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: USDC.decimals, displayDecimals: 2 })}{' '}
+              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })}{' '}
               USDC ready to claim
             </p>
 
@@ -256,10 +273,10 @@ export default function RedeemFlow() {
                 onPress={handleClaim}
                 size="s"
                 isDisabled={
-                  isPrereqsLoading ||
+                  isWriteBlocked ||
                   isOtherMutationPending(claimRedeem.isPending) ||
-                  // The vault claims Returned Shares before USDC in one shared
-                  // transaction path, so the USDC claim waits its turn.
+                  // The Centrifuge vault claims Returned Shares before USDC in one
+                  // shared transaction path, so the USDC claim waits its turn.
                   returnedShares > 0n
                 }
                 isPending={claimRedeem.isPending}
@@ -292,7 +309,7 @@ export default function RedeemFlow() {
             shareClass={share}
             cancel={{
               onPress: handleCancelRedeem,
-              isDisabled: isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
+              isDisabled: isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
               isBlockedByWhitelist: isShareReturnBlocked,
               isPending: cancelRedeem.isPending,
               isTxPending: cancelRedeem.isTxPending
@@ -335,7 +352,14 @@ export default function RedeemFlow() {
                 />
 
                 <div className="ml-3">
-                  <TokenDisplay symbol={share.symbol} />
+                  <ChainTokenSelector
+                    title="Select Asset"
+                    token={shareSelectorToken}
+                    rows={chains.map((chain) => ({ chain }))}
+                    selectedChain={selectedChain}
+                    onSelect={setSelectedChain}
+                    isDisabled={isPrereqsLoading || isMutationPending}
+                  />
                 </div>
               </div>
             }
@@ -364,17 +388,23 @@ export default function RedeemFlow() {
         startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            dollarValueDecimals={USDC.decimals}
+            dollarValueDecimals={usdc.decimals}
             dollarValue={receiveDollarValue}
             isLoading={isEstimateLoading}
-            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
+            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: usdc.decimals }}
           />
         }
         endContent={<TokenDisplay symbol="USDC" />}
       />
 
       <ConnectedAccount>
-        {isPrereqsLoading ? (
+        {needsChainSwitch ? (
+          <SwitchChainButton
+            chain={selectedChain}
+            onSwitch={() => switchToChain(selectedChain)}
+            isPending={isSwitchPending}
+          />
+        ) : isPrereqsLoading ? (
           <Button fullWidth isPending={true} pendingContent="Loading..." />
         ) : isCancellationProcessing ? (
           <Button fullWidth isDisabled>
@@ -435,6 +465,7 @@ function RedemptionProcessingStrip({
     isTxPending: boolean;
   };
 }) {
+  const usdc = shareClass.usdc;
   const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
 
   return (
@@ -444,7 +475,7 @@ function RedemptionProcessingStrip({
           {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
           {shareClass.symbol} processing
           {pendingUsdc !== undefined
-            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: USDC.decimals, displayDecimals: 2 })} USDC`
+            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC`
             : ''}
         </p>
 

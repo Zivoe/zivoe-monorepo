@@ -2,6 +2,7 @@
 import { type ReactNode } from 'react';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { Provider as JotaiProvider } from 'jotai';
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,9 +13,11 @@ import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
-const { USDC_ADDRESS, ZSMB_ADDRESS } = vi.hoisted(() => ({
-  USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ZSMB_ADDRESS: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
+const { ZSMB_ADDRESS, BASE_SHARE_ADDRESS } = vi.hoisted(() => ({
+  ZSMB_ADDRESS: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
+  // The second chain's share token instance — distinct so a read against the
+  // wrong chain's contract cannot pass by coincidence.
+  BASE_SHARE_ADDRESS: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2'
 }));
 
 const D18 = 10n ** 18n;
@@ -22,15 +25,19 @@ const D18 = 10n ** 18n;
 // The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here used the share-token address as the vault's,
 // the exact conflation the registry invariants exist to catch).
-const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
+// A fresh jotai store per render: the shared selected-chain atom must not
+// leak a selection from one test into the next.
 function renderFlow(identity = TEST_IDENTITY) {
   return render(
-    <ZivoeVaultIdentityProvider identity={identity} status="Open">
-      <EarnDialogProvider>
-        <RedeemFlow />
-      </EarnDialogProvider>
-    </ZivoeVaultIdentityProvider>
+    <JotaiProvider>
+      <ZivoeVaultIdentityProvider identities={[identity]} status="Open">
+        <EarnDialogProvider>
+          <RedeemFlow />
+        </EarnDialogProvider>
+      </ZivoeVaultIdentityProvider>
+    </JotaiProvider>
   );
 }
 
@@ -53,17 +60,64 @@ const mocks = vi.hoisted(() => ({
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
-  zSmbBalance: 10n * 10n ** 18n
+  zSmbBalance: 10n * 10n ** 18n,
+  // The second chain's wallet state, read only by the two-chain suite.
+  baseShareBalance: 0n,
+  baseClaimableAssets: 0n,
+  walletChainId: 11155111,
+  switchChain: vi.fn()
 }));
+
+const positionFor = vi.hoisted(
+  () => (chain: string) =>
+    chain === 'base-sepolia'
+      ? {
+          pendingRedeemShares: 0n,
+          claimableRedeemAssets: mocks.baseClaimableAssets,
+          claimableRedeemSharesEquivalent: 0n,
+          claimableCancelRedeemShares: 0n,
+          hasPendingCancelRedeemRequest: false
+        }
+      : {
+          pendingRedeemShares: mocks.pendingShares,
+          claimableRedeemAssets: mocks.claimableAssets,
+          claimableRedeemSharesEquivalent: 0n,
+          claimableCancelRedeemShares: mocks.returnedShares,
+          hasPendingCancelRedeemRequest: mocks.hasPendingCancel
+        }
+);
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Pulled in by the Zivoe Vault modules' logos and the token display map.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
+vi.mock('wagmi', () => ({
+  useConnection: () => ({ chainId: mocks.walletChainId }),
+  useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
+}));
+// Reduced to its contract — one selectable row per chain, plus the token
+// label the flow hands it — so the suite can drive selection without the
+// dialog/select scaffolding.
+vi.mock('./_components/chain-token-selector', () => ({
+  ChainTokenSelector: ({
+    token,
+    rows,
+    onSelect
+  }: {
+    token: { label: string };
+    rows: Array<{ chain: string }>;
+    onSelect: (chain: never) => void;
+  }) => (
+    <div>
+      <span>Selector token: {token.label}</span>
+      {rows.map((row) => (
+        <button type="button" key={row.chain} onClick={() => onSelect(row.chain as never)}>
+          Select {row.chain}
+        </button>
+      ))}
+    </div>
+  )
+}));
 vi.mock('@/centrifuge', () => ({
-  CENTRIFUGE_ENV: {
-    chainId: 11155111,
-    usdc: { address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }
-  },
   // Mirrors the module's real unit math, including the share class's own
   // decimals — hardcoding 18 here once hid a scaling bug from this suite.
   sharesToUsdc: ({
@@ -96,18 +150,10 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useRedemptionPosition: () => ({
+  useRedemptionPosition: ({ shareClass }: { shareClass: { chain: string } }) => ({
     isError: mocks.positionIsError,
     isFetching: false,
-    data: mocks.positionIsError
-      ? undefined
-      : {
-          pendingRedeemShares: mocks.pendingShares,
-          claimableRedeemAssets: mocks.claimableAssets,
-          claimableRedeemSharesEquivalent: 0n,
-          claimableCancelRedeemShares: mocks.returnedShares,
-          hasPendingCancelRedeemRequest: mocks.hasPendingCancel
-        }
+    data: mocks.positionIsError ? undefined : positionFor(shareClass.chain)
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
@@ -125,7 +171,12 @@ vi.mock('@/hooks/useAccount', () => ({
 }));
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: tokenAddress === ZSMB_ADDRESS ? mocks.zSmbBalance : 0n,
+    data:
+      tokenAddress === ZSMB_ADDRESS
+        ? mocks.zSmbBalance
+        : tokenAddress === BASE_SHARE_ADDRESS
+          ? mocks.baseShareBalance
+          : 0n,
     isFetching: false,
     isPending: false
   })
@@ -227,6 +278,10 @@ describe('RedeemFlow', () => {
     mocks.positionIsError = false;
     mocks.returnedShares = 0n;
     mocks.sharePrice = 1_070000000000000000n;
+    mocks.zSmbBalance = 10n * 10n ** 18n;
+    mocks.baseShareBalance = 0n;
+    mocks.baseClaimableAssets = 0n;
+    mocks.walletChainId = 11155111;
   });
 
   it('names the wallet and blocks the request when the vault does not admit it', async () => {
@@ -535,5 +590,88 @@ describe('RedeemFlow', () => {
     fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
     expect(mocks.claimRedeem).not.toHaveBeenCalled();
+  });
+});
+
+describe('RedeemFlow across two chains', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canReceiveShares = true;
+    mocks.canRequestRedemption = true;
+    mocks.whitelistIsError = false;
+    mocks.claimableAssets = 0n;
+    mocks.hasPendingCancel = false;
+    mocks.metricsIsError = false;
+    mocks.metricsIsFetching = false;
+    mocks.pendingShares = 0n;
+    mocks.positionIsError = false;
+    mocks.returnedShares = 0n;
+    mocks.sharePrice = 1_070000000000000000n;
+    mocks.zSmbBalance = 10n * 10n ** 18n;
+    mocks.baseShareBalance = 0n;
+    mocks.baseClaimableAssets = 0n;
+    mocks.walletChainId = 11155111;
+  });
+
+  // The second chain's identity: same class, its own share-token and Centrifuge-vault instances.
+  const BASE_IDENTITY = {
+    ...TEST_IDENTITY,
+    shareClass: {
+      ...TEST_IDENTITY.shareClass,
+      chain: 'base-sepolia' as const,
+      chainId: 84532,
+      shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}`,
+      centrifugeVaultAddress: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const
+    }
+  };
+
+  function renderTwoChainFlow() {
+    return render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY, BASE_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <RedeemFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+  }
+
+  it('defaults to the first chain regardless of where the position sits', () => {
+    // Shares are chain-local: base-sepolia holds more, but the tab opens on
+    // the first selector item and shows that chain's values only.
+    mocks.baseShareBalance = 25n * D18;
+    renderTwoChainFlow();
+
+    // The selector offers the SHARE token's chain instances — "zSMB on X" is
+    // the position being redeemed; the USDC side is a plain display.
+    expect(screen.getByText('Selector token: zSMB')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Max' }));
+    expect(getInput('Redeem').value).toBe('10');
+  });
+
+  it("selecting another chain shows that chain's position and gates writes behind the switch", async () => {
+    mocks.baseClaimableAssets = 40_000000n;
+    renderTwoChainFlow();
+
+    // Selected sepolia: base-sepolia's claimable is not this view's business.
+    expect(screen.queryByText(/USDC ready to claim/)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Select base-sepolia' }));
+    });
+
+    // Selected base-sepolia: its claim strip renders, and — the wallet still
+    // sitting on sepolia — every write is gated behind the network switch.
+    expect(screen.getByText(/USDC ready to claim/)).toBeTruthy();
+    expect(getButton('Claim USDC').disabled).toBe(true);
+
+    await act(async () => {
+      fireEvent.click(getButton('Switch to Base'));
+    });
+    expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
   });
 });

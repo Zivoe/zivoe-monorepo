@@ -2,6 +2,7 @@
 import { type ReactNode } from 'react';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { Provider as JotaiProvider } from 'jotai';
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,22 +12,30 @@ import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { DepositFlow } from './deposit-flow';
 
-const { USDC_ADDRESS, ROUTER_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ROUTER_ADDRESS, BASE_USDC_ADDRESS, BASE_ROUTER_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
-  ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD'
+  ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
+  // A second chain's instances — distinct addresses so a read against the
+  // wrong chain's contracts cannot pass by coincidence.
+  BASE_USDC_ADDRESS: '0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0',
+  BASE_ROUTER_ADDRESS: '0xb1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1'
 }));
 
 // The zSMB identity exactly as the app resolves it — no hand-rolled copy to
 // drift (an earlier fixture here carried the router address as the vault's).
-const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
+const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
+// A fresh jotai store per render: the shared selected-chain atom must not
+// leak a selection from one test into the next.
 function renderFlow(status: ZivoeVaultStatus = 'Open') {
   return render(
-    <ZivoeVaultIdentityProvider identity={TEST_IDENTITY} status={status}>
-      <EarnDialogProvider>
-        <DepositFlow />
-      </EarnDialogProvider>
-    </ZivoeVaultIdentityProvider>
+    <JotaiProvider>
+      <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY]} status={status}>
+        <EarnDialogProvider>
+          <DepositFlow />
+        </EarnDialogProvider>
+      </ZivoeVaultIdentityProvider>
+    </JotaiProvider>
   );
 }
 
@@ -37,6 +46,7 @@ const mocks = vi.hoisted(() => ({
   whitelistIsError: false,
   approve: vi.fn(),
   capacity: 5_000000n,
+  baseCapacity: 5_000000n,
   capacityIsError: false,
   deposit: vi.fn(),
   isDebouncing: false,
@@ -46,16 +56,18 @@ const mocks = vi.hoisted(() => ({
   previewRefetch: vi.fn(),
   previewShares: 1_230000000000000000n,
   staleDebouncedValue: undefined as string | undefined,
-  usdcBalance: 10_000000n
+  usdcBalance: 10_000000n,
+  baseUsdcBalance: 3_000000n,
+  walletChainId: 11155111,
+  switchChain: vi.fn()
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+vi.mock('wagmi', () => ({
+  useConnection: () => ({ chainId: mocks.walletChainId }),
+  useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
+}));
 vi.mock('@/centrifuge', () => ({
-  CENTRIFUGE_ENV: {
-    chainId: 11155111,
-    vaultRouterAddress: ROUTER_ADDRESS,
-    usdc: { address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }
-  },
   useDeposit: () => ({ isPending: false, isTxPending: false, mutate: mocks.deposit }),
   useDepositPreview: ({ assets }: { assets: bigint }) => ({
     data: assets > 0n && !mocks.previewIsError ? { shares: mocks.previewShares } : undefined,
@@ -74,10 +86,16 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useCentrifugeVaultCapacity: () =>
+  useCentrifugeVaultCapacity: ({ shareClass }: { shareClass: { chain: string } }) =>
     mocks.capacityIsError
       ? { data: undefined, isError: true, isFetching: false, isPending: false, isSuccess: false }
-      : { data: { maxDeposit: mocks.capacity }, isError: false, isFetching: false, isPending: false, isSuccess: true }
+      : {
+          data: { maxDeposit: shareClass.chain === 'base-sepolia' ? mocks.baseCapacity : mocks.capacity },
+          isError: false,
+          isFetching: false,
+          isPending: false,
+          isSuccess: true
+        }
 }));
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: mocks.address })
@@ -92,7 +110,12 @@ vi.mock('@/hooks/useApproveSpending', () => ({
 }));
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: tokenAddress === USDC_ADDRESS ? mocks.usdcBalance : 0n,
+    data:
+      tokenAddress === USDC_ADDRESS
+        ? mocks.usdcBalance
+        : tokenAddress === BASE_USDC_ADDRESS
+          ? mocks.baseUsdcBalance
+          : 0n,
     isFetching: false,
     isPending: false
   })
@@ -106,7 +129,9 @@ vi.mock('@/hooks/useDebouncedValue', () => ({
 }));
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
-vi.mock('@/components/token-info', () => ({ TOKEN_INFO: { USDC: { icon: <span /> } } }));
+vi.mock('@/components/token-info', () => ({
+  TOKEN_INFO: { USDC: { label: 'USDC', description: 'US Dollar Coin', icon: <span /> } }
+}));
 vi.mock('./_components/input-extra-info', () => ({ InputExtraInfo: () => null }));
 vi.mock('./_components/max-button', () => ({
   MaxButton: ({ balance, decimals, onPress }: { balance: bigint; decimals: number; onPress: (v: string) => void }) => (
@@ -193,7 +218,12 @@ vi.mock('@zivoe/ui/core/select', () => ({
     <div>{typeof children === 'function' ? null : children}</div>
   ),
   SelectPopover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  // Honors isDisabled: the chain-selector gating tests assert on it.
+  SelectTrigger: ({ children, isDisabled }: { children: ReactNode; isDisabled?: boolean }) => (
+    <button type="button" disabled={isDisabled}>
+      {children}
+    </button>
+  ),
   SelectValue: () => null
 }));
 vi.mock('@zivoe/ui/core/callout', () => ({
@@ -234,6 +264,7 @@ describe('DepositFlow', () => {
     mocks.whitelistIsAllowed = true;
     mocks.whitelistIsError = false;
     mocks.capacity = 5_000000n;
+    mocks.baseCapacity = 5_000000n;
     mocks.capacityIsError = false;
     mocks.isDebouncing = false;
     mocks.previewError = undefined;
@@ -241,6 +272,8 @@ describe('DepositFlow', () => {
     mocks.previewIsFetching = false;
     mocks.staleDebouncedValue = undefined;
     mocks.usdcBalance = 10_000000n;
+    mocks.baseUsdcBalance = 3_000000n;
+    mocks.walletChainId = 11155111;
   });
 
   it('never renders or enables an old quote during the debounce window', () => {
@@ -409,12 +442,17 @@ describe('DepositFlow', () => {
 
     mocks.usdcBalance = 10_000000n;
     mocks.address = '0xabcdef1234567890abcdef1234567890abcdef12';
+    // Rooted at JotaiProvider like renderFlow, so React UPDATES the mounted
+    // tree — a changed root type would remount a fresh form, passing this
+    // test vacuously without exercising the error-clearing effect.
     rerender(
-      <ZivoeVaultIdentityProvider identity={TEST_IDENTITY} status="Open">
-        <EarnDialogProvider>
-          <DepositFlow />
-        </EarnDialogProvider>
-      </ZivoeVaultIdentityProvider>
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <DepositFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
     );
 
     expect(screen.queryByText('Deposit amount exceeds balance')).toBeNull();
@@ -440,5 +478,116 @@ describe('DepositFlow', () => {
     expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
     // Nothing to enter an amount for.
     expect(getInput('Deposit').disabled).toBe(true);
+  });
+});
+
+describe('DepositFlow across two chains', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
+    mocks.allowance = 0n;
+    mocks.whitelistIsAllowed = true;
+    mocks.whitelistIsError = false;
+    mocks.capacity = 5_000000n;
+    mocks.baseCapacity = 5_000000n;
+    mocks.capacityIsError = false;
+    mocks.isDebouncing = false;
+    mocks.previewError = undefined;
+    mocks.previewIsError = false;
+    mocks.previewIsFetching = false;
+    mocks.staleDebouncedValue = undefined;
+    mocks.usdcBalance = 10_000000n;
+    mocks.baseUsdcBalance = 3_000000n;
+    mocks.walletChainId = 11155111;
+  });
+
+  // The second chain's identity: same class, its own Centrifuge-vault, USDC
+  // and router instances.
+  const BASE_IDENTITY = {
+    ...TEST_IDENTITY,
+    shareClass: {
+      ...TEST_IDENTITY.shareClass,
+      chain: 'base-sepolia' as const,
+      chainId: 84532,
+      shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' as const,
+      centrifugeVaultAddress: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' as const,
+      usdc: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
+      vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`
+    }
+  };
+
+  function renderTwoChainFlow() {
+    return render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY, BASE_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <DepositFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+  }
+
+  it("lists one USDC row per live chain, each with that chain's own balance", () => {
+    renderTwoChainFlow();
+
+    expect(screen.getByText('USDC on Ethereum')).toBeTruthy();
+    expect(screen.getByText('USDC on Base')).toBeTruthy();
+    // Selector row details read each chain's own USDC instance.
+    expect(screen.getByText('10.00')).toBeTruthy();
+    expect(screen.getByText('3.00')).toBeTruthy();
+  });
+
+  it('swaps the action for a network switch when the wallet sits on another chain than the selected one', async () => {
+    renderTwoChainFlow();
+
+    // Wallet is on sepolia; selecting the Base row must not silently send a
+    // sepolia transaction — the primary action becomes the switch.
+    await press('USDC on Base US Dollar Coin Balance: 3.00');
+
+    const switchButton = getButton('Switch to Base');
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(switchButton);
+    });
+    expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+  });
+
+  it("approves against the selected chain's own USDC and router once the wallet is there", async () => {
+    mocks.walletChainId = 84532;
+    renderTwoChainFlow();
+
+    await press('USDC on Base US Dollar Coin Balance: 3.00');
+    await act(async () => enterAmount('1'));
+    await press('Approve');
+
+    expect(mocks.approve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chain: 'base-sepolia',
+        contract: BASE_USDC_ADDRESS,
+        spender: BASE_ROUTER_ADDRESS
+      })
+    );
+  });
+
+  it('keeps the chain selector usable when the selected chain blocks deposits', async () => {
+    // No capacity and not whitelisted are verdicts about the SELECTED chain —
+    // switching chains is the way out, so they must not freeze the selector
+    // even though the form itself locks.
+    mocks.capacity = 0n;
+    mocks.whitelistIsAllowed = false;
+    renderTwoChainFlow();
+
+    const triggers = screen.getAllByRole('button', { name: 'USDC' });
+    expect(triggers.length).toBeGreaterThan(0);
+    for (const trigger of triggers) expect(trigger.hasAttribute('disabled')).toBe(false);
+
+    // Selecting the other chain still works and swaps the CTA to the switch.
+    await press('USDC on Base US Dollar Coin Balance: 3.00');
+    expect(getButton('Switch to Base')).toBeTruthy();
   });
 });
