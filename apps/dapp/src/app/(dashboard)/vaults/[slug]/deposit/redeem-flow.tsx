@@ -160,6 +160,10 @@ export default function RedeemFlow() {
   // escrow can use this form even when its share moves back are blocked.
   const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotWhitelisted;
 
+  // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
+  // Named like the deposit tab's carrier so the two selectors cannot drift.
+  const isChainSelectorLocked = isPrereqsLoading || isMutationPending;
+
   // Named once, like the deposit tab's, so the button and its handler cannot
   // drift apart. Only a sibling write gates the action; the settled facts above
   // are enforced one level up, where the ladder swaps this button for a named
@@ -373,8 +377,7 @@ export default function RedeemFlow() {
                     }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
-                    // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
-                    isDisabled={isPrereqsLoading || isMutationPending}
+                    isDisabled={isChainSelectorLocked}
                   />
                 </div>
               </div>
