@@ -32,6 +32,14 @@ export type CentrifugeChainConfig = {
   /** Deposits route through the chain's VaultRouter — the USDC approval spender. */
   vaultRouterAddress: Address;
   usdc: UsdcInstance;
+  /**
+   * Whether the dApp offers cancelling a pending redemption request here.
+   * Cancellation needs a hub-side unwind that is only automated where hub and
+   * spoke are the same chain, so it stays off on spokes — a product decision,
+   * flipped per chain once the unwind is supported there. Claims are never
+   * gated on this: they only ever react to on-chain state that already exists.
+   */
+  supportsRedeemCancellation: boolean;
 };
 
 const CHAIN_CONSTANTS: Record<
@@ -41,21 +49,25 @@ const CHAIN_CONSTANTS: Record<
   sepolia: {
     vaultRouterAddress: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
     usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', symbol: 'USDC', decimals: 6 },
+    supportsRedeemCancellation: true,
     deployable: true
   },
   'base-sepolia': {
     vaultRouterAddress: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
     usdc: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
+    supportsRedeemCancellation: false,
     deployable: true
   },
   ethereum: {
     vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     usdc: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 },
+    supportsRedeemCancellation: true,
     deployable: true
   },
   pharos: {
     vaultRouterAddress: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     usdc: { address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', symbol: 'USDC', decimals: 6 },
+    supportsRedeemCancellation: false,
     deployable: true
   }
 };

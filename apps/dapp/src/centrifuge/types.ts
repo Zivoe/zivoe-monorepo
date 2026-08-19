@@ -23,6 +23,8 @@ export type TransactedCentrifugeVault = Pick<ShareClassChainIdentity, 'chain' | 
   usdc: UsdcInstance;
   /** The chain's VaultRouter — deposits route through it, so it is the USDC approval spender. */
   vaultRouterAddress: Address;
+  /** Whether the redeem tab offers cancelling a pending request on this chain — see CentrifugeChainConfig. */
+  supportsRedeemCancellation: boolean;
   /** The share class the Centrifuge vault serves: hub facts plus its token instance on this chain. */
   shareClass: Omit<ShareClassChainIdentity, 'chain' | 'chainId' | 'key' | 'symbol'> & {
     /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization (alongside `chain`). */

@@ -100,7 +100,7 @@ export function resolveTransactionIdentity(
   // The chain config (a throwing lookup) is resolved ONCE here, onto the
   // identity — hooks and flows read usdc/vaultRouterAddress off the identity
   // instead of re-deriving chain config in render paths.
-  const { usdc, vaultRouterAddress } = getChainConfig(chain);
+  const { usdc, vaultRouterAddress, supportsRedeemCancellation } = getChainConfig(chain);
 
   return {
     zivoeVaultSlug: zivoeVault.slug,
@@ -110,6 +110,7 @@ export function resolveTransactionIdentity(
       address: centrifugeVault.address,
       usdc,
       vaultRouterAddress,
+      supportsRedeemCancellation,
       shareClass
     }
   };

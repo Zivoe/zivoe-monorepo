@@ -27,6 +27,13 @@ const D18 = 10n ** 18n;
 // the exact conflation the registry invariants exist to catch).
 const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
+// The second chain's identity: same class, its own share-token and Centrifuge-vault
+// instances — and, from the real chain config, no redeem cancellation.
+const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
+  address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
+  shareClass: { shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}` }
+});
+
 // A fresh jotai store per render: the shared selected-chain atom must not
 // leak a selection from one test into the next.
 function renderFlow(identity = TEST_IDENTITY) {
@@ -61,9 +68,11 @@ const mocks = vi.hoisted(() => ({
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
   zSmbBalance: 10n * 10n ** 18n,
-  // The second chain's wallet state, read only by the two-chain suite.
+  // The second chain's wallet state, read only by the base-sepolia suites.
   baseShareBalance: 0n,
   baseClaimableAssets: 0n,
+  basePendingShares: 0n,
+  baseReturnedShares: 0n,
   walletChainId: 11155111,
   switchChain: vi.fn()
 }));
@@ -72,10 +81,10 @@ const positionFor = vi.hoisted(
   () => (chain: string) =>
     chain === 'base-sepolia'
       ? {
-          pendingRedeemShares: 0n,
+          pendingRedeemShares: mocks.basePendingShares,
           claimableRedeemAssets: mocks.baseClaimableAssets,
           claimableRedeemSharesEquivalent: 0n,
-          claimableCancelRedeemShares: 0n,
+          claimableCancelRedeemShares: mocks.baseReturnedShares,
           hasPendingCancelRedeemRequest: false
         }
       : {
@@ -282,6 +291,8 @@ function resetMocks() {
   mocks.zSmbBalance = 10n * 10n ** 18n;
   mocks.baseShareBalance = 0n;
   mocks.baseClaimableAssets = 0n;
+  mocks.basePendingShares = 0n;
+  mocks.baseReturnedShares = 0n;
   mocks.walletChainId = 11155111;
 }
 
@@ -604,12 +615,6 @@ describe('RedeemFlow across two chains', () => {
 
   beforeEach(resetMocks);
 
-  // The second chain's identity: same class, its own share-token and Centrifuge-vault instances.
-  const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
-    address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
-    shareClass: { shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}` }
-  });
-
   function renderTwoChainFlow() {
     return render(
       <JotaiProvider>
@@ -666,5 +671,48 @@ describe('RedeemFlow across two chains', () => {
       fireEvent.click(getButton('Switch to Base'));
     });
     expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+  });
+});
+
+describe('RedeemFlow on a chain without redeem cancellation', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    resetMocks();
+    // The wallet already sits on base-sepolia, so what follows tests the
+    // controls themselves rather than the network-switch gate.
+    mocks.walletChainId = 84532;
+  });
+
+  it('renders the pending position without a cancel control', () => {
+    mocks.basePendingShares = 3n * D18;
+    // Not even the whitelist verdict resurrects the control or its hint.
+    mocks.canReceiveShares = false;
+
+    renderFlow(BASE_IDENTITY);
+
+    expect(screen.getByText(/3\.00 zSMB\s+processing/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
+    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
+
+    // The rest of the tab is untouched: adding to the position stays offered.
+    expect(getButton('Add to redemption')).toBeTruthy();
+    expect(getInput('Redeem').disabled).toBe(false);
+  });
+
+  it('keeps returned-shares recovery and the USDC claim ordering data-driven', () => {
+    // A cancellation made outside this dApp still resolves here — hiding the
+    // Returned Shares claim would strand the USDC claim behind an invisible
+    // prerequisite (the vault claims Returned Shares before USDC).
+    mocks.baseReturnedShares = 1n * D18;
+    mocks.baseClaimableAssets = 2_000000n;
+
+    renderFlow(BASE_IDENTITY);
+
+    expect(getButton('Claim USDC').disabled).toBe(true);
+    expect(screen.getByText('Claim your returned zSMB first.')).toBeTruthy();
+
+    fireEvent.click(getButton('Claim zSMB'));
+    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
   });
 });

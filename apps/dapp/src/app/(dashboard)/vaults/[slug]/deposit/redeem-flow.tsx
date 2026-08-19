@@ -58,6 +58,10 @@ export default function RedeemFlow() {
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
   const usdc = centrifugeVault.usdc;
+  // Chains without the hub-side unwind get no cancel control at all — the
+  // claims and the Cancellation Processing strip stay data-driven, so a
+  // cancellation made outside this dApp still resolves here.
+  const supportsCancel = centrifugeVault.supportsRedeemCancellation;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -202,7 +206,7 @@ export default function RedeemFlow() {
   };
 
   const handleCancelRedeem = () => {
-    if (pendingShares <= 0n || isShareReturnBlocked) return;
+    if (pendingShares <= 0n || isShareReturnBlocked || !supportsCancel) return;
 
     cancelRedeem.mutate({ pendingShares });
   };
@@ -307,13 +311,18 @@ export default function RedeemFlow() {
             pendingShares={pendingShares}
             sharePrice={sharePrice}
             centrifugeVault={centrifugeVault}
-            cancel={{
-              onPress: handleCancelRedeem,
-              isDisabled: isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-              isBlockedByWhitelist: isShareReturnBlocked,
-              isPending: cancelRedeem.isPending,
-              isTxPending: cancelRedeem.isTxPending
-            }}
+            cancel={
+              supportsCancel
+                ? {
+                    onPress: handleCancelRedeem,
+                    isDisabled:
+                      isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
+                    isBlockedByWhitelist: isShareReturnBlocked,
+                    isPending: cancelRedeem.isPending,
+                    isTxPending: cancelRedeem.isTxPending
+                  }
+                : undefined
+            }
           />
         )
       )}
@@ -459,7 +468,8 @@ function RedemptionProcessingStrip({
   pendingShares: bigint;
   sharePrice: bigint | undefined;
   centrifugeVault: TransactedCentrifugeVault;
-  cancel: {
+  /** Absent on chains without redeem cancellation — the strip is then read-only. */
+  cancel?: {
     onPress: () => void;
     isDisabled: boolean;
     /** Narrows the generic disabled state to the one cause worth naming here. */
@@ -482,25 +492,27 @@ function RedemptionProcessingStrip({
             : ''}
         </p>
 
-        <ConnectedAccount fullWidth={false} type="skeleton">
-          <Button
-            variant="link-neutral-light"
-            size="s"
-            onPress={cancel.onPress}
-            isDisabled={cancel.isDisabled}
-            isPending={cancel.isPending}
-            pendingContent={
-              cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
-            }
-          >
-            Cancel request
-          </Button>
-        </ConnectedAccount>
+        {cancel && (
+          <ConnectedAccount fullWidth={false} type="skeleton">
+            <Button
+              variant="link-neutral-light"
+              size="s"
+              onPress={cancel.onPress}
+              isDisabled={cancel.isDisabled}
+              isPending={cancel.isPending}
+              pendingContent={
+                cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
+              }
+            >
+              Cancel request
+            </Button>
+          </ConnectedAccount>
+        )}
       </div>
 
       {/* The button is too narrow to carry the reason, and the callout at the
           foot of the panel is a long way from this control. */}
-      {cancel.isBlockedByWhitelist && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
+      {cancel?.isBlockedByWhitelist && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
     </div>
   );
 }

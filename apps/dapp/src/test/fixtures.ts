@@ -21,6 +21,7 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
     address: '0xfafafafafafafafafafafafafafafafafafafafa',
     usdc: getChainConfig('sepolia').usdc,
     vaultRouterAddress: getChainConfig('sepolia').vaultRouterAddress,
+    supportsRedeemCancellation: getChainConfig('sepolia').supportsRedeemCancellation,
     shareClass: {
       key: 'zfix',
       symbol: 'zFIX',
@@ -57,6 +58,7 @@ export function identityOnChain(
       ...base.centrifugeVault,
       chain,
       chainId: getChainConfig(chain).chainId,
+      supportsRedeemCancellation: getChainConfig(chain).supportsRedeemCancellation,
       ...centrifugeVaultOverrides,
       shareClass: { ...base.centrifugeVault.shareClass, ...shareClassOverrides }
     }
