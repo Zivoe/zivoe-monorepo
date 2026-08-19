@@ -22,14 +22,16 @@ export const CENTRIFUGE_ENV = {
   indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[ACTIVE_ENVIRONMENT].indexerUrl
 };
 
+/** The one deposit asset every Zivoe Vault accepts — a global product assumption, instantiated per chain. */
+export type UsdcInstance = { address: Address; symbol: string; decimals: number };
+
 /** Facts of one spoke chain shared by every Zivoe Vault transacting on it. */
 export type CentrifugeChainConfig = {
   chain: CentrifugeChain;
   chainId: number;
   /** Deposits route through the chain's VaultRouter — the USDC approval spender. */
   vaultRouterAddress: Address;
-  /** The one deposit asset every Zivoe Vault accepts — a global product assumption, instantiated per chain. */
-  usdc: { address: Address; symbol: string; decimals: number };
+  usdc: UsdcInstance;
 };
 
 const CHAIN_CONSTANTS: Record<

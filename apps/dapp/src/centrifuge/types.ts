@@ -2,6 +2,8 @@ import { type Address } from 'viem';
 
 import { type ShareClassChainIdentity } from '@zivoe/centrifuge-indexer';
 
+import { type UsdcInstance } from './config';
+
 /**
  * The share class a hook transacts and reads against, pinned to ONE spoke
  * chain — resolved from the catalog and Centrifuge-vault map in the app, a
@@ -19,7 +21,7 @@ export type TransactedShareClass = Omit<ShareClassChainIdentity, 'key' | 'symbol
   symbol: string;
   centrifugeVaultAddress: Address;
   /** The chain's USDC instance — resolved onto the identity so hooks and flows never re-derive chain config (a throwing lookup) in render paths. */
-  usdc: { address: Address; symbol: string; decimals: number };
+  usdc: UsdcInstance;
   /** The chain's VaultRouter — deposits route through it, so it is the USDC approval spender. */
   vaultRouterAddress: Address;
 };
