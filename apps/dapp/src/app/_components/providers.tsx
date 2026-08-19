@@ -5,7 +5,12 @@ import { type ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
-import { type DynamicContextProps, DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import {
+  type DynamicContextProps,
+  DynamicContextProvider,
+  type EvmNetwork,
+  useDynamicContext
+} from '@dynamic-labs/sdk-react-core';
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import Intercom, { update } from '@intercom/messenger-js-sdk';
 import * as Sentry from '@sentry/nextjs';
@@ -15,6 +20,7 @@ import { RouterProvider } from 'react-aria-components';
 import { type Chain } from 'viem';
 import { type State, WagmiProvider, cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Toaster } from '@zivoe/ui/core/sonner';
 
 import { trackWalletConnection } from '@/server/actions/track-wallet-connection';
@@ -28,7 +34,36 @@ import { useAccount } from '@/hooks/useAccount';
 
 import { env } from '@/env';
 
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
+
 import { PostHogProvider } from './posthog';
+
+/**
+ * Chains Dynamic has no native support for, so its dashboard can never list
+ * them and the app must supply the network entry itself. Everything but the
+ * icon comes from the same viem chain wagmi and the Centrifuge SDK ride, so
+ * one definition drives reads, transactions and the wallet's add-network
+ * prompt. https://www.dynamic.xyz/docs/react/chains/adding-custom-networks
+ */
+const DYNAMIC_CUSTOM_NETWORKS: Array<EvmNetwork> = [toEvmNetwork('pharos', '/networks/pharos.svg')];
+
+function toEvmNetwork(chain: CentrifugeChain, iconUrl: string): EvmNetwork {
+  const viemChain = getViemChain(chain);
+
+  return {
+    chainId: viemChain.id,
+    networkId: viemChain.id,
+    name: viemChain.name,
+    vanityName: CHAIN_DISPLAY[chain].label,
+    nativeCurrency: viemChain.nativeCurrency,
+    // The wallet persists whatever endpoints it is handed, for every app the
+    // user touches on this chain — so it gets the chain's public RPCs, and our
+    // Alchemy endpoint stays app-side (getChainRpcUrls).
+    rpcUrls: [...viemChain.rpcUrls.default.http],
+    blockExplorerUrls: viemChain.blockExplorers ? [viemChain.blockExplorers.default.url] : [],
+    iconUrls: [iconUrl]
+  };
+}
 
 const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   environmentId: env.NEXT_PUBLIC_DYNAMIC_ENV_ID,
@@ -38,9 +73,23 @@ const DYNAMIC_SETTINGS: DynamicContextProps['settings'] = {
   appName: 'Zivoe',
   mobileExperience: 'redirect',
   overrides: {
-    // Filters Dynamic's dashboard-provided list, so a chain must ALSO be
-    // enabled in the Dynamic dashboard to reach the app.
-    evmNetworks: (networks) => networks.filter((network) => ACTIVE_CHAIN_IDS.includes(Number(network.chainId)))
+    // Filters Dynamic's dashboard-provided list, so a dashboard-supported
+    // chain must ALSO be enabled there to reach the app, then appends the
+    // chains Dynamic cannot supply. Both halves are gated on ACTIVE_CHAIN_IDS,
+    // so a testnet deployment advertises no mainnet-only custom network; the
+    // dedupe keeps the list single-entry per chain should Dynamic ever ship
+    // native support for one of them.
+    evmNetworks: (networks) => {
+      const fromDashboard = networks.filter((network) => ACTIVE_CHAIN_IDS.includes(Number(network.chainId)));
+      const dashboardChainIds = new Set(fromDashboard.map((network) => Number(network.chainId)));
+
+      return [
+        ...fromDashboard,
+        ...DYNAMIC_CUSTOM_NETWORKS.filter(
+          (network) => ACTIVE_CHAIN_IDS.includes(network.chainId) && !dashboardChainIds.has(network.chainId)
+        )
+      ];
+    }
   }
 };
 
