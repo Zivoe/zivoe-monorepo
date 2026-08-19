@@ -23,14 +23,11 @@ export function ChainBalanceDetail({ identity, token }: { identity: TransactionI
       : { tokenAddress: shareClass.shareTokenAddress, decimals: shareClass.decimals };
   const balance = useBalance({ chain, tokenAddress });
 
-  if (!account.address) return null;
+  if (!account.address || balance.data === undefined) return null;
 
   return (
     <p className="text-small text-tertiary">
-      Balance:{' '}
-      <span className="font-medium text-primary">
-        {balance.data === undefined ? '—' : formatBigIntToReadable(balance.data, decimals)}
-      </span>
+      Balance: <span className="font-medium text-primary">{formatBigIntToReadable(balance.data, decimals)}</span>
     </p>
   );
 }
