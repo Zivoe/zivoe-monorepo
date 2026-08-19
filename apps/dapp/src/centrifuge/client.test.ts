@@ -8,7 +8,8 @@ import { type TransactedShareClass } from './types';
 const sdk = vi.hoisted(() => ({
   id: vi.fn(),
   pool: vi.fn(),
-  setSigner: vi.fn()
+  setSigner: vi.fn(),
+  protocolAddresses: vi.fn()
 }));
 
 // Pulled in via @/lib/utils; its UI toast import does not transform under vitest.
@@ -19,6 +20,7 @@ vi.mock('@centrifuge/sdk', () => ({
     id = sdk.id;
     pool = sdk.pool;
     setSigner = sdk.setSigner;
+    _protocolAddresses = sdk.protocolAddresses;
   },
   PoolId: class {
     constructor(public readonly value: string) {}
@@ -82,6 +84,7 @@ async function loadClient() {
 beforeEach(() => {
   vi.clearAllMocks();
   sdk.id.mockResolvedValue(3);
+  sdk.protocolAddresses.mockResolvedValue({ vaultRouter: SHARE_CLASS.vaultRouterAddress });
 });
 
 describe('getCentrifugeVault', () => {
@@ -176,6 +179,22 @@ describe('getCentrifugeVault', () => {
     const { getCentrifugeVault } = await loadClient();
 
     await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/Fix the chain config before transacting/);
+  });
+
+  it('fails loudly when the configured VaultRouter disagrees with the SDK protocol addresses', async () => {
+    // The router is the USDC approval spender; nothing downstream validates
+    // it before an approval is signed, so resolution must.
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x9999999999999999999999999999999999999999' });
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [SHARE_CLASS.scId]: fakeSdkCentrifugeVault({ address: SHARE_CLASS.centrifugeVaultAddress })
+      })
+    );
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(SHARE_CLASS)).rejects.toThrow(/but the SDK reports/);
+    expect(sdk.protocolAddresses).toHaveBeenCalledWith(3);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
