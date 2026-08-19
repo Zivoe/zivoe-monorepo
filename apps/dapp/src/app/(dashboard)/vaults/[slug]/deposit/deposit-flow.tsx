@@ -34,6 +34,7 @@ import {
 } from '@/centrifuge';
 
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
+import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
 import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
@@ -257,7 +258,7 @@ export function DepositFlow() {
                     token={TOKEN_INFO.USDC}
                     rows={identities.map((rowIdentity) => ({
                       chain: rowIdentity.centrifugeVault.chain,
-                      detail: <ChainUsdcBalanceDetail identity={rowIdentity} />
+                      detail: <ChainBalanceDetail identity={rowIdentity} token="usdc" />
                     }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
@@ -376,25 +377,5 @@ export function DepositFlow() {
           APY to project it from. */}
       {/* {depositRaw ? <EstimatedAnnualizedReturn assets={depositRaw} apy={apy} /> : null} */}
     </>
-  );
-}
-
-/** The wallet's USDC balance on one chain's identity — the selector row's right-hand detail. */
-function ChainUsdcBalanceDetail({ identity }: { identity: TransactionIdentity }) {
-  const account = useAccount();
-  const { chain, usdc } = identity.centrifugeVault;
-  const balance = useBalance({ chain, tokenAddress: usdc.address });
-
-  if (!account.address) return null;
-
-  // A stated "0.00" while the chain's balance is still loading (or failed) is
-  // a wrong fact, not a placeholder — only print a number the query returned.
-  return (
-    <p className="text-small text-tertiary">
-      Balance:{' '}
-      <span className="font-medium text-primary">
-        {balance.data === undefined ? '—' : formatBigIntToReadable(balance.data, usdc.decimals)}
-      </span>
-    </p>
   );
 }

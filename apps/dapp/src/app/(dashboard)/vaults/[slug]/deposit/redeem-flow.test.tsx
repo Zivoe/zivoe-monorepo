@@ -104,15 +104,18 @@ vi.mock('./_components/chain-token-selector', () => ({
     onSelect
   }: {
     token: { label: string };
-    rows: Array<{ chain: string }>;
+    rows: Array<{ chain: string; detail?: React.ReactNode }>;
     onSelect: (chain: never) => void;
   }) => (
     <div>
       <span>Selector token: {token.label}</span>
       {rows.map((row) => (
-        <button type="button" key={row.chain} onClick={() => onSelect(row.chain as never)}>
-          Select {row.chain}
-        </button>
+        <div key={row.chain}>
+          <button type="button" onClick={() => onSelect(row.chain as never)}>
+            Select {row.chain}
+          </button>
+          {row.detail}
+        </div>
       ))}
     </div>
   )
@@ -654,6 +657,16 @@ describe('RedeemFlow across two chains', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Max' }));
     expect(getInput('Redeem').value).toBe('10');
+  });
+
+  it("lists each chain's own share balance in the selector rows", () => {
+    mocks.baseShareBalance = 25n * D18;
+    renderTwoChainFlow();
+
+    // Row details read each chain's own share-token instance — the one
+    // signal that tells the user which chain actually holds their position.
+    expect(screen.getByText('10.00')).toBeTruthy();
+    expect(screen.getByText('25.00')).toBeTruthy();
   });
 
   it("selecting another chain shows that chain's position and gates writes behind the switch", async () => {

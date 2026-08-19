@@ -34,6 +34,7 @@ import {
   useRequestRedeem
 } from '@/centrifuge';
 
+import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
 import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
@@ -354,7 +355,13 @@ export default function RedeemFlow() {
                   <ChainTokenSelector
                     title="Select Asset"
                     token={shareSelectorToken}
-                    rows={identities.map((rowIdentity) => ({ chain: rowIdentity.centrifugeVault.chain }))}
+                    // Each row shows that chain's redeemable share balance —
+                    // the position the user came here to redeem, and the one
+                    // signal that tells them which chain actually holds it.
+                    rows={identities.map((rowIdentity) => ({
+                      chain: rowIdentity.centrifugeVault.chain,
+                      detail: <ChainBalanceDetail identity={rowIdentity} token="share" />
+                    }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
                     // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
