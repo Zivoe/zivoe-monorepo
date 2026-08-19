@@ -162,7 +162,7 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     if (config.receiptDelay) await new Promise((resolve) => setTimeout(resolve, config.receiptDelay));
 
     setIsTxPending(false);
-    sonnerToast.dismiss(toastId);
+    if (toastId !== undefined) sonnerToast.dismiss(toastId);
 
     if (err || !receipt) throw new AppError({ message: 'Error checking transaction receipt', exception: err });
 
