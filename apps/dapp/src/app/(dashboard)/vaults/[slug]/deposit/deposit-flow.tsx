@@ -12,8 +12,6 @@ import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { formatBigIntToReadable } from '@/lib/utils';
-
 import { useAccount } from '@/hooks/useAccount';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
 import { useApproveSpending } from '@/hooks/useApproveSpending';
@@ -25,7 +23,6 @@ import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
 import {
-  type TransactionIdentity,
   isPriceUnavailableError,
   useCentrifugeVaultCapacity,
   useDeposit,

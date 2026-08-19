@@ -13,10 +13,11 @@ import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 import { ZivoeVaultIdentityProvider } from '../../zivoe-vault-provider';
 import { SwitchChainButton, useSelectedChain } from './chain-switch';
 
-const CHAIN_IDS = { sepolia: 11155111, 'base-sepolia': 84532 } as const;
+/** The two chains this suite drives (identityOnChain derives their real chainIds: 11155111 / 84532). */
+type TestChain = Extract<CentrifugeChain, 'sepolia' | 'base-sepolia'>;
 
 /** The fixture identity re-pinned to one chain — the hook reads only centrifugeVault.chain. */
-function identityOn(chain: keyof typeof CHAIN_IDS): TransactionIdentity {
+function identityOn(chain: TestChain): TransactionIdentity {
   return identityOnChain(FIXTURE_IDENTITY, chain);
 }
 
@@ -115,7 +116,7 @@ function renderConsumers({
   children
 }: {
   store: ReturnType<typeof createStore>;
-  chains: Array<keyof typeof CHAIN_IDS>;
+  chains: Array<TestChain>;
   children: ReactNode;
 }) {
   const [first, ...rest] = chains.map(identityOn);
