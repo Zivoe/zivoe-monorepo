@@ -392,10 +392,14 @@ function ChainUsdcBalanceDetail({ identity }: { identity: TransactionIdentity })
 
   if (!account.address) return null;
 
+  // A stated "0.00" while the chain's balance is still loading (or failed) is
+  // a wrong fact, not a placeholder — only print a number the query returned.
   return (
     <p className="text-small text-tertiary">
       Balance:{' '}
-      <span className="font-medium text-primary">{formatBigIntToReadable(balance.data ?? 0n, usdc.decimals)}</span>
+      <span className="font-medium text-primary">
+        {balance.data === undefined ? '—' : formatBigIntToReadable(balance.data, usdc.decimals)}
+      </span>
     </p>
   );
 }
