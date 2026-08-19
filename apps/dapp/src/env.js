@@ -48,7 +48,7 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
-    NEXT_PUBLIC_NETWORK_ENV: z.enum(['mainnet', 'testnet']),
+    NEXT_PUBLIC_CHAIN_ENV: z.enum(['mainnet', 'testnet']),
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_MAINNET_ALCHEMY_KEY: z.string(),
     NEXT_PUBLIC_TESTNET_ALCHEMY_KEY: z.string().optional(),
@@ -60,7 +60,7 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_NETWORK_ENV: process.env.NEXT_PUBLIC_NETWORK_ENV,
+    NEXT_PUBLIC_CHAIN_ENV: process.env.NEXT_PUBLIC_CHAIN_ENV,
     NEXT_PUBLIC_MAINNET_ALCHEMY_KEY: process.env.NEXT_PUBLIC_MAINNET_ALCHEMY_KEY,
     NEXT_PUBLIC_TESTNET_ALCHEMY_KEY: process.env.NEXT_PUBLIC_TESTNET_ALCHEMY_KEY,
     QSTASH_URL: process.env.QSTASH_URL,

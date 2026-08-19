@@ -6,7 +6,7 @@
       "env": [
         "NODE_ENV",
         "DATABASE_URL",
-        "NEXT_PUBLIC_NETWORK_ENV",
+        "NEXT_PUBLIC_CHAIN_ENV",
         "NEXT_PUBLIC_MAINNET_ALCHEMY_KEY",
         "NEXT_PUBLIC_TESTNET_ALCHEMY_KEY",
         "QSTASH_CURRENT_SIGNING_KEY",

@@ -12,7 +12,7 @@ import { env } from '@/env';
 
 // The landing is chain-agnostic: NAV and the indexer are hub-level facts, so
 // the environment is all it needs.
-const environment = env.NEXT_PUBLIC_NETWORK_ENV;
+const environment = env.NEXT_PUBLIC_CHAIN_ENV;
 
 const fetchHeroNavs = async (): Promise<Record<string, string>> => {
   return fetchShareClassNavs({ environment, shareClassKeys: listShareClassKeys(environment) });

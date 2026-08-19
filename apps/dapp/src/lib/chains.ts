@@ -11,7 +11,7 @@ import { env } from '@/env';
  * active; which of them a Zivoe Vault actually serves is the deployable flags'
  * business (catalog + Zivoe Vault modules), not the env var's.
  */
-export const ACTIVE_ENVIRONMENT = env.NEXT_PUBLIC_NETWORK_ENV;
+export const ACTIVE_ENVIRONMENT = env.NEXT_PUBLIC_CHAIN_ENV;
 
 export const ACTIVE_CHAINS: Array<CentrifugeChain> = chainsOfEnvironment(ACTIVE_ENVIRONMENT);
 
