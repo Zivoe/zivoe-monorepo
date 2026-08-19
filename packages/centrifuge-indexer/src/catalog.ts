@@ -60,9 +60,6 @@ export const SHARE_CLASS_CATALOG = {
             shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
             deployable: true
           },
-          // Same address as sepolia on purpose: the token instance is
-          // deterministically deployed, verified on-chain via the Centrifuge
-          // vault's share() answer on Base Sepolia.
           'base-sepolia': {
             shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
             deployable: true
@@ -78,8 +75,6 @@ export const SHARE_CLASS_CATALOG = {
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             deployable: true
           },
-          // Staged: flip once ops deploys the Centrifuge vault on Monad and
-          // the indexer prices the class there.
           monad: {
             shareTokenAddress: '0x0000000000000000000000000000000000000000',
             deployable: false

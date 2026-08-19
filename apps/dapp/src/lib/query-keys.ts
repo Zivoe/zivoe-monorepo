@@ -53,10 +53,6 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
-  // Prefix/leaf pair, like balance/balanceOf: invalidations sweep every
-  // chain's entries via the prefix, while a read site cannot compile without
-  // naming its chain — an optional chain here would let one entry silently
-  // serve every chain.
   redemptionPositions: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
     ...account.by({ accountAddress }),
     'REDEMPTION_POSITION',
