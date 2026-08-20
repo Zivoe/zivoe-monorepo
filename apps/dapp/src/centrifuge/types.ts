@@ -51,6 +51,28 @@ export type DepositPreview = {
 };
 
 /**
+ * Why the two verdicts below are false, when they are. The hook checks freeze
+ * BEFORE its memberlist branch and short-circuits, so a frozen member and a
+ * wallet that was never admitted produce the identical `false` — nothing in
+ * the verdicts themselves tells them apart, and only this says which it was.
+ *
+ * - `frozen`: an operator suspended this wallet on this chain. Takes
+ *   precedence over any membership state, because it is the deliberate act
+ *   and unfreezing is the only thing that lifts it (re-admitting a frozen
+ *   wallet preserves the freeze bit and changes nothing).
+ * - `not-member`: never admitted — the plain "not whitelisted".
+ * - `membership-expired`: admitted with a `validUntil` that has since passed.
+ *   Unreachable through Centrifuge's operator UI today (every admission it
+ *   has ever written uses a far-future timestamp), and the hook forbids
+ *   backdating an expiry, so this exists to keep an expiry that Centrifuge
+ *   may one day expose from silently reading as `not-member`.
+ * - `unknown`: the hook did not answer, or answered in a way that does not
+ *   explain the block (a member, unfrozen, yet refused). Never a verdict —
+ *   it renders as `not-member` does and is reported rather than shown.
+ */
+export type InvestorRestriction = 'none' | 'frozen' | 'not-member' | 'membership-expired' | 'unknown';
+
+/**
  * The share token's transfer hook, asked about one wallet in the two
  * directions the flows move shares. Every Zivoe Vault's Centrifuge vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
@@ -60,7 +82,7 @@ export type DepositPreview = {
  * one direction gates several actions, and the mapping is not the obvious one
  * (see canReceiveShares).
  */
-export type InvestorWhitelist = {
+export type InvestorAccess = {
   /**
    * `checkTransferRestriction(0, investor, 0)` — the wallet may receive shares.
    *
@@ -80,6 +102,12 @@ export type InvestorWhitelist = {
    * a redeem claim, and USDC carries no hook), so it must never be gated here.
    */
   canRequestRedemption: boolean;
+  /**
+   * Why the wallet is blocked — copy only. The two verdicts above stay the
+   * sole gate: they are what predicts a revert, and a failure to explain them
+   * must never be able to unblock an action.
+   */
+  restriction: InvestorRestriction;
 };
 
 export type RedemptionPosition = {

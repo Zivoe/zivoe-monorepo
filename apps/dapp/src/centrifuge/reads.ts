@@ -1,5 +1,13 @@
+import * as Sentry from '@sentry/nextjs';
+import { type Address, parseAbi } from 'viem';
+
 import { type CentrifugeVaultEntity } from './entities';
-import { type CentrifugeVaultCapacity, type InvestorWhitelist, type RedemptionPosition } from './types';
+import {
+  type CentrifugeVaultCapacity,
+  type InvestorAccess,
+  type InvestorRestriction,
+  type RedemptionPosition
+} from './types';
 
 export async function readCentrifugeVaultCapacity(
   centrifugeVault: CentrifugeVaultEntity
@@ -9,25 +17,120 @@ export async function readCentrifugeVaultCapacity(
   return { maxDeposit: details.maxDeposit.toBigInt() };
 }
 
+const SHARE_TOKEN_HOOK_ABI = parseAbi(['function hook() view returns (address)']);
+
+// The two facts the verdicts collapse together. A hook that predates the
+// memberlist (FreezeOnly, FreelyTransferable) answers neither, which is one
+// of the ways the restriction lands on 'unknown'.
+const TRANSFER_HOOK_ABI = parseAbi([
+  'function isFrozen(address token, address user) view returns (bool)',
+  'function isMember(address token, address user) view returns (bool isValid, uint64 validUntil)'
+]);
+
+/** The narrow slice of a viem client this module reads through — keeps viem's generics out of the signature. */
+type ContractReader = {
+  readContract(args: {
+    address: Address;
+    abi: ReadonlyArray<unknown>;
+    functionName: string;
+    args: ReadonlyArray<unknown>;
+  }): Promise<unknown>;
+};
+
 /**
  * Both verdicts come off the same investment read the position uses. The SDK's
  * deposit/redeem framing stops here with the rest of its vocabulary: those
  * names describe one caller each, while the underlying transfer checks gate
- * more than that (see InvestorWhitelist).
+ * more than that (see InvestorAccess).
+ *
+ * The restriction is a second, separate question — asked only when a verdict
+ * is false, so an admitted wallet costs nothing extra, and asked inside this
+ * same read so the flows see one verdict arrive at one moment rather than a
+ * label that corrects itself a beat later.
  */
-export async function readInvestorWhitelist({
+export async function readInvestorAccess({
   centrifugeVault,
-  investor
+  investor,
+  client,
+  shareTokenAddress
 }: {
   centrifugeVault: CentrifugeVaultEntity;
   investor: `0x${string}`;
-}): Promise<InvestorWhitelist> {
+  client: ContractReader;
+  shareTokenAddress: Address;
+}): Promise<InvestorAccess> {
   const investment = await centrifugeVault.investment(investor);
 
-  return {
+  const access = {
     canReceiveShares: investment.isAllowedToDeposit,
     canRequestRedemption: investment.isAllowedToRedeem
   };
+
+  if (access.canReceiveShares && access.canRequestRedemption) return { ...access, restriction: 'none' };
+
+  return { ...access, restriction: await readRestriction({ client, shareTokenAddress, investor }) };
+}
+
+/**
+ * Why the hook refused, read straight off the hook contract — the SDK exposes
+ * no freeze query, and its own `isMember` swallows read failures into a plain
+ * `false`, which would manufacture the exact false verdict this exists to
+ * prevent. Every failure path lands on 'unknown' instead.
+ */
+async function readRestriction({
+  client,
+  shareTokenAddress,
+  investor
+}: {
+  client: ContractReader;
+  shareTokenAddress: Address;
+  investor: `0x${string}`;
+}): Promise<InvestorRestriction> {
+  let restriction: InvestorRestriction = 'unknown';
+
+  try {
+    const hook = (await client.readContract({
+      address: shareTokenAddress,
+      abi: SHARE_TOKEN_HOOK_ABI,
+      functionName: 'hook',
+      args: []
+    })) as Address;
+
+    const [isFrozen, [isMember, validUntil]] = (await Promise.all([
+      client.readContract({
+        address: hook,
+        abi: TRANSFER_HOOK_ABI,
+        functionName: 'isFrozen',
+        args: [shareTokenAddress, investor]
+      }),
+      client.readContract({
+        address: hook,
+        abi: TRANSFER_HOOK_ABI,
+        functionName: 'isMember',
+        args: [shareTokenAddress, investor]
+      })
+    ])) as [boolean, [boolean, bigint]];
+
+    // `validUntil` can only ever be zero for a wallet the hook has never been
+    // told about: updateMember refuses a timestamp already in the past, and
+    // block.timestamp is never zero, so no admission can write one.
+    restriction = isFrozen ? 'frozen' : isMember ? 'unknown' : validUntil === 0n ? 'not-member' : 'membership-expired';
+  } catch {
+    // Falls through to the report below — 'unknown' already.
+  }
+
+  // Both of these mean the operator picture is not what we expect: a hook we
+  // cannot interrogate or a refusal it does not explain ('unknown'), or
+  // admissions that are quietly lapsing ('membership-expired'), which would
+  // otherwise read as an onboarding problem rather than an expiry one.
+  if (restriction === 'unknown' || restriction === 'membership-expired')
+    Sentry.captureMessage(`Investor access blocked with restriction "${restriction}"`, {
+      level: 'warning',
+      tags: { source: 'READ', restriction },
+      extra: { shareTokenAddress, investor }
+    });
+
+  return restriction;
 }
 
 /** The SDK's `investment` vocabulary survives only here, at the SDK boundary. */

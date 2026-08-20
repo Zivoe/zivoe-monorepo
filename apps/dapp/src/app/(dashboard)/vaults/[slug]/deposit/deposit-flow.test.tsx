@@ -45,8 +45,9 @@ function renderFlow(status: ZivoeVaultStatus = 'Open') {
 const mocks = vi.hoisted(() => ({
   address: '0x1234567890abcdef1234567890abcdef12345678',
   allowance: 0n,
-  whitelistIsAllowed: true,
-  whitelistIsError: false,
+  accessIsAllowed: true,
+  accessIsError: false,
+  restriction: 'none',
   approve: vi.fn(),
   capacity: 5_000000n,
   baseCapacity: 5_000000n,
@@ -80,11 +81,15 @@ vi.mock('@/centrifuge', () => ({
     refetch: mocks.previewRefetch
   }),
   isPriceUnavailableError: (error: unknown) => error === 'price-unavailable',
-  useInvestorWhitelist: () =>
-    mocks.whitelistIsError
+  useInvestorAccess: () =>
+    mocks.accessIsError
       ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
       : {
-          data: { canReceiveShares: mocks.whitelistIsAllowed, canRequestRedemption: mocks.whitelistIsAllowed },
+          data: {
+            canReceiveShares: mocks.accessIsAllowed,
+            canRequestRedemption: mocks.accessIsAllowed,
+            restriction: mocks.restriction
+          },
           isError: false,
           isFetching: false,
           isSuccess: true
@@ -262,8 +267,9 @@ function resetMocks() {
   vi.clearAllMocks();
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
-  mocks.whitelistIsAllowed = true;
-  mocks.whitelistIsError = false;
+  mocks.accessIsAllowed = true;
+  mocks.accessIsError = false;
+  mocks.restriction = 'none';
   mocks.capacity = 5_000000n;
   mocks.baseCapacity = 5_000000n;
   mocks.capacityIsError = false;
@@ -308,7 +314,8 @@ describe('DepositFlow', () => {
   });
 
   it('names the wallet and blocks the action when the vault does not admit it', async () => {
-    mocks.whitelistIsAllowed = false;
+    mocks.accessIsAllowed = false;
+    mocks.restriction = 'not-member';
     renderFlow();
     enterAmount('1');
 
@@ -322,11 +329,36 @@ describe('DepositFlow', () => {
     expect(mocks.deposit).not.toHaveBeenCalled();
   });
 
-  it('leaves the action live on a failed whitelist read', async () => {
+  it('names a frozen wallet as frozen rather than as unadmitted', async () => {
+    // Freeze and a missing admission produce the identical on-chain verdicts,
+    // so the reason is the only thing that can tell the user which it is —
+    // and the two have different routes back.
+    mocks.accessIsAllowed = false;
+    mocks.restriction = 'frozen';
+    renderFlow();
+    enterAmount('1');
+
+    expect(getButton('Wallet Frozen').disabled).toBe(true);
+    expect(screen.getByText(/This wallet is frozen on this chain/)).toBeTruthy();
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+    expect(getInput('Deposit').disabled).toBe(true);
+  });
+
+  it('falls back to the whitelist copy when the reason is unknown', async () => {
+    // An unexplained refusal still blocks; it just cannot claim a cause.
+    mocks.accessIsAllowed = false;
+    mocks.restriction = 'unknown';
+    renderFlow();
+
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
+  });
+
+  it('leaves the action live on a failed access read', async () => {
     // A fetch failure is not a verdict, so it neither names the wallet nor
     // takes the action away. The exact-call simulation is the authoritative
     // pre-sign gate and decodes the real revert if the vault does refuse.
-    mocks.whitelistIsError = true;
+    mocks.accessIsError = true;
     renderFlow();
     enterAmount('1');
 
@@ -566,7 +598,7 @@ describe('DepositFlow across two chains', () => {
     // switching chains is the way out, so they must not freeze the selector
     // even though the form itself locks.
     mocks.capacity = 0n;
-    mocks.whitelistIsAllowed = false;
+    mocks.accessIsAllowed = false;
     renderTwoChainFlow();
 
     // The trigger's accessible name is the token label plus the selected

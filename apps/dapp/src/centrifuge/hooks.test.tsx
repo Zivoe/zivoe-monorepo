@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorWhitelist, useRedemptionPosition } from './index';
+import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorAccess, useRedemptionPosition } from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getCentrifugeVault }));
@@ -17,6 +17,9 @@ vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
+
+const sentryCapture = vi.hoisted(() => vi.fn());
+vi.mock('@sentry/nextjs', () => ({ captureMessage: sentryCapture }));
 
 // The public entry also exports the transaction hooks, whose UI toast import
 // does not transform under vitest; these tests never render toasts.
@@ -30,7 +33,7 @@ function balance(value: bigint, decimals = 18) {
   return { toBigInt: () => value, decimals };
 }
 
-// The whitelist fixture stays in the SDK's own deposit/redeem vocabulary —
+// The access fixture stays in the SDK's own deposit/redeem vocabulary —
 // the rename to canReceiveShares/canRequestRedemption happens in the read, and
 // a fixture written in domain terms would assert the mapping against itself.
 function fakeCentrifugeVault({ whitelist = { isAllowedToDeposit: true, isAllowedToRedeem: true } } = {}) {
@@ -59,12 +62,29 @@ function createWrapper() {
   };
 }
 
+// The share token's transfer hook, as the restriction read sees it. An Error
+// stands in for a hook that cannot be reached or does not answer at all.
+const HOOK_ADDRESS = '0x00000000000000000000000000000000000000aa';
+let hookAnswers: { isFrozen: boolean; isMember: boolean; validUntil: bigint } | Error;
+
 beforeEach(() => {
   vi.resetAllMocks();
   getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault()));
-  readContract.mockResolvedValue(50_000000000000000000n);
+  hookAnswers = { isFrozen: false, isMember: true, validUntil: 4294967295n };
+  readContract.mockImplementation(({ functionName }: { functionName: string }) => {
+    // previewDeposit — the only read that is not part of the hook interrogation.
+    if (!['hook', 'isFrozen', 'isMember'].includes(functionName)) return Promise.resolve(50_000000000000000000n);
+    if (hookAnswers instanceof Error) return Promise.reject(hookAnswers);
+    if (functionName === 'hook') return Promise.resolve(HOOK_ADDRESS);
+    if (functionName === 'isFrozen') return Promise.resolve(hookAnswers.isFrozen);
+    return Promise.resolve([hookAnswers.isMember, hookAnswers.validUntil]);
+  });
   useAccount.mockReturnValue({ isPending: false, isDisconnected: false, address: INVESTOR });
 });
+
+function blockedCentrifugeVault() {
+  return Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }));
+}
 
 describe('useCentrifugeVaultCapacity', () => {
   it("reads the handed share class's Centrifuge vault and caches under its key", async () => {
@@ -181,27 +201,40 @@ describe('useRedemptionPosition', () => {
   });
 });
 
-describe('useInvestorWhitelist', () => {
+describe('useInvestorAccess', () => {
   it('returns both Centrifuge-vault verdicts under the account and Centrifuge-vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
-    const { result } = renderHook(() => useInvestorWhitelist({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true });
+    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true, restriction: 'none' });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_WHITELIST', 'zfix', 'sepolia'])).toBeDefined();
+    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_ACCESS', 'zfix', 'sepolia'])).toBeDefined();
+  });
+
+  it('does not interrogate the hook while both verdicts allow', async () => {
+    // An admitted wallet is the common case and has nothing to explain, so it
+    // must not pay for the reason reads.
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(readContract).not.toHaveBeenCalled();
   });
 
   it('reports a blocked wallet rather than throwing', async () => {
-    getCentrifugeVault.mockImplementation(() =>
-      Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }))
-    );
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = { isFrozen: false, isMember: false, validUntil: 0n };
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useInvestorWhitelist({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ canReceiveShares: false, canRequestRedemption: false });
+    expect(result.current.data).toEqual({
+      canReceiveShares: false,
+      canRequestRedemption: false,
+      restriction: 'not-member'
+    });
   });
 
   it('keeps the two directions apart rather than collapsing them into one verdict', async () => {
@@ -213,17 +246,92 @@ describe('useInvestorWhitelist', () => {
     );
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useInvestorWhitelist({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: false });
+    expect(result.current.data?.canReceiveShares).toBe(true);
+    expect(result.current.data?.canRequestRedemption).toBe(false);
+  });
+
+  it('tells a frozen member apart from a wallet that was never admitted', async () => {
+    // The whole point of the reason read: the hook short-circuits on freeze
+    // before its memberlist branch, so both produce the identical verdicts and
+    // only isFrozen separates them.
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = { isFrozen: true, isMember: true, validUntil: 4294967295n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.restriction).toBe('frozen');
+  });
+
+  it('reports freeze ahead of membership when a wallet is both frozen and unadmitted', async () => {
+    // Unfreezing is the only thing that lifts a freeze, so it is the reason
+    // worth naming even when membership is also missing.
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = { isFrozen: true, isMember: false, validUntil: 0n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.restriction).toBe('frozen');
+  });
+
+  it('separates a lapsed admission from one that never happened', async () => {
+    // A non-zero validUntil means the hook was told about this wallet once;
+    // only a wallet it has never seen reads zero.
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = { isFrozen: false, isMember: false, validUntil: 1_700_000_000n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.restriction).toBe('membership-expired');
+    expect(sentryCapture).toHaveBeenCalled();
+  });
+
+  it('keeps the verdicts when the hook cannot be interrogated', async () => {
+    // A hook with no memberlist, or an RPC that will not answer. The verdicts
+    // are the gate and must survive intact; only the reason is lost.
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = new Error('execution reverted');
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({
+      canReceiveShares: false,
+      canRequestRedemption: false,
+      restriction: 'unknown'
+    });
+    expect(sentryCapture).toHaveBeenCalled();
+  });
+
+  it('reports a refusal the hook does not explain rather than inventing one', async () => {
+    // An admitted, unfrozen wallet that the Centrifuge vault still refuses is
+    // a picture we do not understand — naming it 'not-member' would be a
+    // guess, and the wrong one to act on.
+    getCentrifugeVault.mockImplementation(blockedCentrifugeVault);
+    hookAnswers = { isFrozen: false, isMember: true, validUntil: 4294967295n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.restriction).toBe('unknown');
+    expect(sentryCapture).toHaveBeenCalled();
   });
 
   it('does not read without a connected wallet', () => {
     useAccount.mockReturnValue({ isPending: false, isDisconnected: true, address: undefined });
 
     const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useInvestorWhitelist({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(getCentrifugeVault).not.toHaveBeenCalled();

@@ -55,7 +55,8 @@ const mocks = vi.hoisted(() => ({
   // single "is whitelisted" switch could not express the states that matter.
   canReceiveShares: true,
   canRequestRedemption: true,
-  whitelistIsError: false,
+  accessIsError: false,
+  restriction: 'none',
   cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
@@ -159,11 +160,15 @@ vi.mock('@/centrifuge', () => ({
   useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
   useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
   useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares }),
-  useInvestorWhitelist: () =>
-    mocks.whitelistIsError
+  useInvestorAccess: () =>
+    mocks.accessIsError
       ? { data: undefined, isError: true, isFetching: false, isSuccess: false }
       : {
-          data: { canReceiveShares: mocks.canReceiveShares, canRequestRedemption: mocks.canRequestRedemption },
+          data: {
+            canReceiveShares: mocks.canReceiveShares,
+            canRequestRedemption: mocks.canRequestRedemption,
+            restriction: mocks.restriction
+          },
           isError: false,
           isFetching: false,
           isSuccess: true
@@ -285,7 +290,8 @@ function resetMocks() {
   vi.clearAllMocks();
   mocks.canReceiveShares = true;
   mocks.canRequestRedemption = true;
-  mocks.whitelistIsError = false;
+  mocks.accessIsError = false;
+  mocks.restriction = 'none';
   mocks.claimableAssets = 0n;
   mocks.hasPendingCancel = false;
   mocks.metricsIsError = false;
@@ -384,6 +390,42 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').disabled).toBe(false);
   });
 
+  it('names a frozen wallet as frozen, down to the hints on the share controls', async () => {
+    // Freeze and a missing admission produce identical verdicts on-chain, so
+    // every surface that explains the block has to read the reason — the two
+    // narrow hints included, since they sit far from the callout.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.restriction = 'frozen';
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderFlow();
+
+    expect(getButton('Wallet Frozen').disabled).toBe(true);
+    expect(screen.getByText(/This wallet is frozen on this chain/)).toBeTruthy();
+    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+    expect(screen.getAllByText('This wallet is frozen.').length).toBe(2);
+    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
+  });
+
+  it('still lets a frozen wallet claim settled USDC', async () => {
+    // Same exemption as an unadmitted wallet: the protocol does not gate a
+    // redeem claim, so freezing must not strand proceeds either.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.restriction = 'frozen';
+    mocks.claimableAssets = 150_000000n;
+    renderFlow();
+
+    expect(getButton('Claim USDC').disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim USDC'));
+    });
+
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 150_000000n });
+  });
+
   it('leaves share moves alone when only the redemption request is blocked', async () => {
     // The mirror case: a member who may not send shares to escrow can still
     // unwind a position it already has.
@@ -403,11 +445,11 @@ describe('RedeemFlow', () => {
     expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
 
-  it('leaves the request live on a failed whitelist read', async () => {
+  it('leaves the request live on a failed access read', async () => {
     // A fetch failure is not a verdict, so it neither names the wallet nor
     // takes the action away. The exact-call simulation is the authoritative
     // pre-sign gate and decodes the real revert if the vault does refuse.
-    mocks.whitelistIsError = true;
+    mocks.accessIsError = true;
     renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });

@@ -29,7 +29,7 @@ import {
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
-  useInvestorWhitelist,
+  useInvestorAccess,
   useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
@@ -39,8 +39,8 @@ import { SwitchChainButton, useSelectedChain } from './_components/chain-switch'
 import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
-import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
 import { TokenDisplay } from './_components/token-display';
+import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
@@ -71,20 +71,27 @@ export default function RedeemFlow() {
   const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
   const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
-  const whitelist = useInvestorWhitelist({ centrifugeVault });
+  const access = useInvestorAccess({ centrifugeVault });
 
-  // Two gates, because the whitelist does not fall along this panel's own
-  // lines. Only a definitive `false` gates anything: a failed read is a fetch
-  // problem and not a verdict, so it leaves both alone and lets the pre-sign
-  // simulation decode the real revert if the Centrifuge vault does refuse.
+  // Two gates, because the Centrifuge vault's verdicts do not fall along this
+  // panel's own lines. Only a definitive `false` gates anything: a failed read
+  // is a fetch problem and not a verdict, so it leaves both alone and lets the
+  // pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
   //
   // Claiming settled USDC is deliberately under neither: the protocol exempts
   // a redeem claim from the whitelist (and USDC carries no transfer hook), so
-  // a wallet that is no longer whitelisted keeps proceeds it is already owed.
-  const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canRequestRedemption;
+  // a blocked wallet keeps proceeds it is already owed.
+  const isNotAdmitted = access.isSuccess && !access.data.canRequestRedemption;
   // Cancelling and claiming returned shares both reduce on-chain to "may this
   // wallet receive shares", so they stand or fall together.
-  const isShareReturnBlocked = whitelist.isSuccess && !whitelist.data.canReceiveShares;
+  const isShareReturnBlocked = access.isSuccess && !access.data.canReceiveShares;
+  // Names the block; never widens it. An unread or unexplained reason falls
+  // back to the general "not whitelisted" presentation.
+  const restriction = access.data?.restriction;
+  // The buttons below are too narrow to carry the reason and sit a long way
+  // from the callout at the foot of the panel, so they get their own short
+  // form of the same answer.
+  const shareReturnHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'Requires a whitelisted wallet.';
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
@@ -135,7 +142,7 @@ export default function RedeemFlow() {
     shareBalance.isFetching ||
     usdcBalance.isFetching ||
     chainalysis.isFetching ||
-    whitelist.isFetching ||
+    access.isFetching ||
     (position.isFetching && !isCancellationProcessing) ||
     // isPending on purpose: metrics refetch on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
@@ -158,7 +165,7 @@ export default function RedeemFlow() {
   // will not admit locks it for the same reason — there is no amount worth entering.
   // Only the request gate applies here: a wallet that may still send shares to
   // escrow can use this form even when its share moves back are blocked.
-  const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotWhitelisted;
+  const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAdmitted;
 
   // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
   // Named like the deposit tab's carrier so the two selectors cannot drift.
@@ -262,9 +269,7 @@ export default function RedeemFlow() {
             </ConnectedAccount>
           </div>
 
-          {/* The button is too narrow to carry the reason, and the callout at
-              the foot of the panel is a long way from this control. */}
-          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
+          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">{shareReturnHint}</p>}
         </div>
       )}
 
@@ -321,7 +326,7 @@ export default function RedeemFlow() {
                     onPress: handleCancelRedeem,
                     isDisabled:
                       isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-                    isBlockedByWhitelist: isShareReturnBlocked,
+                    blockedHint: isShareReturnBlocked ? shareReturnHint : undefined,
                     isPending: cancelRedeem.isPending,
                     isTxPending: cancelRedeem.isTxPending
                   }
@@ -425,9 +430,9 @@ export default function RedeemFlow() {
           <Button fullWidth isDisabled>
             Cancellation in progress
           </Button>
-        ) : isNotWhitelisted ? (
+        ) : isNotAdmitted ? (
           <Button fullWidth isDisabled>
-            Wallet Not Whitelisted
+            {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
           </Button>
         ) : (
           <Button
@@ -456,7 +461,7 @@ export default function RedeemFlow() {
 
         {/* Why the action above is disabled — the verdict only exists once a
             wallet is connected. */}
-        {isNotWhitelisted && <NotWhitelistedCallout />}
+        {isNotAdmitted && <WalletAccessCallout restriction={restriction} />}
       </div>
     </>
   );
@@ -475,8 +480,8 @@ function RedemptionProcessingStrip({
   cancel?: {
     onPress: () => void;
     isDisabled: boolean;
-    /** Narrows the generic disabled state to the one cause worth naming here. */
-    isBlockedByWhitelist: boolean;
+    /** Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */
+    blockedHint?: string;
     isPending: boolean;
     isTxPending: boolean;
   };
@@ -513,9 +518,7 @@ function RedemptionProcessingStrip({
         )}
       </div>
 
-      {/* The button is too narrow to carry the reason, and the callout at the
-          foot of the panel is a long way from this control. */}
-      {cancel?.isBlockedByWhitelist && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
+      {cancel?.blockedHint && <p className="text-extraSmall text-tertiary">{cancel.blockedHint}</p>}
     </div>
   );
 }

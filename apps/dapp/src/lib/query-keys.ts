@@ -62,9 +62,9 @@ const account = {
     ...account.redemptionPositions({ accountAddress, shareClassKey }),
     chain
   ],
-  investorWhitelist: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
+  investorAccess: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
     ...account.by({ accountAddress }),
-    'INVESTOR_WHITELIST',
+    'INVESTOR_ACCESS',
     shareClassKey,
     chain
   ]

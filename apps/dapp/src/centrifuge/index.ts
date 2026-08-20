@@ -4,7 +4,7 @@ export { sharesToUsdc, sharesToValueD18 } from './config';
 export {
   isPriceUnavailableError,
   useDepositPreview,
-  useInvestorWhitelist,
+  useInvestorAccess,
   useRedemptionPosition,
   useCentrifugeVaultCapacity
 } from './hooks';
@@ -15,7 +15,8 @@ export { useDeposit } from './use-deposit';
 export { useRequestRedeem } from './use-request-redeem';
 export type {
   DepositPreview,
-  InvestorWhitelist,
+  InvestorAccess,
+  InvestorRestriction,
   RedemptionPosition,
   TransactedCentrifugeVault,
   TransactionIdentity,

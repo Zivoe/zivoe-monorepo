@@ -9,30 +9,40 @@ import { queryKeys } from '@/lib/query-keys';
 import { useAccount } from '@/hooks/useAccount';
 
 import { getCentrifugeVault } from './client';
-import { readCentrifugeVaultCapacity, readInvestorWhitelist, readRedemptionPosition } from './reads';
+import { readCentrifugeVaultCapacity, readInvestorAccess, readRedemptionPosition } from './reads';
 import { type TransactedCentrifugeVault } from './types';
 
 /**
- * Whether this share class's Centrifuge vault admits the connected wallet. Every flow's
- * action gates on it: the whitelist lives in the Centrifuge vault's own configuration,
- * so a blocked wallet's transaction reverts on-chain rather than failing any
- * check the form could run. Skipped without a wallet — there is nothing to
- * ask about until one connects.
+ * Whether this share class's Centrifuge vault admits the connected wallet, and
+ * when it does not, why. Every flow's action gates on the verdicts: the
+ * whitelist lives in the Centrifuge vault's own configuration, so a blocked
+ * wallet's transaction reverts on-chain rather than failing any check the form
+ * could run. The reason is copy only and never widens what the flows allow.
+ * Skipped without a wallet — there is nothing to ask about until one connects.
  */
-export function useInvestorWhitelist({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
+export function useInvestorAccess({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
+  const web3 = usePublicClient({ chainId: centrifugeVault.chainId });
 
   return useQuery({
-    queryKey: queryKeys.account.investorWhitelist({
+    queryKey: queryKeys.account.investorAccess({
       accountAddress: address,
       shareClassKey: centrifugeVault.shareClass.key,
       chain: centrifugeVault.chain
     }),
     meta: { toastErrorMessage: 'Error checking wallet access' },
-    queryFn: !address
-      ? skipToken
-      : async () =>
-          readInvestorWhitelist({ centrifugeVault: await getCentrifugeVault(centrifugeVault), investor: address })
+    queryFn:
+      !address || !web3
+        ? skipToken
+        : async () =>
+            readInvestorAccess({
+              centrifugeVault: await getCentrifugeVault(centrifugeVault),
+              investor: address,
+              client: web3,
+              // Asserted against the Centrifuge vault's own answer at resolution,
+              // so the hook is always read off the token the flows transact with.
+              shareTokenAddress: centrifugeVault.shareClass.shareTokenAddress
+            })
   });
 }
 

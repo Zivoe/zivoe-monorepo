@@ -27,7 +27,7 @@ import {
   useCentrifugeVaultCapacity,
   useDeposit,
   useDepositPreview,
-  useInvestorWhitelist
+  useInvestorAccess
 } from '@/centrifuge';
 
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
@@ -36,8 +36,8 @@ import { SwitchChainButton, useSelectedChain } from './_components/chain-switch'
 import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
-import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
 import { TokenDisplay } from './_components/token-display';
+import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
@@ -67,12 +67,15 @@ export function DepositFlow() {
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const allowance = useAllowance({ chain: selectedChain, contract: usdc.address, spender: vaultRouterAddress });
   const capacity = useCentrifugeVaultCapacity({ centrifugeVault });
-  const whitelist = useInvestorWhitelist({ centrifugeVault });
+  const access = useInvestorAccess({ centrifugeVault });
 
   // Only a definitive `false` gates anything. A failed read is a fetch problem
   // and not a verdict about this wallet, so it leaves the flow alone and lets
   // the pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
-  const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canReceiveShares;
+  const isNotAdmitted = access.isSuccess && !access.data.canReceiveShares;
+  // Names the block; never widens it. An unread or unexplained reason simply
+  // falls back to the general "not whitelisted" presentation.
+  const restriction = access.data?.restriction;
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
@@ -131,7 +134,7 @@ export function DepositFlow() {
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
-    whitelist.isFetching ||
+    access.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
@@ -148,10 +151,10 @@ export function DepositFlow() {
     depositMutation.isPending ||
     isZivoeVaultDeploying ||
     isCapacityUnavailable ||
-    isNotWhitelisted;
+    isNotAdmitted;
 
   // The chain selector must NOT inherit the per-chain verdicts (capacity,
-  // whitelist): they are exactly what switching chains escapes, and freezing
+  // access): they are exactly what switching chains escapes, and freezing
   // the selector on them would trap the user on the failing chain. Same
   // gating as the redeem tab's selector.
   const isChainSelectorLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
@@ -319,9 +322,9 @@ export function DepositFlow() {
             <SwitchChainButton />
           ) : isPrereqsLoading ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
-          ) : isNotWhitelisted ? (
+          ) : isNotAdmitted ? (
             <Button fullWidth isDisabled>
-              Wallet Not Whitelisted
+              {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
             </Button>
           ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
             <Button
@@ -365,13 +368,13 @@ export function DepositFlow() {
 
       {/* Why the action above is disabled. The deploying status and the Centrifuge vault's
           capacity are Zivoe Vault facts, so they render whether or not a wallet is
-          connected; the whitelist verdict only exists once one is. */}
+          connected; the access verdict only exists once one is. */}
       {isZivoeVaultDeploying ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
       ) : isCapacityUnavailable ? (
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
-      ) : isNotWhitelisted ? (
-        <NotWhitelistedCallout />
+      ) : isNotAdmitted ? (
+        <WalletAccessCallout restriction={restriction} />
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an
