@@ -1,4 +1,4 @@
-import { NETWORK_CHAIN } from '@/lib/network';
+import { DEFAULT_CHAIN, getChainId } from '@/lib/chains';
 import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =
@@ -89,9 +89,9 @@ export function createTransactionProperties(input: TransactionAnalyticsInput): A
     flow: input.flow,
     step: input.step,
     wallet_address: input.walletAddress?.toLowerCase(),
-    // Default to the deployment's configured chain — a hardcoded mainnet
-    // fallback mislabelled every event whose caller omitted chainId.
-    chain_id: input.chainId ?? NETWORK_CHAIN.id,
+    // Default to the deployment's default chain — transaction callers always
+    // pass their own chainId; this covers chain-agnostic events only.
+    chain_id: input.chainId ?? getChainId(DEFAULT_CHAIN),
     zivoe_vault_slug: input.zivoeVaultSlug ?? undefined,
     token_in: input.tokenIn ?? undefined,
     token_out: input.tokenOut ?? undefined,

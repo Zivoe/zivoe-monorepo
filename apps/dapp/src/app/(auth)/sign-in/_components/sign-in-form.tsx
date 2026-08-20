@@ -297,7 +297,7 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
 
     const { error } = await authClient.signIn.emailOtp({ email, otp });
 
-    sonnerToast.dismiss(toastId);
+    if (toastId !== undefined) sonnerToast.dismiss(toastId);
 
     if (error) {
       toast({

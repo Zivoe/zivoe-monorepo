@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useCancelRedeem } from './index';
 
@@ -128,7 +128,7 @@ describe('useCancelRedeem', () => {
 
     // One transaction, no arguments — the Cancellation always covers the full
     // remaining pending amount — against the Centrifuge vault of the identity parameter.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
     expect(cancelSpy).toHaveBeenCalledOnce();
     expect(cancelSpy).toHaveBeenCalledWith();
     expect(walletRequest).toHaveBeenCalledOnce();
@@ -140,6 +140,7 @@ describe('useCancelRedeem', () => {
         'Your zFIX will be available to claim once the cancellation is processed. Any portion already approved by the pool manager still executes and arrives as USDC.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: { cancelRedeem: { share: { symbol: 'zFIX', decimals: 8 }, shares: PENDING_SHARES } }
     });
 
@@ -147,7 +148,7 @@ describe('useCancelRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
 

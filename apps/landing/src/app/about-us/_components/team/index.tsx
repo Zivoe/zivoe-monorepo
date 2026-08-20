@@ -210,20 +210,20 @@ type TeamMemberData = {
 
 const TEAM_MEMBERS: Array<TeamMemberData> = [
   {
-    name: 'Jay Abbasi',
-    title: 'Founder',
-    image: '/team/jay.png',
-    bio: 'Entrepreneur with 20+ years of executive leadership in finance and technology. Former CEO of Plain Green Lending, where he drove nationwide expansion and growth.',
-    linkedIn: 'https://www.linkedin.com/in/jay-abbasi/',
-    x: 'https://x.com/jayabbasi'
-  },
-  {
     name: 'Kristal Gruevski',
-    title: 'Founder & General Counsel',
+    title: 'Founder & CEO',
     image: '/team/kristal.png',
     bio: 'Business lawyer with over a decade of experience in corporate law, compliance, and government relations. Former General Counsel at Atoske.',
     linkedIn: 'https://www.linkedin.com/in/kristal-gruevski/',
     x: 'https://x.com/HumbleGal__'
+  },
+  {
+    name: 'Jay Abbasi',
+    title: 'Founder & President',
+    image: '/team/jay.png',
+    bio: 'Entrepreneur with 20+ years of executive leadership in finance and technology. Former CEO of Plain Green Lending, where he drove nationwide expansion and growth.',
+    linkedIn: 'https://www.linkedin.com/in/jay-abbasi/',
+    x: 'https://x.com/jayabbasi'
   },
   {
     name: 'John Quarnstrom',

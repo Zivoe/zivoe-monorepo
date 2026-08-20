@@ -20,9 +20,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { transactionAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { CENTRIFUGE_ENV, useDeposit } from './index';
+import { useDeposit } from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const releaseTransactionSigner = vi.hoisted(() => vi.fn());
@@ -67,7 +67,7 @@ function depositReceipt({ withDepositLog = true }: { withDepositLog?: boolean } 
   const logs = withDepositLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase(),
           topics: encodeEventTopics({
             abi: DEPOSIT_EVENT_ABI,
             eventName: 'Deposit',
@@ -107,7 +107,14 @@ function fakeCentrifugeVault({ receipt }: { receipt: TransactionReceipt }) {
             observer.next({ type: 'SigningTransaction' });
             await signer.request({
               method: 'eth_sendTransaction',
-              params: [{ from: INVESTOR, to: CENTRIFUGE_ENV.vaultRouterAddress, data: '0xdeadbeef', value: '0x0' }]
+              params: [
+                {
+                  from: INVESTOR,
+                  to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
+                  data: '0xdeadbeef',
+                  value: '0x0'
+                }
+              ]
             });
             observer.next({ type: 'TransactionPending', hash: TX_HASH });
             observer.next({ type: 'TransactionConfirmed', hash: TX_HASH, receipt });
@@ -238,7 +245,7 @@ function fakeVaultThroughViemWallet() {
 
             observer.next({ type: 'SigningTransaction' });
             const hash = await walletClient.sendTransaction({
-              to: CENTRIFUGE_ENV.vaultRouterAddress,
+              to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
               data: '0xdeadbeef',
               value: 0n
             });
@@ -293,11 +300,15 @@ describe('useDeposit', () => {
     const sendOrder = walletRequest.mock.invocationCallOrder[0] ?? 0;
     expect(callOrder).toBeLessThan(sendOrder);
     expect(publicClientCall).toHaveBeenCalledWith(
-      expect.objectContaining({ account: INVESTOR, to: CENTRIFUGE_ENV.vaultRouterAddress, data: '0xdeadbeef' })
+      expect.objectContaining({
+        account: INVESTOR,
+        to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
+        data: '0xdeadbeef'
+      })
     );
 
     // The Centrifuge vault comes from the identity parameter, not any ambient config.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
 
     // Success dialog carries the transacted identity and the exact decoded USDC-in / zFIX-out.
     expect(getDefaultStore().get(transactionAtom)).toEqual({
@@ -306,6 +317,7 @@ describe('useDeposit', () => {
       description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: {
         deposit: {
           asset: { symbol: 'USDC', decimals: 6 },
@@ -326,12 +338,13 @@ describe('useDeposit', () => {
           'ACCOUNT',
           INVESTOR,
           'ALLOWANCE',
-          CENTRIFUGE_ENV.usdc.address,
-          CENTRIFUGE_ENV.vaultRouterAddress
+          'sepolia',
+          FIXTURE_IDENTITY.centrifugeVault.usdc.address,
+          FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
 
@@ -345,7 +358,7 @@ describe('useDeposit', () => {
         token_in: 'USDC',
         token_out: 'zFIX',
         zivoe_vault_slug: 'fixture-zivoe-vault',
-        chain_id: CENTRIFUGE_ENV.chainId,
+        chain_id: FIXTURE_IDENTITY.centrifugeVault.chainId,
         receipt_status: 'success'
       })
     );
@@ -391,6 +404,7 @@ describe('useDeposit', () => {
       description: 'zFIX has been transferred to your wallet.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: undefined
     });
     expect(sentryCapture).toHaveBeenCalled();
@@ -545,7 +559,8 @@ describe('useDeposit', () => {
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
       hash: TX_HASH,
-      zivoeVaultSlug: 'fixture-zivoe-vault'
+      zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     expect(analyticsCapture).toHaveBeenCalledWith(
@@ -575,7 +590,8 @@ describe('useDeposit', () => {
       title: 'Deposit Failed',
       description: 'Your deposit could not be completed.',
       hash: TX_HASH,
-      zivoeVaultSlug: 'fixture-zivoe-vault'
+      zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia'
     });
     expect(uiToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
   });
@@ -589,6 +605,28 @@ describe('useDeposit', () => {
         )
       )
     );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Your wallet is connected to the wrong network. Switch networks and try again.'
+    });
+  });
+
+  it("names the wrong network — not a missing connection — when the connector's live chain drifted", async () => {
+    // wagmi's getWalletClient re-reads the connector's chain and throws a
+    // mismatch when it differs from the requested chainId; flattening that to
+    // 'Wallet not connected' misdiagnosed a plainly-connected wallet.
+    const mismatch = new Error(
+      "The current chain of the connector (id: 84532) does not match the connection's chain (id: 11155111)."
+    );
+    mismatch.name = 'ConnectorChainMismatchError';
+    getWalletClient.mockRejectedValue(mismatch);
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });

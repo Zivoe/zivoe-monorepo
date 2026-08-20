@@ -16,7 +16,7 @@ import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@
 import { QSTASH_JOB_LABELS, getQstashFailureCallback, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
-import { env } from '@/env';
+import { CENTRIFUGE_ENV } from '@/centrifuge/config';
 
 const bodySchema = z.object({
   userId: z.string().uuid(),
@@ -39,7 +39,8 @@ const handler = async (req: NextRequest) => {
   // old behavior (an investor-activity read that threw) just made QStash
   // retry a send that must not happen. Resolved once: the same keys feed the
   // investor-activity read below, which cannot answer for an empty book.
-  const liveShareClassKeys = listShareClassKeys(env.NEXT_PUBLIC_NETWORK);
+  // Environment-level on purpose — investor activity on ANY chain counts.
+  const liveShareClassKeys = listShareClassKeys(CENTRIFUGE_ENV.environment);
 
   if (liveShareClassKeys.length === 0) {
     // This skip silently ends the user's funnel (reminder 2 is only scheduled

@@ -1,16 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  CENTRIFUGE_NETWORK_FACTS,
+  CENTRIFUGE_ENVIRONMENT_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
   assertShareClassCatalogInvariants,
+  chainsOfEnvironment,
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   fetchShareClassNavs,
+  getShareClassChainIdentity,
   getShareClassIdentity,
-  getShareClassNetworks,
   listShareClassKeys,
   rayToPercent,
   sumShareClassNavs,
@@ -18,8 +19,8 @@ import {
 } from './index';
 
 const sepolia = {
-  ...getShareClassIdentity({ network: 'sepolia', key: 'zsmb' }),
-  indexerUrl: CENTRIFUGE_NETWORK_FACTS.sepolia.indexerUrl
+  ...getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' }),
+  indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS.testnet.indexerUrl
 };
 
 function fakeIndexerResponse(body: unknown, init?: ResponseInit) {
@@ -41,47 +42,90 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('environment/chain facts', () => {
+  it('partitions every chain into exactly one environment', () => {
+    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos']);
+    expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
+  });
+});
+
 describe('share-class catalog', () => {
-  it('resolves a live entry to serializable identity', () => {
-    expect(getShareClassIdentity({ network: 'sepolia', key: 'zsmb' })).toEqual({
+  it('resolves a live entry to its hub-level identity — no chain-scoped fields', () => {
+    expect(getShareClassIdentity({ environment: 'testnet', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976720680',
+      scId: '0x00010000000027280000000000000002'
+    });
+  });
+
+  it('resolves a live chain entry to the identity joined with the chain instance', () => {
+    expect(getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' })).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
       poolId: '281474976720680',
       scId: '0x00010000000027280000000000000002',
+      chain: 'sepolia',
+      chainId: 11155111,
       shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
     });
   });
 
-  // The non-deployable-placeholder branch of getShareClassIdentity has no test
-  // here: it takes no injectable catalog, and every real entry is now live on
-  // both networks. Restore this the next time a launch is staged — the branch
-  // is what stops a staged entry from resolving to zeros.
+  it('resolves the second mainnet chain with its deterministically shared token address', () => {
+    expect(getShareClassChainIdentity({ chain: 'pharos', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'pharos',
+      chainId: 1672,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8'
+    });
+  });
+
+  it('resolves the second testnet chain with its deterministically shared token address', () => {
+    expect(getShareClassChainIdentity({ chain: 'base-sepolia', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976720680',
+      scId: '0x00010000000027280000000000000002',
+      chain: 'base-sepolia',
+      chainId: 84532,
+      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
+    });
+  });
 
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
-      expect(() => getShareClassIdentity({ network: 'sepolia', key })).toThrow(/not in the catalog/);
+      expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
+      expect(() => getShareClassChainIdentity({ chain: 'sepolia', key })).toThrow(/not in the catalog/);
     }
   });
 
-  it('lists only live share classes and networks', () => {
+  it('lists only live share classes', () => {
     // Synthetic catalog on purpose: enumerating the real book here made
     // registering a share class break this file (it happened once).
     const catalog = {
-      live: { networks: { sepolia: { deployable: true } } },
-      staged: { networks: { sepolia: { deployable: false }, mainnet: { deployable: false } } }
+      live: { environments: { testnet: { chains: { sepolia: { deployable: true } } } } },
+      staged: {
+        environments: {
+          testnet: { chains: { sepolia: { deployable: false }, 'base-sepolia': { deployable: false } } },
+          mainnet: { chains: { ethereum: { deployable: false } } }
+        }
+      }
     };
 
-    expect(listShareClassKeys('sepolia', catalog)).toEqual(['live']);
+    expect(listShareClassKeys('testnet', catalog)).toEqual(['live']);
     expect(listShareClassKeys('mainnet', catalog)).toEqual([]);
-    expect(getShareClassNetworks('live', catalog)).toEqual(['sepolia']);
-    expect(getShareClassNetworks('staged', catalog)).toEqual([]);
-    expect(() => getShareClassNetworks('toString', catalog)).toThrow(/not in the catalog/);
   });
 
-  it('keeps the original class listed on its live network', () => {
+  it('keeps the original class listed on its live environment', () => {
     // Membership only — the whole book is deliberately not asserted.
-    expect(listShareClassKeys('sepolia')).toContain('zsmb');
+    expect(listShareClassKeys('testnet')).toContain('zsmb');
   });
 });
 
@@ -93,14 +137,22 @@ describe('assertShareClassCatalogInvariants', () => {
     symbol,
     scId,
     shareTokenAddress,
-    network = 'sepolia'
+    environment = 'testnet',
+    chain = 'sepolia',
+    deployable = true
   }: {
     symbol: string;
     scId: string;
     shareTokenAddress: string;
-    network?: 'sepolia' | 'mainnet';
+    environment?: 'testnet' | 'mainnet';
+    chain?: 'sepolia' | 'base-sepolia' | 'ethereum' | 'pharos';
+    deployable?: boolean;
   }) {
-    return { symbol, decimals: 18, networks: { [network]: { scId, shareTokenAddress } } };
+    return {
+      symbol,
+      decimals: 18,
+      environments: { [environment]: { scId, chains: { [chain]: { shareTokenAddress, deployable } } } }
+    };
   }
 
   const first = entry({
@@ -109,10 +161,16 @@ describe('assertShareClassCatalogInvariants', () => {
     shareTokenAddress: '0xabababababababababababababababababababab'
   });
 
-  it('accepts distinct entries, including shared placeholder zeros on staged networks', () => {
+  it('accepts distinct entries, including shared placeholder zeros on staged chains', () => {
     const staged = (base: ReturnType<typeof entry>) => ({
       ...base,
-      networks: { ...base.networks, mainnet: { scId: ZERO_SC_ID, shareTokenAddress: ZERO_ADDRESS } }
+      environments: {
+        ...base.environments,
+        mainnet: {
+          scId: ZERO_SC_ID,
+          chains: { ethereum: { shareTokenAddress: ZERO_ADDRESS, deployable: false } }
+        }
+      }
     });
 
     expect(() =>
@@ -125,6 +183,28 @@ describe('assertShareClassCatalogInvariants', () => {
             shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
           })
         )
+      })
+    ).not.toThrow();
+  });
+
+  it('accepts one address reused across two chains — deterministic deploys are legitimate', () => {
+    const address = '0xabababababababababababababababababababab';
+
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: {
+          symbol: 'zAAA',
+          decimals: 18,
+          environments: {
+            testnet: {
+              scId: '0x000100000000aaaa0000000000000001',
+              chains: {
+                sepolia: { shareTokenAddress: address, deployable: true },
+                'base-sepolia': { shareTokenAddress: address, deployable: true }
+              }
+            }
+          }
+        }
       })
     ).not.toThrow();
   });
@@ -146,6 +226,33 @@ describe('assertShareClassCatalogInvariants', () => {
     ).toThrow(/lowercase/);
   });
 
+  it('throws when a chain is filed under the wrong environment', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000aaaa0000000000000001',
+          shareTokenAddress: '0xabababababababababababababababababababab',
+          environment: 'mainnet',
+          chain: 'sepolia'
+        })
+      })
+    ).toThrow(/belongs to "testnet"/);
+  });
+
+  it('throws when a deployable chain carries a placeholder address — a flipped flag, not a staged launch', () => {
+    expect(() =>
+      assertShareClassCatalogInvariants({
+        a: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000aaaa0000000000000001',
+          shareTokenAddress: ZERO_ADDRESS,
+          deployable: true
+        })
+      })
+    ).toThrow(/deployable but carries a placeholder/);
+  });
+
   it('throws when two entries share a symbol, compared case-insensitively', () => {
     expect(() =>
       assertShareClassCatalogInvariants({
@@ -160,9 +267,15 @@ describe('assertShareClassCatalogInvariants', () => {
     ).toThrow(/symbol .* is claimed by two share classes/);
   });
 
-  it('throws on a duplicate share-class id per network, including a non-active one', () => {
+  it('throws on a duplicate share-class id per environment, including a non-active one', () => {
     const onMainnet = (symbol: string, shareTokenAddress: string) =>
-      entry({ symbol, scId: '0x000100000000dddd0000000000000001', shareTokenAddress, network: 'mainnet' });
+      entry({
+        symbol,
+        scId: '0x000100000000dddd0000000000000001',
+        shareTokenAddress,
+        environment: 'mainnet',
+        chain: 'ethereum'
+      });
 
     expect(() =>
       assertShareClassCatalogInvariants({
@@ -172,7 +285,7 @@ describe('assertShareClassCatalogInvariants', () => {
     ).toThrow(/claimed by two catalog entries on "mainnet"/);
   });
 
-  it('compares share-token addresses case-insensitively', () => {
+  it('compares share-token addresses case-insensitively, per chain', () => {
     expect(() =>
       assertShareClassCatalogInvariants({
         a: first,
@@ -188,13 +301,13 @@ describe('assertShareClassCatalogInvariants', () => {
 });
 
 describe('fetchShareClassNavs', () => {
-  it('maps each requested class to its own nav, filtering by all share token addresses', async () => {
+  it('maps each requested class to its own nav, filtering by all share-class ids', async () => {
     const fetchMock = fakeIndexerResponse({
       data: {
         tokenInstances: {
           items: [
             {
-              address: sepolia.shareTokenAddress.toLowerCase(),
+              tokenId: sepolia.scId,
               token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
             }
           ]
@@ -202,36 +315,34 @@ describe('fetchShareClassNavs', () => {
       }
     });
 
-    const navs = await fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] });
+    const navs = await fetchShareClassNavs({ environment: 'testnet', shareClassKeys: ['zsmb'] });
 
     expect(navs).toEqual({ zsmb: '107000000000000000000' });
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string).variables).toEqual({
-      shareTokenAddresses: [sepolia.shareTokenAddress.toLowerCase()]
-    });
+    expect(JSON.parse(init.body as string).variables).toEqual({ tokenIds: [sepolia.scId] });
   });
 
   it('tolerates duplicate rows with identical payloads — one TokenInstance per spoke chain', async () => {
     const row = {
-      address: sepolia.shareTokenAddress.toLowerCase(),
+      tokenId: sepolia.scId,
       token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
     };
     fakeIndexerResponse({ data: { tokenInstances: { items: [row, row] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).resolves.toEqual({
+    await expect(fetchShareClassNavs({ environment: 'testnet', shareClassKeys: ['zsmb'] })).resolves.toEqual({
       zsmb: '107000000000000000000'
     });
   });
 
   it('fails the whole read when duplicate rows disagree, instead of letting one silently win', async () => {
     const row = {
-      address: sepolia.shareTokenAddress.toLowerCase(),
+      tokenId: sepolia.scId,
       token: { tokenPrice: '1070000000000000000', totalIssuance: '100000000000000000000', decimals: 18 }
     };
     const conflicting = { ...row, token: { ...row.token, tokenPrice: '9990000000000000000' } };
     fakeIndexerResponse({ data: { tokenInstances: { items: [row, conflicting] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ environment: 'testnet', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('conflicting share-token rows')
     });
@@ -240,7 +351,7 @@ describe('fetchShareClassNavs', () => {
   it('fails the whole read when a requested class is missing, instead of returning a partial map', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] } } });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ environment: 'testnet', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('is not indexed')
     });
@@ -252,7 +363,7 @@ describe('fetchShareClassNavs', () => {
         tokenInstances: {
           items: [
             {
-              address: sepolia.shareTokenAddress.toLowerCase(),
+              tokenId: sepolia.scId,
               token: { tokenPrice: null, totalIssuance: '100000000000000000000', decimals: 18 }
             }
           ]
@@ -260,7 +371,7 @@ describe('fetchShareClassNavs', () => {
       }
     });
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
+    await expect(fetchShareClassNavs({ environment: 'testnet', shareClassKeys: ['zsmb'] })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -268,7 +379,7 @@ describe('fetchShareClassNavs', () => {
   it('returns an empty map without fetching when no classes are requested', async () => {
     const fetchMock = fakeIndexerResponse({});
 
-    await expect(fetchShareClassNavs({ network: 'sepolia', shareClassKeys: [] })).resolves.toEqual({});
+    await expect(fetchShareClassNavs({ environment: 'testnet', shareClassKeys: [] })).resolves.toEqual({});
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -296,7 +407,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const metrics = await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(metrics).toEqual({
       sharePrice: 1070000000000000000n,
@@ -305,6 +416,45 @@ describe('fetchCurrentShareMetrics', () => {
       shareTokenDecimals: 18,
       priceComputedAt: new Date(1783595010000),
       yield30dComp365: null
+    });
+  });
+
+  it('tolerates duplicate rows with identical payloads — one TokenInstance per spoke chain', async () => {
+    const token = {
+      tokenPrice: '1070000000000000000',
+      tokenPriceComputedAt: '1783595010000',
+      totalIssuance: '100000000000000000000',
+      decimals: 18
+    };
+    fakeIndexerResponse({
+      data: {
+        tokenInstances: { items: [{ token }, { token }] },
+        tokenSnapshots: { items: [] }
+      }
+    });
+
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).resolves.toMatchObject({
+      sharePrice: 1070000000000000000n
+    });
+  });
+
+  it('fails the read when duplicate rows disagree, instead of an arbitrary chain winning', async () => {
+    const token = {
+      tokenPrice: '1070000000000000000',
+      tokenPriceComputedAt: '1783595010000',
+      totalIssuance: '100000000000000000000',
+      decimals: 18
+    };
+    fakeIndexerResponse({
+      data: {
+        tokenInstances: { items: [{ token }, { token: { ...token, tokenPrice: '9990000000000000000' } }] },
+        tokenSnapshots: { items: [] }
+      }
+    });
+
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('conflicting share-token rows')
     });
   });
 
@@ -321,7 +471,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const metrics = await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBe(52500000000000000000000000n);
   });
@@ -339,7 +489,7 @@ describe('fetchCurrentShareMetrics', () => {
       )
     );
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const metrics = await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBe(-52500000000000000000000000n);
     expect(metrics.nav).toBe(107000000000000000000n);
@@ -364,12 +514,12 @@ describe('fetchCurrentShareMetrics', () => {
       }
     });
 
-    const metrics = await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const metrics = await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(metrics.yield30dComp365).toBeNull();
   });
 
-  it('queries the network indexer with the lowercased share token address', async () => {
+  it('queries the environment indexer by the hub-level share-class id', async () => {
     const fetchMock = fakeIndexerResponse(
       shareMetricsPayload({
         tokenPrice: '1000000000000000000',
@@ -379,16 +529,13 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(sepolia.indexerUrl);
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body as string).variables).toEqual({
-      shareTokenAddress: sepolia.shareTokenAddress.toLowerCase(),
-      tokenId: sepolia.scId
-    });
+    expect(JSON.parse(init.body as string).variables).toEqual({ tokenId: sepolia.scId });
   });
 
   it('applies a default timeout signal so a hung indexer cannot stall the caller', async () => {
@@ -401,7 +548,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    await fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -419,7 +566,7 @@ describe('fetchCurrentShareMetrics', () => {
 
     const controller = new AbortController();
     await fetchCurrentShareMetrics({
-      network: 'sepolia',
+      environment: 'testnet',
       shareClassKey: 'zsmb',
       fetchOptions: { signal: controller.signal }
     });
@@ -431,7 +578,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a network error when the request cannot be sent at all', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'network',
       message: expect.stringContaining('fetch failed')
     });
@@ -440,7 +587,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws an http error when the indexer responds with a failure status', async () => {
     fakeIndexerResponse({}, { status: 502 });
 
-    const request = fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const request = fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     await expect(request).rejects.toBeInstanceOf(CentrifugeIndexerError);
     await expect(request).rejects.toMatchObject({ kind: 'http', status: 502 });
@@ -449,16 +596,16 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a graphql error when the response carries GraphQL errors', async () => {
     fakeIndexerResponse({ errors: [{ message: 'Unknown field "tokenPrice"' }] });
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'graphql',
       message: expect.stringContaining('Unknown field "tokenPrice"')
     });
   });
 
-  it('throws a validation error when the share token is not indexed', async () => {
+  it('throws a validation error when the share class is not indexed', async () => {
     fakeIndexerResponse({ data: { tokenInstances: { items: [] }, tokenSnapshots: { items: [] } } });
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('not indexed')
     });
@@ -474,7 +621,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -489,7 +636,7 @@ describe('fetchCurrentShareMetrics', () => {
       })
     );
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation'
     });
   });
@@ -497,7 +644,7 @@ describe('fetchCurrentShareMetrics', () => {
   it('throws a validation error on a non-JSON response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>')));
 
-    await expect(fetchCurrentShareMetrics({ network: 'sepolia', shareClassKey: 'zsmb' })).rejects.toMatchObject({
+    await expect(fetchCurrentShareMetrics({ environment: 'testnet', shareClassKey: 'zsmb' })).rejects.toMatchObject({
       kind: 'validation',
       message: expect.stringContaining('non-JSON')
     });
@@ -538,7 +685,10 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({
+      environment: 'testnet',
+      shareClassKey: 'zsmb'
+    });
 
     expect(truncated).toBe(false);
     expect(snapshots).toEqual([
@@ -571,7 +721,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     // Day 1's point is its close (the midnight row), and day 2 has no row yet.
     expect(snapshots).toEqual([
@@ -601,7 +751,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(snapshots.map((snapshot) => [snapshot.dayStartSeconds, snapshot.tokenPrice])).toEqual([
       [day1 / 1000, 1070000000000000000n],
@@ -621,7 +771,7 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const { snapshots } = await fetchDailyTokenSnapshots({ environment: 'testnet', shareClassKey: 'zsmb' });
 
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]?.tokenPrice).toBe(1050000000000000000n);
@@ -636,7 +786,10 @@ describe('fetchDailyTokenSnapshots', () => {
       }
     });
 
-    const { snapshots, truncated } = await fetchDailyTokenSnapshots({ network: 'sepolia', shareClassKey: 'zsmb' });
+    const { snapshots, truncated } = await fetchDailyTokenSnapshots({
+      environment: 'testnet',
+      shareClassKey: 'zsmb'
+    });
 
     expect(truncated).toBe(true);
     expect(snapshots).toHaveLength(1000);

@@ -14,7 +14,9 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVault = {
   shareClass: { key: 'zsmb' },
   centrifugeVaults: {
     sepolia: { address: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6', deployable: true },
-    mainnet: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true }
+    'base-sepolia': { address: '0x8aBb393C433375401EEeae24557475C3f36f5025', deployable: true },
+    ethereum: { address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', deployable: true },
+    pharos: { address: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6', deployable: true }
   },
   shareTokenDescription: 'Zivoe SMB Credit',
   targetApyPercent: 14,

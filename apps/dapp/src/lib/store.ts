@@ -1,5 +1,7 @@
 import { atom } from 'jotai';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+
 /**
  * Token identity snapshotted onto the payload at mutation time. The receipt
  * dialog renders exclusively from these — never from the ambient page's
@@ -18,6 +20,8 @@ export type TransactionData = {
   hash: string;
   /** Stable identity of the Zivoe Vault transacted on — stamped centrally by the transaction lifecycle. */
   zivoeVaultSlug?: string;
+  /** Chain the transaction executed on — stamped centrally; the dialog's explorer link resolves from it. */
+  chain?: CentrifugeChain;
   meta?: {
     approve?: {
       token: TransactionTokenSnapshot;

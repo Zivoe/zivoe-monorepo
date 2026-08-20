@@ -3,19 +3,14 @@
 import { useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as Aria from 'react-aria-components';
 import { Controller, useForm } from 'react-hook-form';
 import { erc20Abi, formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
-import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
-import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger, SelectValue } from '@zivoe/ui/core/select';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
-
-import { formatBigIntToReadable } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
@@ -28,30 +23,38 @@ import ConnectedAccount from '@/components/connected-account';
 import { TOKEN_INFO } from '@/components/token-info';
 
 import {
-  CENTRIFUGE_ENV,
   isPriceUnavailableError,
   useCentrifugeVaultCapacity,
   useDeposit,
   useDepositPreview,
-  useInvestorWhitelist
+  useInvestorAccess
 } from '@/centrifuge';
 
-import { useZivoeVaultIdentity, useZivoeVaultStatus } from '../zivoe-vault-provider';
+import { useZivoeVaultStatus } from '../zivoe-vault-provider';
+import { ChainBalanceDetail } from './_components/chain-balance-detail';
+import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
+import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
-import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
 import { TokenDisplay } from './_components/token-display';
+import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
-
-// The one deposit asset every Zivoe Vault accepts — a network-level fact.
-const USDC = CENTRIFUGE_ENV.usdc;
 
 type DepositForm = { deposit: string };
 
 export function DepositFlow() {
-  const identity = useZivoeVaultIdentity();
-  const share = identity.shareClass;
+  const {
+    identities,
+    selectedIdentity: identity,
+    selectedChain,
+    setSelectedChain,
+    needsChainSwitch
+  } = useSelectedChain();
+
+  const { centrifugeVault } = identity;
+  const share = centrifugeVault.shareClass;
+  const { usdc, vaultRouterAddress } = centrifugeVault;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -60,27 +63,34 @@ export function DepositFlow() {
   // A deploying Zivoe Vault does not take new deposits; its redemptions stay open.
   const isZivoeVaultDeploying = useZivoeVaultStatus() === 'Deploying';
 
-  const usdcBalance = useBalance({ tokenAddress: USDC.address });
-  const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
-  const allowance = useAllowance({ contract: USDC.address, spender: CENTRIFUGE_ENV.vaultRouterAddress });
-  const capacity = useCentrifugeVaultCapacity({ shareClass: share });
-  const whitelist = useInvestorWhitelist({ shareClass: share });
+  const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
+  const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
+  const allowance = useAllowance({ chain: selectedChain, contract: usdc.address, spender: vaultRouterAddress });
+  const capacity = useCentrifugeVaultCapacity({ centrifugeVault });
+  const access = useInvestorAccess({ centrifugeVault });
 
   // Only a definitive `false` gates anything. A failed read is a fetch problem
   // and not a verdict about this wallet, so it leaves the flow alone and lets
   // the pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
-  const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canReceiveShares;
+  const isNotAdmitted = access.isSuccess && !access.data.canReceiveShares;
+  // Names the block; never widens it. An unread or unexplained reason simply
+  // falls back to the general "not whitelisted" presentation.
+  const restriction = access.data?.restriction;
 
   const balance = usdcBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
   const isCapacityUnavailable = capacity.isSuccess && capacity.data.maxDeposit <= 0n;
+
+  // Approve is the one signature no simulation vets
+  // (an ERC-20 approval signs clean against any spender)
+  const canOfferApproval = capacity.isSuccess;
 
   const form = useForm<DepositForm>({
     resolver: zodResolver(
       z.object({
         deposit: createAmountValidator({
           balance,
-          decimals: USDC.decimals,
+          decimals: usdc.decimals,
           requiredMessage: 'Deposit amount is required',
           exceedsMessage: 'Deposit amount exceeds balance',
           max: { value: maxDeposit, message: 'Deposit amount exceeds current vault capacity.' }
@@ -92,15 +102,15 @@ export function DepositFlow() {
   });
 
   const deposit = form.watch('deposit');
-  const depositRaw = deposit ? parseUnits(deposit, USDC.decimals) : undefined;
+  const depositRaw = deposit ? parseUnits(deposit, usdc.decimals) : undefined;
   const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
 
   // Debounced indicative preview: any raw change immediately drops the previous
   // quote (the query key follows the debounced amount) and only the latest
   // amount's successful response renders.
   const { debouncedValue: debouncedDeposit, isDebouncing } = useDebouncedValue({ value: deposit });
-  const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, USDC.decimals) : undefined;
-  const preview = useDepositPreview({ shareClass: share, assets: debouncedRaw ?? 0n });
+  const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, usdc.decimals) : undefined;
+  const preview = useDepositPreview({ centrifugeVault, assets: debouncedRaw ?? 0n });
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
   const previewShares = hasDepositRaw && isPreviewCurrent ? preview.data?.shares : undefined;
@@ -124,7 +134,7 @@ export function DepositFlow() {
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
-    whitelist.isFetching ||
+    access.isFetching ||
     // isPending on purpose: capacity refetches on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     capacity.isPending;
@@ -141,7 +151,13 @@ export function DepositFlow() {
     depositMutation.isPending ||
     isZivoeVaultDeploying ||
     isCapacityUnavailable ||
-    isNotWhitelisted;
+    isNotAdmitted;
+
+  // The chain selector must NOT inherit the per-chain verdicts (capacity,
+  // access): they are exactly what switching chains escapes, and freezing
+  // the selector on them would trap the user on the failing chain. Same
+  // gating as the redeem tab's selector.
+  const isChainSelectorLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
 
   // Only the quote gates the action. The settled facts above are enforced one
   // level up, where the ladder swaps this button for a named one — repeating
@@ -150,12 +166,13 @@ export function DepositFlow() {
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
-  // The balance and capacity rules are wallet-scoped, so a verdict about the
-  // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
-  // can afford the amount until the next keystroke revalidates.
+  // The balance and capacity rules are wallet- and chain-scoped, so a verdict
+  // about the previous wallet or chain outlives it — 'exceeds balance' would
+  // sit on a context that can afford the amount until the next keystroke
+  // revalidates.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, form]);
+  }, [account.address, selectedChain, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 
@@ -164,11 +181,12 @@ export function DepositFlow() {
     if (!isValid || isSubmitBlocked) return;
 
     approveSpending.mutate({
-      contract: USDC.address,
-      spender: CENTRIFUGE_ENV.vaultRouterAddress,
+      chain: selectedChain,
+      contract: usdc.address,
+      spender: vaultRouterAddress,
       amount: depositRaw,
       name: 'USDC',
-      decimals: USDC.decimals,
+      decimals: usdc.decimals,
       abi: erc20Abi,
       successMessage: 'You can now deposit USDC.',
       errorMessage: 'There was an error approving USDC'
@@ -221,26 +239,35 @@ export function DepositFlow() {
             errorMessage={error?.message}
             isInvalid={invalid}
             isDisabled={isFormLocked}
-            decimalPlaces={USDC.decimals}
+            decimalPlaces={usdc.decimals}
             subContent={
               <InputExtraInfo
-                dollarValueDecimals={USDC.decimals}
+                dollarValueDecimals={usdc.decimals}
                 dollarValue={depositRaw ?? 0n}
-                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
+                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: usdc.decimals }}
               />
             }
             endContent={
               <div className="flex items-center">
                 <MaxButton
                   balance={maxAmount}
-                  decimals={USDC.decimals}
+                  decimals={usdc.decimals}
                   onPress={(value) => onChange(value)}
                   isDisabled={isFormLocked}
                 />
 
                 <div className="ml-3">
-                  <UsdcTokenDialog isDisabled={isFormLocked} />
-                  <UsdcTokenSelect isDisabled={isFormLocked} />
+                  <ChainTokenSelector
+                    title="Select Asset"
+                    token={TOKEN_INFO.USDC}
+                    rows={identities.map((rowIdentity) => ({
+                      chain: rowIdentity.centrifugeVault.chain,
+                      detail: <ChainBalanceDetail identity={rowIdentity} token="usdc" />
+                    }))}
+                    selectedChain={selectedChain}
+                    onSelect={setSelectedChain}
+                    isDisabled={isChainSelectorLocked}
+                  />
                 </div>
               </div>
             }
@@ -269,7 +296,7 @@ export function DepositFlow() {
         startContent={isPreviewLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            dollarValueDecimals={USDC.decimals}
+            dollarValueDecimals={usdc.decimals}
             dollarValue={receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
@@ -291,13 +318,15 @@ export function DepositFlow() {
         </Button>
       ) : (
         <ConnectedAccount>
-          {isPrereqsLoading ? (
+          {needsChainSwitch ? (
+            <SwitchChainButton />
+          ) : isPrereqsLoading ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
-          ) : isNotWhitelisted ? (
+          ) : isNotAdmitted ? (
             <Button fullWidth isDisabled>
-              Wallet Not Whitelisted
+              {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
             </Button>
-          ) : hasDepositRaw && !hasEnoughAllowance ? (
+          ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
             <Button
               fullWidth
               onPress={() => void handleApprove()}
@@ -339,13 +368,13 @@ export function DepositFlow() {
 
       {/* Why the action above is disabled. The deploying status and the Centrifuge vault's
           capacity are Zivoe Vault facts, so they render whether or not a wallet is
-          connected; the whitelist verdict only exists once one is. */}
+          connected; the access verdict only exists once one is. */}
       {isZivoeVaultDeploying ? (
         <Callout variant="warning">Deposits are currently disabled, redemptions are enabled.</Callout>
       ) : isCapacityUnavailable ? (
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
-      ) : isNotWhitelisted ? (
-        <NotWhitelistedCallout />
+      ) : isNotAdmitted ? (
+        <WalletAccessCallout restriction={restriction} />
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an
@@ -354,122 +383,3 @@ export function DepositFlow() {
     </>
   );
 }
-
-// USDC is the only input asset, but the selector stays as the interaction point
-// for future input assets. Everything else remains explicitly USDC-only.
-const USDC_SELECT_ITEM = {
-  id: 'USDC' as const,
-  label: TOKEN_INFO.USDC.label,
-  name: TOKEN_INFO.USDC.description,
-  icon: TOKEN_INFO.USDC.icon
-};
-
-function UsdcTokenDialog({ isDisabled }: { isDisabled: boolean }) {
-  const account = useAccount();
-  const usdcBalance = useBalance({ tokenAddress: USDC.address });
-
-  return (
-    <Dialog>
-      <SelectTrigger
-        variant="border-light"
-        className="hidden w-29.75 justify-between gap-2 lg:flex"
-        isDisabled={isDisabled}
-      >
-        <div className="flex items-center gap-2 [&_svg]:size-4">
-          {USDC_SELECT_ITEM.icon}
-          {USDC_SELECT_ITEM.label}
-        </div>
-      </SelectTrigger>
-
-      <DialogContent dialogClassName="gap-0" showCloseButton={false}>
-        {({ close }) => (
-          <>
-            <DialogHeader>
-              <DialogTitle>Select Asset</DialogTitle>
-            </DialogHeader>
-
-            <DialogContentBox className="gap-2 p-4">
-              <Aria.Button
-                onPress={close}
-                className="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden"
-              >
-                <div className="flex items-center gap-2 [&_svg]:size-8">
-                  {USDC_SELECT_ITEM.icon}
-
-                  <div className="flex flex-col items-start">
-                    <p className="text-regular font-medium text-primary">{USDC_SELECT_ITEM.label}</p>
-                    <p className="text-extraSmall text-tertiary">{USDC_SELECT_ITEM.name}</p>
-                  </div>
-                </div>
-
-                {account.address && (
-                  <p className="text-small text-tertiary">
-                    Balance:{' '}
-                    <span className="font-medium text-primary">
-                      {formatBigIntToReadable(usdcBalance.data ?? 0n, USDC.decimals)}
-                    </span>
-                  </p>
-                )}
-              </Aria.Button>
-            </DialogContentBox>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function UsdcTokenSelect({ isDisabled }: { isDisabled: boolean }) {
-  return (
-    <Select placeholder="Select" aria-label="Select deposit asset" value="USDC" isDisabled={isDisabled}>
-      <SelectTrigger variant="border-light" className="w-29.75 justify-between gap-2 lg:hidden">
-        <SelectValue className="flex items-center gap-2 [&_svg]:size-4" />
-      </SelectTrigger>
-
-      <SelectPopover>
-        <SelectListBox items={[USDC_SELECT_ITEM]}>
-          {(item) => (
-            <SelectItem
-              key={item.id}
-              value={item}
-              textValue={item.label}
-              className="flex items-center gap-2 [&_svg]:size-5"
-              showCheckmark={false}
-            >
-              {item.icon}
-              {item.label}
-            </SelectItem>
-          )}
-        </SelectListBox>
-      </SelectPopover>
-    </Select>
-  );
-}
-
-// TODO: restore alongside the card above once we publish an APY to project
-// from. The copy below still cites trailing 30-day performance and will need
-// rewording for whatever rate replaces it.
-// function EstimatedAnnualizedReturn({ assets, apy }: { assets: bigint; apy: number | null }) {
-//   let valueFormatted: string | null = null;
-//
-//   if (apy !== null && assets > 0n) {
-//     // apy is a percent (e.g. 7.31); basis points keep the bigint math exact.
-//     const apyBps = BigInt(Math.round(apy * 100));
-//     const value = (assets * apyBps) / 10_000n;
-//
-//     valueFormatted = formatBigIntWithCommas({
-//       value,
-//       tokenDecimals: USDC.decimals,
-//       displayDecimals: 2,
-//       showUnderZero: true
-//     });
-//   }
-//
-//   return (
-//     <div className="flex flex-col gap-3 rounded-md border border-default bg-surface-elevated p-6">
-//       <p className="text-regular text-secondary">Illustrative annualized return</p>
-//       <p className="text-h6 text-primary">{valueFormatted === null ? '-' : `$${valueFormatted}`}</p>
-//       <p className="text-extraSmall text-tertiary">Based on trailing 30-day performance; actual returns may differ.</p>
-//     </div>
-//   );
-// }

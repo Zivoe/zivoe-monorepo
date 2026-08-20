@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { type TransactionIdentity, useDeposit } from './index';
@@ -42,8 +42,7 @@ const DEPOSIT_EVENT_ABI = parseAbi([
 ]);
 
 /** The zSMB identity as the app resolves it, next to the synthetic fixture class. */
-const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT);
-const ZSMB_CENTRIFUGE_VAULT = ZSMB_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase();
+const ZSMB_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 
 const ZSMB_AMOUNTS = { assets: 1_000_000000n, shares: 934_579439252336448598n };
 const FIXTURE_AMOUNTS = { assets: 250_000000n, shares: 233_64485981n };
@@ -77,8 +76,8 @@ function mixedReceipt(): TransactionReceipt {
     status: 'success',
     transactionHash: TX_HASH,
     logs: [
-      depositLog({ centrifugeVaultAddress: ZSMB_IDENTITY.shareClass.centrifugeVaultAddress, ...ZSMB_AMOUNTS }),
-      depositLog({ centrifugeVaultAddress: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, ...FIXTURE_AMOUNTS })
+      depositLog({ centrifugeVaultAddress: ZSMB_IDENTITY.centrifugeVault.address, ...ZSMB_AMOUNTS }),
+      depositLog({ centrifugeVaultAddress: FIXTURE_IDENTITY.centrifugeVault.address, ...FIXTURE_AMOUNTS })
     ]
   } as unknown as TransactionReceipt;
 }
@@ -132,16 +131,16 @@ describe('two share classes side by side', () => {
     await runDeposit({ identity: ZSMB_IDENTITY, queryClient });
     await runDeposit({ identity: FIXTURE_IDENTITY, queryClient });
 
-    expect(getCentrifugeVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.shareClass);
-    expect(getCentrifugeVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(1, ZSMB_IDENTITY.centrifugeVault);
+    expect(getCentrifugeVault).toHaveBeenNthCalledWith(2, FIXTURE_IDENTITY.centrifugeVault);
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['CENTRIFUGE', 'zsmb', ZSMB_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', FIXTURE_CENTRIFUGE_VAULT, 'VAULT_CAPACITY']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb', ZSMB_CENTRIFUGE_VAULT]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT]),
+        JSON.stringify(['CENTRIFUGE', 'zsmb', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
         JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])
@@ -261,7 +260,7 @@ describe('two share classes side by side', () => {
     // The invalidations are pinned the same way: they refetch the
     // mutation-time class's scope, never the re-rendered one's.
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
-    expect(invalidatedKeys.some((key) => key.includes(ZSMB_IDENTITY.shareClass.key))).toBe(true);
-    expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.shareClass.key))).toBe(false);
+    expect(invalidatedKeys.some((key) => key.includes(ZSMB_IDENTITY.centrifugeVault.shareClass.key))).toBe(true);
+    expect(invalidatedKeys.some((key) => key.includes(FIXTURE_IDENTITY.centrifugeVault.shareClass.key))).toBe(false);
   });
 });

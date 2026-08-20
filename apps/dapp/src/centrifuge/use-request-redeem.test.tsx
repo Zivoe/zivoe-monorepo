@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useRequestRedeem } from './index';
 
@@ -116,7 +116,7 @@ describe('useRequestRedeem', () => {
     act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
 
     const dialog = getDefaultStore().get(transactionAtom);
     expect(dialog).toEqual({
@@ -125,6 +125,7 @@ describe('useRequestRedeem', () => {
       description: 'Your final USDC amount is determined when your request is processed.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: {
         redeem: {
           share: { symbol: 'zFIX', decimals: 8 },
@@ -140,7 +141,7 @@ describe('useRequestRedeem', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
 

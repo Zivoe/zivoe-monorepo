@@ -2,15 +2,9 @@ import 'server-only';
 
 import { z } from 'zod';
 
-import {
-  CENTRIFUGE_NETWORK_FACTS,
-  type ResultOf,
-  fetchCentrifugeIndexer,
-  getShareClassIdentity,
-  graphql
-} from '@zivoe/centrifuge-indexer';
+import { type ResultOf, fetchCentrifugeIndexer, getShareClassIdentity, graphql } from '@zivoe/centrifuge-indexer';
 
-import { env } from '@/env';
+import { CENTRIFUGE_ENV } from '@/centrifuge/config';
 
 const ANY_INVESTOR_TRANSACTION_QUERY = graphql(`
   query AnyInvestorTransaction($tokenIds: [String], $poolIds: [BigInt], $accounts: [String]) {
@@ -40,16 +34,16 @@ export async function hasAnyInvestorTransaction({
 }): Promise<boolean> {
   if (addresses.length === 0) return false;
 
-  const network = env.NEXT_PUBLIC_NETWORK;
-  const identities = shareClassKeys.map((key) => getShareClassIdentity({ network, key }));
+  const environment = CENTRIFUGE_ENV.environment;
+  const identities = shareClassKeys.map((key) => getShareClassIdentity({ environment, key }));
 
   // Defense in depth behind the parameter: `false` would read as "never
   // invested" and re-arm every nag downstream.
   if (identities.length === 0)
-    throw new Error(`No live share class on "${network}" — investor activity is unknowable, not absent.`);
+    throw new Error(`No live share class on "${environment}" — investor activity is unknowable, not absent.`);
 
   const data = await fetchCentrifugeIndexer({
-    indexerUrl: CENTRIFUGE_NETWORK_FACTS[network].indexerUrl,
+    indexerUrl: CENTRIFUGE_ENV.indexerUrl,
     query: ANY_INVESTOR_TRANSACTION_QUERY,
     variables: {
       tokenIds: identities.map((identity) => identity.scId),

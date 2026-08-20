@@ -4,19 +4,30 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAtom } from 'jotai';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { NETWORK_CHAIN } from '@/lib/network';
+import { getViemChain } from '@/lib/chains';
 import { type TransactionTokenSnapshot, transactionAtom } from '@/lib/store';
 import { formatBigIntToReadable } from '@/lib/utils';
 
 import { getTokenInfo } from '@/components/token-info';
 
-const EXPLORER_URL = NETWORK_CHAIN.blockExplorers.default.url;
+/**
+ * Explorer link of the chain the payload was stamped with. No fallback on
+ * purpose: another chain's explorer for this hash would be confidently
+ * wrong, so a payload without a chain (or a chain without an explorer)
+ * renders no link at all.
+ */
+function explorerTxUrl(chain: CentrifugeChain | undefined, hash: string): string | undefined {
+  if (!chain) return undefined;
+  const explorer = getViemChain(chain).blockExplorers?.default.url;
+  return explorer ? `${explorer}/tx/${hash}` : undefined;
+}
 
 /**
  * Renders exclusively from the payload's token snapshots — never from the
@@ -37,6 +48,8 @@ export function TransactionDialog() {
   }, [transaction]);
 
   if (!transaction) return null;
+
+  const explorerLink = explorerTxUrl(transaction.chain, transaction.hash);
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
@@ -62,9 +75,11 @@ export function TransactionDialog() {
                 <p className="text-center text-regular text-secondary">{transaction.description}</p>
               </div>
 
-              <Link size="m" href={`${EXPLORER_URL}/tx/${transaction.hash}`} target="_blank">
-                See transaction details
-              </Link>
+              {explorerLink && (
+                <Link size="m" href={explorerLink} target="_blank">
+                  See transaction details
+                </Link>
+              )}
             </div>
           </div>
 

@@ -1,27 +1,43 @@
 import { type Address } from 'viem';
 
-import { type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
+import { type ShareClassChainIdentity } from '@zivoe/centrifuge-indexer';
+
+import { type UsdcInstance } from './config';
 
 /**
- * The share class a hook transacts and reads against — resolved from the
- * catalog and Centrifuge-vault map in the app, a synthetic fixture in tests. Composed
- * from the catalog's identity shape so a new identity field cannot be added
- * in one package and forgotten here, with `key`/`symbol` widened to plain
- * strings on purpose: the module stays a pure, testable boundary with no
- * registry coupling (this import is type-only).
+ * The Centrifuge vault a hook transacts and reads against — one share class
+ * paired with its deposit asset on ONE spoke chain. Resolved from the catalog
+ * and Centrifuge-vault map in the app, a synthetic fixture in tests. The hub
+ * half is composed from the catalog's chain-identity shape so a new identity
+ * field cannot be added in one package and forgotten here, with
+ * `key`/`symbol` widened to plain strings on purpose: the module stays a
+ * pure, testable boundary with no registry coupling (these imports are
+ * type-only). The chain is part of the identity: the same class on another
+ * chain is a different Centrifuge vault, a different wallet balance, and a
+ * different cache entry.
  */
-export type TransactedShareClass = Omit<ShareClassIdentity, 'key' | 'symbol'> & {
-  /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization. */
-  key: string;
-  symbol: string;
-  centrifugeVaultAddress: Address;
+export type TransactedCentrifugeVault = Pick<ShareClassChainIdentity, 'chain' | 'chainId'> & {
+  /** The Centrifuge vault's own address on the chain. */
+  address: Address;
+  /** The chain's USDC instance — resolved onto the identity so hooks and flows never re-derive chain config (a throwing lookup) in render paths. */
+  usdc: UsdcInstance;
+  /** The chain's VaultRouter — deposits route through it, so it is the USDC approval spender. */
+  vaultRouterAddress: Address;
+  /** Whether the redeem tab offers cancelling a pending request on this chain — see CentrifugeChainConfig. */
+  supportsRedeemCancellation: boolean;
+  /** The share class the Centrifuge vault serves: hub facts plus its token instance on this chain. */
+  shareClass: Omit<ShareClassChainIdentity, 'chain' | 'chainId' | 'key' | 'symbol'> & {
+    /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization (alongside `chain`). */
+    key: string;
+    symbol: string;
+  };
 };
 
 /** Identity a Transaction Hook stamps on copy, analytics, Sentry, and the payload. */
 export type TransactionIdentity = {
   /** Zivoe Vault slug — the stable public identity alongside token symbols. */
   zivoeVaultSlug: string;
-  shareClass: TransactedShareClass;
+  centrifugeVault: TransactedCentrifugeVault;
 };
 
 export type CentrifugeVaultCapacity = {
@@ -35,6 +51,28 @@ export type DepositPreview = {
 };
 
 /**
+ * Why the two verdicts below are false, when they are. The hook checks freeze
+ * BEFORE its memberlist branch and short-circuits, so a frozen member and a
+ * wallet that was never admitted produce the identical `false` — nothing in
+ * the verdicts themselves tells them apart, and only this says which it was.
+ *
+ * - `frozen`: an operator suspended this wallet on this chain. Takes
+ *   precedence over any membership state, because it is the deliberate act
+ *   and unfreezing is the only thing that lifts it (re-admitting a frozen
+ *   wallet preserves the freeze bit and changes nothing).
+ * - `not-member`: never admitted — the plain "not whitelisted".
+ * - `membership-expired`: admitted with a `validUntil` that has since passed.
+ *   Unreachable through Centrifuge's operator UI today (every admission it
+ *   has ever written uses a far-future timestamp), and the hook forbids
+ *   backdating an expiry, so this exists to keep an expiry that Centrifuge
+ *   may one day expose from silently reading as `not-member`.
+ * - `unknown`: the hook did not answer, or answered in a way that does not
+ *   explain the block (a member, unfrozen, yet refused). Never a verdict —
+ *   it renders as `not-member` does and is reported rather than shown.
+ */
+export type InvestorRestriction = 'none' | 'frozen' | 'not-member' | 'membership-expired' | 'unknown';
+
+/**
  * The share token's transfer hook, asked about one wallet in the two
  * directions the flows move shares. Every Zivoe Vault's Centrifuge vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
@@ -44,7 +82,7 @@ export type DepositPreview = {
  * one direction gates several actions, and the mapping is not the obvious one
  * (see canReceiveShares).
  */
-export type InvestorWhitelist = {
+export type InvestorAccess = {
   /**
    * `checkTransferRestriction(0, investor, 0)` — the wallet may receive shares.
    *
@@ -64,6 +102,12 @@ export type InvestorWhitelist = {
    * a redeem claim, and USDC carries no hook), so it must never be gated here.
    */
   canRequestRedemption: boolean;
+  /**
+   * Why the wallet is blocked — copy only. The two verdicts above stay the
+   * sole gate: they are what predicts a revert, and a failure to explain them
+   * must never be able to unblock an action.
+   */
+  restriction: InvestorRestriction;
 };
 
 export type RedemptionPosition = {

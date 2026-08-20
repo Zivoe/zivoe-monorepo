@@ -30,6 +30,8 @@ export * from './hand';
 export * from './money';
 export * from './usdc';
 export * from './ethereum';
+export * from './pharos';
+export * from './base';
 export * from './check-circle';
 export * from './close-circle';
 export * from './warning';

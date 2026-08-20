@@ -10,9 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { CENTRIFUGE_ENV, useClaimReturnedShares } from './index';
+import { useClaimReturnedShares } from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 const setTransactionSigner = vi.hoisted(() => vi.fn());
@@ -50,12 +50,12 @@ const RETURNED_SHARES = 4n * 10n ** 18n;
 const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimCancelRedeemRequest',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 const CLAIM_REDEEM_DATA = encodeFunctionData({
   abi: ABI.VaultRouter,
   functionName: 'claimRedeem',
-  args: [FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress, INVESTOR, INVESTOR]
+  args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
@@ -66,7 +66,7 @@ function claimReceipt({ withClaimLog = true }: { withClaimLog?: boolean } = {}) 
   const logs = withClaimLog
     ? [
         {
-          address: FIXTURE_IDENTITY.shareClass.centrifugeVaultAddress.toLowerCase(),
+          address: FIXTURE_IDENTITY.centrifugeVault.address.toLowerCase(),
           topics: encodeEventTopics({
             abi: CANCEL_REDEEM_CLAIM_EVENT_ABI,
             eventName: 'CancelRedeemClaim',
@@ -134,7 +134,7 @@ function fakeCentrifugeVault({
                 params: [
                   {
                     from: INVESTOR,
-                    to: CENTRIFUGE_ENV.vaultRouterAddress,
+                    to: FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress,
                     data: claimData
                   }
                 ]
@@ -191,7 +191,7 @@ describe('useClaimReturnedShares', () => {
 
     // Identity follows the hook parameter: the fixture share class resolves
     // the Centrifuge vault and the Zivoe Vault slug rides the analytics captures.
-    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.shareClass);
+    expect(getCentrifugeVault).toHaveBeenCalledWith(FIXTURE_IDENTITY.centrifugeVault);
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_claim_returned_receipt',
       expect.objectContaining({ zivoe_vault_slug: 'fixture-zivoe-vault', token_out: 'zFIX' })
@@ -203,6 +203,7 @@ describe('useClaimReturnedShares', () => {
       description: 'Your zFIX has been returned to your wallet.',
       hash: TX_HASH,
       zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia',
       meta: { claimReturnedShares: { share: { symbol: 'zFIX', decimals: 8 }, shares: RETURNED_SHARES } }
     });
 
@@ -210,7 +211,7 @@ describe('useClaimReturnedShares', () => {
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', FIXTURE_CENTRIFUGE_VAULT])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
   });
@@ -279,7 +280,8 @@ describe('useClaimReturnedShares', () => {
       title: 'Claim Could Not Be Verified',
       description: 'The transaction was confirmed, but the zFIX claim could not be verified. Refresh your balances.',
       hash: TX_HASH,
-      zivoeVaultSlug: 'fixture-zivoe-vault'
+      zivoeVaultSlug: 'fixture-zivoe-vault',
+      chain: 'sepolia'
     });
     expect(sentryCapture).toHaveBeenCalled();
   });

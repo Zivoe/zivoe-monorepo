@@ -20,59 +20,78 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
+import { getTokenInfo } from '@/components/token-info';
 
 import {
-  CENTRIFUGE_ENV,
-  type TransactedShareClass,
+  type TransactedCentrifugeVault,
   sharesToUsdc,
   sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
-  useInvestorWhitelist,
+  useInvestorAccess,
   useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
 
-import { useZivoeVaultIdentity } from '../zivoe-vault-provider';
+import { ChainBalanceDetail } from './_components/chain-balance-detail';
+import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
+import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
-import { NotWhitelistedCallout } from './_components/not-whitelisted-callout';
 import { TokenDisplay } from './_components/token-display';
+import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
-
-// The one deposit asset every Zivoe Vault accepts — a network-level fact.
-const USDC = CENTRIFUGE_ENV.usdc;
 
 type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
-  const identity = useZivoeVaultIdentity();
-  const share = identity.shareClass;
+  const {
+    identities,
+    selectedIdentity: identity,
+    selectedChain,
+    setSelectedChain,
+    needsChainSwitch
+  } = useSelectedChain();
+
+  const { centrifugeVault } = identity;
+  const share = centrifugeVault.shareClass;
+  const usdc = centrifugeVault.usdc;
+  // Chains without the hub-side unwind get no cancel control at all — the
+  // claims and the Cancellation Processing strip stay data-driven, so a
+  // cancellation made outside this dApp still resolves here.
+  const supportsCancel = centrifugeVault.supportsRedeemCancellation;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  const shareBalance = useBalance({ tokenAddress: share.shareTokenAddress });
-  const usdcBalance = useBalance({ tokenAddress: USDC.address });
-  const position = useRedemptionPosition({ shareClass: share });
+  const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
+  const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
+  const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
-  const whitelist = useInvestorWhitelist({ shareClass: share });
+  const access = useInvestorAccess({ centrifugeVault });
 
-  // Two gates, because the whitelist does not fall along this panel's own
-  // lines. Only a definitive `false` gates anything: a failed read is a fetch
-  // problem and not a verdict, so it leaves both alone and lets the pre-sign
-  // simulation decode the real revert if the vault does refuse.
+  // Two gates, because the Centrifuge vault's verdicts do not fall along this
+  // panel's own lines. Only a definitive `false` gates anything: a failed read
+  // is a fetch problem and not a verdict, so it leaves both alone and lets the
+  // pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
   //
   // Claiming settled USDC is deliberately under neither: the protocol exempts
   // a redeem claim from the whitelist (and USDC carries no transfer hook), so
-  // a wallet that is no longer whitelisted keeps proceeds it is already owed.
-  const isNotWhitelisted = whitelist.isSuccess && !whitelist.data.canRequestRedemption;
+  // a blocked wallet keeps proceeds it is already owed.
+  const isNotAdmitted = access.isSuccess && !access.data.canRequestRedemption;
   // Cancelling and claiming returned shares both reduce on-chain to "may this
   // wallet receive shares", so they stand or fall together.
-  const isShareReturnBlocked = whitelist.isSuccess && !whitelist.data.canReceiveShares;
+  const isShareReturnBlocked = access.isSuccess && !access.data.canReceiveShares;
+  // Names the block; never widens it. An unread or unexplained reason falls
+  // back to the general "not whitelisted" presentation.
+  const restriction = access.data?.restriction;
+  // The buttons below are too narrow to carry the reason and sit a long way
+  // from the callout at the foot of the panel, so they get their own short
+  // form of the same answer.
+  const shareReturnHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'Requires a whitelisted wallet.';
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
@@ -123,7 +142,7 @@ export default function RedeemFlow() {
     shareBalance.isFetching ||
     usdcBalance.isFetching ||
     chainalysis.isFetching ||
-    whitelist.isFetching ||
+    access.isFetching ||
     (position.isFetching && !isCancellationProcessing) ||
     // isPending on purpose: metrics refetch on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
@@ -131,6 +150,10 @@ export default function RedeemFlow() {
 
   const isMutationPending =
     requestRedeem.isPending || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
+  // Every write on this tab (request, cancel, both claims) executes on the
+  // selected chain, so one gate serves them all: the strips' buttons disable
+  // and the main action becomes the switch.
+  const isWriteBlocked = isPrereqsLoading || needsChainSwitch;
   /**
    * All four writes share one transaction path, so each control waits out the
    * other three. Pass the control's own pending flag — its own run is already
@@ -138,11 +161,15 @@ export default function RedeemFlow() {
    */
   const isOtherMutationPending = (isSelfPending: boolean) => isMutationPending && !isSelfPending;
   // Cancellation Processing locks the whole form: a new request would revert
-  // on-chain until the hub finishes the unwind. A wallet the vault will not
-  // admit locks it for the same reason — there is no amount worth entering.
+  // on-chain until the hub finishes the unwind. A wallet the Centrifuge vault
+  // will not admit locks it for the same reason — there is no amount worth entering.
   // Only the request gate applies here: a wallet that may still send shares to
   // escrow can use this form even when its share moves back are blocked.
-  const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotWhitelisted;
+  const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAdmitted;
+
+  // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
+  // Named like the deposit tab's carrier so the two selectors cannot drift.
+  const isChainSelectorLocked = isPrereqsLoading || isMutationPending;
 
   // Named once, like the deposit tab's, so the button and its handler cannot
   // drift apart. Only a sibling write gates the action; the settled facts above
@@ -178,9 +205,10 @@ export default function RedeemFlow() {
     );
   };
 
+  // Balance verdicts are wallet- and chain-scoped — see the deposit tab.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, form]);
+  }, [account.address, selectedChain, form]);
 
   const handleClaim = () => {
     if (claimableAssets <= 0n) return;
@@ -189,7 +217,7 @@ export default function RedeemFlow() {
   };
 
   const handleCancelRedeem = () => {
-    if (pendingShares <= 0n || isShareReturnBlocked) return;
+    if (pendingShares <= 0n || isShareReturnBlocked || !supportsCancel) return;
 
     cancelRedeem.mutate({ pendingShares });
   };
@@ -200,7 +228,11 @@ export default function RedeemFlow() {
     claimReturnedShares.mutate({ returnedShares });
   };
 
-  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, USDC.decimals) : '';
+  // Display entry for the share token; the fixture classes tests hand in have
+  // none, so the selector falls back to the bare symbol without an icon.
+  const shareSelectorToken = getTokenInfo(share.symbol) ?? { label: share.symbol, icon: null };
+
+  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, usdc.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isEstimateLoading ? '' : undefined;
@@ -221,7 +253,7 @@ export default function RedeemFlow() {
                 onPress={handleClaimReturnedShares}
                 size="s"
                 isDisabled={
-                  isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
+                  isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
                 }
                 isPending={claimReturnedShares.isPending}
                 pendingContent={
@@ -237,9 +269,7 @@ export default function RedeemFlow() {
             </ConnectedAccount>
           </div>
 
-          {/* The button is too narrow to carry the reason, and the callout at
-              the foot of the panel is a long way from this control. */}
-          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
+          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">{shareReturnHint}</p>}
         </div>
       )}
 
@@ -247,7 +277,7 @@ export default function RedeemFlow() {
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: USDC.decimals, displayDecimals: 2 })}{' '}
+              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })}{' '}
               USDC ready to claim
             </p>
 
@@ -256,10 +286,10 @@ export default function RedeemFlow() {
                 onPress={handleClaim}
                 size="s"
                 isDisabled={
-                  isPrereqsLoading ||
+                  isWriteBlocked ||
                   isOtherMutationPending(claimRedeem.isPending) ||
-                  // The vault claims Returned Shares before USDC in one shared
-                  // transaction path, so the USDC claim waits its turn.
+                  // The Centrifuge vault claims Returned Shares before USDC in one
+                  // shared transaction path, so the USDC claim waits its turn.
                   returnedShares > 0n
                 }
                 isPending={claimRedeem.isPending}
@@ -283,20 +313,25 @@ export default function RedeemFlow() {
       )}
 
       {isCancellationProcessing ? (
-        <CancellationProcessingStrip pendingShares={pendingShares} shareClass={share} />
+        <CancellationProcessingStrip pendingShares={pendingShares} centrifugeVault={centrifugeVault} />
       ) : (
         pendingShares > 0n && (
           <RedemptionProcessingStrip
             pendingShares={pendingShares}
             sharePrice={sharePrice}
-            shareClass={share}
-            cancel={{
-              onPress: handleCancelRedeem,
-              isDisabled: isPrereqsLoading || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-              isBlockedByWhitelist: isShareReturnBlocked,
-              isPending: cancelRedeem.isPending,
-              isTxPending: cancelRedeem.isTxPending
-            }}
+            centrifugeVault={centrifugeVault}
+            cancel={
+              supportsCancel
+                ? {
+                    onPress: handleCancelRedeem,
+                    isDisabled:
+                      isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
+                    blockedHint: isShareReturnBlocked ? shareReturnHint : undefined,
+                    isPending: cancelRedeem.isPending,
+                    isTxPending: cancelRedeem.isTxPending
+                  }
+                : undefined
+            }
           />
         )
       )}
@@ -335,7 +370,20 @@ export default function RedeemFlow() {
                 />
 
                 <div className="ml-3">
-                  <TokenDisplay symbol={share.symbol} />
+                  <ChainTokenSelector
+                    title="Select Asset"
+                    token={shareSelectorToken}
+                    // Each row shows that chain's redeemable share balance —
+                    // the position the user came here to redeem, and the one
+                    // signal that tells them which chain actually holds it.
+                    rows={identities.map((rowIdentity) => ({
+                      chain: rowIdentity.centrifugeVault.chain,
+                      detail: <ChainBalanceDetail identity={rowIdentity} token="share" />
+                    }))}
+                    selectedChain={selectedChain}
+                    onSelect={setSelectedChain}
+                    isDisabled={isChainSelectorLocked}
+                  />
                 </div>
               </div>
             }
@@ -364,25 +412,27 @@ export default function RedeemFlow() {
         startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            dollarValueDecimals={USDC.decimals}
+            dollarValueDecimals={usdc.decimals}
             dollarValue={receiveDollarValue}
             isLoading={isEstimateLoading}
-            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: USDC.decimals }}
+            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: usdc.decimals }}
           />
         }
         endContent={<TokenDisplay symbol="USDC" />}
       />
 
       <ConnectedAccount>
-        {isPrereqsLoading ? (
+        {needsChainSwitch ? (
+          <SwitchChainButton />
+        ) : isPrereqsLoading ? (
           <Button fullWidth isPending={true} pendingContent="Loading..." />
         ) : isCancellationProcessing ? (
           <Button fullWidth isDisabled>
             Cancellation in progress
           </Button>
-        ) : isNotWhitelisted ? (
+        ) : isNotAdmitted ? (
           <Button fullWidth isDisabled>
-            Wallet Not Whitelisted
+            {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
           </Button>
         ) : (
           <Button
@@ -411,7 +461,7 @@ export default function RedeemFlow() {
 
         {/* Why the action above is disabled — the verdict only exists once a
             wallet is connected. */}
-        {isNotWhitelisted && <NotWhitelistedCallout />}
+        {isNotAdmitted && <WalletAccessCallout restriction={restriction} />}
       </div>
     </>
   );
@@ -420,21 +470,23 @@ export default function RedeemFlow() {
 function RedemptionProcessingStrip({
   pendingShares,
   sharePrice,
-  shareClass,
+  centrifugeVault,
   cancel
 }: {
   pendingShares: bigint;
   sharePrice: bigint | undefined;
-  shareClass: TransactedShareClass;
-  cancel: {
+  centrifugeVault: TransactedCentrifugeVault;
+  /** Absent on chains without redeem cancellation — the strip is then read-only. */
+  cancel?: {
     onPress: () => void;
     isDisabled: boolean;
-    /** Narrows the generic disabled state to the one cause worth naming here. */
-    isBlockedByWhitelist: boolean;
+    /** Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */
+    blockedHint?: string;
     isPending: boolean;
     isTxPending: boolean;
   };
 }) {
+  const { usdc, shareClass } = centrifugeVault;
   const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
 
   return (
@@ -444,40 +496,41 @@ function RedemptionProcessingStrip({
           {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
           {shareClass.symbol} processing
           {pendingUsdc !== undefined
-            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: USDC.decimals, displayDecimals: 2 })} USDC`
+            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC`
             : ''}
         </p>
 
-        <ConnectedAccount fullWidth={false} type="skeleton">
-          <Button
-            variant="link-neutral-light"
-            size="s"
-            onPress={cancel.onPress}
-            isDisabled={cancel.isDisabled}
-            isPending={cancel.isPending}
-            pendingContent={
-              cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
-            }
-          >
-            Cancel request
-          </Button>
-        </ConnectedAccount>
+        {cancel && (
+          <ConnectedAccount fullWidth={false} type="skeleton">
+            <Button
+              variant="link-neutral-light"
+              size="s"
+              onPress={cancel.onPress}
+              isDisabled={cancel.isDisabled}
+              isPending={cancel.isPending}
+              pendingContent={
+                cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
+              }
+            >
+              Cancel request
+            </Button>
+          </ConnectedAccount>
+        )}
       </div>
 
-      {/* The button is too narrow to carry the reason, and the callout at the
-          foot of the panel is a long way from this control. */}
-      {cancel.isBlockedByWhitelist && <p className="text-extraSmall text-tertiary">Requires a whitelisted wallet.</p>}
+      {cancel?.blockedHint && <p className="text-extraSmall text-tertiary">{cancel.blockedHint}</p>}
     </div>
   );
 }
 
 function CancellationProcessingStrip({
   pendingShares,
-  shareClass
+  centrifugeVault
 }: {
   pendingShares: bigint;
-  shareClass: TransactedShareClass;
+  centrifugeVault: TransactedCentrifugeVault;
 }) {
+  const { shareClass } = centrifugeVault;
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">

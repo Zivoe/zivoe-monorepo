@@ -1,7 +1,9 @@
 import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
 
-import { NETWORK_CHAIN } from '@/lib/network';
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+
+import { getChainId } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
@@ -12,6 +14,8 @@ export type ApproveTokenAbi = typeof erc20Abi;
 export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
 
 type ApproveSpendingVariables = {
+  /** The chain the approval executes on — token and spender addresses are chain-scoped. */
+  chain: CentrifugeChain;
   contract: Address;
   spender: Address;
   amount?: bigint;
@@ -31,14 +35,17 @@ type ApproveSpendingVariables = {
  */
 export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string }) => {
   return useTx<ApproveSpendingVariables, ApproveTokenParams>({
-    buildParams: ({ contract, spender, amount, abi }) => {
+    buildParams: ({ chain, contract, spender, amount, abi }) => {
       if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
 
       const params: ApproveTokenParams = {
         abi,
         address: contract,
         functionName: 'approve',
-        args: [spender, amount]
+        args: [spender, amount],
+        // Pins simulation, sending and the receipt wait to the approval's
+        // chain; wagmi additionally refuses to send if the wallet sits elsewhere.
+        chainId: getChainId(chain)
       };
 
       return params;
@@ -46,9 +53,9 @@ export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string 
 
     analytics: {
       flow: 'approval',
-      input: ({ name, amount, spender }, { address }) => ({
+      input: ({ chain, name, amount, spender }, { address }) => ({
         walletAddress: address,
-        chainId: NETWORK_CHAIN.id,
+        chainId: getChainId(chain),
         zivoeVaultSlug,
         tokenIn: name,
         amountInRaw: amount,
@@ -59,8 +66,10 @@ export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string 
     pendingToast: ({ name }) => `Approving ${name}...`,
     errorToast: ({ name }) => `Error Approving ${name}`,
     sentryFlow: 'approve',
-    // The lifecycle derives the `zivoeVault` Sentry tag and extra from this.
+    // The lifecycle derives the `zivoeVault`/`chain` Sentry tags and the
+    // payload stamps from these.
     zivoeVaultSlug,
+    chain: (vars) => vars.chain,
     sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
     transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {
@@ -100,6 +109,7 @@ export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string 
       void queryClient.invalidateQueries({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
+          chain: vars.chain,
           contract: vars.contract,
           spender: vars.spender
         })

@@ -5,7 +5,6 @@ import { Balance } from '@centrifuge/sdk';
 import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { CENTRIFUGE_ENV } from './config';
 import { type TransactionIdentity } from './types';
 import useCentrifugeTx from './useCentrifugeTx';
 
@@ -57,8 +56,7 @@ export function useRequestRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { shareClass } = identity;
-  const usdc = CENTRIFUGE_ENV.usdc;
+  const { usdc, shareClass } = identity.centrifugeVault;
   const copy = requestRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<RequestRedeemVariables>({
@@ -81,7 +79,7 @@ export function useRequestRedeem({
       flow: 'redeem',
       input: ({ shares, estimatedAssets }, { address }) => ({
         walletAddress: address,
-        chainId: CENTRIFUGE_ENV.chainId,
+        chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
         tokenOut: usdc.symbol,
         amountInRaw: shares,
