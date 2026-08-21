@@ -227,7 +227,7 @@ const TEAM_MEMBERS: Array<TeamMemberData> = [
   },
   {
     name: 'John Quarnstrom',
-    title: 'Head of Technology',
+    title: 'CTO',
     image: '/team/john.png',
     bio: 'Solidity engineer with nearly a decade of blockchain development experience. Early engineer at Maple Finance and holder of the Certificate in Quantitative Finance.',
     linkedIn: 'https://www.linkedin.com/in/johnny-q/',
