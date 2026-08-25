@@ -91,30 +91,47 @@ export function formatTelegramItem({
 
   const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
 
-  if (event.type === 'SYNC_DEPOSIT') {
-    const assets =
-      event.currencyAmount === null ? '?' : formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals });
+  const assets =
+    event.currencyAmount === null ? '?' : formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals });
 
-    // Redeem-request rows carry price 0; deposits carry the D18 execution price.
-    const price =
-      event.tokenPrice !== null && event.tokenPrice !== 0n
-        ? ` @ ${formatBigIntWithCommas({ value: event.tokenPrice, tokenDecimals: 18, displayDecimals: 4 })}`
-        : '';
+  // Redeem-request rows carry price 0; deposits and executed/claimed
+  // redemptions carry the D18 execution price.
+  const price =
+    event.tokenPrice !== null && event.tokenPrice !== 0n
+      ? ` @ ${formatBigIntWithCommas({ value: event.tokenPrice, tokenDecimals: 18, displayDecimals: 4 })}`
+      : '';
 
-    return [
-      `<b>Deposit</b> — ${symbol}`,
-      ...head,
-      `Amount: ${assets} ${usdc.symbol} → ${shares} ${symbol}${price}`,
-      chainLine
-    ].join('\n');
+  // Exhaustive without a default on purpose: with the `string` return type, a
+  // type widened at the boundary but unhandled here fails the build instead of
+  // falling through to a mislabeled alert.
+  switch (event.type) {
+    case 'SYNC_DEPOSIT':
+      return [
+        `<b>Deposit</b> — ${symbol}`,
+        ...head,
+        `Amount: ${assets} ${usdc.symbol} → ${shares} ${symbol}${price}`,
+        chainLine
+      ].join('\n');
+
+    case 'REDEEM_REQUEST_UPDATED':
+      return [
+        `<b>Redemption Request</b> — ${symbol}`,
+        ...head,
+        // The indexer reports the shares added by THIS call; an increase to an
+        // open request correctly shows up as its own alert.
+        `Requested: ${shares} ${symbol}`,
+        chainLine
+      ].join('\n');
+
+    // The manager's approval executed on the spoke (one row per partial fill)
+    // vs the investor collecting the assets — same shape, different actor.
+    case 'REDEEM_CLAIMABLE':
+    case 'REDEEM_CLAIMED':
+      return [
+        `<b>${event.type === 'REDEEM_CLAIMABLE' ? 'Redemption Claimable' : 'Redemption Claimed'}</b> — ${symbol}`,
+        ...head,
+        `Amount: ${shares} ${symbol} → ${assets} ${usdc.symbol}${price}`,
+        chainLine
+      ].join('\n');
   }
-
-  return [
-    `<b>Redemption Request</b> — ${symbol}`,
-    ...head,
-    // The indexer reports the shares added by THIS call; an increase to an
-    // open request correctly shows up as its own alert.
-    `Requested: ${shares} ${symbol}`,
-    chainLine
-  ].join('\n');
 }

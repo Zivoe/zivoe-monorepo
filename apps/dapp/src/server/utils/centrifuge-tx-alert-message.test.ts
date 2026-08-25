@@ -89,6 +89,36 @@ describe('formatTelegramItem', () => {
     expect(item).not.toContain('USDC');
   });
 
+  it('formats a claimable redemption as shares → USDC at the execution price', () => {
+    const item = formatTelegramItem({
+      event: event({
+        type: 'REDEEM_CLAIMABLE',
+        tokenAmount: 2000000000000000000n,
+        currencyAmount: 2269919n,
+        tokenPrice: 1134959500000000000n
+      }),
+      ...shared
+    });
+
+    expect(item).toContain('<b>Redemption Claimable</b> — zSMB');
+    expect(item).toContain('Amount: 2.00 zSMB → 2.26 USDC @ 1.1349');
+  });
+
+  it('formats a claimed redemption under its own label — same shape, different actor', () => {
+    const item = formatTelegramItem({
+      event: event({
+        type: 'REDEEM_CLAIMED',
+        tokenAmount: 2000000000000000000n,
+        currencyAmount: 2269919n,
+        tokenPrice: 1134959500000000000n
+      }),
+      ...shared
+    });
+
+    expect(item).toContain('<b>Redemption Claimed</b> — zSMB');
+    expect(item).toContain('Amount: 2.00 zSMB → 2.26 USDC @ 1.1349');
+  });
+
   it('escapes the dust marker — a raw `<0.01` is an unsupported tag to Telegram and 400s the pass', () => {
     const item = formatTelegramItem({
       event: event({ tokenAmount: 5000000000000000n, currencyAmount: 5000n }),

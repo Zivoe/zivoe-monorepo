@@ -7,7 +7,7 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 ### Transaction monitoring
 
 **Transaction Monitor**:
-The module that watches Centrifuge investor transactions (deposits, redemption requests) via the Centrifuge indexer and posts Telegram alerts — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
+The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer and posts Telegram alerts — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
 _Avoid_: cron route, notification job
 
 **Monitor Pass**:

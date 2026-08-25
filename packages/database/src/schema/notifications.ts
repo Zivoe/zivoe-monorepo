@@ -9,7 +9,12 @@ import { user } from './auth';
  * plus an ALTER TYPE migration, which makes the migration the reviewable
  * artifact of "we now alert on X".
  */
-export const investorTransactionTypeValues = ['SYNC_DEPOSIT', 'REDEEM_REQUEST_UPDATED'] as const;
+export const investorTransactionTypeValues = [
+  'SYNC_DEPOSIT',
+  'REDEEM_REQUEST_UPDATED',
+  'REDEEM_CLAIMABLE',
+  'REDEEM_CLAIMED'
+] as const;
 export const investorTransactionTypeEnum = pgEnum('investor_transaction_type', investorTransactionTypeValues);
 export type InvestorTransactionType = (typeof investorTransactionTypeValues)[number];
 

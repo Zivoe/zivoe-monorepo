@@ -133,6 +133,26 @@ describe('fetchInvestorTransactionEventsSince', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('accepts the redemption-execution rows — one claimable per partial fill, then the claim', async () => {
+    fakeIndexerResponse(
+      investorTxPage(
+        [
+          investorTxItem({ createdAt: at(2000), type: 'REDEEM_CLAIMED', tokenAmount: '2000000000000000000' }),
+          investorTxItem({ createdAt: at(1000), type: 'REDEEM_CLAIMABLE', tokenAmount: '2000000000000000000' })
+        ],
+        { hasNextPage: false, endCursor: null }
+      )
+    );
+
+    const { events } = await fetchInvestorTransactionEventsSince({
+      environment: 'testnet',
+      shareClassKey: 'zsmb',
+      sinceMs: T0
+    });
+
+    expect(events.map((event) => event.type)).toEqual(['REDEEM_CLAIMABLE', 'REDEEM_CLAIMED']);
+  });
+
   it('rejects rows outside the alert surface loudly — the server filter guarantees them absent', async () => {
     fakeIndexerResponse(
       investorTxPage([investorTxItem({ type: 'TRANSFER_IN' })], { hasNextPage: false, endCursor: null })

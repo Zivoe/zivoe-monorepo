@@ -6,19 +6,30 @@ import { fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
 
 /**
- * The two investor-transaction types a sync-deposit/async-redeem Centrifuge
- * Vault emits for "money moved in / redemption asked for" — the alerting
- * surface. The other stages either cannot occur on this Centrifuge Vault
- * shape, are unindexed upstream (cancels), or have no event by design
- * (approvals).
+ * The investor-transaction types a sync-deposit/async-redeem Centrifuge
+ * Vault emits along its lifecycle — the alerting surface: money moved in
+ * (SYNC_DEPOSIT), redemption asked for (REDEEM_REQUEST_UPDATED), the
+ * manager's approval executed on the spoke (REDEEM_CLAIMABLE, one row per
+ * partial fill), and the investor collecting the assets (REDEEM_CLAIMED).
+ * The other stages either cannot occur on this Centrifuge Vault shape, are
+ * unindexed upstream (cancels), or have no event by design (approvals).
  */
-export const INVESTOR_TRANSACTION_EVENT_TYPES = ['SYNC_DEPOSIT', 'REDEEM_REQUEST_UPDATED'] as const;
+export const INVESTOR_TRANSACTION_EVENT_TYPES = [
+  'SYNC_DEPOSIT',
+  'REDEEM_REQUEST_UPDATED',
+  'REDEEM_CLAIMABLE',
+  'REDEEM_CLAIMED'
+] as const;
 export type InvestorTransactionEventType = (typeof INVESTOR_TRANSACTION_EVENT_TYPES)[number];
 
 const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
   query InvestorTransactionEvents($tokenId: String!, $poolId: BigInt!, $limit: Int!, $after: String) {
     investorTransactions(
-      where: { tokenId: $tokenId, poolId: $poolId, type_in: [SYNC_DEPOSIT, REDEEM_REQUEST_UPDATED] }
+      where: {
+        tokenId: $tokenId
+        poolId: $poolId
+        type_in: [SYNC_DEPOSIT, REDEEM_REQUEST_UPDATED, REDEEM_CLAIMABLE, REDEEM_CLAIMED]
+      }
       orderBy: "createdAt"
       orderDirection: "desc"
       limit: $limit
@@ -60,8 +71,8 @@ const dataSchema = z.object({
       z
         .object({
           // Stricter than the schema's enum on purpose (house precedent): the
-          // server-side type_in filter guarantees these two, so anything else
-          // is drift and should fail loudly here, not flow onward.
+          // server-side type_in filter guarantees exactly these types, so
+          // anything else is drift and should fail loudly here, not flow onward.
           type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
           centrifugeId: z.string(),
           account: z.string(),
@@ -79,8 +90,7 @@ const dataSchema = z.object({
         // a cancellation or a signed request delta.
         .refine(
           (item) =>
-            item.type !== 'REDEEM_REQUEST_UPDATED' ||
-            (item.tokenAmount !== null && BigInt(item.tokenAmount) > 0n),
+            item.type !== 'REDEEM_REQUEST_UPDATED' || (item.tokenAmount !== null && BigInt(item.tokenAmount) > 0n),
           { message: 'Redeem request tokenAmount must be positive', path: ['tokenAmount'] }
         )
     ),
@@ -118,8 +128,8 @@ const MAX_PAGE_LIMIT = 1000;
 const MAX_PAGES = 5;
 
 /**
- * Alertable investor transactions (deposits + redeem requests) newer than
- * `sinceMs`, oldest first, across every spoke chain of the share class.
+ * Alertable investor transactions (deposits + the redemption lifecycle) newer
+ * than `sinceMs`, oldest first, across every spoke chain of the share class.
  *
  * The indexer's `createdAt` filter is a String with no numeric comparators, so
  * the time cut happens client-side: pages are walked newest-first and the walk

@@ -64,6 +64,13 @@
       "when": 1787180043486,
       "tag": "0008_centrifuge_tx_monitor",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787600409078,
+      "tag": "0009_centrifuge_redeem_lifecycle",
+      "breakpoints": true
     }
   ]
 }
