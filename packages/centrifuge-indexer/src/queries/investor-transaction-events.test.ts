@@ -167,20 +167,20 @@ describe('fetchInvestorTransactionEventsSince', () => {
     expect(events[0]).toMatchObject({ chainId: null, chainName: null, explorerUrl: null });
   });
 
-  it('accepts a negative amount delta without failing the page', async () => {
+  it.each([
+    { label: 'negative', tokenAmount: '-2000000000000000000' },
+    { label: 'zero', tokenAmount: '0' },
+    { label: 'missing', tokenAmount: null }
+  ])('rejects a $label redemption request amount as upstream drift', async ({ tokenAmount }) => {
     fakeIndexerResponse(
-      investorTxPage([investorTxItem({ type: 'REDEEM_REQUEST_UPDATED', tokenAmount: '-2000000000000000000' })], {
+      investorTxPage([investorTxItem({ type: 'REDEEM_REQUEST_UPDATED', tokenAmount })], {
         hasNextPage: false,
         endCursor: null
       })
     );
 
-    const { events } = await fetchInvestorTransactionEventsSince({
-      environment: 'testnet',
-      shareClassKey: 'zsmb',
-      sinceMs: T0
-    });
-
-    expect(events[0]?.tokenAmount).toBe(-2000000000000000000n);
+    await expect(
+      fetchInvestorTransactionEventsSince({ environment: 'testnet', shareClassKey: 'zsmb', sinceMs: T0 })
+    ).rejects.toThrow(/unexpected response shape/);
   });
 });

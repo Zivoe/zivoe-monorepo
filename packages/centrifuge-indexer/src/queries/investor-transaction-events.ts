@@ -47,8 +47,6 @@ const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
   }
 `);
 
-// Amount deltas carry a sign in principle (BigInt scalar; redeem rows are
-// documented as per-call deltas), so a decrease must not fail the whole page.
 const signedIntegerString = z.string().regex(/^-?\d+$/);
 const integerString = z.string().regex(/^\d+$/);
 // 13+ digits pins the epoch-milliseconds unit: a silent upstream flip to
@@ -59,22 +57,32 @@ const msTimestampString = z.string().regex(/^\d{13,}$/);
 const dataSchema = z.object({
   investorTransactions: z.object({
     items: z.array(
-      z.object({
-        // Stricter than the schema's enum on purpose (house precedent): the
-        // server-side type_in filter guarantees these two, so anything else
-        // is drift and should fail loudly here, not flow onward.
-        type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
-        centrifugeId: z.string(),
-        account: z.string(),
-        tokenAmount: signedIntegerString.nullable(),
-        currencyAmount: signedIntegerString.nullable(),
-        tokenPrice: integerString.nullable(),
-        createdAt: msTimestampString,
-        createdAtTxHash: z.string(),
-        // `id` is the EVM chain id as a decimal string — the key the app's
-        // own chain registry is indexed by.
-        blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
-      })
+      z
+        .object({
+          // Stricter than the schema's enum on purpose (house precedent): the
+          // server-side type_in filter guarantees these two, so anything else
+          // is drift and should fail loudly here, not flow onward.
+          type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
+          centrifugeId: z.string(),
+          account: z.string(),
+          tokenAmount: signedIntegerString.nullable(),
+          currencyAmount: signedIntegerString.nullable(),
+          tokenPrice: integerString.nullable(),
+          createdAt: msTimestampString,
+          createdAtTxHash: z.string(),
+          // `id` is the EVM chain id as a decimal string — the key the app's
+          // own chain registry is indexed by.
+          blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
+        })
+        // API-v3 copies the non-zero uint256 `shares` from RedeemRequest into
+        // tokenAmount. A missing or non-positive value is upstream drift, not
+        // a cancellation or a signed request delta.
+        .refine(
+          (item) =>
+            item.type !== 'REDEEM_REQUEST_UPDATED' ||
+            (item.tokenAmount !== null && BigInt(item.tokenAmount) > 0n),
+          { message: 'Redeem request tokenAmount must be positive', path: ['tokenAmount'] }
+        )
     ),
     pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() })
   })
@@ -88,7 +96,7 @@ export type InvestorTransactionEvent = {
   chainId: number | null;
   /** Lowercase investor address. */
   account: string;
-  /** Shares moved by THIS call (a delta, never a running total), share-token base units. */
+  /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units. */
   tokenAmount: bigint | null;
   /** Assets moved, asset base units (USDC 6dp); 0 on redeem requests. */
   currencyAmount: bigint | null;
