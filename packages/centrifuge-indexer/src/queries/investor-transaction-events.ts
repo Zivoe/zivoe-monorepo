@@ -11,8 +11,11 @@ import { graphql } from '../graphql';
  * (SYNC_DEPOSIT), redemption asked for (REDEEM_REQUEST_UPDATED), the
  * manager's approval executed on the spoke (REDEEM_CLAIMABLE, one row per
  * partial fill), and the investor collecting the assets (REDEEM_CLAIMED).
- * The other stages either cannot occur on this Centrifuge Vault shape, are
- * unindexed upstream (cancels), or have no event by design (approvals).
+ * Excluded on purpose: TRANSFER_IN/TRANSFER_OUT — live on both pools (they
+ * are in fact the most frequent types: share movements and cross-chain
+ * bridging) but not investor cash flow, so they stay out of the channel.
+ * The remaining stages are unindexed upstream (cancels) or have no event by
+ * design (approvals).
  */
 export const INVESTOR_TRANSACTION_EVENT_TYPES = [
   'SYNC_DEPOSIT',
