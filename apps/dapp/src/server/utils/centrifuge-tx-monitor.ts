@@ -17,6 +17,7 @@ import { formatEmailLine, formatTelegramItem } from '@/server/utils/centrifuge-t
 import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 
 import { ACTIVE_ENVIRONMENT, getChainId } from '@/lib/chains';
+import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
 
@@ -70,6 +71,16 @@ export type CentrifugeTxMonitorResult = {
   notified: number;
   skippedDuplicates: number;
 };
+
+/** A pass that read and sent nothing — early exits spread this and flip their one flag. */
+const EMPTY_PASS = {
+  skipped: false,
+  bootstrapped: false,
+  indexerStale: false,
+  eventsSeen: 0,
+  notified: 0,
+  skippedDuplicates: 0
+} satisfies CentrifugeTxMonitorResult;
 
 /**
  * Canonical event identity: one on-chain moment notifies once, ever. Scoped by
@@ -182,26 +193,33 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
   // matters. The slowest chain's head also bounds the cursor advance below.
   let indexerStale = false;
   let minIndexedAtMs: number | null = null;
-  try {
-    const statuses = await fetchIndexerChainStatuses({
-      environment: ACTIVE_ENVIRONMENT,
-      fetchOptions: { signal: indexerSignal }
-    });
-    const staleChains: Array<string> = [];
+  const { res: statuses, err: probeErr } = await handlePromise(
+    fetchIndexerChainStatuses({ environment: ACTIVE_ENVIRONMENT, fetchOptions: { signal: indexerSignal } })
+  );
+  if (statuses === undefined) {
+    indexerStale = true;
+    Sentry.captureException(probeErr, { tags: SENTRY_TAGS, extra: { environment: ACTIVE_ENVIRONMENT, activeChains } });
+  } else {
+    // `minutesOld: null` means the chain has no status entry at all — what a
+    // stalled or re-syncing instance looks like. Block numbers ride along so
+    // an operator can pin the stall without querying the indexer by hand.
+    const staleChains: Array<{ chain: string; minutesOld: number | null; blockNumber: number | null }> = [];
     let slowestHead = Number.POSITIVE_INFINITY;
 
     for (const chain of activeChains) {
       const status = statuses.get(CENTRIFUGE_CHAIN_FACTS[chain].chainId);
       if (!status) {
-        staleChains.push(`${chain}: no status entry`);
+        staleChains.push({ chain, minutesOld: null, blockNumber: null });
         slowestHead = Number.NEGATIVE_INFINITY;
         continue;
       }
       slowestHead = Math.min(slowestHead, status.lastIndexedAtMs);
       if (now - status.lastIndexedAtMs > STALE_AFTER_MS)
-        staleChains.push(
-          `${chain}: last indexed block is ${Math.round((now - status.lastIndexedAtMs) / 60_000)} min old`
-        );
+        staleChains.push({
+          chain,
+          minutesOld: Math.round((now - status.lastIndexedAtMs) / 60_000),
+          blockNumber: status.blockNumber
+        });
     }
 
     minIndexedAtMs = Number.isFinite(slowestHead) ? slowestHead : null;
@@ -214,9 +232,6 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         extra: { staleChains }
       });
     }
-  } catch (error) {
-    indexerStale = true;
-    Sentry.captureException(error, { tags: SENTRY_TAGS, extra: { environment: ACTIVE_ENVIRONMENT, activeChains } });
   }
 
   return db.transaction(async (tx) => {
@@ -233,14 +248,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     );
     if (lockRows[0]?.locked !== true) {
       Sentry.logger.info(`${CENTRIFUGE_TX_MONITOR_SLUG} skipped — another pass holds the lock`);
-      return {
-        skipped: true,
-        bootstrapped: false,
-        indexerStale,
-        eventsSeen: 0,
-        notified: 0,
-        skippedDuplicates: 0
-      };
+      return { ...EMPTY_PASS, skipped: true, indexerStale };
     }
 
     // -- Cursor. First run seeds the watermark and alerts on nothing: history
@@ -252,42 +260,27 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // seed at "now" and lose the un-ingested gap for good. Next pass retries.
     const cursor = await readCursor({ tx, monitor: CENTRIFUGE_TX_MONITOR_KEY });
     if (cursor === undefined) {
-      if (indexerStale || minIndexedAtMs === null)
-        return {
-          skipped: false,
-          bootstrapped: false,
-          indexerStale,
-          eventsSeen: 0,
-          notified: 0,
-          skippedDuplicates: 0
-        };
+      if (indexerStale || minIndexedAtMs === null) return { ...EMPTY_PASS, indexerStale };
 
       await writeCursorMonotonic({
         tx,
         monitor: CENTRIFUGE_TX_MONITOR_KEY,
         lastEventAt: Math.min(minIndexedAtMs, now)
       });
-      return {
-        skipped: false,
-        bootstrapped: true,
-        indexerStale,
-        eventsSeen: 0,
-        notified: 0,
-        skippedDuplicates: 0
-      };
+      return { ...EMPTY_PASS, bootstrapped: true, indexerStale };
     }
 
-    // -- Fetch events for every live Zivoe Vault, oldest first across vaults.
-    const perVault = await Promise.all(
+    // -- Fetch events for every live Zivoe Vault, oldest first across Zivoe Vaults.
+    const perZivoeVault = await Promise.all(
       ZIVOE_VAULTS.map(async (zivoeVault) => {
         const identity = getShareClassIdentity({ environment: ACTIVE_ENVIRONMENT, key: zivoeVault.shareClass.key });
-        const fetched = await fetchInvestorTransactionEventsSince({
+        const walk = await fetchInvestorTransactionEventsSince({
           environment: ACTIVE_ENVIRONMENT,
           shareClassKey: identity.key,
           sinceMs: cursor - OVERLAP_MS,
           fetchOptions: { signal: indexerSignal }
         });
-        return { identity, ...fetched };
+        return { identity, ...walk };
       })
     );
 
@@ -298,7 +291,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // Holding would only re-fetch the same cap forever; instead the cursor is
     // allowed to recover up to that oldest fetched row, and the skip is raised.
     let walkFloorMs = Number.POSITIVE_INFINITY;
-    for (const { identity, events: classEvents, truncated, malformed } of perVault) {
+    for (const { identity, events: classEvents, truncated, malformed } of perZivoeVault) {
       // Skipped rows are drift, not loss of the rest of the window — alarm on
       // them without letting one bad upstream row halt every alert.
       if (malformed > 0)

@@ -344,7 +344,7 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     expect(result).toMatchObject({ indexerStale: true, notified: 1 });
     expect(vi.mocked(Sentry.captureException).mock.calls[0]?.[1]).toMatchObject({
-      extra: { staleChains: ['base-sepolia: last indexed block is 45 min old'] }
+      extra: { staleChains: [{ chain: 'base-sepolia', minutesOld: 45, blockNumber: 1 }] }
     });
     // The laggard bounds the watermark — its back-filled rows stay inside the window.
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 45 * 60_000);

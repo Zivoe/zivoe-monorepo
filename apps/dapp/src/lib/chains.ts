@@ -100,9 +100,14 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
   return [...(alchemyUrl ? [alchemyUrl] : []), ...VIEM_CHAINS[chain].rpcUrls.default.http];
 }
 
+// Built once at import like the module's other per-chain lookups.
+const CHAIN_OF_CHAIN_ID: Partial<Record<number, CentrifugeChain>> = Object.fromEntries(
+  CENTRIFUGE_CHAINS.map((chain) => [CENTRIFUGE_CHAIN_FACTS[chain].chainId, chain])
+);
+
 /** The registry chain behind an EVM chain id, or undefined for a chain the app does not know. */
 export function chainOfChainId(chainId: number): CentrifugeChain | undefined {
-  return CENTRIFUGE_CHAINS.find((chain) => CENTRIFUGE_CHAIN_FACTS[chain].chainId === chainId);
+  return CHAIN_OF_CHAIN_ID[chainId];
 }
 
 export const ACTIVE_CHAIN_IDS: Array<number> = ACTIVE_CHAINS.map(getChainId);

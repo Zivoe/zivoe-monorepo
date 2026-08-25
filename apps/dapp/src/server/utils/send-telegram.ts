@@ -37,6 +37,11 @@ export async function sendTelegramMessage({
 /**
  * Batches multiple text items into as few Telegram messages as possible,
  * splitting at item boundaries to stay under the 4096 char limit.
+ *
+ * Contract for HTML items: they must be line-structured, with no tag or
+ * entity spanning a line break — the oversize truncation below cuts at line
+ * boundaries and relies on that shape to stay well-formed for Telegram's
+ * parser (the tx-alert formatter guarantees it; a new caller must too).
  */
 export async function sendBatchedTelegramMessages({
   chatId,
