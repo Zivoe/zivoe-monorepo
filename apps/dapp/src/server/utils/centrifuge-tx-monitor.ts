@@ -234,13 +234,26 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // -- Cursor. First run seeds the watermark and alerts on nothing: history
     // predates the monitor and must not flood the channel at launch. Seeding
     // at the slowest indexed head (not "now") keeps events that are on-chain
-    // but not yet ingested inside the first real window.
+    // but not yet ingested inside the first real window. A stale or unknown
+    // head refuses to seed at all — a lagging head would plant the watermark
+    // in the past and replay that history as new, and an unknown one would
+    // seed at "now" and lose the un-ingested gap for good. Next pass retries.
     const cursor = await readCursor({ tx, monitor: CENTRIFUGE_TX_MONITOR_KEY });
     if (cursor === undefined) {
+      if (indexerStale || minIndexedAtMs === null)
+        return {
+          skipped: false,
+          bootstrapped: false,
+          indexerStale,
+          eventsSeen: 0,
+          notified: 0,
+          skippedDuplicates: 0
+        };
+
       await writeCursorMonotonic({
         tx,
         monitor: CENTRIFUGE_TX_MONITOR_KEY,
-        lastEventAt: Math.min(minIndexedAtMs ?? now, now)
+        lastEventAt: Math.min(minIndexedAtMs, now)
       });
       return {
         skipped: false,

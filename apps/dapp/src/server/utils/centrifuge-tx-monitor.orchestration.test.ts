@@ -223,6 +223,17 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
   });
 
+  it('declines to bootstrap while the head is stale — a lagging indexer at launch must not seed the past', async () => {
+    vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses(NOW - 3 * 24 * 60 * 60_000));
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result.bootstrapped).toBe(false);
+    expect(result.indexerStale).toBe(true);
+    expect(state.cursors.has(CENTRIFUGE_TX_MONITOR_KEY)).toBe(false);
+    expect(fetchInvestorTransactionEventsSince).not.toHaveBeenCalled();
+  });
+
   it('a stale indexer raises a Sentry issue — even under a held lock — and freezes the cursor', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     // Chain missing from status: stale AND no head to clamp to.
