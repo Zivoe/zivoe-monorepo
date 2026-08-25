@@ -57,6 +57,13 @@
       "when": 1785093767532,
       "tag": "0007_calm_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787180043486,
+      "tag": "0008_centrifuge_tx_monitor",
+      "breakpoints": true
     }
   ]
 }

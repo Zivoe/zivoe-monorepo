@@ -39,5 +39,12 @@ export {
   getUtcDayStartSeconds,
   type DailyTokenSnapshot
 } from './queries/daily-token-snapshots';
+export { fetchIndexerChainStatuses, type IndexerChainStatus } from './queries/indexer-status';
+export {
+  INVESTOR_TRANSACTION_EVENT_TYPES,
+  fetchInvestorTransactionEventsSince,
+  type InvestorTransactionEvent,
+  type InvestorTransactionEventType
+} from './queries/investor-transaction-events';
 export { fetchShareClassNavs, sumShareClassNavs } from './queries/share-class-navs';
 export { navD18, rayToPercent } from './units';

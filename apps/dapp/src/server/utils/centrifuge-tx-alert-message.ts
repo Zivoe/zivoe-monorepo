@@ -1,0 +1,120 @@
+import 'server-only';
+
+import { type InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
+
+import { chainOfChainId, getViemChain } from '@/lib/chains';
+import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
+
+import { type UsdcInstance } from '@/centrifuge/config';
+
+/**
+ * Presentation half of the Centrifuge transaction monitor: pure formatters
+ * from an indexer event to one Telegram HTML item. Escaping happens at the
+ * taint sources — account, chain name, emails, the link — and at the amount
+ * formatter, whose dust marker is a literal `<0.01` that Telegram's HTML
+ * parser would reject as a tag. Catalog-controlled symbols are trusted.
+ * A future email path gets its own renderer beside this one.
+ */
+
+/** Longest email list one item may carry — the overflow is counted, bounding item length. */
+const MAX_EMAILS_SHOWN = 3;
+
+/** "Email: a@b.c" line — identifies the investor when their wallet is linked to an account. */
+export function formatEmailLine(emails: Array<string>): string {
+  const unique = [...new Set(emails.map((email) => email.trim()).filter(Boolean))];
+  if (unique.length === 0) return 'Email: not found';
+
+  const shown = unique.slice(0, MAX_EMAILS_SHOWN).map(escapeHtml);
+  const overflow = unique.length - shown.length;
+
+  return `${unique.length === 1 ? 'Email' : 'Emails'}: ${shown.join(', ')}${overflow > 0 ? ` +${overflow} more` : ''}`;
+}
+
+/**
+ * Chain label and explorer base for the event. The app's own chain registry
+ * wins when the event's chain id is one it knows (the indexer's `network`
+ * names are its internal ones — Sepolia reads "ethereum" — and its explorer
+ * is null for some chains, Pharos included); otherwise the indexer's values,
+ * with the Centrifuge spoke id as the label of last resort.
+ */
+export function resolveChainDisplay(
+  event: Pick<InvestorTransactionEvent, 'chainId' | 'chainName' | 'explorerUrl' | 'centrifugeId'>
+): { label: string; explorerUrl: string | null } {
+  const chain = event.chainId === null ? undefined : chainOfChainId(event.chainId);
+  if (!chain)
+    return { label: event.chainName ?? `Centrifuge chain ${event.centrifugeId}`, explorerUrl: event.explorerUrl };
+
+  const viemChain = getViemChain(chain);
+  return { label: viemChain.name, explorerUrl: viemChain.blockExplorers?.default.url ?? event.explorerUrl };
+}
+
+/** Explorer link for the tx, or null when there is no usable http(s) explorer base. */
+export function buildTxLink({ explorerUrl, txHash }: { explorerUrl: string | null; txHash: string }): string | null {
+  if (!explorerUrl) return null;
+
+  try {
+    const base = new URL(explorerUrl);
+    if (base.protocol !== 'https:' && base.protocol !== 'http:') return null;
+    return new URL(`tx/${txHash}`, base.href.endsWith('/') ? base.href : `${base.href}/`).href;
+  } catch {
+    return null;
+  }
+}
+
+/** Two-decimal amount, dust shown as `&lt;0.01` — one dust deposit must not 400 the whole pass. */
+function formatAmount({ value, tokenDecimals }: { value: bigint; tokenDecimals: number }): string {
+  return escapeHtml(formatBigIntWithCommas({ value, tokenDecimals, displayDecimals: 2, showUnderZero: true }));
+}
+
+export function formatTelegramItem({
+  event,
+  symbol,
+  shareDecimals,
+  usdc,
+  emailLine
+}: {
+  event: InvestorTransactionEvent;
+  symbol: string;
+  shareDecimals: number;
+  usdc: Pick<UsdcInstance, 'symbol' | 'decimals'>;
+  emailLine: string;
+}): string {
+  const shares =
+    event.tokenAmount === null ? '?' : formatAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals });
+
+  // Attribute-safe without quote escaping: URL serialization percent-encodes
+  // `"` in every component, and escapeHtml covers `&` — do not reorder them.
+  const chain = resolveChainDisplay(event);
+  const txLink = buildTxLink({ explorerUrl: chain.explorerUrl, txHash: event.txHash });
+  const linkPart = txLink ? `<a href="${escapeHtml(txLink)}">tx</a>` : `Tx: <code>${escapeHtml(event.txHash)}</code>`;
+  const chainLine = `Chain: ${escapeHtml(chain.label)} · ${linkPart}`;
+
+  const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
+
+  if (event.type === 'SYNC_DEPOSIT') {
+    const assets =
+      event.currencyAmount === null ? '?' : formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals });
+
+    // Redeem-request rows carry price 0; deposits carry the D18 execution price.
+    const price =
+      event.tokenPrice !== null && event.tokenPrice !== 0n
+        ? ` @ ${formatBigIntWithCommas({ value: event.tokenPrice, tokenDecimals: 18, displayDecimals: 4 })}`
+        : '';
+
+    return [
+      `<b>Deposit</b> — ${symbol}`,
+      ...head,
+      `Amount: ${assets} ${usdc.symbol} → ${shares} ${symbol}${price}`,
+      chainLine
+    ].join('\n');
+  }
+
+  return [
+    `<b>Redemption Request</b> — ${symbol}`,
+    ...head,
+    // The indexer reports the shares added by THIS call; an increase to an
+    // open request correctly shows up as its own alert.
+    `Requested: ${shares} ${symbol}`,
+    chainLine
+  ].join('\n');
+}
