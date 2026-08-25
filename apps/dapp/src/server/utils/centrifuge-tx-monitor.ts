@@ -136,7 +136,10 @@ async function readEmailsByAccount({
     .select({ address: walletConnection.address, email: user.email })
     .from(walletConnection)
     .innerJoin(user, eq(walletConnection.userId, user.id))
-    .where(inArray(walletConnection.address, accounts));
+    .where(inArray(walletConnection.address, accounts))
+    // Oldest claim first, so the shown-emails cap keeps the earliest linkers
+    // and the line stays stable across passes (heap order is arbitrary).
+    .orderBy(walletConnection.createdAt);
 
   for (const row of rows) {
     const list = byAccount.get(row.address) ?? [];

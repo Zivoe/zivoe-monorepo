@@ -74,7 +74,8 @@ function thenable(rowsFn: () => Array<Record<string, unknown>> | void) {
       Promise.resolve()
         .then(rowsFn)
         .then((rows) => resolve(rows ?? []), reject),
-    limit: () => thenable(rowsFn)
+    limit: () => thenable(rowsFn),
+    orderBy: () => thenable(rowsFn)
   };
 }
 

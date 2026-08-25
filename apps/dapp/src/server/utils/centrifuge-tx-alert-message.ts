@@ -19,15 +19,19 @@ import { type UsdcInstance } from '@/centrifuge/config';
 /** Longest email list one item may carry — the overflow is counted, bounding item length. */
 const MAX_EMAILS_SHOWN = 3;
 
-/** "Email: a@b.c" line — identifies the investor when their wallet is linked to an account. */
+/**
+ * "Linked email: a@b.c" line. "Linked" is load-bearing: the wallet↔account
+ * binding is self-reported at connect time (no ownership proof), so the line
+ * reads as a claim, never as verified investor identity.
+ */
 export function formatEmailLine(emails: Array<string>): string {
   const unique = [...new Set(emails.map((email) => email.trim()).filter(Boolean))];
-  if (unique.length === 0) return 'Email: not found';
+  if (unique.length === 0) return 'Linked email: not found';
 
   const shown = unique.slice(0, MAX_EMAILS_SHOWN).map(escapeHtml);
   const overflow = unique.length - shown.length;
 
-  return `${unique.length === 1 ? 'Email' : 'Emails'}: ${shown.join(', ')}${overflow > 0 ? ` +${overflow} more` : ''}`;
+  return `${unique.length === 1 ? 'Linked email' : 'Linked emails'}: ${shown.join(', ')}${overflow > 0 ? ` +${overflow} more` : ''}`;
 }
 
 /**

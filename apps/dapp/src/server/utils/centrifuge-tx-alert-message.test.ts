@@ -26,14 +26,14 @@ function event(overrides: Partial<InvestorTransactionEvent> = {}): InvestorTrans
 
 describe('formatEmailLine', () => {
   it('dedupes, trims, escapes, and pluralizes', () => {
-    expect(formatEmailLine([])).toBe('Email: not found');
-    expect(formatEmailLine(['  '])).toBe('Email: not found');
-    expect(formatEmailLine(['a@b.c', 'a@b.c'])).toBe('Email: a@b.c');
-    expect(formatEmailLine(['a<b@x.y', 'c@d.e'])).toBe('Emails: a&lt;b@x.y, c@d.e');
+    expect(formatEmailLine([])).toBe('Linked email: not found');
+    expect(formatEmailLine(['  '])).toBe('Linked email: not found');
+    expect(formatEmailLine(['a@b.c', 'a@b.c'])).toBe('Linked email: a@b.c');
+    expect(formatEmailLine(['a<b@x.y', 'c@d.e'])).toBe('Linked emails: a&lt;b@x.y, c@d.e');
   });
 
   it('caps the list and counts the overflow — one wallet can link many users', () => {
-    expect(formatEmailLine(['a@x.y', 'b@x.y', 'c@x.y', 'd@x.y', 'e@x.y'])).toBe('Emails: a@x.y, b@x.y, c@x.y +2 more');
+    expect(formatEmailLine(['a@x.y', 'b@x.y', 'c@x.y', 'd@x.y', 'e@x.y'])).toBe('Linked emails: a@x.y, b@x.y, c@x.y +2 more');
   });
 });
 
@@ -56,7 +56,7 @@ describe('formatTelegramItem', () => {
     symbol: 'zSMB',
     shareDecimals: 18,
     usdc: { symbol: 'USDC', decimals: 6 },
-    emailLine: 'Email: a@b.c'
+    emailLine: 'Linked email: a@b.c'
   };
 
   it('formats a deposit with USDC, shares, execution price, and tx link', () => {
@@ -64,7 +64,7 @@ describe('formatTelegramItem', () => {
 
     expect(item).toContain('<b>Deposit</b> — zSMB');
     expect(item).toContain('Account: <code>0xb8da328a4edb64af841c6bb72b55988e9abeb172</code>');
-    expect(item).toContain('Email: a@b.c');
+    expect(item).toContain('Linked email: a@b.c');
     expect(item).toContain('Amount: 5.00 USDC → 4.40 zSMB @ 1.1348');
     expect(item).toContain('Chain: Ethereum');
     expect(item).toContain(
