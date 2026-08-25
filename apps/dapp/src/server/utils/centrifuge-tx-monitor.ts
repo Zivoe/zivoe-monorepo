@@ -16,11 +16,10 @@ import { type Db, db } from '@/server/clients/db';
 import { formatEmailLine, formatTelegramItem } from '@/server/utils/centrifuge-tx-alert-message';
 import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 
-import { ACTIVE_ENVIRONMENT, DEFAULT_CHAIN, chainOfChainId, getChainId } from '@/lib/chains';
+import { ACTIVE_ENVIRONMENT, getChainId } from '@/lib/chains';
 
 import { env } from '@/env';
 
-import { getChainConfig } from '@/centrifuge/config';
 import { ZIVOE_VAULTS, zivoeVaultChains } from '@/zivoe-vaults';
 
 export const CENTRIFUGE_TX_MONITOR_KEY = 'centrifuge-transactions';
@@ -387,11 +386,6 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         event,
         symbol,
         shareDecimals,
-        // USDC is the deposit asset on every chain; the event's own chain
-        // config is its exact instance (the default chain's when the indexer
-        // attached no chain).
-        usdc: getChainConfig((event.chainId === null ? undefined : chainOfChainId(event.chainId)) ?? DEFAULT_CHAIN)
-          .usdc,
         emailLine: formatEmailLine(emailsByAccount.get(event.account) ?? [])
       })
     );

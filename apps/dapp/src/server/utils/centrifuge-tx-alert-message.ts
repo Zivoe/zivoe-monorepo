@@ -20,6 +20,15 @@ import { type UsdcInstance } from '@/centrifuge/config';
 const MAX_EMAILS_SHOWN = 3;
 
 /**
+ * The deposit asset's display shape — identical on every chain (config.ts
+ * instantiates USDC per chain, always 6dp "USDC"), which is what lets the
+ * formatter skip per-chain config entirely. If a chain ever carries a
+ * divergent instance (USDC.e, other decimals), this must become per-chain
+ * again — the test suite pins the uniformity.
+ */
+export const USDC_DISPLAY: Pick<UsdcInstance, 'symbol' | 'decimals'> = { symbol: 'USDC', decimals: 6 };
+
+/**
  * "Linked email: a@b.c" line. "Linked" is load-bearing: the wallet↔account
  * binding is self-reported at connect time (no ownership proof), so the line
  * reads as a claim, never as verified investor identity.
@@ -74,15 +83,14 @@ export function formatTelegramItem({
   event,
   symbol,
   shareDecimals,
-  usdc,
   emailLine
 }: {
   event: InvestorTransactionEvent;
   symbol: string;
   shareDecimals: number;
-  usdc: Pick<UsdcInstance, 'symbol' | 'decimals'>;
   emailLine: string;
 }): string {
+  const usdc = USDC_DISPLAY;
   const shares =
     event.tokenAmount === null ? '?' : formatAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals });
 

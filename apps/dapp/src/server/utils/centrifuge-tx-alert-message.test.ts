@@ -2,7 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
 
-import { buildTxLink, formatEmailLine, formatTelegramItem, resolveChainDisplay } from './centrifuge-tx-alert-message';
+import { chainsOfEnvironment } from '@zivoe/centrifuge-indexer';
+
+import { getChainConfig } from '@/centrifuge/config';
+
+import {
+  USDC_DISPLAY,
+  buildTxLink,
+  formatEmailLine,
+  formatTelegramItem,
+  resolveChainDisplay
+} from './centrifuge-tx-alert-message';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -51,11 +61,21 @@ describe('buildTxLink', () => {
   });
 });
 
+describe('USDC_DISPLAY', () => {
+  it('matches every chain-instantiated USDC — the uniformity that lets the formatter skip chain config', () => {
+    for (const environment of ['mainnet', 'testnet'] as const) {
+      for (const chain of chainsOfEnvironment(environment)) {
+        const { symbol, decimals } = getChainConfig(chain).usdc;
+        expect({ chain, symbol, decimals }).toEqual({ chain, ...USDC_DISPLAY });
+      }
+    }
+  });
+});
+
 describe('formatTelegramItem', () => {
   const shared = {
     symbol: 'zSMB',
     shareDecimals: 18,
-    usdc: { symbol: 'USDC', decimals: 6 },
     emailLine: 'Linked email: a@b.c'
   };
 
