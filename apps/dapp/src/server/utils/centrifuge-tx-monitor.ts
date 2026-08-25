@@ -53,6 +53,15 @@ const STALE_AFTER_MS = 30 * 60_000;
  */
 const MAX_EVENTS_PER_PASS = 100;
 
+/**
+ * Collective budget for ALL indexer I/O in one pass (status probe + every
+ * page walk shares one signal). Without it the worst case — five slow pages
+ * per Zivoe Vault at the fetch layer's 10s each — spends the route's whole
+ * 60s before the first Telegram send, and a pass killed mid-send is exactly
+ * the sent-but-unrecorded window the ledger ordering tries to keep small.
+ */
+const INDEXER_IO_DEADLINE_MS = 30_000;
+
 export type CentrifugeTxMonitorResult = {
   /** True when another pass held the lock — nothing was read or sent. */
   skipped: boolean;
@@ -161,6 +170,7 @@ async function readEmailsByAccount({
  */
 export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMonitorResult> {
   const now = Date.now();
+  const indexerSignal = AbortSignal.timeout(INDEXER_IO_DEADLINE_MS);
 
   // Chains this deployment actually alerts for: where the catalog entry AND
   // the Zivoe Vault module are both live — the registry's notion of "live",
@@ -174,7 +184,10 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
   let indexerStale = false;
   let minIndexedAtMs: number | null = null;
   try {
-    const statuses = await fetchIndexerChainStatuses({ environment: ACTIVE_ENVIRONMENT });
+    const statuses = await fetchIndexerChainStatuses({
+      environment: ACTIVE_ENVIRONMENT,
+      fetchOptions: { signal: indexerSignal }
+    });
     const staleChains: Array<string> = [];
     let slowestHead = Number.POSITIVE_INFINITY;
 
@@ -272,7 +285,8 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         const fetched = await fetchInvestorTransactionEventsSince({
           environment: ACTIVE_ENVIRONMENT,
           shareClassKey: identity.key,
-          sinceMs: cursor - OVERLAP_MS
+          sinceMs: cursor - OVERLAP_MS,
+          fetchOptions: { signal: indexerSignal }
         });
         return { identity, ...fetched };
       })

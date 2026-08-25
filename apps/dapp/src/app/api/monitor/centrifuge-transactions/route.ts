@@ -15,6 +15,9 @@ import { type ApiResponse } from '../../utils';
 
 export const maxDuration = 60;
 
+/** Same convention as refresh-holdings: warn while there is still headroom under Vercel's 60s kill. */
+const DURATION_WARNING_MS = 45_000;
+
 const handler = async (_req: NextRequest): ApiResponse<CentrifugeTxMonitorResult> => {
   const startTime = Date.now();
 
@@ -45,10 +48,21 @@ const handler = async (_req: NextRequest): ApiResponse<CentrifugeTxMonitorResult
       status: 'ok'
     });
 
-    Sentry.logger.info(`${CENTRIFUGE_TX_MONITOR_SLUG} completed`, {
-      ...result,
-      durationMs: Date.now() - startTime
-    });
+    const durationMs = Date.now() - startTime;
+
+    Sentry.logger.info(`${CENTRIFUGE_TX_MONITOR_SLUG} completed`, { ...result, durationMs });
+
+    if (durationMs > DURATION_WARNING_MS) {
+      Sentry.captureException(
+        new Error(
+          `Centrifuge transaction monitor duration (${durationMs}ms) exceeded warning threshold (${DURATION_WARNING_MS}ms)`
+        ),
+        {
+          tags: { source: 'API', flow: CENTRIFUGE_TX_MONITOR_SLUG },
+          extra: { durationMs, threshold: DURATION_WARNING_MS, ...result }
+        }
+      );
+    }
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
