@@ -98,6 +98,13 @@ describe('fetchInvestorTransactionEventsSince', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const secondBody = JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string);
     expect(secondBody.variables.after).toBe('cursor-1');
+    // The const drives the wire filter — the query carries no hardcoded list.
+    expect(secondBody.variables.types).toEqual([
+      'SYNC_DEPOSIT',
+      'REDEEM_REQUEST_UPDATED',
+      'REDEEM_CLAIMABLE',
+      'REDEEM_CLAIMED'
+    ]);
     expect(events.map((event) => event.createdAtMs)).toEqual([T0 + 3000, T0 + 4000]);
   });
 

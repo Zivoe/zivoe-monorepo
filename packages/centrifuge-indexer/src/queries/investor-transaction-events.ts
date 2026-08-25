@@ -25,14 +25,19 @@ export const INVESTOR_TRANSACTION_EVENT_TYPES = [
 ] as const;
 export type InvestorTransactionEventType = (typeof INVESTOR_TRANSACTION_EVENT_TYPES)[number];
 
+// `type_in` is a variable so INVESTOR_TRANSACTION_EVENT_TYPES is the single
+// source of the alert surface — widening the const widens the wire filter,
+// the zod boundary, and (via the mirror test) the ledger enum together.
 const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
-  query InvestorTransactionEvents($tokenId: String!, $poolId: BigInt!, $limit: Int!, $after: String) {
+  query InvestorTransactionEvents(
+    $tokenId: String!
+    $poolId: BigInt!
+    $types: [InvestorTransactionType!]
+    $limit: Int!
+    $after: String
+  ) {
     investorTransactions(
-      where: {
-        tokenId: $tokenId
-        poolId: $poolId
-        type_in: [SYNC_DEPOSIT, REDEEM_REQUEST_UPDATED, REDEEM_CLAIMABLE, REDEEM_CLAIMED]
-      }
+      where: { tokenId: $tokenId, poolId: $poolId, type_in: $types }
       orderBy: "createdAt"
       orderDirection: "desc"
       limit: $limit
@@ -182,7 +187,13 @@ export async function fetchInvestorTransactionEventsSince({
     const data: z.infer<typeof dataSchema> = await fetchCentrifugeIndexer({
       indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
       query: INVESTOR_TRANSACTION_EVENTS_QUERY,
-      variables: { tokenId: shareClass.scId, poolId: shareClass.poolId, limit: MAX_PAGE_LIMIT, after },
+      variables: {
+        tokenId: shareClass.scId,
+        poolId: shareClass.poolId,
+        types: [...INVESTOR_TRANSACTION_EVENT_TYPES],
+        limit: MAX_PAGE_LIMIT,
+        after
+      },
       dataSchema,
       fetchOptions
     });
