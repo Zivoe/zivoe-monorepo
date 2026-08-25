@@ -32,7 +32,7 @@ const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
   query InvestorTransactionEvents(
     $tokenId: String!
     $poolId: BigInt!
-    $types: [InvestorTransactionType!]
+    $types: [InvestorTransactionType!]!
     $limit: Int!
     $after: String
   ) {
