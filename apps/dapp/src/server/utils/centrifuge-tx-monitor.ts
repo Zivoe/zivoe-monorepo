@@ -269,7 +269,15 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // Holding would only re-fetch the same cap forever; instead the cursor is
     // allowed to recover up to that oldest fetched row, and the skip is raised.
     let walkFloorMs = Number.POSITIVE_INFINITY;
-    for (const { identity, events: classEvents, truncated } of perVault) {
+    for (const { identity, events: classEvents, truncated, malformed } of perVault) {
+      // Skipped rows are drift, not loss of the rest of the window — alarm on
+      // them without letting one bad upstream row halt every alert.
+      if (malformed > 0)
+        Sentry.captureException(new Error('Centrifuge tx monitor skipped malformed indexer rows'), {
+          tags: SENTRY_TAGS,
+          extra: { shareClassKey: identity.key, malformed, environment: ACTIVE_ENVIRONMENT }
+        });
+
       if (truncated) {
         walkFloorMs = Math.min(walkFloorMs, classEvents[0]?.createdAtMs ?? cursor);
         Sentry.captureException(

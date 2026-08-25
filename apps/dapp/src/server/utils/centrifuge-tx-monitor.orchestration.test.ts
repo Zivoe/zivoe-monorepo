@@ -153,7 +153,8 @@ function freshStatuses(lastIndexedAtMs = NOW - 60_000) {
 function serveFeed(feed: Array<InvestorTransactionEvent>, truncated = false) {
   vi.mocked(fetchInvestorTransactionEventsSince).mockImplementation(async ({ sinceMs }) => ({
     events: feed.filter((event) => event.createdAtMs > sinceMs).sort((a, b) => a.createdAtMs - b.createdAtMs),
-    truncated
+    truncated,
+    malformed: 0
   }));
 }
 
@@ -168,7 +169,7 @@ beforeEach(() => {
   vi.mocked(zivoeVaultChains).mockReturnValue(['sepolia']);
   vi.mocked(getShareClassIdentity).mockReturnValue(identity);
   vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses());
-  vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [], truncated: false });
+  vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [], truncated: false, malformed: 0 });
   vi.mocked(sendBatchedTelegramMessages).mockResolvedValue(undefined);
 });
 
@@ -187,7 +188,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     const replayed = mkEvent(0);
     const fresh = mkEvent(1000);
     state.notified.add(`0xsc:1:${replayed.txHash}:SYNC_DEPOSIT:0xabc`);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [replayed, fresh], truncated: false });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [replayed, fresh], truncated: false, malformed: 0 });
 
     const result = await runCentrifugeTransactionMonitor();
 
@@ -202,7 +203,7 @@ describe('runCentrifugeTransactionMonitor', () => {
 
   it('a failed send records nothing and never advances the cursor', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: 0 });
     vi.mocked(sendBatchedTelegramMessages).mockRejectedValue(new Error('telegram down'));
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
@@ -225,7 +226,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     // Chain missing from status: stale AND no head to clamp to.
     vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(new Map());
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: 0 });
 
     const first = await runCentrifugeTransactionMonitor();
 

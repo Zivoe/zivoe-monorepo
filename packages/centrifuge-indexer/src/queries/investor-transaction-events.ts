@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getShareClassIdentity } from '../catalog';
 import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
 import { fetchCentrifugeIndexer } from '../fetch';
-import { type ResultOf, graphql } from '../graphql';
+import { graphql } from '../graphql';
 
 /**
  * The investor-transaction types a sync-deposit/async-redeem Centrifuge
@@ -65,38 +65,51 @@ const integerString = z.string().regex(/^\d+$/);
 // drift this boundary must fail loudly on.
 const msTimestampString = z.string().regex(/^\d{13,}$/);
 
+// The walk's ordering backbone, validated separately from the row content:
+// `createdAt` drives the window cut AND bounds the caller's cursor advance,
+// so a row it cannot order is a page-level failure, never a skippable one.
+const orderingSchema = z.object({ createdAt: msTimestampString });
+
+/**
+ * One row's content, validated row-by-row so a single malformed row is
+ * skipped and counted instead of halting alerting for every vault and chain
+ * (the sibling status query sets the precedent). Only `createdAt` above stays
+ * page-fatal.
+ */
+const itemSchema = z
+  .object({
+    // Stricter than the schema's enum on purpose (house precedent): the
+    // server-side type_in filter guarantees exactly these types, so
+    // anything else is drift and should be skipped and alarmed, not flow onward.
+    type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
+    centrifugeId: z.string(),
+    account: z.string(),
+    tokenAmount: signedIntegerString.nullable(),
+    currencyAmount: signedIntegerString.nullable(),
+    tokenPrice: integerString.nullable(),
+    createdAt: msTimestampString,
+    createdAtTxHash: z.string(),
+    // `id` is the EVM chain id as a decimal string — the key the app's
+    // own chain registry is indexed by.
+    blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
+  })
+  // API-v3 copies the non-zero uint256 `shares` from RedeemRequest into
+  // tokenAmount. A missing or non-positive value is upstream drift, not
+  // a cancellation or a signed request delta.
+  .refine(
+    (item) => item.type !== 'REDEEM_REQUEST_UPDATED' || (item.tokenAmount !== null && BigInt(item.tokenAmount) > 0n),
+    { message: 'Redeem request tokenAmount must be positive', path: ['tokenAmount'] }
+  );
+
+// Unlike the sibling queries this cannot carry `satisfies z.ZodType<ResultOf<…>>`:
+// rows are deliberately taken as unknown here and validated one-by-one below,
+// so one malformed row never rejects the page it arrived on.
 const dataSchema = z.object({
   investorTransactions: z.object({
-    items: z.array(
-      z
-        .object({
-          // Stricter than the schema's enum on purpose (house precedent): the
-          // server-side type_in filter guarantees exactly these types, so
-          // anything else is drift and should fail loudly here, not flow onward.
-          type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
-          centrifugeId: z.string(),
-          account: z.string(),
-          tokenAmount: signedIntegerString.nullable(),
-          currencyAmount: signedIntegerString.nullable(),
-          tokenPrice: integerString.nullable(),
-          createdAt: msTimestampString,
-          createdAtTxHash: z.string(),
-          // `id` is the EVM chain id as a decimal string — the key the app's
-          // own chain registry is indexed by.
-          blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
-        })
-        // API-v3 copies the non-zero uint256 `shares` from RedeemRequest into
-        // tokenAmount. A missing or non-positive value is upstream drift, not
-        // a cancellation or a signed request delta.
-        .refine(
-          (item) =>
-            item.type !== 'REDEEM_REQUEST_UPDATED' || (item.tokenAmount !== null && BigInt(item.tokenAmount) > 0n),
-          { message: 'Redeem request tokenAmount must be positive', path: ['tokenAmount'] }
-        )
-    ),
+    items: z.array(z.unknown()),
     pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() })
   })
-}) satisfies z.ZodType<ResultOf<typeof INVESTOR_TRANSACTION_EVENTS_QUERY>>;
+});
 
 export type InvestorTransactionEvent = {
   type: InvestorTransactionEventType;
@@ -136,6 +149,11 @@ const MAX_PAGES = 5;
  * stops as soon as a page crosses `sinceMs` (or `MAX_PAGES` is hit — then
  * `truncated` flags that older alertable rows exist beyond the walk, so the
  * caller can alarm instead of silently treating the window as complete).
+ *
+ * Rows whose content fails validation are skipped and returned as `malformed`
+ * (the caller alarms on them) rather than failing the fetch — except a row
+ * whose `createdAt` cannot be ordered, which fails the whole call: without the
+ * ordering key the window cut and the cursor advance are both meaningless.
  */
 export async function fetchInvestorTransactionEventsSince({
   environment,
@@ -147,12 +165,13 @@ export async function fetchInvestorTransactionEventsSince({
   shareClassKey: string;
   sinceMs: number;
   fetchOptions?: RequestInit;
-}): Promise<{ events: Array<InvestorTransactionEvent>; truncated: boolean }> {
+}): Promise<{ events: Array<InvestorTransactionEvent>; truncated: boolean; malformed: number }> {
   const shareClass = getShareClassIdentity({ environment, key: shareClassKey });
 
   const events: Array<InvestorTransactionEvent> = [];
   let after: string | null = null;
   let truncated = false;
+  let malformed = 0;
 
   for (let page = 0; page < MAX_PAGES; page++) {
     // Annotated to break a circular inference: `after` feeds the variables the
@@ -168,12 +187,23 @@ export async function fetchInvestorTransactionEventsSince({
     const items = data.investorTransactions.items;
     let crossedWindow = false;
 
-    for (const item of items) {
-      const createdAtMs = Number(item.createdAt);
+    for (const raw of items) {
+      const ordering = orderingSchema.safeParse(raw);
+      if (!ordering.success)
+        throw new Error(`Centrifuge indexer returned an unorderable investor transaction: ${ordering.error.message}`);
+
+      const createdAtMs = Number(ordering.data.createdAt);
       if (createdAtMs <= sinceMs) {
         crossedWindow = true;
         break;
       }
+
+      const parsed = itemSchema.safeParse(raw);
+      if (!parsed.success) {
+        malformed++;
+        continue;
+      }
+      const item = parsed.data;
 
       events.push({
         type: item.type,
@@ -203,5 +233,5 @@ export async function fetchInvestorTransactionEventsSince({
     }
   }
 
-  return { events: events.reverse(), truncated };
+  return { events: events.reverse(), truncated, malformed };
 }
