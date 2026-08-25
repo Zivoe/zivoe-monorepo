@@ -293,11 +293,18 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     let walkFloorMs = Number.POSITIVE_INFINITY;
     for (const { identity, events: classEvents, truncated, malformed } of perZivoeVault) {
       // Skipped rows are drift, not loss of the rest of the window — alarm on
-      // them without letting one bad upstream row halt every alert.
-      if (malformed > 0)
+      // them without letting one bad upstream row halt every alert. Each row's
+      // identity rides along: these alerts are dropped for good, so the alarm
+      // must name them.
+      if (malformed.length > 0)
         Sentry.captureException(new Error('Centrifuge tx monitor skipped malformed indexer rows'), {
           tags: SENTRY_TAGS,
-          extra: { shareClassKey: identity.key, malformed, environment: ACTIVE_ENVIRONMENT }
+          extra: {
+            shareClassKey: identity.key,
+            count: malformed.length,
+            rows: malformed.slice(0, 10),
+            environment: ACTIVE_ENVIRONMENT
+          }
         });
 
       if (truncated) {

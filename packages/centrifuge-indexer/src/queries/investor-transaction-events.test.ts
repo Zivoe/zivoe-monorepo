@@ -174,7 +174,11 @@ describe('fetchInvestorTransactionEventsSince', () => {
       sinceMs: T0
     });
 
-    expect(malformed).toBe(1);
+    // The skipped row's identity survives — it will never alert, so the
+    // caller's alarm must be able to name it.
+    expect(malformed).toEqual([
+      { txHash: '0xCCdaB4D1', type: 'TRANSFER_IN', account: expect.stringContaining('0x'), issue: expect.any(String) }
+    ]);
     expect(events.map((event) => event.createdAtMs)).toEqual([T0 + 2000]);
   });
 
@@ -220,7 +224,9 @@ describe('fetchInvestorTransactionEventsSince', () => {
       sinceMs: T0
     });
 
-    expect(malformed).toBe(1);
+    expect(malformed).toEqual([
+      expect.objectContaining({ type: 'REDEEM_REQUEST_UPDATED', issue: 'Redeem request tokenAmount must be positive' })
+    ]);
     expect(events.map((event) => event.type)).toEqual(['SYNC_DEPOSIT']);
   });
 });

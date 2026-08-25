@@ -143,6 +143,19 @@ export type InvestorTransactionEvent = {
   explorerUrl: string | null;
 };
 
+/**
+ * Identity of a skipped row, best-effort plucked from the raw payload so the
+ * caller's alarm names the transaction that will never alert — without it an
+ * operator would have to hand-query the whole window to find the dropped row.
+ */
+export type MalformedInvestorTransaction = {
+  txHash: string | null;
+  type: string | null;
+  account: string | null;
+  /** The first zod issue — enough to say why the row was refused. */
+  issue: string;
+};
+
 /** The indexer server rejects pages larger than 1000 rows. */
 const MAX_PAGE_LIMIT = 1000;
 /** Runtime bound for one poll — five full pages is months of alertable activity. */
@@ -173,13 +186,17 @@ export async function fetchInvestorTransactionEventsSince({
   shareClassKey: string;
   sinceMs: number;
   fetchOptions?: RequestInit;
-}): Promise<{ events: Array<InvestorTransactionEvent>; truncated: boolean; malformed: number }> {
+}): Promise<{
+  events: Array<InvestorTransactionEvent>;
+  truncated: boolean;
+  malformed: Array<MalformedInvestorTransaction>;
+}> {
   const shareClass = getShareClassIdentity({ environment, key: shareClassKey });
 
   const events: Array<InvestorTransactionEvent> = [];
+  const malformed: Array<MalformedInvestorTransaction> = [];
   let after: string | null = null;
   let truncated = false;
-  let malformed = 0;
 
   for (let page = 0; page < MAX_PAGES; page++) {
     // Annotated to break a circular inference: `after` feeds the variables the
@@ -214,7 +231,13 @@ export async function fetchInvestorTransactionEventsSince({
 
       const parsed = itemSchema.safeParse(raw);
       if (!parsed.success) {
-        malformed++;
+        const rec = raw as Record<string, unknown>;
+        malformed.push({
+          txHash: typeof rec.createdAtTxHash === 'string' ? rec.createdAtTxHash : null,
+          type: typeof rec.type === 'string' ? rec.type : null,
+          account: typeof rec.account === 'string' ? rec.account : null,
+          issue: parsed.error.issues[0]?.message ?? 'unknown'
+        });
         continue;
       }
       const item = parsed.data;
