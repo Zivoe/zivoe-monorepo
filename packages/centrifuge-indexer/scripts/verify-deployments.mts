@@ -103,8 +103,15 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
   for (const chain of chains) {
     const { vaultRouter } = getChainDeployment(chain);
 
+    let centrifugeId: number;
     try {
-      const centrifugeId = await centrifuge.id(getChainId(chain));
+      centrifugeId = await centrifuge.id(getChainId(chain));
+    } catch (error) {
+      fail(chain, 'VaultRouter', error);
+      continue;
+    }
+
+    try {
       // The SDK keeps no public accessor for its per-chain protocol addresses;
       // this is the same internal query its own writes resolve the router from.
       const live = await (
@@ -115,10 +122,23 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
       fail(chain, 'VaultRouter (live protocol)', error);
     }
 
-    // The SDK bundles a mainnet-only allowlist it refuses to transact outside of.
-    const bundled = KNOWN_DEPLOYMENTS[getChainId(chain)]?.vaultRouter;
-    if (bundled)
-      verify({ subject: chain, fact: 'VaultRouter (SDK allowlist)', expected: vaultRouter, actual: bundled });
+    // The SDK bundles a MAINNET-only allowlist it refuses to transact outside
+    // of — keyed by centrifugeId, NOT by EVM chain id (they coincide only for
+    // ethereum), and testnet chains reuse mainnet's centrifugeIds, so the
+    // check only applies on mainnet: a testnet lookup would hit a mainnet
+    // record. A mainnet chain the allowlist does not know is a failed row,
+    // never a silent skip: the allowlist decides whether deposits can sign.
+    if (environment === 'mainnet') {
+      const bundled = KNOWN_DEPLOYMENTS[centrifugeId]?.vaultRouter;
+      if (bundled)
+        verify({ subject: chain, fact: 'VaultRouter (SDK allowlist)', expected: vaultRouter, actual: bundled });
+      else
+        fail(
+          chain,
+          'VaultRouter (SDK allowlist)',
+          new Error(`no bundled record for centrifugeId ${String(centrifugeId)}`)
+        );
+    }
   }
 
   for (const key of listShareClassKeys(environment)) {
