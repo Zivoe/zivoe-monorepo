@@ -38,13 +38,18 @@ const {
   listShareClassKeys
 } = indexer;
 
-// The SDK warns about every allowlist field the indexer disagrees on and every
-// chain it has no RPC for — neither concerns the contracts verified here (the
-// VaultRouter gets its own row below), so they are muted.
+// Two SDK warnings are muted as routine noise: chains the SDK has no RPC for
+// (this script only queries the chains it configured), and dropped allowlist
+// fields the dApp never transacts through — live runs show the indexer
+// running ahead of the SDK's bundle on oracleValuation/wormholeAdapter as a
+// matter of course. A dropped `vaultRouter` is NEVER muted: that contract is
+// the approval spender this script verifies, so its warning prints and its
+// row fails below.
 const sdkWarn = console.warn;
 console.warn = (...args: Array<unknown>) => {
   const line = String(args[0]);
-  if (line.includes('Dropping unverified address') || line.startsWith('No rpcUrl defined')) return;
+  if (line.startsWith('No rpcUrl defined')) return;
+  if (line.includes('Dropping unverified address') && !line.includes("field='vaultRouter'")) return;
   sdkWarn(...args);
 };
 
@@ -114,10 +119,19 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
     try {
       // The SDK keeps no public accessor for its per-chain protocol addresses;
       // this is the same internal query its own writes resolve the router from.
+      // The field is undefined when the SDK dropped it: the indexer's answer
+      // disagreed with the bundled allowlist — a mismatch, not an RPC flake.
       const live = await (
-        centrifuge as unknown as { _protocolAddresses(id: number): Promise<{ vaultRouter: string }> }
+        centrifuge as unknown as { _protocolAddresses(id: number): Promise<{ vaultRouter: string | undefined }> }
       )._protocolAddresses(centrifugeId);
-      verify({ subject: chain, fact: 'VaultRouter (live protocol)', expected: vaultRouter, actual: live.vaultRouter });
+      if (live.vaultRouter === undefined)
+        fail(
+          chain,
+          'VaultRouter (live protocol)',
+          new Error('the SDK dropped the indexer-reported router — it disagrees with the bundled allowlist')
+        );
+      else
+        verify({ subject: chain, fact: 'VaultRouter (live protocol)', expected: vaultRouter, actual: live.vaultRouter });
     } catch (error) {
       fail(chain, 'VaultRouter (live protocol)', error);
     }
