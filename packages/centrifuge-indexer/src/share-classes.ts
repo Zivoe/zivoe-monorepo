@@ -279,13 +279,15 @@ export function assertUnique({ values, message }: { values: Array<string>; messa
 }
 
 /**
- * Data lint over the catalog, run by the package's test suite against the
- * real manifest on every PR (and against synthetic catalogs to exercise
- * each rule). Two entries sharing an on-chain identity would serve one share
- * class's data under the other's name (and the aggregated NAV read would
- * double-count the class); two sharing a symbol would collide in every token
- * display map. Swept across EVERY environment and chain, staged or live —
- * cutover is the expensive time to find a duplicate.
+ * Data lint over the catalog. It runs once at module load (below) — both
+ * apps' builds import this module, so a bad manifest fails the deploy, not
+ * whichever test run someone remembers to make — and the test suite
+ * exercises each rule against synthetic catalogs. Two entries sharing an
+ * on-chain identity would serve one share class's data under the other's
+ * name (and the aggregated NAV read would double-count the class); two
+ * sharing a symbol would collide in every token display map. Swept across
+ * EVERY environment and chain, staged or live — cutover is the expensive
+ * time to find a duplicate.
  */
 export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLASSES): void {
   const entries = Object.values(catalog);
@@ -342,3 +344,7 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
     });
   }
 }
+
+// Import-time on purpose: a pure sweep over a handful of entries, and the one
+// enforcement point every build path is guaranteed to hit.
+assertShareClassInvariants();

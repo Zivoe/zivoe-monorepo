@@ -11,11 +11,12 @@ vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null })
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 
 /**
- * Data lint over the Zivoe Vault registry, run on every PR instead of at
- * module load: registering a new Zivoe Vault either works end to end or
- * fails the test suite loudly. Key/module agreement and "one module per
- * catalog entry" are compile-time (see REGISTERED_ZIVOE_VAULTS); catalog
- * identity uniqueness is the shared package's own lint.
+ * Data lint over the Zivoe Vault registry, run by the dApp test suite (the
+ * repo has no CI — running `pnpm test` before a deploy is the gate):
+ * registering a new Zivoe Vault either works end to end or fails the suite
+ * loudly. Key/module agreement and "one module per catalog entry" are
+ * compile-time (see REGISTERED_ZIVOE_VAULTS); catalog identity uniqueness is
+ * the shared package's own import-time lint.
  */
 describe('Zivoe Vault registry', () => {
   const zivoeVaults = Object.values(REGISTERED_ZIVOE_VAULTS);
