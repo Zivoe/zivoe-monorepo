@@ -7,7 +7,7 @@
   },
   "scripts": {
     "lint": "eslint ./src/ ./scripts/",
-    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,mts,mdx}\"",
     "check-types": "gql-tada check && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
