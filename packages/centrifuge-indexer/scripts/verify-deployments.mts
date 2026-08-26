@@ -42,16 +42,24 @@ const {
 
 // Two SDK warnings are muted as routine noise: chains the SDK has no RPC for
 // (this script only queries the chains it configured), and dropped allowlist
-// fields the dApp never transacts through — live runs show the indexer
-// running ahead of the SDK's bundle on oracleValuation/wormholeAdapter as a
-// matter of course. A dropped `vaultRouter` is NEVER muted: that contract is
-// the approval spender this script verifies, so its warning prints and its
-// row fails below.
+// fields the dApp provably never transacts through — live runs show the
+// indexer running ahead of the SDK's bundle on oracleValuation/wormholeAdapter
+// as a matter of course. The mute names those two fields and nothing else on
+// purpose: any OTHER dropped field prints AND counts as a failure below,
+// because several (the request managers every deposit and redeem signs
+// through) back no read this script performs — a muted drop would report a
+// clean book over broken transaction paths. A dropped `vaultRouter` prints
+// too, but is not double-counted: its row already fails below.
+const MUTED_DROPPED_FIELDS = ["field='oracleValuation'", "field='wormholeAdapter'"];
+let unexpectedDrops = 0;
 const sdkWarn = console.warn;
 console.warn = (...args: Array<unknown>) => {
   const line = String(args[0]);
   if (line.startsWith('No rpcUrl defined')) return;
-  if (line.includes('Dropping unverified address') && !line.includes("field='vaultRouter'")) return;
+  if (line.includes('Dropping unverified address')) {
+    if (MUTED_DROPPED_FIELDS.some((field) => line.includes(field))) return;
+    if (!line.includes("field='vaultRouter'")) unexpectedDrops += 1;
+  }
   sdkWarn(...args);
 };
 
@@ -75,7 +83,8 @@ function loadAlchemyKeys(): void {
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-const describe = (error: unknown) => (error instanceof Error ? error.message.split('\n')[0] : String(error));
+// First line only — viem appends a detail block whose URL line carries the Alchemy key.
+const errorLine = (error: unknown) => (error instanceof Error ? error.message.split('\n')[0] : String(error));
 
 /** The SDK keeps no public accessor for its per-chain protocol addresses — same shape the dApp asserts with. */
 type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: string | undefined }> };
@@ -120,10 +129,12 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
   });
 
   let failed = 0;
-  const fail = (subject: string, fact: string, error: unknown) => {
+  const failWith = (subject: string, fact: string, message: string) => {
     failed += 1;
-    console.log(`  ✗ ${`${subject} · ${fact}`.padEnd(44)}  could not read: ${describe(error)}`);
+    console.log(`  ✗ ${`${subject} · ${fact}`.padEnd(44)}  ${message}`);
   };
+  const fail = (subject: string, fact: string, error: unknown) =>
+    failWith(subject, fact, `could not read: ${errorLine(error)}`);
   const verify = (row: Parameters<typeof check>[0]) => {
     if (!check(row)) failed += 1;
   };
@@ -146,10 +157,10 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
       // disagreed with the bundled allowlist — a mismatch, not an RPC flake.
       const live = await (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId);
       if (live.vaultRouter === undefined)
-        fail(
+        failWith(
           chain,
           'VaultRouter (live protocol)',
-          new Error('the SDK dropped the indexer-reported router — it disagrees with the bundled allowlist')
+          'the SDK dropped the indexer-reported router — it disagrees with the bundled allowlist'
         );
       else
         verify({
@@ -247,6 +258,13 @@ async function main() {
 
   let failed = 0;
   for (const environment of environments) failed += await verifyEnvironment(environment);
+
+  // Unexpected allowlist drops fail the run even when every read row matched —
+  // the dropped contracts back no read above, only the dApp's transactions.
+  if (unexpectedDrops > 0) {
+    failed += unexpectedDrops;
+    console.log(`\n${String(unexpectedDrops)} unexpected SDK allowlist drop(s) — see the warnings above.`);
+  }
 
   console.log(
     failed > 0
