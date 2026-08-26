@@ -8,10 +8,11 @@
  *
  * Per live (share class × chain) it checks that:
  *   - the SDK resolves our Centrifuge vault from pool id + share-class id + USDC
- *   - the vault is sync-deposit / async-redeem, the shape the flows assume
- *   - the vault's share token, share decimals and asset decimals match ours
+ *   - the Centrifuge vault is sync-deposit / async-redeem, the shape the flows assume
+ *   - its share token, share decimals and asset decimals match ours
  *   - the protocol's VaultRouter (live, and the SDK's bundled mainnet allowlist) matches ours
- *   - the indexer prices the class, with our decimals
+ *   - the indexer prices the class with our decimals (hub-level) and holds a
+ *     token instance with our share token on the chain (per chain)
  *
  * Reads go over each chain's Alchemy endpoint when its key is available
  * (NEXT_PUBLIC_{MAINNET,TESTNET}_ALCHEMY_KEY — from the environment, or
@@ -21,21 +22,25 @@
  */
 import Centrifuge, { KNOWN_DEPLOYMENTS, PoolId, ShareClassId } from '@centrifuge/sdk';
 import { existsSync, readFileSync } from 'node:fs';
+import { z } from 'zod';
 
 // Default import on purpose: the package's sources are CommonJS under Node
 // (no "type": "module"), and Node cannot see TypeScript's re-exports as named
 // exports from an ES module — so the whole export object is taken instead.
-import indexer, { type CentrifugeEnvironment } from '../src/index.js';
+import indexer, { type CentrifugeEnvironment, type ResultOf } from '../src/index.js';
 
 const {
   CENTRIFUGE_ENVIRONMENTS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
   chainsOfEnvironment,
+  fetchCentrifugeIndexer,
   fetchCurrentShareMetrics,
   getChainDeployment,
   getChainId,
   getChainRpcUrls,
   getShareClassChainIdentity,
+  getShareClassIdentity,
+  graphql,
   listLiveChains,
   listShareClassKeys
 } = indexer;
@@ -97,6 +102,23 @@ const errorLine = (error: unknown) => (error instanceof Error ? error.message.sp
 
 /** The SDK keeps no public accessor for its per-chain protocol addresses — same shape the dApp asserts with. */
 type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: string | undefined }> };
+
+// One row per chain instance of the class — the per-chain half of the indexer
+// check (the priced metrics are hub-level and say nothing about chains).
+const TOKEN_INSTANCES_QUERY = graphql(`
+  query VerifyTokenInstances($tokenId: String!) {
+    tokenInstances(where: { tokenId: $tokenId }) {
+      items {
+        centrifugeId
+        address
+      }
+    }
+  }
+`);
+
+const tokenInstancesSchema = z.object({
+  tokenInstances: z.object({ items: z.array(z.object({ centrifugeId: z.string(), address: z.string() })) })
+}) satisfies z.ZodType<ResultOf<typeof TOKEN_INSTANCES_QUERY>>;
 
 /** Prints one row as it is known; returns whether it matched. */
 function check({
@@ -202,17 +224,34 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
   }
 
   for (const key of listShareClassKeys(environment)) {
+    const shareClass = getShareClassIdentity({ environment, key });
+
     try {
       const metrics = await fetchCurrentShareMetrics({ environment, shareClassKey: key });
-      const { decimals } = getShareClassChainIdentity({ chain: listLiveChains({ environment, key })[0]!, key });
       verify({
         subject: key,
         fact: 'share decimals (indexer)',
-        expected: String(decimals),
+        expected: String(shareClass.decimals),
         actual: String(metrics.shareTokenDecimals)
       });
     } catch (error) {
       fail(key, 'share decimals (indexer)', error);
+    }
+
+    // Fetched once per class, checked against each live chain below: a chain
+    // flipped live before the indexer prices the class there is the
+    // fail-closed NAV outage the catalog's `live` instruction warns about.
+    let indexedAddressByCentrifugeId: Map<string, string> | undefined;
+    try {
+      const data = await fetchCentrifugeIndexer({
+        indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
+        query: TOKEN_INSTANCES_QUERY,
+        variables: { tokenId: shareClass.scId },
+        dataSchema: tokenInstancesSchema
+      });
+      indexedAddressByCentrifugeId = new Map(data.tokenInstances.items.map((item) => [item.centrifugeId, item.address]));
+    } catch (error) {
+      fail(key, 'token instances (indexer)', error);
     }
 
     for (const chain of listLiveChains({ environment, key })) {
@@ -223,11 +262,21 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
       try {
         const centrifugeId = await centrifuge.id(identity.chainId);
         const pool = await centrifuge.pool(new PoolId(identity.poolId));
-        const vault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), usdc.address);
-        verify({ subject, fact: 'Centrifuge vault', expected: identity.centrifugeVaultAddress, actual: vault.address });
+        const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), usdc.address);
+        verify({
+          subject,
+          fact: 'Centrifuge vault',
+          expected: identity.centrifugeVaultAddress,
+          actual: centrifugeVault.address
+        });
 
-        const details = await vault.details();
-        verify({ subject, fact: 'vault shape', expected: 'sync-deposit/async-redeem', actual: shapeOf(details) });
+        const details = await centrifugeVault.details();
+        verify({
+          subject,
+          fact: 'Centrifuge-vault shape',
+          expected: 'sync-deposit/async-redeem',
+          actual: shapeOf(details)
+        });
         verify({ subject, fact: 'share token', expected: identity.shareTokenAddress, actual: details.share.address });
         verify({
           subject,
@@ -242,6 +291,13 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
           expected: String(usdc.decimals),
           actual: String(details.asset.decimals)
         });
+
+        if (indexedAddressByCentrifugeId) {
+          const indexed = indexedAddressByCentrifugeId.get(String(centrifugeId));
+          if (indexed === undefined) failWith(subject, 'share token (indexer)', 'no token instance on this chain');
+          else
+            verify({ subject, fact: 'share token (indexer)', expected: identity.shareTokenAddress, actual: indexed });
+        }
       } catch (error) {
         fail(subject, 'Centrifuge vault', error);
       }
