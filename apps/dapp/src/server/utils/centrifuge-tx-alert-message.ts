@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { type InvestorTransactionEvent, type UsdcInstance } from '@zivoe/centrifuge-indexer';
+import { type InvestorTransactionEvent, USDC_DECIMALS, type UsdcInstance } from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
@@ -18,13 +18,13 @@ import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
 const MAX_EMAILS_SHOWN = 3;
 
 /**
- * The deposit asset's display shape — identical on every chain (config.ts
- * instantiates USDC per chain, always 6dp "USDC"), which is what lets the
- * formatter skip per-chain config entirely. If a chain ever carries a
+ * The deposit asset's display shape — identical on every chain (the shared
+ * catalog instantiates USDC per chain from one constant), which is what lets
+ * the formatter skip per-chain config entirely. If a chain ever carries a
  * divergent instance (USDC.e, other decimals), this must become per-chain
  * again — the test suite pins the uniformity.
  */
-export const USDC_DISPLAY: Pick<UsdcInstance, 'symbol' | 'decimals'> = { symbol: 'USDC', decimals: 6 };
+export const USDC_DISPLAY: Pick<UsdcInstance, 'symbol' | 'decimals'> = { symbol: 'USDC', decimals: USDC_DECIMALS };
 
 /**
  * "Linked email: a@b.c" line. "Linked" is load-bearing: the wallet↔account

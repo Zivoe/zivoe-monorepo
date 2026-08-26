@@ -30,6 +30,19 @@ export const CENTRIFUGE_ENVIRONMENT_FACTS: Record<CentrifugeEnvironment, { index
 export type UsdcInstance = { address: Address; symbol: string; decimals: number };
 
 /**
+ * USDC's base-unit scale — a global product assumption (Circle-native USDC
+ * is 6 decimals on every chain Zivoe serves). Hub-level conversions use this
+ * constant; chain-scoped code reads decimals off its chain deployment, which
+ * is constructed from this same constant below — one author for the fact.
+ * The per-chain values themselves are checked against the chain by
+ * `pnpm centrifuge:verify`.
+ */
+export const USDC_DECIMALS = 6;
+
+/** Each chain deployment authors only its USDC address; symbol and scale come from the one constant, so the instances cannot diverge. */
+const usdcInstance = (address: Address): UsdcInstance => ({ address, symbol: 'USDC', decimals: USDC_DECIMALS });
+
+/**
  * Everything a spoke chain is, in one record: its viem definition (the chain
  * id and RPC/explorer facts wallets and clients act on), the environment it
  * belongs to, and the protocol facts every share class on it shares.
@@ -82,7 +95,7 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'eth-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 },
+    usdc: usdcInstance('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'),
     supportsRedeemCancellation: true
   },
   pharos: {
@@ -90,7 +103,7 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'pharos-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: { address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', symbol: 'USDC', decimals: 6 },
+    usdc: usdcInstance('0xC879C018dB60520F4355C26eD1a6D572cdAC1815'),
     supportsRedeemCancellation: false
   },
   sepolia: {
@@ -98,7 +111,7 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'testnet',
     alchemyNetwork: 'eth-sepolia',
     vaultRouter: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
-    usdc: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', symbol: 'USDC', decimals: 6 },
+    usdc: usdcInstance('0x3aaaa86458d576BafCB1B7eD290434F0696dA65c'),
     supportsRedeemCancellation: true
   },
   'base-sepolia': {
@@ -106,21 +119,12 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'testnet',
     alchemyNetwork: 'base-sepolia',
     vaultRouter: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
-    usdc: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
+    usdc: usdcInstance('0x036CbD53842c5426634e7929541eC2318f3dCF7e'),
     supportsRedeemCancellation: false
   }
 } as const satisfies Record<string, CentrifugeChainDeployment>;
 
 export type CentrifugeChain = keyof typeof CENTRIFUGE_CHAIN_DEPLOYMENTS;
-
-/**
- * USDC's base-unit scale — a global product assumption (Circle-native USDC
- * is 6 decimals on every chain Zivoe serves). Hub-level conversions use this
- * constant; chain-scoped code reads decimals off its chain deployment, and
- * the import-time sweep below keeps the two views one fact. The per-chain
- * values themselves are checked against the chain by `pnpm centrifuge:verify`.
- */
-export const USDC_DECIMALS = 6;
 
 /**
  * 20 bytes and not the zero placeholder — the shape every configured address
@@ -133,11 +137,6 @@ export function isPlausibleAddress(address: string): boolean {
 }
 
 for (const [chain, deployment] of Object.entries(CENTRIFUGE_CHAIN_DEPLOYMENTS)) {
-  if (deployment.usdc.decimals !== USDC_DECIMALS)
-    throw new Error(
-      `USDC on "${chain}" declares ${String(deployment.usdc.decimals)} decimals; hub-level share math assumes ${String(USDC_DECIMALS)} on every chain.`
-    );
-
   for (const [contract, address] of [
     ['VaultRouter', deployment.vaultRouter],
     ['USDC', deployment.usdc.address]
