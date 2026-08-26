@@ -75,20 +75,15 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
 }
 
 /**
- * The SDK keeps no public accessor for its per-chain protocol addresses, so
- * the VaultRouter assertion reads the same internal query the SDK's own
- * writes resolve the router from. The dependency is version-pinned, and a
- * renamed internal fails loudly here — before any approval can be signed.
- */
-type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` }> };
-
-/**
- * Resolves the share class's Centrifuge vault and asserts the configuration against the
- * chain's own answers: the SDK-resolved Centrifuge-vault address must equal the
- * configured one (two sources for one fact, checked once), and the Centrifuge vault must
- * report the sync-deposit/async-redeem shape the flows are built around. A
- * misconfigured or async-deposit class fails loudly at first use instead of
- * breaking mid-transaction.
+ * Resolves the share class's Centrifuge vault and asserts the one fact the
+ * resolution itself answers for free: the SDK-resolved Centrifuge-vault
+ * address (from our pool id, share-class id and USDC) must equal the
+ * configured one — two sources for one fact, checked once per session, so a
+ * misconfigured class fails loudly at first use instead of mid-transaction.
+ * Every other catalog fact (share token, decimals, VaultRouter, vault shape)
+ * is static and verified against the chain before deploying by
+ * `pnpm centrifuge:verify`; a vault contract cannot change them under a
+ * fixed address.
  */
 async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault): Promise<CentrifugeVaultEntity> {
   const { shareClass } = centrifugeVault;
@@ -103,47 +98,7 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
 
   if (resolved.address.toLowerCase() !== centrifugeVault.address.toLowerCase())
     throw new Error(
-      `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the configuration before transacting.`
-    );
-
-  const [details, { vaultRouter }] = await Promise.all([
-    resolved.details(),
-    (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
-  ]);
-  if (!details.isSyncDeposit || details.isSyncRedeem)
-    throw new Error(
-      `The Centrifuge vault for share class "${shareClass.key}" on "${centrifugeVault.chain}" is not sync-deposit/async-redeem. The flows do not support this Centrifuge-vault shape.`
-    );
-
-  // The share token address is hand-entered per chain and nothing else
-  // validates it (the hub reads filter by scId): a typo would misread wallet
-  // balances while every metric renders fine, failing only at simulate.
-  if (details.share.address.toLowerCase() !== shareClass.shareTokenAddress.toLowerCase())
-    throw new Error(
-      `Share class "${shareClass.key}" is configured with share token ${shareClass.shareTokenAddress} on "${centrifugeVault.chain}" but the Centrifuge vault reports ${details.share.address}. Fix the catalog before transacting.`
-    );
-
-  // Decimals are hand-entered configuration scaling every parseUnits and
-  // share→USDC conversion — the one money fact with no other guard, so both
-  // tokens are asserted against the chain's own answer in this same pass.
-  if (details.share.decimals !== shareClass.decimals)
-    throw new Error(
-      `Share class "${shareClass.key}" is configured with ${shareClass.decimals} decimals but its share token on "${centrifugeVault.chain}" reports ${details.share.decimals}. Fix the catalog before transacting.`
-    );
-
-  if (details.asset.decimals !== centrifugeVault.usdc.decimals)
-    throw new Error(
-      `USDC on "${centrifugeVault.chain}" is configured with ${centrifugeVault.usdc.decimals} decimals but the Centrifuge vault's asset reports ${details.asset.decimals}. Fix the chain config before transacting.`
-    );
-
-  // The VaultRouter is hand-entered per chain and is the USDC approval
-  // spender — the highest-stakes address in the chain config, and the only
-  // one nothing else validates: deposit and claim calls byte-compare their
-  // `to` at simulate, but the approval's spender is our own construction,
-  // and the approval is signed BEFORE the first simulate could catch it.
-  if (vaultRouter.toLowerCase() !== centrifugeVault.vaultRouterAddress.toLowerCase())
-    throw new Error(
-      `The VaultRouter on "${centrifugeVault.chain}" is configured as ${centrifugeVault.vaultRouterAddress} but the SDK reports ${vaultRouter}. Fix the chain config before transacting.`
+      `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the catalog before transacting.`
     );
 
   return resolved;

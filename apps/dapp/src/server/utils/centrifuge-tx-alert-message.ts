@@ -1,11 +1,9 @@
 import 'server-only';
 
-import { type InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
+import { type InvestorTransactionEvent, type UsdcInstance } from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
-
-import { type UsdcInstance } from '@/centrifuge/config';
 
 /**
  * Presentation half of the Centrifuge transaction monitor: pure formatters

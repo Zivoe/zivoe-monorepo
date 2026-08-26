@@ -28,15 +28,10 @@ export type TransactionEntity = {
 };
 
 export type CentrifugeVaultEntity = {
-  /** The Centrifuge vault's contract address — asserted against the configured one at resolution. */
+  /** The Centrifuge vault's contract address — asserted against the catalog's at resolution. */
   address: `0x${string}`;
   details(): PromiseLike<{
     maxDeposit: BalanceLike;
-    isSyncDeposit: boolean;
-    isSyncRedeem: boolean;
-    /** Chain-reported token facts — asserted against the configuration at resolution. */
-    share: { decimals: number };
-    asset: { decimals: number };
   }>;
   investment(investor: `0x${string}`): PromiseLike<{
     /** The Centrifuge vault's own `isPermissioned` answer for this wallet. */

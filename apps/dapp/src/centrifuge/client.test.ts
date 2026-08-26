@@ -8,8 +8,7 @@ import { type TransactedCentrifugeVault } from './types';
 const sdk = vi.hoisted(() => ({
   id: vi.fn(),
   pool: vi.fn(),
-  setSigner: vi.fn(),
-  protocolAddresses: vi.fn()
+  setSigner: vi.fn()
 }));
 
 // Pulled in via @/lib/utils; its UI toast import does not transform under vitest.
@@ -20,7 +19,6 @@ vi.mock('@centrifuge/sdk', () => ({
     id = sdk.id;
     pool = sdk.pool;
     setSigner = sdk.setSigner;
-    _protocolAddresses = sdk.protocolAddresses;
   },
   PoolId: class {
     constructor(public readonly value: string) {}
@@ -38,31 +36,9 @@ const OTHER_CENTRIFUGE_VAULT: TransactedCentrifugeVault = {
   shareClass: { ...CENTRIFUGE_VAULT.shareClass, key: 'other', scId: '0x000100000000eeee0000000000000001' }
 };
 
-function fakeSdkCentrifugeVault({
-  address,
-  isSyncDeposit = true,
-  isSyncRedeem = false,
-  shareDecimals = CENTRIFUGE_VAULT.shareClass.decimals,
-  shareTokenAddress = CENTRIFUGE_VAULT.shareClass.shareTokenAddress,
-  assetDecimals = CENTRIFUGE_VAULT.usdc.decimals
-}: {
-  address: string;
-  isSyncDeposit?: boolean;
-  isSyncRedeem?: boolean;
-  shareDecimals?: number;
-  shareTokenAddress?: string;
-  assetDecimals?: number;
-}) {
-  return {
-    address,
-    details: () =>
-      Promise.resolve({
-        isSyncDeposit,
-        isSyncRedeem,
-        share: { address: shareTokenAddress, decimals: shareDecimals },
-        asset: { decimals: assetDecimals }
-      })
-  };
+/** The SDK entity, reduced to what resolution reads off it: the resolved address. */
+function fakeSdkCentrifugeVault({ address }: { address: string }) {
+  return { address, details: () => Promise.resolve({}) };
 }
 
 /** Centrifuge vaults keyed by scId, so each share class resolves its own instance. */
@@ -83,7 +59,6 @@ async function loadClient() {
 beforeEach(() => {
   vi.clearAllMocks();
   sdk.id.mockResolvedValue(3);
-  sdk.protocolAddresses.mockResolvedValue({ vaultRouter: CENTRIFUGE_VAULT.vaultRouterAddress });
 });
 
 describe('getCentrifugeVault', () => {
@@ -135,71 +110,6 @@ describe('getCentrifugeVault', () => {
     // The failed promise is not memoized — the next call resolves fresh.
     pool.vault.mockImplementation(() => Promise.resolve(rightCentrifugeVault));
     await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).resolves.toBe(rightCentrifugeVault);
-  });
-
-  it('fails loudly when the Centrifuge vault is not sync-deposit/async-redeem', async () => {
-    const asyncDepositCentrifugeVault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      isSyncDeposit: false
-    });
-    sdk.pool.mockResolvedValue(
-      poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: asyncDepositCentrifugeVault })
-    );
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/sync-deposit\/async-redeem/);
-  });
-
-  it('fails loudly when the catalog decimals disagree with the share token on chain', async () => {
-    const vault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      shareDecimals: CENTRIFUGE_VAULT.shareClass.decimals + 10
-    });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/Fix the catalog before transacting/);
-  });
-
-  it('fails loudly when the catalog share token address disagrees with the Centrifuge vault on chain', async () => {
-    // The scId-filtered hub reads never touch this address, so this assertion
-    // is the only automated check a catalog shareTokenAddress gets.
-    const vault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      shareTokenAddress: '0xdddddddddddddddddddddddddddddddddddddddd'
-    });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/but the Centrifuge vault reports/);
-  });
-
-  it('fails loudly when the configured USDC decimals disagree with the Centrifuge-vault asset on chain', async () => {
-    const vault = fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address, assetDecimals: 18 });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/Fix the chain config before transacting/);
-  });
-
-  it('fails loudly when the configured VaultRouter disagrees with the SDK protocol addresses', async () => {
-    // The router is the USDC approval spender; nothing downstream validates
-    // it before an approval is signed, so resolution must.
-    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x9999999999999999999999999999999999999999' });
-    sdk.pool.mockResolvedValue(
-      poolWithCentrifugeVaults({
-        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
-      })
-    );
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/but the SDK reports/);
-    expect(sdk.protocolAddresses).toHaveBeenCalledWith(3);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
