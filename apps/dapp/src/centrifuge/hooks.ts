@@ -39,8 +39,9 @@ export function useInvestorAccess({ centrifugeVault }: { centrifugeVault: Transa
               centrifugeVault: await getCentrifugeVault(centrifugeVault),
               investor: address,
               client: web3,
-              // Verified against the Centrifuge vault's own answer before deploying
-              // (centrifuge:verify), so the hook is read off the token the flows transact with.
+              // The catalog's token address — `pnpm centrifuge:verify` is the
+              // manual pre-deploy check that it matches the Centrifuge vault's
+              // own answer — so the hook reads off the token the flows transact with.
               shareTokenAddress: centrifugeVault.shareClass.shareTokenAddress
             })
   });

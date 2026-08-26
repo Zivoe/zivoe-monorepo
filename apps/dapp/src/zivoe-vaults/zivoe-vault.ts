@@ -93,8 +93,8 @@ export type ZivoeVaultPresentation = {
  * by Centrifuge vault — the same class accepting a second stablecoin stays one
  * product Vault, one page, one URL. To keep the two senses apart, code never
  * says a bare "vault": the product concept is spelled `ZivoeVault`/`zivoeVault`,
- * and every Centrifuge-vault identifier is spelled out too (centrifugeVaults,
- * getCentrifugeVault, centrifugeVaultAddress). User-facing copy says plain
+ * and every Centrifuge-vault identifier is spelled out too
+ * (getCentrifugeVault, centrifugeVaultAddress). User-facing copy says plain
  * "vault" and always means the product one.
  *
  * The contract is split along the Next serialization boundary: ZivoeVaultIdentity

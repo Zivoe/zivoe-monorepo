@@ -26,7 +26,8 @@ const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs', 
 /**
  * NAV per live share class from the shared catalog. The dApp homepage sums
  * the same live book: its registry is typed to carry one module per catalog
- * entry, so the two books cannot diverge.
+ * entry, so given the same NEXT_PUBLIC_CHAIN_ENV the two books cannot
+ * diverge — deployments configured for different environments legitimately do.
  *
  * Fail-closed: the fetch throws on any missing or unpriced class, and a
  * Sentry-captured failure returns undefined so the hero hides the stat

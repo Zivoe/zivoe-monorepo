@@ -1,4 +1,4 @@
-import { CENTRIFUGE_ENVIRONMENT_FACTS, USDC_DECIMALS, type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type ShareClassIdentity, USDC_DECIMALS } from '@zivoe/centrifuge-indexer';
 
 import { ACTIVE_ENVIRONMENT } from '@/lib/chains';
 
@@ -16,8 +16,8 @@ export const CENTRIFUGE_ENV = {
 
 /**
  * Indicative USDC (base units) for a share amount at an 18-decimal Share
- * Price. Lives beside the config because it is pure decimal math over it,
- * and — like the config — is the only piece server code may import.
+ * Price. Lives beside the environment singleton because, like it, this is
+ * the only other piece of the Centrifuge module server code may import.
  */
 export function sharesToUsdc({
   shares,

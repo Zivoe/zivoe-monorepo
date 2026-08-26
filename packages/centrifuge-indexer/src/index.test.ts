@@ -61,7 +61,7 @@ describe('chain deployments', () => {
     expect(getChainId('base-sepolia')).toBe(84532);
   });
 
-  it('keeps the real manifest lint-clean', () => {
+  it('keeps the real catalog lint-clean', () => {
     expect(() => assertShareClassInvariants()).not.toThrow();
   });
 });

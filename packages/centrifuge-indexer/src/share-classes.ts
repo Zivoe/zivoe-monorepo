@@ -132,7 +132,7 @@ export type ShareClassChainIdentity = ShareClassIdentity & {
 };
 
 /**
- * Structural view of the manifest for the listing helpers and the lint —
+ * Structural view of the catalog for the listing helpers and the lint —
  * tests inject synthetic catalogs, so addresses are plain strings here.
  */
 type ShareClassesLike = Record<
@@ -287,7 +287,7 @@ export function assertUnique({ values, message }: { values: Array<string>; messa
 
 /**
  * Data lint over the catalog. It runs once at module load (below) — both
- * apps' builds import this module, so a bad manifest fails the deploy, not
+ * apps' builds import this module, so a bad catalog fails the deploy, not
  * whichever test run someone remembers to make — and the test suite
  * exercises each rule against synthetic catalogs. Two entries sharing an
  * on-chain identity would serve one share class's data under the other's
@@ -340,7 +340,9 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
           ['Centrifuge vault', onChain.centrifugeVaultAddress]
         ] as const) {
           if (!isPlausibleAddress(address))
-            throw new Error(`Share class "${key}" declares an implausible ${field} address on "${chain}": "${address}".`);
+            throw new Error(
+              `Share class "${key}" declares an implausible ${field} address on "${chain}": "${address}".`
+            );
         }
       }
     }

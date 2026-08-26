@@ -249,7 +249,9 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
         variables: { tokenId: shareClass.scId },
         dataSchema: tokenInstancesSchema
       });
-      indexedAddressByCentrifugeId = new Map(data.tokenInstances.items.map((item) => [item.centrifugeId, item.address]));
+      indexedAddressByCentrifugeId = new Map(
+        data.tokenInstances.items.map((item) => [item.centrifugeId, item.address])
+      );
     } catch (error) {
       fail(key, 'token instances (indexer)', error);
     }
