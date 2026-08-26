@@ -75,15 +75,25 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
 }
 
 /**
- * Resolves the share class's Centrifuge vault and asserts the one fact the
- * resolution itself answers for free: the SDK-resolved Centrifuge-vault
- * address (from our pool id, share-class id and USDC) must equal the
- * configured one — two sources for one fact, checked once per session, so a
- * misconfigured class fails loudly at first use instead of mid-transaction.
- * Every other catalog fact (share token, decimals, VaultRouter, vault shape)
- * is static and verified against the chain before deploying by
- * `pnpm centrifuge:verify`; a vault contract cannot change them under a
- * fixed address.
+ * The SDK keeps no public accessor for its per-chain protocol addresses, so
+ * the VaultRouter assertion reads the same internal query the SDK's own
+ * writes resolve the router from. The dependency is version-pinned, and a
+ * renamed internal fails loudly here — before any approval can be signed.
+ */
+type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` }> };
+
+/**
+ * Resolves the share class's Centrifuge vault and asserts the two configured
+ * facts that can genuinely diverge from the chain: the SDK-resolved
+ * Centrifuge-vault address (from our pool id, share-class id and USDC) must
+ * equal the configured one, and the protocol's live VaultRouter must equal
+ * the configured approval spender. The router earns a runtime check because
+ * it is protocol-level — Centrifuge can migrate it without any deploy on our
+ * side, and the approval is signed before the first simulate could object.
+ * Every other catalog fact (share token, decimals, vault shape) is fixed
+ * under our own addresses and verified before deploying by
+ * `pnpm centrifuge:verify`. Checked once per session; a misconfigured class
+ * fails loudly at first use instead of mid-transaction.
  */
 async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault): Promise<CentrifugeVaultEntity> {
   const { shareClass } = centrifugeVault;
@@ -94,11 +104,19 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
     centrifuge.pool(new PoolId(shareClass.poolId))
   ]);
 
-  const resolved = await pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address);
+  const [resolved, { vaultRouter }] = await Promise.all([
+    pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address),
+    (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
+  ]);
 
   if (resolved.address.toLowerCase() !== centrifugeVault.address.toLowerCase())
     throw new Error(
       `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the catalog before transacting.`
+    );
+
+  if (vaultRouter.toLowerCase() !== centrifugeVault.vaultRouterAddress.toLowerCase())
+    throw new Error(
+      `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Update the manifest before transacting.`
     );
 
   return resolved;

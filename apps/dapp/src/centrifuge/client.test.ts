@@ -8,7 +8,8 @@ import { type TransactedCentrifugeVault } from './types';
 const sdk = vi.hoisted(() => ({
   id: vi.fn(),
   pool: vi.fn(),
-  setSigner: vi.fn()
+  setSigner: vi.fn(),
+  protocolAddresses: vi.fn()
 }));
 
 // Pulled in via @/lib/utils; its UI toast import does not transform under vitest.
@@ -19,6 +20,7 @@ vi.mock('@centrifuge/sdk', () => ({
     id = sdk.id;
     pool = sdk.pool;
     setSigner = sdk.setSigner;
+    _protocolAddresses = sdk.protocolAddresses;
   },
   PoolId: class {
     constructor(public readonly value: string) {}
@@ -59,6 +61,7 @@ async function loadClient() {
 beforeEach(() => {
   vi.clearAllMocks();
   sdk.id.mockResolvedValue(3);
+  sdk.protocolAddresses.mockResolvedValue({ vaultRouter: CENTRIFUGE_VAULT.vaultRouterAddress });
 });
 
 describe('getCentrifugeVault', () => {
@@ -110,6 +113,21 @@ describe('getCentrifugeVault', () => {
     // The failed promise is not memoized — the next call resolves fresh.
     pool.vault.mockImplementation(() => Promise.resolve(rightCentrifugeVault));
     await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).resolves.toBe(rightCentrifugeVault);
+  });
+
+  it('fails loudly when the protocol reports a different VaultRouter than the configured approval spender', async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
+      })
+    );
+    // The router is protocol-level: Centrifuge can migrate it with no deploy
+    // on our side, which is exactly the drift this assertion exists to catch.
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x2222222222222222222222222222222222222222' });
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/VaultRouter/);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
