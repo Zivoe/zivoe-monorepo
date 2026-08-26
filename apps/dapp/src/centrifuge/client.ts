@@ -79,8 +79,12 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
  * the VaultRouter assertion reads the same internal query the SDK's own
  * writes resolve the router from. The dependency is version-pinned, and a
  * renamed internal fails loudly here — before any approval can be signed.
+ * The field is undefined when the SDK dropped it: the indexer's answer
+ * disagreed with the bundled allowlist — a mismatch, not an RPC flake.
  */
-type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` }> };
+type WithProtocolAddresses = {
+  _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` | undefined }>;
+};
 
 /**
  * Resolves the share class's Centrifuge vault and asserts the two configured
@@ -90,7 +94,7 @@ type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise
  * the configured approval spender. The router earns a runtime check because
  * it is protocol-level — Centrifuge can migrate it without any deploy on our
  * side, and the approval is signed before the first simulate could object.
- * Every other catalog fact (share token, decimals, vault shape) is fixed
+ * Every other catalog fact (share token, decimals, Centrifuge-vault shape) is fixed
  * under our own addresses and verified before deploying by
  * `pnpm centrifuge:verify`. Checked once per session; a misconfigured class
  * fails loudly at first use instead of mid-transaction.
@@ -114,9 +118,14 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
       `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the catalog before transacting.`
     );
 
+  if (vaultRouter === undefined)
+    throw new Error(
+      `The SDK dropped the indexer-reported VaultRouter on "${centrifugeVault.chain}" — it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
+    );
+
   if (vaultRouter.toLowerCase() !== centrifugeVault.vaultRouterAddress.toLowerCase())
     throw new Error(
-      `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Update the manifest before transacting.`
+      `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Fix the catalog before transacting.`
     );
 
   return resolved;

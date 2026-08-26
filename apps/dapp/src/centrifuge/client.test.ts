@@ -98,6 +98,9 @@ describe('getCentrifugeVault', () => {
       expect.objectContaining({ value: OTHER_CENTRIFUGE_VAULT.shareClass.scId }),
       expect.anything()
     );
+    // The router lookup is keyed by the resolved centrifugeId, never the EVM
+    // chain id — the two coincide only for ethereum.
+    expect(sdk.protocolAddresses).toHaveBeenCalledWith(3);
   });
 
   it('fails loudly when the SDK resolves a different Centrifuge vault than configured, then retries', async () => {
@@ -128,6 +131,22 @@ describe('getCentrifugeVault', () => {
     const { getCentrifugeVault } = await loadClient();
 
     await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/VaultRouter/);
+  });
+
+  it('fails loudly when the SDK dropped the VaultRouter instead of crashing on the missing field', async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
+      })
+    );
+    // On an allowlist mismatch the SDK deletes the field rather than throwing,
+    // so "missing" IS the router-migration signal — it must surface as the
+    // explicit mismatch error, not a TypeError on toLowerCase.
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: undefined });
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/dropped the indexer-reported VaultRouter/);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
