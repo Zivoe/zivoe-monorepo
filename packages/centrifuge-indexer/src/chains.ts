@@ -113,6 +113,22 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
 
 export type CentrifugeChain = keyof typeof CENTRIFUGE_CHAIN_DEPLOYMENTS;
 
+/**
+ * USDC's base-unit scale — a global product assumption (Circle-native USDC
+ * is 6 decimals on every chain Zivoe serves). Hub-level conversions use this
+ * constant; chain-scoped code reads decimals off its chain deployment, and
+ * the import-time sweep below keeps the two views one fact. The per-chain
+ * values themselves are checked against the chain by `pnpm centrifuge:verify`.
+ */
+export const USDC_DECIMALS = 6;
+
+for (const [chain, deployment] of Object.entries(CENTRIFUGE_CHAIN_DEPLOYMENTS)) {
+  if (deployment.usdc.decimals !== USDC_DECIMALS)
+    throw new Error(
+      `USDC on "${chain}" declares ${String(deployment.usdc.decimals)} decimals; hub-level share math assumes ${String(USDC_DECIMALS)} on every chain.`
+    );
+}
+
 /** The chains of one environment, as a type — lets share-class entries only claim chains of their own hub. */
 export type CentrifugeChainOf<E extends CentrifugeEnvironment> = {
   [C in CentrifugeChain]: (typeof CENTRIFUGE_CHAIN_DEPLOYMENTS)[C]['environment'] extends E ? C : never;

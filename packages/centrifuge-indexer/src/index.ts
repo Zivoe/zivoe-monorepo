@@ -7,6 +7,7 @@ export {
   getChainDeployment,
   getChainId,
   getChainRpcUrls,
+  USDC_DECIMALS,
   type CentrifugeChain,
   type CentrifugeChainDeployment,
   type CentrifugeChainOf,

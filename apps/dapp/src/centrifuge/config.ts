@@ -1,4 +1,4 @@
-import { CENTRIFUGE_ENVIRONMENT_FACTS, type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, USDC_DECIMALS, type ShareClassIdentity } from '@zivoe/centrifuge-indexer';
 
 import { ACTIVE_ENVIRONMENT } from '@/lib/chains';
 
@@ -13,14 +13,6 @@ export const CENTRIFUGE_ENV = {
   environment: ACTIVE_ENVIRONMENT,
   indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[ACTIVE_ENVIRONMENT].indexerUrl
 };
-
-/**
- * USDC's base-unit scale — a global product assumption (Circle-native USDC is
- * 6 decimals on every chain Zivoe serves), verified per chain by
- * `pnpm centrifuge:verify`. Hub-level conversions use this constant;
- * chain-scoped code reads decimals off its chain deployment.
- */
-const USDC_DECIMALS = 6;
 
 /**
  * Indicative USDC (base units) for a share amount at an 18-decimal Share
