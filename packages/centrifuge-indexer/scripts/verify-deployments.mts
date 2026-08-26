@@ -15,8 +15,8 @@
  *
  * Reads go over each chain's Alchemy endpoint when its key is available
  * (NEXT_PUBLIC_{MAINNET,TESTNET}_ALCHEMY_KEY — from the environment, or
- * picked out of the dApp's .env when present), falling back to the chain's
- * public RPCs. Nothing is signed. Exits non-zero when any row mismatches or
+ * picked out of the dApp's .env.local/.env when present), falling back to
+ * the chain's public RPCs. Nothing is signed. Exits non-zero when any row mismatches or
  * could not be read.
  */
 import Centrifuge, { KNOWN_DEPLOYMENTS, PoolId, ShareClassId } from '@centrifuge/sdk';
@@ -64,21 +64,30 @@ console.warn = (...args: Array<unknown>) => {
 };
 
 /**
- * The Alchemy keys live in the dApp's .env among dozens of unrelated secrets
- * (database, auth, bot tokens). Only these two are picked out of the file —
- * a process that talks exclusively to third-party RPCs and indexers has no
+ * The Alchemy keys live in the dApp's env files among dozens of unrelated
+ * secrets (database, auth, bot tokens). Only these two are picked out — a
+ * process that talks exclusively to third-party RPCs and indexers has no
  * business carrying the rest in its environment. Explicitly exported
- * variables win over the file.
+ * variables win over the files; .env.local wins over .env, Next's own
+ * precedence and where local keys usually live.
  */
 function loadAlchemyKeys(): void {
-  const envFile = new URL('../../../apps/dapp/.env', import.meta.url);
-  if (!existsSync(envFile)) return; // no dApp .env — public RPCs only
+  const contents = ['.env.local', '.env']
+    .map((file) => new URL(`../../../apps/dapp/${file}`, import.meta.url))
+    .filter((file) => existsSync(file)) // no dApp env files — public RPCs only
+    .map((file) => readFileSync(file, 'utf8'));
 
-  const contents = readFileSync(envFile, 'utf8');
   for (const name of ['NEXT_PUBLIC_MAINNET_ALCHEMY_KEY', 'NEXT_PUBLIC_TESTNET_ALCHEMY_KEY']) {
     if (process.env[name]) continue;
-    const value = new RegExp(`^${name}=["']?([^"'\\r\\n]+)`, 'm').exec(contents)?.[1];
-    if (value) process.env[name] = value;
+    for (const content of contents) {
+      // The value ends at a quote, whitespace or a #: keys are plain tokens,
+      // and an inline comment must not ride into the Alchemy URL.
+      const value = new RegExp(`^${name}=["']?([^"'#\\s]+)`, 'm').exec(content)?.[1];
+      if (value) {
+        process.env[name] = value;
+        break;
+      }
+    }
   }
 }
 
