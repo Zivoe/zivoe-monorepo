@@ -77,6 +77,9 @@ function loadAlchemyKeys(): void {
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const describe = (error: unknown) => (error instanceof Error ? error.message.split('\n')[0] : String(error));
 
+/** The SDK keeps no public accessor for its per-chain protocol addresses — same shape the dApp asserts with. */
+type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: string | undefined }> };
+
 /** Prints one row as it is known; returns whether it matched. */
 function check({
   subject,
@@ -138,13 +141,10 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
     }
 
     try {
-      // The SDK keeps no public accessor for its per-chain protocol addresses;
-      // this is the same internal query its own writes resolve the router from.
+      // The same internal query the SDK's own writes resolve the router from.
       // The field is undefined when the SDK dropped it: the indexer's answer
       // disagreed with the bundled allowlist — a mismatch, not an RPC flake.
-      const live = await (
-        centrifuge as unknown as { _protocolAddresses(id: number): Promise<{ vaultRouter: string | undefined }> }
-      )._protocolAddresses(centrifugeId);
+      const live = await (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId);
       if (live.vaultRouter === undefined)
         fail(
           chain,
@@ -192,7 +192,7 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
         actual: String(metrics.shareTokenDecimals)
       });
     } catch (error) {
-      fail(key, 'indexed', error);
+      fail(key, 'share decimals (indexer)', error);
     }
 
     for (const chain of listLiveChains({ environment, key })) {

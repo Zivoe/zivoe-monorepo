@@ -1,7 +1,9 @@
 import { type Address } from 'viem';
 
 import {
+  CENTRIFUGE_CHAINS,
   CENTRIFUGE_CHAIN_DEPLOYMENTS,
+  CENTRIFUGE_ENVIRONMENTS,
   type CentrifugeChain,
   type CentrifugeChainOf,
   type CentrifugeEnvironment,
@@ -313,7 +315,7 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
     }
   }
 
-  for (const environment of ['mainnet', 'testnet'] as const) {
+  for (const environment of CENTRIFUGE_ENVIRONMENTS) {
     // scIds are hub-level, so uniqueness is per environment...
     assertUnique({
       values: entries.flatMap((entry) => {
@@ -327,7 +329,7 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
   // ...while token and Centrifuge-vault instances are per-chain, so address
   // uniqueness is per chain (the same address on two chains is legitimate
   // under deterministic deployment, and must not false-positive here).
-  for (const chain of Object.keys(CENTRIFUGE_CHAIN_DEPLOYMENTS) as Array<CentrifugeChain>) {
+  for (const chain of CENTRIFUGE_CHAINS) {
     const environment = CENTRIFUGE_CHAIN_DEPLOYMENTS[chain].environment;
     const live = entries.flatMap((entry) => {
       const onChain = entry.environments[environment]?.chains[chain];
