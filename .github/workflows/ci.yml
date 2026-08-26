@@ -1,0 +1,38 @@
+# The merge gate: every invariant the repo enforces through the test suites
+# (registry lint, catalog lint, alert formatting, client assertions) runs on
+# every PR instead of relying on someone running `pnpm test` before a deploy.
+# Deliberately offline and secret-free — the live Centrifuge checks
+# (`pnpm centrifuge:verify`) run at deploy time on Vercel, not here, so an
+# indexer or RPC outage can never block unrelated work.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pnpm version from the root package.json "packageManager" field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm check-types
+
+      - run: pnpm test
