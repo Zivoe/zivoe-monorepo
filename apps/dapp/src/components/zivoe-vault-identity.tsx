@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 
-import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
 import { Badge } from '@zivoe/ui/core/badge';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -35,7 +35,7 @@ export default function ZivoeVaultIdentity({
         <div className="flex items-center justify-between gap-3">
           {/* No uppercase: the ticker is cased by the catalog — zSMB, not ZSMB. */}
           <span className="text-small font-medium text-tertiary">
-            {SHARE_CLASS_CATALOG[zivoeVault.shareClass.key].symbol}
+            {SHARE_CLASSES[zivoeVault.shareClass.key].symbol}
           </span>
 
           {trailing}

@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 
-import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
 import { ContextualHelp, ContextualHelpDescription } from '@zivoe/ui/core/contextual-help';
 import { DocumentIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -26,7 +26,7 @@ export default function DepositDetails({ zivoeVault }: { zivoeVault: ZivoeVault 
   // render one source and can never disagree.
   const derived: Record<DerivedDetailLabel, ReactNode> = {
     Issuer: zivoeVault.issuer,
-    Ticker: SHARE_CLASS_CATALOG[zivoeVault.shareClass.key].symbol,
+    Ticker: SHARE_CLASSES[zivoeVault.shareClass.key].symbol,
     'Asset Type': zivoeVault.category,
     'Accepted stablecoin': <AcceptedStablecoinIcons />,
     'Accepted chains': <AcceptedChainIcons zivoeVault={zivoeVault} />

@@ -1,32 +1,29 @@
 import { type Address } from 'viem';
 
-import { type ShareClassChainIdentity } from '@zivoe/centrifuge-indexer';
-
-import { type UsdcInstance } from './config';
+import { type ShareClassChainIdentity, type UsdcInstance } from '@zivoe/centrifuge-indexer';
 
 /**
  * The Centrifuge vault a hook transacts and reads against — one share class
  * paired with its deposit asset on ONE spoke chain. Resolved from the catalog
- * and Centrifuge-vault map in the app, a synthetic fixture in tests. The hub
- * half is composed from the catalog's chain-identity shape so a new identity
- * field cannot be added in one package and forgotten here, with
- * `key`/`symbol` widened to plain strings on purpose: the module stays a
- * pure, testable boundary with no registry coupling (these imports are
- * type-only). The chain is part of the identity: the same class on another
- * chain is a different Centrifuge vault, a different wallet balance, and a
- * different cache entry.
+ * in the app, a synthetic fixture in tests. The hub half is composed from the
+ * catalog's chain-identity shape so a new identity field cannot be added in
+ * one package and forgotten here, with `key`/`symbol` widened to plain
+ * strings on purpose: the module stays a pure, testable boundary with no
+ * registry coupling (these imports are type-only). The chain is part of the
+ * identity: the same class on another chain is a different Centrifuge vault,
+ * a different wallet balance, and a different cache entry.
  */
 export type TransactedCentrifugeVault = Pick<ShareClassChainIdentity, 'chain' | 'chainId'> & {
   /** The Centrifuge vault's own address on the chain. */
   address: Address;
-  /** The chain's USDC instance — resolved onto the identity so hooks and flows never re-derive chain config (a throwing lookup) in render paths. */
+  /** The chain's USDC instance — resolved onto the identity so hooks and flows never re-derive chain facts in render paths. */
   usdc: UsdcInstance;
   /** The chain's VaultRouter — deposits route through it, so it is the USDC approval spender. */
   vaultRouterAddress: Address;
-  /** Whether the redeem tab offers cancelling a pending request on this chain — see CentrifugeChainConfig. */
+  /** Whether the redeem tab offers cancelling a pending request on this chain — see CentrifugeChainDeployment. */
   supportsRedeemCancellation: boolean;
   /** The share class the Centrifuge vault serves: hub facts plus its token instance on this chain. */
-  shareClass: Omit<ShareClassChainIdentity, 'chain' | 'chainId' | 'key' | 'symbol'> & {
+  shareClass: Omit<ShareClassChainIdentity, 'chain' | 'chainId' | 'centrifugeVaultAddress' | 'key' | 'symbol'> & {
     /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization (alongside `chain`). */
     key: string;
     symbol: string;

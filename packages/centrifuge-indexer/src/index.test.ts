@@ -1,17 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  CENTRIFUGE_CHAINS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
-  assertShareClassCatalogInvariants,
+  assertShareClassInvariants,
   chainsOfEnvironment,
   createDailyNegativeYieldReporter,
   fetchCurrentShareMetrics,
   fetchDailyTokenSnapshots,
   fetchShareClassNavs,
+  getChainId,
   getShareClassChainIdentity,
   getShareClassIdentity,
+  listLiveChains,
   listShareClassKeys,
   rayToPercent,
   sumShareClassNavs,
@@ -42,10 +45,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('environment/chain facts', () => {
-  it('partitions every chain into exactly one environment', () => {
+describe('chain deployments', () => {
+  it('partitions every chain into exactly one environment, in canonical order', () => {
     expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos']);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
+    expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
+      [...CENTRIFUGE_CHAINS].sort()
+    );
+  });
+
+  it('reads the chain id off the viem definition — one author for the fact', () => {
+    expect(getChainId('ethereum')).toBe(1);
+    expect(getChainId('pharos')).toBe(1672);
+    expect(getChainId('sepolia')).toBe(11155111);
+    expect(getChainId('base-sepolia')).toBe(84532);
+  });
+
+  it('keeps the real manifest lint-clean', () => {
+    expect(() => assertShareClassInvariants()).not.toThrow();
   });
 });
 
@@ -69,7 +86,8 @@ describe('share-class catalog', () => {
       scId: '0x00010000000027280000000000000002',
       chain: 'sepolia',
       chainId: 11155111,
-      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
+      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
+      centrifugeVaultAddress: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6'
     });
   });
 
@@ -82,7 +100,8 @@ describe('share-class catalog', () => {
       scId: '0x00010000000000120000000000000002',
       chain: 'pharos',
       chainId: 1672,
-      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8'
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+      centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6'
     });
   });
 
@@ -95,7 +114,8 @@ describe('share-class catalog', () => {
       scId: '0x00010000000027280000000000000002',
       chain: 'base-sepolia',
       chainId: 84532,
-      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6'
+      shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
+      centrifugeVaultAddress: '0x8aBb393C433375401EEeae24557475C3f36f5025'
     });
   });
 
@@ -103,55 +123,89 @@ describe('share-class catalog', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
       expect(() => getShareClassChainIdentity({ chain: 'sepolia', key })).toThrow(/not in the catalog/);
+      expect(listLiveChains({ environment: 'testnet', key })).toEqual([]);
     }
   });
 
-  it('lists only live share classes', () => {
-    // Synthetic catalog on purpose: enumerating the real book here made
-    // registering a share class break this file (it happened once).
-    const catalog = {
-      live: { environments: { testnet: { chains: { sepolia: { deployable: true } } } } },
-      staged: {
-        environments: {
-          testnet: { chains: { sepolia: { deployable: false }, 'base-sepolia': { deployable: false } } },
-          mainnet: { chains: { ethereum: { deployable: false } } }
+  // Synthetic catalog on purpose: enumerating the real book here made
+  // registering a share class break this file (it happened once).
+  const book = {
+    live: {
+      symbol: 'zLIV',
+      decimals: 18,
+      environments: {
+        testnet: {
+          poolId: '1',
+          scId: '0x000100000000aaaa0000000000000001',
+          chains: {
+            sepolia: { status: 'live', shareTokenAddress: '0xab', centrifugeVaultAddress: '0xcd' },
+            'base-sepolia': { status: 'staged' }
+          }
         }
       }
-    };
+    },
+    staged: {
+      symbol: 'zSTG',
+      decimals: 18,
+      environments: {
+        testnet: {
+          poolId: '2',
+          scId: '0x000100000000bbbb0000000000000001',
+          chains: { sepolia: { status: 'staged' }, 'base-sepolia': { status: 'staged' } }
+        },
+        mainnet: {
+          poolId: '3',
+          scId: '0x000100000000bbbb0000000000000001',
+          chains: { ethereum: { status: 'staged' } }
+        }
+      }
+    }
+  } as const;
 
-    expect(listShareClassKeys('testnet', catalog)).toEqual(['live']);
-    expect(listShareClassKeys('mainnet', catalog)).toEqual([]);
+  it('lists only live share classes', () => {
+    expect(listShareClassKeys('testnet', book)).toEqual(['live']);
+    expect(listShareClassKeys('mainnet', book)).toEqual([]);
+  });
+
+  it('lists only the live chains of a class, in canonical order', () => {
+    expect(listLiveChains({ environment: 'testnet', key: 'live' }, book)).toEqual(['sepolia']);
+    expect(listLiveChains({ environment: 'testnet', key: 'staged' }, book)).toEqual([]);
+    expect(listLiveChains({ environment: 'mainnet', key: 'live' }, book)).toEqual([]);
   });
 
   it('keeps the original class listed on its live environment', () => {
     // Membership only — the whole book is deliberately not asserted.
     expect(listShareClassKeys('testnet')).toContain('zsmb');
+    expect(listLiveChains({ environment: 'testnet', key: 'zsmb' })).toContain('sepolia');
   });
 });
 
-describe('assertShareClassCatalogInvariants', () => {
-  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const ZERO_SC_ID = '0x00000000000000000000000000000000';
-
+describe('assertShareClassInvariants', () => {
   function entry({
     symbol,
     scId,
     shareTokenAddress,
+    centrifugeVaultAddress = '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd',
     environment = 'testnet',
-    chain = 'sepolia',
-    deployable = true
+    chain = 'sepolia'
   }: {
     symbol: string;
     scId: string;
     shareTokenAddress: string;
+    centrifugeVaultAddress?: string;
     environment?: 'testnet' | 'mainnet';
     chain?: 'sepolia' | 'base-sepolia' | 'ethereum' | 'pharos';
-    deployable?: boolean;
   }) {
     return {
       symbol,
       decimals: 18,
-      environments: { [environment]: { scId, chains: { [chain]: { shareTokenAddress, deployable } } } }
+      environments: {
+        [environment]: {
+          poolId: '1',
+          scId,
+          chains: { [chain]: { status: 'live' as const, shareTokenAddress, centrifugeVaultAddress } }
+        }
+      }
     };
   }
 
@@ -161,47 +215,43 @@ describe('assertShareClassCatalogInvariants', () => {
     shareTokenAddress: '0xabababababababababababababababababababab'
   });
 
-  it('accepts distinct entries, including shared placeholder zeros on staged chains', () => {
-    const staged = (base: ReturnType<typeof entry>) => ({
-      ...base,
-      environments: {
-        ...base.environments,
-        mainnet: {
-          scId: ZERO_SC_ID,
-          chains: { ethereum: { shareTokenAddress: ZERO_ADDRESS, deployable: false } }
-        }
-      }
-    });
-
+  it('accepts distinct entries, including a staged chain beside a live one', () => {
     expect(() =>
-      assertShareClassCatalogInvariants({
-        a: staged(first),
-        b: staged(
-          entry({
-            symbol: 'zBBB',
-            scId: '0x000100000000bbbb0000000000000001',
-            shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
-          })
-        )
+      assertShareClassInvariants({
+        a: {
+          ...first,
+          environments: {
+            testnet: {
+              poolId: '1',
+              scId: '0x000100000000aaaa0000000000000001',
+              chains: { ...first.environments.testnet?.chains, 'base-sepolia': { status: 'staged' } }
+            }
+          }
+        },
+        b: entry({
+          symbol: 'zBBB',
+          scId: '0x000100000000bbbb0000000000000001',
+          shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc',
+          centrifugeVaultAddress: '0xdededededededededededededededededededede'
+        })
       })
     ).not.toThrow();
   });
 
   it('accepts one address reused across two chains — deterministic deploys are legitimate', () => {
     const address = '0xabababababababababababababababababababab';
+    const onChain = { status: 'live' as const, shareTokenAddress: address, centrifugeVaultAddress: address };
 
     expect(() =>
-      assertShareClassCatalogInvariants({
+      assertShareClassInvariants({
         a: {
           symbol: 'zAAA',
           decimals: 18,
           environments: {
             testnet: {
+              poolId: '1',
               scId: '0x000100000000aaaa0000000000000001',
-              chains: {
-                sepolia: { shareTokenAddress: address, deployable: true },
-                'base-sepolia': { shareTokenAddress: address, deployable: true }
-              }
+              chains: { sepolia: onChain, 'base-sepolia': onChain }
             }
           }
         }
@@ -210,13 +260,13 @@ describe('assertShareClassCatalogInvariants', () => {
   });
 
   it('throws on implausible decimals', () => {
-    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(/implausible decimals/);
-    expect(() => assertShareClassCatalogInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
+    expect(() => assertShareClassInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(/implausible decimals/);
+    expect(() => assertShareClassInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
   });
 
   it('throws on a mixed-case scId — query sites send it verbatim', () => {
     expect(() =>
-      assertShareClassCatalogInvariants({
+      assertShareClassInvariants({
         a: entry({
           symbol: 'zAAA',
           scId: '0x000100000000AAAA0000000000000001',
@@ -226,36 +276,9 @@ describe('assertShareClassCatalogInvariants', () => {
     ).toThrow(/lowercase/);
   });
 
-  it('throws when a chain is filed under the wrong environment', () => {
-    expect(() =>
-      assertShareClassCatalogInvariants({
-        a: entry({
-          symbol: 'zAAA',
-          scId: '0x000100000000aaaa0000000000000001',
-          shareTokenAddress: '0xabababababababababababababababababababab',
-          environment: 'mainnet',
-          chain: 'sepolia'
-        })
-      })
-    ).toThrow(/belongs to "testnet"/);
-  });
-
-  it('throws when a deployable chain carries a placeholder address — a flipped flag, not a staged launch', () => {
-    expect(() =>
-      assertShareClassCatalogInvariants({
-        a: entry({
-          symbol: 'zAAA',
-          scId: '0x000100000000aaaa0000000000000001',
-          shareTokenAddress: ZERO_ADDRESS,
-          deployable: true
-        })
-      })
-    ).toThrow(/deployable but carries a placeholder/);
-  });
-
   it('throws when two entries share a symbol, compared case-insensitively', () => {
     expect(() =>
-      assertShareClassCatalogInvariants({
+      assertShareClassInvariants({
         a: first,
         b: entry({
           // Case-shifted on purpose: two case-variant symbols read as one product.
@@ -278,7 +301,7 @@ describe('assertShareClassCatalogInvariants', () => {
       });
 
     expect(() =>
-      assertShareClassCatalogInvariants({
+      assertShareClassInvariants({
         a: onMainnet('zAAA', '0xabababababababababababababababababababab'),
         b: onMainnet('zBBB', '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc')
       })
@@ -287,16 +310,31 @@ describe('assertShareClassCatalogInvariants', () => {
 
   it('compares share-token addresses case-insensitively, per chain', () => {
     expect(() =>
-      assertShareClassCatalogInvariants({
+      assertShareClassInvariants({
         a: first,
         b: entry({
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
           // Case-shifted on purpose: identity comparisons must be case-insensitive.
-          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase()
+          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase(),
+          centrifugeVaultAddress: '0xdededededededededededededededededededede'
         })
       })
     ).toThrow(/Share token .* is claimed by two share classes/);
+  });
+
+  it("throws when two share classes share a Centrifuge vault on one chain — they would decode each other's receipts", () => {
+    expect(() =>
+      assertShareClassInvariants({
+        a: first,
+        b: entry({
+          symbol: 'zBBB',
+          scId: '0x000100000000bbbb0000000000000001',
+          shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc',
+          centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase()
+        })
+      })
+    ).toThrow(/Centrifuge vault .* is claimed by two share classes/);
   });
 });
 

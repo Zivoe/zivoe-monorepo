@@ -12,7 +12,7 @@ type AccountProps = {
  *
  * The catalog key rather than the on-chain scId, by choice: it is the same
  * handle Centrifuge-vault memoization, invalidations, and server cache arguments use,
- * the registry invariants pin it 1:1 to an scId per environment, and keys are
+ * the catalog pins it 1:1 to an scId per environment, and keys are
  * permanent once registered. Query caches are ephemeral besides — even a
  * rename would cost one cold fetch, not correctness.
  */

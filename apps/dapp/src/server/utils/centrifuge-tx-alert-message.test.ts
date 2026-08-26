@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
 
-import { chainsOfEnvironment } from '@zivoe/centrifuge-indexer';
-
-import { getChainConfig } from '@/centrifuge/config';
+import { chainsOfEnvironment, getChainDeployment } from '@zivoe/centrifuge-indexer';
 
 import {
   USDC_DISPLAY,
@@ -65,7 +63,7 @@ describe('USDC_DISPLAY', () => {
   it('matches every chain-instantiated USDC — the uniformity that lets the formatter skip chain config', () => {
     for (const environment of ['mainnet', 'testnet'] as const) {
       for (const chain of chainsOfEnvironment(environment)) {
-        const { symbol, decimals } = getChainConfig(chain).usdc;
+        const { symbol, decimals } = getChainDeployment(chain).usdc;
         expect({ chain, symbol, decimals }).toEqual({ chain, ...USDC_DISPLAY });
       }
     }

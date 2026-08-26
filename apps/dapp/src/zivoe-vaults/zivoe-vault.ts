@@ -1,8 +1,6 @@
 import { type ComponentType, type ReactNode } from 'react';
 
-import { type Address } from 'viem';
-
-import { type CentrifugeChain, type ShareClassKey } from '@zivoe/centrifuge-indexer';
+import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 /**
@@ -34,20 +32,6 @@ export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted 
 export type AuthoredDetailLabel = Exclude<ZivoeVaultDetailLabel, DerivedDetailLabel>;
 
 /**
- * The Centrifuge vault instantiating the share class for USDC on one spoke
- * chain — Centrifuge's narrow sense of the word, not the product Vault users see.
- */
-export type CentrifugeVault = {
-  address: Address;
-  /**
-   * False while the address is a placeholder for a chain the launch is
-   * staged on — resolving it throws rather than decoding receipts against
-   * the zero address (which silently matches nothing).
-   */
-  deployable: boolean;
-};
-
-/**
  * Subscription status. 'Deploying' keeps a Zivoe Vault out of new deposits
  * while its redemptions stay open, so this is a behavioral fact the deposit
  * flow reads — not only the listing card's chip. Further statuses join the
@@ -68,21 +52,15 @@ export type ZivoeVaultIdentity = {
   /** The Centrifuge share class this route reads and transacts against. */
   shareClass: {
     /**
-     * Catalog key — the share-class dimension of caches, query keys and Centrifuge-vault
-     * resolution. Symbol, decimals and on-chain ids are always read off the
-     * catalog by this key, never re-declared here, so a module cannot drift
-     * from the class it references.
+     * Catalog key — the share-class dimension of caches, query keys and
+     * Centrifuge-vault resolution. Symbol, decimals, on-chain ids and the
+     * Centrifuge vault per chain are always read off the catalog by this
+     * key, never re-declared here, so a module cannot drift from the class
+     * it references. Which chains a deployment serves is the catalog's
+     * per-chain `status` on the active environment.
      */
     key: ShareClassKey;
   };
-  /**
-   * dApp-only identity: the Centrifuge vault per spoke chain this Zivoe Vault claims —
-   * collocated here so a launch is a catalog entry plus this one module,
-   * with no third map to keep in sync. The registry invariants force the
-   * claimed chains to match the catalog's, both ways. Which of these chains
-   * a deployment actually serves is the intersection with ACTIVE_CHAINS.
-   */
-  centrifugeVaults: Partial<Record<CentrifugeChain, CentrifugeVault>>;
 };
 
 export type ZivoeVaultPresentation = {
@@ -125,3 +103,6 @@ export type ZivoeVaultPresentation = {
  * function fields must never cross into the identity half.
  */
 export type ZivoeVault = ZivoeVaultIdentity & ZivoeVaultPresentation;
+
+/** A Zivoe Vault module pinned to its share class — the registry demands the key it is registered under. */
+export type ZivoeVaultFor<K extends ShareClassKey> = ZivoeVault & { shareClass: { key: K } };

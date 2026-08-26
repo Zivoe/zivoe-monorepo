@@ -39,8 +39,8 @@ export function useInvestorAccess({ centrifugeVault }: { centrifugeVault: Transa
               centrifugeVault: await getCentrifugeVault(centrifugeVault),
               investor: address,
               client: web3,
-              // Asserted against the Centrifuge vault's own answer at resolution,
-              // so the hook is always read off the token the flows transact with.
+              // Verified against the Centrifuge vault's own answer before deploying
+              // (centrifuge:verify), so the hook is read off the token the flows transact with.
               shareTokenAddress: centrifugeVault.shareClass.shareTokenAddress
             })
   });

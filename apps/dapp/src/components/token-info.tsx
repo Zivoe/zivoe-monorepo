@@ -1,4 +1,4 @@
-import { SHARE_CLASS_CATALOG } from '@zivoe/centrifuge-indexer';
+import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
 import { UsdcIcon } from '@zivoe/ui/icons';
 
 import { type DepositToken, type ShareToken } from '@/types/constants';
@@ -22,7 +22,7 @@ const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
 // (getTokenInfo) rather than assume catalog-wide completeness.
 const SHARE_TOKEN_INFO: Partial<Record<ShareToken, TokenInfo>> = Object.fromEntries(
   ZIVOE_VAULTS.map((zivoeVault) => {
-    const symbol = SHARE_CLASS_CATALOG[zivoeVault.shareClass.key].symbol;
+    const symbol = SHARE_CLASSES[zivoeVault.shareClass.key].symbol;
     return [symbol, { label: symbol, description: zivoeVault.shareTokenDescription, icon: <zivoeVault.Logo /> }];
   })
 );

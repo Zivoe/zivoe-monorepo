@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { getShareClassIdentity } from '../catalog';
-import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../chains';
 import { fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
+import { getShareClassIdentity } from '../share-classes';
 
 const DAILY_TOKEN_SNAPSHOTS_QUERY = graphql(`
   query DailyTokenSnapshots($tokenId: String!, $limit: Int!) {
