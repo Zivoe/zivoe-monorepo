@@ -37,7 +37,7 @@ One Centrifuge share class exposed as a product page at `/vaults/<slug>`, descri
 _Avoid_: offering (the retired name — "offer"/"offering" must not reappear in identifiers, file names, comments or copy), opportunity (the pre-Centrifuge name), product; bare `vault` in code; Centrifuge vault in user-facing copy
 
 **Centrifuge Vault**:
-Centrifuge's own, narrower vault: one share class instantiated on one chain for one deposit asset, plus the on-chain address it lives at. Code NEVER says a bare `vault` — every identifier, file name and comment spells the sense out: `getCentrifugeVault`, `centrifugeVaultAddress`, `readCentrifugeVaultCapacity`, `CentrifugeVaultEntity`, `zivoeVault.centrifugeVaults`, `centrifuge-vault-receipt.ts`. Kept verbatim as exceptions: Centrifuge's own proper nouns (the SDK's `pool.vault()`, `ABI.VaultRouter`, the `VaultNotLinked` protocol error, `CentrifugeChainConfig.vaultRouterAddress` naming the VaultRouter contract) and the `'VAULT_CAPACITY'` cache string, which is already namespaced under `'CENTRIFUGE'`. To tell the senses apart: if it has an address, a chain or a deposit asset, it is a Centrifuge vault; if it has a slug, a page or a reader, it is a Zivoe Vault. One Zivoe Vault owns one Centrifuge vault per chain today, and several per chain the day a class accepts a second deposit asset — every Centrifuge-vault-scoped cache key carries the chain, which identifies the vault only while there is one per chain, so a second deposit asset must bring its own key dimension. User-facing copy names neither sense.
+Centrifuge's own, narrower vault: one share class instantiated on one chain for one deposit asset, plus the on-chain address it lives at. Code NEVER says a bare `vault` — every identifier, file name and comment spells the sense out: `getCentrifugeVault`, `centrifugeVaultAddress`, `readCentrifugeVaultCapacity`, `CentrifugeVaultEntity`, `centrifuge-vault-receipt.ts`. Kept verbatim as exceptions: Centrifuge's own proper nouns (the SDK's `pool.vault()`, `ABI.VaultRouter`, the `VaultNotLinked` protocol error, `CentrifugeChainDeployment.vaultRouter` naming the VaultRouter contract) and the `'VAULT_CAPACITY'` cache string, which is already namespaced under `'CENTRIFUGE'`. To tell the senses apart: if it has an address, a chain or a deposit asset, it is a Centrifuge vault; if it has a slug, a page or a reader, it is a Zivoe Vault. One Zivoe Vault owns one Centrifuge vault per chain today, and several per chain the day a class accepts a second deposit asset — every Centrifuge-vault-scoped cache key carries the chain, which identifies the vault only while there is one per chain, so a second deposit asset must bring its own key dimension. User-facing copy names neither sense.
 _Avoid_: a bare `vault` in identifiers, file names or code prose — qualify every occurrence
 
 **Environment**:
@@ -45,11 +45,11 @@ One whole Centrifuge protocol universe — one hub, one SDK environment flag, on
 _Avoid_: network (the retired term that meant both this and Chain)
 
 **Chain**:
-One spoke network inside an Environment (`ethereum`, `pharos`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE*ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the deployable flags' business, and every chain-scoped query key and vault memo carries the chain.
+One spoke network inside an Environment (`ethereum`, `pharos`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE*ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the Share Class Catalog's per-chain `status` (`staged` | `live`), and every chain-scoped query key and vault memo carries the chain.
 \_Avoid*: network (ambiguous)
 
 **Share Class Catalog**:
-The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/catalog.ts`): symbol, decimals, and per-environment hub identity (pool id, scId) with per-chain token instances, `deployable: false` marking staged placeholder chains. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import.
+The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/share-classes.ts`, with chain facts beside it in `chains.ts`): symbol, decimals, and per-environment hub identity (pool id, scId) with per-chain token instances, each carrying a `status` of `staged` (no addresses, by construction) or `live`. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import, and `pnpm centrifuge:verify` checks every live entry against the chain, the SDK and the indexer before a deploy.
 _Avoid_: config (that is the chain-constants singleton), token list
 
 **Share-Class Key**:
@@ -57,11 +57,11 @@ The Share Class Catalog key naming one class (e.g. `zSMB`) — the share-class d
 _Avoid_: scId (the on-chain id), symbol
 
 **Zivoe Vault Module**:
-One Zivoe Vault's registration in the dApp — identity (slug, Share-Class Key, per-chain Centrifuge Vaults) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/zivoe-vaults/zsmb.tsx`. Listed in `REGISTERED_ZIVOE_VAULTS`; the registry invariants sweep every claimed chain at import, so a misregistration fails the build, never production traffic.
+One Zivoe Vault's registration in the dApp — identity (slug, Share-Class Key; per-chain addresses live in the Share Class Catalog) plus presentation (logo, copy, details, documents), e.g. `apps/dapp/src/zivoe-vaults/zsmb.tsx`. Listed in `REGISTERED_ZIVOE_VAULTS`, whose mapped `satisfies` makes key/module agreement and "one module per catalog entry" compile errors; slug shape and uniqueness are the registry lint in the dApp test suite.
 _Avoid_: vault config, offering module (retired)
 
 **Transaction Identity**:
-What a flow hands every Centrifuge Transaction Hook: `{ zivoeVaultSlug, shareClass }`, the resolved catalog identity joined with the Zivoe Vault's Centrifuge Vault on ONE chain via `resolveTransactionIdentity(zivoeVault, chain)` — the chain is part of the identity, picked by the flow's selector. The Centrifuge module never imports the registry — it trusts the identity it is handed, which keeps the test fixture class unregisterable.
+What a flow hands every Centrifuge Transaction Hook: `{ zivoeVaultSlug, centrifugeVault }`, the resolved catalog identity joined with the share class's Centrifuge Vault on ONE chain (addresses from the Share Class Catalog) via `resolveTransactionIdentity(zivoeVault, chain)` — the chain is part of the identity, picked by the flow's selector. The Centrifuge module never imports the registry — it trusts the identity it is handed, which keeps the test fixture class unregisterable.
 _Avoid_: vault context
 
 **NAV**:
@@ -97,5 +97,5 @@ _Avoid_: partial cancel
 
 > **Dev**: The zSMB vault is throwing on Sepolia.
 > **Expert**: Which one — the Vault, or the Centrifuge Vault behind it?
-> **Dev**: The address in `ZSMB_ZIVOE_VAULT.centrifugeVaults.sepolia`. The SDK resolved a different one than we assert against.
-> **Expert**: Then it's the Centrifuge Vault, and the fix is the Zivoe Vault Module's registration, not the page. The Zivoe Vault is fine — same share class, same slug, same URL, and nothing the user reads changes.
+> **Dev**: The `centrifugeVaultAddress` the catalog lists for zsmb on sepolia. The SDK resolved a different one than we assert against.
+> **Expert**: Then it's the Centrifuge Vault, and the fix is the Share Class Catalog's chain entry, not the page. The Zivoe Vault is fine — same share class, same slug, same URL, and nothing the user reads changes.
