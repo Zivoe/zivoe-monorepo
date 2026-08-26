@@ -122,11 +122,29 @@ export type CentrifugeChain = keyof typeof CENTRIFUGE_CHAIN_DEPLOYMENTS;
  */
 export const USDC_DECIMALS = 6;
 
+/**
+ * 20 bytes and not the zero placeholder — the shape every configured address
+ * must have. Internal to the package's import-time lints: `Address` only
+ * types the 0x prefix, so a truncated paste or a leftover zero placeholder
+ * needs a runtime sweep to fail the build instead of a transaction.
+ */
+export function isPlausibleAddress(address: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(address) && !/^0x0+$/.test(address);
+}
+
 for (const [chain, deployment] of Object.entries(CENTRIFUGE_CHAIN_DEPLOYMENTS)) {
   if (deployment.usdc.decimals !== USDC_DECIMALS)
     throw new Error(
       `USDC on "${chain}" declares ${String(deployment.usdc.decimals)} decimals; hub-level share math assumes ${String(USDC_DECIMALS)} on every chain.`
     );
+
+  for (const [contract, address] of [
+    ['VaultRouter', deployment.vaultRouter],
+    ['USDC', deployment.usdc.address]
+  ] as const) {
+    if (!isPlausibleAddress(address))
+      throw new Error(`The ${contract} address on "${chain}" is implausible: "${address}".`);
+  }
 }
 
 /** The chains of one environment, as a type — lets share-class entries only claim chains of their own hub. */

@@ -264,6 +264,45 @@ describe('assertShareClassInvariants', () => {
     expect(() => assertShareClassInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
   });
 
+  it('throws on a placeholder or malformed pool id', () => {
+    const withPoolId = (poolId: string) => ({
+      a: { ...first, environments: { testnet: { ...first.environments.testnet!, poolId } } }
+    });
+
+    expect(() => assertShareClassInvariants(withPoolId('0'))).toThrow(/implausible pool id/);
+    expect(() => assertShareClassInvariants(withPoolId('028147'))).toThrow(/implausible pool id/);
+    expect(() => assertShareClassInvariants(withPoolId('28147x'))).toThrow(/implausible pool id/);
+  });
+
+  it('throws on a zero or truncated scId', () => {
+    const withScId = (scId: string) =>
+      entry({ symbol: 'zAAA', scId, shareTokenAddress: '0xabababababababababababababababababababab' });
+
+    expect(() => assertShareClassInvariants({ a: withScId('0x00000000000000000000000000000000') })).toThrow(
+      /implausible scId/
+    );
+    expect(() => assertShareClassInvariants({ a: withScId('0x0001000000000012') })).toThrow(/implausible scId/);
+  });
+
+  it('throws on a zero or truncated live address — Address only types the 0x prefix', () => {
+    expect(() =>
+      assertShareClassInvariants({
+        a: entry({ symbol: 'zAAA', scId: '0x000100000000aaaa0000000000000001', shareTokenAddress: '0xab' })
+      })
+    ).toThrow(/implausible share token address/);
+
+    expect(() =>
+      assertShareClassInvariants({
+        a: entry({
+          symbol: 'zAAA',
+          scId: '0x000100000000aaaa0000000000000001',
+          shareTokenAddress: '0xabababababababababababababababababababab',
+          centrifugeVaultAddress: '0x0000000000000000000000000000000000000000'
+        })
+      })
+    ).toThrow(/implausible Centrifuge vault address/);
+  });
+
   it('throws on a mixed-case scId — query sites send it verbatim', () => {
     expect(() =>
       assertShareClassInvariants({
@@ -315,8 +354,9 @@ describe('assertShareClassInvariants', () => {
         b: entry({
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
-          // Case-shifted on purpose: identity comparisons must be case-insensitive.
-          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase(),
+          // Case-shifted on purpose (prefix kept lowercase — 0X would fail the
+          // shape lint): identity comparisons must be case-insensitive.
+          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase().replace('0X', '0x'),
           centrifugeVaultAddress: '0xdededededededededededededededededededede'
         })
       })
@@ -331,7 +371,8 @@ describe('assertShareClassInvariants', () => {
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
           shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc',
-          centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase()
+          // Case-shifted with the prefix kept lowercase, as above.
+          centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase().replace('0X', '0x')
         })
       })
     ).toThrow(/Centrifuge vault .* is claimed by two share classes/);

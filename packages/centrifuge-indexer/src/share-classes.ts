@@ -8,7 +8,8 @@ import {
   type CentrifugeChainOf,
   type CentrifugeEnvironment,
   chainsOfEnvironment,
-  getChainId
+  getChainId,
+  isPlausibleAddress
 } from './chains';
 
 /**
@@ -157,7 +158,7 @@ type ShareClassesLike = Record<
   }
 >;
 
-/** The real manifest viewed with an open chain index — the as-const entries narrow their chain keys, which a CentrifugeChain cannot address. */
+/** The real catalog viewed with an open chain index — the as-const entries narrow their chain keys, which a CentrifugeChain cannot address. */
 type ChainLookup = Record<
   string,
   {
@@ -166,6 +167,10 @@ type ChainLookup = Record<
     >;
   }
 >;
+
+// A checked assignment, not a cast — the compiler proves the widened view is
+// sound, so a catalog shape change cannot silently invalidate the lookup.
+const SHARE_CLASS_CHAIN_LOOKUP: ChainLookup = SHARE_CLASSES;
 
 function isShareClassKey(key: string): key is ShareClassKey {
   // Object.hasOwn, not `in`: ids arrive as arbitrary strings, and a
@@ -241,7 +246,7 @@ export function getShareClassChainIdentity({
 
   // Viewed structurally at the lookup only — the delegate above already
   // resolved the narrow entry, so `symbol` keeps its union type.
-  const onChain = (SHARE_CLASSES as ChainLookup)[identity.key]?.environments[environment]?.chains[chain];
+  const onChain = SHARE_CLASS_CHAIN_LOOKUP[identity.key]?.environments[environment]?.chains[chain];
 
   if (!onChain) throw new Error(`Share class "${key}" is not available on "${chain}".`);
 
@@ -308,10 +313,36 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
       throw new Error(`Share class "${key}" declares implausible decimals: ${String(entry.decimals)}.`);
 
     for (const [environment, onEnvironment] of Object.entries(entry.environments)) {
+      // The pool id is PoolId's input and the indexer's per-pool filter key —
+      // a placeholder or typo here would otherwise fail only at runtime.
+      if (!/^[1-9]\d*$/.test(onEnvironment.poolId))
+        throw new Error(
+          `Share class "${key}" declares an implausible pool id on "${environment}": "${onEnvironment.poolId}".`
+        );
+
       // Query sites send the scId verbatim (the indexer matches ids exactly),
       // unlike addresses, which they lowercase — so it must be stored lowercase.
       if (onEnvironment.scId !== onEnvironment.scId.toLowerCase())
         throw new Error(`Share class "${key}" must store its scId lowercase on "${environment}".`);
+
+      // 16 bytes, and never the zero placeholder a staged copy-paste leaves behind.
+      if (!/^0x[0-9a-f]{32}$/.test(onEnvironment.scId) || /^0x0+$/.test(onEnvironment.scId))
+        throw new Error(
+          `Share class "${key}" declares an implausible scId on "${environment}": "${onEnvironment.scId}".`
+        );
+
+      // `Address` only types the 0x prefix — a truncated paste or zero
+      // placeholder on a LIVE entry must fail the build, not a transaction.
+      for (const [chain, onChain] of Object.entries(onEnvironment.chains)) {
+        if (onChain.status !== 'live') continue;
+        for (const [field, address] of [
+          ['share token', onChain.shareTokenAddress],
+          ['Centrifuge vault', onChain.centrifugeVaultAddress]
+        ] as const) {
+          if (!isPlausibleAddress(address))
+            throw new Error(`Share class "${key}" declares an implausible ${field} address on "${chain}": "${address}".`);
+        }
+      }
     }
   }
 
