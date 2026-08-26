@@ -8,7 +8,7 @@
  */
 import { Client, type CreateScheduleRequest } from '@upstash/qstash';
 
-import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '../src/lib/qstash';
+import { CENTRIFUGE_TX_MONITOR_CRON, QSTASH_JOB_LABELS, getQstashFailureCallback } from '../src/lib/qstash';
 
 type ScheduleConfig = Required<
   Pick<CreateScheduleRequest, 'scheduleId' | 'cron' | 'retries' | 'failureCallback' | 'label'>
@@ -24,6 +24,14 @@ const SCHEDULES: Array<ScheduleConfig> = [
     retries: 1,
     failureCallback: '/api/qstash/failure',
     label: QSTASH_JOB_LABELS.monitorRefreshHoldings
+  },
+  {
+    destination: '/api/monitor/centrifuge-transactions',
+    scheduleId: 'centrifuge-transactions-monitor',
+    cron: CENTRIFUGE_TX_MONITOR_CRON, // Every 5 minutes
+    retries: 1,
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.monitorCentrifugeTransactions
   }
 ];
 

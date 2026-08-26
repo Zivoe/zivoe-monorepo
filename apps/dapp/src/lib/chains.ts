@@ -1,7 +1,12 @@
 import { type Chain, defineChain } from 'viem';
 import { baseSepolia, mainnet, sepolia } from 'viem/chains';
 
-import { CENTRIFUGE_CHAIN_FACTS, type CentrifugeChain, chainsOfEnvironment } from '@zivoe/centrifuge-indexer';
+import {
+  CENTRIFUGE_CHAINS,
+  CENTRIFUGE_CHAIN_FACTS,
+  type CentrifugeChain,
+  chainsOfEnvironment
+} from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
 
@@ -93,6 +98,16 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
 
   const alchemyUrl = key ? `https://${ALCHEMY_NETWORK[chain]}.g.alchemy.com/v2/${key}` : undefined;
   return [...(alchemyUrl ? [alchemyUrl] : []), ...VIEM_CHAINS[chain].rpcUrls.default.http];
+}
+
+// Built once at import like the module's other per-chain lookups.
+const CHAIN_OF_CHAIN_ID: Partial<Record<number, CentrifugeChain>> = Object.fromEntries(
+  CENTRIFUGE_CHAINS.map((chain) => [CENTRIFUGE_CHAIN_FACTS[chain].chainId, chain])
+);
+
+/** The registry chain behind an EVM chain id, or undefined for a chain the app does not know. */
+export function chainOfChainId(chainId: number): CentrifugeChain | undefined {
+  return CHAIN_OF_CHAIN_ID[chainId];
 }
 
 export const ACTIVE_CHAIN_IDS: Array<number> = ACTIVE_CHAINS.map(getChainId);

@@ -10,7 +10,11 @@ export function withQstashSignature(handler: AppRouteHandler): AppRouteHandler {
 
 export const QSTASH_FAILURE_CALLBACK_PATH = '/api/qstash/failure';
 
+/** One cron string shared by the QStash schedule and the Sentry cron monitor, so they cannot drift. */
+export const CENTRIFUGE_TX_MONITOR_CRON = '*/5 * * * *';
+
 export const QSTASH_JOB_LABELS = {
+  monitorCentrifugeTransactions: 'monitor.centrifuge-transactions',
   monitorRefreshHoldings: 'monitor.refresh-holdings',
   monitorDlq: 'monitor.dlq',
   emailOnboardingReminder: 'email.onboarding-reminder',

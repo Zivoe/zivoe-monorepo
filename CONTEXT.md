@@ -6,23 +6,23 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 
 ### Transaction monitoring
 
-> Archived with the Centrifuge migration — the module now lives at `apps/dapp/archived/transaction-monitor` and is excluded from typecheck and lint. The vocabulary is kept for reading that code and for whatever replaces it.
-
 **Transaction Monitor**:
-The module that watches finalized on-chain transaction events and fans out user notifications (analytics, Telegram, confirmation emails with dedupe). One orchestration; everything kind-specific lives in a Monitor Kind.
+The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer and posts Telegram alerts — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
 _Avoid_: cron route, notification job
 
-**Monitor Kind**:
-The adapter config for one transaction event type — its ponder table, analytics event, Telegram line, and confirmation email. Two exist: deposits and redemptions.
-_Avoid_: monitor config, flow (that means something else in observability tags)
-
 **Monitor Pass**:
-One QStash-triggered run of the Transaction Monitor for one Monitor Kind: advance from the Monitor Cursor to the safe block, notify, record, move the cursor.
+One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: freshness guard over the indexer head → fetch events behind the Monitor Cursor (plus an overlap window) → dedupe against the Notified Ledger → Telegram batch → record and advance the cursor. At-least-once end to end: a crash can repeat a message, never lose one.
 _Avoid_: cron run, tick
 
 **Monitor Cursor**:
-The per-kind `(blockNumber, logIndex)` watermark marking the last processed event. Only ever moves forward — concurrent passes (QStash retries) cannot rewind it.
+A per-monitor epoch-milliseconds watermark in `monitor_cursor` marking event time processed up to. Only ever moves forward (a monotonic upsert guard — concurrent passes cannot rewind it), and its advance is clamped to the slowest active chain's indexed head, so a lagging chain's back-filled events can never fall behind the window. Replaced the archived monitor's per-kind `(blockNumber, logIndex)` cursor: indexer rows order by `createdAt`, and block heights are not comparable across spoke chains.
 _Avoid_: checkpoint, offset
+
+**Notified Ledger**:
+`transaction_notified` — one row per alerted on-chain event, keyed by the canonical event id (`scId:centrifugeId:txHash:type:account`; addresses and hashes lowercase). Makes overlap replays and retries free — an event recorded here is never alerted again, which is what turns the Monitor Pass's at-least-once delivery into once-only alerts in every case but a crash between send and record. The same id slots into `transaction_email_sent.eventId` if per-user emails return.
+_Avoid_: dedupe table, sent log
+
+> The pre-Centrifuge implementation (Ponder-sourced, with per-user confirmation emails and a Monitor Kind adapter per event type) lives at `apps/dapp/archived/transaction-monitor`, excluded from typecheck and lint. It is frozen and unrunnable — it references the dropped `transaction_monitor_cursor` table — and is kept as the reference for reviving the email path (templates included).
 
 ### Client transactions
 
@@ -90,10 +90,10 @@ _Avoid_: partial cancel
 
 ## Example dialogue
 
-> **Dev**: The redemptions cron missed an event yesterday.
+> **Dev**: The transactions channel missed a deposit yesterday.
 > **Expert**: Did a Monitor Pass fail, or did the Monitor Cursor skip past it?
-> **Dev**: The pass failed at `send_email`, so the cursor never advanced — the next pass picked the event up again.
-> **Expert**: Right, that's the design: a pass only moves the cursor after the event's notifications are recorded. If we ever need to watch a new event type, that's a new Monitor Kind, not a new cron route.
+> **Dev**: The pass failed at the Telegram send, so nothing was recorded in the Notified Ledger and the cursor never advanced — the next pass picked the event up again.
+> **Expert**: Right, that's the design: a pass only records and moves the cursor after the send succeeded, and the ledger is what keeps the replay from alerting twice. If we ever need to watch a new event type, that's widening the indexer boundary and the ledger enum together, not a new cron route.
 
 > **Dev**: The zSMB vault is throwing on Sepolia.
 > **Expert**: Which one — the Vault, or the Centrifuge Vault behind it?
