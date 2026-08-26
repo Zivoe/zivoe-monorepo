@@ -13,12 +13,14 @@
  *   - the protocol's VaultRouter (live, and the SDK's bundled mainnet allowlist) matches ours
  *   - the indexer prices the class, with our decimals
  *
- * Reads go over each chain's Alchemy endpoint when its key is in the
- * environment (NEXT_PUBLIC_{MAINNET,TESTNET}_ALCHEMY_KEY — the dApp's .env
- * is loaded when present), falling back to the chain's public RPCs. Nothing
- * is signed. Exits non-zero when any row mismatches or could not be read.
+ * Reads go over each chain's Alchemy endpoint when its key is available
+ * (NEXT_PUBLIC_{MAINNET,TESTNET}_ALCHEMY_KEY — from the environment, or
+ * picked out of the dApp's .env when present), falling back to the chain's
+ * public RPCs. Nothing is signed. Exits non-zero when any row mismatches or
+ * could not be read.
  */
 import Centrifuge, { KNOWN_DEPLOYMENTS, PoolId, ShareClassId } from '@centrifuge/sdk';
+import { existsSync, readFileSync } from 'node:fs';
 
 // Default import on purpose: the package's sources are CommonJS under Node
 // (no "type": "module"), and Node cannot see TypeScript's re-exports as named
@@ -52,6 +54,25 @@ console.warn = (...args: Array<unknown>) => {
   if (line.includes('Dropping unverified address') && !line.includes("field='vaultRouter'")) return;
   sdkWarn(...args);
 };
+
+/**
+ * The Alchemy keys live in the dApp's .env among dozens of unrelated secrets
+ * (database, auth, bot tokens). Only these two are picked out of the file —
+ * a process that talks exclusively to third-party RPCs and indexers has no
+ * business carrying the rest in its environment. Explicitly exported
+ * variables win over the file.
+ */
+function loadAlchemyKeys(): void {
+  const envFile = new URL('../../../apps/dapp/.env', import.meta.url);
+  if (!existsSync(envFile)) return; // no dApp .env — public RPCs only
+
+  const contents = readFileSync(envFile, 'utf8');
+  for (const name of ['NEXT_PUBLIC_MAINNET_ALCHEMY_KEY', 'NEXT_PUBLIC_TESTNET_ALCHEMY_KEY']) {
+    if (process.env[name]) continue;
+    const value = new RegExp(`^${name}=["']?([^"'\\r\\n]+)`, 'm').exec(contents)?.[1];
+    if (value) process.env[name] = value;
+  }
+}
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const describe = (error: unknown) => (error instanceof Error ? error.message.split('\n')[0] : String(error));
@@ -131,7 +152,12 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
           new Error('the SDK dropped the indexer-reported router — it disagrees with the bundled allowlist')
         );
       else
-        verify({ subject: chain, fact: 'VaultRouter (live protocol)', expected: vaultRouter, actual: live.vaultRouter });
+        verify({
+          subject: chain,
+          fact: 'VaultRouter (live protocol)',
+          expected: vaultRouter,
+          actual: live.vaultRouter
+        });
     } catch (error) {
       fail(chain, 'VaultRouter (live protocol)', error);
     }
@@ -206,6 +232,8 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
 }
 
 async function main() {
+  loadAlchemyKeys();
+
   const requested = process.argv[2];
   const environments: ReadonlyArray<CentrifugeEnvironment> =
     requested === undefined
