@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/nextjs';
 import { eq, inArray, sql } from 'drizzle-orm';
 
 import {
-  CENTRIFUGE_CHAIN_FACTS,
   type InvestorTransactionEvent,
   fetchIndexerChainStatuses,
   fetchInvestorTransactionEventsSince,
@@ -207,7 +206,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     let slowestHead = Number.POSITIVE_INFINITY;
 
     for (const chain of activeChains) {
-      const status = statuses.get(CENTRIFUGE_CHAIN_FACTS[chain].chainId);
+      const status = statuses.get(getChainId(chain));
       if (!status) {
         staleChains.push({ chain, minutesOld: null, blockNumber: null });
         slowestHead = Number.NEGATIVE_INFINITY;

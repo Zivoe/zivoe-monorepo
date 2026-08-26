@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { getShareClassIdentity } from '../catalog';
-import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../chains';
 import { CentrifugeIndexerError, fetchCentrifugeIndexer } from '../fetch';
 import { type ResultOf, graphql } from '../graphql';
+import { getShareClassIdentity } from '../share-classes';
 import { navD18 } from '../units';
 import { requireAgreeingTokenRows } from './token-rows';
 

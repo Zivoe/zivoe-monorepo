@@ -14,9 +14,11 @@ import { env, getCmsServerUrl } from './src/env';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
-const r2PublicBaseUrl = env.R2_PUBLIC_URL.replace(/\/$/, '');
 
+// Read the env lazily: codegen (payload generate:*) loads this config with
+// SKIP_ENV_VALIDATION=1 and no env at all, so module scope must not dereference it.
 function buildPublicMediaUrl(filename: string, prefix?: string) {
+  const r2PublicBaseUrl = env.R2_PUBLIC_URL.replace(/\/$/, '');
   const segments = [prefix, filename]
     .filter((segment): segment is string => Boolean(segment))
     .flatMap((segment) => segment.split('/'))

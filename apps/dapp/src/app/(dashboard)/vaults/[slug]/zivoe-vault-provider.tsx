@@ -4,7 +4,7 @@ import { type ReactNode, createContext, useContext, useMemo } from 'react';
 
 import { type TransactionIdentity } from '@/centrifuge';
 // The module rather than the barrel: this is a client component, and the
-// barrel runs the registry invariants and reads env at import.
+// barrel builds the registry and reads env at import.
 import { type ZivoeVaultStatus } from '@/zivoe-vaults/zivoe-vault';
 
 type ZivoeVaultContextValue = {

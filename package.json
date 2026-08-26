@@ -6,9 +6,10 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "format": "prettier --write \"**/*.{ts,tsx,mts,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,mts,md}\"",
+    "check-types": "turbo run check-types",
+    "centrifuge:verify": "pnpm --filter @zivoe/centrifuge-indexer verify"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",

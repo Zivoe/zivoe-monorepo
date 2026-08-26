@@ -16,8 +16,8 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
 };
 
 /**
- * Chains the Zivoe Vault is live on IN THIS DEPLOYMENT (active chains whose
- * catalog entry and Centrifuge vault are both deployable), deduped by display
+ * Chains the Zivoe Vault is live on IN THIS DEPLOYMENT (the catalog's live
+ * chains on the active environment), deduped by display
  * family — the one derivation behind every "available networks" surface
  * (listing card chips, the Details row), so they can never disagree.
  * Deployment-scoped on purpose: deriving from the whole catalog would

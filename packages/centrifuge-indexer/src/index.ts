@@ -1,30 +1,35 @@
 export {
-  SHARE_CLASS_CATALOG,
-  ZERO_HEX,
-  assertShareClassCatalogInvariants,
-  assertUnique,
-  getShareClassChainIdentity,
-  getShareClassIdentity,
-  listShareClassKeys,
-  type ShareClassCatalogEntry,
-  type ShareClassChainEntry,
-  type ShareClassChainIdentity,
-  type ShareClassEnvironmentEntry,
-  type ShareClassIdentity,
-  type ShareClassKey,
-  type ShareClassSymbol
-} from './catalog';
-export {
   CENTRIFUGE_CHAINS,
-  CENTRIFUGE_CHAIN_FACTS,
+  CENTRIFUGE_CHAIN_DEPLOYMENTS,
   CENTRIFUGE_ENVIRONMENTS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
   chainsOfEnvironment,
+  getChainDeployment,
+  getChainId,
+  getChainRpcUrls,
+  USDC_DECIMALS,
   type CentrifugeChain,
-  type CentrifugeChainFacts,
+  type CentrifugeChainDeployment,
+  type CentrifugeChainOf,
   type CentrifugeEnvironment,
-  type CentrifugeEnvironmentFacts
-} from './config';
+  type UsdcInstance
+} from './chains';
+export {
+  SHARE_CLASSES,
+  assertShareClassInvariants,
+  assertUnique,
+  getShareClassChainIdentity,
+  getShareClassIdentity,
+  listLiveChains,
+  listShareClassKeys,
+  type ShareClassChainDeployment,
+  type ShareClassChainIdentity,
+  type ShareClassEntry,
+  type ShareClassEnvironmentDeployment,
+  type ShareClassIdentity,
+  type ShareClassKey,
+  type ShareClassSymbol
+} from './share-classes';
 export { CentrifugeIndexerError, fetchCentrifugeIndexer, type CentrifugeIndexerErrorKind } from './fetch';
 export { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from './graphql';
 export {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../config';
+import { CENTRIFUGE_ENVIRONMENT_FACTS, type CentrifugeEnvironment } from '../chains';
 import { fetchCentrifugeIndexer } from '../fetch';
 import { graphql } from '../graphql';
 

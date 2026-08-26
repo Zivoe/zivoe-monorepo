@@ -1,7 +1,6 @@
-import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+import { type CentrifugeChain, getChainDeployment, getChainId } from '@zivoe/centrifuge-indexer';
 
 import { type TransactedCentrifugeVault, type TransactionIdentity } from '@/centrifuge';
-import { getChainConfig } from '@/centrifuge/config';
 
 /**
  * A synthetic share class for hook tests — deliberately distinct symbol and
@@ -19,9 +18,9 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
     chain: 'sepolia',
     chainId: 11155111,
     address: '0xfafafafafafafafafafafafafafafafafafafafa',
-    usdc: getChainConfig('sepolia').usdc,
-    vaultRouterAddress: getChainConfig('sepolia').vaultRouterAddress,
-    supportsRedeemCancellation: getChainConfig('sepolia').supportsRedeemCancellation,
+    usdc: getChainDeployment('sepolia').usdc,
+    vaultRouterAddress: getChainDeployment('sepolia').vaultRouter,
+    supportsRedeemCancellation: getChainDeployment('sepolia').supportsRedeemCancellation,
     shareClass: {
       key: 'zfix',
       symbol: 'zFIX',
@@ -40,7 +39,7 @@ export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault.address
  * An identity re-pinned to another chain — the shared shape behind every
  * suite's "same class, second chain" fixture, so the spreads cannot drift
  * apart. Every chain fact (chainId, USDC, router, cancellation support)
- * comes from the real chain config, exactly as resolveTransactionIdentity
+ * comes from the real chain deployment, exactly as resolveTransactionIdentity
  * sources it; only the per-vault instances (Centrifuge-vault address, share
  * token) stay on the base identity. All of it is overridable when a suite
  * needs deliberately distinct values per chain.
@@ -53,17 +52,17 @@ export function identityOnChain(
   } = {}
 ): TransactionIdentity {
   const { shareClass: shareClassOverrides, ...centrifugeVaultOverrides } = overrides;
-  const chainConfig = getChainConfig(chain);
+  const deployment = getChainDeployment(chain);
 
   return {
     ...base,
     centrifugeVault: {
       ...base.centrifugeVault,
       chain,
-      chainId: chainConfig.chainId,
-      usdc: chainConfig.usdc,
-      vaultRouterAddress: chainConfig.vaultRouterAddress,
-      supportsRedeemCancellation: chainConfig.supportsRedeemCancellation,
+      chainId: getChainId(chain),
+      usdc: deployment.usdc,
+      vaultRouterAddress: deployment.vaultRouter,
+      supportsRedeemCancellation: deployment.supportsRedeemCancellation,
       ...centrifugeVaultOverrides,
       shareClass: { ...base.centrifugeVault.shareClass, ...shareClassOverrides }
     }

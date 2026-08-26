@@ -53,5 +53,12 @@ export function getCmsServerUrl() {
     return `https://${env.VERCEL_URL}`;
   }
 
+  // Codegen (payload generate:*) evaluates the config without an env; the
+  // placeholder never reaches a running server because validation would have
+  // rejected the missing vars first.
+  if (process.env.SKIP_ENV_VALIDATION) {
+    return 'http://localhost:3001';
+  }
+
   throw new Error('SERVER_URL is required outside Vercel preview environments.');
 }

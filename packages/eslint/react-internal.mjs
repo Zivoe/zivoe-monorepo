@@ -17,7 +17,7 @@ export function reactInternalConfig({
     ...tseslint.configs.stylisticTypeChecked,
     ...BASE_CONFIGS,
     {
-      files: ['**/*.{ts,tsx}'],
+      files: ['**/*.{ts,tsx,mts,cts}'],
       languageOptions: {
         parserOptions: {
           project: true,

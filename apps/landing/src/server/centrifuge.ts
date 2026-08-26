@@ -24,10 +24,10 @@ const fetchHeroNavs = async (): Promise<Record<string, string>> => {
 const cachedHeroNavs = nextCache(fetchHeroNavs, ['centrifuge-share-class-navs', environment], { revalidate: 30 });
 
 /**
- * NAV per live share class from the shared catalog. Note the dApp homepage
- * sums the REGISTRY's book instead; a dApp-side invariant keeps the two books
- * equal, and a landing-only build never runs it — so treat catalog flag flips
- * as dApp-gated, and never assume this sum matches the dApp's by construction.
+ * NAV per live share class from the shared catalog. The dApp homepage sums
+ * the same live book: its registry is typed to carry one module per catalog
+ * entry, so given the same NEXT_PUBLIC_CHAIN_ENV the two books cannot
+ * diverge — deployments configured for different environments legitimately do.
  *
  * Fail-closed: the fetch throws on any missing or unpriced class, and a
  * Sentry-captured failure returns undefined so the hero hides the stat

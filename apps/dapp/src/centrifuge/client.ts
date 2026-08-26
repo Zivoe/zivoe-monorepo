@@ -79,16 +79,25 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
  * the VaultRouter assertion reads the same internal query the SDK's own
  * writes resolve the router from. The dependency is version-pinned, and a
  * renamed internal fails loudly here — before any approval can be signed.
+ * The field is undefined when the SDK dropped it: the indexer's answer
+ * disagreed with the bundled allowlist — a mismatch, not an RPC flake.
  */
-type WithProtocolAddresses = { _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` }> };
+type WithProtocolAddresses = {
+  _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` | undefined }>;
+};
 
 /**
- * Resolves the share class's Centrifuge vault and asserts the configuration against the
- * chain's own answers: the SDK-resolved Centrifuge-vault address must equal the
- * configured one (two sources for one fact, checked once), and the Centrifuge vault must
- * report the sync-deposit/async-redeem shape the flows are built around. A
- * misconfigured or async-deposit class fails loudly at first use instead of
- * breaking mid-transaction.
+ * Resolves the share class's Centrifuge vault and asserts the two configured
+ * facts that can genuinely diverge from the chain: the SDK-resolved
+ * Centrifuge-vault address (from our pool id, share-class id and USDC) must
+ * equal the configured one, and the protocol's live VaultRouter must equal
+ * the configured approval spender. The router earns a runtime check because
+ * it is protocol-level — Centrifuge can migrate it without any deploy on our
+ * side, and the approval is signed before the first simulate could object.
+ * Every other catalog fact (share token, decimals, Centrifuge-vault shape) is fixed
+ * under our own addresses and verified before deploying by
+ * `pnpm centrifuge:verify`. Checked once per session; a misconfigured class
+ * fails loudly at first use instead of mid-transaction.
  */
 async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault): Promise<CentrifugeVaultEntity> {
   const { shareClass } = centrifugeVault;
@@ -99,51 +108,24 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
     centrifuge.pool(new PoolId(shareClass.poolId))
   ]);
 
-  const resolved = await pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address);
+  const [resolved, { vaultRouter }] = await Promise.all([
+    pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address),
+    (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
+  ]);
 
   if (resolved.address.toLowerCase() !== centrifugeVault.address.toLowerCase())
     throw new Error(
-      `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the configuration before transacting.`
+      `The SDK resolved Centrifuge vault ${resolved.address} for share class "${shareClass.key}" on "${centrifugeVault.chain}", but ${centrifugeVault.address} is configured. Fix the catalog before transacting.`
     );
 
-  const [details, { vaultRouter }] = await Promise.all([
-    resolved.details(),
-    (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
-  ]);
-  if (!details.isSyncDeposit || details.isSyncRedeem)
+  if (vaultRouter === undefined)
     throw new Error(
-      `The Centrifuge vault for share class "${shareClass.key}" on "${centrifugeVault.chain}" is not sync-deposit/async-redeem. The flows do not support this Centrifuge-vault shape.`
+      `The SDK dropped the indexer-reported VaultRouter on "${centrifugeVault.chain}" — it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
     );
 
-  // The share token address is hand-entered per chain and nothing else
-  // validates it (the hub reads filter by scId): a typo would misread wallet
-  // balances while every metric renders fine, failing only at simulate.
-  if (details.share.address.toLowerCase() !== shareClass.shareTokenAddress.toLowerCase())
-    throw new Error(
-      `Share class "${shareClass.key}" is configured with share token ${shareClass.shareTokenAddress} on "${centrifugeVault.chain}" but the Centrifuge vault reports ${details.share.address}. Fix the catalog before transacting.`
-    );
-
-  // Decimals are hand-entered configuration scaling every parseUnits and
-  // share→USDC conversion — the one money fact with no other guard, so both
-  // tokens are asserted against the chain's own answer in this same pass.
-  if (details.share.decimals !== shareClass.decimals)
-    throw new Error(
-      `Share class "${shareClass.key}" is configured with ${shareClass.decimals} decimals but its share token on "${centrifugeVault.chain}" reports ${details.share.decimals}. Fix the catalog before transacting.`
-    );
-
-  if (details.asset.decimals !== centrifugeVault.usdc.decimals)
-    throw new Error(
-      `USDC on "${centrifugeVault.chain}" is configured with ${centrifugeVault.usdc.decimals} decimals but the Centrifuge vault's asset reports ${details.asset.decimals}. Fix the chain config before transacting.`
-    );
-
-  // The VaultRouter is hand-entered per chain and is the USDC approval
-  // spender — the highest-stakes address in the chain config, and the only
-  // one nothing else validates: deposit and claim calls byte-compare their
-  // `to` at simulate, but the approval's spender is our own construction,
-  // and the approval is signed BEFORE the first simulate could catch it.
   if (vaultRouter.toLowerCase() !== centrifugeVault.vaultRouterAddress.toLowerCase())
     throw new Error(
-      `The VaultRouter on "${centrifugeVault.chain}" is configured as ${centrifugeVault.vaultRouterAddress} but the SDK reports ${vaultRouter}. Fix the chain config before transacting.`
+      `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Fix the catalog before transacting.`
     );
 
   return resolved;

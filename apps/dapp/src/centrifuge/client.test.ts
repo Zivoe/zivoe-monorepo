@@ -38,31 +38,9 @@ const OTHER_CENTRIFUGE_VAULT: TransactedCentrifugeVault = {
   shareClass: { ...CENTRIFUGE_VAULT.shareClass, key: 'other', scId: '0x000100000000eeee0000000000000001' }
 };
 
-function fakeSdkCentrifugeVault({
-  address,
-  isSyncDeposit = true,
-  isSyncRedeem = false,
-  shareDecimals = CENTRIFUGE_VAULT.shareClass.decimals,
-  shareTokenAddress = CENTRIFUGE_VAULT.shareClass.shareTokenAddress,
-  assetDecimals = CENTRIFUGE_VAULT.usdc.decimals
-}: {
-  address: string;
-  isSyncDeposit?: boolean;
-  isSyncRedeem?: boolean;
-  shareDecimals?: number;
-  shareTokenAddress?: string;
-  assetDecimals?: number;
-}) {
-  return {
-    address,
-    details: () =>
-      Promise.resolve({
-        isSyncDeposit,
-        isSyncRedeem,
-        share: { address: shareTokenAddress, decimals: shareDecimals },
-        asset: { decimals: assetDecimals }
-      })
-  };
+/** The SDK entity, reduced to what resolution reads off it: the resolved address. */
+function fakeSdkCentrifugeVault({ address }: { address: string }) {
+  return { address, details: () => Promise.resolve({}) };
 }
 
 /** Centrifuge vaults keyed by scId, so each share class resolves its own instance. */
@@ -120,6 +98,9 @@ describe('getCentrifugeVault', () => {
       expect.objectContaining({ value: OTHER_CENTRIFUGE_VAULT.shareClass.scId }),
       expect.anything()
     );
+    // The router lookup is keyed by the resolved centrifugeId, never the EVM
+    // chain id — the two coincide only for ethereum.
+    expect(sdk.protocolAddresses).toHaveBeenCalledWith(3);
   });
 
   it('fails loudly when the SDK resolves a different Centrifuge vault than configured, then retries', async () => {
@@ -137,69 +118,35 @@ describe('getCentrifugeVault', () => {
     await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).resolves.toBe(rightCentrifugeVault);
   });
 
-  it('fails loudly when the Centrifuge vault is not sync-deposit/async-redeem', async () => {
-    const asyncDepositCentrifugeVault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      isSyncDeposit: false
-    });
-    sdk.pool.mockResolvedValue(
-      poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: asyncDepositCentrifugeVault })
-    );
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/sync-deposit\/async-redeem/);
-  });
-
-  it('fails loudly when the catalog decimals disagree with the share token on chain', async () => {
-    const vault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      shareDecimals: CENTRIFUGE_VAULT.shareClass.decimals + 10
-    });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/Fix the catalog before transacting/);
-  });
-
-  it('fails loudly when the catalog share token address disagrees with the Centrifuge vault on chain', async () => {
-    // The scId-filtered hub reads never touch this address, so this assertion
-    // is the only automated check a catalog shareTokenAddress gets.
-    const vault = fakeSdkCentrifugeVault({
-      address: CENTRIFUGE_VAULT.address,
-      shareTokenAddress: '0xdddddddddddddddddddddddddddddddddddddddd'
-    });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/but the Centrifuge vault reports/);
-  });
-
-  it('fails loudly when the configured USDC decimals disagree with the Centrifuge-vault asset on chain', async () => {
-    const vault = fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address, assetDecimals: 18 });
-    sdk.pool.mockResolvedValue(poolWithCentrifugeVaults({ [CENTRIFUGE_VAULT.shareClass.scId]: vault }));
-
-    const { getCentrifugeVault } = await loadClient();
-
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/Fix the chain config before transacting/);
-  });
-
-  it('fails loudly when the configured VaultRouter disagrees with the SDK protocol addresses', async () => {
-    // The router is the USDC approval spender; nothing downstream validates
-    // it before an approval is signed, so resolution must.
-    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x9999999999999999999999999999999999999999' });
+  it('fails loudly when the protocol reports a different VaultRouter than the configured approval spender', async () => {
     sdk.pool.mockResolvedValue(
       poolWithCentrifugeVaults({
         [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
       })
     );
+    // The router is protocol-level: Centrifuge can migrate it with no deploy
+    // on our side, which is exactly the drift this assertion exists to catch.
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x2222222222222222222222222222222222222222' });
 
     const { getCentrifugeVault } = await loadClient();
 
-    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/but the SDK reports/);
-    expect(sdk.protocolAddresses).toHaveBeenCalledWith(3);
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/VaultRouter/);
+  });
+
+  it('fails loudly when the SDK dropped the VaultRouter instead of crashing on the missing field', async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
+      })
+    );
+    // On an allowlist mismatch the SDK deletes the field rather than throwing,
+    // so "missing" IS the router-migration signal — it must surface as the
+    // explicit mismatch error, not a TypeError on toLowerCase.
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: undefined });
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/dropped the indexer-reported VaultRouter/);
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {
