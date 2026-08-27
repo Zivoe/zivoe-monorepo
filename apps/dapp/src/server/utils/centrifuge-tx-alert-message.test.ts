@@ -169,6 +169,12 @@ describe('resolveChainDisplay', () => {
       label: 'Pharos Mainnet',
       explorerUrl: 'https://pharosscan.xyz'
     });
+    expect(
+      resolveChainDisplay(event({ chainId: 8453, chainName: 'base', explorerUrl: 'https://basescan.org' }))
+    ).toEqual({
+      label: 'Base',
+      explorerUrl: 'https://basescan.org'
+    });
   });
 
   it('keeps the indexer values for a chain the registry does not know', () => {

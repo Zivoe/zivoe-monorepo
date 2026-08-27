@@ -1,5 +1,5 @@
 import { type Address, type Chain, defineChain } from 'viem';
-import { baseSepolia, mainnet, sepolia } from 'viem/chains';
+import { base, baseSepolia, mainnet, sepolia } from 'viem/chains';
 
 /**
  * The two axes of a Centrifuge deployment, split on purpose:
@@ -104,6 +104,14 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     alchemyNetwork: 'pharos-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     usdc: usdcInstance('0xC879C018dB60520F4355C26eD1a6D572cdAC1815'),
+    supportsRedeemCancellation: false
+  },
+  base: {
+    viem: base,
+    environment: 'mainnet',
+    alchemyNetwork: 'base-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: usdcInstance('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'),
     supportsRedeemCancellation: false
   },
   sepolia: {

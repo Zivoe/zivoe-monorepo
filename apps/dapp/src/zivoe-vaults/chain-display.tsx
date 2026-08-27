@@ -12,6 +12,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   ethereum: { label: 'Ethereum', Icon: EthereumIcon },
   sepolia: { label: 'Ethereum', Icon: EthereumIcon },
   pharos: { label: 'Pharos', Icon: PharosIcon },
+  base: { label: 'Base', Icon: BaseIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 
