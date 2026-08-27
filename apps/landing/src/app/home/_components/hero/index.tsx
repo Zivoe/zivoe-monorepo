@@ -10,7 +10,6 @@ import {
 } from '@/components/hero';
 import NavigationSection from '@/components/navigation';
 
-import { CentrifugeIcon } from '../experience/assets';
 import { HeroClouds } from './clouds';
 
 const STATISTIC_DISCLOSURE =
@@ -25,11 +24,6 @@ export default function Hero() {
         <div className="flex max-w-[21.45rem] flex-col gap-10 sm:max-w-132 sm:gap-16 lg:max-w-165 lg:gap-50">
           <div>
             <div className="mt-6 flex flex-col gap-4 lg:mt-8">
-              <div className="flex items-center gap-2">
-                <span className="text-small text-secondary">Powered by</span>
-                <CentrifugeIcon aria-label="Centrifuge" role="img" className="h-6 w-auto sm:h-7" />
-              </div>
-
               <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>
               <p className="max-w-120 text-smallSubheading text-primary">
                 Access institutional yield across curated real-world credit strategies.
