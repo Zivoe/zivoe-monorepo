@@ -47,7 +47,7 @@ afterEach(() => {
 
 describe('chain deployments', () => {
   it('partitions every chain into exactly one environment, in canonical order', () => {
-    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos']);
+    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos', 'base']);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
       [...CENTRIFUGE_CHAINS].sort()

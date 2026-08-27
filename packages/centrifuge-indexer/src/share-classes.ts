@@ -97,6 +97,11 @@ export const SHARE_CLASSES = {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6'
+          },
+          base: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3'
           }
         }
       }
