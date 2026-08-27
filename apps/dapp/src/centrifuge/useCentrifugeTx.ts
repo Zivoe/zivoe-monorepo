@@ -8,6 +8,7 @@ import { getWalletClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
+import { waitForRpcCatchup } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
@@ -244,6 +245,17 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
             complete: () =>
               confirmed ? resolve(confirmed) : reject(new Error('Transaction stream completed without a receipt'))
           });
+        });
+
+        // Same pending-phase hold as useTx's receipt wait: on the Base chains
+        // the receipt can precede readable state, so keep the pending toast up
+        // (the finally below dismisses it) until the RPC catches up before the
+        // dialog opens and the lifecycle refetches. Chains without a catch-up
+        // margin resolve immediately.
+        await waitForRpcCatchup({
+          client: publicClient,
+          chainId: identity.centrifugeVault.chainId,
+          receiptBlock: receipt.blockNumber
         });
 
         return receipt;

@@ -20,6 +20,7 @@ import { type WriteContractParameters, getPublicClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
+import { waitForRpcCatchup } from '@/lib/chains';
 import { AppError, handlePromise } from '@/lib/utils';
 
 import useTxLifecycle, { type TxContext, type TxSharedConfig } from './useTxLifecycle';
@@ -59,8 +60,6 @@ export type TxParams<
 export type TxConfig<TVariables, TParams extends TxParams> = TxSharedConfig<TVariables> & {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
   buildParams: (vars: TVariables, ctx: TxContext) => TParams | Promise<TParams>;
-  /** Extra wait after the receipt arrives, before the pending toast is dismissed. */
-  receiptDelay?: number;
 };
 
 /**
@@ -159,7 +158,14 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     const toastId = toast({ type: 'pending', title: pendingMessage });
 
     const { err, res: receipt } = await handlePromise(publicClient.waitForTransactionReceipt({ hash }));
-    if (config.receiptDelay) await new Promise((resolve) => setTimeout(resolve, config.receiptDelay));
+
+    // On the Base chains that receipt can be a Flashblock preconfirmation up
+    // to ~2s ahead of readable state — stay in the pending phase (toast and
+    // button) until the RPC catches up, so the lifecycle's refetches and the
+    // dialog read post-transaction balances instead of flashing stale ones.
+    // Chains without a catch-up margin resolve immediately.
+    if (receipt)
+      await waitForRpcCatchup({ client: publicClient, chainId: params.chainId, receiptBlock: receipt.blockNumber });
 
     setIsTxPending(false);
     if (toastId !== undefined) sonnerToast.dismiss(toastId);
