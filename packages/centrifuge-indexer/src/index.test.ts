@@ -57,6 +57,7 @@ describe('chain deployments', () => {
   it('reads the chain id off the viem definition — one author for the fact', () => {
     expect(getChainId('ethereum')).toBe(1);
     expect(getChainId('pharos')).toBe(1672);
+    expect(getChainId('base')).toBe(8453);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -102,6 +103,20 @@ describe('share-class catalog', () => {
       chainId: 1672,
       shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
       centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6'
+    });
+  });
+
+  it('resolves the third mainnet chain with its deterministically shared token address', () => {
+    expect(getShareClassChainIdentity({ chain: 'base', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'base',
+      chainId: 8453,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+      centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3'
     });
   });
 
