@@ -56,6 +56,58 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
   return getChainRpcUrlsFor({ chain, alchemyKey });
 }
 
+/**
+ * Receipt-to-readable-state catch-up margin per chain, in confirmations;
+ * chains not listed need none. The Base chains serve Flashblock
+ * preconfirmation receipts — a receipt is visible up to ~2s before its block
+ * seals and `latest` state reflects it, so a read straight after the receipt
+ * sees pre-transaction balances. The extra block also adds margin against
+ * lagging replicas behind the fallback transport.
+ */
+const CATCHUP_CONFIRMATIONS: Partial<Record<CentrifugeChain, number>> = { base: 2, 'base-sepolia': 2 };
+
+const CATCHUP_POLL_MS = 250;
+const CATCHUP_TIMEOUT_MS = 8_000;
+
+/**
+ * Read-your-writes barrier for a fresh receipt: resolves once the client's
+ * chain head reaches the receipt's block plus the chain's catch-up margin, so
+ * reads after it see post-transaction state. The transaction drivers hold
+ * their pending phase (toast and button) on this before surfacing the
+ * transaction dialog — success shown over stale balances that flash-refetch
+ * seconds later reads worse than a slightly longer pending state. Chains
+ * without a margin resolve immediately with no RPC call, and the wait is
+ * bounded: an RPC that errors or stays behind past the timeout releases the
+ * dialog instead of pinning it. (Deliberately not waitForTransactionReceipt's
+ * confirmations option, whose whole-polling-interval granularity would
+ * overshoot the ~2s gap.)
+ */
+export async function waitForRpcCatchup({
+  client,
+  chainId,
+  receiptBlock
+}: {
+  client: { getBlockNumber(args?: { cacheTime?: number }): Promise<bigint> };
+  chainId: number;
+  receiptBlock: bigint;
+}) {
+  const chain = chainOfChainId(chainId);
+  const confirmations = (chain && CATCHUP_CONFIRMATIONS[chain]) ?? 1;
+  if (confirmations === 1) return;
+
+  const targetBlock = receiptBlock + BigInt(confirmations - 1);
+  const deadline = Date.now() + CATCHUP_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    // cacheTime: 0 — viem otherwise caches getBlockNumber for the client's
+    // polling interval, which would freeze the loop on its first answer. An
+    // erroring RPC releases the wait (undefined) instead of pinning it.
+    const head = await client.getBlockNumber({ cacheTime: 0 }).catch(() => undefined);
+    if (head === undefined || head >= targetBlock) return;
+    await new Promise((resolve) => setTimeout(resolve, CATCHUP_POLL_MS));
+  }
+}
+
 // Built once at import like the module's other per-chain lookups.
 const CHAIN_OF_CHAIN_ID: Partial<Record<number, CentrifugeChain>> = Object.fromEntries(
   CENTRIFUGE_CHAINS.map((chain) => [getChainId(chain), chain])

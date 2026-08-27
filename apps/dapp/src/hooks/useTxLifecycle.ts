@@ -162,12 +162,15 @@ export type TxSharedConfig<TVariables> = {
    * Query invalidations after the transaction settles; skipped for no-refetch
    * rejections. Runs inside the mutation — pinned, like transactionData, to
    * the options the mutation started with, so a hook re-rendered under
-   * another identity mid-flight can never refetch the wrong scope. Only what
-   * runs inside the mutation is pinned: onError/errorToast/sentry* are
-   * observer callbacks and read the latest render's options. Cross-identity
-   * re-renders during a pending write are held off by the FLOWS — the chain
-   * selectors and tabs lock while a mutation is pending — so keep that lock
-   * in place before loosening any selector gating.
+   * another identity mid-flight can never refetch the wrong scope. The
+   * drivers' receipt phase holds on waitForRpcCatchup before returning, so
+   * these refetches read post-transaction state even on chains whose receipts
+   * land ahead of it. Only what runs inside the mutation is pinned:
+   * onError/errorToast/sentry* are observer callbacks and read the latest
+   * render's options. Cross-identity re-renders during a pending write are
+   * held off by the FLOWS — the chain selectors and tabs lock while a
+   * mutation is pending — so keep that lock in place before loosening any
+   * selector gating.
    */
   invalidate: (ctx: { queryClient: QueryClient; address: Address | undefined; vars: TVariables }) => void;
 };

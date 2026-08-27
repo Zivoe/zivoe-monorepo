@@ -99,6 +99,7 @@ export const wagmiConfig = createConfig({
   chains: activeViemChains,
   multiInjectedProviderDiscovery: false,
   ssr: true,
+  pollingInterval: 2_000,
   storage: createStorage({
     storage: cookieStorage
   }),
