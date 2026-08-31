@@ -134,6 +134,8 @@ export class AppError extends Error {
   public readonly type: AppErrorType;
   /** True when the pre-sign simulation blocked the transaction — analytics classify these as simulation_failed, not failed. */
   public readonly simulation: boolean;
+  /** Merged into the Sentry tags when captured, so a known error class stays filterable in triage. */
+  public readonly tags?: Record<string, string>;
 
   constructor({
     message,
@@ -141,7 +143,8 @@ export class AppError extends Error {
     capture = true,
     exception,
     type = 'error',
-    simulation = false
+    simulation = false,
+    tags
   }: {
     message: string;
     refetch?: boolean;
@@ -149,6 +152,7 @@ export class AppError extends Error {
     exception?: unknown;
     type?: AppErrorType;
     simulation?: boolean;
+    tags?: Record<string, string>;
   }) {
     super(message);
     this.name = 'AppError';
@@ -157,6 +161,7 @@ export class AppError extends Error {
     this.exception = exception;
     this.type = type;
     this.simulation = simulation;
+    this.tags = tags;
   }
 }
 
@@ -176,6 +181,7 @@ export const onTxError = ({
   let toastMsg = defaultToastMsg;
   let exception: unknown = err;
   let type: AppErrorType = 'error';
+  let errorTags: Record<string, string> | undefined;
 
   if (err instanceof AppError) {
     refetch = err.refetch;
@@ -185,6 +191,7 @@ export const onTxError = ({
     // reach Sentry with a stack and error class instead of a bare string.
     exception = err.exception ?? err;
     type = err.type;
+    errorTags = err.tags;
   }
 
   if (type === 'warning') toast({ type: 'warning', title: toastMsg });
@@ -194,7 +201,7 @@ export const onTxError = ({
 
   if (capture)
     Sentry.captureException(exception, {
-      tags: { source: 'MUTATION', flow: sentry.flow, ...sentry.tags },
+      tags: { source: 'MUTATION', flow: sentry.flow, ...sentry.tags, ...errorTags },
       extra: {
         ...sentry.extras,
         toastMsg

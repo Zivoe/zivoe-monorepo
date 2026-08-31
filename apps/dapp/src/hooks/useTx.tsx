@@ -20,7 +20,8 @@ import { type WriteContractParameters, getPublicClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { waitForRpcCatchup } from '@/lib/chains';
+import { chainOfChainId, getViemChain, waitForRpcCatchup } from '@/lib/chains';
+import { insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
 import useTxLifecycle, { type TxContext, type TxSharedConfig } from './useTxLifecycle';
@@ -134,7 +135,21 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
           type: 'warning',
           capture: false
         });
-      else throw err;
+
+      // A wallet without enough native tokens for gas passes the simulation
+      // (eth_call charges no gas without gas-price fields) and fails only
+      // here, at the wallet/txpool boundary — the node's message is
+      // authoritative about the sender, so no balance confirmation needed.
+      if (isInsufficientNativeFundsError(err)) {
+        const chain = chainOfChainId(params.chainId);
+        throw insufficientNativeFundsError({
+          nativeCurrency: chain ? getViemChain(chain).nativeCurrency : { symbol: 'ETH', decimals: 18 },
+          exception: err,
+          capture: true
+        });
+      }
+
+      throw err;
     }
 
     return hash;
