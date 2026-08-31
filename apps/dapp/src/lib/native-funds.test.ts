@@ -50,4 +50,12 @@ describe('insufficientNativeFundsError', () => {
       "Not enough ETH in your wallet to cover this transaction's network fee. Add ETH and try again."
     );
   });
+
+  it('captures only when the caller opts in, and always tags the reason', () => {
+    expect(insufficientNativeFundsError({ nativeCurrency: ETH })).toMatchObject({ capture: false });
+    expect(insufficientNativeFundsError({ nativeCurrency: ETH, capture: true })).toMatchObject({
+      capture: true,
+      tags: { reason: 'insufficient_native_funds' }
+    });
+  });
 });

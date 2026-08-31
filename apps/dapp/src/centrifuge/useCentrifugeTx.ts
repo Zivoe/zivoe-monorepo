@@ -384,7 +384,8 @@ function normalizeCentrifugeError({
   // Send-path funding failures the simulation cannot see: the wallet or
   // txpool rejects for gas the eth_call never charged. The node's message is
   // authoritative about the sender, so no balance confirmation is needed here.
-  if (isInsufficientNativeFundsError(err)) return insufficientNativeFundsError({ nativeCurrency, exception: err });
+  if (isInsufficientNativeFundsError(err))
+    return insufficientNativeFundsError({ nativeCurrency, exception: err, capture: true });
 
   // The SDK's ChainMismatchError — flow-agnostic, so mapped here instead of in
   // every flow's sdkErrorCopy.

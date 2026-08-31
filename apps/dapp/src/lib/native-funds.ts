@@ -32,22 +32,28 @@ export type NativeCurrency = { symbol: string; decimals: number };
 
 /**
  * Product copy for a wallet that cannot cover a transaction's native cost —
- * the attached cross-chain fee (`msg.value`) or plain gas. A warning without
- * Sentry capture: the wallet's funding is a user condition, not an app bug
- * (analytics still count it via `simulation`), and nothing moved on-chain so
- * there is nothing to refetch.
+ * the attached cross-chain fee (`msg.value`) or plain gas. Always a warning
+ * that skips the refetch: the wallet's funding is a user condition, not an app
+ * bug, and nothing moved on-chain.
+ *
+ * `capture` follows how the shortfall was established. A caller that confirmed
+ * it against the on-chain balance has nothing to watch and stays silent; a
+ * caller that only inferred it from the node's error message opts in, so a
+ * misclassification is visible in triage instead of being silently swallowed.
  */
 export function insufficientNativeFundsError({
   nativeCurrency,
   requiredValue,
   exception,
-  simulation = false
+  simulation = false,
+  capture = false
 }: {
   nativeCurrency: NativeCurrency;
   /** The transaction's `msg.value` when known — shown so the user knows how much to add. */
   requiredValue?: bigint;
   exception?: unknown;
   simulation?: boolean;
+  capture?: boolean;
 }): AppError {
   const { symbol } = nativeCurrency;
   const amount =
@@ -56,10 +62,11 @@ export function insufficientNativeFundsError({
   return new AppError({
     message: `Not enough ${symbol} in your wallet to cover this transaction's network fee${amount}. Add ${symbol} and try again.`,
     type: 'warning',
-    capture: false,
+    capture,
     refetch: false,
     exception,
-    simulation
+    simulation,
+    tags: { reason: 'insufficient_native_funds' }
   });
 }
 

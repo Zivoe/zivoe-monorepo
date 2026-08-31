@@ -144,7 +144,8 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
         const chain = chainOfChainId(params.chainId);
         throw insufficientNativeFundsError({
           nativeCurrency: chain ? getViemChain(chain).nativeCurrency : { symbol: 'ETH', decimals: 18 },
-          exception: err
+          exception: err,
+          capture: true
         });
       }
 
