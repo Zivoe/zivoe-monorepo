@@ -11,6 +11,11 @@ import {
   parseAbi
 } from 'viem';
 
+import {
+  type NativeCurrency,
+  insufficientNativeFundsError,
+  isInsufficientNativeFundsError
+} from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
 /** Maps decoded protocol error names to flow-specific product copy. */
@@ -26,6 +31,7 @@ export type WalletClientLike = { request(args: { method: string; params?: unknow
 
 export type SimulationClient = {
   call(params: { account?: Address; to?: Address; data?: Hex; value?: bigint }): Promise<unknown>;
+  getBalance(params: { address: Address }): Promise<bigint>;
 };
 
 // The SDK passes only the router ABI to its writes, so downstream errors need a
@@ -77,11 +83,13 @@ export function createSimulationSigner({
   walletClient,
   simulationClient,
   errorCopy,
+  nativeCurrency,
   expectedCall
 }: {
   walletClient: WalletClientLike;
   simulationClient: SimulationClient;
   errorCopy: SimulationErrorCopy;
+  nativeCurrency: NativeCurrency;
   expectedCall?: ExpectedContractCall;
 }): WalletClientLike {
   return {
@@ -89,7 +97,7 @@ export function createSimulationSigner({
       if (args.method === 'eth_sendTransaction') {
         const [transaction] = args.params as [{ from?: Address; to?: Address; data?: Hex; value?: Hex | bigint }];
         assertExpectedCall({ transaction, expectedCall });
-        await simulateExactCall({ simulationClient, transaction, errorCopy });
+        await simulateExactCall({ simulationClient, transaction, errorCopy, nativeCurrency });
       } else if (UNSIMULATED_WRITE_METHODS.has(args.method)) {
         Sentry.captureMessage('Centrifuge signer passed a write method through without simulation', {
           level: 'warning',
@@ -126,18 +134,22 @@ function assertExpectedCall({
 async function simulateExactCall({
   simulationClient,
   transaction,
-  errorCopy
+  errorCopy,
+  nativeCurrency
 }: {
   simulationClient: SimulationClient;
   transaction: { from?: Address; to?: Address; data?: Hex; value?: Hex | bigint };
   errorCopy: SimulationErrorCopy;
+  nativeCurrency: NativeCurrency;
 }) {
+  const value = typeof transaction.value === 'string' ? hexToBigInt(transaction.value) : (transaction.value ?? 0n);
+
   const { err } = await handlePromise(
     simulationClient.call({
       account: transaction.from,
       to: transaction.to,
       data: transaction.data,
-      value: typeof transaction.value === 'string' ? hexToBigInt(transaction.value) : transaction.value
+      value
     })
   );
   if (!err) return;
@@ -149,6 +161,18 @@ async function simulateExactCall({
 
   const message = decoded && errorCopy[decoded.errorName];
   if (message) throw new AppError({ message, exception: err, simulation: true });
+
+  // A value-carrying call (the SDK attaches the cross-chain fee as msg.value)
+  // from a wallet holding less than that value is rejected by the node with no
+  // revert data. The balance read runs only on this failure path, and only a
+  // confirmed shortfall gets the funding copy — an unconfirmed match (balance
+  // moved, or an inner call ran out of funds) falls through to the generic
+  // fallback rather than telling the user to top up for nothing.
+  if (value > 0n && transaction.from && isInsufficientNativeFundsError(err)) {
+    const { res: balance } = await handlePromise(simulationClient.getBalance({ address: transaction.from }));
+    if (balance !== undefined && balance < value)
+      throw insufficientNativeFundsError({ nativeCurrency, requiredValue: value, exception: err, simulation: true });
+  }
 
   throw new AppError({ message: 'Simulation error', exception: err, simulation: true });
 }

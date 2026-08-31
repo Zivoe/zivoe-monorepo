@@ -8,7 +8,7 @@ import { getWalletClient } from 'wagmi/actions';
 
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { waitForRpcCatchup } from '@/lib/chains';
+import { getViemChain, waitForRpcCatchup } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
@@ -159,6 +159,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           walletClient,
           simulationClient: publicClient,
           errorCopy: config.simulationErrorCopy,
+          nativeCurrency: getViemChain(identity.centrifugeVault.chain).nativeCurrency,
           expectedCall: config.expectedCall?.(vars, txContext)
         });
         releaseSigner = setTransactionSigner(signer);

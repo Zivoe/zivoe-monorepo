@@ -27,7 +27,10 @@ const SEND_TX = {
   ]
 };
 
-const revertingWith = (data: `0x${string}`) => ({ call: vi.fn().mockRejectedValue(new RawContractError({ data })) });
+const revertingWith = (data: `0x${string}`) => ({
+  call: vi.fn().mockRejectedValue(new RawContractError({ data })),
+  getBalance: vi.fn()
+});
 
 const TEST_ERROR_ABI = parseAbi([
   'error TransferBlocked()',
@@ -38,12 +41,13 @@ const TEST_ERROR_ABI = parseAbi([
 const encodeRevert = (errorName: 'TransferBlocked' | 'Paused' | 'WrappedError', args: ReadonlyArray<unknown> = []) =>
   encodeErrorResult({ abi: TEST_ERROR_ABI, errorName, args: args as never });
 
-function signerWith(simulationClient: { call: ReturnType<typeof vi.fn> }) {
+function signerWith(simulationClient: { call: ReturnType<typeof vi.fn>; getBalance?: ReturnType<typeof vi.fn> }) {
   const walletRequest = vi.fn().mockResolvedValue('0xhash');
   const signer = createSimulationSigner({
     walletClient: { request: walletRequest },
-    simulationClient,
-    errorCopy: ERROR_COPY
+    simulationClient: { getBalance: vi.fn(), ...simulationClient },
+    errorCopy: ERROR_COPY,
+    nativeCurrency: { symbol: 'ETH', decimals: 18 }
   });
   return { signer, walletRequest };
 }
@@ -104,6 +108,52 @@ describe('createSimulationSigner', () => {
     await rejection.toBeInstanceOf(AppError);
     await rejection.toMatchObject({ message: 'Simulation error' });
     expect(walletRequest).not.toHaveBeenCalled();
+  });
+
+  describe('insufficient native funds', () => {
+    // The real incident shape: Alchemy/reth rejects a value-carrying eth_call
+    // from an underfunded wallet with OutOfFunds and no revert data.
+    const VALUE_SEND_TX = {
+      ...SEND_TX,
+      params: [{ ...SEND_TX.params[0]!, value: '0x1ae9e503d26ec' }] // 473469950961388 wei
+    };
+    const outOfFunds = () => vi.fn().mockRejectedValue(new Error('EVM error: OutOfFunds'));
+
+    it('maps a confirmed shortfall to funding copy with the required amount', async () => {
+      const simulationClient = { call: outOfFunds(), getBalance: vi.fn().mockResolvedValue(458111752515483n) };
+      const { signer, walletRequest } = signerWith(simulationClient);
+
+      const rejection = expect(signer.request(VALUE_SEND_TX)).rejects;
+      await rejection.toMatchObject({
+        message:
+          "Not enough ETH in your wallet to cover this transaction's network fee (at least 0.00048 ETH). Add ETH and try again.",
+        type: 'warning',
+        capture: false,
+        simulation: true
+      });
+      expect(simulationClient.getBalance).toHaveBeenCalledWith({ address: VALUE_SEND_TX.params[0]!.from });
+      expect(walletRequest).not.toHaveBeenCalled();
+    });
+
+    it('falls back to generic copy when the balance actually covers the value', async () => {
+      const { signer } = signerWith({ call: outOfFunds(), getBalance: vi.fn().mockResolvedValue(10n ** 18n) });
+
+      await expect(signer.request(VALUE_SEND_TX)).rejects.toMatchObject({ message: 'Simulation error' });
+    });
+
+    it('falls back to generic copy when the balance read fails', async () => {
+      const { signer } = signerWith({ call: outOfFunds(), getBalance: vi.fn().mockRejectedValue(new Error('rpc')) });
+
+      await expect(signer.request(VALUE_SEND_TX)).rejects.toMatchObject({ message: 'Simulation error' });
+    });
+
+    it('never reads the balance for a value-less call', async () => {
+      const simulationClient = { call: outOfFunds(), getBalance: vi.fn() };
+      const { signer } = signerWith(simulationClient);
+
+      await expect(signer.request(SEND_TX)).rejects.toMatchObject({ message: 'Simulation error' });
+      expect(simulationClient.getBalance).not.toHaveBeenCalled();
+    });
   });
 
   it('forwards the exact send to the wallet when the simulation is clean', async () => {
