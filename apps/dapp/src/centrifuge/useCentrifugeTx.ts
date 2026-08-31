@@ -9,6 +9,11 @@ import { getWalletClient } from 'wagmi/actions';
 import { toast } from '@zivoe/ui/core/sonner';
 
 import { getViemChain, waitForRpcCatchup } from '@/lib/chains';
+import {
+  type NativeCurrency,
+  insufficientNativeFundsError,
+  isInsufficientNativeFundsError
+} from '@/lib/native-funds';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
@@ -79,6 +84,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   const wagmiConfig = useConfig();
 
   const { identity, analytics } = config;
+  const nativeCurrency = getViemChain(identity.centrifugeVault.chain).nativeCurrency;
 
   // Pinned to the identity's chain: simulation, receipt fallbacks and reads
   // must run where the Centrifuge vault lives, not wherever the wallet
@@ -119,7 +125,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       config.invalidateExtra?.(ctx);
     },
 
-    normalizeError: (err) => normalizeCentrifugeError(err, config.sdkErrorCopy),
+    normalizeError: (err) => normalizeCentrifugeError({ err, nativeCurrency, sdkErrorCopy: config.sdkErrorCopy }),
 
     prepare: (_vars, { address }): CentrifugeClients => {
       if (!address) throw new AppError({ message: 'Wallet not connected' });
@@ -159,7 +165,7 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           walletClient,
           simulationClient: publicClient,
           errorCopy: config.simulationErrorCopy,
-          nativeCurrency: getViemChain(identity.centrifugeVault.chain).nativeCurrency,
+          nativeCurrency,
           expectedCall: config.expectedCall?.(vars, txContext)
         });
         releaseSigner = setTransactionSigner(signer);
@@ -354,7 +360,15 @@ function normalizeWalletClientError(err: unknown): AppError {
   });
 }
 
-function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, string>): unknown {
+function normalizeCentrifugeError({
+  err,
+  nativeCurrency,
+  sdkErrorCopy
+}: {
+  err: unknown;
+  nativeCurrency: NativeCurrency;
+  sdkErrorCopy?: Record<string, string>;
+}): unknown {
   const appError = findAppError(err);
   if (appError) return appError;
 
@@ -366,6 +380,11 @@ function normalizeCentrifugeError(err: unknown, sdkErrorCopy?: Record<string, st
       type: 'warning',
       capture: false
     });
+
+  // Send-path funding failures the simulation cannot see: the wallet or
+  // txpool rejects for gas the eth_call never charged. The node's message is
+  // authoritative about the sender, so no balance confirmation is needed here.
+  if (isInsufficientNativeFundsError(err)) return insufficientNativeFundsError({ nativeCurrency, exception: err });
 
   // The SDK's ChainMismatchError — flow-agnostic, so mapped here instead of in
   // every flow's sdkErrorCopy.
