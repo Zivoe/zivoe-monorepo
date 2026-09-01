@@ -44,7 +44,7 @@ export default function Diversify() {
 
         <Card
           title="Network Roadmap"
-          label="Available on Ethereum, Pharos, and Base, with additional networks planned."
+          label="Available on Ethereum, Pharos, Base, and Arbitrum, with additional networks planned."
           labelClassName="sm:w-1/2"
         >
           <EthereumIcon className="w-28.75 sm:absolute sm:right-16 sm:bottom-18 sm:w-auto" />

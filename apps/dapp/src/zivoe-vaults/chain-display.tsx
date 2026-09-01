@@ -1,7 +1,7 @@
 import { type ComponentType } from 'react';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
-import { BaseIcon, EthereumIcon, PharosIcon } from '@zivoe/ui/icons';
+import { ArbitrumIcon, BaseIcon, EthereumIcon, PharosIcon } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 import { zivoeVaultChains } from './availability';
@@ -13,6 +13,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   sepolia: { label: 'Ethereum', Icon: EthereumIcon },
   pharos: { label: 'Pharos', Icon: PharosIcon },
   base: { label: 'Base', Icon: BaseIcon },
+  arbitrum: { label: 'Arbitrum', Icon: ArbitrumIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 

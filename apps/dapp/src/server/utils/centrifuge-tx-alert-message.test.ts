@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
-
 import { chainsOfEnvironment, getChainDeployment } from '@zivoe/centrifuge-indexer';
 
 import {
@@ -41,7 +40,9 @@ describe('formatEmailLine', () => {
   });
 
   it('caps the list and counts the overflow — one wallet can link many users', () => {
-    expect(formatEmailLine(['a@x.y', 'b@x.y', 'c@x.y', 'd@x.y', 'e@x.y'])).toBe('Linked emails: a@x.y, b@x.y, c@x.y +2 more');
+    expect(formatEmailLine(['a@x.y', 'b@x.y', 'c@x.y', 'd@x.y', 'e@x.y'])).toBe(
+      'Linked emails: a@x.y, b@x.y, c@x.y +2 more'
+    );
   });
 });
 
@@ -174,6 +175,12 @@ describe('resolveChainDisplay', () => {
     ).toEqual({
       label: 'Base',
       explorerUrl: 'https://basescan.org'
+    });
+    expect(
+      resolveChainDisplay(event({ chainId: 42161, chainName: 'arbitrum', explorerUrl: 'https://arbiscan.io' }))
+    ).toEqual({
+      label: 'Arbitrum One',
+      explorerUrl: 'https://arbiscan.io'
     });
   });
 
