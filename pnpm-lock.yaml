@@ -577,8 +577,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@centrifuge/sdk':
-        specifier: 1.24.1
-        version: 1.24.1(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: 2.1.3
+        version: 2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
         version: 5.2.2(prettier@3.8.3)
@@ -1598,10 +1598,6 @@ packages:
 
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
-
-  '@centrifuge/sdk@1.24.1':
-    resolution: {integrity: sha512-lZjnHyvwwCJvGYqbKQHdNwouiMmPdXt99LxFI6nzc1G9j2agCWGWVGUl/0ppK3+yUhW1YHQIVCUlQlYj4FHQwg==}
-    engines: {node: '>=18.18'}
 
   '@centrifuge/sdk@2.1.3':
     resolution: {integrity: sha512-IJTRU+s8rLz3iiFhQQRSLz4dUYUrc+nu7HuDqWUugdcynCrEevdt7A1CyVnoiTp7cxL6S1jvzcEk1oO7YSYMbA==}
@@ -8668,14 +8664,6 @@ packages:
       typescript:
         optional: true
 
-  ox@0.14.33:
-    resolution: {integrity: sha512-rooA/4o7bBof4Ge2VH/eovfNPb/AEEYyrNj03wggc55g5HZD8Pjs/OeWhttgjic3dDcqn0r29bDuvQEdTiUemQ==}
-    peerDependencies:
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   ox@0.14.34:
     resolution: {integrity: sha512-12seOIk7dv8eAoGQhcWaeKZxNz304IVcDvb9U5Y7JZAEVe21Nm1YMxLjhWah+su5BD4Omx4Zz0z5x3ij9M4GYQ==}
     peerDependencies:
@@ -10395,14 +10383,6 @@ packages:
       typescript:
         optional: true
 
-  viem@2.55.10:
-    resolution: {integrity: sha512-Q9Ba+/ma81U2M5o5P2AQ7Ux8rTIwmCZvUcr8rKdQ22bV0IBFHllM2m5gWDP8hFaUN2nH2oW3QG44amRazflYNQ==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   viem@2.56.0:
     resolution: {integrity: sha512-JmkgIk4jN+im4oguLxwPv19pwSaGH9kcGSq25Ilm55106ULBBMNR3eWKKA0wZoeyLPSHIiOwZ4sGceEYEIq7LA==}
     peerDependencies:
@@ -12084,14 +12064,14 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@centrifuge/sdk@1.24.1(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@centrifuge/sdk@2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     dependencies:
       '@openzeppelin/merkle-tree': 1.0.8
       decimal.js-light: 2.5.1
-      isomorphic-ws: 5.0.0(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+      isomorphic-ws: 5.0.0(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       rxjs: 7.8.2
       tslib: 2.8.1
-      viem: 2.55.10(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)
+      viem: 2.56.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -12100,11 +12080,11 @@ snapshots:
       - ws
       - zod
 
-  '@centrifuge/sdk@2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@centrifuge/sdk@2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     dependencies:
       '@openzeppelin/merkle-tree': 1.0.8
       decimal.js-light: 2.5.1
-      isomorphic-ws: 5.0.0(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+      isomorphic-ws: 5.0.0(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       rxjs: 7.8.2
       tslib: 2.8.1
       viem: 2.56.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)
@@ -20727,21 +20707,6 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  ox@0.14.33(typescript@5.7.3)(zod@3.25.76):
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.4(typescript@5.7.3)(zod@3.25.76)
-      eventemitter3: 5.0.1
-    optionalDependencies:
-      typescript: 5.7.3
-    transitivePeerDependencies:
-      - zod
-
   ox@0.14.34(typescript@5.7.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
@@ -22490,23 +22455,6 @@ snapshots:
       isows: 1.0.7(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       ox: 0.14.29(typescript@5.7.3)(zod@3.25.76)
       ws: 8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    optionalDependencies:
-      typescript: 5.7.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
-  viem@2.55.10(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.7.3)(zod@3.25.76)
-      isows: 1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))
-      ox: 0.14.33(typescript@5.7.3)(zod@3.25.76)
-      ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     optionalDependencies:
       typescript: 5.7.3
     transitivePeerDependencies:

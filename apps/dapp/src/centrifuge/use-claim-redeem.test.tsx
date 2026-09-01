@@ -287,6 +287,36 @@ describe('useClaimRedeem', () => {
     expect(getDefaultStore().get(transactionAtom)).toMatchObject({ type: 'SUCCESS', title: 'USDC Claimed' });
   });
 
+  it('rejects an enable-bundled multicall whose inner call is not the promised claim', async () => {
+    const wrongInnerClaim = encodeFunctionData({
+      abi: ABI.VaultRouter,
+      functionName: 'multicall',
+      args: [
+        [
+          encodeFunctionData({
+            abi: ABI.VaultRouter,
+            functionName: 'enable',
+            args: [FIXTURE_IDENTITY.centrifugeVault.address]
+          }),
+          CLAIM_RETURNED_SHARES_DATA
+        ]
+      ]
+    });
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: wrongInnerClaim }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Claimable balances changed. Claim your returned zFIX first.'
+    });
+  });
+
   it('rejects an SDK bucket switch before the wallet can claim Returned Shares as USDC', async () => {
     getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: CLAIM_RETURNED_SHARES_DATA }));
 
