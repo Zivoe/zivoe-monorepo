@@ -5,6 +5,7 @@ import {
   BaseError,
   type Hex,
   decodeErrorResult,
+  encodeFunctionData,
   hexToBigInt,
   isAddressEqual,
   isHex,
@@ -23,9 +24,23 @@ export type SimulationErrorCopy = Record<string, string>;
 
 export type ExpectedContractCall = {
   to: Address;
-  data: Hex;
+  /** One or more byte-exact calldata shapes the flow accepts — see `withEnableVariant`. */
+  data: Hex | ReadonlyArray<Hex>;
   mismatchMessage: string;
 };
+
+/**
+ * Since SDK 2.1.3 a router claim comes in one of two byte-exact shapes: the
+ * bare claim call, or — for a wallet that never enabled the router as its
+ * operator (a redemption requested directly on the vault skips our flows'
+ * enable) — the same call bundled behind a one-time `enable` in a multicall.
+ * Both express the same user intent, so exact-call gates accept either.
+ */
+export function withEnableVariant({ vault, data }: { vault: Address; data: Hex }): [Hex, Hex] {
+  const enableData = encodeFunctionData({ abi: ABI.VaultRouter, functionName: 'enable', args: [vault] });
+
+  return [data, encodeFunctionData({ abi: ABI.VaultRouter, functionName: 'multicall', args: [[enableData, data]] })];
+}
 
 export type WalletClientLike = { request(args: { method: string; params?: unknown }): Promise<unknown> };
 
@@ -120,14 +135,17 @@ function assertExpectedCall({
 }) {
   if (!expectedCall) return;
 
+  const expectedData = Array.isArray(expectedCall.data) ? expectedCall.data : [expectedCall.data];
   const matchesAddress = transaction.to && isAddressEqual(transaction.to, expectedCall.to);
-  const matchesData = transaction.data?.toLowerCase() === expectedCall.data.toLowerCase();
+  const matchesData = expectedData.some((data) => transaction.data?.toLowerCase() === data.toLowerCase());
   if (matchesAddress && matchesData) return;
 
+  // Captured: a mismatch is either the bucket race the copy describes or the
+  // SDK building a shape we haven't vetted — both are worth a Sentry event.
   throw new AppError({
     message: expectedCall.mismatchMessage,
     simulation: true,
-    capture: false
+    tags: { gate: 'expected-call-mismatch' }
   });
 }
 
