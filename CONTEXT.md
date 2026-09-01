@@ -45,7 +45,7 @@ One whole Centrifuge protocol universe — one hub, one SDK environment flag, on
 _Avoid_: network (the retired term that meant both this and Chain)
 
 **Chain**:
-One spoke network inside an Environment (`ethereum`, `pharos`, `base`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE*ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the Share Class Catalog's per-chain `status` (`staged` | `live`), and every chain-scoped query key and vault memo carries the chain.
+One spoke network inside an Environment (`ethereum`, `pharos`, `base`, `arbitrum`, `sepolia`, `base-sepolia`) where token instances and vaults are actually deployed. Wallet balances, vaults, whitelist membership, capacity and Redemption Positions are all chain-scoped. The deployment's environment comes from `NEXT_PUBLIC_CHAIN_ENV` (NODE*ENV-style: testnet for development/previews, mainnet for production); every chain of that environment is active, per-chain availability is the Share Class Catalog's per-chain `status` (`staged` | `live`), and every chain-scoped query key and vault memo carries the chain.
 \_Avoid*: network (ambiguous)
 
 **Share Class Catalog**:

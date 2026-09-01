@@ -32,6 +32,7 @@ export * from './usdc';
 export * from './ethereum';
 export * from './pharos';
 export * from './base';
+export * from './arbitrum';
 export * from './check-circle';
 export * from './close-circle';
 export * from './warning';

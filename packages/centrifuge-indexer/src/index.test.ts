@@ -47,7 +47,7 @@ afterEach(() => {
 
 describe('chain deployments', () => {
   it('partitions every chain into exactly one environment, in canonical order', () => {
-    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos', 'base']);
+    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos', 'base', 'arbitrum']);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
       [...CENTRIFUGE_CHAINS].sort()
@@ -58,6 +58,7 @@ describe('chain deployments', () => {
     expect(getChainId('ethereum')).toBe(1);
     expect(getChainId('pharos')).toBe(1672);
     expect(getChainId('base')).toBe(8453);
+    expect(getChainId('arbitrum')).toBe(42161);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -117,6 +118,20 @@ describe('share-class catalog', () => {
       chainId: 8453,
       shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
       centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3'
+    });
+  });
+
+  it('resolves the fourth mainnet chain with its deterministically shared token address', () => {
+    expect(getShareClassChainIdentity({ chain: 'arbitrum', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'arbitrum',
+      chainId: 42161,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+      centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E'
     });
   });
 
