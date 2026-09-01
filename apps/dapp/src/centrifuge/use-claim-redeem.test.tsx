@@ -60,6 +60,23 @@ const CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
   args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 
+// The shape SDK ≥2.1.3 builds for a wallet that never enabled the router as
+// its operator: the same claim bundled behind a one-time `enable` multicall.
+const ENABLE_BUNDLED_CLAIM_REDEEM_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'multicall',
+  args: [
+    [
+      encodeFunctionData({
+        abi: ABI.VaultRouter,
+        functionName: 'enable',
+        args: [FIXTURE_IDENTITY.centrifugeVault.address]
+      }),
+      CLAIM_REDEEM_DATA
+    ]
+  ]
+});
+
 const WITHDRAW_EVENT_ABI = parseAbi([
   'event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'
 ]);
@@ -257,6 +274,49 @@ describe('useClaimRedeem', () => {
     expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'Claim your returned zFIX first.' });
   });
 
+  it('accepts the enable-bundled multicall the SDK builds for a wallet that never enabled the router', async () => {
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: ENABLE_BUNDLED_CLAIM_REDEEM_DATA }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(walletRequest).toHaveBeenCalledOnce();
+    expect(getDefaultStore().get(transactionAtom)).toMatchObject({ type: 'SUCCESS', title: 'USDC Claimed' });
+  });
+
+  it('rejects an enable-bundled multicall whose inner call is not the promised claim', async () => {
+    const wrongInnerClaim = encodeFunctionData({
+      abi: ABI.VaultRouter,
+      functionName: 'multicall',
+      args: [
+        [
+          encodeFunctionData({
+            abi: ABI.VaultRouter,
+            functionName: 'enable',
+            args: [FIXTURE_IDENTITY.centrifugeVault.address]
+          }),
+          CLAIM_RETURNED_SHARES_DATA
+        ]
+      ]
+    });
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: wrongInnerClaim }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ claimableAssets: CLAIMABLE_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(walletRequest).not.toHaveBeenCalled();
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Claimable balances changed. Claim your returned zFIX first.'
+    });
+  });
+
   it('rejects an SDK bucket switch before the wallet can claim Returned Shares as USDC', async () => {
     getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: CLAIM_RETURNED_SHARES_DATA }));
 
@@ -273,6 +333,8 @@ describe('useClaimRedeem', () => {
       type: 'error',
       title: 'Claimable balances changed. Claim your returned zFIX first.'
     });
+    // A mismatch is either the bucket race or unvetted SDK output — captured either way.
+    expect(sentryCapture).toHaveBeenCalledOnce();
   });
 
   it('does not report a successful USDC claim when the receipt cannot be decoded', async () => {

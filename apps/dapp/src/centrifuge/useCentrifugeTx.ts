@@ -65,7 +65,12 @@ export type CentrifugeTxConfig<TVariables> = Omit<
   ) => { tx: TransactionEntity } | Promise<{ tx: TransactionEntity }>;
   /**
    * Optional final assertion over the SDK's fully built router call. Use when
-   * one SDK action can select between semantically different operations.
+   * one SDK action can select between semantically different operations —
+   * today only the claim flows, whose `claim()` dispatches across four claim
+   * types from a fresh chain read. Simulation guards against invalid
+   * transactions everywhere; this gate additionally guards against valid ones
+   * that differ from what the button promised, so flows whose input fully
+   * determines the transaction (deposit, request, cancel) don't need it.
    */
   expectedCall?: (vars: TVariables, ctx: CentrifugeTxContext) => ExpectedContractCall;
   /** Decoded protocol error names mapped to flow-specific copy for the simulation block. */

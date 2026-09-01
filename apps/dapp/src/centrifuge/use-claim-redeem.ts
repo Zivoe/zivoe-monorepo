@@ -8,6 +8,7 @@ import { AppError } from '@/lib/utils';
 
 import { decodeClaimRedeemReceipt } from './decode';
 import { readRedemptionPosition } from './reads';
+import { withEnableVariant } from './simulate';
 import { type TransactionIdentity } from './types';
 import useCentrifugeTx from './useCentrifugeTx';
 
@@ -69,10 +70,13 @@ export function useClaimRedeem({
 
     expectedCall: (_, { address }) => ({
       to: vaultRouterAddress,
-      data: encodeFunctionData({
-        abi: ABI.VaultRouter,
-        functionName: 'claimRedeem',
-        args: [identity.centrifugeVault.address, address, address]
+      data: withEnableVariant({
+        vault: identity.centrifugeVault.address,
+        data: encodeFunctionData({
+          abi: ABI.VaultRouter,
+          functionName: 'claimRedeem',
+          args: [identity.centrifugeVault.address, address, address]
+        })
       }),
       mismatchMessage: copy.mismatch
     }),

@@ -58,6 +58,23 @@ const CLAIM_REDEEM_DATA = encodeFunctionData({
   args: [FIXTURE_IDENTITY.centrifugeVault.address, INVESTOR, INVESTOR]
 });
 
+// The shape SDK ≥2.1.3 builds for a wallet that never enabled the router as
+// its operator: the same claim bundled behind a one-time `enable` multicall.
+const ENABLE_BUNDLED_CLAIM_RETURNED_SHARES_DATA = encodeFunctionData({
+  abi: ABI.VaultRouter,
+  functionName: 'multicall',
+  args: [
+    [
+      encodeFunctionData({
+        abi: ABI.VaultRouter,
+        functionName: 'enable',
+        args: [FIXTURE_IDENTITY.centrifugeVault.address]
+      }),
+      CLAIM_RETURNED_SHARES_DATA
+    ]
+  ]
+});
+
 const CANCEL_REDEEM_CLAIM_EVENT_ABI = parseAbi([
   'event CancelRedeemClaim(address indexed controller, address indexed receiver, uint256 indexed requestId, address sender, uint256 shares)'
 ]);
@@ -248,6 +265,19 @@ describe('useClaimReturnedShares', () => {
     expect(uiToast).toHaveBeenCalledWith({ type: 'error', title: 'No returned zFIX to claim. Refresh and try again.' });
   });
 
+  it('accepts the enable-bundled multicall the SDK builds for a wallet that never enabled the router', async () => {
+    getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: ENABLE_BUNDLED_CLAIM_RETURNED_SHARES_DATA }));
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useClaimReturnedShares({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ returnedShares: RETURNED_SHARES }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(walletRequest).toHaveBeenCalledOnce();
+    expect(getDefaultStore().get(transactionAtom)).toMatchObject({ type: 'SUCCESS', title: 'zFIX Claimed' });
+  });
+
   it('rejects an SDK bucket switch before the wallet can claim USDC as Returned Shares', async () => {
     getCentrifugeVault.mockResolvedValue(fakeCentrifugeVault({ claimData: CLAIM_REDEEM_DATA }));
 
@@ -264,6 +294,8 @@ describe('useClaimReturnedShares', () => {
       type: 'error',
       title: 'Claimable balances changed. Refresh and try again.'
     });
+    // A mismatch is either the bucket race or unvetted SDK output — captured either way.
+    expect(sentryCapture).toHaveBeenCalledOnce();
   });
 
   it('does not report a successful zFIX claim when the receipt cannot be decoded', async () => {
