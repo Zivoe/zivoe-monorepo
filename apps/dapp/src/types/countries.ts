@@ -49,8 +49,12 @@ export const COUNTRIES = getData()
 
 export type Country = (typeof COUNTRIES)[number];
 
-const COUNTRY_CODES = new Set(COUNTRIES.map((c) => c.value));
+const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.value, c]));
 
 export function isSupportedCountryCode(code: string): boolean {
-  return COUNTRY_CODES.has(code);
+  return COUNTRY_BY_CODE.has(code);
+}
+
+export function getCountryLabel(code: string): string | undefined {
+  return COUNTRY_BY_CODE.get(code)?.label;
 }
