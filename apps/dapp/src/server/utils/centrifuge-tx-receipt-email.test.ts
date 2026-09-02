@@ -47,8 +47,10 @@ describe('buildTransactionReceiptEmail', () => {
     const { subject, email } = build();
     const html = await render(email);
 
-    expect(subject).toBe('Deposit Confirmed');
+    expect(subject).toBe('zSMB Deposit Confirmed');
     expect(html).toContain('Deposit Receipt');
+    expect(html).toContain('5.00 USDC deposited into zSMB');
+    expect(html).toContain('>Success<');
     // Wallet-scoped copy: the link is self-reported, so no ownership claims.
     expect(html).toContain('a wallet linked to your account');
     expect(html).toContain('5.00 USDC');
@@ -70,8 +72,11 @@ describe('buildTransactionReceiptEmail', () => {
     const { subject, email } = build({ type: 'REDEEM_REQUEST_UPDATED', currencyAmount: 0n });
     const html = await render(email);
 
-    expect(subject).toBe('Redemption Request Received');
+    expect(subject).toBe('zSMB Redemption Request Received');
     expect(html).toContain('Amount Requested');
+    // A request is pending, not done — the status pill must not say so.
+    expect(html).toContain('>Received<');
+    expect(html).not.toContain('>Success<');
     expect(html).toContain('ready to claim');
     expect(html).not.toContain('USDC');
   });
@@ -80,8 +85,12 @@ describe('buildTransactionReceiptEmail', () => {
     const { subject, email } = build({ type: 'REDEEM_CLAIMABLE' });
     const html = await render(email);
 
-    expect(subject).toBe('Your Redemption Is Ready to Claim');
-    expect(html).toContain('Claim in App');
+    expect(subject).toBe('Your zSMB Redemption Is Ready to Claim');
+    expect(html).toContain('Claim USDC in App');
+    expect(html).toContain('>Ready to claim<');
+    expect(html).toContain('Amount Approved');
+    // The claim is chain-scoped in the app, so the email names the chain.
+    expect(html).toContain('ready to claim in the app on Ethereum.');
     // The token-flow row joins value and symbol with a non-breaking space.
     expect(html).toContain('5.00\u00A0USDC');
     // Deep link to the redeem tab, where the claim control actually lives.
@@ -92,9 +101,17 @@ describe('buildTransactionReceiptEmail', () => {
     const { subject, email } = build({ type: 'REDEEM_CLAIMED' });
     const html = await render(email);
 
-    expect(subject).toBe('Redemption Complete');
+    expect(subject).toBe('zSMB Redemption Complete');
     expect(html).toContain('Redemption Receipt');
     expect(html).toContain('Amount Redeemed');
+  });
+
+  it('claimed with only the asset amount missing: the preview falls back rather than reading "redeemed for —"', async () => {
+    const { email } = build({ type: 'REDEEM_CLAIMED', currencyAmount: null });
+    const html = await render(email);
+
+    expect(html).toContain('Your redemption receipt is ready');
+    expect(html).not.toContain('redeemed for');
   });
 
   it('no usable explorer: hash and address render as plain truncated text', async () => {
@@ -106,12 +123,13 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('pharos');
   });
 
-  it('absent amounts render as a dash, never as NaN or zero', async () => {
+  it('absent amounts render as a dash, never as NaN or zero, and stay out of the preview line', async () => {
     const { email } = build({ tokenAmount: null, currencyAmount: null });
     const html = await render(email);
 
     expect(html).toContain('—');
     expect(html).not.toContain('NaN');
+    expect(html).toContain('Your deposit receipt is ready');
   });
 
   it('an absurd timestamp renders as a dash, not an Invalid Date artifact', async () => {

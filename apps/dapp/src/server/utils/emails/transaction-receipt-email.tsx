@@ -7,7 +7,7 @@ import {
   ReceiptDetailRow,
   ReceiptDetailTable,
   ReceiptExternalValueLink,
-  ReceiptSuccessBadge,
+  ReceiptStatusBadge,
   ReceiptTokenFlowRow
 } from './components/transaction-receipt-blocks';
 import { formatEventTimestampUtc, truncateMiddle } from './receipt-formatters';
@@ -28,6 +28,8 @@ interface TransactionReceiptEmailProps {
   preview: string;
   heading: string;
   subtitle: string;
+  /** Status-row label: "Success" for a settled step, "Received" / "Ready to claim" for the pending ones. */
+  statusLabel: string;
   /** Omitted when the event has no asset leg yet (a redemption request). */
   flow?: ReceiptFlow;
   amountLabel: string;
@@ -47,6 +49,7 @@ export default function TransactionReceiptEmail({
   preview,
   heading,
   subtitle,
+  statusLabel,
   flow,
   amountLabel,
   amountValue,
@@ -75,7 +78,7 @@ export default function TransactionReceiptEmail({
       {flow ? <ReceiptTokenFlowRow from={flow.from} to={flow.to} /> : null}
 
       <ReceiptDetailTable>
-        <ReceiptDetailRow label="Status" value={<ReceiptSuccessBadge />} />
+        <ReceiptDetailRow label="Status" value={<ReceiptStatusBadge label={statusLabel} />} />
         <ReceiptDetailRow label="Date" value={formatEventTimestampUtc(eventTimestampMs)} />
         <ReceiptDetailRow label="Network" value={chainLabel} />
         <ReceiptDetailRow label={amountLabel} value={amountValue} />

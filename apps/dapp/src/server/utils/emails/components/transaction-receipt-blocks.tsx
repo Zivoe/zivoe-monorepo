@@ -172,7 +172,8 @@ export function ReceiptDetailRow({
   );
 }
 
-export function ReceiptSuccessBadge() {
+/** The Status row's pill. One style for every state — the label alone says whether the step is done or pending. */
+export function ReceiptStatusBadge({ label }: { label: string }) {
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" align="right" style={{ width: 'auto' }}>
       <tbody>
@@ -186,7 +187,7 @@ export function ReceiptSuccessBadge() {
                   </td>
 
                   <td style={{ verticalAlign: 'middle' }}>
-                    <Text className="m-0 text-small leading-4 text-brand">Success</Text>
+                    <Text className="m-0 text-small leading-4 text-brand">{label}</Text>
                   </td>
                 </tr>
               </tbody>

@@ -69,19 +69,24 @@ export function buildTransactionReceiptEmail({
     from: { symbol, value: sharesAmount },
     to: { symbol: USDC_DISPLAY.symbol, value: assetsAmount }
   };
+  // Inbox preview lines lead with the amount when it is known — a dash there
+  // reads as a broken email, so an absent amount falls back to a plain line.
+  const hasShares = event.tokenAmount !== null;
+  const hasAssets = event.currencyAmount !== null;
 
   // Exhaustive without a default on purpose: a type widened at the boundary
   // but unhandled here fails the build instead of sending a mislabeled email.
   switch (event.type) {
     case 'SYNC_DEPOSIT':
       return {
-        subject: 'Deposit Confirmed',
+        subject: `${symbol} Deposit Confirmed`,
         email: (
           <TransactionReceiptEmail
             {...common}
-            preview="Your deposit receipt is ready"
+            preview={hasAssets ? `${assetsAmount} deposited into ${symbol}` : 'Your deposit receipt is ready'}
             heading="Deposit Receipt"
             subtitle={`${symbol} has been transferred to a wallet linked to your account.`}
+            statusLabel="Success"
             flow={{ from: { symbol: USDC_DISPLAY.symbol, value: assetsAmount }, to: { symbol, value: sharesAmount } }}
             amountLabel="Amount Deposited"
             amountValue={assetsAmount}
@@ -95,13 +100,14 @@ export function buildTransactionReceiptEmail({
       return {
         // The indexer reports the shares added by THIS call, so every on-chain
         // request gets its own "received" email with its own amount.
-        subject: 'Redemption Request Received',
+        subject: `${symbol} Redemption Request Received`,
         email: (
           <TransactionReceiptEmail
             {...common}
-            preview="We received your redemption request"
+            preview={hasShares ? `Request received to redeem ${sharesAmount}` : 'We received your redemption request'}
             heading="Redemption Request Received"
             subtitle={`We received a request to redeem ${symbol} from a wallet linked to your account. We'll email you again when the funds are ready to claim.`}
+            statusLabel="Received"
             amountLabel="Amount Requested"
             amountValue={sharesAmount}
             ctaLabel="View In App"
@@ -114,17 +120,24 @@ export function buildTransactionReceiptEmail({
       return {
         // One email per fill: a partially approved request legitimately sends
         // this more than once, each naming only the amount that just cleared.
-        subject: 'Your Redemption Is Ready to Claim',
+        subject: `Your ${symbol} Redemption Is Ready to Claim`,
         email: (
           <TransactionReceiptEmail
             {...common}
-            preview="Your redemption is ready to claim"
+            preview={
+              hasAssets ? `${assetsAmount} is ready to claim on ${chain.label}` : 'Your redemption is ready to claim'
+            }
             heading="Ready to Claim"
-            subtitle={`A redemption from a wallet linked to your account has been processed. ${USDC_DISPLAY.symbol} is ready to claim in the app.`}
+            // The claim is chain-scoped in the app, so the chain is named here
+            // — the CTA lands on the vault page, not on a chain.
+            subtitle={`A redemption from a wallet linked to your account has been processed. ${USDC_DISPLAY.symbol} is ready to claim in the app on ${chain.label}.`}
+            statusLabel="Ready to claim"
             flow={sharesToAssets}
-            amountLabel="Amount Redeemed"
+            // Shares the manager approved in this fill — nothing is redeemed
+            // until the claim, which the next email confirms.
+            amountLabel="Amount Approved"
             amountValue={sharesAmount}
-            ctaLabel="Claim in App"
+            ctaLabel={`Claim ${USDC_DISPLAY.symbol} in App`}
             // The claim control lives on the redeem tab; ?view= is the page's
             // validated tab selector (and opens the dialog on mobile).
             ctaUrl={`${viewInAppUrl}?view=redeem`}
@@ -134,13 +147,18 @@ export function buildTransactionReceiptEmail({
 
     case 'REDEEM_CLAIMED':
       return {
-        subject: 'Redemption Complete',
+        subject: `${symbol} Redemption Complete`,
         email: (
           <TransactionReceiptEmail
             {...common}
-            preview="Your redemption receipt is ready"
+            preview={
+              hasShares && hasAssets
+                ? `${sharesAmount} redeemed for ${assetsAmount}`
+                : 'Your redemption receipt is ready'
+            }
             heading="Redemption Receipt"
             subtitle={`${USDC_DISPLAY.symbol} has been transferred to a wallet linked to your account.`}
+            statusLabel="Success"
             flow={sharesToAssets}
             amountLabel="Amount Redeemed"
             amountValue={sharesAmount}
