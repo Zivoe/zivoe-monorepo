@@ -22,6 +22,8 @@ import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
  * against transactionEmailSent. The send precedes the record on purpose: a
  * crash between them re-sends on retry, and Resend's idempotency key eats
  * the duplicate — the mirror of the Monitor Pass's send-then-record order.
+ * That key lives 24 hours: a job re-driven later than that (a DLQ replay
+ * days on) with no row recorded sends again, which is the accepted edge.
  */
 
 export type ReceiptMailerResult =

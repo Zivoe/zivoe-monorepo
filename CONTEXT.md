@@ -23,7 +23,7 @@ _Avoid_: checkpoint, offset
 _Avoid_: dedupe table, sent log
 
 **Receipt Mailer**:
-The per-user email half of transaction monitoring: a Monitor Pass publishes one QStash job per (alertable event, linked user) — payloads self-contained and free of email addresses — consumed by `/api/email/transaction-receipt` behind `runReceiptMailer`. The mailer reads the recipient fresh from the user row, gates on the `transaction_receipts` preference, dedupes per (event, user) in `transaction_email_sent`, and sends the receipt templates in `apps/dapp/src/server/utils/emails`. Send precedes record, mirroring the Monitor Pass; Resend's idempotency key eats the crash-window duplicate. The wallet→user link is self-reported at connect time, so receipts go to every linked user and read as wallet activity, not verified identity.
+The per-user email half of transaction monitoring: a Monitor Pass publishes one QStash job per (alertable event, linked user) — payloads self-contained and free of email addresses — consumed by `/api/email/transaction-receipt` behind `runReceiptMailer`. The mailer reads the recipient fresh from the user row, gates on the `transaction_receipts` preference, dedupes per (event, user) in `transaction_email_sent`, and sends the receipt templates in `apps/dapp/src/server/utils/emails`. Send precedes record, mirroring the Monitor Pass; Resend's 24-hour idempotency key eats the crash-window duplicate, and QStash's own dedup id holds for only ten minutes, so the `transaction_email_sent` row is the durable guard. The wallet→user link is self-reported at connect time, so receipts go to every linked user and read as wallet activity, not verified identity.
 _Avoid_: email cron, notification job
 
 ### Client transactions

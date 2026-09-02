@@ -143,8 +143,8 @@ export async function sendSecondDepositReminderEmail({
  * One transaction receipt to one linked user. Plain transactional mail from
  * the neutral sender — no persona, no List-Unsubscribe headers (those are the
  * bulk buckets' concern); the footer unsubscribe drives the
- * transaction_receipts preference. Resend's idempotency key absorbs the
- * crash-between-send-and-record replay the DB dedupe cannot see.
+ * transaction_receipts preference. Resend's idempotency key (kept 24 hours)
+ * absorbs the crash-between-send-and-record replay the DB dedupe cannot see.
  */
 export async function sendTransactionReceiptEmail({
   to,

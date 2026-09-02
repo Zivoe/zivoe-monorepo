@@ -424,9 +424,11 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // JSON cannot carry bigint) and free of email addresses. Publishing sits
     // between the Telegram send and the ledger record on purpose: recording
     // first would strand the emails of a pass that dies before publishing,
-    // while a publish failure merely retries the whole pass — the QStash
-    // deduplicationId, the mailer's (event, user) row, and Resend's
-    // idempotency key each absorb the resulting replays in turn.
+    // while a publish failure merely retries the whole pass. Three guards
+    // absorb the resulting replays, each with its own window: QStash rejects
+    // a repeated deduplicationId for ten minutes, the mailer's (event, user)
+    // row for good once the first delivery lands, and Resend's idempotency
+    // key for 24 hours.
     const cappedAccounts = new Set<string>();
     const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
       ({ id, event, shareClassKey, zivoeVaultSlug }) => {
