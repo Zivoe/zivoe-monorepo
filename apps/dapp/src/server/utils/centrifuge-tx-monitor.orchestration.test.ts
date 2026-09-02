@@ -14,14 +14,18 @@ import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 import { zivoeVaultChains } from '@/zivoe-vaults';
 
 import { CENTRIFUGE_TX_MONITOR_KEY, runCentrifugeTransactionMonitor } from './centrifuge-tx-monitor';
+import { buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Registry modules pull component trees; the monitor only needs their data shape.
 vi.mock('@/zivoe-vaults', () => ({
-  ZIVOE_VAULTS: [{ shareClass: { key: 'zsmb' } }],
+  ZIVOE_VAULTS: [{ slug: 'zsmb', shareClass: { key: 'zsmb' } }],
   zivoeVaultChains: vi.fn(() => ['sepolia'])
 }));
+// A hoisted handle instead of the client's method keeps the mock unbound-safe.
+const { batchJSONMock } = vi.hoisted(() => ({ batchJSONMock: vi.fn() }));
+vi.mock('@/server/clients/qstash', () => ({ qstash: { batchJSON: batchJSONMock } }));
 vi.mock('@zivoe/centrifuge-indexer', async (importOriginal) => ({
   ...(await importOriginal()),
   fetchIndexerChainStatuses: vi.fn(),
@@ -48,7 +52,7 @@ const state = {
   lockAvailable: true,
   cursors: new Map<string, number>(),
   notified: new Set<string>(),
-  emails: [] as Array<{ address: string; email: string }>
+  emails: [] as Array<{ address: string; userId: string; email: string }>
 };
 
 function stringParams(node: unknown, out: Array<string> = []): Array<string> {
@@ -172,6 +176,7 @@ beforeEach(() => {
   vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses());
   vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [], truncated: false, malformed: [] });
   vi.mocked(sendBatchedTelegramMessages).mockResolvedValue(undefined);
+  batchJSONMock.mockResolvedValue([]);
 });
 
 describe('runCentrifugeTransactionMonitor', () => {
@@ -189,7 +194,11 @@ describe('runCentrifugeTransactionMonitor', () => {
     const replayed = mkEvent(0);
     const fresh = mkEvent(1000);
     state.notified.add(`0xsc:1:${replayed.txHash}:SYNC_DEPOSIT:0xabc`);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [replayed, fresh], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [replayed, fresh],
+      truncated: false,
+      malformed: []
+    });
 
     const result = await runCentrifugeTransactionMonitor();
 
@@ -204,7 +213,11 @@ describe('runCentrifugeTransactionMonitor', () => {
 
   it('a failed send records nothing and never advances the cursor', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [mkEvent(0)],
+      truncated: false,
+      malformed: []
+    });
     vi.mocked(sendBatchedTelegramMessages).mockRejectedValue(new Error('telegram down'));
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
@@ -238,7 +251,11 @@ describe('runCentrifugeTransactionMonitor', () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     // Chain missing from status: stale AND no head to clamp to.
     vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(new Map());
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [mkEvent(0)],
+      truncated: false,
+      malformed: []
+    });
 
     const first = await runCentrifugeTransactionMonitor();
 
@@ -359,5 +376,70 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     expect(result).toMatchObject({ indexerStale: true, notified: 1 });
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('enqueues one Receipt Mailer job per (event, linked user); unlinked wallets enqueue nothing', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    serveFeed([mkEvent(0), mkEvent(1000, { account: '0xunlinked', txHash: '0xother' })]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 2, emailJobsEnqueued: 2 });
+    const batch = batchJSONMock.mock.calls[0]?.[0];
+    expect(batch).toHaveLength(2);
+    const eventId = '0xsc:1:0xtx0:SYNC_DEPOSIT:0xabc';
+    expect(batch?.[0]).toMatchObject({
+      url: expect.stringContaining('/api/email/transaction-receipt'),
+      label: 'email.transaction-receipt',
+      retries: 3,
+      deduplicationId: `receipt-${buildReceiptJobKey({ eventId, userId: 'user-1' })}`,
+      body: {
+        eventId,
+        userId: 'user-1',
+        vaultSlug: 'zsmb',
+        shareClassKey: 'zsmb',
+        // Amounts travel as strings — the payload must survive JSON.
+        event: expect.objectContaining({ type: 'SYNC_DEPOSIT', tokenAmount: '1000000000000000000' })
+      }
+    });
+    expect(batch?.[1]).toMatchObject({ body: expect.objectContaining({ userId: 'user-2' }) });
+  });
+
+  it('a pass with no linked users publishes no batch at all', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    serveFeed([mkEvent(0)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 1, emailJobsEnqueued: 0 });
+    expect(batchJSONMock).not.toHaveBeenCalled();
+  });
+
+  it('a failed publish records nothing and holds the cursor — a Telegram repeat is the price, a lost email never is', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockRejectedValue(new Error('qstash down'));
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('qstash down');
+
+    expect(sendBatchedTelegramMessages).toHaveBeenCalledTimes(1);
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('a failed Telegram send publishes no email jobs — the channels fail forward together', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    vi.mocked(sendBatchedTelegramMessages).mockRejectedValue(new Error('telegram down'));
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
+
+    expect(batchJSONMock).not.toHaveBeenCalled();
   });
 });

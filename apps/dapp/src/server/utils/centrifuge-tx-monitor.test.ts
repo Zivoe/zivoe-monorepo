@@ -9,6 +9,8 @@ import { buildEventId } from './centrifuge-tx-monitor';
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Registry modules pull component trees; the monitor only needs their data shape.
 vi.mock('@/zivoe-vaults', () => ({ ZIVOE_VAULTS: [], zivoeVaultChains: () => [] }));
+// The real client warns at import time about the (skipped) QSTASH_TOKEN.
+vi.mock('@/server/clients/qstash', () => ({ qstash: { batchJSON: vi.fn() } }));
 
 // Drift here fails the ledger insert AFTER the Telegram send, which would
 // roll back, retry, and re-send the same alerts every pass.
