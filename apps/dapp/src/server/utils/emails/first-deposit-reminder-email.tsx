@@ -18,7 +18,7 @@ export default function FirstDepositReminderEmail({
     <EmailLayout
       preview="Reply to request early access or book time with me."
       unsubscribeUrl={unsubscribeUrl}
-      showDisclosure
+      disclosure="general"
     >
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 

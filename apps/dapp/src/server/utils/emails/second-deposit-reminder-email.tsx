@@ -15,7 +15,7 @@ export default function SecondDepositReminderEmail({
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
   return (
-    <EmailLayout preview="One final follow-up on early access." unsubscribeUrl={unsubscribeUrl} showDisclosure>
+    <EmailLayout preview="One final follow-up on early access." unsubscribeUrl={unsubscribeUrl} disclosure="general">
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">One final follow-up from me.</Text>

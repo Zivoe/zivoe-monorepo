@@ -60,8 +60,9 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('Ethereum');
     expect(html).toContain(VIEW_IN_APP_URL);
     expect(html).toContain(UNSUBSCRIBE_URL);
-    // Same fine print as the lifecycle emails — one disclosure, one layout.
-    expect(html).toContain('does not constitute an offer to sell');
+    // Receipts close with the transaction fine print, not the marketing one.
+    expect(html).toContain('It is not an offer, solicitation, or investment recommendation.');
+    expect(html).not.toContain('does not constitute an offer to sell');
   });
 
   it('redemption request: names only the shares this call added', async () => {

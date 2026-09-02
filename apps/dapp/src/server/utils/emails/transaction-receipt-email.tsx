@@ -64,7 +64,7 @@ export default function TransactionReceiptEmail({
     <EmailLayout
       preview={preview}
       unsubscribeUrl={unsubscribeUrl}
-      showDisclosure
+      disclosure="transaction"
       headStyles={RECEIPT_TOKEN_FLOW_STYLES}
     >
       <Section className="mb-6 text-center" style={{ width: '100%' }}>
