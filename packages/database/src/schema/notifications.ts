@@ -19,11 +19,14 @@ export const investorTransactionTypeEnum = pgEnum('investor_transaction_type', i
 export type InvestorTransactionType = (typeof investorTransactionTypeValues)[number];
 
 /**
- * Per-(event, user) email-delivery dedupe, dormant until per-user emails
- * return. The 0008 migration cleared the retired monitor's rows (their ids
- * can never match the new eventId format) and relaxed event_type to text:
- * a dedupe log needs no enum integrity, and the revived path will write the
- * indexer-native type names.
+ * Per-(event, user) email-delivery dedupe for the Receipt Mailer: one row per
+ * receipt email actually sent, keyed by the Notified Ledger's canonical
+ * eventId plus the recipient user. The 0008 migration cleared the retired
+ * monitor's rows (their ids can never match the new eventId format) and
+ * relaxed event_type to text — a dedupe log needs no enum integrity, and the
+ * mailer writes the indexer-native type names. 0010 dropped the retired
+ * log_index column: the canonical eventId replaced its disambiguation role,
+ * and indexer events carry no log index at all.
  */
 export const transactionEmailSent = pgTable(
   'transaction_email_sent',
@@ -31,7 +34,6 @@ export const transactionEmailSent = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     eventId: text('event_id').notNull(),
     txHash: text('tx_hash').notNull(),
-    logIndex: text('log_index').notNull(),
     userId: uuid('user_id').references(() => user.id, { onDelete: 'set null' }),
     walletAddress: text('wallet_address').notNull(),
     eventType: text('event_type').notNull(),

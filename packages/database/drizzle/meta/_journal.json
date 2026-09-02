@@ -71,6 +71,13 @@
       "when": 1787600409078,
       "tag": "0009_centrifuge_redeem_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787696269180,
+      "tag": "0010_receipt_mailer_revival",
+      "breakpoints": true
     }
   ]
 }

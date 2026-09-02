@@ -1,0 +1,1 @@
+ALTER TABLE "transaction_email_sent" DROP COLUMN "log_index";
