@@ -8,26 +8,27 @@ import {
   RECEIPT_ARROW_RIGHT_TEAL_URL,
   RECEIPT_CHECK_CIRCLE_URL,
   RECEIPT_EXTERNAL_LINK_URL,
-  RECEIPT_VIEW_IN_APP_URL,
-  type ReceiptTokenSymbol,
   getReceiptTokenIconUrl
 } from '../receipt-config';
 
 type ReceiptTokenFlowAmount = {
-  symbol: ReceiptTokenSymbol;
+  symbol: string;
   value: string;
 };
 
 function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
   const safeValue = value.replace(/\s+/g, '\u00A0');
+  const iconUrl = getReceiptTokenIconUrl(symbol);
 
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" align="center">
       <tbody>
         <tr>
-          <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
-            <Img src={getReceiptTokenIconUrl(symbol)} width="24" height="24" alt={symbol} />
-          </td>
+          {iconUrl ? (
+            <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+              <Img src={iconUrl} width="24" height="24" alt={symbol} />
+            </td>
+          ) : null}
 
           <td style={{ verticalAlign: 'middle' }}>
             <Text className="m-0 text-leading text-primary" style={{ whiteSpace: 'nowrap' }}>
@@ -179,7 +180,10 @@ export function ReceiptSuccessBadge() {
   );
 }
 
-export function ReceiptExternalValueLink({ href, text }: { href: string; text: string }) {
+/** Truncated hash/address, linked out when the chain has a usable explorer. */
+export function ReceiptExternalValueLink({ href, text }: { href: string | null; text: string }) {
+  if (!href) return <Text className="text-regular text-primary">{text}</Text>;
+
   return (
     <table role="presentation" align="right" cellPadding="0" cellSpacing="0">
       <tbody>
@@ -199,13 +203,7 @@ export function ReceiptExternalValueLink({ href, text }: { href: string; text: s
   );
 }
 
-export function ReceiptCtaButton({
-  href = RECEIPT_VIEW_IN_APP_URL,
-  label = 'View In App'
-}: {
-  href?: string;
-  label?: string;
-}) {
+export function ReceiptCtaButton({ href, label = 'View In App' }: { href: string; label?: string }) {
   return (
     <Section className="text-center" style={{ width: '100%' }}>
       <Link

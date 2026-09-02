@@ -59,17 +59,26 @@ export function resolveChainDisplay(
   return { label: viemChain.name, explorerUrl: viemChain.blockExplorers?.default.url ?? event.explorerUrl };
 }
 
-/** Explorer link for the tx, or null when there is no usable http(s) explorer base. */
-export function buildTxLink({ explorerUrl, txHash }: { explorerUrl: string | null; txHash: string }): string | null {
+/**
+ * Explorer link at `path` under the chain's explorer base, or null when there
+ * is no usable http(s) base. Channel-neutral like resolveChainDisplay — the
+ * email renderer builds its tx and address links through the same guard.
+ */
+export function buildExplorerLink({ explorerUrl, path }: { explorerUrl: string | null; path: string }): string | null {
   if (!explorerUrl) return null;
 
   try {
     const base = new URL(explorerUrl);
     if (base.protocol !== 'https:' && base.protocol !== 'http:') return null;
-    return new URL(`tx/${txHash}`, base.href.endsWith('/') ? base.href : `${base.href}/`).href;
+    return new URL(path, base.href.endsWith('/') ? base.href : `${base.href}/`).href;
   } catch {
     return null;
   }
+}
+
+/** Explorer link for the tx, or null when there is no usable http(s) explorer base. */
+export function buildTxLink({ explorerUrl, txHash }: { explorerUrl: string | null; txHash: string }): string | null {
+  return buildExplorerLink({ explorerUrl, path: `tx/${txHash}` });
 }
 
 /** Two-decimal amount, dust shown as `&lt;0.01` — one dust deposit must not 400 the whole pass. */

@@ -1,21 +1,13 @@
-const ETHERSCAN_URL = 'https://etherscan.io';
-
 const UTC_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
-
-function toUtcDate(timestamp: bigint): Date | null {
-  const seconds = Number(timestamp);
-  if (!Number.isFinite(seconds)) return null;
-
-  return new Date(seconds * 1000);
-}
 
 function pad(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-export function formatEventTimestampUtc(timestamp: bigint): string {
-  const date = toUtcDate(timestamp);
-  if (!date) return '-';
+/** Indexer event times arrive as epoch milliseconds. */
+export function formatEventTimestampUtc(timestampMs: number): string {
+  if (!Number.isFinite(timestampMs)) return '-';
+  const date = new Date(timestampMs);
 
   const month = UTC_MONTHS[date.getUTCMonth()];
   const day = date.getUTCDate();
@@ -38,12 +30,4 @@ export function truncateWalletAddress(walletAddress: string): string {
 
 export function truncateTransactionHash(txHash: string): string {
   return truncateMiddle(txHash);
-}
-
-export function getAddressExplorerUrl(walletAddress: string): string {
-  return `${ETHERSCAN_URL}/address/${walletAddress}`;
-}
-
-export function getTransactionExplorerUrl(txHash: string): string {
-  return `${ETHERSCAN_URL}/tx/${txHash}`;
 }
