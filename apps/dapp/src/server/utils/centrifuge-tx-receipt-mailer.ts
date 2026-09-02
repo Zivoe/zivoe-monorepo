@@ -1,5 +1,6 @@
 import 'server-only';
 
+import * as Sentry from '@sentry/nextjs';
 import { and, eq } from 'drizzle-orm';
 
 import { getShareClassIdentity } from '@zivoe/centrifuge-indexer';
@@ -31,21 +32,28 @@ export type ReceiptMailerResult =
   | { outcome: 'skipped'; reason: 'user_not_found' | 'preference_disabled' | 'already_sent' };
 
 export async function runReceiptMailer(job: TransactionReceiptJob): Promise<ReceiptMailerResult> {
+  // A skip leaves no row behind, so the log line is its only trace — enough
+  // to answer "why did this user get no receipt" without a DB query.
+  const skip = (reason: Extract<ReceiptMailerResult, { outcome: 'skipped' }>['reason']): ReceiptMailerResult => {
+    Sentry.logger.info('transaction-receipt-email skipped', { eventId: job.eventId, userId: job.userId, reason });
+    return { outcome: 'skipped', reason };
+  };
+
   const recipientRows = await db.select({ email: user.email }).from(user).where(eq(user.id, job.userId)).limit(1);
   const recipient = recipientRows[0];
   // A deleted account between enqueue and delivery is a normal end state,
   // not an error — the wallet link died with the user row.
-  if (!recipient) return { outcome: 'skipped', reason: 'user_not_found' };
+  if (!recipient) return skip('user_not_found');
 
   const receiptsEnabled = await isEmailPreferenceEnabled({ userId: job.userId, bucket: 'transaction_receipts' });
-  if (!receiptsEnabled) return { outcome: 'skipped', reason: 'preference_disabled' };
+  if (!receiptsEnabled) return skip('preference_disabled');
 
   const alreadySent = await db
     .select({ id: transactionEmailSent.id })
     .from(transactionEmailSent)
     .where(and(eq(transactionEmailSent.eventId, job.eventId), eq(transactionEmailSent.userId, job.userId)))
     .limit(1);
-  if (alreadySent.length > 0) return { outcome: 'skipped', reason: 'already_sent' };
+  if (alreadySent.length > 0) return skip('already_sent');
 
   // The runtime trust boundary for the payload's share-class key: an unknown
   // or retired key throws, which sends the job to the DLQ instead of mailing

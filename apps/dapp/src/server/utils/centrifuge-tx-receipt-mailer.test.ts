@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getShareClassIdentity } from '@zivoe/centrifuge-indexer';
@@ -17,6 +18,7 @@ vi.mock('@zivoe/centrifuge-indexer', async (importOriginal) => ({
 }));
 vi.mock('@/server/data/email-preferences', () => ({ isEmailPreferenceEnabled: vi.fn() }));
 vi.mock('@/server/utils/send-email', () => ({ sendTransactionReceiptEmail: vi.fn() }));
+vi.mock('@sentry/nextjs', () => ({ logger: { info: vi.fn() } }));
 
 /** Table-dispatched stand-in for the two reads and one insert the mailer performs. */
 const state = {
@@ -118,6 +120,11 @@ describe('runReceiptMailer', () => {
     expect(isEmailPreferenceEnabled).toHaveBeenCalledWith({ userId: JOB.userId, bucket: 'transaction_receipts' });
     expect(sendTransactionReceiptEmail).not.toHaveBeenCalled();
     expect(state.inserted).toHaveLength(0);
+    // The skip's only trace: no row is written, so the log line must name it.
+    expect(Sentry.logger.info).toHaveBeenCalledWith(
+      'transaction-receipt-email skipped',
+      expect.objectContaining({ eventId: JOB.eventId, userId: JOB.userId, reason: 'preference_disabled' })
+    );
   });
 
   it('an already-recorded (event, user) pair never mails twice', async () => {

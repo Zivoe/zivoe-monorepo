@@ -164,6 +164,7 @@ export async function sendTransactionReceiptEmail({
   const unsubscribeUrl = buildUnsubscribeUrl({ userId, email: to, bucket: 'transaction_receipts' });
   const { subject, email } = buildTransactionReceiptEmail({ job, symbol, shareDecimals, viewInAppUrl, unsubscribeUrl });
   const html = await render(email);
+  const receiptKey = buildReceiptJobKey({ eventId: job.eventId, userId });
 
   return handleIdempotentResult(
     await resend.emails.send(
@@ -172,10 +173,17 @@ export async function sendTransactionReceiptEmail({
         replyTo: EMAILS.INQUIRE,
         to,
         subject,
-        html
+        html,
+        // Attribution for the Resend webhook, which forwards tags to Sentry:
+        // the only way to tie a bounce or complaint back to one receipt.
+        tags: [
+          { name: 'flow', value: 'transaction-receipt' },
+          { name: 'event_type', value: job.event.type },
+          { name: 'receipt_key', value: receiptKey }
+        ]
       },
       {
-        idempotencyKey: `transaction-receipt/${buildReceiptJobKey({ eventId: job.eventId, userId })}`
+        idempotencyKey: `transaction-receipt/${receiptKey}`
       }
     )
   );
