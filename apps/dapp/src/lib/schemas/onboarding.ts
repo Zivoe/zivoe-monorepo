@@ -7,6 +7,8 @@ import {
   orgAmountValues
 } from '@zivoe/database/onboarding';
 
+import { isSupportedCountryCode } from '@/types/countries';
+
 export { accountTypeValues } from '@zivoe/database/onboarding';
 
 const individualAmountEnum = z.enum(individualAmountValues, {
@@ -19,6 +21,13 @@ const orgAmountEnum = z.enum(orgAmountValues, {
 const howFoundZivoeEnum = z.enum(howFoundZivoeValues, {
   required_error: 'Please select how you found Zivoe'
 });
+
+// ISO 3166-1 alpha-2 code, restricted to the supported (non-sanctioned) list.
+// Validated server-side too, since the server action re-parses with this schema.
+const countryCodeSchema = z
+  .string({ required_error: 'Please select a country' })
+  .min(1, 'Please select a country')
+  .refine(isSupportedCountryCode, 'Please select a valid country');
 
 export type AccountType = (typeof accountTypeValues)[number];
 
@@ -33,7 +42,7 @@ export type AccountTypeFormData = z.infer<typeof accountTypeSchema>;
 export const individualSchema = z.object({
   firstName: z.string({ required_error: 'First name is required' }).min(1, 'First name is required'),
   lastName: z.string({ required_error: 'Last name is required' }).min(1, 'Last name is required'),
-  countryOfResidence: z.string({ required_error: 'Please select a country' }).min(1, 'Please select a country'),
+  countryOfResidence: countryCodeSchema,
   amountOfInterest: individualAmountEnum,
   howFoundZivoe: howFoundZivoeEnum
 });
@@ -51,7 +60,7 @@ export type OrgPersonalInfoFormData = z.infer<typeof orgPersonalInfoSchema>;
 // Organization Step 2: Entity Information
 export const orgEntityInfoSchema = z.object({
   entityName: z.string({ required_error: 'Entity name is required' }).min(1, 'Entity name is required'),
-  countryOfIncorporation: z.string({ required_error: 'Please select a country' }).min(1, 'Please select a country'),
+  countryOfIncorporation: countryCodeSchema,
   amountOfInterest: orgAmountEnum
 });
 export type OrgEntityInfoFormData = z.infer<typeof orgEntityInfoSchema>;

@@ -71,6 +71,13 @@
       "when": 1787600409078,
       "tag": "0009_centrifuge_redeem_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788377340562,
+      "tag": "0010_country_codes_backfill",
+      "breakpoints": true
     }
   ]
 }
