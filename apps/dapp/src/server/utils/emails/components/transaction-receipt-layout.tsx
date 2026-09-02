@@ -5,12 +5,7 @@ import { Body, Container, Head, Html, Img, Link, Preview, Section, Tailwind, Tex
 import { EmailFooterRow } from '@/server/utils/emails/components/email-footer-row';
 import { ZIVOE_LOGO_URL, emailTailwindConfig } from '@/server/utils/emails/config';
 
-import {
-  RECEIPT_COPYRIGHT_TEXT,
-  RECEIPT_DISCLAIMER_TEXT,
-  RECEIPT_INQUIRIES_EMAIL,
-  RECEIPT_QUICK_LINKS
-} from '../receipt-config';
+import { RECEIPT_DISCLAIMER_TEXT, RECEIPT_INQUIRIES_EMAIL, RECEIPT_QUICK_LINKS } from '../receipt-config';
 
 export function TransactionReceiptLayout({
   preview,
@@ -19,7 +14,7 @@ export function TransactionReceiptLayout({
 }: {
   preview: string;
   children: ReactNode;
-  unsubscribeUrl?: string;
+  unsubscribeUrl: string;
 }) {
   return (
     <Html>
@@ -123,7 +118,9 @@ export function TransactionReceiptLayout({
               </Section>
 
               <EmailFooterRow
-                leftContent={RECEIPT_COPYRIGHT_TEXT}
+                // Computed per render, so a warm instance never crosses New
+                // Year still stamping last year's copyright.
+                leftContent={`© Zivoe ${new Date().getUTCFullYear()}. All Rights Reserved.`}
                 unsubscribeUrl={unsubscribeUrl}
                 leftWidth="65%"
                 rightWidth="35%"

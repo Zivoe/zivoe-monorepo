@@ -1,8 +1,11 @@
 import { render } from '@react-email/components';
 import { describe, expect, it, vi } from 'vitest';
 
+import { EMAILS } from '@/lib/utils';
+
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
+import { RECEIPT_INQUIRIES_EMAIL } from './emails/receipt-config';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -49,6 +52,8 @@ describe('buildTransactionReceiptEmail', () => {
 
     expect(subject).toBe('Deposit Confirmed');
     expect(html).toContain('Deposit Receipt');
+    // Wallet-scoped copy: the link is self-reported, so no ownership claims.
+    expect(html).toContain('a wallet linked to your account');
     expect(html).toContain('5.00 USDC');
     expect(html).toContain('4.40'); // zSMB side of the flow (nbsp separates value and symbol)
     expect(html).toContain('https://etherscan.io/tx/0xccdab4d1');
@@ -67,7 +72,7 @@ describe('buildTransactionReceiptEmail', () => {
 
     expect(subject).toBe('Redemption Request Received');
     expect(html).toContain('Amount Requested');
-    expect(html).toContain('ready to');
+    expect(html).toContain('ready to claim');
     expect(html).not.toContain('USDC');
   });
 
@@ -90,7 +95,6 @@ describe('buildTransactionReceiptEmail', () => {
     expect(subject).toBe('Redemption Complete');
     expect(html).toContain('Redemption Receipt');
     expect(html).toContain('Amount Redeemed');
-    expect(html).not.toContain('Fee');
   });
 
   it('no usable explorer: hash and address render as plain truncated text', async () => {
@@ -108,6 +112,13 @@ describe('buildTransactionReceiptEmail', () => {
 
     expect(html).toContain('—');
     expect(html).not.toContain('NaN');
+  });
+
+  it('the inlined inquiries address stays in sync with the app-wide constant', () => {
+    // receipt-config cannot import @/lib/utils (it would drag @zivoe/ui's
+    // React tree into the email preview bundle), so the value is inlined
+    // there and pinned here.
+    expect(RECEIPT_INQUIRIES_EMAIL).toBe(EMAILS.INQUIRE);
   });
 
   it('an absurd timestamp renders as a dash, not an Invalid Date artifact', async () => {

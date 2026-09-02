@@ -4,14 +4,13 @@ import { LINKS } from '@/types/constants';
 
 import { BASE_URL } from '@/server/utils/base-url';
 
-import { EMAILS } from '@/lib/utils';
-
-export const RECEIPT_INQUIRIES_EMAIL = EMAILS.INQUIRE;
+// Inlined rather than imported from @/lib/utils (EMAILS.INQUIRE): that module
+// drags @zivoe/ui's React tree into the graph, which the react-email preview
+// server cannot bundle. The receipt-email test pins the two in sync.
+export const RECEIPT_INQUIRIES_EMAIL = 'inquire@zivoe.com';
 
 export const RECEIPT_DISCLAIMER_TEXT =
   'This update is for informational purposes only. Past performance is not indicative of future results. Private credit investments involve risk, including loss of principal. Token valuations are derived from the pool’s Assets Under Management (AUM) and may fluctuate based on market conditions.';
-
-export const RECEIPT_COPYRIGHT_TEXT = `© Zivoe ${new Date().getUTCFullYear()}. All Rights Reserved.`;
 
 export const RECEIPT_QUICK_LINKS = [
   { label: 'Website', href: 'https://zivoe.com' },
@@ -24,9 +23,6 @@ export const RECEIPT_QUICK_LINKS = [
 // degrades gracefully instead of breaking its receipts.
 const TOKEN_ICON_URL_BY_SYMBOL: Record<string, string> = {
   USDC: `${BASE_URL}/email-icons/usdc.png`,
-  USDT: `${BASE_URL}/email-icons/usdt.png`,
-  frxUSD: `${BASE_URL}/email-icons/frxusd.png`,
-  zSTT: `${BASE_URL}/email-icons/zstt.png`,
   zSMB: `${BASE_URL}/email-icons/zsmb.png`
 };
 

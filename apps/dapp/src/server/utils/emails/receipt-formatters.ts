@@ -25,11 +25,3 @@ export function truncateMiddle(value: string, prefixLength = 6, suffixLength = 4
   if (value.length <= prefixLength + suffixLength + 3) return value;
   return `${value.slice(0, prefixLength)}...${value.slice(-suffixLength)}`;
 }
-
-export function truncateWalletAddress(walletAddress: string): string {
-  return truncateMiddle(walletAddress);
-}
-
-export function truncateTransactionHash(txHash: string): string {
-  return truncateMiddle(txHash);
-}
