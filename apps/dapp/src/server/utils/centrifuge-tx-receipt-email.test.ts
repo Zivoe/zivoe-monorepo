@@ -8,13 +8,13 @@ import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
 const UNSUBSCRIBE_URL = 'https://app.test/unsubscribe?token=t';
-const VIEW_IN_APP_URL = 'https://app.test/vaults/zsmb';
+const VIEW_IN_APP_URL = 'https://app.test/vaults/zivoe-smb-credit';
 
 function job(overrides: Partial<TransactionReceiptJob['event']> = {}): TransactionReceiptJob {
   return {
     eventId: '0xsc:1:0xtx:SYNC_DEPOSIT:0xabc',
     userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
-    zivoeVaultSlug: 'zsmb',
+    zivoeVaultSlug: 'zivoe-smb-credit',
     shareClassKey: 'zsmb',
     event: {
       type: 'SYNC_DEPOSIT',

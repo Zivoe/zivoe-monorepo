@@ -54,7 +54,7 @@ vi.mock('@/server/clients/db', () => ({
 const JOB: TransactionReceiptJob = {
   eventId: '0xsc:1:0xtx:SYNC_DEPOSIT:0xabc',
   userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
-  zivoeVaultSlug: 'zsmb',
+  zivoeVaultSlug: 'zivoe-smb-credit',
   shareClassKey: 'zsmb',
   event: {
     type: 'SYNC_DEPOSIT',
@@ -97,7 +97,7 @@ describe('runReceiptMailer', () => {
         userId: JOB.userId,
         symbol: 'zSMB',
         shareDecimals: 18,
-        viewInAppUrl: expect.stringMatching(/\/vaults\/zsmb$/)
+        viewInAppUrl: expect.stringMatching(/\/vaults\/zivoe-smb-credit$/)
       })
     );
     expect(state.inserted).toEqual([

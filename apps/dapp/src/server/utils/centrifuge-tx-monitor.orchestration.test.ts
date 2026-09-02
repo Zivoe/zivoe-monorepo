@@ -20,7 +20,7 @@ import { buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Registry modules pull component trees; the monitor only needs their data shape.
 vi.mock('@/zivoe-vaults', () => ({
-  ZIVOE_VAULTS: [{ slug: 'zsmb', shareClass: { key: 'zsmb' } }],
+  ZIVOE_VAULTS: [{ slug: 'zivoe-smb-credit', shareClass: { key: 'zsmb' } }],
   zivoeVaultChains: vi.fn(() => ['sepolia'])
 }));
 // A hoisted handle instead of the client's method keeps the mock unbound-safe.
@@ -52,7 +52,7 @@ const state = {
   lockAvailable: true,
   cursors: new Map<string, number>(),
   notified: new Set<string>(),
-  emails: [] as Array<{ address: string; userId: string; email: string }>
+  emails: [] as Array<{ address: string; userId: string; email: string; createdAt?: number }>
 };
 
 function stringParams(node: unknown, out: Array<string> = []): Array<string> {
@@ -79,7 +79,13 @@ function thenable(rowsFn: () => Array<Record<string, unknown>> | void) {
         .then(rowsFn)
         .then((rows) => resolve(rows ?? []), reject),
     limit: () => thenable(rowsFn),
-    orderBy: () => thenable(rowsFn)
+    // Honors the one ordering the pass relies on (oldest wallet claim first)
+    // instead of echoing insertion order, so a test can prove the sort.
+    orderBy: (column: unknown) =>
+      thenable(() => {
+        if (column !== walletConnection.createdAt) throw new Error('unexpected orderBy column');
+        return [...(rowsFn() ?? [])].sort((a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0));
+      })
   };
 }
 
@@ -405,7 +411,7 @@ describe('runCentrifugeTransactionMonitor', () => {
       body: {
         eventId,
         userId: 'user-1',
-        zivoeVaultSlug: 'zsmb',
+        zivoeVaultSlug: 'zivoe-smb-credit',
         shareClassKey: 'zsmb',
         // Amounts travel as strings — the payload must survive JSON.
         event: expect.objectContaining({ type: 'SYNC_DEPOSIT', tokenAmount: '1000000000000000000' })
@@ -434,11 +440,13 @@ describe('runCentrifugeTransactionMonitor', () => {
   it('caps recipients per event at the ceiling, keeps the oldest claims, and alarms', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     // 12 accounts claim the same wallet — only the earliest 10 get mail.
+    // Stored newest-first, so only the createdAt sort can put user-0 first.
     state.emails = Array.from({ length: 12 }, (_, i) => ({
       address: '0xabc',
       userId: `user-${i}`,
-      email: `u${i}@x.y`
-    }));
+      email: `u${i}@x.y`,
+      createdAt: NOW - (12 - i) * 60_000
+    })).reverse();
     serveFeed([mkEvent(0)]);
 
     const result = await runCentrifugeTransactionMonitor();
@@ -507,6 +515,22 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     expect(result).toMatchObject({ emailJobsEnqueued: 1, emailJobsDeduplicated: 1 });
     expect(state.notified.size).toBe(1);
+  });
+
+  it('a publish that never answers is cut at the deadline — the lock cannot wait on QStash forever', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockReturnValue(new Promise(() => undefined));
+
+    const pass = runCentrifugeTransactionMonitor();
+    const outcome = expect(pass).rejects.toThrow('QStash publish timed out');
+    // QSTASH_PUBLISH_DEADLINE_MS — the Telegram send's bound, shared on purpose.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await outcome;
+
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
   });
 
   it('a failed Telegram send publishes no email jobs — the channels fail forward together', async () => {
