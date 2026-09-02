@@ -29,15 +29,6 @@ export const RECEIPT_TOKEN_FLOW_STYLES = `
     width: 100% !important;
   }
 
-  .receipt-mobile-arrow-right {
-    display: none !important;
-    mso-hide: all !important;
-  }
-
-  .receipt-mobile-arrow-down {
-    display: block !important;
-  }
-
   @media only screen and (min-width: 601px) {
     .receipt-desktop-token-flow {
       display: table !important;
@@ -45,16 +36,6 @@ export const RECEIPT_TOKEN_FLOW_STYLES = `
     }
 
     .receipt-mobile-token-flow {
-      display: none !important;
-      mso-hide: all !important;
-    }
-
-    .receipt-mobile-arrow-right {
-      display: block !important;
-      mso-hide: none !important;
-    }
-
-    .receipt-mobile-arrow-down {
       display: none !important;
       mso-hide: all !important;
     }
@@ -136,20 +117,7 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
 
           <tr>
             <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
-              <Img
-                className="receipt-mobile-arrow-right"
-                src={RECEIPT_ARROW_RIGHT_GRAY_URL}
-                width="16"
-                height="16"
-                alt=""
-              />
-              <Img
-                className="receipt-mobile-arrow-down"
-                src={RECEIPT_ARROW_DOWN_GRAY_URL}
-                width="16"
-                height="16"
-                alt=""
-              />
+              <Img src={RECEIPT_ARROW_DOWN_GRAY_URL} width="16" height="16" alt="" />
             </td>
           </tr>
 
@@ -188,11 +156,11 @@ export function ReceiptDetailRow({
           <tbody>
             <tr>
               <td style={{ verticalAlign: 'middle', paddingRight: '12px' }}>
-                <Text className="text-regular text-secondary">{label}</Text>
+                <Text className="m-0 text-regular text-secondary">{label}</Text>
               </td>
 
               <td align="right" style={{ verticalAlign: 'middle' }}>
-                {typeof value === 'string' ? <Text className="text-regular text-primary">{value}</Text> : value}
+                {typeof value === 'string' ? <Text className="m-0 text-regular text-primary">{value}</Text> : value}
               </td>
             </tr>
           </tbody>
@@ -232,7 +200,7 @@ export function ReceiptSuccessBadge() {
 
 /** Truncated hash/address, linked out when the chain has a usable explorer. */
 export function ReceiptExternalValueLink({ href, text }: { href: string | null; text: string }) {
-  if (!href) return <Text className="text-regular text-primary">{text}</Text>;
+  if (!href) return <Text className="m-0 text-regular text-primary">{text}</Text>;
 
   return (
     <table role="presentation" align="right" cellPadding="0" cellSpacing="0">

@@ -8,12 +8,20 @@ export const emailTailwindConfig: TailwindConfig = {
   presets: [pixelBasedPreset],
   theme: {
     extend: {
+      // px, not rem: pixelBasedPreset converts only Tailwind's stock scales,
+      // so custom tokens (and the radii below) would inline as rem, which
+      // Outlook for Windows ignores.
       fontSize: {
-        extraSmall: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0' }],
-        small: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0' }],
-        regular: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
-        leading: ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
-        h5: ['2rem', { lineHeight: '2.25rem', letterSpacing: '0' }]
+        extraSmall: ['12px', { lineHeight: '16px', letterSpacing: '0' }],
+        small: ['14px', { lineHeight: '20px', letterSpacing: '0' }],
+        regular: ['16px', { lineHeight: '24px', letterSpacing: '0' }],
+        leading: ['18px', { lineHeight: '24px', letterSpacing: '0' }],
+        h5: ['32px', { lineHeight: '36px', letterSpacing: '0' }]
+      },
+      borderRadius: {
+        md: '6px',
+        lg: '8px',
+        xl: '12px'
       },
       fontFamily: {
         heading: ['Georgia', 'Times New Roman', 'serif']
