@@ -181,6 +181,15 @@ export async function sendTransactionReceiptEmail({
   );
 }
 
+/**
+ * Maps Resend's idempotency answers onto "sent". `invalid_idempotent_request`
+ * means the key is already bound to an earlier request with a different body
+ * — and every retry here has a different body, because the unsubscribe token
+ * carries its issue time — so it is the signature of a replay after a send.
+ * `concurrent_idempotent_requests` means another delivery holds the key right
+ * now and may still fail; Resend's guidance is to retry later, so it throws
+ * and the queue's retry lands after that request has settled.
+ */
 export function handleIdempotentResult<T>({
   data,
   error
@@ -189,9 +198,7 @@ export function handleIdempotentResult<T>({
   error: { name: string; message: string } | null;
 }): { data: T | null } {
   if (error) {
-    if (error.name === 'invalid_idempotent_request' || error.name === 'concurrent_idempotent_requests') {
-      return { data: null };
-    }
+    if (error.name === 'invalid_idempotent_request') return { data: null };
     throw new Error(error.message, { cause: error });
   }
   return { data };
