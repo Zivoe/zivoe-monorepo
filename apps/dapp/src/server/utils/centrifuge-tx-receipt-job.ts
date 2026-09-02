@@ -19,9 +19,9 @@ export const TRANSACTION_RECEIPT_JOB_PATH = '/api/email/transaction-receipt';
 
 /**
  * Amounts travel as decimal strings — QStash payloads are JSON, which cannot
- * carry bigint. Unsigned on purpose: the indexer boundary admits signed
- * amounts, but a negative one must never render as a success receipt — it
- * fails the parse here and surfaces in the DLQ instead.
+ * carry bigint. Unsigned, like the indexer boundary that feeds it: a negative
+ * amount is refused there as malformed, and this mirror means no forged or
+ * hand-replayed payload can render one as a success receipt either.
  */
 const bigintString = z.string().regex(/^\d+$/).transform(BigInt);
 
