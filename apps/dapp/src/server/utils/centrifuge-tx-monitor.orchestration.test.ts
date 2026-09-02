@@ -14,14 +14,18 @@ import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 import { zivoeVaultChains } from '@/zivoe-vaults';
 
 import { CENTRIFUGE_TX_MONITOR_KEY, runCentrifugeTransactionMonitor } from './centrifuge-tx-monitor';
+import { buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Registry modules pull component trees; the monitor only needs their data shape.
 vi.mock('@/zivoe-vaults', () => ({
-  ZIVOE_VAULTS: [{ shareClass: { key: 'zsmb' } }],
+  ZIVOE_VAULTS: [{ slug: 'zivoe-smb-credit', shareClass: { key: 'zsmb' } }],
   zivoeVaultChains: vi.fn(() => ['sepolia'])
 }));
+// A hoisted handle instead of the client's method keeps the mock unbound-safe.
+const { batchJSONMock } = vi.hoisted(() => ({ batchJSONMock: vi.fn() }));
+vi.mock('@/server/clients/qstash', () => ({ qstash: { batchJSON: batchJSONMock } }));
 vi.mock('@zivoe/centrifuge-indexer', async (importOriginal) => ({
   ...(await importOriginal()),
   fetchIndexerChainStatuses: vi.fn(),
@@ -48,7 +52,7 @@ const state = {
   lockAvailable: true,
   cursors: new Map<string, number>(),
   notified: new Set<string>(),
-  emails: [] as Array<{ address: string; email: string }>
+  emails: [] as Array<{ address: string; userId: string; email: string; createdAt?: number }>
 };
 
 function stringParams(node: unknown, out: Array<string> = []): Array<string> {
@@ -75,7 +79,13 @@ function thenable(rowsFn: () => Array<Record<string, unknown>> | void) {
         .then(rowsFn)
         .then((rows) => resolve(rows ?? []), reject),
     limit: () => thenable(rowsFn),
-    orderBy: () => thenable(rowsFn)
+    // Honors the one ordering the pass relies on (oldest wallet claim first)
+    // instead of echoing insertion order, so a test can prove the sort.
+    orderBy: (column: unknown) =>
+      thenable(() => {
+        if (column !== walletConnection.createdAt) throw new Error('unexpected orderBy column');
+        return [...(rowsFn() ?? [])].sort((a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0));
+      })
   };
 }
 
@@ -172,6 +182,10 @@ beforeEach(() => {
   vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses());
   vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [], truncated: false, malformed: [] });
   vi.mocked(sendBatchedTelegramMessages).mockResolvedValue(undefined);
+  // The batch endpoint answers one entry per message; a messageId is the success signal.
+  batchJSONMock.mockImplementation(async (batch: Array<unknown>) =>
+    batch.map((_, index) => ({ messageId: `msg-${index}`, url: 'https://app.test/api/email/transaction-receipt' }))
+  );
 });
 
 describe('runCentrifugeTransactionMonitor', () => {
@@ -189,7 +203,11 @@ describe('runCentrifugeTransactionMonitor', () => {
     const replayed = mkEvent(0);
     const fresh = mkEvent(1000);
     state.notified.add(`0xsc:1:${replayed.txHash}:SYNC_DEPOSIT:0xabc`);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [replayed, fresh], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [replayed, fresh],
+      truncated: false,
+      malformed: []
+    });
 
     const result = await runCentrifugeTransactionMonitor();
 
@@ -204,7 +222,11 @@ describe('runCentrifugeTransactionMonitor', () => {
 
   it('a failed send records nothing and never advances the cursor', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [mkEvent(0)],
+      truncated: false,
+      malformed: []
+    });
     vi.mocked(sendBatchedTelegramMessages).mockRejectedValue(new Error('telegram down'));
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
@@ -238,7 +260,11 @@ describe('runCentrifugeTransactionMonitor', () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     // Chain missing from status: stale AND no head to clamp to.
     vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(new Map());
-    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [mkEvent(0)], truncated: false, malformed: [] });
+    vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
+      events: [mkEvent(0)],
+      truncated: false,
+      malformed: []
+    });
 
     const first = await runCentrifugeTransactionMonitor();
 
@@ -358,6 +384,167 @@ describe('runCentrifugeTransactionMonitor', () => {
     const result = await runCentrifugeTransactionMonitor();
 
     expect(result).toMatchObject({ indexerStale: true, notified: 1 });
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('enqueues one Receipt Mailer job per (event, linked user); unlinked wallets enqueue nothing', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    serveFeed([mkEvent(0), mkEvent(1000, { account: '0xunlinked', txHash: '0xother' })]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 2, emailJobsEnqueued: 2 });
+    const batch = batchJSONMock.mock.calls[0]?.[0];
+    expect(batch).toHaveLength(2);
+    const eventId = '0xsc:1:0xtx0:SYNC_DEPOSIT:0xabc';
+    expect(batch?.[0]).toMatchObject({
+      url: expect.stringContaining('/api/email/transaction-receipt'),
+      label: 'email.transaction-receipt',
+      retries: 3,
+      // Delivery throttle keyed per channel — Resend's rate limit is the bound.
+      flowControl: { key: 'email.transaction-receipt', rate: 1 },
+      deduplicationId: `receipt-${buildReceiptJobKey({ eventId, userId: 'user-1' })}`,
+      body: {
+        eventId,
+        userId: 'user-1',
+        zivoeVaultSlug: 'zivoe-smb-credit',
+        shareClassKey: 'zsmb',
+        // Amounts travel as strings — the payload must survive JSON.
+        event: expect.objectContaining({ type: 'SYNC_DEPOSIT', tokenAmount: '1000000000000000000' })
+      }
+    });
+    expect(batch?.[1]).toMatchObject({ body: expect.objectContaining({ userId: 'user-2' }) });
+  });
+
+  it('splits more than one hundred receipt jobs across QStash batches', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    // 100 events × 2 linked users = 200 jobs — the batch cap is 100.
+    serveFeed(Array.from({ length: 100 }, (_, i) => mkEvent(i * 1000, { txHash: `0xbulk${i}` })));
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 100, emailJobsEnqueued: 200 });
+    expect(batchJSONMock).toHaveBeenCalledTimes(2);
+    expect(batchJSONMock.mock.calls[0]?.[0]).toHaveLength(100);
+    expect(batchJSONMock.mock.calls[1]?.[0]).toHaveLength(100);
+  });
+
+  it('caps recipients per event at the ceiling, keeps the oldest claims, and alarms', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    // 12 accounts claim the same wallet — only the earliest 10 get mail.
+    // Stored newest-first, so only the createdAt sort can put user-0 first.
+    state.emails = Array.from({ length: 12 }, (_, i) => ({
+      address: '0xabc',
+      userId: `user-${i}`,
+      email: `u${i}@x.y`,
+      createdAt: NOW - (12 - i) * 60_000
+    })).reverse();
+    serveFeed([mkEvent(0)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 1, emailJobsEnqueued: 10 });
+    const published = batchJSONMock.mock.calls[0]?.[0] as Array<{ body: { userId: string } }>;
+    expect(published.map((message) => message.body.userId)).toEqual(Array.from({ length: 10 }, (_, i) => `user-${i}`));
+    const capCaptures = vi
+      .mocked(Sentry.captureException)
+      .mock.calls.filter((call) => call[0] instanceof Error && call[0].message.includes('capped receipt recipients'));
+    expect(capCaptures).toHaveLength(1);
+  });
+
+  it('a pass with no linked users publishes no batch at all', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    serveFeed([mkEvent(0)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 1, emailJobsEnqueued: 0 });
+    expect(batchJSONMock).not.toHaveBeenCalled();
+  });
+
+  it('a failed publish aborts the pass before Telegram — nothing sent, nothing recorded, the cursor holds', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockRejectedValue(new Error('qstash down'));
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('qstash down');
+
+    // The non-idempotent send comes after the publish, so it never repeats for QStash's failure.
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('a message rejected inside an accepted batch fails the pass — never a silently lost receipt', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    serveFeed([mkEvent(0)]);
+    // QStash returns 200 for the batch and reports the second message's failure inline.
+    batchJSONMock.mockResolvedValue([{ messageId: 'msg-0', url: 'u' }, { error: 'invalid destination' }]);
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('QStash rejected 1 of 2 receipt jobs');
+
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+    const rejectedCaptures = vi
+      .mocked(Sentry.captureException)
+      .mock.calls.filter((call) => call[0] instanceof Error && call[0].message.includes('QStash rejected'));
+    expect(rejectedCaptures[0]?.[1]).toMatchObject({
+      extra: { rejected: [{ job: expect.objectContaining({ userId: 'user-2' }) }] }
+    });
+  });
+
+  it('counts the jobs QStash had already seen, so a replayed pass is visible in its result', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockResolvedValue([{ messageId: 'msg-0', url: 'u', deduplicated: true }]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ emailJobsEnqueued: 1, emailJobsDeduplicated: 1 });
+    expect(state.notified.size).toBe(1);
+  });
+
+  it('a publish that never answers is cut at the deadline — the lock cannot wait on QStash forever', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockReturnValue(new Promise(() => undefined));
+
+    const pass = runCentrifugeTransactionMonitor();
+    const outcome = expect(pass).rejects.toThrow('QStash publish timed out');
+    // QSTASH_PUBLISH_DEADLINE_MS — the Telegram send's bound, shared on purpose.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await outcome;
+
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('a failed Telegram send lands after the publish — the jobs are out, nothing is recorded, the retry republishes into dedupe', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    vi.mocked(sendBatchedTelegramMessages).mockRejectedValue(new Error('telegram down'));
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
+
+    expect(batchJSONMock).toHaveBeenCalledTimes(1);
+    expect(state.notified.size).toBe(0);
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
   });
 });

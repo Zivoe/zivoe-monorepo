@@ -66,7 +66,6 @@ const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
   }
 `);
 
-const signedIntegerString = z.string().regex(/^-?\d+$/);
 const integerString = z.string().regex(/^\d+$/);
 // 13+ digits pins the epoch-milliseconds unit: a silent upstream flip to
 // seconds would otherwise put every row behind the cursor forever — the one
@@ -92,8 +91,13 @@ const itemSchema = z
     type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
     centrifugeId: z.string(),
     account: z.string(),
-    tokenAmount: signedIntegerString.nullable(),
-    currencyAmount: signedIntegerString.nullable(),
+    // Unsigned: every alertable type moves a non-negative amount, so a
+    // negative row is upstream drift. Refusing it here, once, keeps the
+    // Telegram line, the Notified Ledger and the Receipt Mailer in agreement
+    // — the mailer's own unsigned contract would otherwise DLQ a receipt the
+    // channel had already alerted and the ledger had already recorded.
+    tokenAmount: integerString.nullable(),
+    currencyAmount: integerString.nullable(),
     tokenPrice: integerString.nullable(),
     createdAt: msTimestampString,
     createdAtTxHash: z.string(),
@@ -127,9 +131,9 @@ export type InvestorTransactionEvent = {
   chainId: number | null;
   /** Lowercase investor address. */
   account: string;
-  /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units. */
+  /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units; never negative. */
   tokenAmount: bigint | null;
-  /** Assets moved, asset base units (USDC 6dp); 0 on redeem requests. */
+  /** Assets moved, asset base units (USDC 6dp); 0 on redeem requests; never negative. */
   currencyAmount: bigint | null;
   /** Execution Share Price, D18; 0 when the row carries no price (redeem requests). */
   tokenPrice: bigint | null;

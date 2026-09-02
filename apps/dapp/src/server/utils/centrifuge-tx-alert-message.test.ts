@@ -5,7 +5,7 @@ import { chainsOfEnvironment, getChainDeployment } from '@zivoe/centrifuge-index
 
 import {
   USDC_DISPLAY,
-  buildTxLink,
+  buildExplorerLink,
   formatEmailLine,
   formatTelegramItem,
   resolveChainDisplay
@@ -46,17 +46,21 @@ describe('formatEmailLine', () => {
   });
 });
 
-describe('buildTxLink', () => {
+describe('buildExplorerLink', () => {
   it('joins explorer base and tx hash regardless of trailing slash', () => {
     const txHash = '0xabc';
-    expect(buildTxLink({ explorerUrl: 'https://etherscan.io', txHash })).toBe('https://etherscan.io/tx/0xabc');
-    expect(buildTxLink({ explorerUrl: 'https://scan.example/', txHash })).toBe('https://scan.example/tx/0xabc');
+    expect(buildExplorerLink({ explorerUrl: 'https://etherscan.io', path: `tx/${txHash}` })).toBe(
+      'https://etherscan.io/tx/0xabc'
+    );
+    expect(buildExplorerLink({ explorerUrl: 'https://scan.example/', path: `tx/${txHash}` })).toBe(
+      'https://scan.example/tx/0xabc'
+    );
   });
 
   it('refuses missing or non-http explorer bases', () => {
-    expect(buildTxLink({ explorerUrl: null, txHash: '0xabc' })).toBeNull();
-    expect(buildTxLink({ explorerUrl: 'not a url', txHash: '0xabc' })).toBeNull();
-    expect(buildTxLink({ explorerUrl: 'ftp://scan.example', txHash: '0xabc' })).toBeNull();
+    expect(buildExplorerLink({ explorerUrl: null, path: 'tx/0xabc' })).toBeNull();
+    expect(buildExplorerLink({ explorerUrl: 'not a url', path: 'tx/0xabc' })).toBeNull();
+    expect(buildExplorerLink({ explorerUrl: 'ftp://scan.example', path: 'tx/0xabc' })).toBeNull();
   });
 });
 

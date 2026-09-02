@@ -207,15 +207,40 @@ describe('fetchInvestorTransactionEventsSince', () => {
   });
 
   it.each([
-    { label: 'negative', tokenAmount: '-2000000000000000000' },
-    { label: 'zero', tokenAmount: '0' },
-    { label: 'missing', tokenAmount: null }
-  ])('skips a $label redemption request amount as upstream drift without halting the walk', async ({ tokenAmount }) => {
+    // A negative amount fails the unsigned field before the request refine runs.
+    { label: 'negative', tokenAmount: '-2000000000000000000', issue: expect.stringContaining('Invalid') },
+    { label: 'zero', tokenAmount: '0', issue: 'Redeem request tokenAmount must be positive' },
+    { label: 'missing', tokenAmount: null, issue: 'Redeem request tokenAmount must be positive' }
+  ])(
+    'skips a $label redemption request amount as upstream drift without halting the walk',
+    async ({ tokenAmount, issue }) => {
+      fakeIndexerResponse(
+        investorTxPage(
+          [investorTxItem({ createdAt: at(2000) }), investorTxItem({ type: 'REDEEM_REQUEST_UPDATED', tokenAmount })],
+          { hasNextPage: false, endCursor: null }
+        )
+      );
+
+      const { events, malformed } = await fetchInvestorTransactionEventsSince({
+        environment: 'testnet',
+        shareClassKey: 'zsmb',
+        sinceMs: T0
+      });
+
+      expect(malformed).toEqual([expect.objectContaining({ type: 'REDEEM_REQUEST_UPDATED', issue })]);
+      expect(events.map((event) => event.type)).toEqual(['SYNC_DEPOSIT']);
+    }
+  );
+
+  it.each([
+    { field: 'tokenAmount', type: 'REDEEM_CLAIMED' },
+    { field: 'currencyAmount', type: 'SYNC_DEPOSIT' }
+  ])('skips a negative $field on $type — no alertable type moves a negative amount', async ({ field, type }) => {
     fakeIndexerResponse(
-      investorTxPage(
-        [investorTxItem({ createdAt: at(2000) }), investorTxItem({ type: 'REDEEM_REQUEST_UPDATED', tokenAmount })],
-        { hasNextPage: false, endCursor: null }
-      )
+      investorTxPage([investorTxItem({ createdAt: at(2000) }), investorTxItem({ type, [field]: '-1' })], {
+        hasNextPage: false,
+        endCursor: null
+      })
     );
 
     const { events, malformed } = await fetchInvestorTransactionEventsSince({
@@ -224,9 +249,7 @@ describe('fetchInvestorTransactionEventsSince', () => {
       sinceMs: T0
     });
 
-    expect(malformed).toEqual([
-      expect.objectContaining({ type: 'REDEEM_REQUEST_UPDATED', issue: 'Redeem request tokenAmount must be positive' })
-    ]);
-    expect(events.map((event) => event.type)).toEqual(['SYNC_DEPOSIT']);
+    expect(malformed).toEqual([expect.objectContaining({ type })]);
+    expect(events).toHaveLength(1);
   });
 });

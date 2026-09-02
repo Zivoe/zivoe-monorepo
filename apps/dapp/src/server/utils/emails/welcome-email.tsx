@@ -10,7 +10,7 @@ export default function WelcomeEmail({ name, unsubscribeUrl }: { name?: string; 
     <EmailLayout
       preview="Learn how Zivoe works and how to request early access."
       unsubscribeUrl={unsubscribeUrl}
-      showDisclosure
+      disclosure="general"
     >
       <Heading className="font-serif text-2xl m-0 mb-6 text-center font-semibold text-neutral-950">
         Welcome to Zivoe

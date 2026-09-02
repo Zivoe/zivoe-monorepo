@@ -21,6 +21,7 @@ export const QSTASH_JOB_LABELS = {
   emailWelcome: 'email.welcome',
   emailDepositReminderFirst: 'email.deposit-reminder.first',
   emailDepositReminderSecond: 'email.deposit-reminder.second',
+  emailTransactionReceipt: 'email.transaction-receipt',
   telegramOnboarding: 'telegram.onboarding',
   walletFetchHoldings: 'wallet.fetch-holdings'
 } as const;

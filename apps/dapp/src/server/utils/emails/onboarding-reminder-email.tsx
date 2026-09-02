@@ -10,7 +10,7 @@ export default function OnboardingReminderEmail({ name, unsubscribeUrl }: { name
     <EmailLayout
       preview="Finish setting up your account and request early access."
       unsubscribeUrl={unsubscribeUrl}
-      showDisclosure
+      disclosure="general"
     >
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 

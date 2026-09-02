@@ -8,26 +8,58 @@ import {
   RECEIPT_ARROW_RIGHT_TEAL_URL,
   RECEIPT_CHECK_CIRCLE_URL,
   RECEIPT_EXTERNAL_LINK_URL,
-  RECEIPT_VIEW_IN_APP_URL,
-  type ReceiptTokenSymbol,
   getReceiptTokenIconUrl
 } from '../receipt-config';
 
+/**
+ * The token-flow row swaps a side-by-side layout for a stacked one on narrow
+ * clients; media queries cannot be inlined, so this rides in through
+ * EmailLayout's `headStyles`. Defaults are the mobile shape — clients that
+ * drop <style> entirely (Gmail's clipped view) still get a readable row.
+ */
+export const RECEIPT_TOKEN_FLOW_STYLES = `
+  .receipt-desktop-token-flow {
+    display: none !important;
+    width: 100% !important;
+    mso-hide: all !important;
+  }
+
+  .receipt-mobile-token-flow {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  @media only screen and (min-width: 601px) {
+    .receipt-desktop-token-flow {
+      display: table !important;
+      mso-hide: none !important;
+    }
+
+    .receipt-mobile-token-flow {
+      display: none !important;
+      mso-hide: all !important;
+    }
+  }
+`;
+
 type ReceiptTokenFlowAmount = {
-  symbol: ReceiptTokenSymbol;
+  symbol: string;
   value: string;
 };
 
 function ReceiptTokenAmount({ symbol, value }: ReceiptTokenFlowAmount) {
   const safeValue = value.replace(/\s+/g, '\u00A0');
+  const iconUrl = getReceiptTokenIconUrl(symbol);
 
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" align="center">
       <tbody>
         <tr>
-          <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
-            <Img src={getReceiptTokenIconUrl(symbol)} width="24" height="24" alt={symbol} />
-          </td>
+          {iconUrl ? (
+            <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+              <Img src={iconUrl} width="24" height="24" alt={symbol} />
+            </td>
+          ) : null}
 
           <td style={{ verticalAlign: 'middle' }}>
             <Text className="m-0 text-leading text-primary" style={{ whiteSpace: 'nowrap' }}>
@@ -85,20 +117,7 @@ export function ReceiptTokenFlowRow({ from, to }: { from: ReceiptTokenFlowAmount
 
           <tr>
             <td align="center" style={{ paddingBottom: '8px', verticalAlign: 'middle' }}>
-              <Img
-                className="receipt-mobile-arrow-right"
-                src={RECEIPT_ARROW_RIGHT_GRAY_URL}
-                width="16"
-                height="16"
-                alt=""
-              />
-              <Img
-                className="receipt-mobile-arrow-down"
-                src={RECEIPT_ARROW_DOWN_GRAY_URL}
-                width="16"
-                height="16"
-                alt=""
-              />
+              <Img src={RECEIPT_ARROW_DOWN_GRAY_URL} width="16" height="16" alt="" />
             </td>
           </tr>
 
@@ -137,11 +156,11 @@ export function ReceiptDetailRow({
           <tbody>
             <tr>
               <td style={{ verticalAlign: 'middle', paddingRight: '12px' }}>
-                <Text className="text-regular text-secondary">{label}</Text>
+                <Text className="m-0 text-regular text-secondary">{label}</Text>
               </td>
 
               <td align="right" style={{ verticalAlign: 'middle' }}>
-                {typeof value === 'string' ? <Text className="text-regular text-primary">{value}</Text> : value}
+                {typeof value === 'string' ? <Text className="m-0 text-regular text-primary">{value}</Text> : value}
               </td>
             </tr>
           </tbody>
@@ -153,7 +172,8 @@ export function ReceiptDetailRow({
   );
 }
 
-export function ReceiptSuccessBadge() {
+/** The Status row's pill. One style for every state — the label alone says whether the step is done or pending. */
+export function ReceiptStatusBadge({ label }: { label: string }) {
   return (
     <table role="presentation" cellPadding="0" cellSpacing="0" align="right" style={{ width: 'auto' }}>
       <tbody>
@@ -167,7 +187,7 @@ export function ReceiptSuccessBadge() {
                   </td>
 
                   <td style={{ verticalAlign: 'middle' }}>
-                    <Text className="m-0 text-small leading-4 text-brand">Success</Text>
+                    <Text className="m-0 text-small leading-4 text-brand">{label}</Text>
                   </td>
                 </tr>
               </tbody>
@@ -179,7 +199,10 @@ export function ReceiptSuccessBadge() {
   );
 }
 
-export function ReceiptExternalValueLink({ href, text }: { href: string; text: string }) {
+/** Truncated hash/address, linked out when the chain has a usable explorer. */
+export function ReceiptExternalValueLink({ href, text }: { href: string | null; text: string }) {
+  if (!href) return <Text className="m-0 text-regular text-primary">{text}</Text>;
+
   return (
     <table role="presentation" align="right" cellPadding="0" cellSpacing="0">
       <tbody>
@@ -199,13 +222,7 @@ export function ReceiptExternalValueLink({ href, text }: { href: string; text: s
   );
 }
 
-export function ReceiptCtaButton({
-  href = RECEIPT_VIEW_IN_APP_URL,
-  label = 'View In App'
-}: {
-  href?: string;
-  label?: string;
-}) {
+export function ReceiptCtaButton({ href, label = 'View In App' }: { href: string; label?: string }) {
   return (
     <Section className="text-center" style={{ width: '100%' }}>
       <Link

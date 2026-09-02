@@ -12,10 +12,18 @@ import {
 import { monitorCursor, transactionNotified, user, walletConnection } from '@zivoe/database/schema';
 
 import { type Db, db } from '@/server/clients/db';
+import { qstash } from '@/server/clients/qstash';
+import { BASE_URL } from '@/server/utils/base-url';
 import { formatEmailLine, formatTelegramItem } from '@/server/utils/centrifuge-tx-alert-message';
+import {
+  TRANSACTION_RECEIPT_JOB_PATH,
+  type TransactionReceiptJobInput,
+  buildReceiptJobKey
+} from '@/server/utils/centrifuge-tx-receipt-job';
 import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 
 import { ACTIVE_ENVIRONMENT, getChainId } from '@/lib/chains';
+import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -61,6 +69,15 @@ const MAX_EVENTS_PER_PASS = 100;
  */
 const INDEXER_IO_DEADLINE_MS = 30_000;
 
+/** QStash's batch endpoint cap — passes near MAX_EVENTS_PER_PASS can exceed it across linked users. */
+const QSTASH_BATCH_LIMIT = 100;
+
+/** Per-batch publish deadline — the Telegram send's bound, for the same lock-holding reason. */
+const QSTASH_PUBLISH_DEADLINE_MS = 15_000;
+
+/** Receipt emails per event. See the fan-out below for why this ceiling exists. */
+const MAX_RECIPIENTS_PER_EVENT = 10;
+
 export type CentrifugeTxMonitorResult = {
   /** True when another pass held the lock — nothing was read or sent. */
   skipped: boolean;
@@ -69,6 +86,10 @@ export type CentrifugeTxMonitorResult = {
   eventsSeen: number;
   notified: number;
   skippedDuplicates: number;
+  /** Receipt Mailer jobs published this pass — one per (event, linked user). */
+  emailJobsEnqueued: number;
+  /** Of those, the ones QStash rejected as seen — a replay inside its ten-minute dedup window; a later replay publishes as fresh and counts 0 here. */
+  emailJobsDeduplicated: number;
 };
 
 /** A pass that read and sent nothing — early exits spread this and flip their one flag. */
@@ -78,15 +99,17 @@ const EMPTY_PASS = {
   indexerStale: false,
   eventsSeen: 0,
   notified: 0,
-  skippedDuplicates: 0
+  skippedDuplicates: 0,
+  emailJobsEnqueued: 0,
+  emailJobsDeduplicated: 0
 } satisfies CentrifugeTxMonitorResult;
 
 /**
  * Canonical event identity: one on-chain moment notifies once, ever. Scoped by
  * share class AND spoke chain — the pass spans several of each, and one tx can
  * legitimately carry same-type events for the same account across them. All
- * parts arrive lowercase from the indexer boundary. This is also the value a
- * future email path records in transactionEmailSent.eventId.
+ * parts arrive lowercase from the indexer boundary. This is also the value
+ * the Receipt Mailer records in transactionEmailSent.eventId.
  */
 export function buildEventId({
   scId,
@@ -104,7 +127,17 @@ type AlertableEvent = {
   event: InvestorTransactionEvent;
   symbol: string;
   shareDecimals: number;
+  shareClassKey: string;
+  zivoeVaultSlug: string;
 };
+
+/**
+ * One answer in a QStash batch response. The SDK types the success shape
+ * only; a message the endpoint rejected arrives as an entry without a
+ * messageId (the batch itself still returns 200), so the shape is read
+ * loosely here and a missing id is the failure signal.
+ */
+type QstashBatchEntry = { messageId?: string; deduplicated?: boolean; error?: string };
 
 /** The transaction handle drizzle hands a `db.transaction` callback — DB, not on-chain, transaction. */
 type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -138,20 +171,22 @@ async function writeCursorMonotonic({
     });
 }
 
-async function readEmailsByAccount({
+type LinkedUser = { userId: string; email: string };
+
+async function readLinkedUsersByAccount({
   tx,
   accounts
 }: {
   tx: DbTx;
   accounts: Array<string>;
-}): Promise<Map<string, Array<string>>> {
-  const byAccount = new Map<string, Array<string>>();
+}): Promise<Map<string, Array<LinkedUser>>> {
+  const byAccount = new Map<string, Array<LinkedUser>>();
   if (accounts.length === 0) return byAccount;
 
   // Matches because both sides are lowercased at their write boundaries:
   // trackWalletConnection lowercases on insert, the indexer query on read.
   const rows = await tx
-    .select({ address: walletConnection.address, email: user.email })
+    .select({ address: walletConnection.address, userId: walletConnection.userId, email: user.email })
     .from(walletConnection)
     .innerJoin(user, eq(walletConnection.userId, user.id))
     .where(inArray(walletConnection.address, accounts))
@@ -161,7 +196,7 @@ async function readEmailsByAccount({
 
   for (const row of rows) {
     const list = byAccount.get(row.address) ?? [];
-    list.push(row.email);
+    list.push({ userId: row.userId, email: row.email });
     byAccount.set(row.address, list);
   }
 
@@ -171,7 +206,8 @@ async function readEmailsByAccount({
 /**
  * One polling pass, serialized by an advisory lock: freshness probe (staleness
  * reported straight to Sentry) → cursor window → fetch alertable events across
- * every live Zivoe Vault → dedupe against the notified ledger → Telegram batch
+ * every live Zivoe Vault → dedupe against the notified ledger → enqueue
+ * Receipt Mailer jobs per (event, linked user) → Telegram batch
  * → record + advance the cursor, clamped to the slowest active chain's indexed
  * head so a lagging chain's back-filled events can never fall behind the
  * window. Ordering makes the pass at-least-once end to end (a crash after send
@@ -234,9 +270,10 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
   }
 
   return db.transaction(async (tx) => {
-    // The transaction spans the indexer fetches and the Telegram sends (the
-    // lock below must cover them, and a rollback cannot un-send a message —
-    // only the record + advance are truly atomic). If the function is killed
+    // The transaction spans the indexer fetches, the Telegram sends and the
+    // QStash publishes (the lock below must cover them, and a rollback cannot
+    // un-send a message or un-publish a job — only the record + advance are
+    // truly atomic). If the function is killed
     // mid-pass, this bounds how long the orphaned session can keep the lock.
     await tx.execute(sql`SET LOCAL idle_in_transaction_session_timeout = '60s'`);
 
@@ -279,7 +316,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
           sinceMs: cursor - OVERLAP_MS,
           fetchOptions: { signal: indexerSignal }
         });
-        return { identity, ...walk };
+        return { identity, zivoeVaultSlug: zivoeVault.slug, ...walk };
       })
     );
 
@@ -290,7 +327,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // Holding would only re-fetch the same cap forever; instead the cursor is
     // allowed to recover up to that oldest fetched row, and the skip is raised.
     let walkFloorMs = Number.POSITIVE_INFINITY;
-    for (const { identity, events: classEvents, truncated, malformed } of perZivoeVault) {
+    for (const { identity, zivoeVaultSlug, events: classEvents, truncated, malformed } of perZivoeVault) {
       // Skipped rows are drift, not loss of the rest of the window — alarm on
       // them without letting one bad upstream row halt every alert. Each row's
       // identity rides along: these alerts are dropped for good, so the alarm
@@ -319,7 +356,9 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
           id: buildEventId({ scId: identity.scId, event }),
           event,
           symbol: identity.symbol,
-          shareDecimals: identity.decimals
+          shareDecimals: identity.decimals,
+          shareClassKey: identity.key,
+          zivoeVaultSlug
         });
       }
     }
@@ -376,7 +415,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         extra: { inWindow: events.length, unnotified: unnotified.length, processed: fresh.length }
       });
 
-    const emailsByAccount = await readEmailsByAccount({
+    const linkedUsersByAccount = await readLinkedUsersByAccount({
       tx,
       accounts: [...new Set(fresh.map((row) => row.event.account))]
     });
@@ -385,14 +424,126 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         event,
         symbol,
         shareDecimals,
-        emailLine: formatEmailLine(emailsByAccount.get(event.account) ?? [])
+        emailLine: formatEmailLine((linkedUsersByAccount.get(event.account) ?? []).map((linked) => linked.email))
       })
     );
 
+    // -- Fan the same events out to the Receipt Mailer: one QStash job per
+    // (event, linked user), payloads self-contained (amounts as strings —
+    // JSON cannot carry bigint) and free of email addresses. Publishing goes
+    // BEFORE the Telegram send on purpose. Of the pass's two external calls
+    // this is the idempotent one — a repeated deduplicationId is rejected by
+    // QStash for ten minutes, by the mailer's (event, user) row for good once
+    // the first delivery lands, and by Resend's idempotency key for 24 hours
+    // — while a Telegram message posts again every time it is repeated. So
+    // the non-idempotent call sits last, right before the record: a publish
+    // failure aborts the pass with nothing sent, and a Telegram failure after
+    // it costs a republish on the retry — free inside QStash's ten-minute
+    // window; past it (a Telegram outage that long) the same jobs go out as
+    // fresh messages every pass and the mailer skips them as already sent,
+    // which is bounded churn through the 1/s flow control, never a duplicate
+    // email. Recording before either would strand the emails of a pass that
+    // dies before publishing.
+    const cappedAccounts = new Set<string>();
+    const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
+      ({ id, event, shareClassKey, zivoeVaultSlug }) => {
+        // Policy sends to every linked user, but the link is self-reported
+        // and free to create — without a ceiling, one address claimed by N
+        // throwaway accounts turns every on-chain event into N emails. The
+        // join is oldest-claim-first, so the cap keeps the earliest linkers
+        // and stays stable across passes; hitting it is alarmed below.
+        const linked = linkedUsersByAccount.get(event.account) ?? [];
+        if (linked.length > MAX_RECIPIENTS_PER_EVENT) cappedAccounts.add(event.account);
+
+        return linked.slice(0, MAX_RECIPIENTS_PER_EVENT).map(({ userId }) => ({
+          eventId: id,
+          userId,
+          zivoeVaultSlug,
+          shareClassKey,
+          event: {
+            type: event.type,
+            account: event.account,
+            txHash: event.txHash,
+            chainId: event.chainId,
+            chainName: event.chainName,
+            explorerUrl: event.explorerUrl,
+            centrifugeId: event.centrifugeId,
+            tokenAmount: event.tokenAmount === null ? null : event.tokenAmount.toString(),
+            currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
+            createdAtMs: event.createdAtMs
+          }
+        }));
+      }
+    );
+    if (cappedAccounts.size > 0)
+      Sentry.captureException(new Error('Centrifuge tx monitor capped receipt recipients for an account'), {
+        tags: SENTRY_TAGS,
+        extra: { accounts: [...cappedAccounts], cap: MAX_RECIPIENTS_PER_EVENT }
+      });
+
+    let emailJobsDeduplicated = 0;
+    for (let start = 0; start < receiptJobs.length; start += QSTASH_BATCH_LIMIT) {
+      const batch = receiptJobs.slice(start, start + QSTASH_BATCH_LIMIT).map((job) => ({
+        url: `${BASE_URL}${TRANSACTION_RECEIPT_JOB_PATH}`,
+        body: job,
+        retries: 3,
+        deduplicationId: `receipt-${buildReceiptJobKey({ eventId: job.eventId, userId: job.userId })}`,
+        failureCallback: getQstashFailureCallback(BASE_URL),
+        label: QSTASH_JOB_LABELS.emailTransactionReceipt,
+        // Delivery throttle, not a publish throttle: QStash activates jobs
+        // under this key at most one per second, which keeps the mailer's
+        // Resend sends under the account rate limit even when a catch-up
+        // pass publishes a hundred at once. Deduplicated replays are
+        // rejected at publish time and never consume the budget.
+        flowControl: { key: QSTASH_JOB_LABELS.emailTransactionReceipt, rate: 1 }
+      }));
+
+      // The client has no abort support, so race a deadline — the same bound
+      // the Telegram send carries, for the same reason: the pass holds the
+      // advisory lock and its DB connection while this I/O is in flight.
+      let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+      const publish = qstash.batchJSON(batch);
+      let answers: Array<QstashBatchEntry | undefined>;
+      try {
+        answers = await Promise.race([
+          publish,
+          new Promise<never>((_, reject) => {
+            deadlineTimer = setTimeout(
+              () => reject(new Error(`QStash publish timed out after ${QSTASH_PUBLISH_DEADLINE_MS}ms`)),
+              QSTASH_PUBLISH_DEADLINE_MS
+            );
+          })
+        ]);
+      } finally {
+        clearTimeout(deadlineTimer);
+        // If the deadline won, the publish settles later — silence it so a
+        // late rejection cannot surface as an unhandled one.
+        publish.catch(() => undefined);
+      }
+
+      // The batch is accepted as a whole; a message rejected inside it shows
+      // up only here. Treat one as a failed pass — nothing is recorded, and
+      // the next pass republishes the lot into dedupe — because the
+      // alternative is a receipt that is never sent and never alarmed.
+      const rejected = batch.flatMap((message, index) => {
+        const answer = answers[index];
+        return answer?.messageId ? [] : [{ job: message.body, answer: answer ?? null }];
+      });
+      if (rejected.length > 0) {
+        const error = new Error(`QStash rejected ${rejected.length} of ${batch.length} receipt jobs`);
+        // Captured here with the rejected jobs attached; the route's error
+        // handler captures the throw again as the pass failure. One issue,
+        // two events — the detail only travels this way.
+        Sentry.captureException(error, { tags: SENTRY_TAGS, extra: { rejected: rejected.slice(0, 10) } });
+        throw error;
+      }
+      emailJobsDeduplicated += answers.filter((answer) => answer?.deduplicated === true).length;
+    }
+
     await sendBatchedTelegramMessages({ chatId: env.TELEGRAM_TXS_CHAT_ID, items });
 
-    // -- Record + advance only after the send succeeded: a failed send retries
-    // the whole pass instead of silently skipping events.
+    // -- Record + advance only after both sends succeeded: a failed send
+    // retries the whole pass instead of silently skipping events.
     if (fresh.length > 0) {
       await tx
         .insert(transactionNotified)
@@ -430,7 +581,9 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       indexerStale,
       eventsSeen: events.length,
       notified: fresh.length,
-      skippedDuplicates: events.length - unnotified.length
+      skippedDuplicates: events.length - unnotified.length,
+      emailJobsEnqueued: receiptJobs.length,
+      emailJobsDeduplicated
     };
   });
 }

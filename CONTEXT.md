@@ -7,22 +7,24 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 ### Transaction monitoring
 
 **Transaction Monitor**:
-The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer and posts Telegram alerts — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
+The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer, posts Telegram alerts, and fans out Receipt Mailer jobs — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
 _Avoid_: cron route, notification job
 
 **Monitor Pass**:
-One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: freshness guard over the indexer head → fetch events behind the Monitor Cursor (plus an overlap window) → dedupe against the Notified Ledger → Telegram batch → record and advance the cursor. At-least-once end to end: a crash can repeat a message, never lose one.
+One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: freshness guard over the indexer head → fetch events behind the Monitor Cursor (plus an overlap window) → dedupe against the Notified Ledger → Receipt Mailer fan-out → Telegram batch → record and advance the cursor. The fan-out precedes Telegram because it is the idempotent call of the two; the Telegram post sits last, right before the record, so a retry never repeats it for a publish failure. At-least-once end to end: a crash can repeat a message, never lose one.
 _Avoid_: cron run, tick
 
 **Monitor Cursor**:
-A per-monitor epoch-milliseconds watermark in `monitor_cursor` marking event time processed up to. Only ever moves forward (a monotonic upsert guard — concurrent passes cannot rewind it), and its advance is clamped to the slowest active chain's indexed head, so a lagging chain's back-filled events can never fall behind the window. Replaced the archived monitor's per-kind `(blockNumber, logIndex)` cursor: indexer rows order by `createdAt`, and block heights are not comparable across spoke chains.
+A per-monitor epoch-milliseconds watermark in `monitor_cursor` marking event time processed up to. Only ever moves forward (a monotonic upsert guard — concurrent passes cannot rewind it), and its advance is clamped to the slowest active chain's indexed head, so a lagging chain's back-filled events can never fall behind the window. Replaced the retired pre-Centrifuge monitor's per-kind `(blockNumber, logIndex)` cursor: indexer rows order by `createdAt`, and block heights are not comparable across spoke chains.
 _Avoid_: checkpoint, offset
 
 **Notified Ledger**:
-`transaction_notified` — one row per alerted on-chain event, keyed by the canonical event id (`scId:centrifugeId:txHash:type:account`; addresses and hashes lowercase). Makes overlap replays and retries free — an event recorded here is never alerted again, which is what turns the Monitor Pass's at-least-once delivery into once-only alerts in every case but a crash between send and record. The same id slots into `transaction_email_sent.eventId` if per-user emails return.
+`transaction_notified` — one row per alerted on-chain event, keyed by the canonical event id (`scId:centrifugeId:txHash:type:account`; addresses and hashes lowercase). Makes overlap replays and retries free — an event recorded here is never alerted again, which is what turns the Monitor Pass's at-least-once delivery into once-only alerts in every case but a crash between send and record. The same id keys `transaction_email_sent`, whose per-(event, user) grain is the Receipt Mailer's own dedupe.
 _Avoid_: dedupe table, sent log
 
-> The pre-Centrifuge implementation (Ponder-sourced, with per-user confirmation emails and a Monitor Kind adapter per event type) lives at `apps/dapp/archived/transaction-monitor`, excluded from typecheck and lint. It is frozen and unrunnable — it references the dropped `transaction_monitor_cursor` table — and is kept as the reference for reviving the email path (templates included).
+**Receipt Mailer**:
+The per-user email half of transaction monitoring: a Monitor Pass publishes one QStash job per (alertable event, linked user) — payloads self-contained and free of email addresses — consumed by `/api/email/transaction-receipt` behind `runReceiptMailer`. The mailer reads the recipient fresh from the user row, gates on the `transaction_receipts` preference, dedupes per (event, user) in `transaction_email_sent`, and sends the receipt templates in `apps/dapp/src/server/utils/emails`. Send precedes record, mirroring the Monitor Pass; Resend's 24-hour idempotency key eats the crash-window duplicate, and QStash's own dedup id holds for only ten minutes, so the `transaction_email_sent` row is the durable guard. The wallet→user link is self-reported at connect time, so receipts go to every linked user and read as wallet activity, not verified identity.
+_Avoid_: email cron, notification job
 
 ### Client transactions
 
