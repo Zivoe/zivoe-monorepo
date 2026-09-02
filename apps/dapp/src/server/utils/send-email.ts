@@ -7,16 +7,14 @@ import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
+import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
+import { type TransactionReceiptJob, buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
 import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
 import WelcomeEmail from './emails/welcome-email';
 import { buildOneClickUnsubscribeUrl, buildUnsubscribeUrl } from './unsubscribe';
-
-// The transaction-receipt senders live with their only caller, the archived
-// transaction monitor (archived/transaction-monitor/emails/) — they return
-// here when the monitor is revived.
 
 const resend = new Resend(env.RESEND_API_KEY);
 const PRODUCT_TIPS_LIST_ID = 'Product Tips <product-tips.zivoe.com>';
@@ -136,6 +134,48 @@ export async function sendSecondDepositReminderEmail({
       },
       {
         idempotencyKey: `second-deposit-reminder-email/${userId}`
+      }
+    )
+  );
+}
+
+/**
+ * One transaction receipt to one linked user. Plain transactional mail from
+ * the neutral sender — no persona, no List-Unsubscribe headers (those are the
+ * bulk buckets' concern); the footer unsubscribe drives the
+ * transaction_receipts preference. Resend's idempotency key absorbs the
+ * crash-between-send-and-record replay the DB dedupe cannot see.
+ */
+export async function sendTransactionReceiptEmail({
+  to,
+  userId,
+  job,
+  symbol,
+  shareDecimals,
+  viewInAppUrl
+}: {
+  to: string;
+  userId: string;
+  job: TransactionReceiptJob;
+  symbol: string;
+  shareDecimals: number;
+  viewInAppUrl: string;
+}) {
+  const unsubscribeUrl = buildUnsubscribeUrl({ userId, email: to, bucket: 'transaction_receipts' });
+  const { subject, email } = buildTransactionReceiptEmail({ job, symbol, shareDecimals, viewInAppUrl, unsubscribeUrl });
+  const html = await render(email);
+
+  return handleIdempotentResult(
+    await resend.emails.send(
+      {
+        from: 'Zivoe <hello@auth.zivoe.com>',
+        replyTo: EMAILS.INQUIRE,
+        to,
+        subject,
+        html
+      },
+      {
+        idempotencyKey: `transaction-receipt/${buildReceiptJobKey({ eventId: job.eventId, userId })}`
       }
     )
   );
