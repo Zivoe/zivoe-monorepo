@@ -35,7 +35,7 @@ const SANCTIONED_COUNTRY_CODES = new Set([
 
 // Common English names ("United States") instead of official ISO names
 // ("United States of America (the)"), so the list reads and sorts naturally.
-const countryDisplayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+const countryDisplayNames = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
 
 // value is the ISO 3166-1 alpha-2 code — that's what gets persisted.
 export const COUNTRIES = getData()
