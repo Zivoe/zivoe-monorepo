@@ -1,11 +1,8 @@
 import { render } from '@react-email/components';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EMAILS } from '@/lib/utils';
-
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
-import { RECEIPT_INQUIRIES_EMAIL } from './emails/receipt-config';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
@@ -63,6 +60,8 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('Ethereum');
     expect(html).toContain(VIEW_IN_APP_URL);
     expect(html).toContain(UNSUBSCRIBE_URL);
+    // Same fine print as the lifecycle emails — one disclosure, one layout.
+    expect(html).toContain('does not constitute an offer to sell');
   });
 
   it('redemption request: names only the shares this call added', async () => {
@@ -112,13 +111,6 @@ describe('buildTransactionReceiptEmail', () => {
 
     expect(html).toContain('—');
     expect(html).not.toContain('NaN');
-  });
-
-  it('the inlined inquiries address stays in sync with the app-wide constant', () => {
-    // receipt-config cannot import @/lib/utils (it would drag @zivoe/ui's
-    // React tree into the email preview bundle), so the value is inlined
-    // there and pinned here.
-    expect(RECEIPT_INQUIRIES_EMAIL).toBe(EMAILS.INQUIRE);
   });
 
   it('an absurd timestamp renders as a dash, not an Invalid Date artifact', async () => {

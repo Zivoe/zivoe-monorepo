@@ -11,6 +11,56 @@ import {
   getReceiptTokenIconUrl
 } from '../receipt-config';
 
+/**
+ * The token-flow row swaps a side-by-side layout for a stacked one on narrow
+ * clients; media queries cannot be inlined, so this rides in through
+ * EmailLayout's `headStyles`. Defaults are the mobile shape — clients that
+ * drop <style> entirely (Gmail's clipped view) still get a readable row.
+ */
+export const RECEIPT_TOKEN_FLOW_STYLES = `
+  .receipt-desktop-token-flow {
+    display: none !important;
+    width: 100% !important;
+    mso-hide: all !important;
+  }
+
+  .receipt-mobile-token-flow {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  .receipt-mobile-arrow-right {
+    display: none !important;
+    mso-hide: all !important;
+  }
+
+  .receipt-mobile-arrow-down {
+    display: block !important;
+  }
+
+  @media only screen and (min-width: 601px) {
+    .receipt-desktop-token-flow {
+      display: table !important;
+      mso-hide: none !important;
+    }
+
+    .receipt-mobile-token-flow {
+      display: none !important;
+      mso-hide: all !important;
+    }
+
+    .receipt-mobile-arrow-right {
+      display: block !important;
+      mso-hide: none !important;
+    }
+
+    .receipt-mobile-arrow-down {
+      display: none !important;
+      mso-hide: all !important;
+    }
+  }
+`;
+
 type ReceiptTokenFlowAmount = {
   symbol: string;
   value: string;

@@ -13,17 +13,24 @@ export function EmailLayout({
   preview,
   children,
   unsubscribeUrl,
-  showDisclosure = false
+  showDisclosure = false,
+  headStyles
 }: {
   preview: string;
   children: React.ReactNode;
   unsubscribeUrl?: string;
-  /** Marketing emails carry the fine-print disclosure; transactional emails (OTP) stay clean. */
+  /** Every email carries the fine-print disclosure except the sign-in code, which stays clean. */
   showDisclosure?: boolean;
+  /**
+   * Raw CSS for the document head. Media queries cannot be expressed inline,
+   * so a template needing responsive rules (the receipts' token-flow row)
+   * passes them here rather than forking the layout.
+   */
+  headStyles?: string;
 }) {
   return (
     <Html>
-      <Head />
+      <Head>{headStyles ? <style>{headStyles}</style> : null}</Head>
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig}>
         <Body className="font-sans bg-neutral-50">

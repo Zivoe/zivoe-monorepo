@@ -1,6 +1,8 @@
 import { Heading, Section, Text } from '@react-email/components';
 
+import { EmailLayout } from './components/email-layout';
 import {
+  RECEIPT_TOKEN_FLOW_STYLES,
   ReceiptCtaButton,
   ReceiptDetailRow,
   ReceiptDetailTable,
@@ -8,7 +10,6 @@ import {
   ReceiptSuccessBadge,
   ReceiptTokenFlowRow
 } from './components/transaction-receipt-blocks';
-import { TransactionReceiptLayout } from './components/transaction-receipt-layout';
 import { formatEventTimestampUtc, truncateMiddle } from './receipt-formatters';
 
 type ReceiptFlow = {
@@ -60,7 +61,12 @@ export default function TransactionReceiptEmail({
   unsubscribeUrl
 }: TransactionReceiptEmailProps) {
   return (
-    <TransactionReceiptLayout preview={preview} unsubscribeUrl={unsubscribeUrl}>
+    <EmailLayout
+      preview={preview}
+      unsubscribeUrl={unsubscribeUrl}
+      showDisclosure
+      headStyles={RECEIPT_TOKEN_FLOW_STYLES}
+    >
       <Section className="mb-6 text-center" style={{ width: '100%' }}>
         <Heading className="m-0 mb-2 font-heading text-h5 text-primary">{heading}</Heading>
         <Text className="m-0 text-regular text-secondary">{subtitle}</Text>
@@ -85,6 +91,6 @@ export default function TransactionReceiptEmail({
       </ReceiptDetailTable>
 
       <ReceiptCtaButton href={ctaUrl} label={ctaLabel} />
-    </TransactionReceiptLayout>
+    </EmailLayout>
   );
 }

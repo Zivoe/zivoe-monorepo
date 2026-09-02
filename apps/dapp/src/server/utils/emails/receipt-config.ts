@@ -1,22 +1,6 @@
 import 'server-only';
 
-import { LINKS } from '@/types/constants';
-
 import { BASE_URL } from '@/server/utils/base-url';
-
-// Inlined rather than imported from @/lib/utils (EMAILS.INQUIRE): that module
-// drags @zivoe/ui's React tree into the graph, which the react-email preview
-// server cannot bundle. The receipt-email test pins the two in sync.
-export const RECEIPT_INQUIRIES_EMAIL = 'inquire@zivoe.com';
-
-export const RECEIPT_DISCLAIMER_TEXT =
-  'This update is for informational purposes only. Past performance is not indicative of future results. Private credit investments involve risk, including loss of principal. Token valuations are derived from the pool’s Assets Under Management (AUM) and may fluctuate based on market conditions.';
-
-export const RECEIPT_QUICK_LINKS = [
-  { label: 'Website', href: 'https://zivoe.com' },
-  { label: 'Terms', href: LINKS.TERMS_OF_USE },
-  { label: 'Reg S Compliance', href: LINKS.REG_S_COMPLIANCE }
-] as const;
 
 // Token icon URLs (self-hosted PNGs in public/email-icons/). Keyed by display
 // symbol; a symbol without an icon renders as text only, so a new share class
