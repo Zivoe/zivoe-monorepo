@@ -259,9 +259,10 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
   }
 
   return db.transaction(async (tx) => {
-    // The transaction spans the indexer fetches and the Telegram sends (the
-    // lock below must cover them, and a rollback cannot un-send a message —
-    // only the record + advance are truly atomic). If the function is killed
+    // The transaction spans the indexer fetches, the Telegram sends and the
+    // QStash publishes (the lock below must cover them, and a rollback cannot
+    // un-send a message or un-publish a job — only the record + advance are
+    // truly atomic). If the function is killed
     // mid-pass, this bounds how long the orphaned session can keep the lock.
     await tx.execute(sql`SET LOCAL idle_in_transaction_session_timeout = '60s'`);
 

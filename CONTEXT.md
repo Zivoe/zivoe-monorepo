@@ -7,7 +7,7 @@ Domain language for the Zivoe web monorepo (dApp, landing, CMS). Terms are added
 ### Transaction monitoring
 
 **Transaction Monitor**:
-The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer and posts Telegram alerts — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
+The module that watches Centrifuge investor transactions (deposits, redemption requests, redemption executions and claims) via the Centrifuge indexer, posts Telegram alerts, and fans out Receipt Mailer jobs — `apps/dapp/src/server/utils/centrifuge-tx-monitor.ts` behind `/api/monitor/centrifuge-transactions`. One indexer feed covers every spoke chain of the environment, so new Zivoe Vaults and chains join the alerts with no monitor changes.
 _Avoid_: cron route, notification job
 
 **Monitor Pass**:
@@ -15,7 +15,7 @@ One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: f
 _Avoid_: cron run, tick
 
 **Monitor Cursor**:
-A per-monitor epoch-milliseconds watermark in `monitor_cursor` marking event time processed up to. Only ever moves forward (a monotonic upsert guard — concurrent passes cannot rewind it), and its advance is clamped to the slowest active chain's indexed head, so a lagging chain's back-filled events can never fall behind the window. Replaced the archived monitor's per-kind `(blockNumber, logIndex)` cursor: indexer rows order by `createdAt`, and block heights are not comparable across spoke chains.
+A per-monitor epoch-milliseconds watermark in `monitor_cursor` marking event time processed up to. Only ever moves forward (a monotonic upsert guard — concurrent passes cannot rewind it), and its advance is clamped to the slowest active chain's indexed head, so a lagging chain's back-filled events can never fall behind the window. Replaced the retired pre-Centrifuge monitor's per-kind `(blockNumber, logIndex)` cursor: indexer rows order by `createdAt`, and block heights are not comparable across spoke chains.
 _Avoid_: checkpoint, offset
 
 **Notified Ledger**:
