@@ -99,8 +99,8 @@ const EMPTY_PASS = {
  * Canonical event identity: one on-chain moment notifies once, ever. Scoped by
  * share class AND spoke chain — the pass spans several of each, and one tx can
  * legitimately carry same-type events for the same account across them. All
- * parts arrive lowercase from the indexer boundary. This is also the value a
- * future email path records in transactionEmailSent.eventId.
+ * parts arrive lowercase from the indexer boundary. This is also the value
+ * the Receipt Mailer records in transactionEmailSent.eventId.
  */
 export function buildEventId({
   scId,

@@ -63,9 +63,9 @@ export const monitorCursor = pgTable('monitor_cursor', {
  * Event-level "already alerted" ledger — one row per notified on-chain event,
  * keyed by the event's canonical id (scId : centrifugeId : txHash : type :
  * account; addresses and hashes lowercase) so events never collide across
- * share classes or spoke chains. Channel-agnostic on purpose: the same eventId slots into
- * transactionEmailSent.eventId if per-user emails return, whose per-(event,
- * user) grain stays the email-side dedupe.
+ * share classes or spoke chains. Channel-agnostic on purpose: the same
+ * eventId keys transactionEmailSent, whose per-(event, user) grain is the
+ * Receipt Mailer's own dedupe.
  */
 export const transactionNotified = pgTable('transaction_notified', {
   eventId: text('event_id').primaryKey(),
