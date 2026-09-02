@@ -88,6 +88,8 @@ export type CentrifugeTxMonitorResult = {
   skippedDuplicates: number;
   /** Receipt Mailer jobs published this pass — one per (event, linked user). */
   emailJobsEnqueued: number;
+  /** Of those, the ones QStash rejected as seen — a replay inside its ten-minute dedup window; a later replay publishes as fresh and counts 0 here. */
+  emailJobsDeduplicated: number;
 };
 
 /** A pass that read and sent nothing — early exits spread this and flip their one flag. */
@@ -98,7 +100,8 @@ const EMPTY_PASS = {
   eventsSeen: 0,
   notified: 0,
   skippedDuplicates: 0,
-  emailJobsEnqueued: 0
+  emailJobsEnqueued: 0,
+  emailJobsDeduplicated: 0
 } satisfies CentrifugeTxMonitorResult;
 
 /**
@@ -127,6 +130,14 @@ type AlertableEvent = {
   shareClassKey: string;
   zivoeVaultSlug: string;
 };
+
+/**
+ * One answer in a QStash batch response. The SDK types the success shape
+ * only; a message the endpoint rejected arrives as an entry without a
+ * messageId (the batch itself still returns 200), so the shape is read
+ * loosely here and a missing id is the failure signal.
+ */
+type QstashBatchEntry = { messageId?: string; deduplicated?: boolean; error?: string };
 
 /** The transaction handle drizzle hands a `db.transaction` callback — DB, not on-chain, transaction. */
 type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -466,6 +477,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         extra: { accounts: [...cappedAccounts], cap: MAX_RECIPIENTS_PER_EVENT }
       });
 
+    let emailJobsDeduplicated = 0;
     for (let start = 0; start < receiptJobs.length; start += QSTASH_BATCH_LIMIT) {
       const batch = receiptJobs.slice(start, start + QSTASH_BATCH_LIMIT).map((job) => ({
         url: `${BASE_URL}${TRANSACTION_RECEIPT_JOB_PATH}`,
@@ -487,8 +499,9 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       // advisory lock and its DB connection while this I/O is in flight.
       let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
       const publish = qstash.batchJSON(batch);
+      let answers: Array<QstashBatchEntry | undefined>;
       try {
-        await Promise.race([
+        answers = await Promise.race([
           publish,
           new Promise<never>((_, reject) => {
             deadlineTimer = setTimeout(
@@ -503,6 +516,24 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         // late rejection cannot surface as an unhandled one.
         publish.catch(() => undefined);
       }
+
+      // The batch is accepted as a whole; a message rejected inside it shows
+      // up only here. Treat one as a failed pass — nothing is recorded, and
+      // the next pass republishes the lot into dedupe — because the
+      // alternative is a receipt that is never sent and never alarmed.
+      const rejected = batch.flatMap((message, index) => {
+        const answer = answers[index];
+        return answer?.messageId ? [] : [{ job: message.body, answer: answer ?? null }];
+      });
+      if (rejected.length > 0) {
+        const error = new Error(`QStash rejected ${rejected.length} of ${batch.length} receipt jobs`);
+        // Captured here with the rejected jobs attached; the route's error
+        // handler captures the throw again as the pass failure. One issue,
+        // two events — the detail only travels this way.
+        Sentry.captureException(error, { tags: SENTRY_TAGS, extra: { rejected: rejected.slice(0, 10) } });
+        throw error;
+      }
+      emailJobsDeduplicated += answers.filter((answer) => answer?.deduplicated === true).length;
     }
 
     // -- Record + advance only after the send succeeded: a failed send retries
@@ -545,7 +576,8 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       eventsSeen: events.length,
       notified: fresh.length,
       skippedDuplicates: events.length - unnotified.length,
-      emailJobsEnqueued: receiptJobs.length
+      emailJobsEnqueued: receiptJobs.length,
+      emailJobsDeduplicated
     };
   });
 }

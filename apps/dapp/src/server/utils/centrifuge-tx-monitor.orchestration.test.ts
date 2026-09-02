@@ -176,7 +176,10 @@ beforeEach(() => {
   vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses());
   vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({ events: [], truncated: false, malformed: [] });
   vi.mocked(sendBatchedTelegramMessages).mockResolvedValue(undefined);
-  batchJSONMock.mockResolvedValue([]);
+  // The batch endpoint answers one entry per message; a messageId is the success signal.
+  batchJSONMock.mockImplementation(async (batch: Array<unknown>) =>
+    batch.map((_, index) => ({ messageId: `msg-${index}`, url: 'https://app.test/api/email/transaction-receipt' }))
+  );
 });
 
 describe('runCentrifugeTransactionMonitor', () => {
@@ -470,6 +473,40 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(sendBatchedTelegramMessages).toHaveBeenCalledTimes(1);
     expect(state.notified.size).toBe(0);
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+  });
+
+  it('a message rejected inside an accepted batch fails the pass — never a silently lost receipt', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    serveFeed([mkEvent(0)]);
+    // QStash returns 200 for the batch and reports the second message's failure inline.
+    batchJSONMock.mockResolvedValue([{ messageId: 'msg-0', url: 'u' }, { error: 'invalid destination' }]);
+
+    await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('QStash rejected 1 of 2 receipt jobs');
+
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
+    const rejectedCaptures = vi
+      .mocked(Sentry.captureException)
+      .mock.calls.filter((call) => call[0] instanceof Error && call[0].message.includes('QStash rejected'));
+    expect(rejectedCaptures[0]?.[1]).toMatchObject({
+      extra: { rejected: [{ job: expect.objectContaining({ userId: 'user-2' }) }] }
+    });
+  });
+
+  it('counts the jobs QStash had already seen, so a replayed pass is visible in its result', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
+    serveFeed([mkEvent(0)]);
+    batchJSONMock.mockResolvedValue([{ messageId: 'msg-0', url: 'u', deduplicated: true }]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ emailJobsEnqueued: 1, emailJobsDeduplicated: 1 });
+    expect(state.notified.size).toBe(1);
   });
 
   it('a failed Telegram send publishes no email jobs — the channels fail forward together', async () => {
