@@ -470,7 +470,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(batchJSONMock).not.toHaveBeenCalled();
   });
 
-  it('a failed publish records nothing and holds the cursor — a Telegram repeat is the price, a lost email never is', async () => {
+  it('a failed publish aborts the pass before Telegram — nothing sent, nothing recorded, the cursor holds', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
     serveFeed([mkEvent(0)]);
@@ -478,7 +478,8 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('qstash down');
 
-    expect(sendBatchedTelegramMessages).toHaveBeenCalledTimes(1);
+    // The non-idempotent send comes after the publish, so it never repeats for QStash's failure.
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
     expect(state.notified.size).toBe(0);
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
   });
@@ -495,6 +496,7 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('QStash rejected 1 of 2 receipt jobs');
 
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
     expect(state.notified.size).toBe(0);
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
     const rejectedCaptures = vi
@@ -533,7 +535,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
   });
 
-  it('a failed Telegram send publishes no email jobs — the channels fail forward together', async () => {
+  it('a failed Telegram send lands after the publish — the jobs are out, nothing is recorded, the retry republishes into dedupe', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     state.emails = [{ address: '0xabc', userId: 'user-1', email: 'a@x.y' }];
     serveFeed([mkEvent(0)]);
@@ -541,6 +543,8 @@ describe('runCentrifugeTransactionMonitor', () => {
 
     await expect(runCentrifugeTransactionMonitor()).rejects.toThrow('telegram down');
 
-    expect(batchJSONMock).not.toHaveBeenCalled();
+    expect(batchJSONMock).toHaveBeenCalledTimes(1);
+    expect(state.notified.size).toBe(0);
+    expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 20 * 60_000);
   });
 });

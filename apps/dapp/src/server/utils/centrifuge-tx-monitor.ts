@@ -206,8 +206,8 @@ async function readLinkedUsersByAccount({
 /**
  * One polling pass, serialized by an advisory lock: freshness probe (staleness
  * reported straight to Sentry) → cursor window → fetch alertable events across
- * every live Zivoe Vault → dedupe against the notified ledger → Telegram batch
- * → enqueue Receipt Mailer jobs per (event, linked user)
+ * every live Zivoe Vault → dedupe against the notified ledger → enqueue
+ * Receipt Mailer jobs per (event, linked user) → Telegram batch
  * → record + advance the cursor, clamped to the slowest active chain's indexed
  * head so a lagging chain's back-filled events can never fall behind the
  * window. Ordering makes the pass at-least-once end to end (a crash after send
@@ -428,18 +428,22 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       })
     );
 
-    await sendBatchedTelegramMessages({ chatId: env.TELEGRAM_TXS_CHAT_ID, items });
-
     // -- Fan the same events out to the Receipt Mailer: one QStash job per
     // (event, linked user), payloads self-contained (amounts as strings —
-    // JSON cannot carry bigint) and free of email addresses. Publishing sits
-    // between the Telegram send and the ledger record on purpose: recording
-    // first would strand the emails of a pass that dies before publishing,
-    // while a publish failure merely retries the whole pass. Three guards
-    // absorb the resulting replays, each with its own window: QStash rejects
-    // a repeated deduplicationId for ten minutes, the mailer's (event, user)
-    // row for good once the first delivery lands, and Resend's idempotency
-    // key for 24 hours.
+    // JSON cannot carry bigint) and free of email addresses. Publishing goes
+    // BEFORE the Telegram send on purpose. Of the pass's two external calls
+    // this is the idempotent one — a repeated deduplicationId is rejected by
+    // QStash for ten minutes, by the mailer's (event, user) row for good once
+    // the first delivery lands, and by Resend's idempotency key for 24 hours
+    // — while a Telegram message posts again every time it is repeated. So
+    // the non-idempotent call sits last, right before the record: a publish
+    // failure aborts the pass with nothing sent, and a Telegram failure after
+    // it costs a republish on the retry — free inside QStash's ten-minute
+    // window; past it (a Telegram outage that long) the same jobs go out as
+    // fresh messages every pass and the mailer skips them as already sent,
+    // which is bounded churn through the 1/s flow control, never a duplicate
+    // email. Recording before either would strand the emails of a pass that
+    // dies before publishing.
     const cappedAccounts = new Set<string>();
     const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
       ({ id, event, shareClassKey, zivoeVaultSlug }) => {
@@ -536,8 +540,10 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       emailJobsDeduplicated += answers.filter((answer) => answer?.deduplicated === true).length;
     }
 
-    // -- Record + advance only after the send succeeded: a failed send retries
-    // the whole pass instead of silently skipping events.
+    await sendBatchedTelegramMessages({ chatId: env.TELEGRAM_TXS_CHAT_ID, items });
+
+    // -- Record + advance only after both sends succeeded: a failed send
+    // retries the whole pass instead of silently skipping events.
     if (fresh.length > 0) {
       await tx
         .insert(transactionNotified)

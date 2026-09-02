@@ -11,7 +11,7 @@ The module that watches Centrifuge investor transactions (deposits, redemption r
 _Avoid_: cron route, notification job
 
 **Monitor Pass**:
-One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: freshness guard over the indexer head → fetch events behind the Monitor Cursor (plus an overlap window) → dedupe against the Notified Ledger → Telegram batch → Receipt Mailer fan-out → record and advance the cursor. At-least-once end to end: a crash can repeat a message, never lose one.
+One QStash-triggered, advisory-lock-serialized run of the Transaction Monitor: freshness guard over the indexer head → fetch events behind the Monitor Cursor (plus an overlap window) → dedupe against the Notified Ledger → Receipt Mailer fan-out → Telegram batch → record and advance the cursor. The fan-out precedes Telegram because it is the idempotent call of the two; the Telegram post sits last, right before the record, so a retry never repeats it for a publish failure. At-least-once end to end: a crash can repeat a message, never lose one.
 _Avoid_: cron run, tick
 
 **Monitor Cursor**:
