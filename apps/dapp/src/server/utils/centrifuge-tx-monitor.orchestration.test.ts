@@ -396,6 +396,8 @@ describe('runCentrifugeTransactionMonitor', () => {
       url: expect.stringContaining('/api/email/transaction-receipt'),
       label: 'email.transaction-receipt',
       retries: 3,
+      // Delivery throttle keyed per channel — Resend's rate limit is the bound.
+      flowControl: { key: 'email.transaction-receipt', rate: 1 },
       deduplicationId: `receipt-${buildReceiptJobKey({ eventId, userId: 'user-1' })}`,
       body: {
         eventId,
@@ -407,6 +409,44 @@ describe('runCentrifugeTransactionMonitor', () => {
       }
     });
     expect(batch?.[1]).toMatchObject({ body: expect.objectContaining({ userId: 'user-2' }) });
+  });
+
+  it('splits more than one hundred receipt jobs across QStash batches', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.emails = [
+      { address: '0xabc', userId: 'user-1', email: 'a@x.y' },
+      { address: '0xabc', userId: 'user-2', email: 'b@x.y' }
+    ];
+    // 100 events × 2 linked users = 200 jobs — the batch cap is 100.
+    serveFeed(Array.from({ length: 100 }, (_, i) => mkEvent(i * 1000, { txHash: `0xbulk${i}` })));
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 100, emailJobsEnqueued: 200 });
+    expect(batchJSONMock).toHaveBeenCalledTimes(2);
+    expect(batchJSONMock.mock.calls[0]?.[0]).toHaveLength(100);
+    expect(batchJSONMock.mock.calls[1]?.[0]).toHaveLength(100);
+  });
+
+  it('caps recipients per event at the ceiling, keeps the oldest claims, and alarms', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    // 12 accounts claim the same wallet — only the earliest 10 get mail.
+    state.emails = Array.from({ length: 12 }, (_, i) => ({
+      address: '0xabc',
+      userId: `user-${i}`,
+      email: `u${i}@x.y`
+    }));
+    serveFeed([mkEvent(0)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    expect(result).toMatchObject({ notified: 1, emailJobsEnqueued: 10 });
+    const published = batchJSONMock.mock.calls[0]?.[0] as Array<{ body: { userId: string } }>;
+    expect(published.map((message) => message.body.userId)).toEqual(Array.from({ length: 10 }, (_, i) => `user-${i}`));
+    const capCaptures = vi
+      .mocked(Sentry.captureException)
+      .mock.calls.filter((call) => call[0] instanceof Error && call[0].message.includes('capped receipt recipients'));
+    expect(capCaptures).toHaveLength(1);
   });
 
   it('a pass with no linked users publishes no batch at all', async () => {

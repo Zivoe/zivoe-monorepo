@@ -72,6 +72,12 @@ const INDEXER_IO_DEADLINE_MS = 30_000;
 /** QStash's batch endpoint cap — passes near MAX_EVENTS_PER_PASS can exceed it across linked users. */
 const QSTASH_BATCH_LIMIT = 100;
 
+/** Per-batch publish deadline — the Telegram send's bound, for the same lock-holding reason. */
+const QSTASH_PUBLISH_DEADLINE_MS = 15_000;
+
+/** Receipt emails per event. See the fan-out below for why this ceiling exists. */
+const MAX_RECIPIENTS_PER_EVENT = 10;
+
 export type CentrifugeTxMonitorResult = {
   /** True when another pass held the lock — nothing was read or sent. */
   skipped: boolean;
@@ -420,9 +426,18 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // while a publish failure merely retries the whole pass — the QStash
     // deduplicationId, the mailer's (event, user) row, and Resend's
     // idempotency key each absorb the resulting replays in turn.
+    const cappedAccounts = new Set<string>();
     const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
-      ({ id, event, shareClassKey, zivoeVaultSlug }) =>
-        (linkedUsersByAccount.get(event.account) ?? []).map(({ userId }) => ({
+      ({ id, event, shareClassKey, zivoeVaultSlug }) => {
+        // Policy sends to every linked user, but the link is self-reported
+        // and free to create — without a ceiling, one address claimed by N
+        // throwaway accounts turns every on-chain event into N emails. The
+        // join is oldest-claim-first, so the cap keeps the earliest linkers
+        // and stays stable across passes; hitting it is alarmed below.
+        const linked = linkedUsersByAccount.get(event.account) ?? [];
+        if (linked.length > MAX_RECIPIENTS_PER_EVENT) cappedAccounts.add(event.account);
+
+        return linked.slice(0, MAX_RECIPIENTS_PER_EVENT).map(({ userId }) => ({
           eventId: id,
           userId,
           zivoeVaultSlug,
@@ -439,19 +454,52 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
             currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
             createdAtMs: event.createdAtMs
           }
-        }))
+        }));
+      }
     );
+    if (cappedAccounts.size > 0)
+      Sentry.captureException(new Error('Centrifuge tx monitor capped receipt recipients for an account'), {
+        tags: SENTRY_TAGS,
+        extra: { accounts: [...cappedAccounts], cap: MAX_RECIPIENTS_PER_EVENT }
+      });
+
     for (let start = 0; start < receiptJobs.length; start += QSTASH_BATCH_LIMIT) {
-      await qstash.batchJSON(
-        receiptJobs.slice(start, start + QSTASH_BATCH_LIMIT).map((job) => ({
-          url: `${BASE_URL}${TRANSACTION_RECEIPT_JOB_PATH}`,
-          body: job,
-          retries: 3,
-          deduplicationId: `receipt-${buildReceiptJobKey({ eventId: job.eventId, userId: job.userId })}`,
-          failureCallback: getQstashFailureCallback(BASE_URL),
-          label: QSTASH_JOB_LABELS.emailTransactionReceipt
-        }))
-      );
+      const batch = receiptJobs.slice(start, start + QSTASH_BATCH_LIMIT).map((job) => ({
+        url: `${BASE_URL}${TRANSACTION_RECEIPT_JOB_PATH}`,
+        body: job,
+        retries: 3,
+        deduplicationId: `receipt-${buildReceiptJobKey({ eventId: job.eventId, userId: job.userId })}`,
+        failureCallback: getQstashFailureCallback(BASE_URL),
+        label: QSTASH_JOB_LABELS.emailTransactionReceipt,
+        // Delivery throttle, not a publish throttle: QStash activates jobs
+        // under this key at most one per second, which keeps the mailer's
+        // Resend sends under the account rate limit even when a catch-up
+        // pass publishes a hundred at once. Deduplicated replays are
+        // rejected at publish time and never consume the budget.
+        flowControl: { key: QSTASH_JOB_LABELS.emailTransactionReceipt, rate: 1 }
+      }));
+
+      // The client has no abort support, so race a deadline — the same bound
+      // the Telegram send carries, for the same reason: the pass holds the
+      // advisory lock and its DB connection while this I/O is in flight.
+      let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+      const publish = qstash.batchJSON(batch);
+      try {
+        await Promise.race([
+          publish,
+          new Promise<never>((_, reject) => {
+            deadlineTimer = setTimeout(
+              () => reject(new Error(`QStash publish timed out after ${QSTASH_PUBLISH_DEADLINE_MS}ms`)),
+              QSTASH_PUBLISH_DEADLINE_MS
+            );
+          })
+        ]);
+      } finally {
+        clearTimeout(deadlineTimer);
+        // If the deadline won, the publish settles later — silence it so a
+        // late rejection cannot surface as an unhandled one.
+        publish.catch(() => undefined);
+      }
     }
 
     // -- Record + advance only after the send succeeded: a failed send retries
