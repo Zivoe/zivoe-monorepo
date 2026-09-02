@@ -400,7 +400,7 @@ describe('runCentrifugeTransactionMonitor', () => {
       body: {
         eventId,
         userId: 'user-1',
-        vaultSlug: 'zsmb',
+        zivoeVaultSlug: 'zsmb',
         shareClassKey: 'zsmb',
         // Amounts travel as strings — the payload must survive JSON.
         event: expect.objectContaining({ type: 'SYNC_DEPOSIT', tokenAmount: '1000000000000000000' })

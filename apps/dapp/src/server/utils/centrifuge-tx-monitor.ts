@@ -119,7 +119,7 @@ type AlertableEvent = {
   symbol: string;
   shareDecimals: number;
   shareClassKey: string;
-  vaultSlug: string;
+  zivoeVaultSlug: string;
 };
 
 /** The transaction handle drizzle hands a `db.transaction` callback — DB, not on-chain, transaction. */
@@ -298,7 +298,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
           sinceMs: cursor - OVERLAP_MS,
           fetchOptions: { signal: indexerSignal }
         });
-        return { identity, vaultSlug: zivoeVault.slug, ...walk };
+        return { identity, zivoeVaultSlug: zivoeVault.slug, ...walk };
       })
     );
 
@@ -309,7 +309,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // Holding would only re-fetch the same cap forever; instead the cursor is
     // allowed to recover up to that oldest fetched row, and the skip is raised.
     let walkFloorMs = Number.POSITIVE_INFINITY;
-    for (const { identity, vaultSlug, events: classEvents, truncated, malformed } of perZivoeVault) {
+    for (const { identity, zivoeVaultSlug, events: classEvents, truncated, malformed } of perZivoeVault) {
       // Skipped rows are drift, not loss of the rest of the window — alarm on
       // them without letting one bad upstream row halt every alert. Each row's
       // identity rides along: these alerts are dropped for good, so the alarm
@@ -340,7 +340,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
           symbol: identity.symbol,
           shareDecimals: identity.decimals,
           shareClassKey: identity.key,
-          vaultSlug
+          zivoeVaultSlug
         });
       }
     }
@@ -420,25 +420,26 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     // while a publish failure merely retries the whole pass — the QStash
     // deduplicationId, the mailer's (event, user) row, and Resend's
     // idempotency key each absorb the resulting replays in turn.
-    const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(({ id, event, shareClassKey, vaultSlug }) =>
-      (linkedUsersByAccount.get(event.account) ?? []).map(({ userId }) => ({
-        eventId: id,
-        userId,
-        vaultSlug,
-        shareClassKey,
-        event: {
-          type: event.type,
-          account: event.account,
-          txHash: event.txHash,
-          chainId: event.chainId,
-          chainName: event.chainName,
-          explorerUrl: event.explorerUrl,
-          centrifugeId: event.centrifugeId,
-          tokenAmount: event.tokenAmount === null ? null : event.tokenAmount.toString(),
-          currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
-          createdAtMs: event.createdAtMs
-        }
-      }))
+    const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
+      ({ id, event, shareClassKey, zivoeVaultSlug }) =>
+        (linkedUsersByAccount.get(event.account) ?? []).map(({ userId }) => ({
+          eventId: id,
+          userId,
+          zivoeVaultSlug,
+          shareClassKey,
+          event: {
+            type: event.type,
+            account: event.account,
+            txHash: event.txHash,
+            chainId: event.chainId,
+            chainName: event.chainName,
+            explorerUrl: event.explorerUrl,
+            centrifugeId: event.centrifugeId,
+            tokenAmount: event.tokenAmount === null ? null : event.tokenAmount.toString(),
+            currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
+            createdAtMs: event.createdAtMs
+          }
+        }))
     );
     for (let start = 0; start < receiptJobs.length; start += QSTASH_BATCH_LIMIT) {
       await qstash.batchJSON(

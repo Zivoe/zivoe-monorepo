@@ -56,7 +56,7 @@ export async function runReceiptMailer(job: TransactionReceiptJob): Promise<Rece
     job,
     symbol: identity.symbol,
     shareDecimals: identity.decimals,
-    viewInAppUrl: `${BASE_URL}/vaults/${job.vaultSlug}`
+    viewInAppUrl: `${BASE_URL}/vaults/${job.zivoeVaultSlug}`
   });
 
   await db

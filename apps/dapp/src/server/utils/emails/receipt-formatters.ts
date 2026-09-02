@@ -6,8 +6,10 @@ function pad(value: number): string {
 
 /** Indexer event times arrive as epoch milliseconds. */
 export function formatEventTimestampUtc(timestampMs: number): string {
-  if (!Number.isFinite(timestampMs)) return '-';
   const date = new Date(timestampMs);
+  // Also catches finite-but-absurd inputs (beyond ±8.64e15 Date turns
+  // invalid), which would otherwise render as "undefined NaN, NaN".
+  if (Number.isNaN(date.getTime())) return '-';
 
   const month = UTC_MONTHS[date.getUTCMonth()];
   const day = date.getUTCDate();

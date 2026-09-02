@@ -52,7 +52,7 @@ vi.mock('@/server/clients/db', () => ({
 const JOB: TransactionReceiptJob = {
   eventId: '0xsc:1:0xtx:SYNC_DEPOSIT:0xabc',
   userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
-  vaultSlug: 'zsmb',
+  zivoeVaultSlug: 'zsmb',
   shareClassKey: 'zsmb',
   event: {
     type: 'SYNC_DEPOSIT',

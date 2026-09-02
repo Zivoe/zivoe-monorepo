@@ -17,17 +17,21 @@ import { INVESTOR_TRANSACTION_EVENT_TYPES } from '@zivoe/centrifuge-indexer';
 
 export const TRANSACTION_RECEIPT_JOB_PATH = '/api/email/transaction-receipt';
 
-/** Amounts travel as decimal strings — QStash payloads are JSON, which cannot carry bigint. */
-const bigintString = z
-  .string()
-  .regex(/^-?\d+$/)
-  .transform(BigInt);
+/**
+ * Amounts travel as decimal strings — QStash payloads are JSON, which cannot
+ * carry bigint. Unsigned on purpose: the indexer boundary admits signed
+ * amounts, but a negative one must never render as a success receipt — it
+ * fails the parse here and surfaces in the DLQ instead.
+ */
+const bigintString = z.string().regex(/^\d+$/).transform(BigInt);
 
 export const transactionReceiptJobSchema = z.object({
   /** The Notified Ledger's canonical event id — also the email-side dedupe key. */
   eventId: z.string().min(1),
   userId: z.string().uuid(),
-  vaultSlug: z.string().min(1),
+  // Slug-shaped so the CTA URL it lands in cannot be reshaped by a stray
+  // `/`, `?` or encoded character.
+  zivoeVaultSlug: z.string().regex(/^[a-z0-9-]+$/),
   shareClassKey: z.string().min(1),
   event: z.object({
     type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),

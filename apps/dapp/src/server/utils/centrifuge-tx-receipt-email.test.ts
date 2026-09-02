@@ -14,7 +14,7 @@ function job(overrides: Partial<TransactionReceiptJob['event']> = {}): Transacti
   return {
     eventId: '0xsc:1:0xtx:SYNC_DEPOSIT:0xabc',
     userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
-    vaultSlug: 'zsmb',
+    zivoeVaultSlug: 'zsmb',
     shareClassKey: 'zsmb',
     event: {
       type: 'SYNC_DEPOSIT',
@@ -61,7 +61,8 @@ describe('buildTransactionReceiptEmail', () => {
   });
 
   it('redemption request: names only the shares this call added', async () => {
-    const { subject, email } = build({ type: 'REDEEM_REQUEST_UPDATED', currencyAmount: null });
+    // currencyAmount is 0 on redeem requests, per the indexer contract.
+    const { subject, email } = build({ type: 'REDEEM_REQUEST_UPDATED', currencyAmount: 0n });
     const html = await render(email);
 
     expect(subject).toBe('Redemption Request Received');
@@ -78,7 +79,8 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('Claim in App');
     // The token-flow row joins value and symbol with a non-breaking space.
     expect(html).toContain('5.00\u00A0USDC');
-    expect(html).toContain(VIEW_IN_APP_URL);
+    // Deep link to the redeem tab, where the claim control actually lives.
+    expect(html).toContain(`${VIEW_IN_APP_URL}?view=redeem`);
   });
 
   it('claimed: redemption receipt without a fee row', async () => {
@@ -105,6 +107,13 @@ describe('buildTransactionReceiptEmail', () => {
     const html = await render(email);
 
     expect(html).toContain('—');
+    expect(html).not.toContain('NaN');
+  });
+
+  it('an absurd timestamp renders as a dash, not an Invalid Date artifact', async () => {
+    const { email } = build({ createdAtMs: 1e20 });
+    const html = await render(email);
+
     expect(html).not.toContain('NaN');
   });
 });

@@ -11,7 +11,10 @@ import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
  * taint sources — account, chain name, emails, the link — and at the amount
  * formatter, whose dust marker is a literal `<0.01` that Telegram's HTML
  * parser would reject as a tag. Catalog-controlled symbols are trusted.
- * A future email path gets its own renderer beside this one.
+ * Two exports are channel-neutral and shared with the email renderer
+ * (centrifuge-tx-receipt-email): resolveChainDisplay and buildExplorerLink —
+ * neither escapes, so a change to the escaping rules here never leaks into
+ * (or out of) the email path.
  */
 
 /** Longest email list one item may carry — the overflow is counted, bounding item length. */
@@ -76,11 +79,6 @@ export function buildExplorerLink({ explorerUrl, path }: { explorerUrl: string |
   }
 }
 
-/** Explorer link for the tx, or null when there is no usable http(s) explorer base. */
-export function buildTxLink({ explorerUrl, txHash }: { explorerUrl: string | null; txHash: string }): string | null {
-  return buildExplorerLink({ explorerUrl, path: `tx/${txHash}` });
-}
-
 /** Two-decimal amount, dust shown as `&lt;0.01` — one dust deposit must not 400 the whole pass. */
 function formatAmount({ value, tokenDecimals }: { value: bigint; tokenDecimals: number }): string {
   return escapeHtml(formatBigIntWithCommas({ value, tokenDecimals, displayDecimals: 2, showUnderZero: true }));
@@ -104,7 +102,7 @@ export function formatTelegramItem({
   // Attribute-safe without quote escaping: URL serialization percent-encodes
   // `"` in every component, and escapeHtml covers `&` — do not reorder them.
   const chain = resolveChainDisplay(event);
-  const txLink = buildTxLink({ explorerUrl: chain.explorerUrl, txHash: event.txHash });
+  const txLink = buildExplorerLink({ explorerUrl: chain.explorerUrl, path: `tx/${event.txHash}` });
   const linkPart = txLink ? `<a href="${escapeHtml(txLink)}">tx</a>` : `Tx: <code>${escapeHtml(event.txHash)}</code>`;
   const chainLine = `Chain: ${escapeHtml(chain.label)} · ${linkPart}`;
 

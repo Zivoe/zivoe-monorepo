@@ -104,7 +104,9 @@ export function buildTransactionReceiptEmail({
             {...common}
             sharesAmount={sharesAmount}
             assetsAmount={assetsAmount}
-            claimUrl={viewInAppUrl}
+            // The claim control lives on the redeem tab; ?view= is the page's
+            // validated tab selector (and opens the dialog on mobile).
+            claimUrl={`${viewInAppUrl}?view=redeem`}
           />
         )
       };
