@@ -91,7 +91,7 @@ A Redemption Position holding both claimable USDC and Returned Shares at once �
 _Avoid_: partial cancel
 
 **Unfunded Claim**:
-A settled redemption on a chain whose pool escrow is reserved beyond its holdings: the Centrifuge vault would pay it, but the SDK zeroes every claim on that spoke, so it reads like no position at all. An operations gap (liquidity never moved to the spoke), never something the investor can act on — the redeem tab names it ("settled, awaiting liquidity on <chain>") with no claim control.
+A settled redemption on a chain whose pool escrow is reserved beyond its holdings for the share class: the amount is owed regardless of the wallet's own admission or freeze, but the SDK zeroes every claim on that spoke, so it reads like no position at all. An operations gap (liquidity never moved to the spoke), never something the investor can act on — the redeem tab names it ("settled, awaiting liquidity on <chain>") with no claim control. A wallet no longer whitelisted still collects it once funded — the FullRestrictions hook every zSMB instance uses exempts a redeem claim from the memberlist (a FreelyTransferable hook would not); only a freeze blocks the claim too.
 _Avoid_: hidden claim, stuck redemption
 
 ## Example dialogue

@@ -36,6 +36,12 @@ export type CentrifugeVaultEntity = {
    * version-pinned, and a renamed internal surfaces in Sentry at first read.
    */
   pool: { _escrow(): PromiseLike<string> };
+  /**
+   * The chain's AsyncRequestManager — where the SDK itself reads the
+   * investment struct from. Attached at resolution (see client.ts) so the
+   * Unfunded Claim read has it for free.
+   */
+  asyncRequestManagerAddress: `0x${string}`;
   details(): PromiseLike<{
     maxDeposit: BalanceLike;
   }>;

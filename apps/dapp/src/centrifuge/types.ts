@@ -48,7 +48,7 @@ export type DepositPreview = {
 };
 
 /**
- * Why the two verdicts below are false, when they are. The hook checks freeze
+ * Why the verdicts below are false, when they are. The hook checks freeze
  * BEFORE its memberlist branch and short-circuits, so a frozen member and a
  * wallet that was never admitted produce the identical `false` — nothing in
  * the verdicts themselves tells them apart, and only this says which it was.
@@ -70,7 +70,7 @@ export type DepositPreview = {
 export type InvestorRestriction = 'none' | 'frozen' | 'not-member' | 'membership-expired' | 'unknown';
 
 /**
- * The share token's transfer hook, asked about one wallet in the two
+ * The share token's transfer hook, asked about one wallet in the three
  * directions the flows move shares. Every Zivoe Vault's Centrifuge vault is whitelisted, so
  * the issuer must admit a wallet before those moves execute — an un-admitted
  * wallet's transaction reverts on-chain, which no form validation would catch.
@@ -95,12 +95,30 @@ export type InvestorAccess = {
    * send shares to escrow, which is what a redemption request does.
    *
    * Gates the redemption request ONLY. Claiming the USDC a settled redemption
-   * produced is deliberately exempt in the protocol (the hook returns true for
-   * a redeem claim, and USDC carries no hook), so it must never be gated here.
+   * produced is exempt from the memberlist in the protocol (the hook returns
+   * true for a redeem claim, and USDC carries no hook), so membership must
+   * never gate it here — a freeze does, through canClaimProceeds.
    */
   canRequestRedemption: boolean;
   /**
-   * Why the wallet is blocked — copy only. The two verdicts above stay the
+   * `checkTransferRestriction(investor, 0, 0)` — the wallet may burn shares
+   * against escrow, which is what claiming settled USDC does.
+   *
+   * Gates the USDC claim ONLY. Membership is exempt here by design, so a
+   * wallet that is no longer whitelisted keeps proceeds it is already owed;
+   * a freeze is not, because the hook checks it before every exemption. Read
+   * only when a verdict above is false — a non-frozen member always passes —
+   * and a read that fails counts as true: a fetch problem is not a verdict.
+   *
+   * The verdict is right under any of Centrifuge's hooks; the membership
+   * exemption in the prose (here, the flows, the glossary) is a fact of the
+   * FullRestrictions hook every zSMB instance uses. A share class on the
+   * FreelyTransferable hook would gate this claim on membership too — the
+   * read would still answer correctly, the copy around it would not.
+   */
+  canClaimProceeds: boolean;
+  /**
+   * Why the wallet is blocked — copy only. The verdicts above stay the
    * sole gate: they are what predicts a revert, and a failure to explain them
    * must never be able to unblock an action.
    */

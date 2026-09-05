@@ -43,6 +43,7 @@ function fakeCentrifugeVault({
 } = {}) {
   return {
     address: CENTRIFUGE_VAULT.address,
+    asyncRequestManagerAddress: MANAGER_ADDRESS,
     pool: { _escrow: () => Promise.resolve(ESCROW_ADDRESS) },
     details: () => Promise.resolve({ maxDeposit: balance(5_000_000000n, 6) }),
     investment: () =>
@@ -72,25 +73,30 @@ function createWrapper() {
 // stands in for a hook that cannot be reached or does not answer at all.
 const HOOK_ADDRESS = '0x00000000000000000000000000000000000000aa';
 let hookAnswers: { isFrozen: boolean; isMember: boolean; validUntil: bigint } | Error;
-// The Unfunded Claim diagnostics: the Centrifuge vault's own maxWithdraw and the
-// pool escrow's holding on the chain — a funded escrow by default. An Error
-// stands in for an RPC that will not answer.
+// The Unfunded Claim diagnostics: the request manager's settled amount for the
+// wallet and the pool escrow's holding on the chain — a funded escrow by
+// default. An Error stands in for an RPC that will not answer.
+const MANAGER_ADDRESS = '0x00000000000000000000000000000000000000bb';
 const ESCROW_ADDRESS = '0x00000000000000000000000000000000000000ee';
-let maxWithdrawAnswer: bigint | Error;
+let settledAssetsAnswer: bigint | Error;
 let escrowHolding: { total: bigint; reserved: bigint };
 
 beforeEach(() => {
   vi.resetAllMocks();
   getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault()));
   hookAnswers = { isFrozen: false, isMember: true, validUntil: 4294967295n };
-  maxWithdrawAnswer = 150_000000n;
+  settledAssetsAnswer = 150_000000n;
   escrowHolding = { total: 1_000_000000n, reserved: 150_000000n };
   readContract.mockImplementation(({ functionName }: { functionName: string }) => {
-    if (functionName === 'maxWithdraw')
-      return maxWithdrawAnswer instanceof Error
-        ? Promise.reject(maxWithdrawAnswer)
-        : Promise.resolve(maxWithdrawAnswer);
+    if (functionName === 'investments')
+      return settledAssetsAnswer instanceof Error
+        ? Promise.reject(settledAssetsAnswer)
+        : Promise.resolve([0n, settledAssetsAnswer, 0n, 0n, 0n, 0n, 0n, 0n, false, false]);
     if (functionName === 'holding') return Promise.resolve([escrowHolding.total, escrowHolding.reserved]);
+    // The claim verdict follows the protocol: a freeze blocks the burn against
+    // escrow, membership does not; an unreachable hook is no verdict.
+    if (functionName === 'checkTransferRestriction')
+      return hookAnswers instanceof Error ? Promise.reject(hookAnswers) : Promise.resolve(!hookAnswers.isFrozen);
     // previewDeposit — the only read that is not part of the hook interrogation.
     if (!['hook', 'isFrozen', 'isMember'].includes(functionName)) return Promise.resolve(50_000000000000000000n);
     if (hookAnswers instanceof Error) return Promise.reject(hookAnswers);
@@ -210,7 +216,11 @@ describe('useRedemptionPosition', () => {
     expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])).toBeDefined();
     // A funded escrow: the diagnostics ran and found nothing to name or report.
     expect(readContract).toHaveBeenCalledWith(
-      expect.objectContaining({ address: CENTRIFUGE_VAULT.address, functionName: 'maxWithdraw', args: [INVESTOR] })
+      expect.objectContaining({
+        address: MANAGER_ADDRESS,
+        functionName: 'investments',
+        args: [CENTRIFUGE_VAULT.address, INVESTOR]
+      })
     );
     expect(readContract).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -224,10 +234,10 @@ describe('useRedemptionPosition', () => {
 
   it('names an Unfunded Claim when the escrow is reserved beyond its holdings, and reports it', async () => {
     // The SDK zeroes every claim on such a spoke, so the position reads exactly
-    // like "no position" — only the Centrifuge vault's own maxWithdraw and the
+    // like "no position" — only the request manager's settled amount and the
     // escrow's holding tell.
     getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault({ claimableRedeemAssets: 0n })));
-    maxWithdrawAnswer = 310_071n;
+    settledAssetsAnswer = 310_071n;
     escrowHolding = { total: 310_000n, reserved: 310_071n };
 
     const { wrapper } = createWrapper();
@@ -257,19 +267,23 @@ describe('useRedemptionPosition', () => {
     expect(sentryCaptureException).not.toHaveBeenCalled();
   });
 
-  it('names nothing for a wallet the Centrifuge vault itself would not pay', async () => {
-    // maxWithdraw is permissioned — a frozen wallet reads 0 — and the claim
-    // path uses that view, so there is no claim to call unfunded.
+  it("reads the settled amount off the request manager's struct, never the permissioned view", async () => {
+    // The Centrifuge vault's own maxWithdraw reads 0 for a frozen wallet; the
+    // struct does not. The amount is owed either way, and the flow layers the
+    // freeze on top from InvestorAccess — so this read must not consult it.
     getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault({ claimableRedeemAssets: 0n })));
-    maxWithdrawAnswer = 0n;
+    settledAssetsAnswer = 310_071n;
     escrowHolding = { total: 310_000n, reserved: 310_071n };
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.unfundedClaimableAssets).toBe(0n);
-    expect(sentryCaptureException).not.toHaveBeenCalled();
+    expect(result.current.data?.unfundedClaimableAssets).toBe(310_071n);
+    expect(readContract).not.toHaveBeenCalledWith(expect.objectContaining({ functionName: 'maxWithdraw' }));
+    expect(readContract).not.toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: 'checkTransferRestriction' })
+    );
   });
 
   it('keeps the position and reports when the escrow diagnostics cannot be read', async () => {
@@ -277,7 +291,7 @@ describe('useRedemptionPosition', () => {
     // take pending shares, Returned Shares or Cancellation Processing with it.
     // But a read that silently fails is the blind tab again, so it is reported.
     const failure = new Error('RPC Request failed');
-    maxWithdrawAnswer = failure;
+    settledAssetsAnswer = failure;
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
@@ -302,12 +316,17 @@ describe('useRedemptionPosition', () => {
 });
 
 describe('useInvestorAccess', () => {
-  it('returns both Centrifuge-vault verdicts under the account and Centrifuge-vault key', async () => {
+  it('returns every Centrifuge-vault verdict under the account and Centrifuge-vault key', async () => {
     const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useInvestorAccess({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ canReceiveShares: true, canRequestRedemption: true, restriction: 'none' });
+    expect(result.current.data).toEqual({
+      canReceiveShares: true,
+      canRequestRedemption: true,
+      canClaimProceeds: true,
+      restriction: 'none'
+    });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
     expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'INVESTOR_ACCESS', 'zfix', 'sepolia'])).toBeDefined();
   });
@@ -333,6 +352,8 @@ describe('useInvestorAccess', () => {
     expect(result.current.data).toEqual({
       canReceiveShares: false,
       canRequestRedemption: false,
+      // Membership never gates a claim: proceeds already owed stay reachable.
+      canClaimProceeds: true,
       restriction: 'not-member'
     });
   });
@@ -365,6 +386,8 @@ describe('useInvestorAccess', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.restriction).toBe('frozen');
+    // A freeze is the one block the protocol applies to a claim as well.
+    expect(result.current.data?.canClaimProceeds).toBe(false);
   });
 
   it('reports freeze ahead of membership when a wallet is both frozen and unadmitted', async () => {
@@ -407,6 +430,8 @@ describe('useInvestorAccess', () => {
     expect(result.current.data).toEqual({
       canReceiveShares: false,
       canRequestRedemption: false,
+      // A claim verdict that cannot be read is no verdict either.
+      canClaimProceeds: true,
       restriction: 'unknown'
     });
     expect(sentryCapture).toHaveBeenCalled();

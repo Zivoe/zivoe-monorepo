@@ -39,16 +39,22 @@ type ContractReader = {
   }): Promise<unknown>;
 };
 
+// The transfer the Centrifuge vault checks on a USDC claim: shares burnt
+// against escrow. The SDK asks the hook about the other two directions only.
+const PROCEEDS_CLAIM_ABI = parseAbi([
+  'function checkTransferRestriction(address from, address to, uint256 value) view returns (bool)'
+]);
+
 /**
- * Both verdicts come off the same investment read the position uses. The SDK's
- * deposit/redeem framing stops here with the rest of its vocabulary: those
- * names describe one caller each, while the underlying transfer checks gate
- * more than that (see InvestorAccess).
+ * The first two verdicts come off the same investment read the position uses.
+ * The SDK's deposit/redeem framing stops here with the rest of its vocabulary:
+ * those names describe one caller each, while the underlying transfer checks
+ * gate more than that (see InvestorAccess).
  *
- * The restriction is a second, separate question — asked only when a verdict
- * is false, so an admitted wallet costs nothing extra, and asked inside this
- * same read so the flows see one verdict arrive at one moment rather than a
- * label that corrects itself a beat later.
+ * The claim verdict and the restriction are separate questions — asked only
+ * when a verdict is false, so an admitted wallet costs nothing extra, and
+ * asked inside this same read so the flows see every verdict arrive at one
+ * moment rather than a label that corrects itself a beat later.
  */
 export async function readInvestorAccess({
   centrifugeVault,
@@ -68,9 +74,31 @@ export async function readInvestorAccess({
     canRequestRedemption: investment.isAllowedToRedeem
   };
 
-  if (access.canReceiveShares && access.canRequestRedemption) return { ...access, restriction: 'none' };
+  if (access.canReceiveShares && access.canRequestRedemption)
+    return { ...access, canClaimProceeds: true, restriction: 'none' };
 
-  return { ...access, restriction: await readRestriction({ client, shareTokenAddress, investor }) };
+  const [canClaimProceeds, restriction] = await Promise.all([
+    // A failed read is a fetch problem, not a verdict: the claim stays live
+    // and the pre-sign simulation decodes the real revert if there is one.
+    (
+      client.readContract({
+        address: shareTokenAddress,
+        abi: PROCEEDS_CLAIM_ABI,
+        functionName: 'checkTransferRestriction',
+        args: [investor, '0x0000000000000000000000000000000000000000', 0n]
+      }) as Promise<boolean>
+    ).catch((error: unknown) => {
+      // Reported all the same — a frozen wallet would otherwise see a live button.
+      Sentry.captureException(error, {
+        tags: { source: 'READ' },
+        extra: { shareTokenAddress, investor, read: 'canClaimProceeds' }
+      });
+      return true;
+    }),
+    readRestriction({ client, shareTokenAddress, investor })
+  ]);
+
+  return { ...access, canClaimProceeds, restriction };
 }
 
 /**
@@ -154,7 +182,7 @@ export async function readReturnedShares({
 }
 
 const UNFUNDED_CLAIM_ABI = parseAbi([
-  'function maxWithdraw(address owner) view returns (uint256 assets)',
+  'function investments(address vault, address investor) view returns (uint128 maxMint, uint128 maxWithdraw, uint128 depositPrice, uint128 redeemPrice, uint128 pendingDepositRequest, uint128 pendingRedeemRequest, uint128 claimableCancelDepositRequest, uint128 claimableCancelRedeemRequest, bool pendingCancelDepositRequest, bool pendingCancelRedeemRequest)',
   'function holding(bytes16 scId, address asset, uint256 tokenId) view returns (uint128 total, uint128 reserved)'
 ]);
 
@@ -162,18 +190,18 @@ const UNFUNDED_CLAIM_ABI = parseAbi([
  * The SDK's `investment` vocabulary survives only here, at the SDK boundary.
  *
  * The SDK zeroes every claim on a spoke whose pool escrow is reserved beyond
- * its holdings — its escrow check in Vault.investment reduces to
- * `reserved > total`, pool-wide rather than per claim — so a settled
- * redemption on such a spoke reads exactly like "no position". The same two
- * facts are read here to name the Unfunded Claim the SDK hides. Read off the
- * chain through the app's client rather than compared against the SDK's
+ * its holdings for the share class — its escrow check in Vault.investment
+ * reduces to `reserved > total`, per spoke rather than per claim — so a
+ * settled redemption on such a spoke reads exactly like "no position". The
+ * same two facts are read here to name the Unfunded Claim the SDK hides: the
+ * settled amount straight off the request manager's struct, the very field
+ * the SDK starts from, so a frozen wallet's amount is named too (the freeze
+ * is InvestorAccess's business, not this read's), and the escrow's holding.
+ * Read through the app's client rather than compared against the SDK's
  * number: the SDK rides its own client, so the two can answer from different
- * blocks, and the Centrifuge vault's `maxWithdraw` is permissioned (a frozen
- * wallet reads 0 where the SDK's raw struct does not) — the claim path uses
- * that permissioned view, so it is the one to name. Diagnostic only: a failed
- * read leaves the position intact with no Unfunded Claim instead of taking
- * the whole position down — reported, since silence here is the blind tab
- * this exists to end.
+ * blocks. Diagnostic only: a failed read leaves the position intact with no
+ * Unfunded Claim instead of taking the whole position down — reported, since
+ * silence here is the blind tab this exists to end.
  */
 export async function readRedemptionPosition({
   centrifugeVault,
@@ -234,10 +262,11 @@ export async function readRedemptionPosition({
 }
 
 /**
- * Settled USDC the Centrifuge vault would pay this wallet, when the chain's
- * pool escrow is reserved beyond its holdings — zero otherwise. Both reads go
- * through one client, so a claim landing between them cannot fabricate a
- * shortfall: a claim only ever lowers `reserved`.
+ * Settled USDC owed to this wallet, when the chain's pool escrow is reserved
+ * beyond its holdings — zero otherwise. Both reads go through one client, and
+ * a claim lowers `reserved` and `total` together, so a claim landing between
+ * them cannot fabricate a shortfall; only a fulfillment landing between them
+ * can pair a stale amount with a fresh holding, and the next read corrects it.
  */
 async function readUnfundedClaim({
   centrifugeVault,
@@ -254,12 +283,14 @@ async function readUnfundedClaim({
 }): Promise<bigint> {
   const escrowAddress = (await centrifugeVault.pool._escrow()) as Address;
 
-  const [maxWithdraw, [total, reserved]] = (await Promise.all([
+  // The struct's second field is the settled, unclaimed amount — unpermissioned,
+  // the very field the SDK destructures too.
+  const [[, settledAssets], [total, reserved]] = (await Promise.all([
     client.readContract({
-      address: centrifugeVault.address,
+      address: centrifugeVault.asyncRequestManagerAddress,
       abi: UNFUNDED_CLAIM_ABI,
-      functionName: 'maxWithdraw',
-      args: [investor]
+      functionName: 'investments',
+      args: [centrifugeVault.address, investor]
     }),
     client.readContract({
       address: escrowAddress,
@@ -267,7 +298,7 @@ async function readUnfundedClaim({
       functionName: 'holding',
       args: [shareClassId, assetAddress, 0n]
     })
-  ])) as [bigint, [bigint, bigint]];
+  ])) as [[bigint, bigint, ...Array<unknown>], [bigint, bigint]];
 
-  return maxWithdraw > 0n && reserved > total ? maxWithdraw : 0n;
+  return settledAssets > 0n && reserved > total ? settledAssets : 0n;
 }

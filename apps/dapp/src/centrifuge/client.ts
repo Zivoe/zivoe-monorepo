@@ -83,7 +83,10 @@ export function setTransactionSigner(signer: { request(...args: Array<never>): P
  * disagreed with the bundled allowlist — a mismatch, not an RPC flake.
  */
 type WithProtocolAddresses = {
-  _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` | undefined }>;
+  _protocolAddresses(centrifugeId: number): Promise<{
+    vaultRouter: `0x${string}` | undefined;
+    asyncRequestManager: `0x${string}` | undefined;
+  }>;
 };
 
 /** The pool's escrow lookup, stripped from the SDK's typings like `_protocolAddresses` — see CentrifugeVaultEntity. */
@@ -100,7 +103,9 @@ type WithEscrow = { pool: { _escrow(): PromiseLike<string> } };
  * Every other catalog fact (share token, decimals, Centrifuge-vault shape) is fixed
  * under our own addresses and verified before deploying by
  * `pnpm centrifuge:verify`. Checked once per session; a misconfigured class
- * fails loudly at first use instead of mid-transaction.
+ * fails loudly at first use instead of mid-transaction. The same lookup hands
+ * the entity the chain's AsyncRequestManager — the SDK's own source for the
+ * investment struct the Unfunded Claim read needs — so no read pays for it.
  */
 async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault): Promise<CentrifugeVaultEntity> {
   const { shareClass } = centrifugeVault;
@@ -111,7 +116,7 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
     centrifuge.pool(new PoolId(shareClass.poolId))
   ]);
 
-  const [resolved, { vaultRouter }] = await Promise.all([
+  const [resolved, { vaultRouter, asyncRequestManager }] = await Promise.all([
     pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address),
     (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
   ]);
@@ -131,5 +136,10 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
       `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Fix the catalog before transacting.`
     );
 
-  return resolved as typeof resolved & WithEscrow;
+  if (asyncRequestManager === undefined)
+    throw new Error(
+      `The SDK dropped the indexer-reported AsyncRequestManager on "${centrifugeVault.chain}" — it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
+    );
+
+  return Object.assign(resolved as typeof resolved & WithEscrow, { asyncRequestManagerAddress: asyncRequestManager });
 }
