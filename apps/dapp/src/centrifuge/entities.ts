@@ -30,6 +30,19 @@ export type TransactionEntity = {
 export type CentrifugeVaultEntity = {
   /** The Centrifuge vault's contract address — asserted against the catalog's at resolution. */
   address: `0x${string}`;
+  /**
+   * The pool the Centrifuge vault serves, for its escrow lookup. `_escrow` is
+   * SDK-internal like `_protocolAddresses` (see client.ts): the dependency is
+   * version-pinned, and a renamed internal fails the position read at first
+   * use — loudly, through the query's error path, never as a silent zero.
+   */
+  pool: { _escrow(): PromiseLike<string> };
+  /**
+   * The chain's AsyncRequestManager — where the SDK itself reads the
+   * investment struct from. Attached at resolution (see client.ts) so the
+   * Unfunded Claim read has it for free.
+   */
+  asyncRequestManagerAddress: `0x${string}`;
   details(): PromiseLike<{
     maxDeposit: BalanceLike;
   }>;

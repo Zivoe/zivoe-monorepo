@@ -107,6 +107,7 @@ export function useDepositPreview({
 
 export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
+  const web3 = usePublicClient({ chainId: centrifugeVault.chainId });
 
   return useQuery({
     queryKey: queryKeys.account.redemptionPosition({
@@ -120,12 +121,22 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
     // polled; every other transition refreshes through invalidations/focus.
     // An errored read also polls: focus refetch is off app-wide, and a failed
     // read renders like "no position" — the strips a user needs to claim or
-    // cancel with are missing until it recovers on its own.
+    // cancel with are missing until it recovers on its own. An Unfunded Claim
+    // deliberately does NOT poll: funding the escrow can take a while, and a
+    // fresh load or the next transaction's refetch will pick it up.
     refetchInterval: ({ state }) =>
       state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
-    queryFn: !address
-      ? skipToken
-      : async () =>
-          readRedemptionPosition({ centrifugeVault: await getCentrifugeVault(centrifugeVault), investor: address })
+    queryFn:
+      !address || !web3
+        ? skipToken
+        : async () =>
+            readRedemptionPosition({
+              centrifugeVault: await getCentrifugeVault(centrifugeVault),
+              investor: address,
+              client: web3,
+              chain: centrifugeVault.chain,
+              shareClassId: centrifugeVault.shareClass.scId,
+              assetAddress: centrifugeVault.usdc.address
+            })
   });
 }

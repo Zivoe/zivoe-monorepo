@@ -7,7 +7,7 @@ import { type TransactionData } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
 import { decodeClaimReturnedSharesReceipt } from './decode';
-import { readRedemptionPosition } from './reads';
+import { readReturnedShares } from './reads';
 import { withEnableVariant } from './simulate';
 import { type TransactionIdentity } from './types';
 import useCentrifugeTx from './useCentrifugeTx';
@@ -65,8 +65,8 @@ export function useClaimReturnedShares({
     // exact-call gate below closes the remaining race if the SDK's later read
     // falls through to redemption USDC while building the aggregate claim.
     action: async (_, { centrifugeVault, address }) => {
-      const position = await readRedemptionPosition({ centrifugeVault, investor: address });
-      if (position.claimableCancelRedeemShares <= 0n) throw new AppError({ message: copy.guard, capture: false });
+      const returnedShares = await readReturnedShares({ centrifugeVault, investor: address });
+      if (returnedShares <= 0n) throw new AppError({ message: copy.guard, capture: false });
 
       return { tx: centrifugeVault.claim() };
     },

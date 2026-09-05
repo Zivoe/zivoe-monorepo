@@ -31,6 +31,8 @@ vi.mock('@centrifuge/sdk', () => ({
 }));
 
 const CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault;
+// The chain's AsyncRequestManager as the protocol addresses report it — handed to the entity at resolution.
+const MANAGER_ADDRESS = '0x00000000000000000000000000000000000000bb';
 
 const OTHER_CENTRIFUGE_VAULT: TransactedCentrifugeVault = {
   ...CENTRIFUGE_VAULT,
@@ -61,7 +63,10 @@ async function loadClient() {
 beforeEach(() => {
   vi.clearAllMocks();
   sdk.id.mockResolvedValue(3);
-  sdk.protocolAddresses.mockResolvedValue({ vaultRouter: CENTRIFUGE_VAULT.vaultRouterAddress });
+  sdk.protocolAddresses.mockResolvedValue({
+    vaultRouter: CENTRIFUGE_VAULT.vaultRouterAddress,
+    asyncRequestManager: MANAGER_ADDRESS
+  });
 });
 
 describe('getCentrifugeVault', () => {
@@ -126,7 +131,10 @@ describe('getCentrifugeVault', () => {
     );
     // The router is protocol-level: Centrifuge can migrate it with no deploy
     // on our side, which is exactly the drift this assertion exists to catch.
-    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: '0x2222222222222222222222222222222222222222' });
+    sdk.protocolAddresses.mockResolvedValue({
+      vaultRouter: '0x2222222222222222222222222222222222222222',
+      asyncRequestManager: MANAGER_ADDRESS
+    });
 
     const { getCentrifugeVault } = await loadClient();
 
@@ -142,11 +150,43 @@ describe('getCentrifugeVault', () => {
     // On an allowlist mismatch the SDK deletes the field rather than throwing,
     // so "missing" IS the router-migration signal — it must surface as the
     // explicit mismatch error, not a TypeError on toLowerCase.
-    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: undefined });
+    sdk.protocolAddresses.mockResolvedValue({ vaultRouter: undefined, asyncRequestManager: MANAGER_ADDRESS });
 
     const { getCentrifugeVault } = await loadClient();
 
     await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(/dropped the indexer-reported VaultRouter/);
+  });
+
+  it('fails loudly when the SDK drops the AsyncRequestManager the Unfunded Claim read depends on', async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
+      })
+    );
+    sdk.protocolAddresses.mockResolvedValue({
+      vaultRouter: CENTRIFUGE_VAULT.vaultRouterAddress,
+      asyncRequestManager: undefined
+    });
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).rejects.toThrow(
+      /dropped the indexer-reported AsyncRequestManager/
+    );
+  });
+
+  it('hands the entity the AsyncRequestManager it resolved', async () => {
+    sdk.pool.mockResolvedValue(
+      poolWithCentrifugeVaults({
+        [CENTRIFUGE_VAULT.shareClass.scId]: fakeSdkCentrifugeVault({ address: CENTRIFUGE_VAULT.address })
+      })
+    );
+
+    const { getCentrifugeVault } = await loadClient();
+
+    await expect(getCentrifugeVault(CENTRIFUGE_VAULT)).resolves.toMatchObject({
+      asyncRequestManagerAddress: MANAGER_ADDRESS
+    });
   });
 
   it("never lets one key's cached Centrifuge vault answer for a different Centrifuge-vault address", async () => {

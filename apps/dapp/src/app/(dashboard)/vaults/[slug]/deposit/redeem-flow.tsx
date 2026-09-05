@@ -33,6 +33,7 @@ import {
   useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
@@ -73,18 +74,18 @@ export default function RedeemFlow() {
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
   const access = useInvestorAccess({ centrifugeVault });
 
-  // Two gates, because the Centrifuge vault's verdicts do not fall along this
-  // panel's own lines. Only a definitive `false` gates anything: a failed read
-  // is a fetch problem and not a verdict, so it leaves both alone and lets the
-  // pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
-  //
-  // Claiming settled USDC is deliberately under neither: the protocol exempts
-  // a redeem claim from the whitelist (and USDC carries no transfer hook), so
-  // a blocked wallet keeps proceeds it is already owed.
+  // Three gates, because the Centrifuge vault's verdicts do not fall along
+  // this panel's own lines. Only a definitive `false` gates anything: a failed
+  // read is a fetch problem and not a verdict, so it leaves them alone and lets
+  // the pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
   const isNotAdmitted = access.isSuccess && !access.data.canRequestRedemption;
   // Cancelling and claiming returned shares both reduce on-chain to "may this
   // wallet receive shares", so they stand or fall together.
   const isShareReturnBlocked = access.isSuccess && !access.data.canReceiveShares;
+  // Claiming settled USDC is exempt from the memberlist (a wallet that is no
+  // longer whitelisted keeps proceeds it is already owed) but not from a
+  // freeze, so it carries its own verdict rather than either of the above.
+  const isProceedsClaimBlocked = access.isSuccess && !access.data.canClaimProceeds;
   // Names the block; never widens it. An unread or unexplained reason falls
   // back to the general "not whitelisted" presentation.
   const restriction = access.data?.restriction;
@@ -92,13 +93,20 @@ export default function RedeemFlow() {
   // from the callout at the foot of the panel, so they get their own short
   // form of the same answer.
   const shareReturnHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'Requires a whitelisted wallet.';
+  // Membership never blocks a claim, so an unexplained refusal here cannot be
+  // named "not whitelisted" the way the share controls' fallback is.
+  const proceedsClaimHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'This wallet cannot claim right now.';
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
   const claimableAssets = position.data?.claimableRedeemAssets ?? 0n;
+  // Unfunded Claim: settled, but this chain's escrow cannot pay it yet. Nothing
+  // the investor does resolves it, so its strip carries no action at all — just
+  // the amount and the chain — until a later position read sees it funded.
+  const unfundedAssets = position.data?.unfundedClaimableAssets ?? 0n;
   const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
   const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
-  const hasPosition = pendingShares > 0n || claimableAssets > 0n;
+  const hasPosition = pendingShares > 0n || claimableAssets > 0n || unfundedAssets > 0n;
 
   const form = useForm<RedeemForm>({
     resolver: zodResolver(
@@ -211,7 +219,7 @@ export default function RedeemFlow() {
   }, [account.address, selectedChain, form]);
 
   const handleClaim = () => {
-    if (claimableAssets <= 0n) return;
+    if (claimableAssets <= 0n || isProceedsClaimBlocked) return;
 
     claimRedeem.mutate({ claimableAssets });
   };
@@ -276,9 +284,11 @@ export default function RedeemFlow() {
       {claimableAssets > 0n && (
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* A blocked wallet's headline cannot say ready: the amount is
+                approved, the claim is not — the hint below says why. */}
             <p className="text-regular text-primary">
               {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })}{' '}
-              USDC ready to claim
+              USDC {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
             </p>
 
             <ConnectedAccount fullWidth={false} type="skeleton">
@@ -287,9 +297,14 @@ export default function RedeemFlow() {
                 size="s"
                 isDisabled={
                   isWriteBlocked ||
+                  isProceedsClaimBlocked ||
                   isOtherMutationPending(claimRedeem.isPending) ||
-                  // The Centrifuge vault claims Returned Shares before USDC in one
-                  // shared transaction path, so the USDC claim waits its turn.
+                  // The SDK's aggregate claim empties Returned Shares before USDC
+                  // in one shared transaction path, so the USDC claim waits its
+                  // turn. The protocol itself would pay the USDC on its own (the
+                  // router's claimRedeem), so a wallet that can no longer receive
+                  // shares waits here until re-admitted — an SDK limitation we
+                  // accept; revisit if the SDK ever exposes the USDC claim alone.
                   returnedShares > 0n
                 }
                 isPending={claimRedeem.isPending}
@@ -306,8 +321,30 @@ export default function RedeemFlow() {
             </ConnectedAccount>
           </div>
 
-          {returnedShares > 0n && (
-            <p className="text-extraSmall text-tertiary">Claim your returned {share.symbol} first.</p>
+          {/* The block wins over the turn-taking hint: "claim your returned
+              shares first" is no help to a wallet that cannot claim them. */}
+          {isProceedsClaimBlocked ? (
+            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
+          ) : returnedShares > 0n ? (
+            <p className="text-extraSmall text-tertiary">
+              {isShareReturnBlocked ? shareReturnHint : `Claim your returned ${share.symbol} first.`}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      {unfundedAssets > 0n && (
+        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
+          <p className="text-regular text-primary">
+            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC
+            approved, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
+          </p>
+
+          {/* Two things stand between a frozen wallet and its USDC; name both.
+              An unexplained refusal adds nothing to a strip that already says
+              nobody can claim yet. */}
+          {isProceedsClaimBlocked && restriction === 'frozen' && (
+            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
           )}
         </div>
       )}

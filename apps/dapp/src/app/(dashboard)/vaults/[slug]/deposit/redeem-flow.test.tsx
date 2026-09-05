@@ -55,12 +55,14 @@ const mocks = vi.hoisted(() => ({
   // single "is whitelisted" switch could not express the states that matter.
   canReceiveShares: true,
   canRequestRedemption: true,
+  canClaimProceeds: true,
   accessIsError: false,
   restriction: 'none',
   cancelRedeem: vi.fn(),
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
   claimableAssets: 0n,
+  unfundedAssets: 0n,
   hasPendingCancel: false,
   metricsIsError: false,
   metricsIsFetching: false,
@@ -87,6 +89,7 @@ const positionFor = vi.hoisted(
           pendingRedeemShares: mocks.basePendingShares,
           claimableRedeemAssets: mocks.baseClaimableAssets,
           claimableRedeemSharesEquivalent: 0n,
+          unfundedClaimableAssets: 0n,
           claimableCancelRedeemShares: mocks.baseReturnedShares,
           hasPendingCancelRedeemRequest: false
         }
@@ -94,6 +97,7 @@ const positionFor = vi.hoisted(
           pendingRedeemShares: mocks.pendingShares,
           claimableRedeemAssets: mocks.claimableAssets,
           claimableRedeemSharesEquivalent: 0n,
+          unfundedClaimableAssets: mocks.unfundedAssets,
           claimableCancelRedeemShares: mocks.returnedShares,
           hasPendingCancelRedeemRequest: mocks.hasPendingCancel
         }
@@ -167,6 +171,7 @@ vi.mock('@/centrifuge', () => ({
           data: {
             canReceiveShares: mocks.canReceiveShares,
             canRequestRedemption: mocks.canRequestRedemption,
+            canClaimProceeds: mocks.canClaimProceeds,
             restriction: mocks.restriction
           },
           isError: false,
@@ -290,9 +295,11 @@ function resetMocks() {
   vi.clearAllMocks();
   mocks.canReceiveShares = true;
   mocks.canRequestRedemption = true;
+  mocks.canClaimProceeds = true;
   mocks.accessIsError = false;
   mocks.restriction = 'none';
   mocks.claimableAssets = 0n;
+  mocks.unfundedAssets = 0n;
   mocks.hasPendingCancel = false;
   mocks.metricsIsError = false;
   mocks.metricsIsFetching = false;
@@ -344,7 +351,7 @@ describe('RedeemFlow', () => {
   });
 
   it('still lets a wallet that is no longer whitelisted claim settled USDC while share moves are blocked', async () => {
-    // The protocol exempts a redeem claim from the whitelist, so proceeds the
+    // The protocol exempts a redeem claim from the memberlist, so proceeds the
     // wallet is already owed must stay reachable. This is the assertion that
     // stops a future "block everything when not whitelisted" from stranding
     // funds.
@@ -408,22 +415,81 @@ describe('RedeemFlow', () => {
     expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
   });
 
-  it('still lets a frozen wallet claim settled USDC', async () => {
-    // Same exemption as an unadmitted wallet: the protocol does not gate a
-    // redeem claim, so freezing must not strand proceeds either.
+  it('blocks a frozen wallet from claiming settled USDC, and says why', async () => {
+    // Unlike membership, a freeze does gate a claim: the hook refuses every
+    // transfer from a frozen wallet before it reaches the redeem-claim
+    // exemption, so the router's claim would revert. The amount stays visible.
     mocks.canReceiveShares = false;
     mocks.canRequestRedemption = false;
+    mocks.canClaimProceeds = false;
     mocks.restriction = 'frozen';
     mocks.claimableAssets = 150_000000n;
     renderFlow();
 
-    expect(getButton('Claim USDC').disabled).toBe(false);
+    // The headline must not contradict the disabled button: approved, not ready.
+    expect(screen.getByText(/150\.00 USDC\s+approved/)).toBeTruthy();
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(getButton('Claim USDC').disabled).toBe(true);
+    expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(getButton('Claim USDC'));
     });
 
-    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 150_000000n });
+    expect(mocks.claimRedeem).not.toHaveBeenCalled();
+  });
+
+  it('never calls an unexplained claim refusal "not whitelisted"', async () => {
+    // Membership does not gate a claim, so the share controls' fallback copy
+    // would be wrong here; the claim gets its own neutral line instead.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.canClaimProceeds = false;
+    mocks.restriction = 'unknown';
+    mocks.claimableAssets = 150_000000n;
+    renderFlow();
+
+    expect(getButton('Claim USDC').disabled).toBe(true);
+    expect(screen.getByText('This wallet cannot claim right now.')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(getButton('Claim USDC'));
+    });
+
+    expect(mocks.claimRedeem).not.toHaveBeenCalled();
+  });
+
+  it("names a frozen wallet's Unfunded Claim and the freeze together", () => {
+    // Two things stand between this wallet and its USDC; hiding the amount
+    // (as the Centrifuge vault's permissioned view would) helps nobody.
+    mocks.canReceiveShares = false;
+    mocks.canRequestRedemption = false;
+    mocks.canClaimProceeds = false;
+    mocks.restriction = 'frozen';
+    mocks.unfundedAssets = 310_071n;
+    renderFlow();
+
+    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
+  });
+
+  it('names the block instead of an impossible prerequisite in a blocked Split Outcome', () => {
+    // A wallet that cannot receive shares cannot clear the Returned Shares
+    // bucket, so "claim your returned shares first" would point at a step the
+    // panel itself refuses. Its own claim is not blocked — membership never
+    // gates it — but the SDK's aggregate claim makes it wait behind the same
+    // bucket (see the button's gate); accepted until the SDK offers the USDC
+    // claim alone.
+    mocks.canReceiveShares = false;
+    mocks.claimableAssets = 2_000000n;
+    mocks.returnedShares = 1n * D18;
+    renderFlow();
+
+    expect(getButton('Claim zSMB').disabled).toBe(true);
+    expect(getButton('Claim USDC').disabled).toBe(true);
+    expect(screen.queryByText('Claim your returned zSMB first.')).toBeNull();
+    expect(screen.getAllByText('Requires a whitelisted wallet.').length).toBe(2);
   });
 
   it('leaves share moves alone when only the redemption request is blocked', async () => {
@@ -608,6 +674,20 @@ describe('RedeemFlow', () => {
 
     // The row and the post-claim receipt must agree on the same amount.
     expect(screen.getByText(/0\.57 USDC\s+ready to claim/)).toBeTruthy();
+  });
+
+  it('names an Unfunded Claim with its chain and offers no claim', () => {
+    // Settled on-chain, but the chain's escrow cannot pay it: the SDK reports
+    // nothing claimable, so without this strip the tab would show nothing at all.
+    mocks.unfundedAssets = 310_071n;
+
+    renderFlow();
+
+    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
+    // Not a lock: the investor may still request more while operations fund the escrow.
+    expect(getButton('Add to redemption').disabled).toBe(false);
   });
 
   it('locks the whole form during Cancellation Processing and hides the cancel control', () => {
