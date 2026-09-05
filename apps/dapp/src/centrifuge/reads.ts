@@ -21,9 +21,10 @@ export async function readCentrifugeVaultCapacity(
 
 const SHARE_TOKEN_HOOK_ABI = parseAbi(['function hook() view returns (address)']);
 
-// The two facts the verdicts collapse together. A hook that predates the
-// memberlist (FreezeOnly, FreelyTransferable) answers neither, which is one
-// of the ways the restriction lands on 'unknown'.
+// The two facts the verdicts collapse together. Every Centrifuge hook exposes
+// both (they share one base contract), so 'unknown' comes from a read that
+// fails or a refusal these two facts do not explain — not from a hook that
+// lacks them.
 const TRANSFER_HOOK_ABI = parseAbi([
   'function isFrozen(address token, address user) view returns (bool)',
   'function isMember(address token, address user) view returns (bool isValid, uint64 validUntil)'
@@ -39,8 +40,9 @@ type ContractReader = {
   }): Promise<unknown>;
 };
 
-// The transfer the Centrifuge vault checks on a USDC claim: shares burnt
-// against escrow. The SDK asks the hook about the other two directions only.
+// The shape the request manager asks the hook about on a USDC claim: from the
+// wallet, to nobody — a view check, the shares were burnt at fulfilment. The
+// SDK asks the hook about the other two directions only.
 const PROCEEDS_CLAIM_ABI = parseAbi([
   'function checkTransferRestriction(address from, address to, uint256 value) view returns (bool)'
 ]);

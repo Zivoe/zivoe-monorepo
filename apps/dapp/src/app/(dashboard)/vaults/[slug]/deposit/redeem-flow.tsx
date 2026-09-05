@@ -284,9 +284,11 @@ export default function RedeemFlow() {
       {claimableAssets > 0n && (
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* A blocked wallet's headline cannot say ready: the amount is
+                approved, the claim is not — the hint below says why. */}
             <p className="text-regular text-primary">
               {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })}{' '}
-              USDC ready to claim
+              USDC {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
             </p>
 
             <ConnectedAccount fullWidth={false} type="skeleton">

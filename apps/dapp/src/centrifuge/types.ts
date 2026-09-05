@@ -101,8 +101,10 @@ export type InvestorAccess = {
    */
   canRequestRedemption: boolean;
   /**
-   * `checkTransferRestriction(investor, 0, 0)` — the wallet may burn shares
-   * against escrow, which is what claiming settled USDC does.
+   * `checkTransferRestriction(investor, 0, 0)` — the redeem-claim shape the
+   * request manager asks the hook about before paying out USDC: from the
+   * wallet, to nobody. A view check only — the shares themselves were burnt
+   * when the redemption was fulfilled, so nothing moves at claim time.
    *
    * Gates the USDC claim ONLY. Membership is exempt here by design, so a
    * wallet that is no longer whitelisted keeps proceeds it is already owed;

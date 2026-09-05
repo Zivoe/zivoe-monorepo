@@ -426,7 +426,9 @@ describe('RedeemFlow', () => {
     mocks.claimableAssets = 150_000000n;
     renderFlow();
 
-    expect(screen.getByText(/150\.00 USDC\s+ready to claim/)).toBeTruthy();
+    // The headline must not contradict the disabled button: approved, not ready.
+    expect(screen.getByText(/150\.00 USDC\s+approved/)).toBeTruthy();
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
     expect(getButton('Claim USDC').disabled).toBe(true);
     expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
 
