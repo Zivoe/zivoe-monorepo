@@ -467,7 +467,7 @@ describe('RedeemFlow', () => {
     mocks.unfundedAssets = 310_071n;
     renderFlow();
 
-    expect(screen.getByText(/0\.31 USDC\s+settled, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
     expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
   });
@@ -681,7 +681,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.getByText(/0\.31 USDC\s+settled, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
     expect(screen.queryByText(/ready to claim/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
     // Not a lock: the investor may still request more while operations fund the escrow.

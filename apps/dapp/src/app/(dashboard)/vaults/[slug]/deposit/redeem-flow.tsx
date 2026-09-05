@@ -335,7 +335,7 @@ export default function RedeemFlow() {
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
             {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC
-            settled, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
+            approved, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
           </p>
 
           {/* Two things stand between a frozen wallet and its USDC; name both.
