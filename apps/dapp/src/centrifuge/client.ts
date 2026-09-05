@@ -86,6 +86,9 @@ type WithProtocolAddresses = {
   _protocolAddresses(centrifugeId: number): Promise<{ vaultRouter: `0x${string}` | undefined }>;
 };
 
+/** The pool's escrow lookup, stripped from the SDK's typings like `_protocolAddresses` — see CentrifugeVaultEntity. */
+type WithEscrow = { pool: { _escrow(): PromiseLike<string> } };
+
 /**
  * Resolves the share class's Centrifuge vault and asserts the two configured
  * facts that can genuinely diverge from the chain: the SDK-resolved
@@ -128,5 +131,5 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
       `The protocol's VaultRouter on "${centrifugeVault.chain}" is ${vaultRouter}, but ${centrifugeVault.vaultRouterAddress} is configured as the approval spender. Fix the catalog before transacting.`
     );
 
-  return resolved;
+  return resolved as typeof resolved & WithEscrow;
 }

@@ -33,6 +33,7 @@ import {
   useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
@@ -96,9 +97,13 @@ export default function RedeemFlow() {
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
   const claimableAssets = position.data?.claimableRedeemAssets ?? 0n;
+  // Unfunded Claim: settled, but this chain's escrow cannot pay it yet. Nothing
+  // the investor does resolves it, so its strip carries no action at all — just
+  // the amount and the chain — until a later position read sees it funded.
+  const unfundedAssets = position.data?.unfundedClaimableAssets ?? 0n;
   const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
   const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
-  const hasPosition = pendingShares > 0n || claimableAssets > 0n;
+  const hasPosition = pendingShares > 0n || claimableAssets > 0n || unfundedAssets > 0n;
 
   const form = useForm<RedeemForm>({
     resolver: zodResolver(
@@ -309,6 +314,15 @@ export default function RedeemFlow() {
           {returnedShares > 0n && (
             <p className="text-extraSmall text-tertiary">Claim your returned {share.symbol} first.</p>
           )}
+        </div>
+      )}
+
+      {unfundedAssets > 0n && (
+        <div className="rounded-sm border border-default bg-surface-elevated p-4">
+          <p className="text-regular text-primary">
+            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC
+            settled, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
+          </p>
         </div>
       )}
 

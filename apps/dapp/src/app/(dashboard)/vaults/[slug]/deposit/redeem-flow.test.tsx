@@ -61,6 +61,7 @@ const mocks = vi.hoisted(() => ({
   claimRedeem: vi.fn(),
   claimReturnedShares: vi.fn(),
   claimableAssets: 0n,
+  unfundedAssets: 0n,
   hasPendingCancel: false,
   metricsIsError: false,
   metricsIsFetching: false,
@@ -87,6 +88,7 @@ const positionFor = vi.hoisted(
           pendingRedeemShares: mocks.basePendingShares,
           claimableRedeemAssets: mocks.baseClaimableAssets,
           claimableRedeemSharesEquivalent: 0n,
+          unfundedClaimableAssets: 0n,
           claimableCancelRedeemShares: mocks.baseReturnedShares,
           hasPendingCancelRedeemRequest: false
         }
@@ -94,6 +96,7 @@ const positionFor = vi.hoisted(
           pendingRedeemShares: mocks.pendingShares,
           claimableRedeemAssets: mocks.claimableAssets,
           claimableRedeemSharesEquivalent: 0n,
+          unfundedClaimableAssets: mocks.unfundedAssets,
           claimableCancelRedeemShares: mocks.returnedShares,
           hasPendingCancelRedeemRequest: mocks.hasPendingCancel
         }
@@ -293,6 +296,7 @@ function resetMocks() {
   mocks.accessIsError = false;
   mocks.restriction = 'none';
   mocks.claimableAssets = 0n;
+  mocks.unfundedAssets = 0n;
   mocks.hasPendingCancel = false;
   mocks.metricsIsError = false;
   mocks.metricsIsFetching = false;
@@ -608,6 +612,20 @@ describe('RedeemFlow', () => {
 
     // The row and the post-claim receipt must agree on the same amount.
     expect(screen.getByText(/0\.57 USDC\s+ready to claim/)).toBeTruthy();
+  });
+
+  it('names an Unfunded Claim with its chain and offers no claim', () => {
+    // Settled on-chain, but the chain's escrow cannot pay it: the SDK reports
+    // nothing claimable, so without this strip the tab would show nothing at all.
+    mocks.unfundedAssets = 310_071n;
+
+    renderFlow();
+
+    expect(screen.getByText(/0\.31 USDC\s+settled, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
+    // Not a lock: the investor may still request more while operations fund the escrow.
+    expect(getButton('Add to redemption').disabled).toBe(false);
   });
 
   it('locks the whole form during Cancellation Processing and hides the cancel control', () => {

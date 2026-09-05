@@ -111,6 +111,13 @@ export type RedemptionPosition = {
   pendingRedeemShares: bigint;
   claimableRedeemAssets: bigint;
   claimableRedeemSharesEquivalent: bigint;
+  /**
+   * Unfunded Claim: settled USDC the Centrifuge vault would pay this wallet on
+   * a chain whose pool escrow is reserved beyond its holdings — the SDK zeroes
+   * every claim there (see readRedemptionPosition). Never positive alongside
+   * claimableRedeemAssets.
+   */
+  unfundedClaimableAssets: bigint;
   /** Returned Shares: cancelled shares waiting for the claim that restores the wallet balance. */
   claimableCancelRedeemShares: bigint;
   /** Cancellation Processing: the position is locked until Centrifuge finishes the unwind. */

@@ -19,7 +19,8 @@ const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
 
 const sentryCapture = vi.hoisted(() => vi.fn());
-vi.mock('@sentry/nextjs', () => ({ captureMessage: sentryCapture }));
+const sentryCaptureException = vi.hoisted(() => vi.fn());
+vi.mock('@sentry/nextjs', () => ({ captureMessage: sentryCapture, captureException: sentryCaptureException }));
 
 // The public entry also exports the transaction hooks, whose UI toast import
 // does not transform under vitest; these tests never render toasts.
@@ -36,15 +37,20 @@ function balance(value: bigint, decimals = 18) {
 // The access fixture stays in the SDK's own deposit/redeem vocabulary —
 // the rename to canReceiveShares/canRequestRedemption happens in the read, and
 // a fixture written in domain terms would assert the mapping against itself.
-function fakeCentrifugeVault({ whitelist = { isAllowedToDeposit: true, isAllowedToRedeem: true } } = {}) {
+function fakeCentrifugeVault({
+  whitelist = { isAllowedToDeposit: true, isAllowedToRedeem: true },
+  claimableRedeemAssets = 150_000000n
+} = {}) {
   return {
+    address: CENTRIFUGE_VAULT.address,
+    pool: { _escrow: () => Promise.resolve(ESCROW_ADDRESS) },
     details: () => Promise.resolve({ maxDeposit: balance(5_000_000000n, 6) }),
     investment: () =>
       Promise.resolve({
         ...whitelist,
         shareBalance: balance(101_000000000000000000n),
         pendingRedeemShares: balance(200_000000000000000000n),
-        claimableRedeemAssets: balance(150_000000n, 6),
+        claimableRedeemAssets: balance(claimableRedeemAssets, 6),
         claimableRedeemSharesEquivalent: balance(140_000000000000000000n),
         claimableCancelRedeemShares: balance(60_000000000000000000n),
         hasPendingCancelRedeemRequest: false
@@ -66,12 +72,25 @@ function createWrapper() {
 // stands in for a hook that cannot be reached or does not answer at all.
 const HOOK_ADDRESS = '0x00000000000000000000000000000000000000aa';
 let hookAnswers: { isFrozen: boolean; isMember: boolean; validUntil: bigint } | Error;
+// The Unfunded Claim diagnostics: the Centrifuge vault's own maxWithdraw and the
+// pool escrow's holding on the chain — a funded escrow by default. An Error
+// stands in for an RPC that will not answer.
+const ESCROW_ADDRESS = '0x00000000000000000000000000000000000000ee';
+let maxWithdrawAnswer: bigint | Error;
+let escrowHolding: { total: bigint; reserved: bigint };
 
 beforeEach(() => {
   vi.resetAllMocks();
   getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault()));
   hookAnswers = { isFrozen: false, isMember: true, validUntil: 4294967295n };
+  maxWithdrawAnswer = 150_000000n;
+  escrowHolding = { total: 1_000_000000n, reserved: 150_000000n };
   readContract.mockImplementation(({ functionName }: { functionName: string }) => {
+    if (functionName === 'maxWithdraw')
+      return maxWithdrawAnswer instanceof Error
+        ? Promise.reject(maxWithdrawAnswer)
+        : Promise.resolve(maxWithdrawAnswer);
+    if (functionName === 'holding') return Promise.resolve([escrowHolding.total, escrowHolding.reserved]);
     // previewDeposit — the only read that is not part of the hook interrogation.
     if (!['hook', 'isFrozen', 'isMember'].includes(functionName)) return Promise.resolve(50_000000000000000000n);
     if (hookAnswers instanceof Error) return Promise.reject(hookAnswers);
@@ -183,11 +202,92 @@ describe('useRedemptionPosition', () => {
       pendingRedeemShares: 200_000000000000000000n,
       claimableRedeemAssets: 150_000000n,
       claimableRedeemSharesEquivalent: 140_000000000000000000n,
+      unfundedClaimableAssets: 0n,
       claimableCancelRedeemShares: 60_000000000000000000n,
       hasPendingCancelRedeemRequest: false
     });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
     expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])).toBeDefined();
+    // A funded escrow: the diagnostics ran and found nothing to name or report.
+    expect(readContract).toHaveBeenCalledWith(
+      expect.objectContaining({ address: CENTRIFUGE_VAULT.address, functionName: 'maxWithdraw', args: [INVESTOR] })
+    );
+    expect(readContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: ESCROW_ADDRESS,
+        functionName: 'holding',
+        args: [CENTRIFUGE_VAULT.shareClass.scId, CENTRIFUGE_VAULT.usdc.address, 0n]
+      })
+    );
+    expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('names an Unfunded Claim when the escrow is reserved beyond its holdings, and reports it', async () => {
+    // The SDK zeroes every claim on such a spoke, so the position reads exactly
+    // like "no position" — only the Centrifuge vault's own maxWithdraw and the
+    // escrow's holding tell.
+    getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault({ claimableRedeemAssets: 0n })));
+    maxWithdrawAnswer = 310_071n;
+    escrowHolding = { total: 310_000n, reserved: 310_071n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toMatchObject({ claimableRedeemAssets: 0n, unfundedClaimableAssets: 310_071n });
+    expect(sentryCaptureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('escrow underfunded') }),
+      expect.objectContaining({
+        tags: { source: 'READ', chain: 'sepolia' },
+        fingerprint: ['unfunded-claim', 'sepolia', CENTRIFUGE_VAULT.address, INVESTOR]
+      })
+    );
+  });
+
+  it('lets a claim the SDK still offers win over the escrow diagnostics', async () => {
+    // The SDK answers through its own client, so the two reads can come from
+    // different blocks; a claimable amount stands, and nothing is reported.
+    escrowHolding = { total: 100_000000n, reserved: 150_000000n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toMatchObject({ claimableRedeemAssets: 150_000000n, unfundedClaimableAssets: 0n });
+    expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('names nothing for a wallet the Centrifuge vault itself would not pay', async () => {
+    // maxWithdraw is permissioned — a frozen wallet reads 0 — and the claim
+    // path uses that view, so there is no claim to call unfunded.
+    getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault({ claimableRedeemAssets: 0n })));
+    maxWithdrawAnswer = 0n;
+    escrowHolding = { total: 310_000n, reserved: 310_071n };
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.unfundedClaimableAssets).toBe(0n);
+    expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('keeps the position and reports when the escrow diagnostics cannot be read', async () => {
+    // The diagnostics are extra: an RPC that will not answer them must not
+    // take pending shares, Returned Shares or Cancellation Processing with it.
+    // But a read that silently fails is the blind tab again, so it is reported.
+    const failure = new Error('RPC Request failed');
+    maxWithdrawAnswer = failure;
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toMatchObject({ claimableRedeemAssets: 150_000000n, unfundedClaimableAssets: 0n });
+    expect(sentryCaptureException).toHaveBeenCalledWith(
+      failure,
+      expect.objectContaining({ tags: { source: 'READ', chain: 'sepolia' } })
+    );
   });
 
   it('does not read without a connected wallet', () => {

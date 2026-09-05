@@ -30,6 +30,12 @@ export type TransactionEntity = {
 export type CentrifugeVaultEntity = {
   /** The Centrifuge vault's contract address — asserted against the catalog's at resolution. */
   address: `0x${string}`;
+  /**
+   * The pool the Centrifuge vault serves, for its escrow lookup. `_escrow` is
+   * SDK-internal like `_protocolAddresses` (see client.ts): the dependency is
+   * version-pinned, and a renamed internal surfaces in Sentry at first read.
+   */
+  pool: { _escrow(): PromiseLike<string> };
   details(): PromiseLike<{
     maxDeposit: BalanceLike;
   }>;

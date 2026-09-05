@@ -75,7 +75,7 @@ The user-facing name for the share token's price, shown truncated to at most fou
 _Avoid_: Share Price in user-facing copy
 
 **Redemption Position**:
-A wallet's in-flight redemption state on a share class: pending shares awaiting fulfillment, claimable USDC from fulfilled requests, and Returned Shares from cancellations.
+A wallet's in-flight redemption state on a share class: pending shares awaiting fulfillment, claimable USDC from fulfilled requests, Returned Shares from cancellations, and any Unfunded Claim.
 _Avoid_: withdrawal, exit
 
 **Returned Shares**:
@@ -89,6 +89,10 @@ _Avoid_: pending cancel (ambiguous with a pending redeem request)
 **Split Outcome**:
 A Redemption Position holding both claimable USDC and Returned Shares at once — a cancellation landed after partial fulfillment. The UI gates the USDC claim behind the Returned Shares claim.
 _Avoid_: partial cancel
+
+**Unfunded Claim**:
+A settled redemption on a chain whose pool escrow is reserved beyond its holdings: the Centrifuge vault would pay it, but the SDK zeroes every claim on that spoke, so it reads like no position at all. An operations gap (liquidity never moved to the spoke), never something the investor can act on — the redeem tab names it ("settled, awaiting liquidity on <chain>") with no claim control.
+_Avoid_: hidden claim, stuck redemption
 
 ## Example dialogue
 
