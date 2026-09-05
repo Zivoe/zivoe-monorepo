@@ -33,7 +33,8 @@ export type CentrifugeVaultEntity = {
   /**
    * The pool the Centrifuge vault serves, for its escrow lookup. `_escrow` is
    * SDK-internal like `_protocolAddresses` (see client.ts): the dependency is
-   * version-pinned, and a renamed internal surfaces in Sentry at first read.
+   * version-pinned, and a renamed internal fails the position read at first
+   * use — loudly, through the query's error path, never as a silent zero.
    */
   pool: { _escrow(): PromiseLike<string> };
   /**

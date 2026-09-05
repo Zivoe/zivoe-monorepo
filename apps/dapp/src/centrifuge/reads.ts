@@ -199,9 +199,10 @@ const UNFUNDED_CLAIM_ABI = parseAbi([
  * is InvestorAccess's business, not this read's), and the escrow's holding.
  * Read through the app's client rather than compared against the SDK's
  * number: the SDK rides its own client, so the two can answer from different
- * blocks. Diagnostic only: a failed read leaves the position intact with no
- * Unfunded Claim instead of taking the whole position down — reported, since
- * silence here is the blind tab this exists to end.
+ * blocks. A read that fails fails the whole position, exactly like the SDK's
+ * own read: an unknown must never render as a verified nothing, which for the
+ * one wallet this exists for would be the blind tab again. The query's error
+ * path (toast, error refetch) takes it from there.
  */
 export async function readRedemptionPosition({
   centrifugeVault,
@@ -222,13 +223,7 @@ export async function readRedemptionPosition({
 }): Promise<RedemptionPosition> {
   const [investment, unfundedClaim] = await Promise.all([
     centrifugeVault.investment(investor),
-    readUnfundedClaim({ centrifugeVault, investor, client, shareClassId, assetAddress }).catch((error: unknown) => {
-      Sentry.captureException(error, {
-        tags: { source: 'READ', chain },
-        extra: { centrifugeVaultAddress: centrifugeVault.address, investor, read: 'unfundedClaim' }
-      });
-      return 0n;
-    })
+    readUnfundedClaim({ centrifugeVault, investor, client, shareClassId, assetAddress })
   ]);
 
   const claimableRedeemAssets = investment.claimableRedeemAssets.toBigInt();

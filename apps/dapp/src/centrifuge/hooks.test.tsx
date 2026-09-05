@@ -286,22 +286,38 @@ describe('useRedemptionPosition', () => {
     );
   });
 
-  it('keeps the position and reports when the escrow diagnostics cannot be read', async () => {
-    // The diagnostics are extra: an RPC that will not answer them must not
-    // take pending shares, Returned Shares or Cancellation Processing with it.
-    // But a read that silently fails is the blind tab again, so it is reported.
+  it('fails the position when the escrow diagnostics cannot be read', async () => {
+    // A failed diagnostic must not become a verified zero: for the one wallet
+    // the Unfunded Claim exists for (SDK claimable already clamped to 0) that
+    // would be the blind tab again, with no error state to say so. It fails
+    // like any other position read, so the query's error path toasts it.
+    getCentrifugeVault.mockImplementation(() => Promise.resolve(fakeCentrifugeVault({ claimableRedeemAssets: 0n })));
     const failure = new Error('RPC Request failed');
     settledAssetsAnswer = failure;
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toMatchObject({ claimableRedeemAssets: 150_000000n, unfundedClaimableAssets: 0n });
-    expect(sentryCaptureException).toHaveBeenCalledWith(
-      failure,
-      expect.objectContaining({ tags: { source: 'READ', chain: 'sepolia' } })
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBe(failure);
+    expect(result.current.data).toBeUndefined();
+    // Reported once, by the query's own error handling — not a second time here.
+    expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('fails the position when the SDK escrow lookup the diagnostics depend on rejects', async () => {
+    // `_escrow` is an SDK internal (see entities.ts): a rename or a hub-RPC
+    // failure lands here, and must surface the same way, not as a silent zero.
+    const failure = new Error('_escrow is not a function');
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve({ ...fakeCentrifugeVault(), pool: { _escrow: () => Promise.reject(failure) } })
     );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBe(failure);
   });
 
   it('does not read without a connected wallet', () => {
