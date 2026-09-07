@@ -52,7 +52,7 @@ export default function ZivoeVaultCard({
           />
           <Term label="NAV" value={nav !== null ? `$${formatNav(nav)}` : '—'} />
           <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons zivoeVault={zivoeVault} />} />
-          <Term label="Available on" value={<AcceptedChainIcons zivoeVault={zivoeVault} />} />
+          <Term label="Available on" value={<AcceptedChainIcons zivoeVault={zivoeVault} surface="elevated" />} />
         </div>
 
         <div className="flex items-center justify-end gap-1.5 text-regular font-medium text-brand-subtle">

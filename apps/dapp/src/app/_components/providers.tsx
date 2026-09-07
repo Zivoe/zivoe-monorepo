@@ -36,6 +36,7 @@ import { env } from '@/env';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
+import { DynamicNetworkCacheRepair } from './dynamic-network-cache-repair';
 import { PostHogProvider } from './posthog';
 
 /**
@@ -141,6 +142,7 @@ export default function Providers({
             <WagmiProvider config={wagmiConfig} initialState={initialState}>
               <QueryClientProvider client={queryClient}>
                 <DynamicWagmiConnector>
+                  <DynamicNetworkCacheRepair />
                   <WalletTracker />
                   <SentryContext>{children}</SentryContext>
                 </DynamicWagmiConnector>
