@@ -1,5 +1,5 @@
 import { type Address, type Chain, defineChain } from 'viem';
-import { arbitrum, avalanche, base, baseSepolia, hyperEvm, mainnet, optimism, sepolia } from 'viem/chains';
+import { arbitrum, avalanche, base, baseSepolia, hyperEvm, mainnet, optimism, sepolia, xLayer } from 'viem/chains';
 
 /**
  * The two axes of a Centrifuge deployment, split on purpose:
@@ -144,6 +144,14 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     alchemyNetwork: 'hyperliquid-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     usdc: usdcInstance('0xb88339CB7199b77E23DB6E890353E22632Ba630f'),
+    supportsRedeemCancellation: false
+  },
+  xlayer: {
+    viem: xLayer,
+    environment: 'mainnet',
+    alchemyNetwork: 'xlayer-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: usdcInstance('0xB6CEceAB302E2E4948951eE7843FC24E92933061'),
     supportsRedeemCancellation: false
   },
   sepolia: {

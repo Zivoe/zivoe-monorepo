@@ -54,7 +54,8 @@ describe('chain deployments', () => {
       'arbitrum',
       'avalanche',
       'optimism',
-      'hyperliquid'
+      'hyperliquid',
+      'xlayer'
     ]);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
@@ -70,6 +71,7 @@ describe('chain deployments', () => {
     expect(getChainId('avalanche')).toBe(43114);
     expect(getChainId('optimism')).toBe(10);
     expect(getChainId('hyperliquid')).toBe(999);
+    expect(getChainId('xlayer')).toBe(196);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -149,7 +151,8 @@ describe('share-class catalog', () => {
   it.each([
     ['avalanche', 43114, '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31'],
     ['optimism', 10, '0x991de0203E455dfC4B8f38F7c333487c16aDdE55'],
-    ['hyperliquid', 999, '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042']
+    ['hyperliquid', 999, '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042'],
+    ['xlayer', 196, '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF']
   ] as const)(
     'resolves the %s mainnet instance — shared token, chain-specific Centrifuge vault',
     (chain, chainId, centrifugeVaultAddress) => {

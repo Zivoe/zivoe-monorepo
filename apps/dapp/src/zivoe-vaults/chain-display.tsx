@@ -8,7 +8,8 @@ import {
   EthereumIcon,
   HyperliquidIcon,
   OptimismIcon,
-  PharosIcon
+  PharosIcon,
+  XLayerIcon
 } from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
@@ -25,6 +26,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   avalanche: { label: 'Avalanche', Icon: AvalancheIcon },
   optimism: { label: 'Optimism', Icon: OptimismIcon },
   hyperliquid: { label: 'Hyperliquid', Icon: HyperliquidIcon },
+  xlayer: { label: 'X Layer', Icon: XLayerIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 

@@ -36,6 +36,7 @@ export * from './arbitrum';
 export * from './avalanche';
 export * from './optimism';
 export * from './hyperliquid';
+export * from './xlayer';
 export * from './check-circle';
 export * from './close-circle';
 export * from './warning';

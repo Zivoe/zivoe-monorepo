@@ -206,6 +206,12 @@ describe('resolveChainDisplay', () => {
       label: 'HyperEVM',
       explorerUrl: 'https://hyperevmscan.io'
     });
+    expect(
+      resolveChainDisplay(event({ chainId: 196, chainName: 'xlayer', explorerUrl: 'https://www.oklink.com/xlayer' }))
+    ).toEqual({
+      label: 'X Layer Mainnet',
+      explorerUrl: 'https://www.oklink.com/xlayer'
+    });
   });
 
   it('keeps the indexer values for a chain the registry does not know', () => {
