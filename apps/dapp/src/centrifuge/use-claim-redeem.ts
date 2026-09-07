@@ -41,7 +41,7 @@ function claimRedeemCopy({ asset, share }: { asset: string; share: string }) {
 }
 
 type ClaimRedeemVariables = {
-  /** Currently claimable USDC in base units — analytics snapshot; the claim itself is aggregate. */
+  /** Currently claimable deposit-asset proceeds in base units — analytics snapshot; the claim itself is aggregate. */
   claimableAssets: bigint;
 };
 

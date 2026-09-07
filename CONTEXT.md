@@ -79,11 +79,11 @@ The user-facing name for the share token's price, shown truncated to at most fou
 _Avoid_: Share Price in user-facing copy
 
 **Redemption Position**:
-A wallet's in-flight redemption state on a share class: pending shares awaiting fulfillment, claimable USDC from fulfilled requests, Returned Shares from cancellations, and any Unfunded Claim.
+A wallet's in-flight redemption state on a share class: pending shares awaiting fulfillment, claimable Deposit Asset proceeds from fulfilled requests, Returned Shares from cancellations, and any Unfunded Claim.
 _Avoid_: withdrawal, exit
 
 **Returned Shares**:
-Share tokens handed back by a redemption cancellation — the `claimableCancelRedeemShares` bucket, per share class. The SDK's aggregate claim empties this bucket first, so Returned Shares must be claimed before claiming redemption USDC.
+Share tokens handed back by a redemption cancellation — the `claimableCancelRedeemShares` bucket, per share class. The SDK's aggregate claim empties this bucket first, so Returned Shares must be claimed before claiming redemption proceeds.
 _Avoid_: refunded shares, cancelled shares
 
 **Cancellation Processing**:
@@ -91,7 +91,7 @@ The window after a cancel request while the hub unwinds it (`hasPendingCancelRed
 _Avoid_: pending cancel (ambiguous with a pending redeem request)
 
 **Split Outcome**:
-A Redemption Position holding both claimable USDC and Returned Shares at once — a cancellation landed after partial fulfillment. The UI gates the USDC claim behind the Returned Shares claim.
+A Redemption Position holding both claimable proceeds and Returned Shares at once — a cancellation landed after partial fulfillment. The UI gates the proceeds claim behind the Returned Shares claim.
 _Avoid_: partial cancel
 
 **Unfunded Claim**:

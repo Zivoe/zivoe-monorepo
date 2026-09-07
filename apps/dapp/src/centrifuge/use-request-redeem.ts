@@ -41,7 +41,8 @@ type RequestRedeemVariables = {
   /** Exact shares to add to the Redemption Position, in share-token base units. */
   shares: bigint;
   /**
-   * Indicative USDC at the current Share Price, in USDC base units. Optional:
+   * Indicative deposit-asset proceeds at the current Share Price, in the
+   * vault's deposit-asset base units. Optional:
    * the request settles at whatever price applies when it is processed, so a
    * Share Price we could not read holds nothing up — it only costs the
    * receipt its estimate.

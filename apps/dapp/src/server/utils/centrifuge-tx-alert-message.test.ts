@@ -197,6 +197,12 @@ describe('formatTelegramItem', () => {
     expect(item).not.toMatch(/<0\.01/);
   });
 
+  it('keeps the asset symbol when only the amount is unknown on a known chain', () => {
+    const item = formatTelegramItem({ event: event({ currencyAmount: null }), ...shared });
+
+    expect(item).toContain('Amount: ? USDC → 4.40 zSMB @ 1.1348');
+  });
+
   it('falls back to an inline tx hash and the Centrifuge spoke id when the chain is unknown', () => {
     const item = formatTelegramItem({ event: event({ chainId: null, explorerUrl: null, chainName: null }), ...shared });
 

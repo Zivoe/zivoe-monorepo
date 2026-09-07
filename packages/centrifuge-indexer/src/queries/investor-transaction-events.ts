@@ -133,7 +133,7 @@ export type InvestorTransactionEvent = {
   account: string;
   /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units; never negative. */
   tokenAmount: bigint | null;
-  /** Assets moved, in the spoke chain's USDC base units (6 or 18 decimals — resolve via the chain deployment); 0 on redeem requests; never negative. */
+  /** Assets moved, in the vault's deposit-asset base units (a per-vault scale — resolve via `getShareClassChainIdentity(...).asset`, never a constant); 0 on redeem requests; never negative. */
   currencyAmount: bigint | null;
   /** Execution Share Price, D18; 0 when the row carries no price (redeem requests). */
   tokenPrice: bigint | null;

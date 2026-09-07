@@ -136,12 +136,15 @@ export function formatTelegramItem({
   const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
 
   // Amount and symbol together: with no instance for the chain there is no
-  // symbol to name either, so the whole side reads as unknown.
+  // symbol to name either, so the whole side reads as unknown. A known asset
+  // with a missing amount still names the symbol (`? USDC`).
   const asset = resolveDepositAssetDisplay({ event, shareClassKey });
   const assets =
-    event.currencyAmount === null || asset === null
+    asset === null
       ? '?'
-      : `${formatAmount({ value: event.currencyAmount, tokenDecimals: asset.decimals })} ${asset.symbol}`;
+      : event.currencyAmount === null
+        ? `? ${asset.symbol}`
+        : `${formatAmount({ value: event.currencyAmount, tokenDecimals: asset.decimals })} ${asset.symbol}`;
 
   // Redeem-request rows carry price 0; deposits and executed/claimed
   // redemptions carry the D18 execution price.
