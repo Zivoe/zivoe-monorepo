@@ -5,6 +5,7 @@ import {
   CENTRIFUGE_ENVIRONMENT_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
+  assertChainDeploymentInvariants,
   assertShareClassInvariants,
   chainsOfEnvironment,
   createDailyNegativeYieldReporter,
@@ -242,6 +243,38 @@ describe('share-class catalog', () => {
     // Membership only — the whole book is deliberately not asserted.
     expect(listShareClassKeys('testnet')).toContain('zsmb');
     expect(listLiveChains({ environment: 'testnet', key: 'zsmb' })).toContain('sepolia');
+  });
+});
+
+describe('assertChainDeploymentInvariants', () => {
+  const deployment = (decimals: number) => ({
+    a: {
+      vaultRouter: '0xabababababababababababababababababababab',
+      usdc: { address: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', decimals }
+    }
+  });
+
+  it('accepts the real catalog', () => {
+    expect(() => assertChainDeploymentInvariants()).not.toThrow();
+  });
+
+  it('accepts any whole scale up to the protocol ceiling — Binance-Peg USDC is 18', () => {
+    expect(() => assertChainDeploymentInvariants(deployment(6))).not.toThrow();
+    expect(() => assertChainDeploymentInvariants(deployment(18))).not.toThrow();
+  });
+
+  it('throws on a USDC scale the protocol cannot register', () => {
+    expect(() => assertChainDeploymentInvariants(deployment(19))).toThrow(/USDC decimals on "a" are implausible/);
+    expect(() => assertChainDeploymentInvariants(deployment(6.5))).toThrow(/USDC decimals on "a" are implausible/);
+    expect(() => assertChainDeploymentInvariants(deployment(-1))).toThrow(/USDC decimals on "a" are implausible/);
+  });
+
+  it('throws on a placeholder address', () => {
+    expect(() =>
+      assertChainDeploymentInvariants({
+        a: { vaultRouter: '0x0000000000000000000000000000000000000000', usdc: deployment(6).a.usdc }
+      })
+    ).toThrow(/VaultRouter address on "a" is implausible/);
   });
 });
 

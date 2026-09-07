@@ -1,18 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
-import { chainsOfEnvironment, getChainDeployment } from '@zivoe/centrifuge-indexer';
+import type { CentrifugeChain, InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
 
 import {
-  USDC_DISPLAY,
   buildExplorerLink,
   formatEmailLine,
   formatTelegramItem,
-  resolveChainDisplay
+  resolveChainDisplay,
+  resolveDepositAssetDisplay
 } from './centrifuge-tx-alert-message';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+
+// Lets a test stand in an 18-decimal USDC (BNB Smart Chain's Binance-Peg
+// shape) on a real chain id: the catalog carries no such chain yet, and the
+// renderers must scale by the event chain's instance, never by a constant.
+const mocks = vi.hoisted(() => ({ eighteenDecimalUsdcChain: undefined as string | undefined }));
+vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getChainDeployment: (chain: CentrifugeChain) => {
+      const deployment = actual.getChainDeployment(chain);
+      return chain === mocks.eighteenDecimalUsdcChain
+        ? { ...deployment, usdc: { ...deployment.usdc, decimals: 18 } }
+        : deployment;
+    }
+  };
+});
+
+afterEach(() => {
+  mocks.eighteenDecimalUsdcChain = undefined;
+});
 
 function event(overrides: Partial<InvestorTransactionEvent> = {}): InvestorTransactionEvent {
   return {
@@ -64,14 +84,17 @@ describe('buildExplorerLink', () => {
   });
 });
 
-describe('USDC_DISPLAY', () => {
-  it('matches every chain-instantiated USDC — the uniformity that lets the formatter skip chain config', () => {
-    for (const environment of ['mainnet', 'testnet'] as const) {
-      for (const chain of chainsOfEnvironment(environment)) {
-        const { symbol, decimals } = getChainDeployment(chain).usdc;
-        expect({ chain, symbol, decimals }).toEqual({ chain, ...USDC_DISPLAY });
-      }
-    }
+describe('resolveDepositAssetDisplay', () => {
+  it('reads the USDC instance off the event chain — the scale is per chain, never a constant', () => {
+    expect(resolveDepositAssetDisplay(event({ chainId: 1 }))).toEqual({ symbol: 'USDC', decimals: 6 });
+
+    mocks.eighteenDecimalUsdcChain = 'ethereum';
+    expect(resolveDepositAssetDisplay(event({ chainId: 1 }))).toEqual({ symbol: 'USDC', decimals: 18 });
+  });
+
+  it('is null for a chain the registry does not know — an amount without a scale is unreadable', () => {
+    expect(resolveDepositAssetDisplay(event({ chainId: null }))).toBeNull();
+    expect(resolveDepositAssetDisplay(event({ chainId: 98866 }))).toBeNull();
   });
 });
 
@@ -93,6 +116,13 @@ describe('formatTelegramItem', () => {
     expect(item).toContain(
       'href="https://etherscan.io/tx/0xccdab4d1b295d7a91f437ae2d9840b914cc8b94009c4edae1b44284f68cc619e"'
     );
+  });
+
+  it("scales the asset amount by the event chain's USDC — 5 USDC on an 18-decimal chain is 5e18 base units", () => {
+    mocks.eighteenDecimalUsdcChain = 'ethereum';
+    const item = formatTelegramItem({ event: event({ currencyAmount: 5_000_000_000_000_000_000n }), ...shared });
+
+    expect(item).toContain('Amount: 5.00 USDC → 4.40 zSMB @ 1.1348');
   });
 
   it('formats a redemption request as a per-call delta without a price', () => {
@@ -157,6 +187,10 @@ describe('formatTelegramItem', () => {
 
     expect(item).toContain(`Tx: <code>${event().txHash}</code>`);
     expect(item).toContain('Chain: Centrifuge chain 1');
+    // No chain means no USDC instance, so the asset side is unknown rather
+    // than rendered at a guessed scale.
+    expect(item).toContain('Amount: ? → 4.40 zSMB @ 1.1348');
+    expect(item).not.toContain('USDC');
   });
 });
 

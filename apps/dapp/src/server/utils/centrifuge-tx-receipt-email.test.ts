@@ -1,11 +1,34 @@
 import { render } from '@react-email/components';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import type { CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+
+// Lets a test stand in an 18-decimal USDC (BNB Smart Chain's Binance-Peg
+// shape) on a real chain id: the catalog carries no such chain yet, and the
+// renderers must scale by the event chain's instance, never by a constant.
+const mocks = vi.hoisted(() => ({ eighteenDecimalUsdcChain: undefined as string | undefined }));
+vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getChainDeployment: (chain: CentrifugeChain) => {
+      const deployment = actual.getChainDeployment(chain);
+      return chain === mocks.eighteenDecimalUsdcChain
+        ? { ...deployment, usdc: { ...deployment.usdc, decimals: 18 } }
+        : deployment;
+    }
+  };
+});
+
+afterEach(() => {
+  mocks.eighteenDecimalUsdcChain = undefined;
+});
 
 const UNSUBSCRIBE_URL = 'https://app.test/unsubscribe?token=t';
 const VIEW_IN_APP_URL = 'https://app.test/vaults/zivoe-smb-credit';
@@ -67,6 +90,25 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).not.toContain('does not constitute an offer to sell');
   });
 
+  it("deposit on an 18-decimal chain: the amount is scaled by that chain's USDC, not a constant", async () => {
+    mocks.eighteenDecimalUsdcChain = 'ethereum';
+    const { email } = build({ currencyAmount: 5_000_000_000_000_000_000n });
+    const html = await render(email);
+
+    expect(html).toContain('5.00 USDC deposited into zSMB');
+    expect(html).not.toContain('5,000,000,000,000');
+  });
+
+  it('claimable on a chain the registry does not know: the asset side degrades to neutral copy, never a guessed scale', async () => {
+    const { email } = build({ type: 'REDEEM_CLAIMABLE', chainId: null, chainName: 'plume', explorerUrl: null });
+    const html = await render(email);
+
+    expect(html).toContain('Funds are ready to claim in the app on plume.');
+    expect(html).toContain('Claim in App');
+    expect(html).toContain('Your redemption is ready to claim');
+    expect(html).not.toContain('USDC');
+  });
+
   it('redemption request: names only the shares this call added', async () => {
     // currencyAmount is 0 on redeem requests, per the indexer contract.
     const { subject, email } = build({ type: 'REDEEM_REQUEST_UPDATED', currencyAmount: 0n });
@@ -121,6 +163,10 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('0xccda...619e');
     expect(html).not.toContain('/tx/0xccdab4d1');
     expect(html).toContain('pharos');
+    // An unknown chain has no USDC instance either: the amount shows as
+    // absent instead of at a guessed scale, and the preview falls back.
+    expect(html).not.toContain('5.00 USDC');
+    expect(html).toContain('Your deposit receipt is ready');
   });
 
   it('absent amounts render as a dash, never as NaN or zero, and stay out of the preview line', async () => {

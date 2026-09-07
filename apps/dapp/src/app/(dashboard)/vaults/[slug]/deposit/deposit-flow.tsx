@@ -185,7 +185,7 @@ export function DepositFlow() {
       contract: usdc.address,
       spender: vaultRouterAddress,
       amount: depositRaw,
-      name: 'USDC',
+      name: usdc.symbol,
       decimals: usdc.decimals,
       abi: erc20Abi,
       successMessage: 'You can now deposit USDC.',

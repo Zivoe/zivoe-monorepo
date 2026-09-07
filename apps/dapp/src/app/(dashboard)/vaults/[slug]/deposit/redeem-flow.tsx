@@ -128,7 +128,7 @@ export default function RedeemFlow() {
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
 
   const estimatedAssets =
-    hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice, shareClass: share }) : undefined;
+    hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice, shareClass: share, usdc }) : undefined;
   const redeemDollarValue =
     redeemRaw !== undefined && sharePrice
       ? sharesToValueD18({ shares: redeemRaw, sharePrice, shareClass: share })
@@ -524,7 +524,7 @@ function RedemptionProcessingStrip({
   };
 }) {
   const { usdc, shareClass } = centrifugeVault;
-  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
+  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass, usdc }) : undefined;
 
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">

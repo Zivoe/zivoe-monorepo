@@ -4,7 +4,7 @@ import { type ReactElement } from 'react';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
-import { USDC_DISPLAY, buildExplorerLink, resolveChainDisplay } from './centrifuge-tx-alert-message';
+import { buildExplorerLink, resolveChainDisplay, resolveDepositAssetDisplay } from './centrifuge-tx-alert-message';
 import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
 import TransactionReceiptEmail from './emails/transaction-receipt-email';
 
@@ -19,18 +19,16 @@ import TransactionReceiptEmail from './emails/transaction-receipt-email';
  * "a wallet linked to your account", never "your" transaction.
  */
 
-/** Two-decimal amount with the token's symbol, dust shown as `<0.01`; an absent amount shows a dash. */
+/** Two-decimal amount with the token's symbol, dust shown as `<0.01`; an absent amount (or an unknown token) shows a dash. */
 function formatTokenAmount({
   value,
-  tokenDecimals,
-  symbol
+  token
 }: {
   value: bigint | null;
-  tokenDecimals: number;
-  symbol: string;
+  token: { decimals: number; symbol: string } | null;
 }): string {
-  if (value === null) return '—';
-  return `${formatBigIntWithCommas({ value, tokenDecimals, displayDecimals: 2, showUnderZero: true })} ${symbol}`;
+  if (value === null || token === null) return '—';
+  return `${formatBigIntWithCommas({ value, tokenDecimals: token.decimals, displayDecimals: 2, showUnderZero: true })} ${token.symbol}`;
 }
 
 export function buildTransactionReceiptEmail({
@@ -59,20 +57,19 @@ export function buildTransactionReceiptEmail({
     unsubscribeUrl
   };
 
-  const sharesAmount = formatTokenAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals, symbol });
-  const assetsAmount = formatTokenAmount({
-    value: event.currencyAmount,
-    tokenDecimals: USDC_DISPLAY.decimals,
-    symbol: USDC_DISPLAY.symbol
-  });
-  const sharesToAssets = {
-    from: { symbol, value: sharesAmount },
-    to: { symbol: USDC_DISPLAY.symbol, value: assetsAmount }
-  };
+  const sharesAmount = formatTokenAmount({ value: event.tokenAmount, token: { decimals: shareDecimals, symbol } });
+  // The chain's own USDC instance — null when the event names no chain this
+  // deployment knows, in which case the asset side (amount, flow row, and the
+  // copy that names the symbol) degrades to neutral wording.
+  const usdc = resolveDepositAssetDisplay(event);
+  const assetsAmount = formatTokenAmount({ value: event.currencyAmount, token: usdc });
+  const sharesToAssets = usdc
+    ? { from: { symbol, value: sharesAmount }, to: { symbol: usdc.symbol, value: assetsAmount } }
+    : undefined;
   // Inbox preview lines lead with the amount when it is known — a dash there
   // reads as a broken email, so an absent amount falls back to a plain line.
   const hasShares = event.tokenAmount !== null;
-  const hasAssets = event.currencyAmount !== null;
+  const hasAssets = event.currencyAmount !== null && usdc !== null;
 
   // Exhaustive without a default on purpose: a type widened at the boundary
   // but unhandled here fails the build instead of sending a mislabeled email.
@@ -87,7 +84,11 @@ export function buildTransactionReceiptEmail({
             heading="Deposit Receipt"
             subtitle={`${symbol} has been transferred to a wallet linked to your account.`}
             statusLabel="Success"
-            flow={{ from: { symbol: USDC_DISPLAY.symbol, value: assetsAmount }, to: { symbol, value: sharesAmount } }}
+            flow={
+              usdc
+                ? { from: { symbol: usdc.symbol, value: assetsAmount }, to: { symbol, value: sharesAmount } }
+                : undefined
+            }
             amountLabel="Amount Deposited"
             amountValue={assetsAmount}
             ctaLabel="View In App"
@@ -130,14 +131,14 @@ export function buildTransactionReceiptEmail({
             heading="Ready to Claim"
             // The claim is chain-scoped in the app, so the chain is named here
             // — the CTA lands on the vault page, not on a chain.
-            subtitle={`A redemption from a wallet linked to your account has been processed. ${USDC_DISPLAY.symbol} is ready to claim in the app on ${chain.label}.`}
+            subtitle={`A redemption from a wallet linked to your account has been processed. ${usdc ? `${usdc.symbol} is` : 'Funds are'} ready to claim in the app on ${chain.label}.`}
             statusLabel="Ready to claim"
             flow={sharesToAssets}
             // Shares the manager approved in this fill — nothing is redeemed
             // until the claim, which the next email confirms.
             amountLabel="Amount Approved"
             amountValue={sharesAmount}
-            ctaLabel={`Claim ${USDC_DISPLAY.symbol} in App`}
+            ctaLabel={usdc ? `Claim ${usdc.symbol} in App` : 'Claim in App'}
             // The claim control lives on the redeem tab; ?view= is the page's
             // validated tab selector (and opens the dialog on mobile).
             ctaUrl={`${viewInAppUrl}?view=redeem`}
@@ -157,7 +158,7 @@ export function buildTransactionReceiptEmail({
                 : 'Your redemption receipt is ready'
             }
             heading="Redemption Receipt"
-            subtitle={`${USDC_DISPLAY.symbol} has been transferred to a wallet linked to your account.`}
+            subtitle={`${usdc ? `${usdc.symbol} has` : 'Funds have'} been transferred to a wallet linked to your account.`}
             statusLabel="Success"
             flow={sharesToAssets}
             amountLabel="Amount Redeemed"

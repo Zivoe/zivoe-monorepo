@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { type InvestorTransactionEvent, USDC_DECIMALS, type UsdcInstance } from '@zivoe/centrifuge-indexer';
+import { type InvestorTransactionEvent, type UsdcInstance, getChainDeployment } from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
@@ -11,23 +11,14 @@ import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
  * taint sources — account, chain name, emails, the link — and at the amount
  * formatter, whose dust marker is a literal `<0.01` that Telegram's HTML
  * parser would reject as a tag. Catalog-controlled symbols are trusted.
- * Two exports are channel-neutral and shared with the email renderer
- * (centrifuge-tx-receipt-email): resolveChainDisplay and buildExplorerLink —
- * neither escapes, so a change to the escaping rules here never leaks into
- * (or out of) the email path.
+ * Three exports are channel-neutral and shared with the email renderer
+ * (centrifuge-tx-receipt-email): resolveChainDisplay, resolveDepositAssetDisplay
+ * and buildExplorerLink — none escapes, so a change to the escaping rules
+ * here never leaks into (or out of) the email path.
  */
 
 /** Longest email list one item may carry — the overflow is counted, bounding item length. */
 const MAX_EMAILS_SHOWN = 3;
-
-/**
- * The deposit asset's display shape — identical on every chain (the shared
- * catalog instantiates USDC per chain from one constant), which is what lets
- * the formatter skip per-chain config entirely. If a chain ever carries a
- * divergent instance (USDC.e, other decimals), this must become per-chain
- * again — the test suite pins the uniformity.
- */
-export const USDC_DISPLAY: Pick<UsdcInstance, 'symbol' | 'decimals'> = { symbol: 'USDC', decimals: USDC_DECIMALS };
 
 /**
  * "Linked email: a@b.c" line. "Linked" is load-bearing: the wallet↔account
@@ -63,6 +54,24 @@ export function resolveChainDisplay(
 }
 
 /**
+ * The USDC instance behind the event's chain, read off the chain deployment
+ * per event because USDC's scale is per chain (6 on Circle-native chains,
+ * 18 on BNB Smart Chain). Null for a row the indexer attached no known
+ * chain to: its amount then has no readable scale, and both renderers show
+ * it as absent rather than at a guessed one — a 10^12x misprint in an
+ * investor's receipt is worse than a dash.
+ */
+export function resolveDepositAssetDisplay(
+  event: Pick<InvestorTransactionEvent, 'chainId'>
+): Pick<UsdcInstance, 'symbol' | 'decimals'> | null {
+  const chain = event.chainId === null ? undefined : chainOfChainId(event.chainId);
+  if (!chain) return null;
+
+  const { symbol, decimals } = getChainDeployment(chain).usdc;
+  return { symbol, decimals };
+}
+
+/**
  * Explorer link at `path` under the chain's explorer base, or null when there
  * is no usable http(s) base. Channel-neutral like resolveChainDisplay — the
  * email renderer builds its tx and address links through the same guard.
@@ -95,7 +104,6 @@ export function formatTelegramItem({
   shareDecimals: number;
   emailLine: string;
 }): string {
-  const usdc = USDC_DISPLAY;
   const shares =
     event.tokenAmount === null ? '?' : formatAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals });
 
@@ -108,8 +116,13 @@ export function formatTelegramItem({
 
   const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
 
+  // Amount and symbol together: with no instance for the chain there is no
+  // symbol to name either, so the whole side reads as unknown.
+  const usdc = resolveDepositAssetDisplay(event);
   const assets =
-    event.currencyAmount === null ? '?' : formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals });
+    event.currencyAmount === null || usdc === null
+      ? '?'
+      : `${formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals })} ${usdc.symbol}`;
 
   // Redeem-request rows carry price 0; deposits and executed/claimed
   // redemptions carry the D18 execution price.
@@ -123,12 +136,9 @@ export function formatTelegramItem({
   // falling through to a mislabeled alert.
   switch (event.type) {
     case 'SYNC_DEPOSIT':
-      return [
-        `<b>Deposit</b> — ${symbol}`,
-        ...head,
-        `Amount: ${assets} ${usdc.symbol} → ${shares} ${symbol}${price}`,
-        chainLine
-      ].join('\n');
+      return [`<b>Deposit</b> — ${symbol}`, ...head, `Amount: ${assets} → ${shares} ${symbol}${price}`, chainLine].join(
+        '\n'
+      );
 
     case 'REDEEM_REQUEST_UPDATED':
       return [
@@ -147,7 +157,7 @@ export function formatTelegramItem({
       return [
         `<b>${event.type === 'REDEEM_CLAIMABLE' ? 'Redemption Claimable' : 'Redemption Claimed'}</b> — ${symbol}`,
         ...head,
-        `Amount: ${shares} ${symbol} → ${assets} ${usdc.symbol}${price}`,
+        `Amount: ${shares} ${symbol} → ${assets}${price}`,
         chainLine
       ].join('\n');
   }
