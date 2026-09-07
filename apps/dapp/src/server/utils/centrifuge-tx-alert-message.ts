@@ -1,6 +1,10 @@
 import 'server-only';
 
-import { type InvestorTransactionEvent, type UsdcInstance, getChainDeployment } from '@zivoe/centrifuge-indexer';
+import {
+  type DepositAsset,
+  type InvestorTransactionEvent,
+  getShareClassChainIdentity
+} from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
@@ -54,21 +58,34 @@ export function resolveChainDisplay(
 }
 
 /**
- * The USDC instance behind the event's chain, read off the chain deployment
- * per event because USDC's scale is per chain (6 on Circle-native chains,
- * 18 on BNB Smart Chain). Null for a row the indexer attached no known
- * chain to: its amount then has no readable scale, and both renderers show
+ * The deposit asset behind the event: the catalog's instance for the share
+ * class's Centrifuge vault on the event's chain, resolved per event because
+ * symbol and scale are facts of that vault (USDC is 6 decimals on Circle-
+ * native chains, 18 on BNB Smart Chain; another class may accept DAI). Null
+ * when the event names no chain this deployment knows, or the class is not
+ * live there: the amount then has no readable scale, and both renderers show
  * it as absent rather than at a guessed one — a 10^12x misprint in an
  * investor's receipt is worse than a dash.
  */
-export function resolveDepositAssetDisplay(
-  event: Pick<InvestorTransactionEvent, 'chainId'>
-): Pick<UsdcInstance, 'symbol' | 'decimals'> | null {
+export function resolveDepositAssetDisplay({
+  event,
+  shareClassKey
+}: {
+  event: Pick<InvestorTransactionEvent, 'chainId'>;
+  shareClassKey: string;
+}): Pick<DepositAsset, 'symbol' | 'decimals'> | null {
   const chain = event.chainId === null ? undefined : chainOfChainId(event.chainId);
   if (!chain) return null;
 
-  const { symbol, decimals } = getChainDeployment(chain).usdc;
-  return { symbol, decimals };
+  // The catalog's chain identity is a trust boundary that throws for a class
+  // unknown, unavailable or staged on the chain — for a formatter that is
+  // "no asset to name", not a failed pass.
+  try {
+    const { symbol, decimals } = getShareClassChainIdentity({ chain, key: shareClassKey }).asset;
+    return { symbol, decimals };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -97,11 +114,13 @@ export function formatTelegramItem({
   event,
   symbol,
   shareDecimals,
+  shareClassKey,
   emailLine
 }: {
   event: InvestorTransactionEvent;
   symbol: string;
   shareDecimals: number;
+  shareClassKey: string;
   emailLine: string;
 }): string {
   const shares =
@@ -118,11 +137,11 @@ export function formatTelegramItem({
 
   // Amount and symbol together: with no instance for the chain there is no
   // symbol to name either, so the whole side reads as unknown.
-  const usdc = resolveDepositAssetDisplay(event);
+  const asset = resolveDepositAssetDisplay({ event, shareClassKey });
   const assets =
-    event.currencyAmount === null || usdc === null
+    event.currencyAmount === null || asset === null
       ? '?'
-      : `${formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals })} ${usdc.symbol}`;
+      : `${formatAmount({ value: event.currencyAmount, tokenDecimals: asset.decimals })} ${asset.symbol}`;
 
   // Redeem-request rows carry price 0; deposits and executed/claimed
   // redemptions carry the D18 execution price.

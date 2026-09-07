@@ -25,7 +25,7 @@ export {
   type ZivoeVaultDetailLabel,
   type ZivoeVaultStatus
 } from './zivoe-vault';
-export { zivoeVaultChains } from './availability';
+export { zivoeVaultChains, zivoeVaultDepositAssets } from './availability';
 export { zivoeVaultChainDisplays } from './chain-display';
 export { ZSMB_ZIVOE_VAULT } from './zsmb';
 
@@ -77,13 +77,14 @@ export function resolveTransactionIdentity(
     chain: identityChain,
     chainId,
     centrifugeVaultAddress,
+    asset,
     ...shareClass
   } = getShareClassChainIdentity({ chain, key: zivoeVault.shareClass.key });
 
   // Chain facts are resolved ONCE here, onto the identity — hooks and flows
-  // read usdc/vaultRouterAddress off the identity instead of the catalog in
-  // render paths.
-  const { usdc, vaultRouter, supportsRedeemCancellation } = getChainDeployment(chain);
+  // read the asset/vaultRouterAddress off the identity instead of the catalog
+  // in render paths.
+  const { vaultRouter, supportsRedeemCancellation } = getChainDeployment(chain);
 
   return {
     zivoeVaultSlug: zivoeVault.slug,
@@ -91,7 +92,7 @@ export function resolveTransactionIdentity(
       chain: identityChain,
       chainId,
       address: centrifugeVaultAddress,
-      usdc,
+      asset,
       vaultRouterAddress: vaultRouter,
       supportsRedeemCancellation,
       shareClass

@@ -7,6 +7,9 @@ import { ZIVOE_VAULTS } from '@/zivoe-vaults';
 
 type TokenInfo = { label: string; description: string; icon: React.ReactNode };
 
+// Keyed by the catalog's deposit asset symbols, so a stablecoin added to the
+// catalog demands its display entry here at compile time. One entry per
+// symbol: USDC at 6 and at 18 decimals share one icon and name on purpose.
 const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
   USDC: {
     label: 'USDC',

@@ -1,4 +1,4 @@
-import { type CentrifugeChain, listLiveChains } from '@zivoe/centrifuge-indexer';
+import { type CentrifugeChain, type DepositAsset, listDepositAssets, listLiveChains } from '@zivoe/centrifuge-indexer';
 
 import { ACTIVE_ENVIRONMENT } from '@/lib/chains';
 
@@ -12,4 +12,15 @@ import { type ZivoeVault } from './zivoe-vault';
  */
 export function zivoeVaultChains(zivoeVault: Pick<ZivoeVault, 'shareClass'>): Array<CentrifugeChain> {
   return listLiveChains({ environment: ACTIVE_ENVIRONMENT, key: zivoeVault.shareClass.key });
+}
+
+/**
+ * The distinct stablecoins this Zivoe Vault accepts across its live chains
+ * in this deployment, deduped by symbol — the one derivation behind every
+ * "accepted stablecoins" surface (listing card, Details row), deployment-
+ * scoped like zivoeVaultChains so it never advertises an asset only a chain
+ * this environment does not serve accepts.
+ */
+export function zivoeVaultDepositAssets(zivoeVault: Pick<ZivoeVault, 'shareClass'>): Array<DepositAsset> {
+  return listDepositAssets({ environment: ACTIVE_ENVIRONMENT, key: zivoeVault.shareClass.key });
 }

@@ -48,8 +48,8 @@ export function useCancelRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { usdc, shareClass } = identity.centrifugeVault;
-  const copy = cancelRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
+  const { asset, shareClass } = identity.centrifugeVault;
+  const copy = cancelRedeemCopy({ asset: asset.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<CancelRedeemVariables>({
     identity,

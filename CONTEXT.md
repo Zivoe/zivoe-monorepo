@@ -51,8 +51,12 @@ One spoke network inside an Environment (`ethereum`, `pharos`, `base`, `arbitrum
 \_Avoid*: network (ambiguous)
 
 **Share Class Catalog**:
-The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/share-classes.ts`, with chain facts beside it in `chains.ts`): symbol, decimals, and per-environment hub identity (pool id, scId) with per-chain token instances, each carrying a `status` of `staged` (no addresses, by construction) or `live`. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import, and `pnpm centrifuge:verify` checks every live entry against the chain, the SDK and the indexer before a deploy.
+The shared serializable record of every Centrifuge share class Zivoe integrates (`packages/centrifuge-indexer/src/share-classes.ts`, with chain facts beside it in `chains.ts`): symbol, decimals, and per-environment hub identity (pool id, scId) with per-chain token instances, each carrying a `status` of `staged` (no addresses, by construction) or `live` — a live entry names the share token, the Centrifuge Vault, and the Deposit Asset that vault accepts. The single source both apps derive share-class identity from; it guards its own symbol/id uniqueness at import, and `pnpm centrifuge:verify` checks every live entry against the chain, the SDK and the indexer before a deploy.
 _Avoid_: manifest (an undocumented synonym — say catalog), config (that is the dApp's environment singleton, `CENTRIFUGE_ENV`), token list
+
+**Deposit Asset**:
+The stablecoin one Centrifuge Vault accepts, authored on the Share Class Catalog's live chain entry as `asset: { address, symbol, decimals }` (type `DepositAsset`) and carried onto the Transaction Identity as `centrifugeVault.asset`. Symbol and scale are facts of that token, not of the symbol — Circle-native USDC is 6 decimals, BNB Smart Chain's Binance-Peg USDC is 18 — so nothing may assume a scale: flows, hooks, alerts and receipts all read it off the identity or the catalog, `sharesToDepositAsset` takes it as input, and `DepositAssetSymbol` derives the display maps' key union. One per entry today; a second asset on one chain is a list here plus an asset dimension on every chain-scoped key (see Centrifuge Vault).
+_Avoid_: USDC as a synonym (it is one Deposit Asset), a global decimals constant, `usdc` as an identifier for the asset
 
 **Share-Class Key**:
 The Share Class Catalog key naming one class (e.g. `zSMB`) — the share-class dimension of query keys, caches, and Centrifuge Vault resolution. It travels as a plain string through providers and caches; `getShareClassIdentity` is the runtime trust boundary that validates it.

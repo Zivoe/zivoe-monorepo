@@ -17,11 +17,11 @@ vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getChainDeployment: (chain: CentrifugeChain) => {
-      const deployment = actual.getChainDeployment(chain);
-      return chain === mocks.eighteenDecimalUsdcChain
-        ? { ...deployment, usdc: { ...deployment.usdc, decimals: 18 } }
-        : deployment;
+    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
+      const identity = actual.getShareClassChainIdentity(args);
+      return args.chain === mocks.eighteenDecimalUsdcChain
+        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
+        : identity;
     }
   };
 });
@@ -163,7 +163,7 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('0xccda...619e');
     expect(html).not.toContain('/tx/0xccdab4d1');
     expect(html).toContain('pharos');
-    // An unknown chain has no USDC instance either: the amount shows as
+    // An unknown chain has no deposit asset either: the amount shows as
     // absent instead of at a guessed scale, and the preview falls back.
     expect(html).not.toContain('5.00 USDC');
     expect(html).toContain('Your deposit receipt is ready');

@@ -7,7 +7,7 @@
  *   pnpm centrifuge:verify mainnet    # one environment
  *
  * Per live (share class × chain) it checks that:
- *   - the SDK resolves our Centrifuge vault from pool id + share-class id + USDC
+ *   - the SDK resolves our Centrifuge vault from pool id + share-class id + deposit asset
  *   - the Centrifuge vault is sync-deposit / async-redeem, the shape the flows assume
  *   - its share token, share decimals and asset decimals match ours
  *   - the protocol's VaultRouter (live, and the SDK's bundled mainnet allowlist) matches ours
@@ -259,12 +259,12 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
     for (const chain of listLiveChains({ environment, key })) {
       const identity = getShareClassChainIdentity({ chain, key });
       const subject = `${key} on ${chain}`;
-      const { usdc } = getChainDeployment(chain);
+      const { asset } = identity;
 
       try {
         const centrifugeId = await centrifuge.id(identity.chainId);
         const pool = await centrifuge.pool(new PoolId(identity.poolId));
-        const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), usdc.address);
+        const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), asset.address);
         verify({
           subject,
           fact: 'Centrifuge vault',
@@ -286,11 +286,12 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
           expected: String(identity.decimals),
           actual: String(details.share.decimals)
         });
-        verify({ subject, fact: 'USDC', expected: usdc.address, actual: details.asset.address });
+        verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
+        verify({ subject, fact: 'deposit asset symbol', expected: asset.symbol, actual: details.asset.symbol });
         verify({
           subject,
-          fact: 'USDC decimals',
-          expected: String(usdc.decimals),
+          fact: 'deposit asset decimals',
+          expected: String(asset.decimals),
           actual: String(details.asset.decimals)
         });
 

@@ -26,25 +26,6 @@ export const CENTRIFUGE_ENVIRONMENT_FACTS: Record<CentrifugeEnvironment, { index
   testnet: { indexerUrl: 'https://api-v3-test.cfg.embrio.tech' }
 };
 
-/** The one deposit asset every Zivoe Vault accepts — a global product assumption, instantiated per chain. */
-export type UsdcInstance = { address: Address; symbol: string; decimals: number };
-
-/**
- * Circle-native USDC is 6 decimals, but not every chain's USDC is Circle's:
- * BNB Smart Chain's is the 18-decimal Binance-Peg token, and the Centrifuge
- * vault there accepts that one. Each chain deployment therefore authors its
- * USDC scale beside the address, and nothing else may assume one — chain-
- * scoped code reads `usdc.decimals` off its chain deployment, hub-side
- * conversions take the instance as input. The lint below bounds the value
- * to the protocol's maximum, and `pnpm centrifuge:verify` checks each one
- * against what the chain's Centrifuge vault reports.
- */
-const usdcInstance = ({ address, decimals }: { address: Address; decimals: number }): UsdcInstance => ({
-  address,
-  symbol: 'USDC',
-  decimals
-});
-
 /**
  * Everything a spoke chain is, in one record: its viem definition (the chain
  * id and RPC/explorer facts wallets and clients act on), the environment it
@@ -55,9 +36,8 @@ export type CentrifugeChainDeployment = {
   environment: CentrifugeEnvironment;
   /** Alchemy's per-network subdomain — the environment's one key fans out to a distinct URL per chain. */
   alchemyNetwork: string;
-  /** Deposits route through the chain's VaultRouter — the USDC approval spender. */
+  /** Deposits route through the chain's VaultRouter — the deposit asset's approval spender. */
   vaultRouter: Address;
-  usdc: UsdcInstance;
   /**
    * Whether the dApp offers cancelling a pending redemption request here.
    * Cancellation needs a hub-side unwind that is only automated where hub and
@@ -98,7 +78,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'eth-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6 }),
     supportsRedeemCancellation: true
   },
   pharos: {
@@ -106,7 +85,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'pharos-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   base: {
@@ -114,7 +92,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'base-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   arbitrum: {
@@ -122,7 +99,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'arb-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   avalanche: {
@@ -130,7 +106,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'avax-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   optimism: {
@@ -138,7 +113,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'opt-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   hyperliquid: {
@@ -146,7 +120,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'hyperliquid-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   xlayer: {
@@ -154,7 +127,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'xlayer-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    usdc: usdcInstance({ address: '0xB6CEceAB302E2E4948951eE7843FC24E92933061', decimals: 6 }),
     supportsRedeemCancellation: false
   },
   sepolia: {
@@ -162,7 +134,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'testnet',
     alchemyNetwork: 'eth-sepolia',
     vaultRouter: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
-    usdc: usdcInstance({ address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', decimals: 6 }),
     supportsRedeemCancellation: true
   },
   'base-sepolia': {
@@ -170,7 +141,6 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'testnet',
     alchemyNetwork: 'base-sepolia',
     vaultRouter: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
-    usdc: usdcInstance({ address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', decimals: 6 }),
     supportsRedeemCancellation: false
   }
 } as const satisfies Record<string, CentrifugeChainDeployment>;
@@ -188,35 +158,16 @@ export function isPlausibleAddress(address: string): boolean {
 }
 
 /**
- * Centrifuge's asset ceiling: Spoke and HubRegistry refuse to register an
- * asset above it because PricingLib's conversions assume decimals <= 18.
- * A catalog value past it cannot be a vault's asset, whatever the token says.
- */
-const MAX_ASSET_DECIMALS = 18;
-
-/**
  * Data lint over the chain deployments, run once at module load (below) so a
  * bad entry fails every build that imports the catalog. Exported for the
  * test suite, which exercises each rule against synthetic deployments.
  */
 export function assertChainDeploymentInvariants(
-  deployments: Record<
-    string,
-    { vaultRouter: string; usdc: { address: string; decimals: number } }
-  > = CENTRIFUGE_CHAIN_DEPLOYMENTS
+  deployments: Record<string, { vaultRouter: string }> = CENTRIFUGE_CHAIN_DEPLOYMENTS
 ): void {
   for (const [chain, deployment] of Object.entries(deployments)) {
-    for (const [contract, address] of [
-      ['VaultRouter', deployment.vaultRouter],
-      ['USDC', deployment.usdc.address]
-    ] as const) {
-      if (!isPlausibleAddress(address))
-        throw new Error(`The ${contract} address on "${chain}" is implausible: "${address}".`);
-    }
-
-    const { decimals } = deployment.usdc;
-    if (!Number.isInteger(decimals) || decimals < 0 || decimals > MAX_ASSET_DECIMALS)
-      throw new Error(`The USDC decimals on "${chain}" are implausible: ${String(decimals)}.`);
+    if (!isPlausibleAddress(deployment.vaultRouter))
+      throw new Error(`The VaultRouter address on "${chain}" is implausible: "${deployment.vaultRouter}".`);
   }
 }
 

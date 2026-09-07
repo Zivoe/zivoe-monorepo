@@ -1,6 +1,6 @@
 import { type Address } from 'viem';
 
-import { type ShareClassChainIdentity, type UsdcInstance } from '@zivoe/centrifuge-indexer';
+import { type DepositAsset, type ShareClassChainIdentity } from '@zivoe/centrifuge-indexer';
 
 /**
  * The Centrifuge vault a hook transacts and reads against — one share class
@@ -16,14 +16,17 @@ import { type ShareClassChainIdentity, type UsdcInstance } from '@zivoe/centrifu
 export type TransactedCentrifugeVault = Pick<ShareClassChainIdentity, 'chain' | 'chainId'> & {
   /** The Centrifuge vault's own address on the chain. */
   address: Address;
-  /** The chain's USDC instance — resolved onto the identity so hooks and flows never re-derive chain facts in render paths. */
-  usdc: UsdcInstance;
-  /** The chain's VaultRouter — deposits route through it, so it is the USDC approval spender. */
+  /** The deposit asset this Centrifuge vault accepts — the catalog's per-chain instance (address, symbol, scale), resolved onto the identity so hooks and flows never re-derive it in render paths. */
+  asset: DepositAsset;
+  /** The chain's VaultRouter — deposits route through it, so it is the deposit asset's approval spender. */
   vaultRouterAddress: Address;
   /** Whether the redeem tab offers cancelling a pending request on this chain — see CentrifugeChainDeployment. */
   supportsRedeemCancellation: boolean;
   /** The share class the Centrifuge vault serves: hub facts plus its token instance on this chain. */
-  shareClass: Omit<ShareClassChainIdentity, 'chain' | 'chainId' | 'centrifugeVaultAddress' | 'key' | 'symbol'> & {
+  shareClass: Omit<
+    ShareClassChainIdentity,
+    'chain' | 'chainId' | 'centrifugeVaultAddress' | 'asset' | 'key' | 'symbol'
+  > & {
     /** Share-class id — the identity dimension of caches, query keys and Centrifuge-vault memoization (alongside `chain`). */
     key: string;
     symbol: string;
@@ -38,7 +41,7 @@ export type TransactionIdentity = {
 };
 
 export type CentrifugeVaultCapacity = {
-  /** Centrifuge-vault reserve capacity in USDC base units — never investor-scoped. */
+  /** Centrifuge-vault reserve capacity in deposit-asset base units — never investor-scoped. */
   maxDeposit: bigint;
 };
 

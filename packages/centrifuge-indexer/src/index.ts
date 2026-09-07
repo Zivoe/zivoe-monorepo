@@ -11,8 +11,7 @@ export {
   type CentrifugeChain,
   type CentrifugeChainDeployment,
   type CentrifugeChainOf,
-  type CentrifugeEnvironment,
-  type UsdcInstance
+  type CentrifugeEnvironment
 } from './chains';
 export {
   SHARE_CLASSES,
@@ -20,8 +19,11 @@ export {
   assertUnique,
   getShareClassChainIdentity,
   getShareClassIdentity,
+  listDepositAssets,
   listLiveChains,
   listShareClassKeys,
+  type DepositAsset,
+  type DepositAssetSymbol,
   type ShareClassChainDeployment,
   type ShareClassChainIdentity,
   type ShareClassEntry,

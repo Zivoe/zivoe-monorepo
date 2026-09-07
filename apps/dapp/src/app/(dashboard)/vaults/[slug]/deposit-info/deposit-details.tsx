@@ -28,7 +28,7 @@ export default function DepositDetails({ zivoeVault }: { zivoeVault: ZivoeVault 
     Issuer: zivoeVault.issuer,
     Ticker: SHARE_CLASSES[zivoeVault.shareClass.key].symbol,
     'Asset Type': zivoeVault.category,
-    'Accepted stablecoin': <AcceptedStablecoinIcons />,
+    'Accepted stablecoin': <AcceptedStablecoinIcons zivoeVault={zivoeVault} />,
     'Accepted chains': <AcceptedChainIcons zivoeVault={zivoeVault} />
   };
 

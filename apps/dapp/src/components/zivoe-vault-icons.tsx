@@ -1,22 +1,23 @@
-import { DEPOSIT_TOKENS } from '@/types/constants';
+import { type ZivoeVault, zivoeVaultChainDisplays, zivoeVaultDepositAssets } from '@/zivoe-vaults';
 
-import { type ZivoeVault, zivoeVaultChainDisplays } from '@/zivoe-vaults';
-
-import { TOKEN_INFO } from './token-info';
+import { getTokenInfo } from './token-info';
 
 /**
  * The logo rows the listing card and the Zivoe Vault's Details section both
  * render — one component per fact, so the two surfaces cannot disagree about
  * which stablecoins are accepted or which chains a Zivoe Vault is available on.
  */
-export function AcceptedStablecoinIcons() {
+export function AcceptedStablecoinIcons({ zivoeVault }: { zivoeVault: ZivoeVault }) {
   return (
     <IconRow>
-      {DEPOSIT_TOKENS.map((asset) => (
-        <Logo key={asset} label={TOKEN_INFO[asset].label}>
-          {TOKEN_INFO[asset].icon}
-        </Logo>
-      ))}
+      {zivoeVaultDepositAssets(zivoeVault).map(({ symbol }) => {
+        const info = getTokenInfo(symbol);
+        return (
+          <Logo key={symbol} label={info?.label ?? symbol}>
+            {info?.icon ?? symbol}
+          </Logo>
+        );
+      })}
     </IconRow>
   );
 }

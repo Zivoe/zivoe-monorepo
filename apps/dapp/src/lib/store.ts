@@ -46,7 +46,7 @@ export type TransactionData = {
     claimRedeem?: {
       share: TransactionTokenSnapshot;
       asset: TransactionTokenSnapshot;
-      /** Exact USDC received. */
+      /** Exact deposit asset received. */
       assets: bigint;
       /** Corresponding shares redeemed. */
       shares: bigint;

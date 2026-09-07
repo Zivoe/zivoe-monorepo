@@ -419,11 +419,12 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
       tx,
       accounts: [...new Set(fresh.map((row) => row.event.account))]
     });
-    const items = fresh.map(({ event, symbol, shareDecimals }) =>
+    const items = fresh.map(({ event, symbol, shareDecimals, shareClassKey }) =>
       formatTelegramItem({
         event,
         symbol,
         shareDecimals,
+        shareClassKey,
         emailLine: formatEmailLine((linkedUsersByAccount.get(event.account) ?? []).map((linked) => linked.email))
       })
     );

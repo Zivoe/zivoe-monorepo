@@ -138,7 +138,8 @@ vi.mock('@/hooks/useDebouncedValue', () => ({
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
 vi.mock('@/components/token-info', () => ({
-  TOKEN_INFO: { USDC: { label: 'USDC', description: 'US Dollar Coin', icon: <span /> } }
+  getTokenInfo: (symbol: string) =>
+    symbol === 'USDC' ? { label: 'USDC', description: 'US Dollar Coin', icon: <span /> } : undefined
 }));
 vi.mock('./_components/input-extra-info', () => ({ InputExtraInfo: () => null }));
 vi.mock('./_components/max-button', () => ({
@@ -528,11 +529,11 @@ describe('DepositFlow across two chains', () => {
 
   beforeEach(resetMocks);
 
-  // The second chain's identity: same class, its own Centrifuge-vault, USDC
-  // and router instances.
+  // The second chain's identity: same class, its own Centrifuge-vault, deposit
+  // asset and router instances.
   const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
     address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
-    usdc: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
+    asset: { address: BASE_USDC_ADDRESS as `0x${string}`, symbol: 'USDC', decimals: 6 },
     vaultRouterAddress: BASE_ROUTER_ADDRESS as `0x${string}`,
     shareClass: { shareTokenAddress: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' }
   });

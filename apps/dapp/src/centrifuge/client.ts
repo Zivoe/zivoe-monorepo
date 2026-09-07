@@ -95,7 +95,7 @@ type WithEscrow = { pool: { _escrow(): PromiseLike<string> } };
 /**
  * Resolves the share class's Centrifuge vault and asserts the two configured
  * facts that can genuinely diverge from the chain: the SDK-resolved
- * Centrifuge-vault address (from our pool id, share-class id and USDC) must
+ * Centrifuge-vault address (from our pool id, share-class id and deposit asset) must
  * equal the configured one, and the protocol's live VaultRouter must equal
  * the configured approval spender. The router earns a runtime check because
  * it is protocol-level — Centrifuge can migrate it without any deploy on our
@@ -117,7 +117,7 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
   ]);
 
   const [resolved, { vaultRouter, asyncRequestManager }] = await Promise.all([
-    pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.usdc.address),
+    pool.vault(centrifugeId, new ShareClassId(shareClass.scId), centrifugeVault.asset.address),
     (centrifuge as Centrifuge & WithProtocolAddresses)._protocolAddresses(centrifugeId)
   ]);
 

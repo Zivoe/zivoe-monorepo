@@ -21,11 +21,11 @@ vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getChainDeployment: (chain: CentrifugeChain) => {
-      const deployment = actual.getChainDeployment(chain);
-      return chain === mocks.eighteenDecimalUsdcChain
-        ? { ...deployment, usdc: { ...deployment.usdc, decimals: 18 } }
-        : deployment;
+    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
+      const identity = actual.getShareClassChainIdentity(args);
+      return args.chain === mocks.eighteenDecimalUsdcChain
+        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
+        : identity;
     }
   };
 });
@@ -85,16 +85,23 @@ describe('buildExplorerLink', () => {
 });
 
 describe('resolveDepositAssetDisplay', () => {
-  it('reads the USDC instance off the event chain — the scale is per chain, never a constant', () => {
-    expect(resolveDepositAssetDisplay(event({ chainId: 1 }))).toEqual({ symbol: 'USDC', decimals: 6 });
+  it("reads the asset off the class's vault on the event chain — symbol and scale are per vault, never a constant", () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 6
+    });
 
     mocks.eighteenDecimalUsdcChain = 'ethereum';
-    expect(resolveDepositAssetDisplay(event({ chainId: 1 }))).toEqual({ symbol: 'USDC', decimals: 18 });
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 18
+    });
   });
 
-  it('is null for a chain the registry does not know — an amount without a scale is unreadable', () => {
-    expect(resolveDepositAssetDisplay(event({ chainId: null }))).toBeNull();
-    expect(resolveDepositAssetDisplay(event({ chainId: 98866 }))).toBeNull();
+  it('is null for a chain the registry does not know, or a class not live there — an amount without a scale is unreadable', () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: null }), shareClassKey: 'zsmb' })).toBeNull();
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 98866 }), shareClassKey: 'zsmb' })).toBeNull();
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'nope' })).toBeNull();
   });
 });
 
@@ -102,6 +109,7 @@ describe('formatTelegramItem', () => {
   const shared = {
     symbol: 'zSMB',
     shareDecimals: 18,
+    shareClassKey: 'zsmb',
     emailLine: 'Linked email: a@b.c'
   };
 
@@ -187,7 +195,7 @@ describe('formatTelegramItem', () => {
 
     expect(item).toContain(`Tx: <code>${event().txHash}</code>`);
     expect(item).toContain('Chain: Centrifuge chain 1');
-    // No chain means no USDC instance, so the asset side is unknown rather
+    // No chain means no deposit asset, so the asset side is unknown rather
     // than rendered at a guessed scale.
     expect(item).toContain('Amount: ? → 4.40 zSMB @ 1.1348');
     expect(item).not.toContain('USDC');

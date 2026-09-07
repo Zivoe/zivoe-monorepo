@@ -226,7 +226,7 @@ describe('useRedemptionPosition', () => {
       expect.objectContaining({
         address: ESCROW_ADDRESS,
         functionName: 'holding',
-        args: [CENTRIFUGE_VAULT.shareClass.scId, CENTRIFUGE_VAULT.usdc.address, 0n]
+        args: [CENTRIFUGE_VAULT.shareClass.scId, CENTRIFUGE_VAULT.asset.address, 0n]
       })
     );
     expect(sentryCaptureException).not.toHaveBeenCalled();

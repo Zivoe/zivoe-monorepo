@@ -339,7 +339,7 @@ describe('useDeposit', () => {
           INVESTOR,
           'ALLOWANCE',
           'sepolia',
-          FIXTURE_IDENTITY.centrifugeVault.usdc.address,
+          FIXTURE_IDENTITY.centrifugeVault.asset.address,
           FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
