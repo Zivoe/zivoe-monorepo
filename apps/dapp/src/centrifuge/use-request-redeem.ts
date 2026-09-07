@@ -41,7 +41,8 @@ type RequestRedeemVariables = {
   /** Exact shares to add to the Redemption Position, in share-token base units. */
   shares: bigint;
   /**
-   * Indicative USDC at the current Share Price, in USDC base units. Optional:
+   * Indicative deposit-asset proceeds at the current Share Price, in the
+   * vault's deposit-asset base units. Optional:
    * the request settles at whatever price applies when it is processed, so a
    * Share Price we could not read holds nothing up — it only costs the
    * receipt its estimate.
@@ -56,8 +57,8 @@ export function useRequestRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { usdc, shareClass } = identity.centrifugeVault;
-  const copy = requestRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
+  const { asset, shareClass } = identity.centrifugeVault;
+  const copy = requestRedeemCopy({ asset: asset.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<RequestRedeemVariables>({
     identity,
@@ -81,7 +82,7 @@ export function useRequestRedeem({
         walletAddress: address,
         chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
-        tokenOut: usdc.symbol,
+        tokenOut: asset.symbol,
         amountInRaw: shares,
         amountOutRaw: estimatedAssets
       })
@@ -108,7 +109,7 @@ export function useRequestRedeem({
         meta: {
           redeem: {
             share: { symbol: shareClass.symbol, decimals: shareClass.decimals },
-            asset: { symbol: usdc.symbol, decimals: usdc.decimals },
+            asset: { symbol: asset.symbol, decimals: asset.decimals },
             amount: shares,
             receive: estimatedAssets
           }

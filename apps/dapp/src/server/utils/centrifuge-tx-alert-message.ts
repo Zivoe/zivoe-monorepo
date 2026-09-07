@@ -1,6 +1,10 @@
 import 'server-only';
 
-import { type InvestorTransactionEvent, USDC_DECIMALS, type UsdcInstance } from '@zivoe/centrifuge-indexer';
+import {
+  type DepositAsset,
+  type InvestorTransactionEvent,
+  getShareClassChainIdentity
+} from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
@@ -11,23 +15,14 @@ import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
  * taint sources — account, chain name, emails, the link — and at the amount
  * formatter, whose dust marker is a literal `<0.01` that Telegram's HTML
  * parser would reject as a tag. Catalog-controlled symbols are trusted.
- * Two exports are channel-neutral and shared with the email renderer
- * (centrifuge-tx-receipt-email): resolveChainDisplay and buildExplorerLink —
- * neither escapes, so a change to the escaping rules here never leaks into
- * (or out of) the email path.
+ * Three exports are channel-neutral and shared with the email renderer
+ * (centrifuge-tx-receipt-email): resolveChainDisplay, resolveDepositAssetDisplay
+ * and buildExplorerLink — none escapes, so a change to the escaping rules
+ * here never leaks into (or out of) the email path.
  */
 
 /** Longest email list one item may carry — the overflow is counted, bounding item length. */
 const MAX_EMAILS_SHOWN = 3;
-
-/**
- * The deposit asset's display shape — identical on every chain (the shared
- * catalog instantiates USDC per chain from one constant), which is what lets
- * the formatter skip per-chain config entirely. If a chain ever carries a
- * divergent instance (USDC.e, other decimals), this must become per-chain
- * again — the test suite pins the uniformity.
- */
-export const USDC_DISPLAY: Pick<UsdcInstance, 'symbol' | 'decimals'> = { symbol: 'USDC', decimals: USDC_DECIMALS };
 
 /**
  * "Linked email: a@b.c" line. "Linked" is load-bearing: the wallet↔account
@@ -63,6 +58,37 @@ export function resolveChainDisplay(
 }
 
 /**
+ * The deposit asset behind the event: the catalog's instance for the share
+ * class's Centrifuge vault on the event's chain, resolved per event because
+ * symbol and scale are facts of that vault (USDC is 6 decimals on Circle-
+ * native chains, 18 on BNB Smart Chain; another class may accept DAI). Null
+ * when the event names no chain this deployment knows, or the class is not
+ * live there: the amount then has no readable scale, and both renderers show
+ * it as absent rather than at a guessed one — a 10^12x misprint in an
+ * investor's receipt is worse than a dash.
+ */
+export function resolveDepositAssetDisplay({
+  event,
+  shareClassKey
+}: {
+  event: Pick<InvestorTransactionEvent, 'chainId'>;
+  shareClassKey: string;
+}): Pick<DepositAsset, 'symbol' | 'decimals'> | null {
+  const chain = event.chainId === null ? undefined : chainOfChainId(event.chainId);
+  if (!chain) return null;
+
+  // The catalog's chain identity is a trust boundary that throws for a class
+  // unknown, unavailable or staged on the chain — for a formatter that is
+  // "no asset to name", not a failed pass.
+  try {
+    const { symbol, decimals } = getShareClassChainIdentity({ chain, key: shareClassKey }).asset;
+    return { symbol, decimals };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Explorer link at `path` under the chain's explorer base, or null when there
  * is no usable http(s) base. Channel-neutral like resolveChainDisplay — the
  * email renderer builds its tx and address links through the same guard.
@@ -88,14 +114,15 @@ export function formatTelegramItem({
   event,
   symbol,
   shareDecimals,
+  shareClassKey,
   emailLine
 }: {
   event: InvestorTransactionEvent;
   symbol: string;
   shareDecimals: number;
+  shareClassKey: string;
   emailLine: string;
 }): string {
-  const usdc = USDC_DISPLAY;
   const shares =
     event.tokenAmount === null ? '?' : formatAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals });
 
@@ -108,8 +135,16 @@ export function formatTelegramItem({
 
   const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
 
+  // Amount and symbol together: with no instance for the chain there is no
+  // symbol to name either, so the whole side reads as unknown. A known asset
+  // with a missing amount still names the symbol (`? USDC`).
+  const asset = resolveDepositAssetDisplay({ event, shareClassKey });
   const assets =
-    event.currencyAmount === null ? '?' : formatAmount({ value: event.currencyAmount, tokenDecimals: usdc.decimals });
+    asset === null
+      ? '?'
+      : event.currencyAmount === null
+        ? `? ${asset.symbol}`
+        : `${formatAmount({ value: event.currencyAmount, tokenDecimals: asset.decimals })} ${asset.symbol}`;
 
   // Redeem-request rows carry price 0; deposits and executed/claimed
   // redemptions carry the D18 execution price.
@@ -123,12 +158,9 @@ export function formatTelegramItem({
   // falling through to a mislabeled alert.
   switch (event.type) {
     case 'SYNC_DEPOSIT':
-      return [
-        `<b>Deposit</b> — ${symbol}`,
-        ...head,
-        `Amount: ${assets} ${usdc.symbol} → ${shares} ${symbol}${price}`,
-        chainLine
-      ].join('\n');
+      return [`<b>Deposit</b> — ${symbol}`, ...head, `Amount: ${assets} → ${shares} ${symbol}${price}`, chainLine].join(
+        '\n'
+      );
 
     case 'REDEEM_REQUEST_UPDATED':
       return [
@@ -147,7 +179,7 @@ export function formatTelegramItem({
       return [
         `<b>${event.type === 'REDEEM_CLAIMABLE' ? 'Redemption Claimable' : 'Redemption Claimed'}</b> — ${symbol}`,
         ...head,
-        `Amount: ${shares} ${symbol} → ${assets} ${usdc.symbol}${price}`,
+        `Amount: ${shares} ${symbol} → ${assets}${price}`,
         chainLine
       ].join('\n');
   }

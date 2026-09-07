@@ -11,7 +11,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
-/** The token whose chain instances the selector offers — USDC on the deposit tab, the share token on redeem. */
+/** The token whose chain instances the selector offers — the deposit asset on the deposit tab, the share token on redeem. */
 export type ChainSelectorToken = {
   label: string;
   /** Row sublabel (e.g. "US Dollar Coin"); omitted for tokens with no display entry. */

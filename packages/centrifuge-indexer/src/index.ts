@@ -1,5 +1,6 @@
 export {
   CENTRIFUGE_CHAINS,
+  assertChainDeploymentInvariants,
   CENTRIFUGE_CHAIN_DEPLOYMENTS,
   CENTRIFUGE_ENVIRONMENTS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
@@ -7,12 +8,10 @@ export {
   getChainDeployment,
   getChainId,
   getChainRpcUrls,
-  USDC_DECIMALS,
   type CentrifugeChain,
   type CentrifugeChainDeployment,
   type CentrifugeChainOf,
-  type CentrifugeEnvironment,
-  type UsdcInstance
+  type CentrifugeEnvironment
 } from './chains';
 export {
   SHARE_CLASSES,
@@ -20,8 +19,11 @@ export {
   assertUnique,
   getShareClassChainIdentity,
   getShareClassIdentity,
+  listDepositAssets,
   listLiveChains,
   listShareClassKeys,
+  type DepositAsset,
+  type DepositAssetSymbol,
   type ShareClassChainDeployment,
   type ShareClassChainIdentity,
   type ShareClassEntry,

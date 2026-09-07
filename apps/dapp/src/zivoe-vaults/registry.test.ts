@@ -1,9 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 
-import { SHARE_CLASSES, assertUnique } from '@zivoe/centrifuge-indexer';
-
-import { DEPOSIT_TOKENS } from '@/types/constants';
+import { assertUnique } from '@zivoe/centrifuge-indexer';
 
 import { REGISTERED_ZIVOE_VAULTS, ZIVOE_VAULTS, resolveZivoeVaultIdentities } from './index';
 
@@ -38,16 +36,6 @@ describe('Zivoe Vault registry', () => {
     // anything beyond kebab-case would encode or normalize differently
     // across those surfaces.
     for (const zivoeVault of zivoeVaults) expect(zivoeVault.slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
-  });
-
-  it('never lets a share class claim a deposit asset symbol', () => {
-    // The share-token display map spreads over the deposit-token map, so a
-    // share class claiming a deposit asset's symbol would silently take over
-    // that asset's display entry.
-    for (const zivoeVault of zivoeVaults) {
-      const symbol = SHARE_CLASSES[zivoeVault.shareClass.key].symbol.toLowerCase();
-      expect(DEPOSIT_TOKENS.map((token) => token.toLowerCase())).not.toContain(symbol);
-    }
   });
 
   it('serves at least one Zivoe Vault on the test deployment, resolvable on every live chain', () => {

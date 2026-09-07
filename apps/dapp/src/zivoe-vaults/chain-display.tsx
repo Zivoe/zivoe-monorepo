@@ -1,7 +1,17 @@
 import { type ComponentType } from 'react';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
-import { ArbitrumIcon, BaseIcon, EthereumIcon, PharosIcon } from '@zivoe/ui/icons';
+import {
+  ArbitrumIcon,
+  AvalancheIcon,
+  BaseIcon,
+  BnbIcon,
+  EthereumIcon,
+  HyperliquidIcon,
+  OptimismIcon,
+  PharosIcon,
+  XLayerIcon
+} from '@zivoe/ui/icons';
 import { type IconProps } from '@zivoe/ui/icons/types';
 
 import { zivoeVaultChains } from './availability';
@@ -14,6 +24,11 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   pharos: { label: 'Pharos', Icon: PharosIcon },
   base: { label: 'Base', Icon: BaseIcon },
   arbitrum: { label: 'Arbitrum', Icon: ArbitrumIcon },
+  avalanche: { label: 'Avalanche', Icon: AvalancheIcon },
+  optimism: { label: 'Optimism', Icon: OptimismIcon },
+  hyperliquid: { label: 'Hyperliquid', Icon: HyperliquidIcon },
+  xlayer: { label: 'X Layer', Icon: XLayerIcon },
+  bnb: { label: 'BNB Chain', Icon: BnbIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 

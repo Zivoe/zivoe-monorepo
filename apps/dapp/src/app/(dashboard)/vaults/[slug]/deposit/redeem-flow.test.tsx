@@ -141,17 +141,20 @@ vi.mock('./_components/chain-token-selector', () => ({
   )
 }));
 vi.mock('@/centrifuge', () => ({
-  // Mirrors the module's real unit math, including the share class's own
-  // decimals — hardcoding 18 here once hid a scaling bug from this suite.
-  sharesToUsdc: ({
+  // Mirrors the module's real unit math, including the share class's and
+  // the deposit asset's own decimals — hardcoding either here once hid a
+  // scaling bug from this suite.
+  sharesToDepositAsset: ({
     shares,
     sharePrice,
-    shareClass
+    shareClass,
+    asset
   }: {
     shares: bigint;
     sharePrice: bigint;
     shareClass: { decimals: number };
-  }) => (shares * sharePrice) / 10n ** BigInt(shareClass.decimals) / 10n ** 12n,
+    asset: { decimals: number };
+  }) => (shares * sharePrice * 10n ** BigInt(asset.decimals)) / 10n ** BigInt(shareClass.decimals) / 10n ** 18n,
   sharesToValueD18: ({
     shares,
     sharePrice,

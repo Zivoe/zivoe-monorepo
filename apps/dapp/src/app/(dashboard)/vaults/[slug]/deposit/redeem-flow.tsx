@@ -24,7 +24,7 @@ import { getTokenInfo } from '@/components/token-info';
 
 import {
   type TransactedCentrifugeVault,
-  sharesToUsdc,
+  sharesToDepositAsset,
   sharesToValueD18,
   useCancelRedeem,
   useClaimRedeem,
@@ -58,7 +58,7 @@ export default function RedeemFlow() {
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
-  const usdc = centrifugeVault.usdc;
+  const asset = centrifugeVault.asset;
   // Chains without the hub-side unwind get no cancel control at all — the
   // claims and the Cancellation Processing strip stay data-driven, so a
   // cancellation made outside this dApp still resolves here.
@@ -69,7 +69,7 @@ export default function RedeemFlow() {
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
-  const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
+  const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
   const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
   const access = useInvestorAccess({ centrifugeVault });
@@ -128,7 +128,9 @@ export default function RedeemFlow() {
   const hasRedeemRaw = redeemRaw !== undefined && redeemRaw > 0n;
 
   const estimatedAssets =
-    hasRedeemRaw && sharePrice ? sharesToUsdc({ shares: redeemRaw, sharePrice, shareClass: share }) : undefined;
+    hasRedeemRaw && sharePrice
+      ? sharesToDepositAsset({ shares: redeemRaw, sharePrice, shareClass: share, asset })
+      : undefined;
   const redeemDollarValue =
     redeemRaw !== undefined && sharePrice
       ? sharesToValueD18({ shares: redeemRaw, sharePrice, shareClass: share })
@@ -148,7 +150,7 @@ export default function RedeemFlow() {
   const isPrereqsLoading =
     account.isPending ||
     shareBalance.isFetching ||
-    usdcBalance.isFetching ||
+    assetBalance.isFetching ||
     chainalysis.isFetching ||
     access.isFetching ||
     (position.isFetching && !isCancellationProcessing) ||
@@ -240,7 +242,7 @@ export default function RedeemFlow() {
   // none, so the selector falls back to the bare symbol without an icon.
   const shareSelectorToken = getTokenInfo(share.symbol) ?? { label: share.symbol, icon: null };
 
-  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, usdc.decimals) : '';
+  const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, asset.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isEstimateLoading ? '' : undefined;
@@ -287,8 +289,8 @@ export default function RedeemFlow() {
             {/* A blocked wallet's headline cannot say ready: the amount is
                 approved, the claim is not — the hint below says why. */}
             <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })}{' '}
-              USDC {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
+              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
+              {asset.symbol} {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
             </p>
 
             <ConnectedAccount fullWidth={false} type="skeleton">
@@ -310,13 +312,13 @@ export default function RedeemFlow() {
                 isPending={claimRedeem.isPending}
                 pendingContent={
                   claimRedeem.isTxPending
-                    ? 'Claiming USDC...'
+                    ? `Claiming ${asset.symbol}...`
                     : claimRedeem.isPending
                       ? 'Signing Transaction...'
                       : undefined
                 }
               >
-                Claim USDC
+                Claim {asset.symbol}
               </Button>
             </ConnectedAccount>
           </div>
@@ -336,8 +338,8 @@ export default function RedeemFlow() {
       {unfundedAssets > 0n && (
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           <p className="text-regular text-primary">
-            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC
-            approved, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
+            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
+            {asset.symbol} approved, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
           </p>
 
           {/* Two things stand between a frozen wallet and its USDC; name both.
@@ -438,7 +440,7 @@ export default function RedeemFlow() {
         errorMessage={
           isEstimateFailed ? (
             <>
-              Unable to estimate USDC.{' '}
+              Unable to estimate {asset.symbol}.{' '}
               <Button variant="link-alert" size="s" onPress={() => void metrics.refetch()}>
                 Retry
               </Button>
@@ -449,13 +451,13 @@ export default function RedeemFlow() {
         startContent={isEstimateLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            dollarValueDecimals={usdc.decimals}
+            dollarValueDecimals={asset.decimals}
             dollarValue={receiveDollarValue}
             isLoading={isEstimateLoading}
-            balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: usdc.decimals }}
+            balance={{ value: assetBalance.data, isPending: assetBalance.isPending, decimals: asset.decimals }}
           />
         }
-        endContent={<TokenDisplay symbol="USDC" />}
+        endContent={<TokenDisplay symbol={asset.symbol} />}
       />
 
       <ConnectedAccount>
@@ -492,8 +494,8 @@ export default function RedeemFlow() {
 
       <div className="flex flex-col gap-1.5">
         <Callout variant="warning">
-          Redemptions are processed periodically. Your final USDC amount is determined using the Token Price when your
-          request is processed.
+          Redemptions are processed periodically. Your final {asset.symbol} amount is determined using the Token Price
+          when your request is processed.
         </Callout>
 
         {/* Why the action above is disabled — the verdict only exists once a
@@ -523,8 +525,10 @@ function RedemptionProcessingStrip({
     isTxPending: boolean;
   };
 }) {
-  const { usdc, shareClass } = centrifugeVault;
-  const pendingUsdc = sharePrice ? sharesToUsdc({ shares: pendingShares, sharePrice, shareClass }) : undefined;
+  const { asset, shareClass } = centrifugeVault;
+  const pendingAssets = sharePrice
+    ? sharesToDepositAsset({ shares: pendingShares, sharePrice, shareClass, asset })
+    : undefined;
 
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
@@ -532,8 +536,8 @@ function RedemptionProcessingStrip({
         <p className="text-regular text-primary">
           {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
           {shareClass.symbol} processing
-          {pendingUsdc !== undefined
-            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingUsdc, tokenDecimals: usdc.decimals, displayDecimals: 2 })} USDC`
+          {pendingAssets !== undefined
+            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })} ${asset.symbol}`
             : ''}
         </p>
 
@@ -567,7 +571,7 @@ function CancellationProcessingStrip({
   pendingShares: bigint;
   centrifugeVault: TransactedCentrifugeVault;
 }) {
-  const { shareClass } = centrifugeVault;
+  const { asset, shareClass } = centrifugeVault;
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       <p className="text-regular text-primary">
@@ -579,7 +583,7 @@ function CancellationProcessingStrip({
 
       <p className="text-extraSmall text-tertiary">
         Your {shareClass.symbol} will be available to claim once the cancellation is processed. Any portion already
-        approved still executes as USDC.
+        approved still executes as {asset.symbol}.
       </p>
     </div>
   );

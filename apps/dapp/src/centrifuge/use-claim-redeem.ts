@@ -41,7 +41,7 @@ function claimRedeemCopy({ asset, share }: { asset: string; share: string }) {
 }
 
 type ClaimRedeemVariables = {
-  /** Currently claimable USDC in base units — analytics snapshot; the claim itself is aggregate. */
+  /** Currently claimable deposit-asset proceeds in base units — analytics snapshot; the claim itself is aggregate. */
   claimableAssets: bigint;
 };
 
@@ -52,8 +52,8 @@ export function useClaimRedeem({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { usdc, vaultRouterAddress, shareClass } = identity.centrifugeVault;
-  const copy = claimRedeemCopy({ asset: usdc.symbol, share: shareClass.symbol });
+  const { asset, vaultRouterAddress, shareClass } = identity.centrifugeVault;
+  const copy = claimRedeemCopy({ asset: asset.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<ClaimRedeemVariables>({
     identity,
@@ -90,7 +90,7 @@ export function useClaimRedeem({
         walletAddress: address,
         chainId: identity.centrifugeVault.chainId,
         tokenIn: shareClass.symbol,
-        tokenOut: usdc.symbol,
+        tokenOut: asset.symbol,
         amountOutRaw: claimableAssets
       }),
       receiptInput: (receipt) => {
@@ -129,7 +129,7 @@ export function useClaimRedeem({
         meta: {
           claimRedeem: {
             share: { symbol: shareClass.symbol, decimals: shareClass.decimals },
-            asset: { symbol: usdc.symbol, decimals: usdc.decimals },
+            asset: { symbol: asset.symbol, decimals: asset.decimals },
             assets: decoded.assets,
             shares: decoded.shares
           }

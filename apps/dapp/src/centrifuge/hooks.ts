@@ -136,7 +136,7 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
               client: web3,
               chain: centrifugeVault.chain,
               shareClassId: centrifugeVault.shareClass.scId,
-              assetAddress: centrifugeVault.usdc.address
+              assetAddress: centrifugeVault.asset.address
             })
   });
 }

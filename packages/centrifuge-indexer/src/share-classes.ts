@@ -13,18 +13,44 @@ import {
 } from './chains';
 
 /**
+ * The stablecoin a Centrifuge vault accepts — one per vault, so one per live
+ * (share class, chain) entry. Symbol and scale are authored beside the
+ * address because both are on-chain facts of THAT token, not of the symbol:
+ * Circle-native USDC is 6 decimals, BNB Smart Chain's Binance-Peg USDC is
+ * 18, and a second stablecoin (DAI, FRAX) is a new entry, not new code. The
+ * lint bounds the scale to the protocol's ceiling and `pnpm centrifuge:verify`
+ * checks all three against what the vault reports.
+ */
+export type DepositAsset = { address: Address; symbol: string; decimals: number };
+
+/**
+ * Centrifuge's asset ceiling: Spoke and HubRegistry refuse to register an
+ * asset above it because PricingLib's conversions assume decimals <= 18.
+ * A catalog value past it cannot be a vault's asset, whatever the token says.
+ */
+const MAX_ASSET_DECIMALS = 18;
+
+/**
  * One share class's instance on one spoke chain it claims. A launch is
  * `staged` while the values are not operator-verified yet — there is nothing
  * to read off a staged entry, by construction, so no reader has to guard
- * against placeholders. Once live, both addresses are real.
+ * against placeholders. Once live, both addresses and the asset are real.
  */
 export type ShareClassChainDeployment =
   | { status: 'staged' }
   | {
       status: 'live';
       shareTokenAddress: Address;
-      /** The Centrifuge vault instantiating the share class for USDC on this chain. */
+      /** The Centrifuge vault instantiating the share class for `asset` on this chain. */
       centrifugeVaultAddress: Address;
+      /**
+       * The deposit asset that Centrifuge vault accepts. One per entry on
+       * purpose: every chain-scoped query key and vault memo identifies the
+       * vault by chain alone, which holds only while there is one vault per
+       * chain. A class accepting a second asset on one chain becomes a list
+       * here AND an asset dimension on those keys — not a second entry.
+       */
+      asset: DepositAsset;
     };
 
 /**
@@ -74,12 +100,14 @@ export const SHARE_CLASSES = {
           sepolia: {
             status: 'live',
             shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
-            centrifugeVaultAddress: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6'
+            centrifugeVaultAddress: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6',
+            asset: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', symbol: 'USDC', decimals: 6 }
           },
           'base-sepolia': {
             status: 'live',
             shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
-            centrifugeVaultAddress: '0x8aBb393C433375401EEeae24557475C3f36f5025'
+            centrifugeVaultAddress: '0x8aBb393C433375401EEeae24557475C3f36f5025',
+            asset: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 }
           }
         }
       },
@@ -91,22 +119,58 @@ export const SHARE_CLASSES = {
           ethereum: {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-            centrifugeVaultAddress: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639'
+            centrifugeVaultAddress: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639',
+            asset: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 }
           },
           pharos: {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-            centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6'
+            centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6',
+            asset: { address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', symbol: 'USDC', decimals: 6 }
           },
           base: {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-            centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3'
+            centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3',
+            asset: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', decimals: 6 }
           },
           arbitrum: {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-            centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E'
+            centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E',
+            asset: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6 }
+          },
+          avalanche: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31',
+            asset: { address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', symbol: 'USDC', decimals: 6 }
+          },
+          optimism: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x991de0203E455dfC4B8f38F7c333487c16aDdE55',
+            asset: { address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', symbol: 'USDC', decimals: 6 }
+          },
+          hyperliquid: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042',
+            asset: { address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', symbol: 'USDC', decimals: 6 }
+          },
+          xlayer: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF',
+            asset: { address: '0xB6CEceAB302E2E4948951eE7843FC24E92933061', symbol: 'USDC', decimals: 6 }
+          },
+          bnb: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x616997144B1Ae546359596311853A7Da297CbAe2',
+            // Binance-Peg USD Coin, the only 18-decimal deposit asset in the
+            // book — BNB Smart Chain has no Circle-native USDC.
+            asset: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', symbol: 'USDC', decimals: 18 }
           }
         }
       }
@@ -118,6 +182,21 @@ export type ShareClassKey = keyof typeof SHARE_CLASSES;
 
 /** Union of every catalogued share token symbol — derive token unions from this, never hand-extend them. */
 export type ShareClassSymbol = (typeof SHARE_CLASSES)[ShareClassKey]['symbol'];
+
+// Distributive on purpose: `keyof` over a union of records keeps only their
+// COMMON keys, and the testnet and mainnet chain records share none.
+type ValuesOf<T> = T extends unknown ? T[keyof T] : never;
+type LiveAssetSymbolOf<T> = T extends { status: 'live'; asset: { symbol: infer S } } ? S : never;
+
+/**
+ * Union of every deposit asset symbol a live catalog entry carries, on any
+ * environment — the deposit-side twin of ShareClassSymbol. Display maps key
+ * on it so a new stablecoin in the catalog demands its display entry at
+ * compile time.
+ */
+export type DepositAssetSymbol = LiveAssetSymbolOf<
+  ValuesOf<ValuesOf<(typeof SHARE_CLASSES)[ShareClassKey]['environments']>['chains']>
+>;
 
 /**
  * A share class's hub-level identity resolved for one environment —
@@ -139,6 +218,7 @@ export type ShareClassChainIdentity = ShareClassIdentity & {
   chainId: number;
   shareTokenAddress: Address;
   centrifugeVaultAddress: Address;
+  asset: DepositAsset;
 };
 
 /**
@@ -159,7 +239,13 @@ type ShareClassesLike = Record<
           chains: Partial<
             Record<
               CentrifugeChain,
-              { status: 'staged' } | { status: 'live'; shareTokenAddress: string; centrifugeVaultAddress: string }
+              | { status: 'staged' }
+              | {
+                  status: 'live';
+                  shareTokenAddress: string;
+                  centrifugeVaultAddress: string;
+                  asset: { address: string; symbol: string; decimals: number };
+                }
             >
           >;
         }
@@ -268,8 +354,36 @@ export function getShareClassChainIdentity({
     chain,
     chainId: getChainId(chain),
     shareTokenAddress: onChain.shareTokenAddress,
-    centrifugeVaultAddress: onChain.centrifugeVaultAddress
+    centrifugeVaultAddress: onChain.centrifugeVaultAddress,
+    asset: onChain.asset
   };
+}
+
+/**
+ * The distinct deposit assets the share class accepts across the
+ * environment's live chains, in canonical chain order and deduped by symbol
+ * — the derivation behind every "accepted stablecoins" surface. Deduped by
+ * symbol on purpose: USDC at 6 decimals and Binance-Peg USDC at 18 are one
+ * stablecoin to an investor, and the per-chain instance (address, scale)
+ * is the transaction identity's business, not a listing's. Empty for a
+ * class the catalog does not know, like listLiveChains.
+ */
+export function listDepositAssets(
+  { environment, key }: { environment: CentrifugeEnvironment; key: string },
+  catalog: ShareClassesLike = SHARE_CLASSES
+): Array<DepositAsset> {
+  const chains = Object.hasOwn(catalog, key) ? catalog[key]?.environments[environment]?.chains : undefined;
+  if (!chains) return [];
+
+  const bySymbol = new Map<string, DepositAsset>();
+  for (const chain of listLiveChains({ environment, key }, catalog)) {
+    const onChain = chains[chain];
+    // The structural view types addresses as plain strings (tests inject
+    // synthetic catalogs); the real catalog's are checked Address literals.
+    if (onChain?.status === 'live' && !bySymbol.has(onChain.asset.symbol))
+      bySymbol.set(onChain.asset.symbol, onChain.asset as DepositAsset);
+  }
+  return [...bySymbol.values()];
 }
 
 /**
@@ -347,15 +461,44 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
         if (onChain.status !== 'live') continue;
         for (const [field, address] of [
           ['share token', onChain.shareTokenAddress],
-          ['Centrifuge vault', onChain.centrifugeVaultAddress]
+          ['Centrifuge vault', onChain.centrifugeVaultAddress],
+          ['deposit asset', onChain.asset.address]
         ] as const) {
           if (!isPlausibleAddress(address))
             throw new Error(
               `Share class "${key}" declares an implausible ${field} address on "${chain}": "${address}".`
             );
         }
+
+        // The asset's scale sizes every parseUnits, approval and Balance the
+        // deposit flow builds; past the protocol ceiling it cannot be a
+        // vault's asset at all. The symbol is the display-map key.
+        const { symbol, decimals } = onChain.asset;
+        if (!Number.isInteger(decimals) || decimals < 0 || decimals > MAX_ASSET_DECIMALS)
+          throw new Error(
+            `Share class "${key}" declares implausible deposit asset decimals on "${chain}": ${String(decimals)}.`
+          );
+        if (symbol.trim() === '')
+          throw new Error(`Share class "${key}" declares a deposit asset with no symbol on "${chain}".`);
       }
     }
+  }
+
+  // The share-token display map spreads over the deposit-asset map, so a
+  // share class claiming a deposit asset's symbol would silently take over
+  // that asset's display entry. Lowercased like the symbol uniqueness above.
+  const depositAssetSymbols = new Set(
+    entries.flatMap((entry) =>
+      Object.values(entry.environments).flatMap((onEnvironment) =>
+        Object.values(onEnvironment.chains).flatMap((onChain) =>
+          onChain.status === 'live' ? [onChain.asset.symbol.toLowerCase()] : []
+        )
+      )
+    )
+  );
+  for (const [key, entry] of Object.entries(catalog)) {
+    if (depositAssetSymbols.has(entry.symbol.toLowerCase()))
+      throw new Error(`Share class "${key}" claims the deposit asset symbol "${entry.symbol}".`);
   }
 
   for (const environment of CENTRIFUGE_ENVIRONMENTS) {

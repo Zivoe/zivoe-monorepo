@@ -5,6 +5,7 @@ import {
   CENTRIFUGE_ENVIRONMENT_FACTS,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
+  assertChainDeploymentInvariants,
   assertShareClassInvariants,
   chainsOfEnvironment,
   createDailyNegativeYieldReporter,
@@ -14,6 +15,7 @@ import {
   getChainId,
   getShareClassChainIdentity,
   getShareClassIdentity,
+  listDepositAssets,
   listLiveChains,
   listShareClassKeys,
   rayToPercent,
@@ -47,7 +49,17 @@ afterEach(() => {
 
 describe('chain deployments', () => {
   it('partitions every chain into exactly one environment, in canonical order', () => {
-    expect(chainsOfEnvironment('mainnet')).toEqual(['ethereum', 'pharos', 'base', 'arbitrum']);
+    expect(chainsOfEnvironment('mainnet')).toEqual([
+      'ethereum',
+      'pharos',
+      'base',
+      'arbitrum',
+      'avalanche',
+      'optimism',
+      'hyperliquid',
+      'xlayer',
+      'bnb'
+    ]);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
       [...CENTRIFUGE_CHAINS].sort()
@@ -59,6 +71,11 @@ describe('chain deployments', () => {
     expect(getChainId('pharos')).toBe(1672);
     expect(getChainId('base')).toBe(8453);
     expect(getChainId('arbitrum')).toBe(42161);
+    expect(getChainId('avalanche')).toBe(43114);
+    expect(getChainId('optimism')).toBe(10);
+    expect(getChainId('hyperliquid')).toBe(999);
+    expect(getChainId('xlayer')).toBe(196);
+    expect(getChainId('bnb')).toBe(56);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -89,7 +106,8 @@ describe('share-class catalog', () => {
       chain: 'sepolia',
       chainId: 11155111,
       shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
-      centrifugeVaultAddress: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6'
+      centrifugeVaultAddress: '0x7Bfa3382eC44e2279BBf0c555B87702fbbFf3AD6',
+      asset: { address: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c', symbol: 'USDC', decimals: 6 }
     });
   });
 
@@ -103,7 +121,8 @@ describe('share-class catalog', () => {
       chain: 'pharos',
       chainId: 1672,
       shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-      centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6'
+      centrifugeVaultAddress: '0x63D2b3596510b95CF02D921f21BaC19d31c9A4c6',
+      asset: { address: '0xC879C018dB60520F4355C26eD1a6D572cdAC1815', symbol: 'USDC', decimals: 6 }
     });
   });
 
@@ -117,7 +136,8 @@ describe('share-class catalog', () => {
       chain: 'base',
       chainId: 8453,
       shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-      centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3'
+      centrifugeVaultAddress: '0x47902c2D7F2Ee443B5DCb2DA7cFA619b194B79d3',
+      asset: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', decimals: 6 }
     });
   });
 
@@ -131,7 +151,46 @@ describe('share-class catalog', () => {
       chain: 'arbitrum',
       chainId: 42161,
       shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
-      centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E'
+      centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E',
+      asset: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6 }
+    });
+  });
+
+  it.each([
+    ['avalanche', 43114, '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31', '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'],
+    ['optimism', 10, '0x991de0203E455dfC4B8f38F7c333487c16aDdE55', '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'],
+    ['hyperliquid', 999, '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042', '0xb88339CB7199b77E23DB6E890353E22632Ba630f'],
+    ['xlayer', 196, '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF', '0xB6CEceAB302E2E4948951eE7843FC24E92933061']
+  ] as const)(
+    'resolves the %s mainnet instance — shared token, chain-specific Centrifuge vault and USDC',
+    (chain, chainId, centrifugeVaultAddress, usdcAddress) => {
+      expect(getShareClassChainIdentity({ chain, key: 'zsmb' })).toEqual({
+        key: 'zsmb',
+        symbol: 'zSMB',
+        decimals: 18,
+        poolId: '281474976710674',
+        scId: '0x00010000000000120000000000000002',
+        chain,
+        chainId,
+        shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+        centrifugeVaultAddress,
+        asset: { address: usdcAddress, symbol: 'USDC', decimals: 6 }
+      });
+    }
+  );
+
+  it('resolves the bnb mainnet instance — the one chain whose USDC is the 18-decimal Binance-Peg token', () => {
+    expect(getShareClassChainIdentity({ chain: 'bnb', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'bnb',
+      chainId: 56,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+      centrifugeVaultAddress: '0x616997144B1Ae546359596311853A7Da297CbAe2',
+      asset: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', symbol: 'USDC', decimals: 18 }
     });
   });
 
@@ -145,7 +204,8 @@ describe('share-class catalog', () => {
       chain: 'base-sepolia',
       chainId: 84532,
       shareTokenAddress: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
-      centrifugeVaultAddress: '0x8aBb393C433375401EEeae24557475C3f36f5025'
+      centrifugeVaultAddress: '0x8aBb393C433375401EEeae24557475C3f36f5025',
+      asset: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 }
     });
   });
 
@@ -168,7 +228,12 @@ describe('share-class catalog', () => {
           poolId: '1',
           scId: '0x000100000000aaaa0000000000000001',
           chains: {
-            sepolia: { status: 'live', shareTokenAddress: '0xab', centrifugeVaultAddress: '0xcd' },
+            sepolia: {
+              status: 'live',
+              shareTokenAddress: '0xab',
+              centrifugeVaultAddress: '0xcd',
+              asset: { address: '0xef', symbol: 'USDC', decimals: 6 }
+            },
             'base-sepolia': { status: 'staged' }
           }
         }
@@ -203,10 +268,61 @@ describe('share-class catalog', () => {
     expect(listLiveChains({ environment: 'mainnet', key: 'live' }, book)).toEqual([]);
   });
 
+  it('lists the distinct deposit assets of a class, deduped by symbol in chain order', () => {
+    const usdc6 = { address: '0xef', symbol: 'USDC', decimals: 6 };
+    const usdc18 = { address: '0x8a', symbol: 'USDC', decimals: 18 };
+    const dai = { address: '0xda', symbol: 'DAI', decimals: 18 };
+    const withAssets = (assets: Array<typeof usdc6>) => ({
+      multi: {
+        symbol: 'zMUL',
+        decimals: 18,
+        environments: {
+          testnet: {
+            poolId: '1',
+            scId: '0x000100000000aaaa0000000000000001',
+            chains: Object.fromEntries(
+              (['sepolia', 'base-sepolia'] as const).map((chain, index) => [
+                chain,
+                {
+                  status: 'live' as const,
+                  shareTokenAddress: '0xab',
+                  centrifugeVaultAddress: '0xcd',
+                  asset: assets[index]!
+                }
+              ])
+            )
+          }
+        }
+      }
+    });
+
+    // Two USDC instances of different scale are one stablecoin to a listing.
+    expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, usdc18]))).toEqual([usdc6]);
+    expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, dai]))).toEqual([usdc6, dai]);
+    expect(listDepositAssets({ environment: 'testnet', key: 'live' }, book)).toEqual([
+      book.live.environments.testnet.chains.sepolia.asset
+    ]);
+    expect(listDepositAssets({ environment: 'testnet', key: 'staged' }, book)).toEqual([]);
+    expect(listDepositAssets({ environment: 'mainnet', key: 'live' }, book)).toEqual([]);
+    expect(listDepositAssets({ environment: 'testnet', key: 'nope' }, book)).toEqual([]);
+  });
+
   it('keeps the original class listed on its live environment', () => {
     // Membership only — the whole book is deliberately not asserted.
     expect(listShareClassKeys('testnet')).toContain('zsmb');
     expect(listLiveChains({ environment: 'testnet', key: 'zsmb' })).toContain('sepolia');
+  });
+});
+
+describe('assertChainDeploymentInvariants', () => {
+  it('accepts the real catalog', () => {
+    expect(() => assertChainDeploymentInvariants()).not.toThrow();
+  });
+
+  it('throws on a placeholder VaultRouter address', () => {
+    expect(() =>
+      assertChainDeploymentInvariants({ a: { vaultRouter: '0x0000000000000000000000000000000000000000' } })
+    ).toThrow(/VaultRouter address on "a" is implausible/);
   });
 });
 
@@ -216,6 +332,7 @@ describe('assertShareClassInvariants', () => {
     scId,
     shareTokenAddress,
     centrifugeVaultAddress = '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd',
+    asset = { address: '0xefefefefefefefefefefefefefefefefefefefef', symbol: 'USDC', decimals: 6 },
     environment = 'testnet',
     chain = 'sepolia'
   }: {
@@ -223,6 +340,7 @@ describe('assertShareClassInvariants', () => {
     scId: string;
     shareTokenAddress: string;
     centrifugeVaultAddress?: string;
+    asset?: { address: string; symbol: string; decimals: number };
     environment?: 'testnet' | 'mainnet';
     chain?: 'sepolia' | 'base-sepolia' | 'ethereum' | 'pharos';
   }) {
@@ -233,7 +351,7 @@ describe('assertShareClassInvariants', () => {
         [environment]: {
           poolId: '1',
           scId,
-          chains: { [chain]: { status: 'live' as const, shareTokenAddress, centrifugeVaultAddress } }
+          chains: { [chain]: { status: 'live' as const, shareTokenAddress, centrifugeVaultAddress, asset } }
         }
       }
     };
@@ -270,7 +388,12 @@ describe('assertShareClassInvariants', () => {
 
   it('accepts one address reused across two chains — deterministic deploys are legitimate', () => {
     const address = '0xabababababababababababababababababababab';
-    const onChain = { status: 'live' as const, shareTokenAddress: address, centrifugeVaultAddress: address };
+    const onChain = {
+      status: 'live' as const,
+      shareTokenAddress: address,
+      centrifugeVaultAddress: address,
+      asset: { address, symbol: 'USDC', decimals: 6 }
+    };
 
     expect(() =>
       assertShareClassInvariants({
@@ -292,6 +415,42 @@ describe('assertShareClassInvariants', () => {
   it('throws on implausible decimals', () => {
     expect(() => assertShareClassInvariants({ a: { ...first, decimals: 8.5 } })).toThrow(/implausible decimals/);
     expect(() => assertShareClassInvariants({ a: { ...first, decimals: 180 } })).toThrow(/implausible decimals/);
+  });
+
+  it('bounds a deposit asset to a whole scale up to the protocol ceiling — Binance-Peg USDC is 18', () => {
+    const withAsset = (asset: { address: string; symbol: string; decimals: number }) => ({
+      a: entry({
+        symbol: 'zAAA',
+        scId: '0x000100000000aaaa0000000000000001',
+        shareTokenAddress: '0xabababababababababababababababababababab',
+        asset
+      })
+    });
+    const usdc = { address: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', symbol: 'USDC' };
+
+    expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 18 }))).not.toThrow();
+    expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 19 }))).toThrow(
+      /implausible deposit asset decimals/
+    );
+    expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 6.5 }))).toThrow(
+      /implausible deposit asset decimals/
+    );
+    expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 6, symbol: ' ' }))).toThrow(/no symbol/);
+    expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 6, address: '0x00' }))).toThrow(
+      /implausible deposit asset address/
+    );
+  });
+
+  it('never lets a share class claim a deposit asset symbol — the display maps would collide', () => {
+    expect(() =>
+      assertShareClassInvariants({
+        a: entry({
+          symbol: 'usdc',
+          scId: '0x000100000000aaaa0000000000000001',
+          shareTokenAddress: '0xabababababababababababababababababababab'
+        })
+      })
+    ).toThrow(/claims the deposit asset symbol "usdc"/);
   });
 
   it('throws on a placeholder or malformed pool id', () => {

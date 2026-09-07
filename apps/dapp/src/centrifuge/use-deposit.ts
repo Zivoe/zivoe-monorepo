@@ -36,7 +36,7 @@ function depositCopy({ asset, share }: { asset: string; share: string }) {
 }
 
 type DepositVariables = {
-  /** Exact USDC amount in base units. */
+  /** Exact deposit-asset amount in base units. */
   assets: bigint;
   /** The current successful preview for this exact amount (indicative shares). */
   previewShares: bigint;
@@ -49,8 +49,8 @@ export function useDeposit({
   identity: TransactionIdentity;
   onSuccessClose?: () => void;
 }) {
-  const { usdc, vaultRouterAddress, shareClass } = identity.centrifugeVault;
-  const copy = depositCopy({ asset: usdc.symbol, share: shareClass.symbol });
+  const { asset, vaultRouterAddress, shareClass } = identity.centrifugeVault;
+  const copy = depositCopy({ asset: asset.symbol, share: shareClass.symbol });
 
   return useCentrifugeTx<DepositVariables>({
     identity,
@@ -62,7 +62,7 @@ export function useDeposit({
       if (assets <= 0n) throw new AppError({ message: 'No amount to deposit' });
       if (previewShares <= 0n) throw new AppError({ message: 'Missing deposit preview' });
 
-      return { tx: centrifugeVault.syncDeposit(new Balance(assets, usdc.decimals)) };
+      return { tx: centrifugeVault.syncDeposit(new Balance(assets, asset.decimals)) };
     },
 
     simulationErrorCopy: copy.simulationErrors,
@@ -73,7 +73,7 @@ export function useDeposit({
       input: ({ assets, previewShares }, { address }) => ({
         walletAddress: address,
         chainId: identity.centrifugeVault.chainId,
-        tokenIn: usdc.symbol,
+        tokenIn: asset.symbol,
         tokenOut: shareClass.symbol,
         amountInRaw: assets,
         amountOutRaw: previewShares
@@ -106,7 +106,7 @@ export function useDeposit({
         meta: decoded
           ? {
               deposit: {
-                asset: { symbol: usdc.symbol, decimals: usdc.decimals },
+                asset: { symbol: asset.symbol, decimals: asset.decimals },
                 share: { symbol: shareClass.symbol, decimals: shareClass.decimals },
                 amount: decoded.assets,
                 receive: decoded.shares
@@ -125,7 +125,7 @@ export function useDeposit({
         queryKey: queryKeys.account.allowance({
           accountAddress: address,
           chain: identity.centrifugeVault.chain,
-          contract: usdc.address,
+          contract: asset.address,
           spender: vaultRouterAddress
         })
       });

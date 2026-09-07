@@ -20,7 +20,7 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import ConnectedAccount from '@/components/connected-account';
-import { TOKEN_INFO } from '@/components/token-info';
+import { getTokenInfo } from '@/components/token-info';
 
 import {
   isPriceUnavailableError,
@@ -54,7 +54,10 @@ export function DepositFlow() {
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
-  const { usdc, vaultRouterAddress } = centrifugeVault;
+  const { asset, vaultRouterAddress } = centrifugeVault;
+  // Display entry for the deposit asset; the fixture identities tests hand in
+  // may carry none, so the selector falls back to the bare symbol without an icon.
+  const assetSelectorToken = getTokenInfo(asset.symbol) ?? { label: asset.symbol, icon: null };
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -63,9 +66,9 @@ export function DepositFlow() {
   // A deploying Zivoe Vault does not take new deposits; its redemptions stay open.
   const isZivoeVaultDeploying = useZivoeVaultStatus() === 'Deploying';
 
-  const usdcBalance = useBalance({ chain: selectedChain, tokenAddress: usdc.address });
+  const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
-  const allowance = useAllowance({ chain: selectedChain, contract: usdc.address, spender: vaultRouterAddress });
+  const allowance = useAllowance({ chain: selectedChain, contract: asset.address, spender: vaultRouterAddress });
   const capacity = useCentrifugeVaultCapacity({ centrifugeVault });
   const access = useInvestorAccess({ centrifugeVault });
 
@@ -77,7 +80,7 @@ export function DepositFlow() {
   // falls back to the general "not whitelisted" presentation.
   const restriction = access.data?.restriction;
 
-  const balance = usdcBalance.data ?? 0n;
+  const balance = assetBalance.data ?? 0n;
   const maxDeposit = capacity.data?.maxDeposit;
   const isCapacityUnavailable = capacity.isSuccess && capacity.data.maxDeposit <= 0n;
 
@@ -90,7 +93,7 @@ export function DepositFlow() {
       z.object({
         deposit: createAmountValidator({
           balance,
-          decimals: usdc.decimals,
+          decimals: asset.decimals,
           requiredMessage: 'Deposit amount is required',
           exceedsMessage: 'Deposit amount exceeds balance',
           max: { value: maxDeposit, message: 'Deposit amount exceeds current vault capacity.' }
@@ -102,14 +105,14 @@ export function DepositFlow() {
   });
 
   const deposit = form.watch('deposit');
-  const depositRaw = deposit ? parseUnits(deposit, usdc.decimals) : undefined;
+  const depositRaw = deposit ? parseUnits(deposit, asset.decimals) : undefined;
   const hasDepositRaw = depositRaw !== undefined && depositRaw > 0n;
 
   // Debounced indicative preview: any raw change immediately drops the previous
   // quote (the query key follows the debounced amount) and only the latest
   // amount's successful response renders.
   const { debouncedValue: debouncedDeposit, isDebouncing } = useDebouncedValue({ value: deposit });
-  const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, usdc.decimals) : undefined;
+  const debouncedRaw = debouncedDeposit ? parseUnits(debouncedDeposit, asset.decimals) : undefined;
   const preview = useDepositPreview({ centrifugeVault, assets: debouncedRaw ?? 0n });
 
   const isPreviewCurrent = !isDebouncing && debouncedRaw === depositRaw;
@@ -130,7 +133,7 @@ export function DepositFlow() {
   // the form locked until fresh data lands.
   const isPrereqsLoading =
     account.isPending ||
-    usdcBalance.isFetching ||
+    assetBalance.isFetching ||
     shareBalance.isFetching ||
     allowance.isFetching ||
     chainalysis.isFetching ||
@@ -182,14 +185,14 @@ export function DepositFlow() {
 
     approveSpending.mutate({
       chain: selectedChain,
-      contract: usdc.address,
+      contract: asset.address,
       spender: vaultRouterAddress,
       amount: depositRaw,
-      name: 'USDC',
-      decimals: usdc.decimals,
+      name: asset.symbol,
+      decimals: asset.decimals,
       abi: erc20Abi,
-      successMessage: 'You can now deposit USDC.',
-      errorMessage: 'There was an error approving USDC'
+      successMessage: `You can now deposit ${asset.symbol}.`,
+      errorMessage: `There was an error approving ${asset.symbol}`
     });
   };
 
@@ -213,7 +216,7 @@ export function DepositFlow() {
   // it would otherwise read as "you receive 0.0" next to the skeleton.
   const receivePlaceholder = isPreviewLoading ? '' : undefined;
   // The quote is at the current Share Price, so the estimated receive's dollar
-  // value equals the entered USDC amount. A failed estimate resolves it here
+  // value equals the entered deposit-asset amount. A failed estimate resolves it here
   // rather than at the row, matching the redeem tab.
   const receiveDollarValue = isPreviewFailed
     ? 0n
@@ -239,19 +242,19 @@ export function DepositFlow() {
             errorMessage={error?.message}
             isInvalid={invalid}
             isDisabled={isFormLocked}
-            decimalPlaces={usdc.decimals}
+            decimalPlaces={asset.decimals}
             subContent={
               <InputExtraInfo
-                dollarValueDecimals={usdc.decimals}
+                dollarValueDecimals={asset.decimals}
                 dollarValue={depositRaw ?? 0n}
-                balance={{ value: usdcBalance.data, isPending: usdcBalance.isPending, decimals: usdc.decimals }}
+                balance={{ value: assetBalance.data, isPending: assetBalance.isPending, decimals: asset.decimals }}
               />
             }
             endContent={
               <div className="flex items-center">
                 <MaxButton
                   balance={maxAmount}
-                  decimals={usdc.decimals}
+                  decimals={asset.decimals}
                   onPress={(value) => onChange(value)}
                   isDisabled={isFormLocked}
                 />
@@ -259,10 +262,10 @@ export function DepositFlow() {
                 <div className="ml-3">
                   <ChainTokenSelector
                     title="Select Asset"
-                    token={TOKEN_INFO.USDC}
+                    token={assetSelectorToken}
                     rows={identities.map((rowIdentity) => ({
                       chain: rowIdentity.centrifugeVault.chain,
-                      detail: <ChainBalanceDetail identity={rowIdentity} token="usdc" />
+                      detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />
                     }))}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
@@ -296,7 +299,7 @@ export function DepositFlow() {
         startContent={isPreviewLoading ? <Skeleton className="h-6 w-24" /> : undefined}
         subContent={
           <InputExtraInfo
-            dollarValueDecimals={usdc.decimals}
+            dollarValueDecimals={asset.decimals}
             dollarValue={receiveDollarValue}
             isLoading={isPreviewLoading}
             balance={{ value: shareBalance.data, isPending: shareBalance.isPending, decimals: share.decimals }}
@@ -336,7 +339,7 @@ export function DepositFlow() {
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
                   : approveSpending.isTxPending
-                    ? 'Approving USDC...'
+                    ? `Approving ${asset.symbol}...`
                     : approveSpending.isPending
                       ? 'Signing Transaction...'
                       : undefined
@@ -354,7 +357,7 @@ export function DepositFlow() {
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
                   : depositMutation.isTxPending
-                    ? 'Depositing USDC...'
+                    ? `Depositing ${asset.symbol}...`
                     : depositMutation.isPending
                       ? 'Signing Transaction...'
                       : undefined

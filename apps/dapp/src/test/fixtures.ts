@@ -1,4 +1,9 @@
-import { type CentrifugeChain, getChainDeployment, getChainId } from '@zivoe/centrifuge-indexer';
+import {
+  type CentrifugeChain,
+  getChainDeployment,
+  getChainId,
+  getShareClassChainIdentity
+} from '@zivoe/centrifuge-indexer';
 
 import { type TransactedCentrifugeVault, type TransactionIdentity } from '@/centrifuge';
 
@@ -14,11 +19,13 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
   centrifugeVault: {
     // The test deployment's single active chain (see test/setup.ts) — the
     // hooks pin their clients to this chainId, and read the chain's real
-    // USDC/VaultRouter facts off the identity like the app resolves them.
+    // VaultRouter facts off the identity like the app resolves them. The
+    // deposit asset is a per-vault fact, so the fixture borrows the real
+    // sepolia zSMB instance (USDC, 6 decimals).
     chain: 'sepolia',
     chainId: 11155111,
     address: '0xfafafafafafafafafafafafafafafafafafafafa',
-    usdc: getChainDeployment('sepolia').usdc,
+    asset: getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' }).asset,
     vaultRouterAddress: getChainDeployment('sepolia').vaultRouter,
     supportsRedeemCancellation: getChainDeployment('sepolia').supportsRedeemCancellation,
     shareClass: {
@@ -38,9 +45,9 @@ export const FIXTURE_CENTRIFUGE_VAULT = FIXTURE_IDENTITY.centrifugeVault.address
 /**
  * An identity re-pinned to another chain — the shared shape behind every
  * suite's "same class, second chain" fixture, so the spreads cannot drift
- * apart. Every chain fact (chainId, USDC, router, cancellation support)
- * comes from the real chain deployment, exactly as resolveTransactionIdentity
- * sources it; only the per-vault instances (Centrifuge-vault address, share
+ * apart. Every chain fact (chainId, router, cancellation support) comes from
+ * the real chain deployment, exactly as resolveTransactionIdentity sources
+ * it; the per-vault instances (Centrifuge-vault address, deposit asset, share
  * token) stay on the base identity. All of it is overridable when a suite
  * needs deliberately distinct values per chain.
  */
@@ -60,7 +67,6 @@ export function identityOnChain(
       ...base.centrifugeVault,
       chain,
       chainId: getChainId(chain),
-      usdc: deployment.usdc,
       vaultRouterAddress: deployment.vaultRouter,
       supportsRedeemCancellation: deployment.supportsRedeemCancellation,
       ...centrifugeVaultOverrides,

@@ -1,18 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
-import { chainsOfEnvironment, getChainDeployment } from '@zivoe/centrifuge-indexer';
+import type { CentrifugeChain, InvestorTransactionEvent } from '@zivoe/centrifuge-indexer';
 
 import {
-  USDC_DISPLAY,
   buildExplorerLink,
   formatEmailLine,
   formatTelegramItem,
-  resolveChainDisplay
+  resolveChainDisplay,
+  resolveDepositAssetDisplay
 } from './centrifuge-tx-alert-message';
 
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+
+// Lets a test stand in an 18-decimal USDC (BNB Smart Chain's Binance-Peg
+// shape) on ANY chain id: BNB is the catalog's only such chain today, and the
+// renderers must scale by the event chain's instance, never by a constant.
+const mocks = vi.hoisted(() => ({ eighteenDecimalUsdcChain: undefined as string | undefined }));
+vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
+      const identity = actual.getShareClassChainIdentity(args);
+      return args.chain === mocks.eighteenDecimalUsdcChain
+        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
+        : identity;
+    }
+  };
+});
+
+afterEach(() => {
+  mocks.eighteenDecimalUsdcChain = undefined;
+});
 
 function event(overrides: Partial<InvestorTransactionEvent> = {}): InvestorTransactionEvent {
   return {
@@ -64,14 +84,31 @@ describe('buildExplorerLink', () => {
   });
 });
 
-describe('USDC_DISPLAY', () => {
-  it('matches every chain-instantiated USDC — the uniformity that lets the formatter skip chain config', () => {
-    for (const environment of ['mainnet', 'testnet'] as const) {
-      for (const chain of chainsOfEnvironment(environment)) {
-        const { symbol, decimals } = getChainDeployment(chain).usdc;
-        expect({ chain, symbol, decimals }).toEqual({ chain, ...USDC_DISPLAY });
-      }
-    }
+describe('resolveDepositAssetDisplay', () => {
+  it("reads the asset off the class's vault on the event chain — symbol and scale are per vault, never a constant", () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 6
+    });
+
+    mocks.eighteenDecimalUsdcChain = 'ethereum';
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 18
+    });
+  });
+
+  it("reads BNB Smart Chain at 18 decimals off the real catalog — the one live chain whose USDC is not Circle's", () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 56 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 18
+    });
+  });
+
+  it('is null for a chain the registry does not know, or a class not live there — an amount without a scale is unreadable', () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: null }), shareClassKey: 'zsmb' })).toBeNull();
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 98866 }), shareClassKey: 'zsmb' })).toBeNull();
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'nope' })).toBeNull();
   });
 });
 
@@ -79,6 +116,7 @@ describe('formatTelegramItem', () => {
   const shared = {
     symbol: 'zSMB',
     shareDecimals: 18,
+    shareClassKey: 'zsmb',
     emailLine: 'Linked email: a@b.c'
   };
 
@@ -93,6 +131,13 @@ describe('formatTelegramItem', () => {
     expect(item).toContain(
       'href="https://etherscan.io/tx/0xccdab4d1b295d7a91f437ae2d9840b914cc8b94009c4edae1b44284f68cc619e"'
     );
+  });
+
+  it("scales the asset amount by the event chain's USDC — 5 USDC on an 18-decimal chain is 5e18 base units", () => {
+    mocks.eighteenDecimalUsdcChain = 'ethereum';
+    const item = formatTelegramItem({ event: event({ currencyAmount: 5_000_000_000_000_000_000n }), ...shared });
+
+    expect(item).toContain('Amount: 5.00 USDC → 4.40 zSMB @ 1.1348');
   });
 
   it('formats a redemption request as a per-call delta without a price', () => {
@@ -152,11 +197,21 @@ describe('formatTelegramItem', () => {
     expect(item).not.toMatch(/<0\.01/);
   });
 
+  it('keeps the asset symbol when only the amount is unknown on a known chain', () => {
+    const item = formatTelegramItem({ event: event({ currencyAmount: null }), ...shared });
+
+    expect(item).toContain('Amount: ? USDC → 4.40 zSMB @ 1.1348');
+  });
+
   it('falls back to an inline tx hash and the Centrifuge spoke id when the chain is unknown', () => {
     const item = formatTelegramItem({ event: event({ chainId: null, explorerUrl: null, chainName: null }), ...shared });
 
     expect(item).toContain(`Tx: <code>${event().txHash}</code>`);
     expect(item).toContain('Chain: Centrifuge chain 1');
+    // No chain means no deposit asset, so the asset side is unknown rather
+    // than rendered at a guessed scale.
+    expect(item).toContain('Amount: ? → 4.40 zSMB @ 1.1348');
+    expect(item).not.toContain('USDC');
   });
 });
 
@@ -186,16 +241,44 @@ describe('resolveChainDisplay', () => {
       label: 'Arbitrum One',
       explorerUrl: 'https://arbiscan.io'
     });
-  });
-
-  it('keeps the indexer values for a chain the registry does not know', () => {
+    expect(
+      resolveChainDisplay(event({ chainId: 43114, chainName: 'avalanche', explorerUrl: 'https://snowtrace.io' }))
+    ).toEqual({
+      label: 'Avalanche',
+      explorerUrl: 'https://snowtrace.io'
+    });
     expect(
       resolveChainDisplay(
         event({ chainId: 10, chainName: 'optimism', explorerUrl: 'https://optimistic.etherscan.io/' })
       )
     ).toEqual({
-      label: 'optimism',
-      explorerUrl: 'https://optimistic.etherscan.io/'
+      label: 'OP Mainnet',
+      explorerUrl: 'https://optimistic.etherscan.io'
+    });
+    expect(
+      resolveChainDisplay(event({ chainId: 999, chainName: 'hyperliquid', explorerUrl: 'https://hyperevmscan.io' }))
+    ).toEqual({
+      label: 'HyperEVM',
+      explorerUrl: 'https://hyperevmscan.io'
+    });
+    expect(
+      resolveChainDisplay(event({ chainId: 196, chainName: 'xlayer', explorerUrl: 'https://www.oklink.com/xlayer' }))
+    ).toEqual({
+      label: 'X Layer Mainnet',
+      explorerUrl: 'https://www.oklink.com/xlayer'
+    });
+    expect(resolveChainDisplay(event({ chainId: 56, chainName: 'bnb', explorerUrl: 'https://bscscan.com' }))).toEqual({
+      label: 'BNB Smart Chain',
+      explorerUrl: 'https://bscscan.com'
+    });
+  });
+
+  it('keeps the indexer values for a chain the registry does not know', () => {
+    expect(
+      resolveChainDisplay(event({ chainId: 98866, chainName: 'plume', explorerUrl: 'https://explorer.plume.org' }))
+    ).toEqual({
+      label: 'plume',
+      explorerUrl: 'https://explorer.plume.org'
     });
   });
 });
