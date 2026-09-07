@@ -58,7 +58,7 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
 
 /**
  * Receipt-to-readable-state catch-up margin per chain, in confirmations;
- * chains not listed need none. The Base chains serve Flashblock
+ * chains not listed need none. The Base chains and OP Mainnet serve Flashblock
  * preconfirmation receipts — a receipt is visible up to ~2s before its block
  * seals and `latest` state reflects it, so a read straight after the receipt
  * sees pre-transaction balances. The extra block also adds margin against
@@ -67,9 +67,16 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
  * provider's fleet into whole blocks of staleness, so the receipt and the
  * refetch straight after it can be answered from different heads (observed
  * live as a stale post-approval allowance). The margin there costs one
- * ~250ms poll, not Base's ~2s.
+ * ~250ms poll, not Base's ~2s. Avalanche and HyperEVM are unlisted on
+ * purpose: neither serves preconfirmations, and no stale read has been
+ * observed there — add a margin on evidence, as Arbitrum's was.
  */
-const CATCHUP_CONFIRMATIONS: Partial<Record<CentrifugeChain, number>> = { base: 2, 'base-sepolia': 2, arbitrum: 2 };
+const CATCHUP_CONFIRMATIONS: Partial<Record<CentrifugeChain, number>> = {
+  base: 2,
+  'base-sepolia': 2,
+  arbitrum: 2,
+  optimism: 2
+};
 
 const CATCHUP_POLL_MS = 250;
 const CATCHUP_TIMEOUT_MS = 8_000;

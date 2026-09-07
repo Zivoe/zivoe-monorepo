@@ -107,6 +107,21 @@ export const SHARE_CLASSES = {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             centrifugeVaultAddress: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E'
+          },
+          avalanche: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31'
+          },
+          optimism: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x991de0203E455dfC4B8f38F7c333487c16aDdE55'
+          },
+          hyperliquid: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042'
           }
         }
       }

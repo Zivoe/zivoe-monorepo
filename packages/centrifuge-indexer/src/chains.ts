@@ -1,5 +1,5 @@
 import { type Address, type Chain, defineChain } from 'viem';
-import { arbitrum, base, baseSepolia, mainnet, sepolia } from 'viem/chains';
+import { arbitrum, avalanche, base, baseSepolia, hyperEvm, mainnet, optimism, sepolia } from 'viem/chains';
 
 /**
  * The two axes of a Centrifuge deployment, split on purpose:
@@ -120,6 +120,30 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     alchemyNetwork: 'arb-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     usdc: usdcInstance('0xaf88d065e77c8cC2239327C5EDb3A432268e5831'),
+    supportsRedeemCancellation: false
+  },
+  avalanche: {
+    viem: avalanche,
+    environment: 'mainnet',
+    alchemyNetwork: 'avax-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: usdcInstance('0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'),
+    supportsRedeemCancellation: false
+  },
+  optimism: {
+    viem: optimism,
+    environment: 'mainnet',
+    alchemyNetwork: 'opt-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: usdcInstance('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'),
+    supportsRedeemCancellation: false
+  },
+  hyperliquid: {
+    viem: hyperEvm,
+    environment: 'mainnet',
+    alchemyNetwork: 'hyperliquid-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    usdc: usdcInstance('0xb88339CB7199b77E23DB6E890353E22632Ba630f'),
     supportsRedeemCancellation: false
   },
   sepolia: {

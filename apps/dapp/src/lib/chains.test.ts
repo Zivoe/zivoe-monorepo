@@ -58,6 +58,28 @@ describe('waitForRpcCatchup', () => {
     }
   });
 
+  it('holds on OP Mainnet too — the same Flashblock preconfirmation receipts as Base', async () => {
+    vi.useFakeTimers();
+    try {
+      const getBlockNumber = vi.fn().mockResolvedValueOnce(10n).mockResolvedValue(11n);
+      let settled = false;
+      const wait = waitForRpcCatchup({
+        client: { getBlockNumber },
+        chainId: getChainId('optimism'),
+        receiptBlock
+      }).then(() => (settled = true));
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(250);
+      await wait;
+      expect(getBlockNumber).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('releases on an RPC error instead of pinning the caller', async () => {
     const getBlockNumber = vi.fn().mockRejectedValue(new Error('rpc down'));
 

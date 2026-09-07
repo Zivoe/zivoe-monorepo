@@ -186,16 +186,34 @@ describe('resolveChainDisplay', () => {
       label: 'Arbitrum One',
       explorerUrl: 'https://arbiscan.io'
     });
-  });
-
-  it('keeps the indexer values for a chain the registry does not know', () => {
+    expect(
+      resolveChainDisplay(event({ chainId: 43114, chainName: 'avalanche', explorerUrl: 'https://snowtrace.io' }))
+    ).toEqual({
+      label: 'Avalanche',
+      explorerUrl: 'https://snowtrace.io'
+    });
     expect(
       resolveChainDisplay(
         event({ chainId: 10, chainName: 'optimism', explorerUrl: 'https://optimistic.etherscan.io/' })
       )
     ).toEqual({
-      label: 'optimism',
-      explorerUrl: 'https://optimistic.etherscan.io/'
+      label: 'OP Mainnet',
+      explorerUrl: 'https://optimistic.etherscan.io'
+    });
+    expect(
+      resolveChainDisplay(event({ chainId: 999, chainName: 'hyperliquid', explorerUrl: 'https://hyperevmscan.io' }))
+    ).toEqual({
+      label: 'HyperEVM',
+      explorerUrl: 'https://hyperevmscan.io'
+    });
+  });
+
+  it('keeps the indexer values for a chain the registry does not know', () => {
+    expect(
+      resolveChainDisplay(event({ chainId: 98866, chainName: 'plume', explorerUrl: 'https://explorer.plume.org' }))
+    ).toEqual({
+      label: 'plume',
+      explorerUrl: 'https://explorer.plume.org'
     });
   });
 });
