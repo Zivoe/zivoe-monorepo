@@ -5,6 +5,7 @@ import {
   ArbitrumIcon,
   AvalancheIcon,
   BaseIcon,
+  BnbIcon,
   EthereumIcon,
   HyperliquidIcon,
   OptimismIcon,
@@ -27,6 +28,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   optimism: { label: 'Optimism', Icon: OptimismIcon },
   hyperliquid: { label: 'Hyperliquid', Icon: HyperliquidIcon },
   xlayer: { label: 'X Layer', Icon: XLayerIcon },
+  bnb: { label: 'BNB Chain', Icon: BnbIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 

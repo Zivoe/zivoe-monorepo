@@ -57,7 +57,8 @@ describe('chain deployments', () => {
       'avalanche',
       'optimism',
       'hyperliquid',
-      'xlayer'
+      'xlayer',
+      'bnb'
     ]);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
@@ -74,6 +75,7 @@ describe('chain deployments', () => {
     expect(getChainId('optimism')).toBe(10);
     expect(getChainId('hyperliquid')).toBe(999);
     expect(getChainId('xlayer')).toBe(196);
+    expect(getChainId('bnb')).toBe(56);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -176,6 +178,21 @@ describe('share-class catalog', () => {
       });
     }
   );
+
+  it('resolves the bnb mainnet instance — the one chain whose USDC is the 18-decimal Binance-Peg token', () => {
+    expect(getShareClassChainIdentity({ chain: 'bnb', key: 'zsmb' })).toEqual({
+      key: 'zsmb',
+      symbol: 'zSMB',
+      decimals: 18,
+      poolId: '281474976710674',
+      scId: '0x00010000000000120000000000000002',
+      chain: 'bnb',
+      chainId: 56,
+      shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+      centrifugeVaultAddress: '0x616997144B1Ae546359596311853A7Da297CbAe2',
+      asset: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', symbol: 'USDC', decimals: 18 }
+    });
+  });
 
   it('resolves the second testnet chain with its deterministically shared token address', () => {
     expect(getShareClassChainIdentity({ chain: 'base-sepolia', key: 'zsmb' })).toEqual({

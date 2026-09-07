@@ -14,7 +14,7 @@ import {
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
 // Lets a test stand in an 18-decimal USDC (BNB Smart Chain's Binance-Peg
-// shape) on a real chain id: the catalog carries no such chain yet, and the
+// shape) on ANY chain id: BNB is the catalog's only such chain today, and the
 // renderers must scale by the event chain's instance, never by a constant.
 const mocks = vi.hoisted(() => ({ eighteenDecimalUsdcChain: undefined as string | undefined }));
 vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
@@ -93,6 +93,13 @@ describe('resolveDepositAssetDisplay', () => {
 
     mocks.eighteenDecimalUsdcChain = 'ethereum';
     expect(resolveDepositAssetDisplay({ event: event({ chainId: 1 }), shareClassKey: 'zsmb' })).toEqual({
+      symbol: 'USDC',
+      decimals: 18
+    });
+  });
+
+  it("reads BNB Smart Chain at 18 decimals off the real catalog — the one live chain whose USDC is not Circle's", () => {
+    expect(resolveDepositAssetDisplay({ event: event({ chainId: 56 }), shareClassKey: 'zsmb' })).toEqual({
       symbol: 'USDC',
       decimals: 18
     });
@@ -253,6 +260,10 @@ describe('resolveChainDisplay', () => {
     ).toEqual({
       label: 'X Layer Mainnet',
       explorerUrl: 'https://www.oklink.com/xlayer'
+    });
+    expect(resolveChainDisplay(event({ chainId: 56, chainName: 'bnb', explorerUrl: 'https://bscscan.com' }))).toEqual({
+      label: 'BNB Smart Chain',
+      explorerUrl: 'https://bscscan.com'
     });
   });
 

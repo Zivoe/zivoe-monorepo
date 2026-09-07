@@ -163,6 +163,14 @@ export const SHARE_CLASSES = {
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             centrifugeVaultAddress: '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF',
             asset: { address: '0xB6CEceAB302E2E4948951eE7843FC24E92933061', symbol: 'USDC', decimals: 6 }
+          },
+          bnb: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaultAddress: '0x616997144B1Ae546359596311853A7Da297CbAe2',
+            // Binance-Peg USD Coin, the only 18-decimal deposit asset in the
+            // book — BNB Smart Chain has no Circle-native USDC.
+            asset: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', symbol: 'USDC', decimals: 18 }
           }
         }
       }

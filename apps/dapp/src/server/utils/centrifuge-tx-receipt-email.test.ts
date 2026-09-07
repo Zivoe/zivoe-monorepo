@@ -10,7 +10,7 @@ import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
 // Lets a test stand in an 18-decimal USDC (BNB Smart Chain's Binance-Peg
-// shape) on a real chain id: the catalog carries no such chain yet, and the
+// shape) on ANY chain id: BNB is the catalog's only such chain today, and the
 // renderers must scale by the event chain's instance, never by a constant.
 const mocks = vi.hoisted(() => ({ eighteenDecimalUsdcChain: undefined as string | undefined }));
 vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
