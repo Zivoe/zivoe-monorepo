@@ -96,8 +96,8 @@ export function bearerToken(authorization: string | null) {
 
 /**
  * The shape of a token the magic-link plugin issues (32 ASCII letters), checked before the
- * redeem route touches the database: a lookup there also sweeps expired rows from the
- * shared verification table, and a stray path segment should not pay for that.
+ * redeem route touches the database, so stray path segments do not start verification
+ * lookups and transactions.
  */
 export function isAgentTokenShaped(token: string) {
   return /^[A-Za-z]{32}$/.test(token);

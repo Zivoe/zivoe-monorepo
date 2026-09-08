@@ -8,6 +8,19 @@ import { authOptions } from '@/server/auth';
 
 import { AGENT_SESSION_SECONDS, signInAsAgent } from './mint';
 
+// Isolate cookie behavior from PostgreSQL locking and cleanup.
+vi.mock('@/server/clients/db', () => ({
+  db: {
+    delete: () => ({ where: async () => undefined }),
+    transaction: (callback: (tx: unknown) => Promise<unknown>) =>
+      callback({ select: () => ({ from: () => ({ where: () => ({ for: async () => [] }) }) }) })
+  }
+}));
+vi.mock('better-auth/adapters/drizzle', async () => {
+  const { authOptions } = await import('@/server/auth');
+  return { drizzleAdapter: () => authOptions.database };
+});
+
 // Keep the real auth endpoints and cookies, with an isolated database and no sign-up side effects.
 vi.mock('@/server/auth', async () => {
   const { memoryAdapter } = await import('better-auth/adapters/memory');

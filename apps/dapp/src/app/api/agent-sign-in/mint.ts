@@ -1,11 +1,16 @@
 import 'server-only';
 
 import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
+import { eq, lt } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 
 import { AGENT_ACCOUNT } from '@zivoe/database/agent';
+import * as schema from '@zivoe/database/schema';
 
 import { authOptions } from '@/server/auth';
+import { db } from '@/server/clients/db';
 
 import { toOriginRelative } from './gate';
 
@@ -37,9 +42,19 @@ export const LINK_TTL_SECONDS = 180;
 export const AGENT_SESSION_SECONDS = 60 * 60;
 
 // A fresh instance per call keeps the captured token request-scoped.
-function createAgentAuth(onToken: (token: string) => void) {
+function createAgentAuth({
+  onToken = () => undefined,
+  database = authOptions.database
+}: {
+  onToken?: (token: string) => void;
+  database?: typeof authOptions.database;
+}) {
   return betterAuth({
     ...authOptions,
+    database,
+    // Bulk cleanup while holding a token row lock can deadlock another verifier.
+    // Issuance sweeps expired rows instead; verification still deletes its own token.
+    verification: { disableCleanup: true },
     session: {
       // Replace any previous user's cached identity along with the session token.
       ...authOptions.session,
@@ -56,9 +71,13 @@ function createAgentAuth(onToken: (token: string) => void) {
 // Passing the request headers through gives the rows the same IP and user-agent a real
 // sign-in records.
 async function issueAgentToken(request: Request) {
+  await db.delete(schema.verification).where(lt(schema.verification.expiresAt, new Date()));
+
   let token: string | undefined;
-  const agentAuth = createAgentAuth((issued) => {
-    token = issued;
+  const agentAuth = createAgentAuth({
+    onToken: (issued) => {
+      token = issued;
+    }
   });
 
   await agentAuth.api.signInMagicLink({
@@ -74,18 +93,28 @@ async function issueAgentToken(request: Request) {
 // hooks a real sign-in runs), create the session, set the cookie, redirect to `/`. A bad
 // or expired token redirects to /sign-in?error=…, which the sign-in page shows as a toast.
 async function redeemAgentToken(request: Request, token: string) {
-  const agentAuth = createAgentAuth(() => undefined);
+  return db.transaction(async (tx) => {
+    // Match magic-link's hashed identifiers. Hold the row lock through consumption and
+    // session creation so a concurrent verifier waits, then finds the token gone.
+    const identifier = createHash('sha256').update(token).digest('base64url');
+    await tx
+      .select({ id: schema.verification.id })
+      .from(schema.verification)
+      .where(eq(schema.verification.identifier, identifier))
+      .for('update');
 
-  const response = await agentAuth.api.magicLinkVerify({
-    query: { token, callbackURL: '/', errorCallbackURL: '/sign-in' },
-    headers: request.headers,
-    asResponse: true
+    const agentAuth = createAgentAuth({ database: drizzleAdapter(tx, { provider: 'pg', schema }) });
+    const response = await agentAuth.api.magicLinkVerify({
+      query: { token, callbackURL: '/', errorCallbackURL: '/sign-in' },
+      headers: request.headers,
+      asResponse: true
+    });
+
+    const location = response.headers.get('location');
+    if (location) response.headers.set('location', toOriginRelative(location, request.url));
+
+    return response;
   });
-
-  const location = response.headers.get('location');
-  if (location) response.headers.set('location', toOriginRelative(location, request.url));
-
-  return response;
 }
 
 /** Local `next dev` path: sign the request's browser in as the agent within this one request. */
