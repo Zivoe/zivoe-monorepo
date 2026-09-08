@@ -17,8 +17,9 @@ const limiter = new Ratelimit({
 /** `ok` to proceed, `limited` past the window, `error` when Redis could not answer — refuse, but not as a 429. */
 export async function checkIpLimit(step: 'issue' | 'redeem', request: Request) {
   const { res, err } = await handlePromise(limiter.limit(`${step}:${ipAddress(request) ?? 'unknown'}`));
-  if (err || !res) {
-    console.error('agent-sign-in: rate limit check failed', err);
+  // Upstash resolves timeouts with success: true, so refuse them explicitly.
+  if (err || !res || res.reason === 'timeout') {
+    console.error('agent-sign-in: rate limit check failed', err ?? res?.reason);
     return 'error';
   }
 
