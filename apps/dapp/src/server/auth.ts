@@ -42,6 +42,15 @@ type DappAuth = {
 };
 
 /**
+ * The identity the agent sign-in route signs in as (app/api/agent-sign-in), so an AI agent
+ * driving a browser can reach the signed-in dapp without email OTP or a social provider.
+ * In every other way it is an ordinary user — same hooks, same emails, same notifications —
+ * so a run through onboarding can be verified from its mailbox. The environment, not the
+ * identity, decides where those side effects land (Preview-scoped Telegram chats and so on).
+ */
+export const AGENT_ACCOUNT = { email: 'alex+agent@zivoe.com', name: 'Zivoe Agent' };
+
+/**
  * The dapp's better-auth configuration, exported apart from the instance so the agent
  * sign-in (app/api/agent-sign-in/mint.ts) can build a second instance
  * from the exact same options — same secret, same session table, same hooks — plus the
