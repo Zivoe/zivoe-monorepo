@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { isAgentSignInAllowed, isLocalDatabase, toOriginRelative } from './gate';
+import {
+  bearerToken,
+  isAgentSignInAllowed,
+  isLocalDatabase,
+  isPresentedSecretValid,
+  isPreviewAgentEnvironment,
+  toOriginRelative
+} from './gate';
 
 // Tables over each gate's whole surface: every layer refusing alone, and the exact
 // combinations that pass. The default row is the strictest legitimate arrival.
@@ -46,6 +53,55 @@ describe('isLocalDatabase', () => {
     ['an empty value', '', false]
   ])('%s → %s', (_case, databaseUrl, isLocal) => {
     expect(isLocalDatabase(databaseUrl)).toBe(isLocal);
+  });
+});
+
+const preview = { vercel: '1', vercelEnv: 'preview', configuredSecret: 's'.repeat(32) };
+
+describe('isPreviewAgentEnvironment', () => {
+  it.each([
+    ['a Vercel preview with the secret configured', preview, true],
+
+    ['a production deployment', { ...preview, vercelEnv: 'production' }, false],
+    ['the development environment (`vercel dev`)', { ...preview, vercelEnv: 'development' }, false],
+    ['a process not on Vercel, whatever VERCEL_ENV says', { ...preview, vercel: '0' }, false],
+    ['a preview without the secret configured', { ...preview, configuredSecret: undefined }, false],
+    ['a preview with an empty secret', { ...preview, configuredSecret: '' }, false]
+  ])('%s → %s', (_case, inputs, allowed) => {
+    expect(isPreviewAgentEnvironment(inputs)).toBe(allowed);
+  });
+});
+
+const secret = 'correct-horse-battery-staple-0123456789';
+
+describe('isPresentedSecretValid', () => {
+  it.each([
+    ['the configured secret', secret, true],
+
+    ['a different secret of the same length', secret.replace('0', '1'), false],
+    ['a prefix of the secret', secret.slice(0, -1), false],
+    ['the secret with trailing whitespace', `${secret} `, false],
+    ['no secret presented', null, false],
+    ['an empty string', '', false]
+  ])('%s → %s', (_case, presentedSecret, valid) => {
+    expect(isPresentedSecretValid({ configuredSecret: secret, presentedSecret })).toBe(valid);
+  });
+
+  it('refuses everything when no secret is configured', () => {
+    expect(isPresentedSecretValid({ configuredSecret: undefined, presentedSecret: secret })).toBe(false);
+  });
+});
+
+describe('bearerToken', () => {
+  it.each([
+    ['a bearer header', 'Bearer abc.def', 'abc.def'],
+    ['a lowercase scheme', 'bearer abc', 'abc'],
+    ['a basic header', 'Basic abc', null],
+    ['a bare token without a scheme', 'abc', null],
+    ['a bearer header with no token', 'Bearer ', null],
+    ['no header', null, null]
+  ])('%s → %s', (_case, header, token) => {
+    expect(bearerToken(header)).toBe(token);
   });
 });
 

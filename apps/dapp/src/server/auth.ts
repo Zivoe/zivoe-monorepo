@@ -47,6 +47,7 @@ type DappAuth = {
  * In every other way it is an ordinary user — same hooks, same emails, same notifications —
  * so a run through onboarding can be verified from its mailbox. The environment, not the
  * identity, decides where those side effects land (Preview-scoped Telegram chats and so on).
+ * The session hook below keys off it to cap agent sessions at one hour.
  */
 export const AGENT_ACCOUNT = { email: 'alex+agent@zivoe.com', name: 'Zivoe Agent' };
 
@@ -183,6 +184,20 @@ export const authOptions = {
   },
 
   databaseHooks: {
+    session: {
+      update: {
+        // Agent sessions are minted with a one-hour expiry (app/api/agent-sign-in/mint.ts).
+        // getSession refreshes any session with under six days left back to the full seven,
+        // which would undo that cap on the first read, so keep the row's current expiry.
+        before: async (update, ctx) => {
+          const current = ctx?.context.session;
+          if (!current || update.expiresAt === undefined || current.user.email !== AGENT_ACCOUNT.email) return;
+
+          return { data: { expiresAt: current.session.expiresAt } };
+        }
+      }
+    },
+
     user: {
       create: {
         after: async (user) => {

@@ -1,5 +1,9 @@
+import { timingSafeEqual } from 'node:crypto';
+
 // Policy for the agent sign-in: who may call it and what this process may mint against,
-// as pure functions the route file feeds at request time so every branch is table-tested.
+// as pure functions the route files feed at request time so every branch is table-tested.
+//
+// Two entry points, two gates:
 //
 //   Local (`next dev`) — isAgentSignInAllowed. NODE_ENV is `development` only under
 //   `next dev`, and Next inlines it at build time, so the local branch in route.ts is dead
@@ -11,6 +15,13 @@
 //   navigate the developer onto the agent session — pages cannot forge it. isLocalDatabase
 //   is what actually bounds the local path: whatever a caller obtains is a session in the
 //   developer's own database.
+//
+//   Preview (Vercel) — isPreviewAgentEnvironment plus isPresentedSecretValid. Both a
+//   runtime `VERCEL_ENV === 'preview'` and a secret that only Preview deployments carry
+//   must hold, and the routes wrap the whole path in an inlined NEXT_PUBLIC_ENV comparison
+//   so a production build has no live code either. One precondition lives in configuration
+//   and cannot be checked here: Preview must have its own DATABASE_URL and
+//   BETTER_AUTH_SECRET, or a session minted on a preview is a production session.
 //
 // Every refusal answers 404.
 
@@ -61,6 +72,45 @@ export function isLocalDatabase(databaseUrl: string) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether this process is a Vercel Preview deployment with the agent secret configured.
+ * `VERCEL_ENV` is set by the platform at runtime; the secret is a Vercel variable scoped
+ * to Preview, so production deployments never carry it and fail here regardless of the
+ * environment check.
+ */
+export function isPreviewAgentEnvironment({
+  vercel,
+  vercelEnv,
+  configuredSecret
+}: {
+  vercel: string | undefined;
+  vercelEnv: string | undefined;
+  configuredSecret: string | undefined;
+}) {
+  return vercel === '1' && vercelEnv === 'preview' && !!configuredSecret;
+}
+
+/** Constant-time comparison of the presented secret with the configured one; unequal lengths are refused first, as timingSafeEqual requires. */
+export function isPresentedSecretValid({
+  configuredSecret,
+  presentedSecret
+}: {
+  configuredSecret: string | undefined;
+  presentedSecret: string | null;
+}) {
+  if (!configuredSecret || !presentedSecret) return false;
+
+  const configured = Buffer.from(configuredSecret);
+  const presented = Buffer.from(presentedSecret);
+  return configured.length === presented.length && timingSafeEqual(configured, presented);
+}
+
+/** The token of an `Authorization: Bearer <token>` header, or null for any other shape. */
+export function bearerToken(authorization: string | null) {
+  const match = authorization?.match(/^Bearer\s+(\S+)\s*$/i);
+  return match?.[1] ?? null;
 }
 
 /**
