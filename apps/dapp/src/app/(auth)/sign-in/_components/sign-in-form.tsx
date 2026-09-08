@@ -37,7 +37,7 @@ export default function SignInForm() {
 
   const [step, setStep] = useState<Step>('EMAIL');
   const [email, setEmail] = useState('');
-  const { turnstileRef, turnstilePromiseRef, executeTurnstile } = useTurnstile();
+  const { turnstileRef, turnstileSlotRef, turnstileHandlers, executeTurnstile } = useTurnstile();
 
   const handleEmailSuccess = (data: EmailFormData) => {
     setEmail(data.email);
@@ -91,22 +91,24 @@ export default function SignInForm() {
             <OtpStepForm email={email} executeTurnstile={executeTurnstile} />
           </>
         )}
+
+        {/*
+          Turnstile lives outside the step switch so one widget serves both the email submit and the OTP resend.
+          The slot reserves the widget's height (65px) so the challenge pops in place instead of shifting the form.
+        */}
+        {WITH_TURNSTILE && (
+          <div ref={turnstileSlotRef} className="flex h-[65px] justify-center">
+            <Turnstile
+              options={{ execution: 'execute', appearance: 'interaction-only', size: 'normal', theme: 'light' }}
+              siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              ref={turnstileRef}
+              {...turnstileHandlers}
+            />
+          </div>
+        )}
       </Auth.Container>
 
       {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
-
-      {WITH_TURNSTILE && (
-        <div className="absolute right-0 bottom-0 z-50">
-          <Turnstile
-            options={{ execution: 'execute', appearance: 'execute', size: 'normal' }}
-            siteKey={env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            onSuccess={(token) => turnstilePromiseRef.current?.resolve(token)}
-            onError={(error) => turnstilePromiseRef.current?.reject(new Error(error))}
-            onBeforeInteractive={() => toast({ type: 'warning', title: 'Verify You Are Human to Continue' })}
-            ref={turnstileRef}
-          />
-        </div>
-      )}
     </>
   );
 }
