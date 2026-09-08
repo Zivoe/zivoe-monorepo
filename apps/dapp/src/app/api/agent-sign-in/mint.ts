@@ -41,12 +41,9 @@ function createAgentAuth(onToken: (token: string) => void) {
   return betterAuth({
     ...authOptions,
     session: {
+      // Replace any previous user's cached identity along with the session token.
       ...authOptions.session,
-      expiresIn: AGENT_SESSION_SECONDS,
-      // The cache cookie is the one artefact better-auth trusts without reading the
-      // session row; without it the cookie set here is a bare session token. The dapp's
-      // own instance repopulates the cache on the next request.
-      cookieCache: { enabled: false }
+      expiresIn: AGENT_SESSION_SECONDS
     },
     plugins: [
       // First so nextCookies stays last, which the vendor requires.
