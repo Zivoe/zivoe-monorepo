@@ -3,11 +3,12 @@ import 'server-only';
 import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { betterAuth } from 'better-auth';
+import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, emailOTP } from 'better-auth/plugins';
 
+import { AGENT_ACCOUNT } from '@zivoe/database/agent';
 import * as schema from '@zivoe/database/schema';
 
 import { WITH_TURNSTILE } from '@/types/constants';
@@ -41,7 +42,14 @@ type DappAuth = {
   };
 };
 
-export const auth: DappAuth = betterAuth({
+/**
+ * The dapp's better-auth configuration, exported apart from the instance so the agent
+ * sign-in (app/api/agent-sign-in/mint.ts) can build a second instance
+ * from the exact same options — same secret, same session table, same hooks — plus the
+ * one plugin it needs. Keep dev-only plugins out of this object: anything added here
+ * ships to production.
+ */
+export const authOptions = {
   baseURL: BASE_URL,
   basePath: '/api/auth',
 
@@ -167,6 +175,22 @@ export const auth: DappAuth = betterAuth({
   },
 
   databaseHooks: {
+    session: {
+      update: {
+        // Agent sessions are minted with a one-hour expiry (app/api/agent-sign-in/mint.ts).
+        // getSession refreshes any session with under six days left back to the full seven,
+        // which would undo that cap on the first read, so keep the row's current expiry.
+        // getSession is the only caller that updates expiresAt, and it sets ctx.context.session
+        // to the session it is refreshing first, so that is the session being pinned.
+        before: async (update, ctx) => {
+          const current = ctx?.context.session;
+          if (!current || update.expiresAt === undefined || current.user.email !== AGENT_ACCOUNT.email) return;
+
+          return { data: { expiresAt: current.session.expiresAt } };
+        }
+      }
+    },
+
     user: {
       create: {
         after: async (user) => {
@@ -174,11 +198,15 @@ export const auth: DappAuth = betterAuth({
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-schedule-reminder', 'sign-up-posthog-capture'];
 
             const results = await Promise.allSettled([
-              subscribeToBeehiiv({
-                email: user.email,
-                utmSource: 'dapp-v2',
-                sendWelcomeEmail: false
-              }),
+              // One Beehiiv publication serves every environment, so only production
+              // sign-ups reach the real newsletter list (same gate as analytics).
+              env.NEXT_PUBLIC_ENV === 'production'
+                ? subscribeToBeehiiv({
+                    email: user.email,
+                    utmSource: 'dapp-v2',
+                    sendWelcomeEmail: false
+                  })
+                : Promise.resolve(),
 
               // Nudges users who signed up but never completed onboarding; the
               // route no-ops if they finished in the meantime.
@@ -218,4 +246,6 @@ export const auth: DappAuth = betterAuth({
       }
     }
   }
-}) as unknown as DappAuth;
+} satisfies BetterAuthOptions;
+
+export const auth: DappAuth = betterAuth(authOptions) as unknown as DappAuth;

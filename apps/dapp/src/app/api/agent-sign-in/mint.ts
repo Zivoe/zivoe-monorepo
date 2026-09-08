@@ -1,0 +1,133 @@
+import 'server-only';
+
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { magicLink } from 'better-auth/plugins';
+import { eq, lt } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+
+import { AGENT_ACCOUNT } from '@zivoe/database/agent';
+import * as schema from '@zivoe/database/schema';
+
+import { authOptions } from '@/server/auth';
+import { db } from '@/server/clients/db';
+
+import { toOriginRelative } from './gate';
+
+// Mint a session for AGENT_ACCOUNT without email or OAuth. Only ever imported after a
+// request passes the gates in ./gate.ts (see route.ts and [token]/route.ts).
+//
+// Every call builds a fresh better-auth instance from the dapp's own authOptions — same
+// secret, same tables, same hooks — plus the magic-link plugin, with the link captured in
+// process instead of emailed. Both halves of the flow are the plugin's own endpoints, so
+// the minted cookie is indistinguishable from a real sign-in's. The plugin lives only
+// here, never on the shared instance, so no deployed build exposes passwordless endpoints
+// under /api/auth. Tokens are stored hashed in the verification table, deleted on first
+// use and expired after LINK_TTL_SECONDS; that table, not this process, is what lets the
+// preview flow span two requests and two serverless invocations.
+//
+// `baseURL` is deliberately not overridden to the request origin: better-auth derives the
+// cookie name from its protocol (`__Secure-` prefix or none), so an instance disagreeing
+// with the dapp's own would mint a cookie the app cannot see. The redirect is corrected
+// instead (toOriginRelative).
+
+/** How long an issued preview link stays redeemable. */
+export const LINK_TTL_SECONDS = 180;
+
+/**
+ * How long an agent session lives. The shared config's session.update.before hook keeps
+ * the row at this expiry, because the dapp's own getSession would otherwise refresh it to
+ * the full seven days on the first read.
+ */
+export const AGENT_SESSION_SECONDS = 60 * 60;
+
+// A fresh instance per call keeps the captured token request-scoped.
+function createAgentAuth({
+  onToken = () => undefined,
+  database = authOptions.database
+}: {
+  onToken?: (token: string) => void;
+  database?: typeof authOptions.database;
+}) {
+  return betterAuth({
+    ...authOptions,
+    database,
+    // Bulk cleanup while holding a token row lock can deadlock another verifier.
+    // Issuance sweeps expired rows instead; verification still deletes its own token.
+    verification: { disableCleanup: true },
+    session: {
+      // Replace any previous user's cached identity along with the session token.
+      ...authOptions.session,
+      expiresIn: AGENT_SESSION_SECONDS
+    },
+    plugins: [
+      // First so nextCookies stays last, which the vendor requires.
+      magicLink({ expiresIn: LINK_TTL_SECONDS, storeToken: 'hashed', sendMagicLink: ({ token }) => onToken(token) }),
+      ...authOptions.plugins
+    ]
+  });
+}
+
+// Passing the request headers through gives the rows the same IP and user-agent a real
+// sign-in records.
+async function issueAgentToken(request: Request) {
+  await db.delete(schema.verification).where(lt(schema.verification.expiresAt, new Date()));
+
+  let token: string | undefined;
+  const agentAuth = createAgentAuth({
+    onToken: (issued) => {
+      token = issued;
+    }
+  });
+
+  await agentAuth.api.signInMagicLink({
+    body: { email: AGENT_ACCOUNT.email, name: AGENT_ACCOUNT.name },
+    headers: request.headers
+  });
+
+  if (!token) throw new Error('Agent sign-in issued no magic-link token; the magic-link plugin did not run.');
+  return token;
+}
+
+// Verify consumes the token: find-or-create the agent user (running the same database
+// hooks a real sign-in runs), create the session, set the cookie, redirect to `/`. A bad
+// or expired token redirects to /sign-in?error=…, which the sign-in page shows as a toast.
+async function redeemAgentToken(request: Request, token: string) {
+  return db.transaction(async (tx) => {
+    // Match magic-link's hashed identifiers. Hold the row lock through consumption and
+    // session creation so a concurrent verifier waits, then finds the token gone.
+    const identifier = createHash('sha256').update(token).digest('base64url');
+    await tx
+      .select({ id: schema.verification.id })
+      .from(schema.verification)
+      .where(eq(schema.verification.identifier, identifier))
+      .for('update');
+
+    const agentAuth = createAgentAuth({ database: drizzleAdapter(tx, { provider: 'pg', schema }) });
+    const response = await agentAuth.api.magicLinkVerify({
+      query: { token, callbackURL: '/', errorCallbackURL: '/sign-in' },
+      headers: request.headers,
+      asResponse: true
+    });
+
+    const location = response.headers.get('location');
+    if (location) response.headers.set('location', toOriginRelative(location, request.url));
+
+    return response;
+  });
+}
+
+/** Local `next dev` path: sign the request's browser in as the agent within this one request. */
+export async function signInAsAgent(request: Request): Promise<Response> {
+  const token = await issueAgentToken(request);
+  return redeemAgentToken(request, token);
+}
+
+/** Preview path, step one: a single-use link the agent must redeem within LINK_TTL_SECONDS. */
+export async function issueAgentSignInLink(request: Request) {
+  const token = await issueAgentToken(request);
+  return `${new URL(request.url).origin}/api/agent-sign-in/${token}`;
+}
+
+/** Preview path, step two: redeem an issued link and sign the request's browser in. */
+export const redeemAgentSignInLink = redeemAgentToken;
