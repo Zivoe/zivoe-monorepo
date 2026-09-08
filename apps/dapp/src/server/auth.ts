@@ -3,7 +3,7 @@ import 'server-only';
 import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { betterAuth } from 'better-auth';
+import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, emailOTP } from 'better-auth/plugins';
@@ -41,7 +41,14 @@ type DappAuth = {
   };
 };
 
-export const auth: DappAuth = betterAuth({
+/**
+ * The dapp's better-auth configuration, exported apart from the instance so the agent
+ * sign-in (app/api/agent-sign-in/mint.ts) can build a second instance
+ * from the exact same options — same secret, same session table, same hooks — plus the
+ * one plugin it needs. Keep dev-only plugins out of this object: anything added here
+ * ships to production.
+ */
+export const authOptions = {
   baseURL: BASE_URL,
   basePath: '/api/auth',
 
@@ -218,4 +225,6 @@ export const auth: DappAuth = betterAuth({
       }
     }
   }
-}) as unknown as DappAuth;
+} satisfies BetterAuthOptions;
+
+export const auth: DappAuth = betterAuth(authOptions) as unknown as DappAuth;
