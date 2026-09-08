@@ -8,6 +8,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { captcha, emailOTP } from 'better-auth/plugins';
 
+import { AGENT_ACCOUNT } from '@zivoe/database/agent';
 import * as schema from '@zivoe/database/schema';
 
 import { WITH_TURNSTILE } from '@/types/constants';
@@ -40,16 +41,6 @@ type DappAuth = {
     signOut: (options: { headers: unknown }) => Promise<unknown>;
   };
 };
-
-/**
- * The identity the agent sign-in route signs in as (app/api/agent-sign-in), so an AI agent
- * driving a browser can reach the signed-in dapp without email OTP or a social provider.
- * In every other way it is an ordinary user — same hooks, same emails, same notifications —
- * so a run through onboarding can be verified from its mailbox. The environment, not the
- * identity, decides where those side effects land (Preview-scoped Telegram chats and so on).
- * The session hook below keys off it to cap agent sessions at one hour.
- */
-export const AGENT_ACCOUNT = { email: 'alex+agent@zivoe.com', name: 'Zivoe Agent' };
 
 /**
  * The dapp's better-auth configuration, exported apart from the instance so the agent
@@ -189,6 +180,8 @@ export const authOptions = {
         // Agent sessions are minted with a one-hour expiry (app/api/agent-sign-in/mint.ts).
         // getSession refreshes any session with under six days left back to the full seven,
         // which would undo that cap on the first read, so keep the row's current expiry.
+        // getSession is the only caller that updates expiresAt, and it sets ctx.context.session
+        // to the session it is refreshing first, so that is the session being pinned.
         before: async (update, ctx) => {
           const current = ctx?.context.session;
           if (!current || update.expiresAt === undefined || current.user.email !== AGENT_ACCOUNT.email) return;
@@ -205,11 +198,15 @@ export const authOptions = {
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-schedule-reminder', 'sign-up-posthog-capture'];
 
             const results = await Promise.allSettled([
-              subscribeToBeehiiv({
-                email: user.email,
-                utmSource: 'dapp-v2',
-                sendWelcomeEmail: false
-              }),
+              // One Beehiiv publication serves every environment, so only production
+              // sign-ups reach the real newsletter list (same gate as analytics).
+              env.NEXT_PUBLIC_ENV === 'production'
+                ? subscribeToBeehiiv({
+                    email: user.email,
+                    utmSource: 'dapp-v2',
+                    sendWelcomeEmail: false
+                  })
+                : Promise.resolve(),
 
               // Nudges users who signed up but never completed onboarding; the
               // route no-ops if they finished in the meantime.

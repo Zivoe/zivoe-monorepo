@@ -3,11 +3,11 @@ import 'server-only';
 import { betterAuth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
 
-import { AGENT_ACCOUNT, authOptions } from '@/server/auth';
+import { AGENT_ACCOUNT } from '@zivoe/database/agent';
 
-import { env } from '@/env';
+import { authOptions } from '@/server/auth';
 
-import { isLocalDatabase, toOriginRelative } from './gate';
+import { toOriginRelative } from './gate';
 
 // Mint a session for AGENT_ACCOUNT without email or OAuth. Only ever imported after a
 // request passes the gates in ./gate.ts (see route.ts and [token]/route.ts).
@@ -36,8 +36,7 @@ export const LINK_TTL_SECONDS = 180;
  */
 export const AGENT_SESSION_SECONDS = 60 * 60;
 
-// A fresh instance per call keeps the captured token request-scoped and leaves no
-// long-lived object that can mint sessions.
+// A fresh instance per call keeps the captured token request-scoped.
 function createAgentAuth(onToken: (token: string) => void) {
   return betterAuth({
     ...authOptions,
@@ -94,14 +93,6 @@ async function redeemAgentToken(request: Request, token: string) {
 
 /** Local `next dev` path: sign the request's browser in as the agent within this one request. */
 export async function signInAsAgent(request: Request): Promise<Response> {
-  // Asked before anything touches the database, because issuing the token writes a row.
-  if (!isLocalDatabase(env.DATABASE_URL)) {
-    return new Response(
-      'Agent sign-in refuses to mint a session against a non-local database. This DATABASE_URL does not name localhost, which usually means the environment was pulled from a deployment. Fix: point DATABASE_URL at your local database, or sign in through the normal flow.',
-      { status: 500, headers: { 'content-type': 'text/plain' } }
-    );
-  }
-
   const token = await issueAgentToken(request);
   return redeemAgentToken(request, token);
 }

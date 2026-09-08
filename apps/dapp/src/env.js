@@ -22,7 +22,7 @@ export const env = createEnv({
     // Database/Auth
     DATABASE_URL: z.string(),
     BETTER_AUTH_SECRET: z.string().min(32),
-    // Vercel Preview only: enables POST /api/agent-sign-in (see apps/dapp/README.md)
+    // Vercel Preview only: enables POST /api/agent-sign-in (see docs/runbooks/agent-sign-in.md)
     AGENT_SIGN_IN_SECRET: z.string().min(32).optional(),
     APP_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string(),

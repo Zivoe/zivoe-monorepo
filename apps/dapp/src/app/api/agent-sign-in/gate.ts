@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 
-// Policy for the agent sign-in: who may call it and what this process may mint against,
-// as pure functions the route files feed at request time so every branch is table-tested.
+// Policy for the agent sign-in: who may call it, as pure functions the route files feed at
+// request time so every branch is table-tested.
 //
 // Two entry points, two gates:
 //
@@ -12,9 +12,9 @@ import { timingSafeEqual } from 'node:crypto';
 //   `x-forwarded-for` from the socket only when the caller sent none, so anyone on the same
 //   network can send a loopback value and pass: the check stops other machines' browsers,
 //   not curl. `Sec-Fetch-Site` is the browser's own claim, there so a malicious page cannot
-//   navigate the developer onto the agent session — pages cannot forge it. isLocalDatabase
-//   is what actually bounds the local path: whatever a caller obtains is a session in the
-//   developer's own database.
+//   navigate the developer onto the agent session — pages cannot forge it. The session
+//   lands in whatever database DATABASE_URL names; pointing a dev server at a deployed
+//   database is a configuration decision, not something this code second-guesses.
 //
 //   Preview (Vercel) — isPreviewAgentEnvironment plus isPresentedSecretValid. Both a
 //   runtime `VERCEL_ENV === 'preview'` and a secret that only Preview deployments carry
@@ -55,25 +55,6 @@ export function isAgentSignInAllowed({
   );
 }
 
-/** Loopback database hosts, including the bracketed IPv6 form `new URL().hostname` reports. */
-const LOOPBACK_HOSTNAME = /^(?:localhost|\[::1\]|127\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-
-/**
- * Whether the database this process would write to lives on this machine — what decides
- * whether the local path may mint at all. NODE_ENV describes the server, not the data:
- * `vercel env pull` brings a deployed DATABASE_URL onto a laptop, and `next dev` against it
- * would create the agent in that database. A URL that does not parse or names no host is
- * refused. A local port forwarded to a remote database still reads as local; this bounds
- * accidents, not a developer determined to do it anyway.
- */
-export function isLocalDatabase(databaseUrl: string) {
-  try {
-    return LOOPBACK_HOSTNAME.test(new URL(databaseUrl).hostname);
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Whether this process is a Vercel Preview deployment with the agent secret configured.
  * `VERCEL_ENV` is set by the platform at runtime; the secret is a Vercel variable scoped
@@ -111,6 +92,15 @@ export function isPresentedSecretValid({
 export function bearerToken(authorization: string | null) {
   const match = authorization?.match(/^Bearer\s+(\S+)\s*$/i);
   return match?.[1] ?? null;
+}
+
+/**
+ * The shape of a token the magic-link plugin issues (32 ASCII letters), checked before the
+ * redeem route touches the database: a lookup there also sweeps expired rows from the
+ * shared verification table, and a stray path segment should not pay for that.
+ */
+export function isAgentTokenShaped(token: string) {
+  return /^[A-Za-z]{32}$/.test(token);
 }
 
 /**

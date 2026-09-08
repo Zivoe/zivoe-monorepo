@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bearerToken,
   isAgentSignInAllowed,
-  isLocalDatabase,
+  isAgentTokenShaped,
   isPresentedSecretValid,
   isPreviewAgentEnvironment,
   toOriginRelative
@@ -37,22 +37,6 @@ describe('isAgentSignInAllowed', () => {
     ['a fetch-site value no spec defines yet', { ...local, fetchSite: 'future-value' }, false]
   ])('%s → %s', (_case, inputs, allowed) => {
     expect(isAgentSignInAllowed(inputs)).toBe(allowed);
-  });
-});
-
-describe('isLocalDatabase', () => {
-  it.each([
-    ['the local database this repo runs', 'postgres://zivoe:pw@localhost:5433/zivoe', true],
-    ['loopback by address', 'postgres://zivoe:pw@127.0.0.1:5432/zivoe', true],
-    ['IPv6 loopback, which URL reports bracketed', 'postgres://zivoe:pw@[::1]:5432/zivoe', true],
-
-    ['a managed database', 'postgres://user:pw@ep-cool-name.eu-central-1.aws.neon.tech/zivoe', false],
-    ['a host merely starting with the local one', 'postgres://user:pw@localhost.db.example.com/zivoe', false],
-    ['a socket URL naming no host', 'postgres:///zivoe', false],
-    ['a value that is not a URL', 'not-a-url', false],
-    ['an empty value', '', false]
-  ])('%s → %s', (_case, databaseUrl, isLocal) => {
-    expect(isLocalDatabase(databaseUrl)).toBe(isLocal);
   });
 });
 
@@ -102,6 +86,20 @@ describe('bearerToken', () => {
     ['no header', null, null]
   ])('%s → %s', (_case, header, token) => {
     expect(bearerToken(header)).toBe(token);
+  });
+});
+
+describe('isAgentTokenShaped', () => {
+  it.each([
+    ['a token the plugin issues', 'aBcDeFgHiJkLmNoPqRsTuVwXyZabcdef', true],
+
+    ['one letter short', 'aBcDeFgHiJkLmNoPqRsTuVwXyZabcde', false],
+    ['one letter long', 'aBcDeFgHiJkLmNoPqRsTuVwXyZabcdefg', false],
+    ['a digit', 'aBcDeFgHiJkLmNoPqRsTuVwXyZabcde1', false],
+    ['URL-encoded padding', 'aBcDeFgHiJkLmNoPqRsTuVwXyZabcd%20', false],
+    ['an empty segment', '', false]
+  ])('%s → %s', (_case, token, shaped) => {
+    expect(isAgentTokenShaped(token)).toBe(shaped);
   });
 });
 
