@@ -15,6 +15,17 @@ describe('isInsufficientNativeFundsError', () => {
     ['viem InsufficientFundsError', new InsufficientFundsError({})],
     ['geth txpool message', new Error('insufficient funds for gas * price + value: balance 0, tx cost 100')],
     ['reth eth_call rejection', new Error('EVM error: OutOfFunds')],
+    ['monad eth_call rejection', new Error('insufficient balance')],
+    ['monad rejection as viem wraps it', new Error('An internal error was received.\n\nDetails: insufficient balance')],
+    [
+      'monad rejection as a wallet wraps it',
+      Object.assign(new Error('Internal JSON-RPC error.'), { data: { message: 'insufficient balance' } })
+    ],
+    ['besu rpc rejection', new Error('Upfront cost exceeds account balance')],
+    [
+      'besu validator message',
+      new Error('transaction up-front cost 100 exceeds transaction sender account balance 1 for sender 0x0')
+    ],
     ['viem total-cost message', new Error('The total cost of executing this transaction exceeds the balance of the account.')]
   ])('recognizes %s', (_label, err) => {
     expect(isInsufficientNativeFundsError(err)).toBe(true);
@@ -23,6 +34,13 @@ describe('isInsufficientNativeFundsError', () => {
   it('walks the cause chain', () => {
     const err = new Error('request failed', { cause: new Error('wrapped', { cause: new Error('out of funds') }) });
     expect(isInsufficientNativeFundsError(err)).toBe(true);
+  });
+
+  it('keeps token-contract balance reverts out of the funding path', () => {
+    expect(isInsufficientNativeFundsError(new Error('execution reverted: ERC20: insufficient balance'))).toBe(false);
+    expect(
+      isInsufficientNativeFundsError(new Error('execution reverted: ERC20: transfer amount exceeds balance'))
+    ).toBe(false);
   });
 
   it('rejects unrelated errors and non-errors', () => {
