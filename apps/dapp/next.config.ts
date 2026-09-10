@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/meet/thor',
-        destination: 'https://calendar.app.google/jGZfcqhB1fQNG5Hg6',
+        destination: 'https://calendar.app.google/mzwBRCrvAjTfHXR36',
         permanent: false
       },
       {
