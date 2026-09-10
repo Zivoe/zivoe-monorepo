@@ -8,6 +8,7 @@ import {
   BnbIcon,
   EthereumIcon,
   HyperliquidIcon,
+  MonadIcon,
   OptimismIcon,
   PharosIcon,
   XLayerIcon
@@ -29,6 +30,7 @@ export const CHAIN_DISPLAY: Record<CentrifugeChain, { label: string; Icon: Compo
   hyperliquid: { label: 'Hyperliquid', Icon: HyperliquidIcon },
   xlayer: { label: 'X Layer', Icon: XLayerIcon },
   bnb: { label: 'BNB Chain', Icon: BnbIcon },
+  monad: { label: 'Monad', Icon: MonadIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 };
 
