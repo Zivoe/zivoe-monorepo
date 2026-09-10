@@ -271,6 +271,12 @@ describe('resolveChainDisplay', () => {
       label: 'BNB Smart Chain',
       explorerUrl: 'https://bscscan.com'
     });
+    expect(
+      resolveChainDisplay(event({ chainId: 143, chainName: 'monad', explorerUrl: 'https://monadscan.com' }))
+    ).toEqual({
+      label: 'Monad',
+      explorerUrl: 'https://monadscan.com'
+    });
   });
 
   it('keeps the indexer values for a chain the registry does not know', () => {
