@@ -419,16 +419,15 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         extra: { inWindow: events.length, unnotified: unnotified.length, processed: fresh.length }
       });
 
-    // -- An event naming a deposit asset the catalog cannot place on its chain
-    // is alerted and mailed without an amount (never at a guessed scale) —
-    // right for the reader, and an operations gap worth a page: a vault
-    // linked on-chain before its catalog entry, or an asset the indexer
-    // attributes differently. Chainless rows resolve nothing by construction.
+    // -- An event whose deposit asset cannot be placed on its chain is alerted
+    // and mailed without an amount (never at a guessed scale) — right for the
+    // reader, and an operations gap worth a page: a vault linked on-chain
+    // before its catalog entry, an asset the indexer attributes differently,
+    // or a row with no asset at all on a chain with several vaults. Chainless
+    // rows resolve nothing by construction and are left out.
     const unresolvedAssets = fresh.filter(
       ({ event, shareClassKey }) =>
-        event.chainId !== null &&
-        event.assetAddress !== null &&
-        resolveDepositAssetDisplay({ event, shareClassKey }) === null
+        event.chainId !== null && resolveDepositAssetDisplay({ event, shareClassKey }) === null
     );
     if (unresolvedAssets.length > 0)
       Sentry.captureException(
