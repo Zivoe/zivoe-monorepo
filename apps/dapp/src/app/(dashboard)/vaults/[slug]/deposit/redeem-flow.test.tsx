@@ -562,7 +562,9 @@ describe('RedeemFlow', () => {
     // itself lives on the Requests tab; the form keeps a one-line reason.
     expect(getInput('Redeem').disabled).toBe(true);
     expect(getButton('Cancellation in progress').disabled).toBe(true);
-    expect(screen.getByText(/New USDC requests on Ethereum are paused while a cancellation is processed/)).toBeTruthy();
+    expect(
+      screen.getByText(/New redemption requests into USDC on Ethereum are paused while a cancellation is processed/)
+    ).toBeTruthy();
     expect(screen.queryByText(/Cancelling redemption request/)).toBeNull();
 
     fireEvent.click(getButton('View requests'));
@@ -722,7 +724,7 @@ describe('RedeemFlow with two stablecoins on one chain', () => {
     renderTwoVaultFlow();
 
     // Paying out in USDC, whose vault is mid-unwind: a new request would revert.
-    expect(screen.getByText(/New USDC requests on Ethereum are paused/)).toBeTruthy();
+    expect(screen.getByText(/New redemption requests into USDC on Ethereum are paused/)).toBeTruthy();
     expect(getInput('Redeem').disabled).toBe(true);
     expect(getButton('Cancellation in progress').disabled).toBe(true);
 
@@ -734,7 +736,7 @@ describe('RedeemFlow with two stablecoins on one chain', () => {
     // banner about the USDC vault leaves with it.
     expect(getInput('Redeem').disabled).toBe(false);
     expect(getButton('Request redemption').disabled).toBe(false);
-    expect(screen.queryByText(/requests on Ethereum are paused/)).toBeNull();
+    expect(screen.queryByText(/requests into USDC on Ethereum are paused/)).toBeNull();
   });
 
   it('says "Add to redemption" only when the PAYOUT vault already holds a request', async () => {

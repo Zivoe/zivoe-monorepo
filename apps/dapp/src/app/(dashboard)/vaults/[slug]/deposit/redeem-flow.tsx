@@ -227,8 +227,8 @@ export default function RedeemFlow() {
           position itself is on the Requests tab. */}
       {isCancellationProcessing && (
         <Callout variant="warning">
-          New {asset.symbol} requests on {CHAIN_DISPLAY[selectedChain].label} are paused while a cancellation is
-          processed.{' '}
+          New redemption requests into {asset.symbol} on {CHAIN_DISPLAY[selectedChain].label} are paused while a
+          cancellation is processed.{' '}
           <Button variant="link-primary" size="s" onPress={() => updateTab('requests')}>
             View requests
           </Button>

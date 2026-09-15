@@ -9,11 +9,7 @@ import { getWalletClient } from 'wagmi/actions';
 import { toast } from '@zivoe/ui/core/sonner';
 
 import { getViemChain, waitForRpcCatchup } from '@/lib/chains';
-import {
-  type NativeCurrency,
-  insufficientNativeFundsError,
-  isInsufficientNativeFundsError
-} from '@/lib/native-funds';
+import { type NativeCurrency, insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
@@ -75,7 +71,7 @@ export type CentrifugeTxConfig<TVariables> = Omit<
   expectedCall?: (vars: TVariables, ctx: CentrifugeTxContext) => ExpectedContractCall;
   /** Decoded protocol error names mapped to flow-specific copy for the simulation block. */
   simulationErrorCopy: SimulationErrorCopy;
-  /** SDK plain pre-signature error messages (matched by inclusion) mapped to product copy. */
+  /** SDK plain pre-signature error messages (matched exactly — see normalizeCentrifugeError) mapped to product copy. */
   sdkErrorCopy?: Record<string, string>;
 };
 

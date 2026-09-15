@@ -111,5 +111,5 @@ _Avoid_: hidden claim, stuck redemption
 
 > **Dev**: The zSMB vault is throwing on Sepolia.
 > **Expert**: Which one — the Vault, or the Centrifuge Vault behind it?
-> **Dev**: The `centrifugeVaultAddress` the catalog lists for zsmb on sepolia. The SDK resolved a different one than we assert against.
+> **Dev**: The vault address in the catalog's `centrifugeVaults` list for zsmb on sepolia. The SDK resolved a different one than we assert against.
 > **Expert**: Then it's the Centrifuge Vault, and the fix is the Share Class Catalog's chain entry, not the page. The Zivoe Vault is fine — same share class, same slug, same URL, and nothing the user reads changes.
