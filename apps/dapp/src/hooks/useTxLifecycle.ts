@@ -111,16 +111,10 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
 };
 
 /**
- * Config every transaction driver shares. The lifecycle consumes all of it
- * except pendingToast, which drivers surface while acquiring the receipt.
- */
-/**
- * Bounds only the wait for a wallet signature, in both drivers. A request
- * that never settles (e.g. a dead WalletConnect session) would otherwise hold
- * the Centrifuge module's signer lock — and, since the lifecycle counts
- * in-flight writes app-wide, every write control in the app — until reload.
- * Once a hash exists the chain settles the outcome, so confirmation itself is
- * never timed out here (viem's receipt wait carries its own bound).
+ * Bounds only the wait for a wallet signature, in both drivers. A request that
+ * never settles (e.g. a dead WalletConnect session) would otherwise hold the
+ * signer lock and the app-wide write gate until reload. Once a hash exists the
+ * chain settles the outcome, so confirmation is never timed out.
  */
 export const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
@@ -137,6 +131,10 @@ export function signingTimedOutError(): AppError {
   });
 }
 
+/**
+ * Config every transaction driver shares. The lifecycle consumes all of it
+ * except pendingToast, which drivers surface while acquiring the receipt.
+ */
 export type TxSharedConfig<TVariables> = {
   /** Analytics choreography for the transaction flow; omit for un-instrumented transactions. */
   analytics?: {
@@ -378,9 +376,8 @@ export default function useTxLifecycle<TVariables, TPrepared>(
 
         // Settled non-rejection failures still refetch — the chain may have
         // moved (e.g. a late broadcast) even though this mutation failed. So
-        // does a rejection once a hash was mirrored: the driver has already
-        // confirmed a transaction (an allowance reset) before the wallet
-        // refused the main one, and the cache is behind the chain. A throwing
+        // does a rejection after a mirrored hash: an allowance reset already
+        // confirmed before the wallet refused the main call. A throwing
         // invalidation must not displace the real error below.
         if (!skipTxSettled(normalized) || txHash !== undefined) {
           try {
@@ -394,10 +391,8 @@ export default function useTxLifecycle<TVariables, TPrepared>(
       }
     },
 
-    // The in-flight count rides the mutation, not the hook instance: these
-    // callbacks belong to the Mutation and fire even after the component
-    // that called mutate has unmounted, so a write started on one tab still
-    // gates the controls on another until it settles.
+    // These callbacks belong to the Mutation and fire even after the component
+    // that called mutate has unmounted, so the count survives tab switches.
     onMutate: () => setPendingTxCount((count) => count + 1),
     onSettled: () => setPendingTxCount((count) => count - 1),
 

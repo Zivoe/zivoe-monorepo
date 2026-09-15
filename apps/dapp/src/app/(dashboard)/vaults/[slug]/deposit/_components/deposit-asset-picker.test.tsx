@@ -12,8 +12,7 @@ vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
 }));
 
-// The wallet's balance of each coin on each chain — the picker reads these,
-// prints them on the rows and orders the rows by them.
+// The wallet's balance of each coin on each chain.
 const balances = vi.hoisted(() => new Map<string, bigint>());
 const balanceKey = (chain: string, tokenAddress: string) => `${chain}:${tokenAddress.toLowerCase()}`;
 vi.mock('@/hooks/useBalance', () => ({
@@ -193,7 +192,6 @@ describe('DepositAssetPicker', () => {
     expect(within(dialog).queryByText('USDC on Base')).toBeNull();
     expect(within(dialog).getByText(/No token matches “base”/)).toBeTruthy();
 
-    // The X empties the box in one press and brings every coin back.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Clear search' }));
     expect(search).toHaveProperty('value', '');
     expect(listedRows(dialog)).toHaveLength(IDENTITIES.length);

@@ -32,11 +32,9 @@ type ChainProps = {
 };
 
 /**
- * Centrifuge-vault dimension of every vault-scoped key: one share class has
- * one Centrifuge vault per deposit asset on a chain, and capacity, previews
- * and Redemption Positions are facts of ONE vault. Appended AFTER the chain so
- * class- and chain-prefixed invalidations keep matching. Lowercased here so a
- * checksummed and a lowercase spelling of one vault cannot split the cache.
+ * The Centrifuge-vault dimension of every vault-scoped key, appended AFTER
+ * the chain so chain-prefixed invalidations keep matching, and lowercased so
+ * two spellings of one address cannot split the cache.
  */
 type CentrifugeVaultProps = ChainProps & {
   centrifugeVaultAddress: string;

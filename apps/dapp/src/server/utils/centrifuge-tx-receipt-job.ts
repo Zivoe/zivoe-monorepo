@@ -43,9 +43,7 @@ export const transactionReceiptJobSchema = z.object({
     centrifugeId: z.string(),
     tokenAmount: bigintString.nullable(),
     currencyAmount: bigintString.nullable(),
-    // Defaulted, not required: jobs published before the field existed may
-    // still be queued, and an absent asset resolves like an indexer row
-    // without the relation (see resolveDepositAssetDisplay).
+    // Defaulted, not required: jobs published before the field existed may still be queued.
     assetAddress: z.string().nullable().default(null),
     createdAtMs: z.number().int()
   })

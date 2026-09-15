@@ -350,8 +350,6 @@ describe('RedemptionPositionStrips', () => {
     getDefaultStore().set(pendingTxCountAtom, 1);
     try {
       renderStrips();
-      // Every control waits, and says why — the hook that started the write
-      // may have unmounted with its tab, so none of them can claim it.
       const waiting = screen.getAllByRole('button', { name: OTHER_WRITE_PENDING_LABEL });
       expect(waiting).toHaveLength(3);
       expect(waiting.every((button) => button instanceof HTMLButtonElement && button.disabled)).toBe(true);

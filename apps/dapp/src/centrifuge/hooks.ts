@@ -21,10 +21,8 @@ import { type TransactedCentrifugeVault } from './types';
  * could run. The reason is copy only and never widens what the flows allow.
  * Skipped without a wallet — there is nothing to ask about until one connects.
  *
- * Keyed per chain, not per Centrifuge vault, on purpose: every verdict is a
- * fact of the SHARE token's transfer hook, identical for every deposit asset
- * the class accepts on the chain — so two vaults on one chain share one read
- * (React Query dedupes on the key; whichever vault mounts first answers).
+ * Keyed per chain, not per Centrifuge vault: every verdict is a fact of the
+ * SHARE token's transfer hook, identical for every vault on the chain.
  */
 export function useInvestorAccess({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
@@ -114,22 +112,16 @@ export function useDepositPreview({
 }
 
 /**
- * How often a Redemption Position re-reads on its own: only while its last
- * read failed. Focus refetch is off app-wide, and a failed first read
- * renders like "no position", hiding the strips a user needs to claim or
- * cancel with — so it retries, backing off: every vault of every chain is
- * read on every page load, and a chain whose RPC is down would otherwise be
- * hit every half minute for as long as the page is open. The interval
- * doubles per failed cycle from 30s up to five minutes; the count is per
- * query and page load, so a read that recovers and fails again later resumes
- * high rather than from 30s — acceptable on an error path. A refetch that
- * fails with an earlier answer still cached retries the same way: after a
- * transaction that answer is the pre-transaction position, and nothing else
- * would refresh it. Nothing else polls — not a Cancellation Processing
- * (the hub's unwind can sit for a long while when the cross-chain message is
- * underfunded, and polling it would only burn reads; a reload shows it
- * landing) and not an Unfunded Claim (funding the escrow can take a while).
- * Every other transition refreshes through the user's own transactions.
+ * A Redemption Position re-reads on its own only while its last read failed:
+ * focus refetch is off app-wide, and a failed read renders like "no position",
+ * hiding the strips a user needs to claim or cancel with. Backs off from 30s,
+ * doubling to five minutes, since every vault of every chain is read on every
+ * page load and a chain whose RPC is down would otherwise be hit every half
+ * minute. A failed refetch with an earlier answer cached retries too: after a
+ * transaction that answer is stale. Nothing else polls — not a Cancellation
+ * Processing (the hub's unwind can sit for a long while) and not an Unfunded
+ * Claim (funding the escrow can take a while); every other transition
+ * refreshes through the user's own transactions.
  */
 export function redemptionPositionRefetchInterval(state: {
   status: 'pending' | 'error' | 'success';
@@ -141,13 +133,11 @@ export function redemptionPositionRefetchInterval(state: {
 }
 
 /**
- * The one Redemption Position query — shared by the single- and the many-vault
- * readers so the redeem tab's payout vault, the Requests tab's strips and its
- * badge all hit one cache entry per vault. A failed read never toasts: the
- * many-vault reader runs on every page load for every chain, and one flaky
- * public RPC would otherwise toast "Error fetching redemption data" per
- * chain on the deposit tab — the surfaces that read a position say in place
- * when it could not be loaded.
+ * The one Redemption Position query, shared by the single- and the many-vault
+ * readers so both hit one cache entry per vault. A failed read never toasts:
+ * the many-vault reader runs for every chain on every page load, and one flaky
+ * RPC would otherwise toast per chain; the surfaces that read a position say
+ * in place when it could not be loaded.
  */
 function redemptionPositionQueryOptions({
   centrifugeVault,
@@ -166,9 +156,8 @@ function redemptionPositionQueryOptions({
       centrifugeVaultAddress: centrifugeVault.address
     }),
     meta: { skipErrorToast: true },
-    // Fresh for half a minute: the Requests tab and the redeem form mount and
-    // unmount each other, and each mount must not re-read nine chains.
-    // Invalidations after a transaction bypass this and refetch regardless.
+    // The Requests tab and the redeem form mount and unmount each other, and
+    // each mount must not re-read nine chains; invalidations bypass this.
     staleTime: 30 * 1000,
     refetchInterval: ({ state }) => redemptionPositionRefetchInterval(state),
     queryFn:
@@ -194,9 +183,8 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
 }
 
 /**
- * The wallet's Redemption Position in EVERY given Centrifuge vault at once —
- * the Requests tab's whole-book read, and the count on its badge. One entry
- * per vault, in the given order; same query per vault as useRedemptionPosition.
+ * The wallet's Redemption Position in every given Centrifuge vault, one result
+ * per vault in the given order; the same query as useRedemptionPosition.
  */
 export function useRedemptionPositions({
   centrifugeVaults
@@ -211,8 +199,7 @@ export function useRedemptionPositions({
       redemptionPositionQueryOptions({
         centrifugeVault,
         address,
-        // The hook form can only read one chain per call; the action form
-        // resolves each vault's own chain client off the same config.
+        // usePublicClient reads one chain per call; the action form resolves each vault's own.
         web3: getPublicClient(config, { chainId: centrifugeVault.chainId })
       })
     )

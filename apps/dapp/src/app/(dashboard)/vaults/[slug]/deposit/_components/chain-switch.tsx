@@ -30,23 +30,18 @@ import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.selected-chain', undefined);
 
 /**
- * The tab's deposit asset per Zivoe Vault and chain, as the lowercased
- * Centrifuge-vault address (unique per chain by catalog lint). Per TAB
- * because the two tabs ask different questions — what to fund a deposit
- * with, what to be paid out in — and per Zivoe Vault AND chain so a choice
- * on one page or chain never leaks to another (unlike the chain above, which
- * is the wallet's and shared). Raw and derived-valid at read time, like the
- * chain: a vault no longer live falls back to the chain's default (first)
- * asset.
+ * Each tab's chosen Centrifuge vault (lowercased address) per Zivoe Vault and
+ * chain. Per tab because funding a deposit and being paid out are different
+ * questions; per Zivoe Vault and chain so a choice never leaks to another
+ * page or chain. Validated at read time: a vault no longer live falls back to
+ * the chain's default. Nullable because a stored `null` parses fine and so
+ * bypasses the storage's initial-value fallback.
  */
-// Nullable on purpose: the storage falls back to the initial value only when
-// the stored JSON fails to parse, and a `null` left there parses fine.
 const selectedAssetAtoms = {
   deposit: atomWithStorage<Partial<Record<string, string>> | null>('zivoe.deposit-asset', {}),
   redeem: atomWithStorage<Partial<Record<string, string>> | null>('zivoe.redeem-asset', {})
 };
 
-/** The stored-asset key: one Zivoe Vault's choice on one chain. */
 function selectedAssetKey({ zivoeVaultSlug, chain }: { zivoeVaultSlug: string; chain: CentrifugeChain }): string {
   return `${zivoeVaultSlug}:${chain}`;
 }
@@ -65,10 +60,9 @@ export type DepositTab = keyof typeof selectedAssetAtoms;
 const pendingSwitchCountAtom = atom(0);
 
 /**
- * The switch mutation and wallet gate. `isWalletOffChain` answers for ANY
- * chain — the Requests tab asks it per chain group, since a claim on Base
- * needs the wallet there whichever chain the selectors show. `switchToChain`
- * is only written in event handlers.
+ * The switch mutation and wallet gate. `isWalletOffChain` answers for any
+ * chain (the Requests tab asks per chain group); `switchToChain` is only
+ * written in event handlers.
  */
 export function useChainSwitch() {
   const { address } = useAccount();
@@ -103,7 +97,7 @@ export function useChainSwitch() {
   return { isWalletOffChain, switchToChain };
 }
 
-/** The page's identities grouped by chain, in deployment order — each chain's list is its Centrifuge vaults, default first. */
+/** The page's identities grouped by chain, in deployment order; each chain's default vault first. */
 export type ChainIdentities = {
   chain: CentrifugeChain;
   identities: [TransactionIdentity, ...Array<TransactionIdentity>];
@@ -168,7 +162,7 @@ export function useSelectedChain() {
     identities,
     chains,
     selectedChain,
-    /** The selected chain's Centrifuge vaults — one per deposit asset, the chain's default first. */
+    /** The selected chain's Centrifuge vaults, default first. */
     chainIdentities: selected.identities,
     setSelectedChain,
     needsChainSwitch
@@ -176,12 +170,9 @@ export function useSelectedChain() {
 }
 
 /**
- * The selected chain narrowed to ONE Centrifuge vault — the identity a tab
- * transacts against. The chain half is the shared selection above; the asset
- * half is the tab's own (see selectedAssetAtoms), so the deposit tab's
- * funding coin and the redeem tab's payout coin are chosen independently.
- * Selecting an identity selects its chain too (prompting the wallet switch
- * like setSelectedChain does).
+ * The selected chain narrowed to the ONE Centrifuge vault a tab transacts
+ * against: the shared chain selection plus the tab's own asset memory.
+ * Selecting an identity selects its chain too.
  */
 export function useSelectedIdentity({ tab }: { tab: DepositTab }) {
   const selection = useSelectedChain();

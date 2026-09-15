@@ -141,20 +141,15 @@ function EarnBox({
 }
 
 /**
- * How many rows the Requests tab holds for the connected wallet — on the tab
- * itself, and on the mobile bar's Redeem button, which is where a phone user
- * reaches the tabs from. Nothing while there are none: a "0" would only add
- * noise to the common case.
+ * How many rows the Requests tab holds, on the tab itself and on the mobile
+ * bar's Redeem button. Nothing while there are none.
  */
 function RequestsCountBadge() {
   const { count } = useRedemptionRequests();
   if (count === 0) return null;
 
-  // The number is visual; assistive tech reads the sentence, which joins the
-  // host's own label ("Requests (3 requests pending)", "Redeem (1 request
-  // pending)") instead of an aria-label a plain span may not carry. In
-  // parentheses rather than after a comma: the badge is its own box, so the
-  // computed name gets a space before whatever the sentence starts with.
+  // The digit is visual; assistive tech reads the sentence, joined onto the
+  // host's own label ("Requests (3 requests pending)").
   return (
     <span className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums">
       <span aria-hidden="true">{count}</span>

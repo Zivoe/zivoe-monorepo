@@ -121,15 +121,11 @@ export function DepositFlow() {
   const isPriceUnavailable = isPreviewFailed && isPriceUnavailableError(preview.error);
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
-  // Nothing signs against an unknown allowance: Approve would ask for an
-  // approval the wallet may not need — and a legacy token's approve would
-  // fail at simulation with no readable reason — while Deposit would fail
-  // for want of one. The read is retried first.
+  // Nothing signs against an unknown allowance or balance: Approve could ask
+  // for an approval the wallet does not need, Deposit could fail for want of
+  // one, and an unknown balance would validate every amount as too large.
+  // Balance reads do not toast (see useBalance), so the form names the failure.
   const isAllowanceUnavailable = allowance.isError && !allowance.isFetching;
-  // Same for the balance of the coin the form spends: balance reads no longer
-  // toast (the pickers read every chain on every page load, and one flaky RPC
-  // would toast per chain), so the form names its own failure — an unknown
-  // balance would otherwise validate every amount as too large.
   const isBalanceUnavailable = assetBalance.isError && !assetBalance.isFetching;
   const isReadUnavailable = isAllowanceUnavailable || isBalanceUnavailable;
   const retryReads = () => {
@@ -159,10 +155,7 @@ export function DepositFlow() {
   // it clears is reasonable. A deploying Zivoe Vault, a Centrifuge vault with no capacity
   // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
   // the form itself: there is no amount worth entering.
-  // Every write shares one wallet and one transaction path — this tab's
-  // approve and deposit, the redeem tab's request, the Requests tab's claims
-  // and cancels — so the form waits out any of them, wherever it was started;
-  // the lifecycle keeps the count across tab switches.
+  // Any write, on any tab, locks it too (see useIsAnyTxPending).
   const isAnyWritePending = useIsAnyTxPending();
   const isOtherWritePending = isAnyWritePending && !approveSpending.isPending && !depositMutation.isPending;
   const isFormLocked =
@@ -202,8 +195,7 @@ export function DepositFlow() {
       amount: depositRaw,
       name: asset.symbol,
       decimals: asset.decimals,
-      // A legacy token (Ethereum-mainnet USDT) must zero a non-zero allowance
-      // before it accepts a new amount; the hook does that from these two.
+      // A legacy token's allowance is zeroed first; the hook decides from these two.
       approval: asset.approval,
       allowance: allowance.data,
       successMessage: `You can now deposit ${asset.symbol}.`,
@@ -275,8 +267,6 @@ export function DepositFlow() {
                 />
 
                 <div className="ml-3">
-                  {/* Every Centrifuge vault of the page: a chain accepting two
-                      stablecoins lists both under the chain. */}
                   <DepositAssetPicker
                     identities={identities}
                     selected={identity}
@@ -354,9 +344,7 @@ export function DepositFlow() {
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
-                  : // A legacy token's allowance reset runs first, under its own
-                    // toast; the button says the same until the real approve is
-                    // offered to the wallet.
+                  : // A legacy token's allowance reset runs first; match its toast.
                     approveSpending.isResetPending
                     ? `Resetting ${asset.symbol} approval...`
                     : approveSpending.isTxPending
@@ -404,10 +392,8 @@ export function DepositFlow() {
       ) : isNotAdmitted ? (
         <WalletAccessCallout restriction={restriction} />
       ) : isReadUnavailable && !needsChainSwitch && !isPrereqsLoading ? (
-        // Only while the Retry above is the action: a wallet on another chain
-        // or a read in flight puts a different step there, and "Retry to
-        // continue" beside "Switch to Base" would name a control that is not
-        // on screen.
+        // Only while the Retry above is the action; beside "Switch to Base" it
+        // would name a control that is not on screen.
         <Callout variant="warning">
           {isBalanceUnavailable
             ? `Could not load your ${asset.symbol} balance.`

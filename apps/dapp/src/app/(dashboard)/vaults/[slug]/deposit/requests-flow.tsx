@@ -20,11 +20,8 @@ import { type RedemptionRequestsByChain, useRedemptionRequests } from './_hooks/
 
 /**
  * Everything the wallet has in flight with this Zivoe Vault, across every
- * chain and coin: requests being processed, proceeds ready to claim,
- * cancellations unwinding, shares returned, claims awaiting liquidity. The
- * redeem tab keeps only the form; the strips it used to stack above it
- * render here, one collapsible group per chain, exactly as before — each
- * row's action offers the network switch while the wallet is elsewhere.
+ * chain and coin, one collapsible group per chain. Each row's action offers
+ * the network switch while the wallet is elsewhere.
  */
 export default function RequestsFlow() {
   const account = useAccount();
@@ -40,9 +37,7 @@ export default function RequestsFlow() {
       </div>
     );
 
-  // Until the wallet SDK has settled and every vault has answered once, the
-  // tab holds the shape of a chain group rather than a verdict: the connect
-  // prompt above is only for a wallet known to be absent, not one still loading.
+  // A skeleton until the wallet SDK has settled and every vault has answered once.
   if (!account.address || (chains.length === 0 && isPending)) return <RequestsSkeleton />;
 
   if (chains.length === 0)
@@ -53,14 +48,9 @@ export default function RequestsFlow() {
       </p>
     );
 
-  // From lg, capped a little above the redeem form's height and scrolled
-  // inside: the Earn box is sticky there, so a tab that grows past the
-  // viewport would pin its last rows out of reach until the page itself runs
-  // out. A thin scrollbar rides the right edge, so the rows keep clear of it.
-  // Below lg the tab lives in the Earn dialog, which scrolls as a whole — a
-  // second scroller inside it would hide rows behind an invisible touch
-  // scrollbar. The count is the tab's badge; the list needs no name of its
-  // own (the tab panel already carries the tab's).
+  // From lg the Earn box is sticky, so the list is capped and scrolls inside;
+  // below lg the Earn dialog scrolls as a whole, and a second scroller would
+  // hide rows behind an invisible touch scrollbar.
   return (
     <ScrollArea className="-mr-2 lg:max-h-120" viewportClassName="lg:max-h-120">
       <div className="flex flex-col gap-2 pr-2">
@@ -73,7 +63,7 @@ export default function RequestsFlow() {
   );
 }
 
-/** A chain group's silhouette — header row and one strip — so loading and loaded share a layout. */
+/** A chain group's silhouette, so loading and loaded share a layout. */
 function RequestsSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
@@ -87,11 +77,9 @@ function RequestsSkeleton() {
 }
 
 /**
- * One chain's positions, expanded by default. Access verdicts are per chain
- * (a share-token fact), so they are read here, once, and handed to every
- * vault's strips. The chain's switch is offered on every row while the
- * wallet sits elsewhere; taking it also moves the shared chain selection, so
- * the deposit and redeem tabs follow.
+ * One chain's positions. Access verdicts are a share-token fact, so they are
+ * read once here and handed to every vault's strips; taking the chain switch
+ * also moves the shared chain selection, so the other tabs follow.
  */
 function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
   const { chain, entries, count } = group;
@@ -104,8 +92,7 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
   const { isWalletOffChain } = useChainSwitch();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
 
-  // Hub-level, shared by every chain; read per group so the price arrives
-  // with the group rather than gating the whole tab.
+  // Hub-level; read per group so the price never gates the whole tab.
   const metrics = useCurrentShareMetrics({ shareClassKey: first.identity.centrifugeVault.shareClass.key });
   const access = useInvestorAccess({ centrifugeVault: first.identity.centrifugeVault });
   const gates = deriveRedeemAccessGates(access);

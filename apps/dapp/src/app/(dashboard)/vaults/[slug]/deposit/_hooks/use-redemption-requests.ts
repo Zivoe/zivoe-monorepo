@@ -7,11 +7,7 @@ import { type RedemptionPosition, type TransactionIdentity, useRedemptionPositio
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 import { groupIdentitiesByChain } from '../_components/chain-switch';
 
-/**
- * How many strips a position renders: one per bucket the wallet can act on or
- * must wait for. The Requests tab's badge counts these, so the number on the
- * tab is the number of rows behind it.
- */
+/** How many strips a position renders — the Requests tab's badge counts these. */
 export function countRedemptionRequests(position: RedemptionPosition | undefined): number {
   if (!position) return 0;
   return (
@@ -31,17 +27,15 @@ export type RedemptionRequestEntry = {
 
 export type RedemptionRequestsByChain = {
   chain: CentrifugeChain;
-  /** The chain's Centrifuge vaults in catalog order, the default first — non-empty like the identities they come from. */
+  /** The chain's Centrifuge vaults in catalog order, default first. */
   entries: [RedemptionRequestEntry, ...Array<RedemptionRequestEntry>];
   count: number;
 };
 
 /**
- * The wallet's Redemption Positions across every Centrifuge vault of the
- * page's Zivoe Vault, grouped by chain in deployment order — the Requests
- * tab's book, and the count its badge shows. Chains holding nothing for the
- * wallet are left out of `chains` so the tab lists only where there is
- * something to show; `isPending` is true until every vault has answered once.
+ * The wallet's Redemption Positions across every Centrifuge vault of the page,
+ * grouped by chain in deployment order. Chains holding nothing for the wallet
+ * are left out; `isPending` holds until every vault has answered once.
  */
 export function useRedemptionRequests(): {
   chains: Array<RedemptionRequestsByChain>;

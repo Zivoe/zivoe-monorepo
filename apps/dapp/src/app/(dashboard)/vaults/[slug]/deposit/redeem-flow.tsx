@@ -44,12 +44,10 @@ import { createAmountValidator, parseInput } from './_utils';
 type RedeemForm = { redeem: string };
 
 /**
- * The request form alone: the selected chain's share balance (one number per
- * chain, whatever stablecoins it accepts) redeemed into the selected payout
- * asset. Everything already in flight — requests, claims, cancellations —
- * lives on the Requests tab; the one thing that reaches back here is the
- * lock a Cancellation Processing puts on requests into the payout vault,
- * explained by a banner that links there.
+ * The request form alone: the selected chain's share balance redeemed into
+ * the selected payout asset. Positions live on the Requests tab; only a
+ * Cancellation Processing in the payout vault reaches back here, as a lock
+ * with a banner that links there.
  */
 export default function RedeemFlow() {
   const {
@@ -74,8 +72,7 @@ export default function RedeemFlow() {
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
-  // The PAYOUT vault's position: it decides whether a new request adds to one
-  // and whether the form is locked. The Requests tab reads every vault's.
+  // The PAYOUT vault's position: whether a request adds to one, and the cancellation lock.
   const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
   const access = useInvestorAccess({ centrifugeVault });
@@ -134,18 +131,14 @@ export default function RedeemFlow() {
     // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;
 
-  // Every write (the request here, claims and cancels on the Requests tab, an
-  // approval or deposit on the deposit tab) shares one wallet and one
-  // transaction path, so each control waits out the others wherever they
-  // were started — the lifecycle keeps the count across tab switches.
+  // Any write, on any tab, locks the form (see useIsAnyTxPending).
   const isAnyWritePending = useIsAnyTxPending();
-  // Cancellation Processing in the PAYOUT vault locks the form: a new request
-  // into it would revert on-chain until the hub finishes the unwind — another
-  // payout asset on the chain stays open, its vault being untouched. A wallet
-  // the Centrifuge vault will not admit locks it for the same reason — there
-  // is no amount worth entering. Only the request gate applies here: a wallet
-  // that may still send shares to escrow can use this form even when its
-  // share moves back are blocked.
+  // A Cancellation Processing in the PAYOUT vault locks the form: a new request
+  // into it would revert until the hub finishes the unwind, while another
+  // payout asset on the chain stays open. A wallet the Centrifuge vault will
+  // not admit locks it too. Only the request gate applies here: a wallet that
+  // may still send shares to escrow can use this form even when its share
+  // moves back are blocked.
   const isFormLocked = isPrereqsLoading || isAnyWritePending || isCancellationProcessing || isNotAdmitted;
 
   // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
@@ -158,10 +151,9 @@ export default function RedeemFlow() {
   // one — repeating them here would describe states this gate never sees.
   const isSubmitBlocked = isAnyWritePending && !requestRedeem.isPending;
 
-  // Balance reads no longer toast (the pickers read every chain on every page
-  // load), so the form names a failed read of the shares it spends and
-  // withholds the request: an unknown balance would validate every amount as
-  // too large behind a live button.
+  // Balance reads do not toast (see useBalance), so the form names a failed
+  // read of the shares it spends: an unknown balance would validate every
+  // amount as too large behind a live button.
   const isBalanceUnavailable = shareBalance.isError && !shareBalance.isFetching;
 
   // Both states are presentation only, and both are scoped to an entered amount
@@ -205,18 +197,14 @@ export default function RedeemFlow() {
 
   return (
     <>
-      {/* A failed position read renders like "no position", which would let
-          the form call an addition a first request — and hide a cancellation
-          lock. Named here since the read no longer toasts. */}
+      {/* A failed position read renders like "no position" and does not
+          toast, so the form names it. */}
       {position.isError && (
         <Callout variant="warning">
           Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}.
         </Callout>
       )}
 
-      {/* The one position fact that reaches the form: a cancellation unwinding
-          in the payout vault refuses new requests into it until it lands. The
-          position itself is on the Requests tab. */}
       {isCancellationProcessing && (
         <Callout variant="warning">
           New redemption requests into {asset.symbol} on {CHAIN_DISPLAY[selectedChain].label} are paused while a
@@ -261,8 +249,6 @@ export default function RedeemFlow() {
                 />
 
                 <div className="ml-3">
-                  {/* One row per CHAIN, whatever stablecoins it accepts: the
-                      share balance being redeemed is one number per chain. */}
                   <ShareChainSelector
                     chains={chains}
                     selectedChain={selectedChain}
@@ -303,8 +289,6 @@ export default function RedeemFlow() {
             balance={{ value: assetBalance.data, isPending: assetBalance.isPending, decimals: asset.decimals }}
           />
         }
-        // The payout asset is only a choice where the chain has several vaults;
-        // elsewhere the row names the one stablecoin as before.
         endContent={
           chainIdentities.length > 1 ? (
             <PayoutAssetSelector

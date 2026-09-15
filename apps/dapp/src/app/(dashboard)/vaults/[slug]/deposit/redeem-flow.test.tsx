@@ -477,9 +477,6 @@ describe('RedeemFlow', () => {
   });
 
   it('withholds the request while the share balance read has failed, and retries it on press', async () => {
-    // Balance reads no longer toast (the pickers read every chain on load),
-    // so the form names its own failure; an unknown balance would otherwise
-    // validate every amount as too large behind a live button.
     mocks.balanceIsError = true;
     renderFlow();
 
@@ -579,8 +576,7 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    // A new request would revert on-chain (CancellationIsPending). The strip
-    // itself lives on the Requests tab; the form keeps a one-line reason.
+    // A new request would revert on-chain (CancellationIsPending).
     expect(getInput('Redeem').disabled).toBe(true);
     expect(getButton('Cancellation in progress').disabled).toBe(true);
     expect(

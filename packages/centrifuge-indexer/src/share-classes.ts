@@ -21,40 +21,24 @@ import {
  */
 export type DepositAsset = {
   address: Address;
-  /**
-   * The product's name for the coin and the display-map key — one `USDT`
-   * serves Tether's USDT, USDT0 and USDt alike, so the accepted-stablecoins
-   * row shows one coin and every selector one icon.
-   */
+  /** The product's name for the coin and the display-map key — one `USDT` for Tether's USDT, USDT0 and USDt alike. */
   symbol: string;
-  /**
-   * The contract's own `symbol()` where it differs from the product's
-   * (`USD₮0` on Arbitrum, HyperEVM and X Layer, `USDT0` on Monad, `USDt` on
-   * Avalanche). Read by `pnpm centrifuge:verify` alone, which compares it
-   * against the chain; absent when the two agree.
-   */
+  /** The contract's own `symbol()` where it differs from the product's (`USD₮0`, `USDt`); read by `pnpm centrifuge:verify` alone. */
   onChainSymbol?: string;
   decimals: number;
   /**
-   * `legacy` marks a token whose `approve` refuses to move a non-zero
-   * allowance to another non-zero value (Ethereum-mainnet USDT): the approve
-   * step resets the allowance to zero first when it is not already. Absent
-   * for every standard ERC-20.
+   * `legacy` marks a token whose `approve` refuses a non-zero → non-zero
+   * allowance change (Ethereum-mainnet USDT); the approve step zeroes it first.
    */
   approval?: 'legacy';
 };
 
 /**
  * One Centrifuge vault: the share class instantiated on one chain for one
- * deposit asset. A class accepting a second stablecoin on a chain is a second
- * entry in that chain's `centrifugeVaults` list — not a second chain entry,
- * and not new code. Before adding one, read docs/runbooks/add-deposit-asset.md:
- * a token that is not a standard ERC-20 (Ethereum-mainnet USDT) must carry its
- * `approval` mode, or the approve step will fail on it.
+ * deposit asset. Adding one follows docs/runbooks/add-deposit-asset.md.
  */
 export type CentrifugeVaultDeployment = {
   address: Address;
-  /** The deposit asset this Centrifuge vault accepts. */
   asset: DepositAsset;
 };
 
@@ -79,9 +63,7 @@ export type ShareClassChainDeployment =
       /**
        * The Centrifuge vaults instantiating the share class on this chain, one
        * per deposit asset, in product order: the FIRST is the default the
-       * selectors open on. Every Centrifuge-vault-scoped query key and memo
-       * carries the vault address beside the chain, so a second entry here
-       * splits caches cleanly.
+       * selectors open on.
        */
       centrifugeVaults: readonly [CentrifugeVaultDeployment, ...Array<CentrifugeVaultDeployment>];
     };
@@ -113,8 +95,7 @@ export type ShareClassEntry = {
  * Every Centrifuge share class Zivoe integrates, as pure serializable data —
  * the single source both apps derive share-class identity from. Adding a
  * class means adding an entry here plus a Zivoe Vault module in the dApp (the
- * compiler demands the module); adding a deposit asset to a live chain means
- * adding a Centrifuge vault to that chain entry's list. Reviews of new entries must verify the
+ * compiler demands the module). Reviews of new entries must verify the
  * values on-chain and that the pool is USD-denominated; `pnpm
  * centrifuge:verify` compares every live entry against the chain and the
  * indexer. Flip a chain to `live` only once the Centrifuge vault is deployed
@@ -149,10 +130,8 @@ export const SHARE_CLASSES = {
                 address: '0x8aBb393C433375401EEeae24557475C3f36f5025',
                 asset: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 }
               },
-              // Circle's Base Sepolia EURC — the book's first second asset on
-              // one chain, and its first non-dollar one: the hub values it
-              // for the USD pool, while the flows' dollar lines still read
-              // one asset unit as one dollar (see the runbook).
+              // Circle's EURC, the only non-dollar asset: the flows' dollar
+              // lines still read one asset unit as one dollar (see the runbook).
               {
                 address: '0x882671dAFFdf7cFAda441C79599d9600c78F7d29',
                 asset: { address: '0x808456652fdb597867f38412077A9182bf77359F', symbol: 'EURC', decimals: 6 }
@@ -174,9 +153,8 @@ export const SHARE_CLASSES = {
                 address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639',
                 asset: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 }
               },
-              // Tether's own USDT: `approve` returns nothing and reverts on a
-              // non-zero → non-zero change (both verified on-chain 2026-09-14),
-              // hence the book's one `legacy` approval.
+              // Tether's USDT: `approve` returns nothing and reverts on a
+              // non-zero → non-zero change, hence the `legacy` approval.
               {
                 address: '0x4A60fba0Eb167f3Bf85eEf410e597397A644e2a8',
                 asset: {
@@ -220,8 +198,6 @@ export const SHARE_CLASSES = {
                 address: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E',
                 asset: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6 }
               },
-              // Tether's omnichain USDT0 — the former bridged USDT contract,
-              // upgraded in place, so the address every Arbitrum user knows.
               {
                 address: '0x4ae36C393DBA69cAce2bd4434B3E58A86a51Ec86',
                 asset: {
@@ -241,7 +217,6 @@ export const SHARE_CLASSES = {
                 address: '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31',
                 asset: { address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', symbol: 'USDC', decimals: 6 }
               },
-              // Tether-native USDt (standard approve, unlike Ethereum's).
               {
                 address: '0x61960C30a50DD6Db9A44656F5EbA4bD9AC47B289',
                 asset: {
@@ -261,7 +236,6 @@ export const SHARE_CLASSES = {
                 address: '0x991de0203E455dfC4B8f38F7c333487c16aDdE55',
                 asset: { address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', symbol: 'USDC', decimals: 6 }
               },
-              // The Standard-Bridge USDT (0x94b0…)
               {
                 address: '0xEe9D17D2B44874fbD58D909609DFe1A44c3Bf84F',
                 asset: { address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', symbol: 'USDT', decimals: 6 }
@@ -276,8 +250,6 @@ export const SHARE_CLASSES = {
                 address: '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042',
                 asset: { address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', symbol: 'USDC', decimals: 6 }
               },
-              // Tether's omnichain USDT0, linked 2026-09-14 — two days after the
-              // other chains' vaults.
               {
                 address: '0x559cc40c8782251F03c77578EB4A44E5172174C3',
                 asset: {
@@ -349,8 +321,7 @@ export const SHARE_CLASSES = {
                   decimals: 6
                 }
               },
-              // USD1 is 6 decimals HERE and 18 on X Layer, at the same vanity
-              // address — the scale is the contract's, verified per chain.
+              // USD1 is 6 decimals here and 18 on X Layer, at the same address.
               {
                 address: '0x8047b87112d541E331232f62D5532D61A87fd4b1',
                 asset: { address: '0x111111d2bf19e43C34263401e0CAd979eD1cdb61', symbol: 'USD1', decimals: 6 }
@@ -557,15 +528,12 @@ export function listShareClassChainIdentities({
 }
 
 /**
- * Resolves a share-class id to ONE live Centrifuge vault on one spoke chain —
- * the vault accepting `assetAddress`. The asset is required on purpose: a
- * caller holding none (an indexer row whose asset relation is missing) must
- * not fall through to the chain's first vault, which on a chain with several
- * mis-scales the amount; a missing asset is unambiguous only where the class
- * has one vault on the chain, which the caller decides off
- * listShareClassChainIdentities (whose first entry is the chain's default).
- * Throws for an asset the class does not accept there, and for everything
- * listShareClassChainIdentities throws for.
+ * Resolves a share-class id to the ONE live Centrifuge vault on a spoke chain
+ * that accepts `assetAddress`. The asset is required on purpose: a caller
+ * without one must not fall through to the chain's first vault, which on a
+ * chain with several would mis-scale the amount. Throws for an asset the class
+ * does not accept there, and for everything listShareClassChainIdentities
+ * throws for.
  */
 export function getShareClassChainIdentity({
   chain,
@@ -690,9 +658,7 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
             `Share class "${key}" declares an implausible share token address on "${chain}": "${onChain.shareTokenAddress}".`
           );
 
-        // The type demands one vault; the structural view (synthetic
-        // catalogs) does not, and a chain with no vault would list as live
-        // with nothing to transact against.
+        // The type demands one vault; the structural view (synthetic catalogs) does not.
         if (onChain.centrifugeVaults.length === 0)
           throw new Error(`Share class "${key}" declares no Centrifuge vault on "${chain}".`);
 
@@ -716,17 +682,15 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
             );
           if (asset.symbol.trim() === '')
             throw new Error(`Share class "${key}" declares a deposit asset with no symbol on "${chain}".`);
-          // Only ever compared against the chain: present, it must be a symbol.
           if (asset.onChainSymbol?.trim() === '')
             throw new Error(
               `Share class "${key}" declares an empty on-chain symbol for ${asset.symbol} on "${chain}".`
             );
         }
 
-        // One vault per deposit asset on a chain: the SDK resolves a vault
-        // from (pool, share class, asset), so two entries for one asset could
-        // only ever name the same vault twice — and two vaults sharing a
-        // symbol would be indistinguishable in every selector row.
+        // One vault per deposit asset and per symbol on a chain: the SDK
+        // resolves a vault from (pool, share class, asset), and the selectors
+        // tell rows apart by symbol.
         assertUnique({
           values: onChain.centrifugeVaults.map(({ asset }) => asset.address.toLowerCase()),
           message: (address) => `Share class "${key}" lists deposit asset ${address} twice on "${chain}".`
@@ -781,8 +745,7 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
       values: live.map((onChain) => onChain.shareTokenAddress.toLowerCase()),
       message: (address) => `Share token ${address} is claimed by two share classes on "${chain}".`
     });
-    // Across classes AND within one: a vault decodes one class's receipts and
-    // pays one asset, so no two entries may name the same address on a chain.
+    // Across classes and within one: no two entries may name one vault on a chain.
     assertUnique({
       values: live.flatMap((onChain) => onChain.centrifugeVaults.map(({ address }) => address.toLowerCase())),
       message: (address) => `Centrifuge vault ${address} is claimed twice on "${chain}".`

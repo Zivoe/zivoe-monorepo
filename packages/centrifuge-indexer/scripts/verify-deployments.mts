@@ -258,8 +258,7 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
     }
 
     for (const chain of listLiveChains({ environment, key })) {
-      // Indexed once per chain: the token instance is a share-token fact,
-      // shared by every Centrifuge vault the class has on the chain.
+      // The indexer's token instance is a share-token fact, checked once per chain.
       let centrifugeId: number | undefined;
       try {
         centrifugeId = await centrifuge.id(getChainId(chain));
@@ -282,8 +281,6 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
           });
       }
 
-      // One row set per Centrifuge vault — a chain accepting two stablecoins
-      // has two, each resolved from its own deposit asset.
       for (const identity of listShareClassChainIdentities({ chain, key })) {
         const { asset } = identity;
         const subject = `${key} on ${chain} (${asset.symbol})`;
@@ -313,8 +310,7 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
             actual: String(details.share.decimals)
           });
           verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
-          // The SDK reads `symbol()` off the contract, which is USD₮0 / USDT0 /
-          // USDt where the product says USDT — the catalog names that form.
+          // The contract's own symbol where it differs from the product's.
           verify({
             subject,
             fact: 'deposit asset symbol',

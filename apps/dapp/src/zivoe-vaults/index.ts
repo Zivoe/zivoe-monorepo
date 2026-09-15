@@ -65,15 +65,12 @@ export function getZivoeVault(slug: string): ZivoeVault | undefined {
 }
 
 /**
- * Resolves a Zivoe Vault's transaction identity for ONE Centrifuge vault — the
- * one on `chain` accepting `assetAddress`, or the chain's default (first)
- * deposit asset when none is named: a product rule for a page opening on a
- * chain, never a stand-in for an event whose asset is unknown. What flows
- * hand to every Centrifuge Module hook: the catalog's chain identity joined
- * with the chain's deployment facts, plus the stable public identity for
- * analytics and Sentry. Throws for a chain the Zivoe Vault is not live on, or
- * an asset it does not accept there — callers pick from
- * resolveZivoeVaultIdentities.
+ * Resolves a Zivoe Vault's transaction identity for ONE Centrifuge vault: the
+ * one on `chain` accepting `assetAddress`, or the chain's default when none is
+ * named. What flows hand to every Centrifuge Module hook: the catalog's chain
+ * identity joined with the chain's deployment facts, plus the stable public
+ * identity for analytics and Sentry. Throws for a chain the Zivoe Vault is not
+ * live on, or an asset it does not accept there.
  */
 export function resolveTransactionIdentity(
   zivoeVault: Pick<ZivoeVault, 'slug' | 'shareClass'>,

@@ -90,9 +90,7 @@ describe('Deposit', () => {
 
     mocks.requestCount = 3;
     const three = render(<Deposit initialView="requests" />);
-    // On the tab, and on the mobile bar's Redeem button (rendered regardless
-    // of viewport in jsdom): the digit for sighted users, the sentence for
-    // assistive tech, joined onto the host's own label.
+    // On the tab and on the mobile bar's Redeem button (both render in jsdom).
     expect(screen.getAllByText('(3 requests pending)')).toHaveLength(2);
     expect(screen.getAllByText('3', { ignore: '.sr-only' })).toHaveLength(2);
     three.unmount();

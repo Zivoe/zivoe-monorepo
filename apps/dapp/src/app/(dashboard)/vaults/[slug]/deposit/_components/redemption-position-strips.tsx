@@ -66,11 +66,9 @@ export function deriveRedeemAccessGates(access: {
 /**
  * One Centrifuge vault's Redemption Position and the writes that act on it:
  * Returned Shares, claimable proceeds, an Unfunded Claim, and the pending
- * request (or its Cancellation Processing). Centrifuge keys positions per
- * vault — so per deposit asset — and the SDK's cancel and claim act on one
- * vault, which is why this is rendered once per vault of the selected chain
- * rather than once per chain. Positions are data-driven: a request or a
- * cancellation made outside this dApp still resolves here.
+ * request (or its Cancellation Processing). Rendered once per vault, not per
+ * chain: Centrifuge keys positions per vault, and the SDK's cancel and claim
+ * act on one. Data-driven, so a request made outside this dApp resolves here.
  */
 export function RedemptionPositionStrips({
   identity,
@@ -82,18 +80,13 @@ export function RedemptionPositionStrips({
   onSuccessClose
 }: {
   identity: TransactionIdentity;
-  /** Name the vault's stablecoin on each strip — set when the chain has several vaults, so two "processing" strips cannot be confused. */
+  /** Names the vault's stablecoin on each strip; set where the chain has several vaults. */
   labelAsset: boolean;
   gates: RedeemAccessGates;
   sharePrice: bigint | undefined;
   /** Chain-level block on every write: prerequisites still loading. */
   isWriteBlocked: boolean;
-  /**
-   * Present while the wallet sits on another chain: every action on these
-   * strips executes on the vault's chain, so each control offers the switch
-   * instead — the Requests tab lists several chains at once, and a greyed
-   * Claim would say nothing about why.
-   */
+  /** Present while the wallet sits on another chain; each control then offers the switch instead of its action. */
   switchChain?: { label: string; onPress: () => void };
   onSuccessClose: () => void;
 }) {
@@ -118,17 +111,13 @@ export function RedemptionPositionStrips({
   const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
   const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
 
-  // Every write shares one wallet and one transaction path, so each control
-  // waits out every other — in this vault's strips, the other vaults' strips,
-  // and the forms on the other tabs; the lifecycle keeps the count across tab
-  // switches. Pass the control's own pending flag — its own run is already
-  // shown (and blocked) by the button's `isPending`.
+  // Every control waits out a write started anywhere else (see useIsAnyTxPending).
+  // Pass the control's own pending flag: its own run is already shown by `isPending`.
   const isAnyWritePending = useIsAnyTxPending();
   const isOtherMutationPending = (isSelfPending: boolean) => isAnyWritePending && !isSelfPending;
 
-  // A post-transaction refetch of THIS vault's position keeps its controls
-  // locked until fresh data lands — the same rule the form applies to its own
-  // prerequisites. The position never polls, so nothing else sets it.
+  // A post-transaction refetch of this vault's position locks its controls
+  // until fresh data lands.
   const isBlocked = isWriteBlocked || position.isFetching;
 
   const handleClaim = () => {
@@ -146,8 +135,6 @@ export function RedemptionPositionStrips({
     claimReturnedShares.mutate({ returnedShares });
   };
 
-  // Only where the chain has several vaults: names which stablecoin's request
-  // a share-denominated strip belongs to. The asset strips already say it.
   const assetLabel = labelAsset ? (
     <p className="text-extraSmall font-medium tracking-wide text-tertiary uppercase">{asset.symbol} redemption</p>
   ) : null;
@@ -332,7 +319,7 @@ function RedemptionProcessingStrip({
     blockedHint?: string;
     isPending: boolean;
     isTxPending: boolean;
-    /** A write started elsewhere is in flight — the control waits it out and says so. */
+    /** A write started elsewhere is in flight. */
     isOtherWritePending: boolean;
     switchChain?: { label: string; onPress: () => void };
   };

@@ -435,9 +435,6 @@ describe('DepositFlow', () => {
   });
 
   it('withholds Approve and Deposit while the allowance read has failed, and retries it on press', async () => {
-    // Nothing signs against an unknown allowance: Approve could ask for an
-    // approval the wallet does not need (and a legacy token's would fail at
-    // simulation without a reason), Deposit could fail for want of one.
     mocks.allowanceIsError = true;
 
     renderFlow();
@@ -452,8 +449,6 @@ describe('DepositFlow', () => {
   });
 
   it('withholds Approve and Deposit while the balance read has failed, and retries it on press', async () => {
-    // Balance reads no longer toast (the pickers read every chain on load),
-    // so the coin the form spends names its own failure here.
     mocks.balanceIsError = true;
 
     renderFlow();
@@ -468,9 +463,7 @@ describe('DepositFlow', () => {
   });
 
   it('names the allowance reset while it runs, before the approve is offered', async () => {
-    // The toast already says "Resetting USDC approval..."; the button must not
-    // contradict it with "Approving USDC..." for a prompt the wallet has not
-    // seen yet.
+    // The button must not contradict the "Resetting USDC approval..." toast.
     mocks.approveIsResetPending = true;
 
     renderFlow();
@@ -755,8 +748,6 @@ describe('DepositFlow with two stablecoins on one chain', () => {
   it("lists both coins under the chain, each with the wallet's balance of that coin", () => {
     renderTwoAssetFlow();
 
-    // Grouped: the chain names the group once, and each row keeps the full
-    // "coin on chain" label the single-asset selector uses.
     expect(screen.getByText('USDC on Ethereum')).toBeTruthy();
     expect(screen.getByText('USDT on Ethereum')).toBeTruthy();
     expect(screen.getByText('10.00')).toBeTruthy();

@@ -70,13 +70,12 @@ export type TxConfig<TVariables, TParams extends TxParams> = TxSharedConfig<TVar
   buildParams: (vars: TVariables, ctx: TxContext) => TParams | Promise<TParams>;
   /**
    * An optional transaction sent and confirmed BEFORE the main one, inside the
-   * same mutation — the allowance reset a legacy ERC-20 demands. It runs the
-   * same simulate/send/receipt path and pins the same chain; a rejection or
-   * revert ends the mutation before the main call is offered to the wallet.
-   * The main transaction alone feeds analytics, the dialog and the refetches.
+   * same mutation — the allowance reset a legacy ERC-20 demands. A rejection or
+   * revert ends the mutation before the main call reaches the wallet; the main
+   * transaction alone feeds analytics, the dialog and the refetches.
    */
   reset?: {
-    /** `undefined` when no reset is needed for these variables. */
+    /** `undefined` when these variables need no reset. */
     buildParams: (vars: TVariables) => TParams | undefined;
     pendingToast: (vars: TVariables) => string;
   };
@@ -106,12 +105,7 @@ export function parseReceiptEvent<TAbi extends Abi, TEventName extends ContractE
   }
 }
 
-/**
- * Bounds the wait for the wallet's answer to a write request — the one step
- * of this driver with no natural end, and the one that would otherwise leave
- * the lifecycle's in-flight count (so every write control in the app) stuck
- * behind a wallet that never answers.
- */
+/** Bounds the wait for the wallet's answer — see SIGNING_TIMEOUT_MS. */
 function withSigningTimeout<T>(request: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -223,10 +217,8 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     return receipt;
   };
 
-  // True from the reset's wallet prompt to its receipt — the one stretch of
-  // the mutation where the pending toast names a reset, so the control that
-  // started it can say the same instead of "Approving…" for a transaction
-  // the wallet has not been offered yet.
+  // From the reset's wallet prompt to its receipt, so the control can say
+  // "Resetting…" rather than "Approving…" for a call the wallet has not seen.
   const [isResetPending, setIsResetPending] = useState(false);
 
   const lifecycle = useTxLifecycle({

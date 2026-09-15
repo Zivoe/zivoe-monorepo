@@ -10,7 +10,7 @@ import { queryKeys } from '@/lib/query-keys';
 
 import { useAccount } from './useAccount';
 
-/** The one balance query — shared by the single- and the many-token readers so both hit the same cache entry. */
+/** The one balance query, shared by the single- and the many-token readers. */
 function balanceQueryOptions({
   chain,
   tokenAddress,
@@ -25,11 +25,9 @@ function balanceQueryOptions({
   // queryOptions keeps the bigint result typed through both useQuery and useQueries.
   return queryOptions({
     queryKey: queryKeys.account.balanceOf({ accountAddress: holder, chain, id: tokenAddress }),
-    // Silent on purpose: the many-token reader below runs for every chain on
-    // every page load, and one flaky public RPC would otherwise toast "Error
-    // fetching balance" per chain to a user who never picked it. Both readers
-    // share this entry, so the flag cannot differ per reader; the forms name
-    // a failed read of the coin they spend in place, with a Retry.
+    // Silent on purpose: the many-token reader runs for every chain on every
+    // page load, and one flaky RPC would otherwise toast per chain. The forms
+    // name a failed read of the coin they spend in place, with a Retry.
     meta: { skipErrorToast: true },
     queryFn:
       !web3 || !holder
@@ -67,12 +65,10 @@ export const useBalance = ({
 export type TokenOnChain = { chain: CentrifugeChain; tokenAddress: Address };
 
 /**
- * The connected wallet's balances of several tokens across chains at once —
- * what a selector needs to ORDER its rows, where the per-row reader
- * (ChainBalanceDetail) only prints each. Same query per token as useBalance,
- * so the two readers share cache entries and refetches. Returns a lookup:
- * undefined while a balance is unknown (no wallet, still loading, failed),
- * so callers treat "unknown" as "nothing to sort by" rather than as zero.
+ * The connected wallet's balances of several tokens across chains at once,
+ * for ordering selector rows; the same query per token as useBalance. Returns
+ * a lookup that is undefined while a balance is unknown (no wallet, loading,
+ * failed), so callers treat "unknown" as nothing to sort by, not as zero.
  */
 export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: TokenOnChain) => bigint | undefined {
   const { address: holder } = useAccount();
@@ -84,8 +80,7 @@ export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: T
         chain,
         tokenAddress,
         holder,
-        // The hook form can only read one chain per call; the action form
-        // resolves each token's own chain client off the same config.
+        // usePublicClient reads one chain per call; the action form resolves each token's own.
         web3: getPublicClient(config, { chainId: getChainId(chain) })
       })
     )

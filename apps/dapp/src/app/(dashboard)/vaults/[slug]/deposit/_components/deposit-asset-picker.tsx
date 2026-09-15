@@ -29,19 +29,14 @@ import {
   tokenOnChainLabel
 } from './chain-token-selector';
 
-/** The picker's network filter: every chain, or one of them. */
 type NetworkFilter = 'all' | CentrifugeChain;
 
 /**
  * The deposit tab's coin picker: every coin of every chain the Zivoe Vault is
- * live on, as a two-pane dialog at every width — networks on the left with
- * how many coins each accepts, the coins on the right behind a token search —
- * because nine chains with several coins apiece outgrow a flat list. Takes the
- * page's Transaction Identities and hands one back: the rows (one per
- * Centrifuge vault, with the wallet's balance of THAT coin on THAT chain),
- * their order by where the money is, and the vault key are all its own.
- * Below lg the networks pane collapses to an icon rail rather than a
- * different control, so a phone and a desktop pick a coin the same way.
+ * live on, as a two-pane dialog — networks on the left, coins behind a search
+ * on the right — since nine chains with several coins apiece outgrow a flat
+ * list. Takes the page's identities and hands one back; rows, balances and
+ * their order are its own. Below lg the networks pane is an icon rail.
  */
 export function DepositAssetPicker({
   identities,
@@ -49,13 +44,11 @@ export function DepositAssetPicker({
   onSelect,
   isDisabled
 }: {
-  /** Every Centrifuge vault the Zivoe Vault is live on, in catalog order. */
   identities: ReadonlyArray<TransactionIdentity>;
   selected: TransactionIdentity;
   onSelect: (identity: TransactionIdentity) => void;
   isDisabled: boolean;
 }) {
-  // Every vault's deposit asset, to order the list by where the money is.
   const balanceOf = useTokenBalances(
     identities.map(({ centrifugeVault }) => ({
       chain: centrifugeVault.chain,
@@ -70,8 +63,7 @@ export function DepositAssetPicker({
       detail: <ChainBalanceDetail identity={identity} token="asset" />,
       identity
     })),
-    // Compared at one scale: a raw 18-decimal balance (BNB Smart Chain's
-    // USDC) would otherwise outrank every 6-decimal one, whatever the amounts.
+    // Scaled to 18 decimals so coins of different scales compare by amount.
     ({ identity: { centrifugeVault } }) => {
       const balance = balanceOf({ chain: centrifugeVault.chain, tokenAddress: centrifugeVault.asset.address });
       return balance === undefined ? undefined : balance * 10n ** BigInt(18 - centrifugeVault.asset.decimals);
@@ -82,9 +74,7 @@ export function DepositAssetPicker({
 
   return (
     <Dialog>
-      {/* The name carries the selection: an aria-label replaces the visible
-          content, and a control named only by its purpose never tells a
-          screen reader (or a voice command) which token is chosen. */}
+      {/* An aria-label replaces the visible content, so it carries the selection too. */}
       <SelectTrigger
         variant="border-light"
         aria-label={`Select token to deposit, currently ${tokenOnChainLabel(selectedToken, selectedChain)}`}
@@ -121,7 +111,6 @@ function DepositAssetPickerPanes({
   selectedId,
   onSelect
 }: {
-  /** In balance order as of the latest render; the panes keep the order they opened with. */
   rows: Array<ChainSelectorRow>;
   selectedId: string;
   onSelect: (id: string) => void;
@@ -131,26 +120,21 @@ function DepositAssetPickerPanes({
   const networksHeadingId = useId();
 
   // Balances land one chain at a time, and re-sorting on each would move the
-  // rows under the pointer. The order is fixed at open; the rows themselves
-  // (and the balances they print) stay live. The next open sorts afresh.
+  // rows under the pointer, so the order is fixed at open.
   const [orderAtOpen] = useState(() => new Map(liveRows.map((row, index) => [row.id, index])));
   const rank = (row: ChainSelectorRow) => orderAtOpen.get(row.id) ?? orderAtOpen.size;
   const rows = [...liveRows].sort((a, b) => rank(a) - rank(b));
 
   const groups = groupRowsByChain(rows);
-  // The filter is one choice among several, so it is a single-selection
-  // toggle group (a radio group to assistive tech, with arrow-key movement)
-  // rather than independent pressed buttons. Selection keys are the filter
-  // values themselves; the lookup keeps the state typed without a cast.
+  // A single-selection toggle group (a radio group to assistive tech); the
+  // lookup keeps the filter typed without a cast.
   const filters: Array<NetworkFilter> = ['all', ...groups.map((group) => group.chain)];
   const selectNetwork = (keys: Iterable<Aria.Key>) => {
     const chosen = new Set(keys);
     const next = filters.find((filter) => chosen.has(filter));
     if (next) setNetwork(next);
   };
-  // The search matches the coin only — symbol or name — never the network:
-  // networks have their own list, and one box filtering both would leave
-  // "USDC on Base" ambiguous about which half matched.
+  // The search matches the coin only, never the network: networks have their own list.
   const query = search.trim().toLowerCase();
   const matchesSearch = (row: ChainSelectorRow) =>
     query === '' ||
@@ -161,16 +145,15 @@ function DepositAssetPickerPanes({
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between px-4 pt-4 pr-14">
-        {/* The suffix wraps the title onto two lines beside the close button at phone widths. */}
+        {/* The suffix would wrap the title beside the close button on phones. */}
         <DialogTitle>
           Select token<span className="hidden sm:inline"> to deposit</span>
         </DialogTitle>
       </div>
 
-      {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}
       <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[13.5rem_1fr]">
         <div className="flex flex-col gap-1 px-2">
-          {/* The inset rides the lg variant: not-sr-only resets padding, and its rule lands after the plain px-2. */}
+          {/* not-sr-only resets padding, so the inset must ride the lg variant. */}
           <p
             id={networksHeadingId}
             className="sr-only text-extraSmall font-medium text-tertiary lg:not-sr-only lg:px-2 lg:pb-1"
@@ -204,14 +187,10 @@ function DepositAssetPickerPanes({
           </Aria.ToggleButtonGroup>
         </div>
 
-        {/* The networks pane alone sets the dialog's height: the coins pane
-            is absolutely positioned inside its grid cell, so it adds nothing
-            to the row and instead fills whatever height the networks take,
-            and the coin list scrolls within it. Without this the dialog grew
-            and shrank with every keystroke in the search. min-w-0: a grid
-            child's minimum is its content's, and the search input's intrinsic
-            width would otherwise push the cell past the dialog's edge at
-            phone widths. */}
+        {/* The networks pane alone sets the dialog's height: the coins pane is
+            absolutely positioned in its cell and scrolls inside, so a search
+            no longer resizes the dialog per keystroke. min-w-0 keeps the
+            search input from pushing the cell past the dialog on phones. */}
         <div className="relative min-w-0">
           <div className="absolute inset-0 flex flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
             <Input
@@ -227,12 +206,9 @@ function DepositAssetPickerPanes({
               clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
             />
 
-            {/* pr-2: a gutter between the rows' balances and the scrollbar, which
-                otherwise hugs them. The other sides pad by a row's focus ring
-                (2px plus its 1px offset) and pull that back with a matching
-                margin, so the rows stay put: the scroll box clips what spills
-                past its edges, and the first row's ring would otherwise lose
-                its top edge, the last row's its bottom. */}
+            {/* pr-2 keeps the balances clear of the scrollbar. The 1px padding
+                and matching negative margin make room for a row's focus ring,
+                which the scroll box would otherwise clip at the top and bottom. */}
             <div
               className={nativeScrollAreaStyles({ className: '-m-1 mr-0 flex min-h-0 flex-1 flex-col gap-1 p-1 pr-2' })}
             >
@@ -240,7 +216,7 @@ function DepositAssetPickerPanes({
                 <TokenSelectorDialogRow
                   key={row.id}
                   row={row}
-                  // Under one network the chain is in the list's title; across all of them each row names its own.
+                  // Under one network the chain is already named; across all, each row names its own.
                   label={network === 'all' ? tokenOnChainLabel(row.token, row.chain) : row.token.label}
                   isSelected={row.id === selectedId}
                   onPress={() => onSelect(row.id)}
@@ -261,7 +237,6 @@ function DepositAssetPickerPanes({
   );
 }
 
-/** One network filter option; selection state comes from the enclosing toggle group. */
 function NetworkButton({
   id,
   count,

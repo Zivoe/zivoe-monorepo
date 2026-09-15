@@ -10,12 +10,9 @@ import { AppError } from '@/lib/utils';
 import useTx, { type TxParams, parseReceiptEvent } from './useTx';
 
 /**
- * `approve` declared WITHOUT its boolean output, on purpose. The flow never
- * read the boolean (only whether the simulation reverted), and declaring it
- * makes viem decode the return data — which Ethereum-mainnet USDT does not
- * return at all, so its approvals failed before the wallet ever saw them.
- * With no outputs viem skips the decode for every token, standard or not.
- * The `Approval` event is the standard one on all of them.
+ * `approve` declared WITHOUT its boolean output, on purpose: declaring it makes
+ * viem decode return data that Ethereum-mainnet USDT does not return, so its
+ * approvals failed at simulation. The flow never read the boolean anyway.
  */
 export const APPROVE_ABI = [
   {
@@ -50,19 +47,15 @@ type ApproveSpendingVariables = {
   name: string;
   /** Snapshotted onto the payload so the receipt dialog renders the approved token exactly. */
   decimals: number;
-  /** The token's approval mode from the catalog; `legacy` tokens reset a non-zero allowance first. */
+  /** The catalog's approval mode; see needsAllowanceReset. */
   approval?: DepositAsset['approval'];
-  /** The wallet's current allowance for the spender, as the flow last read it — decides whether a reset is due. */
+  /** The allowance as the flow last read it; decides whether a reset is due. */
   allowance?: bigint;
   successMessage: string;
   errorMessage: string;
 };
 
-/**
- * Whether a legacy token needs its allowance zeroed before `approve(amount)`
- * — such tokens revert on any non-zero → non-zero change. A standard token
- * never does, whatever the allowance.
- */
+/** A legacy token reverts on a non-zero → non-zero allowance change, so it is zeroed first. */
 export function needsAllowanceReset({ approval, allowance }: Pick<ApproveSpendingVariables, 'approval' | 'allowance'>) {
   return approval === 'legacy' && allowance !== undefined && allowance > 0n;
 }

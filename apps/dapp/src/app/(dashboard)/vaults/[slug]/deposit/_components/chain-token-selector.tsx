@@ -22,20 +22,15 @@ export type ChainSelectorToken = {
   icon: ReactNode;
 };
 
-/**
- * The display entry a selector shows for a symbol, falling back to the bare
- * symbol without an icon — the fixture classes and assets tests hand in have
- * no entry, and a catalog symbol missing its entry fails the build anyway.
- */
+/** The display entry for a symbol, or the bare symbol without an icon (test fixtures have no entry). */
 export function selectorTokenOf(symbol: string): ChainSelectorToken {
   return getTokenInfo(symbol) ?? { label: symbol, icon: null };
 }
 
 /**
- * A Centrifuge vault's row key: its chain and lowercased address. The address
- * alone is unique per chain (catalog lint) but not across chains — under
- * deterministic deployment USD1's vault sits at one address on Ethereum and
- * BNB Smart Chain — and the deposit picker lists every chain at once.
+ * A Centrifuge vault's row key: chain plus lowercased address. The address
+ * alone is not unique across chains (deterministic deployment puts USD1's
+ * vault at one address on several), and the deposit picker lists them all.
  */
 export function identityRowId(identity: TransactionIdentity): string {
   const { chain, address } = identity.centrifugeVault;
@@ -74,10 +69,9 @@ export function ChainBadgedTokenIcon({
 }
 
 /**
- * The trigger's identity. `token-on-chain` shows the chain-badged icon with
- * the chain named underneath, so the selected network is readable without
- * opening the selector; `token` shows the plain icon and symbol, for a choice
- * where the chain is already settled (the redeem tab's payout coin).
+ * The trigger's identity: `token-on-chain` names the chain under the badged
+ * icon; `token` shows the plain icon and symbol where the chain is already
+ * settled (the payout coin).
  */
 export function ChainTokenTriggerContent({
   token,
@@ -110,7 +104,6 @@ export function ChainTokenTriggerContent({
 
 /** One selectable "token on chain": a Centrifuge vault, or a chain on the redeem tab's chain selector. */
 export type ChainSelectorRow = {
-  /** Selection key — a Centrifuge-vault address, or the chain on the redeem tab's chain selector. */
   id: string;
   chain: CentrifugeChain;
   token: ChainSelectorToken;
@@ -119,14 +112,8 @@ export type ChainSelectorRow = {
 };
 
 /**
- * Rows ordered by where the wallet's money is: largest known balance first,
- * whatever the chain — so the row the user most likely wants is at the top.
- * Chains are not kept together: a list that grouped them showed a chain's
- * empty coins above another chain's funded one, and the network filter is
- * the place to browse one chain. Unknown balances (no wallet, still loading)
- * count as nothing to sort by, and ties keep the catalog's product order, so
- * a wallet holding nothing sees exactly the catalog order. Pure: the flows
- * feed it the balances they read.
+ * Rows by the wallet's balance, largest first, whatever the chain. Unknown
+ * balances (no wallet, still loading) count as nothing to sort by.
  */
 export function sortRowsByBalance<TRow extends ChainSelectorRow>(
   rows: Array<TRow>,
@@ -138,7 +125,7 @@ export function sortRowsByBalance<TRow extends ChainSelectorRow>(
   return [...rows].sort((a, b) => descending(known(a), known(b)));
 }
 
-/** Rows grouped under their chain, in row order — the deposit picker's network list and the balance ordering share it. */
+/** Rows grouped under their chain, in row order. */
 export function groupRowsByChain<TRow extends ChainSelectorRow>(
   rows: Array<TRow>
 ): Array<{ chain: CentrifugeChain; rows: Array<TRow> }> {
@@ -151,7 +138,7 @@ export function groupRowsByChain<TRow extends ChainSelectorRow>(
   return groups;
 }
 
-/** The dialog row every token selector renders: badged icon, label and sublabel, the detail on the right. */
+/** The dialog row every token selector renders. */
 export function TokenSelectorDialogRow({
   row,
   label,
@@ -173,7 +160,6 @@ export function TokenSelectorDialogRow({
     >
       <ChainBadgedTokenIcon chain={row.chain} icon={row.token.icon} className="size-8 shrink-0" />
 
-      {/* Phones stack the label over the detail and drop the sublabel; from sm the detail sits on the right. */}
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col items-start">
           <p className="text-regular font-medium text-primary">{label}</p>
@@ -190,10 +176,8 @@ export function TokenSelectorDialogRow({
 
 /**
  * A short "token on chain" list: a Dialog on desktop, a Select on mobile. One
- * row per option, no grouping — the redeem tab's chain selector (one row per
- * chain) and payout selector (one row per coin of the chain) both fit in a
- * handful of rows. The deposit tab, which lists every coin of every chain,
- * has its own picker.
+ * row per option, no grouping; the deposit tab's picker, which lists every
+ * coin of every chain, is its own component.
  */
 export function ChainTokenSelector({
   title,
@@ -211,13 +195,11 @@ export function ChainTokenSelector({
   /** What the closed control shows — see ChainTokenTriggerContent. */
   trigger?: 'token-on-chain' | 'token';
 }) {
-  // The selected row is always present: the flows derive `selectedId` from the
-  // same identities the rows are built from.
+  // Always present: the flows derive `selectedId` from the rows' own identities.
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
   if (!selected) throw new Error('ChainTokenSelector needs at least one row.');
 
-  // The payout coin's rows all sit on one chain, so naming it on every row
-  // would only repeat the trigger.
+  // The payout coin's rows all sit on one chain, so they need no chain name.
   const rowLabel = (row: ChainSelectorRow) =>
     trigger === 'token' ? row.token.label : tokenOnChainLabel(row.token, row.chain);
   const triggerClassName = trigger === 'token' ? 'h-auto gap-2 py-1' : 'h-auto w-34 justify-between gap-2 py-1';
