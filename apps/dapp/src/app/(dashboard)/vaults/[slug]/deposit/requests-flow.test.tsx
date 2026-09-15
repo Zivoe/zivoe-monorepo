@@ -126,9 +126,24 @@ vi.mock('@/centrifuge', () => {
         isPending: mocks.isPending,
         data: mocks.isPending ? undefined : positionOf(centrifugeVault.address)
       })),
-    useCancelRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.cancelRedeem }),
-    useClaimRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimRedeem }),
-    useClaimReturnedShares: () => ({ isPending: false, isTxPending: false, mutate: mocks.claimReturnedShares })
+    // Each write records the vault it was built for: a strip acting on the
+    // tab's selected identity instead of its own would call the wrong vault.
+    useCancelRedeem: ({ identity }: { identity: TransactionIdentity }) => ({
+      isPending: false,
+      isTxPending: false,
+      mutate: (vars: object) => mocks.cancelRedeem({ ...vars, centrifugeVault: identity.centrifugeVault.address })
+    }),
+    useClaimRedeem: ({ identity }: { identity: TransactionIdentity }) => ({
+      isPending: false,
+      isTxPending: false,
+      mutate: (vars: object) => mocks.claimRedeem({ ...vars, centrifugeVault: identity.centrifugeVault.address })
+    }),
+    useClaimReturnedShares: ({ identity }: { identity: TransactionIdentity }) => ({
+      isPending: false,
+      isTxPending: false,
+      mutate: (vars: object) =>
+        mocks.claimReturnedShares({ ...vars, centrifugeVault: identity.centrifugeVault.address })
+    })
   };
 });
 vi.mock('@zivoe/ui/core/button', () => ({
@@ -240,15 +255,32 @@ describe('RequestsFlow', () => {
     setPosition(BASE_USDC, { claimableRedeemAssets: 40_000000n });
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
 
-    // Sepolia is the wallet's chain: its claim is live.
+    // Sepolia is the wallet's chain: its claim is live, against its own vault.
     fireEvent.click(getButton('Claim USDC'));
-    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 1_200_000000n });
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({
+      claimableAssets: 1_200_000000n,
+      centrifugeVault: SEPOLIA_USDC.centrifugeVault.address
+    });
 
     // Base is not: its row offers the switch, which prompts the wallet.
     await act(async () => {
       fireEvent.click(getButton('Switch to Base'));
     });
     expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+  });
+
+  it("claims against the other chain's vault once the wallet sits there", () => {
+    mocks.walletChainId = 84532;
+    setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 1_200_000000n });
+    setPosition(BASE_USDC, { claimableRedeemAssets: 40_000000n });
+    renderRequests([SEPOLIA_USDC, BASE_USDC]);
+
+    fireEvent.click(getButton('Claim USDC'));
+    expect(mocks.claimRedeem).toHaveBeenCalledWith({
+      claimableAssets: 40_000000n,
+      centrifugeVault: BASE_USDC.centrifugeVault.address
+    });
+    expect(getButton('Switch to Ethereum')).toBeTruthy();
   });
 
   it('labels rows by coin only on a chain with several vaults', () => {
@@ -262,6 +294,14 @@ describe('RequestsFlow', () => {
     expect(screen.getByText('USDT redemption')).toBeTruthy();
     // Base holds one vault: no coin label needed there.
     expect(screen.getAllByText(/redemption$/)).toHaveLength(2);
+
+    // The second coin's strip cancels in the second coin's vault, not the
+    // chain's default.
+    fireEvent.click(getButton('Cancel request'));
+    expect(mocks.cancelRedeem).toHaveBeenCalledWith({
+      pendingShares: 1n * D18,
+      centrifugeVault: SEPOLIA_USDT.centrifugeVault.address
+    });
   });
 
   it('collapses and expands a chain group', () => {
