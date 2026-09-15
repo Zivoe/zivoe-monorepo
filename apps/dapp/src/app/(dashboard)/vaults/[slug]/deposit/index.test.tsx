@@ -2,11 +2,12 @@
 import { type ReactNode } from 'react';
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { type Address } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Deposit from './index';
 
-const mocks = vi.hoisted(() => ({ isMobile: true, requestCount: 0 }));
+const mocks = vi.hoisted(() => ({ isMobile: true, requestCount: 0, address: undefined as Address | undefined }));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('view=redeem'),
@@ -52,10 +53,14 @@ vi.mock('./_components/transaction-dialog', () => ({ TransactionDialog: () => nu
 vi.mock('@/components/connected-account', () => ({
   default: ({ children }: { children?: ReactNode }) => children
 }));
+vi.mock('@/hooks/useAccount', () => ({
+  useAccount: () => ({ address: mocks.address, isPending: false, isDisconnected: mocks.address === undefined })
+}));
 
 beforeEach(() => {
   mocks.isMobile = true;
   mocks.requestCount = 0;
+  mocks.address = '0x000000000000000000000000000000000000dEaD';
 });
 
 afterEach(() => {
@@ -72,6 +77,27 @@ describe('Deposit', () => {
     render(<Deposit initialView="redeem" />);
 
     await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+  });
+
+  // The modal marks Dynamic's connect sheet inert, so a dialog opened over a
+  // disconnected page shows a wallet list that ignores taps.
+  it('holds the mobile deep link until a wallet connects, then opens the Earn dialog once', async () => {
+    mocks.address = undefined;
+    const { rerender } = render(<Deposit initialView="redeem" />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    mocks.address = '0x000000000000000000000000000000000000dEaD';
+    rerender(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+  });
+
+  it('closes the mobile Earn dialog when the wallet disconnects', async () => {
+    const { rerender } = render(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+
+    mocks.address = undefined;
+    rerender(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('leaves the Earn dialog closed for the same deep link on desktop', () => {

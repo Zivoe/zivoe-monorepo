@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 
@@ -10,6 +10,8 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Tab, TabList, TabPanel, Tabs } from '@zivoe/ui/core/tabs';
 import { cn } from '@zivoe/ui/lib/tw-utils';
+
+import { useAccount } from '@/hooks/useAccount';
 
 import ConnectedAccount from '@/components/connected-account';
 
@@ -33,6 +35,13 @@ export default function Deposit({ initialView }: { initialView: DepositPageView 
 function DepositContent({ initialView }: { initialView: DepositPageView }) {
   const { navigateToTab } = useTabNavigation();
   const { isOpen: isEarnDialogOpen, setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
+  const account = useAccount();
+
+  // A wallet that disconnects while the dialog is open (from the wallet app)
+  // would leave it showing a Connect Wallet whose sheet the modal makes inert.
+  useEffect(() => {
+    if (account.isDisconnected) setIsEarnDialogOpen(false);
+  }, [account.isDisconnected, setIsEarnDialogOpen]);
 
   return (
     <>
@@ -80,17 +89,27 @@ function EarnBox({
   const searchParams = useSearchParams();
   const { updateTab, isMobile } = useTabNavigation();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
+  const account = useAccount();
 
   const [selectedTab, setSelectedTab] = useState<DepositPageTab>(() => initialView ?? 'deposit');
 
+  // A mobile deep link opens the Earn dialog only once a wallet is connected:
+  // opened over a disconnected page, the modal marks the wallet-connect sheet
+  // inert, so its wallet list shows but ignores every tap. The link is
+  // honoured once (the URL keeps `?view=` after in-dialog tab changes, and a
+  // later wallet switch must not pop the dialog again).
+  const openedForRef = useRef<string>(undefined);
   useEffect(() => {
-    const view = searchParams.get('view');
-    const viewParsed = depositPageViewSchema.safeParse(view);
-    if (viewParsed.success) {
-      setSelectedTab(viewParsed.data ?? 'deposit');
-      if (isMobile && viewParsed.data) setIsEarnDialogOpen(true);
-    }
-  }, [searchParams, isMobile, setIsEarnDialogOpen]);
+    const viewParsed = depositPageViewSchema.safeParse(searchParams.get('view'));
+    if (!viewParsed.success) return;
+    setSelectedTab(viewParsed.data ?? 'deposit');
+
+    if (!isMobile || !viewParsed.data || !account.address) return;
+    const link = searchParams.toString();
+    if (openedForRef.current === link) return;
+    openedForRef.current = link;
+    setIsEarnDialogOpen(true);
+  }, [searchParams, isMobile, account.address, setIsEarnDialogOpen]);
 
   const handleTabChange = (key: Key) => {
     const tabKey = depositPageTabSchema.safeParse(key);
