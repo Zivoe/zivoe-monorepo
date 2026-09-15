@@ -68,8 +68,9 @@ function renderTx() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  const invalidate = vi.fn();
 
-  return renderHook(
+  const rendered = renderHook(
     () =>
       useTx<{ amount: bigint; reset: boolean }, Params>({
         buildParams: ({ amount }) => params(amount),
@@ -86,10 +87,12 @@ function renderTx() {
           description: 'ok',
           hash: receipt.transactionHash
         }),
-        invalidate: () => undefined
+        invalidate
       }),
     { wrapper }
   );
+
+  return { ...rendered, invalidate };
 }
 
 describe('useTx reset step', () => {
@@ -127,6 +130,30 @@ describe('useTx reset step', () => {
     await waitFor(() => expect(rendered.result.current.isError).toBe(true));
 
     expect(mocks.writeContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches after a confirmed reset when the wallet rejects the main transaction', async () => {
+    mocks.writeContract.mockResolvedValueOnce('0xreset').mockRejectedValueOnce(new Error('User rejected the request'));
+    mocks.waitForTransactionReceipt.mockResolvedValueOnce(receipt('0xreset'));
+
+    const rendered = renderTx();
+    await act(async () => rendered.result.current.mutate({ amount: 5n, reset: true }));
+    await waitFor(() => expect(rendered.result.current.isError).toBe(true));
+
+    // The reset moved the allowance on-chain before the rejection, so the
+    // caches must not keep the pre-reset value a plain rejection would leave.
+    expect(mocks.writeContract).toHaveBeenCalledTimes(2);
+    expect(rendered.invalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refetch when the wallet rejects a transaction nothing preceded', async () => {
+    mocks.writeContract.mockRejectedValueOnce(new Error('User rejected the request'));
+
+    const rendered = renderTx();
+    await act(async () => rendered.result.current.mutate({ amount: 5n, reset: false }));
+    await waitFor(() => expect(rendered.result.current.isError).toBe(true));
+
+    expect(rendered.invalidate).not.toHaveBeenCalled();
   });
 
   it('sends only the main transaction when no reset is due', async () => {

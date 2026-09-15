@@ -353,9 +353,12 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         });
 
         // Settled non-rejection failures still refetch — the chain may have
-        // moved (e.g. a late broadcast) even though this mutation failed. A
-        // throwing invalidation must not displace the real error below.
-        if (!skipTxSettled(normalized)) {
+        // moved (e.g. a late broadcast) even though this mutation failed. So
+        // does a rejection once a hash was mirrored: the driver has already
+        // confirmed a transaction (an allowance reset) before the wallet
+        // refused the main one, and the cache is behind the chain. A throwing
+        // invalidation must not displace the real error below.
+        if (!skipTxSettled(normalized) || txHash !== undefined) {
           try {
             config.invalidate({ queryClient, address, vars });
           } catch (invalidateError) {
