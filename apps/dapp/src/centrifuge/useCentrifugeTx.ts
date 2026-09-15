@@ -390,9 +390,13 @@ function normalizeCentrifugeError({
   // strings thrown before any wallet interaction, so they outrank the
   // shape-based funding heuristic below — whose patterns ("insufficient
   // balance") would otherwise claim the SDK's own share-balance check.
+  // Matched by equality, not containment: the SDK throws them verbatim (its
+  // own tests assert the exact message), and "Insufficient balance" differs
+  // from Monad's node text only by case — a wallet that rewords the node's
+  // rejection must still reach the funding prompt below.
   if (err instanceof Error && sdkErrorCopy) {
-    const match = Object.entries(sdkErrorCopy).find(([sdkMessage]) => err.message.includes(sdkMessage));
-    if (match) return new AppError({ message: match[1], exception: err });
+    const copy = sdkErrorCopy[err.message];
+    if (copy) return new AppError({ message: copy, exception: err });
   }
 
   // Send-path funding failures the simulation cannot see: the wallet or

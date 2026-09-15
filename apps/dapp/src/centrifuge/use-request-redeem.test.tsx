@@ -171,4 +171,23 @@ describe('useRequestRedeem', () => {
       title: "You don't have enough shares for this redemption request."
     });
   });
+
+  it('keeps a node funding rejection that merely contains the SDK wording on the funding prompt', async () => {
+    // Monad's node rejects with "insufficient balance"; a wallet that rewords it
+    // with a capital I must not be mistaken for the SDK's share pre-check.
+    getCentrifugeVault.mockResolvedValue(
+      fakeCentrifugeVault({ redeemError: new Error('Insufficient balance to cover the transaction') })
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRequestRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'warning',
+      title: "Not enough ETH in your wallet to cover this transaction's network fee. Add ETH and try again."
+    });
+  });
 });
