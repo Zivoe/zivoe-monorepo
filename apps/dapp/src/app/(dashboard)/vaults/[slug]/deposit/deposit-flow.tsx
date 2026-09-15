@@ -130,6 +130,11 @@ export function DepositFlow() {
   const isPriceUnavailable = isPreviewFailed && isPriceUnavailableError(preview.error);
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
+  // Nothing signs against an unknown allowance: Approve would ask for an
+  // approval the wallet may not need — and a legacy token's approve would
+  // fail at simulation with no readable reason — while Deposit would fail
+  // for want of one. The read is retried first.
+  const isAllowanceUnavailable = allowance.isError && !allowance.isFetching;
 
   const approveSpending = useApproveSpending({ zivoeVaultSlug: identity.zivoeVaultSlug });
   const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
@@ -365,6 +370,10 @@ export function DepositFlow() {
             <Button fullWidth isDisabled>
               {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
             </Button>
+          ) : isAllowanceUnavailable ? (
+            <Button fullWidth onPress={() => void allowance.refetch()}>
+              Retry
+            </Button>
           ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
             <Button
               fullWidth
@@ -414,6 +423,8 @@ export function DepositFlow() {
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
       ) : isNotAdmitted ? (
         <WalletAccessCallout restriction={restriction} />
+      ) : isAllowanceUnavailable ? (
+        <Callout variant="warning">Could not check your {asset.symbol} approval. Retry to continue.</Callout>
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an

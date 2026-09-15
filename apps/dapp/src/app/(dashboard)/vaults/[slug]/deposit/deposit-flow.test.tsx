@@ -47,6 +47,8 @@ function renderFlow(status: ZivoeVaultStatus = 'Open') {
 const mocks = vi.hoisted(() => ({
   address: '0x1234567890abcdef1234567890abcdef12345678',
   allowance: 0n,
+  allowanceIsError: false,
+  refetchAllowance: vi.fn(),
   accessIsAllowed: true,
   accessIsError: false,
   restriction: 'none',
@@ -114,7 +116,12 @@ vi.mock('@/hooks/useAccount', () => ({
 vi.mock('@/hooks/useAllowance', () => ({
   checkHasEnoughAllowance: ({ allowance, amount }: { allowance?: bigint; amount?: bigint }) =>
     allowance !== undefined && amount !== undefined && allowance >= amount,
-  useAllowance: () => ({ data: mocks.allowance, isFetching: false })
+  useAllowance: () => ({
+    data: mocks.allowanceIsError ? undefined : mocks.allowance,
+    isFetching: false,
+    isError: mocks.allowanceIsError,
+    refetch: mocks.refetchAllowance
+  })
 }));
 vi.mock('@/hooks/useApproveSpending', () => ({
   useApproveSpending: () => ({ isPending: false, isTxPending: false, mutate: mocks.approve })
@@ -290,6 +297,7 @@ function resetMocks() {
   vi.clearAllMocks();
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
+  mocks.allowanceIsError = false;
   mocks.accessIsAllowed = true;
   mocks.accessIsError = false;
   mocks.restriction = 'none';
@@ -412,6 +420,23 @@ describe('DepositFlow', () => {
     expect(screen.queryByText(/exceeds current vault capacity/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
     expect(getButton('Deposit').disabled).toBe(false);
+  });
+
+  it('withholds Approve and Deposit while the allowance read has failed, and retries it on press', async () => {
+    // Nothing signs against an unknown allowance: Approve could ask for an
+    // approval the wallet does not need (and a legacy token's would fail at
+    // simulation without a reason), Deposit could fail for want of one.
+    mocks.allowanceIsError = true;
+
+    renderFlow();
+    await act(async () => enterAmount('7'));
+
+    expect(screen.getByText(/Could not check your USDC approval/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+
+    await press('Retry');
+    expect(mocks.refetchAllowance).toHaveBeenCalledTimes(1);
   });
 
   it('shows a retry action when the estimate fails and refetches on press', async () => {
