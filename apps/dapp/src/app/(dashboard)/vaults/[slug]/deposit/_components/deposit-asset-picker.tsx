@@ -145,9 +145,10 @@ function DepositAssetPickerPanes({
         <DialogTitle>Select token to deposit</DialogTitle>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[11rem_1fr]">
+      {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}
+      <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[11rem_1fr]">
         <nav aria-label="Networks" className="flex flex-col gap-1 px-2">
-          <p className="px-2 pb-1 text-extraSmall font-medium text-tertiary">Networks</p>
+          <p className="px-2 pb-1 text-extraSmall font-medium text-tertiary sr-only lg:not-sr-only">Networks</p>
           <NetworkButton
             isSelected={network === 'all'}
             onPress={() => setNetwork('all')}
@@ -226,9 +227,13 @@ function NetworkButton({
     >
       <span className="flex items-center gap-3">
         {icon}
-        <span className="text-small text-primary">{label}</span>
+        <span className="text-small text-primary sr-only lg:not-sr-only">{label}</span>
       </span>
-      <span className={cn('text-small tabular-nums', isSelected ? 'text-primary' : 'text-tertiary')}>{count}</span>
+      <span
+        className={cn('text-small tabular-nums sr-only lg:not-sr-only', isSelected ? 'text-primary' : 'text-tertiary')}
+      >
+        {count}
+      </span>
     </Aria.Button>
   );
 }
