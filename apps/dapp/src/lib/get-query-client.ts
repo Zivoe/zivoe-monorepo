@@ -1,9 +1,21 @@
 import * as Sentry from '@sentry/nextjs';
-import { QueryCache, QueryClient, isServer } from '@tanstack/react-query';
+import { QueryCache, QueryClient, type QueryKey, isServer } from '@tanstack/react-query';
 
+import { CENTRIFUGE_CHAINS, type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { toast } from '@zivoe/ui/core/sonner';
 
+/** The chain a chain-scoped key carries (balances, positions, capacity, access), for the Sentry tag. */
+function chainOfQueryKey(queryKey: QueryKey): CentrifugeChain | undefined {
+  return queryKey.find(
+    (part): part is CentrifugeChain => typeof part === 'string' && (CENTRIFUGE_CHAINS as Array<string>).includes(part)
+  );
+}
+
 function makeQueryClient() {
+  // Silent reads whose failure has been captured; a success clears them, so
+  // a later outage is reported again.
+  const reportedFailures = new WeakSet<object>();
+
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -14,8 +26,22 @@ function makeQueryClient() {
     },
 
     queryCache: new QueryCache({
+      onSuccess: (_data, query) => {
+        reportedFailures.delete(query);
+      },
       onError: (error, query) => {
-        Sentry.captureException(error, { tags: { source: 'QUERY' } });
+        // Silent reads (balances, positions) run once per vault of every chain
+        // and retry on their own after a failure, so a chain outage would
+        // report every vault again on every back-off tick: only the first
+        // failure since the read last succeeded is captured. The chain tag
+        // lets an outage be filtered and alerted per chain.
+        const isSilent = Boolean(query.meta?.skipErrorToast);
+        if (!isSilent || !reportedFailures.has(query)) {
+          if (isSilent) reportedFailures.add(query);
+          Sentry.captureException(error, {
+            tags: { source: 'QUERY', chain: chainOfQueryKey(query.queryKey) ?? 'none' }
+          });
+        }
 
         if (query.meta?.skipErrorToast) return;
 
