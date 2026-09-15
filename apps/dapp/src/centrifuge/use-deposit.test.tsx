@@ -17,7 +17,7 @@ import {
 import { sepolia } from 'viem/chains';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { transactionAtom } from '@/lib/store';
+import { pendingTxCountAtom, transactionAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
 import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
@@ -495,6 +495,57 @@ describe('useDeposit', () => {
       // "Gave up waiting" is not "did not happen": a late approval can still
       // broadcast, so the invalidations must run and let balances self-correct.
       expect(invalidateSpy).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('times out a wallet client that never resolves with the signing warning, not "Wallet not connected"', async () => {
+    vi.useFakeTimers();
+    try {
+      getWalletClient.mockReturnValue(new Promise(() => undefined));
+
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+      act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5 * 60_000);
+      });
+
+      expect(result.current.isError).toBe(true);
+      expect(getDefaultStore().get(pendingTxCountAtom)).toBe(0);
+      expect(uiToast).toHaveBeenCalledWith({
+        type: 'warning',
+        title:
+          'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.'
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('releases the write gate when the Centrifuge vault never resolves', async () => {
+    vi.useFakeTimers();
+    try {
+      // A stalled indexer connection: the SDK's vault lookup neither resolves
+      // nor rejects, and it runs before any wallet prompt exists to time out.
+      getCentrifugeVault.mockReturnValue(new Promise(() => undefined));
+
+      const { wrapper } = createWrapper();
+      const { result } = renderHook(() => useDeposit({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+      act(() => result.current.mutate({ assets: ASSETS, previewShares: 900_000000000000000000n }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5 * 60_000);
+      });
+
+      expect(result.current.isError).toBe(true);
+      expect(getDefaultStore().get(pendingTxCountAtom)).toBe(0);
+      expect(uiToast).toHaveBeenCalledWith({
+        type: 'warning',
+        title: 'Could not reach the vault. Check your connection and try again.'
+      });
     } finally {
       vi.useRealTimers();
     }

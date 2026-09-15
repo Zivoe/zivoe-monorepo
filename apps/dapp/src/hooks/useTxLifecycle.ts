@@ -132,6 +132,24 @@ export function signingTimedOutError(): AppError {
 }
 
 /**
+ * Bounds one step of a write by SIGNING_TIMEOUT_MS. Used for the wallet's
+ * answer in both drivers, and by the Centrifuge driver for the steps before
+ * it (vault resolution through the indexer, the wallet client), which can
+ * hang just the same and would otherwise hold the app-wide write gate until
+ * reload.
+ */
+export function withSigningTimeout<T>(
+  request: Promise<T>,
+  timedOut: () => AppError = signingTimedOutError
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(timedOut()), SIGNING_TIMEOUT_MS);
+  });
+  return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
  * Config every transaction driver shares. The lifecycle consumes all of it
  * except pendingToast, which drivers surface while acquiring the receipt.
  */

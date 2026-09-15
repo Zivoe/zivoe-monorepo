@@ -26,12 +26,7 @@ import { chainOfChainId, getViemChain, waitForRpcCatchup } from '@/lib/chains';
 import { insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, {
-  SIGNING_TIMEOUT_MS,
-  type TxContext,
-  type TxSharedConfig,
-  signingTimedOutError
-} from './useTxLifecycle';
+import useTxLifecycle, { type TxContext, type TxSharedConfig, withSigningTimeout } from './useTxLifecycle';
 
 // The transaction choreography lives in useTxLifecycle; re-exported here so
 // existing import sites keep working.
@@ -103,15 +98,6 @@ export function parseReceiptEvent<TAbi extends Abi, TEventName extends ContractE
     Sentry.captureException(error, { tags: { source: 'MUTATION', flow: sentryFlow } });
     return undefined;
   }
-}
-
-/** Bounds the wait for the wallet's answer — see SIGNING_TIMEOUT_MS. */
-function withSigningTimeout<T>(request: Promise<T>): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(signingTimedOutError()), SIGNING_TIMEOUT_MS);
-  });
-  return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
 }
 
 /**

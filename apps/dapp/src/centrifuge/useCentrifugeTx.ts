@@ -17,7 +17,8 @@ import useTxLifecycle, {
   SIGNING_TIMEOUT_MS,
   type TxSharedConfig,
   signingTimedOutError,
-  toSentryExtras
+  toSentryExtras,
+  withSigningTimeout
 } from '@/hooks/useTxLifecycle';
 
 import { getCentrifugeVault, setTransactionSigner } from './client';
@@ -146,7 +147,13 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const centrifugeVault = await getCentrifugeVault(identity.centrifugeVault);
+        // Bounded like the signature itself: the SDK resolves the vault through
+        // an indexer fetch with no timeout, and this mutation already holds
+        // the app-wide write gate, so a stalled connection here would lock
+        // every write until reload.
+        const centrifugeVault = await withSigningTimeout(getCentrifugeVault(identity.centrifugeVault), () =>
+          vaultUnreachableError()
+        );
         const txContext = { address, centrifugeVault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -154,8 +161,10 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         // Requested for the identity's chain — the CTA gates on the wallet
         // already sitting there, and the SDK re-asserts before submitting.
         const { err: walletErr, res: walletClient } = await handlePromise(
-          getWalletClient(wagmiConfig, { chainId: identity.centrifugeVault.chainId })
+          withSigningTimeout(getWalletClient(wagmiConfig, { chainId: identity.centrifugeVault.chainId }))
         );
+        // The timeout's own warning must not be rewritten into 'Wallet not connected'.
+        if (walletErr instanceof AppError) throw walletErr;
         if (walletErr || !walletClient) throw normalizeWalletClientError(walletErr);
 
         const signer = createSimulationSigner({
@@ -263,6 +272,14 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         if (pendingToastId !== undefined) sonnerToast.dismiss(pendingToastId);
       }
     }
+  });
+}
+
+/** The vault resolution timed out — a connection problem, not a wallet one, so it says so. */
+function vaultUnreachableError(): AppError {
+  return new AppError({
+    message: 'Could not reach the vault. Check your connection and try again.',
+    type: 'warning'
   });
 }
 
