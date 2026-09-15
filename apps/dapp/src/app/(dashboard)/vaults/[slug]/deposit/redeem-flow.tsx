@@ -16,7 +16,7 @@ import { useAccount } from '@/hooks/useAccount';
 import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
-import { useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
+import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
 
@@ -332,13 +332,15 @@ export default function RedeemFlow() {
             fullWidth
             onPress={() => void handleRequestRedeem()}
             isDisabled={isSubmitBlocked}
-            isPending={requestRedeem.isPending}
+            isPending={requestRedeem.isPending || isSubmitBlocked}
             pendingContent={
               requestRedeem.isTxPending
                 ? 'Requesting redemption...'
                 : requestRedeem.isPending
                   ? 'Signing Transaction...'
-                  : undefined
+                  : isSubmitBlocked
+                    ? OTHER_WRITE_PENDING_LABEL
+                    : undefined
             }
           >
             {hasPosition ? 'Add to redemption' : 'Request redemption'}

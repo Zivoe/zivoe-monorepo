@@ -18,6 +18,7 @@ import { useApproveSpending } from '@/hooks/useApproveSpending';
 import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
 
@@ -148,24 +149,25 @@ export function DepositFlow() {
   // it clears is reasonable. A deploying Zivoe Vault, a Centrifuge vault with no capacity
   // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
   // the form itself: there is no amount worth entering.
+  // Every write shares one wallet and one transaction path — this tab's
+  // approve and deposit, the redeem tab's request, the Requests tab's claims
+  // and cancels — so the form waits out any of them, wherever it was started;
+  // the lifecycle keeps the count across tab switches.
+  const isAnyWritePending = useIsAnyTxPending();
+  const isOtherWritePending = isAnyWritePending && !approveSpending.isPending && !depositMutation.isPending;
   const isFormLocked =
-    isPrereqsLoading ||
-    approveSpending.isPending ||
-    depositMutation.isPending ||
-    isZivoeVaultDeploying ||
-    isCapacityUnavailable ||
-    isNotAdmitted;
+    isPrereqsLoading || isAnyWritePending || isZivoeVaultDeploying || isCapacityUnavailable || isNotAdmitted;
 
   // The chain selector must NOT inherit the per-chain verdicts (capacity,
   // access): they are exactly what switching chains escapes, and freezing
   // the selector on them would trap the user on the failing chain. Same
   // gating as the redeem tab's selector.
-  const isChainSelectorLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
+  const isChainSelectorLocked = isPrereqsLoading || isAnyWritePending;
 
-  // Only the quote gates the action. The settled facts above are enforced one
-  // level up, where the ladder swaps this button for a named one — repeating
-  // them here would describe states this gate never sees.
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed;
+  // Only the quote and a sibling write gate the action. The settled facts
+  // above are enforced one level up, where the ladder swaps this button for a
+  // named one — repeating them here would describe states this gate never sees.
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isOtherWritePending;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
@@ -338,7 +340,7 @@ export function DepositFlow() {
               fullWidth
               onPress={() => void handleApprove()}
               isDisabled={isSubmitBlocked}
-              isPending={approveSpending.isPending || isPreviewLoading}
+              isPending={approveSpending.isPending || isPreviewLoading || isOtherWritePending}
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
@@ -346,7 +348,9 @@ export function DepositFlow() {
                     ? `Approving ${asset.symbol}...`
                     : approveSpending.isPending
                       ? 'Signing Transaction...'
-                      : undefined
+                      : isOtherWritePending
+                        ? OTHER_WRITE_PENDING_LABEL
+                        : undefined
               }
             >
               Approve
@@ -356,7 +360,7 @@ export function DepositFlow() {
               fullWidth
               onPress={() => void handleDeposit()}
               isDisabled={isSubmitBlocked}
-              isPending={depositMutation.isPending || isPreviewLoading}
+              isPending={depositMutation.isPending || isPreviewLoading || isOtherWritePending}
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
@@ -364,7 +368,9 @@ export function DepositFlow() {
                     ? `Depositing ${asset.symbol}...`
                     : depositMutation.isPending
                       ? 'Signing Transaction...'
-                      : undefined
+                      : isOtherWritePending
+                        ? OTHER_WRITE_PENDING_LABEL
+                        : undefined
               }
             >
               Deposit

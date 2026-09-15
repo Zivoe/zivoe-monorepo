@@ -4,7 +4,7 @@ import { Button } from '@zivoe/ui/core/button';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
-import { useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
+import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
 
@@ -173,13 +173,15 @@ export function RedemptionPositionStrips({
                   isDisabled={
                     isBlocked || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
                   }
-                  isPending={claimReturnedShares.isPending}
+                  isPending={claimReturnedShares.isPending || isOtherMutationPending(claimReturnedShares.isPending)}
                   pendingContent={
                     claimReturnedShares.isTxPending
                       ? `Claiming ${share.symbol}...`
                       : claimReturnedShares.isPending
                         ? 'Signing Transaction...'
-                        : undefined
+                        : isOtherMutationPending(claimReturnedShares.isPending)
+                          ? OTHER_WRITE_PENDING_LABEL
+                          : undefined
                   }
                 >
                   Claim {share.symbol}
@@ -223,13 +225,15 @@ export function RedemptionPositionStrips({
                     // proceeds claim alone.
                     returnedShares > 0n
                   }
-                  isPending={claimRedeem.isPending}
+                  isPending={claimRedeem.isPending || isOtherMutationPending(claimRedeem.isPending)}
                   pendingContent={
                     claimRedeem.isTxPending
                       ? `Claiming ${asset.symbol}...`
                       : claimRedeem.isPending
                         ? 'Signing Transaction...'
-                        : undefined
+                        : isOtherMutationPending(claimRedeem.isPending)
+                          ? OTHER_WRITE_PENDING_LABEL
+                          : undefined
                   }
                 >
                   Claim {asset.symbol}
@@ -288,6 +292,7 @@ export function RedemptionPositionStrips({
                     blockedHint: isShareReturnBlocked ? shareReturnHint : undefined,
                     isPending: cancelRedeem.isPending,
                     isTxPending: cancelRedeem.isTxPending,
+                    isOtherWritePending: isOtherMutationPending(cancelRedeem.isPending),
                     switchChain
                   }
                 : undefined
@@ -327,6 +332,8 @@ function RedemptionProcessingStrip({
     blockedHint?: string;
     isPending: boolean;
     isTxPending: boolean;
+    /** A write started elsewhere is in flight — the control waits it out and says so. */
+    isOtherWritePending: boolean;
     switchChain?: { label: string; onPress: () => void };
   };
 }) {
@@ -357,9 +364,15 @@ function RedemptionProcessingStrip({
                 size="s"
                 onPress={cancel.onPress}
                 isDisabled={cancel.isDisabled}
-                isPending={cancel.isPending}
+                isPending={cancel.isPending || cancel.isOtherWritePending}
                 pendingContent={
-                  cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
+                  cancel.isTxPending
+                    ? 'Cancelling...'
+                    : cancel.isPending
+                      ? 'Signing Transaction...'
+                      : cancel.isOtherWritePending
+                        ? OTHER_WRITE_PENDING_LABEL
+                        : undefined
                 }
               >
                 Cancel request

@@ -16,3 +16,10 @@ import { pendingTxCountAtom } from '@/lib/store';
 export function useIsAnyTxPending(): boolean {
   return useAtomValue(pendingTxCountAtom) > 0;
 }
+
+/**
+ * What a control shows while it waits out a write started elsewhere — the
+ * hook instance that started it may have unmounted with its tab, so the
+ * control cannot tell whose write it is, only that one is in flight.
+ */
+export const OTHER_WRITE_PENDING_LABEL = 'Another transaction in progress...';

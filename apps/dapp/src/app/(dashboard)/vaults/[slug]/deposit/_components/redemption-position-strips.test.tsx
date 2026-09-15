@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { pendingTxCountAtom } from '@/lib/store';
 
+import { OTHER_WRITE_PENDING_LABEL } from '@/hooks/useIsAnyTxPending';
+
 import { type InvestorAccess } from '@/centrifuge';
 import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
@@ -333,9 +335,12 @@ describe('RedemptionPositionStrips', () => {
     getDefaultStore().set(pendingTxCountAtom, 1);
     try {
       renderStrips();
-      expect(getButton('Claim zSMB').disabled).toBe(true);
-      expect(getButton('Claim USDC').disabled).toBe(true);
-      expect(getButton('Cancel request').disabled).toBe(true);
+      // Every control waits, and says why — the hook that started the write
+      // may have unmounted with its tab, so none of them can claim it.
+      const waiting = screen.getAllByRole('button', { name: OTHER_WRITE_PENDING_LABEL });
+      expect(waiting).toHaveLength(3);
+      expect(waiting.every((button) => button instanceof HTMLButtonElement && button.disabled)).toBe(true);
+      expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
     } finally {
       getDefaultStore().set(pendingTxCountAtom, 0);
     }
