@@ -121,16 +121,15 @@ export default function RedeemFlow() {
   const requestRedeem = useRequestRedeem({ identity, onSuccessClose: closeEarnDialog });
 
   // Balances/position use isFetching so post-transaction invalidations keep
-  // the form locked until fresh data lands. Cancellation Processing polls the
-  // position, so it deliberately does NOT feed isPrereqsLoading — only the
-  // initial load and post-transaction refetches do.
+  // the form locked until fresh data lands; the position never polls, so
+  // only the initial load and those refetches ever set it.
   const isPrereqsLoading =
     account.isPending ||
     shareBalance.isFetching ||
     assetBalance.isFetching ||
     chainalysis.isFetching ||
     access.isFetching ||
-    (position.isFetching && !isCancellationProcessing) ||
+    position.isFetching ||
     // isPending on purpose: metrics refetch on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;

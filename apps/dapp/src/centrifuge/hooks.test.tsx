@@ -122,13 +122,15 @@ function blockedCentrifugeVault() {
 }
 
 describe('redemptionPositionRefetchInterval', () => {
-  it('polls Cancellation Processing, backs off a failing read, and leaves settled positions alone', () => {
+  it('retries only a read that failed with nothing on hand, backing off; every answered position rests', () => {
+    // A Cancellation Processing included: the hub's unwind can sit for a long
+    // while, and polling it would only burn reads.
     const position = (hasPendingCancelRedeemRequest: boolean) => ({
       status: 'success' as const,
       errorUpdateCount: 0,
       data: { hasPendingCancelRedeemRequest }
     });
-    expect(redemptionPositionRefetchInterval(position(true))).toBe(10_000);
+    expect(redemptionPositionRefetchInterval(position(true))).toBe(false);
     expect(redemptionPositionRefetchInterval(position(false))).toBe(false);
 
     // Doubling from half a minute, capped at five: a chain whose RPC is down
@@ -138,15 +140,10 @@ describe('redemptionPositionRefetchInterval', () => {
       30_000, 60_000, 120_000, 240_000, 300_000, 300_000
     ]);
 
-    // A refetch failing with an earlier answer on hand keeps that answer's
-    // cadence: the strips still render it, so nothing is missing to recover.
-    const failedRefetch = (hasPendingCancelRedeemRequest: boolean) => ({
-      status: 'error' as const,
-      errorUpdateCount: 3,
-      data: { hasPendingCancelRedeemRequest }
-    });
-    expect(redemptionPositionRefetchInterval(failedRefetch(true))).toBe(10_000);
-    expect(redemptionPositionRefetchInterval(failedRefetch(false))).toBe(false);
+    // A refetch failing with an earlier answer on hand rests too: the strips
+    // still render that answer, so nothing is missing to recover.
+    const failedRefetch = { status: 'error' as const, errorUpdateCount: 3, data: position(false).data };
+    expect(redemptionPositionRefetchInterval(failedRefetch)).toBe(false);
   });
 });
 

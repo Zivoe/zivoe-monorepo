@@ -128,8 +128,8 @@ export function RedemptionPositionStrips({
 
   // A post-transaction refetch of THIS vault's position keeps its controls
   // locked until fresh data lands — the same rule the form applies to its own
-  // prerequisites. Cancellation Processing polls, so it does not count.
-  const isBlocked = isWriteBlocked || (position.isFetching && !isCancellationProcessing);
+  // prerequisites. The position never polls, so nothing else sets it.
+  const isBlocked = isWriteBlocked || position.isFetching;
 
   const handleClaim = () => {
     if (claimableAssets <= 0n || isProceedsClaimBlocked) return;
