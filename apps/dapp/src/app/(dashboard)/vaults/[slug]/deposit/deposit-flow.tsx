@@ -174,13 +174,20 @@ export function DepositFlow() {
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
-  // The balance and capacity rules are wallet- and vault-scoped, so a verdict
-  // about the previous wallet or Centrifuge vault (another chain, or another
-  // stablecoin on the same chain) outlives it — 'exceeds balance' would sit on
-  // a context that can afford the amount until the next keystroke revalidates.
+  // The balance and capacity rules are wallet-scoped, so a verdict about the
+  // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
+  // can afford the amount until the next keystroke revalidates.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, selectedChain, centrifugeVault.address, form]);
+  }, [account.address, form]);
+
+  // An amount is typed against one coin on one chain: its balance, capacity
+  // and scale all change with the Centrifuge vault. Kept, a value with more
+  // decimals than the new coin carries would be rounded silently at signing
+  // (0.1234567 USD1 reads as 0.123457 USDC), so the field starts over.
+  useEffect(() => {
+    form.resetField('deposit');
+  }, [selectedChain, centrifugeVault.address, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 

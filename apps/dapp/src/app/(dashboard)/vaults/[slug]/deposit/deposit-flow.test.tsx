@@ -837,4 +837,30 @@ describe('DepositFlow with two stablecoins on one chain', () => {
     await act(async () => enterAmount('8'));
     expect(screen.getByText('Deposit amount exceeds balance')).toBeTruthy();
   });
+
+  it('starts the amount over when the coin changes, so an 18-decimal value is never rounded into a 6-decimal coin', async () => {
+    // Ethereum-style pairing: an 18-decimal coin beside 6-decimal USDC.
+    const usd1 = identityOnChain(TEST_IDENTITY, 'sepolia', {
+      address: USDT_IDENTITY.centrifugeVault.address,
+      asset: { address: USDT_ADDRESS as `0x${string}`, symbol: 'USDT', decimals: 18 }
+    });
+    render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[usd1, TEST_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <DepositFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+
+    // Seven decimals are fine for the 18-decimal coin; viem would round them
+    // to 0.123457 for USDC while the field kept showing 0.1234567.
+    await act(async () => enterAmount('0.1234567'));
+    expect(getInput('Deposit').value).toBe('0.1234567');
+
+    await press('USDC on Ethereum US Dollar Coin Balance: 10.00');
+
+    expect(getInput('Deposit').value).toBe('');
+  });
 });
