@@ -6,7 +6,7 @@ import { BASE_URL } from '@/server/utils/base-url';
 
 // Token icon URLs (self-hosted PNGs in public/email-icons/), keyed by the
 // catalog's symbols so a new stablecoin or share class fails the build until
-// it has an icon here — the runbook's step 2, enforced like token-info.tsx.
+// it has an icon here, enforced like token-info.tsx.
 const TOKEN_ICON_URL_BY_SYMBOL: Record<DepositAssetSymbol | ShareClassSymbol, string> = {
   USDC: `${BASE_URL}/email-icons/usdc.png`,
   USDT: `${BASE_URL}/email-icons/usdt.png`,

@@ -35,7 +35,7 @@ export type DepositAsset = {
 
 /**
  * One Centrifuge vault: the share class instantiated on one chain for one
- * deposit asset. Adding one follows docs/runbooks/add-deposit-asset.md.
+ * deposit asset. Verify a new one with `pnpm centrifuge:verify` before it deploys.
  */
 export type CentrifugeVaultDeployment = {
   address: Address;
@@ -131,7 +131,7 @@ export const SHARE_CLASSES = {
                 asset: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 }
               },
               // Circle's EURC, the only non-dollar asset: the flows' dollar
-              // lines still read one asset unit as one dollar (see the runbook).
+              // lines still read one asset unit as one dollar (a known testnet-only inaccuracy).
               {
                 address: '0x882671dAFFdf7cFAda441C79599d9600c78F7d29',
                 asset: { address: '0x808456652fdb597867f38412077A9182bf77359F', symbol: 'EURC', decimals: 6 }
