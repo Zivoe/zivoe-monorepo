@@ -4,6 +4,8 @@ import { Button } from '@zivoe/ui/core/button';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
+import { useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
+
 import ConnectedAccount from '@/components/connected-account';
 
 import {
@@ -17,8 +19,6 @@ import {
   useRedemptionPosition
 } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
-
-import { useIsAnyWritePending, useReportPendingWrite } from './pending-writes';
 
 /**
  * The redeem tab's reading of the wallet's access verdicts — three gates,
@@ -118,15 +118,12 @@ export function RedemptionPositionStrips({
   const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
   const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
 
-  // Every write on the tab shares one transaction path, so each control waits
-  // out every other — in this vault's strips, the other vaults' strips, and
-  // the request form. Pass the control's own pending flag — its own run is
-  // already shown (and blocked) by the button's `isPending`.
-  useReportPendingWrite(
-    `${chain}:${centrifugeVault.address}:position`,
-    claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending
-  );
-  const isAnyWritePending = useIsAnyWritePending();
+  // Every write shares one wallet and one transaction path, so each control
+  // waits out every other — in this vault's strips, the other vaults' strips,
+  // and the forms on the other tabs; the lifecycle keeps the count across tab
+  // switches. Pass the control's own pending flag — its own run is already
+  // shown (and blocked) by the button's `isPending`.
+  const isAnyWritePending = useIsAnyTxPending();
   const isOtherMutationPending = (isSelfPending: boolean) => isAnyWritePending && !isSelfPending;
 
   // A post-transaction refetch of THIS vault's position keeps its controls

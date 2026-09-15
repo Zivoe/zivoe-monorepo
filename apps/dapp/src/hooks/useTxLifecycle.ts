@@ -16,7 +16,7 @@ import {
   getAnalyticsErrorType
 } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
-import { type TransactionData, transactionAtom } from '@/lib/store';
+import { type TransactionData, pendingTxCountAtom, transactionAtom } from '@/lib/store';
 import { onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
@@ -219,6 +219,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const analytics = useAnalytics();
   const queryClient = useQueryClient();
   const setTransaction = useSetAtom(transactionAtom);
+  const setPendingTxCount = useSetAtom(pendingTxCountAtom);
 
   // The extras default is resolved once here — capture sites below must not
   // each re-implement the fallback — and the Zivoe Vault/chain identity is
@@ -369,6 +370,13 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         throw normalized;
       }
     },
+
+    // The in-flight count rides the mutation, not the hook instance: these
+    // callbacks belong to the Mutation and fire even after the component
+    // that called mutate has unmounted, so a write started on one tab still
+    // gates the controls on another until it settles.
+    onMutate: () => setPendingTxCount((count) => count + 1),
+    onSettled: () => setPendingTxCount((count) => count - 1),
 
     onError: (err, vars) => {
       onTxError({

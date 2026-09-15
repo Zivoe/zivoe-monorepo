@@ -16,6 +16,7 @@ import { useAccount } from '@/hooks/useAccount';
 import { useBalance, useTokenBalances } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
+import { useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
 import { getTokenInfo } from '@/components/token-info';
@@ -35,7 +36,6 @@ import { ChainTokenSelector, sortRowsByBalance } from './_components/chain-token
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { PayoutAssetSelector } from './_components/payout-asset-selector';
-import { useIsAnyWritePending, useReportPendingWrite } from './_components/pending-writes';
 import { deriveRedeemAccessGates } from './_components/redemption-position-strips';
 import { TokenDisplay } from './_components/token-display';
 import { WalletAccessCallout } from './_components/wallet-access-callout';
@@ -144,11 +144,11 @@ export default function RedeemFlow() {
     // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;
 
-  // Every redemption write (the request here, claims and cancels on the
-  // Requests tab) shares one transaction path, so each control waits out the
-  // others wherever they are mounted — see pending-writes.
-  useReportPendingWrite('request', requestRedeem.isPending);
-  const isAnyWritePending = useIsAnyWritePending();
+  // Every write (the request here, claims and cancels on the Requests tab, an
+  // approval or deposit on the deposit tab) shares one wallet and one
+  // transaction path, so each control waits out the others wherever they
+  // were started — the lifecycle keeps the count across tab switches.
+  const isAnyWritePending = useIsAnyTxPending();
   // Cancellation Processing in the PAYOUT vault locks the form: a new request
   // into it would revert on-chain until the hub finishes the unwind — another
   // payout asset on the chain stays open, its vault being untouched. A wallet

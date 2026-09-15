@@ -68,4 +68,15 @@ export type TransactionData = {
 
 const transactionAtom = atom<TransactionData | undefined>(undefined);
 
-export { transactionAtom };
+/**
+ * How many Transaction Hook mutations are in flight, app-wide. Written only
+ * by the transaction lifecycle, from the mutation's own start and settle
+ * callbacks — so a write outlives the component that started it (the Earn
+ * box's tabs unmount each other mid-signature) and is released exactly when
+ * the mutation settles. Every write shares one wallet and, for Centrifuge
+ * actions, one SDK signer lock, which is why the count is global rather than
+ * per flow. Read through useIsAnyTxPending.
+ */
+const pendingTxCountAtom = atom(0);
+
+export { pendingTxCountAtom, transactionAtom };
