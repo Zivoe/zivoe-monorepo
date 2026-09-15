@@ -19,13 +19,26 @@ it('the ledger enum mirrors the indexer boundary', () => {
 });
 
 describe('buildEventId', () => {
-  it('scopes identity by share class and spoke chain — one tx can carry same-type events across both', () => {
-    const base = { centrifugeId: '1', txHash: '0xabc1', type: 'SYNC_DEPOSIT', account: '0xb8da' } as const;
+  it('scopes identity by share class, spoke chain and deposit asset — one tx can carry same-type events across each', () => {
+    const base = {
+      centrifugeId: '1',
+      txHash: '0xabc1',
+      type: 'SYNC_DEPOSIT',
+      account: '0xb8da',
+      assetAddress: '0xa55e7'
+    } as const;
 
-    expect(buildEventId({ scId: '0x0001', event: base })).toBe('0x0001:1:0xabc1:SYNC_DEPOSIT:0xb8da');
+    expect(buildEventId({ scId: '0x0001', event: base })).toBe('0x0001:1:0xabc1:SYNC_DEPOSIT:0xb8da:0xa55e7');
     expect(buildEventId({ scId: '0x0002', event: base })).not.toBe(buildEventId({ scId: '0x0001', event: base }));
     expect(buildEventId({ scId: '0x0001', event: { ...base, centrifugeId: '12' } })).not.toBe(
       buildEventId({ scId: '0x0001', event: base })
+    );
+    // Two vaults on one chain: the same claim moment for USDC and EURC.
+    expect(buildEventId({ scId: '0x0001', event: { ...base, assetAddress: '0xe08c' } })).not.toBe(
+      buildEventId({ scId: '0x0001', event: base })
+    );
+    expect(buildEventId({ scId: '0x0001', event: { ...base, assetAddress: null } })).toBe(
+      '0x0001:1:0xabc1:SYNC_DEPOSIT:0xb8da:no-asset'
     );
   });
 });
