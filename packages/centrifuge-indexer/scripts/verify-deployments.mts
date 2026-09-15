@@ -121,19 +121,21 @@ const tokenInstancesSchema = z.object({
   tokenInstances: z.object({ items: z.array(z.object({ centrifugeId: z.string(), address: z.string() })) })
 }) satisfies z.ZodType<ResultOf<typeof TOKEN_INSTANCES_QUERY>>;
 
-/** Prints one row as it is known; returns whether it matched. */
+/** Prints one row as it is known; returns whether it matched. Addresses compare case-insensitively; `exact` for symbols. */
 function check({
   subject,
   fact,
   expected,
-  actual
+  actual,
+  exact = false
 }: {
   subject: string;
   fact: string;
   expected: string;
   actual: string;
+  exact?: boolean;
 }) {
-  const ok = same(expected, actual);
+  const ok = exact ? expected === actual : same(expected, actual);
   const label = `${subject} · ${fact}`.padEnd(44);
   console.log(ok ? `  ✓ ${label}  ${actual}` : `  ✗ ${label}  expected ${expected}, got ${actual}`);
   return ok;
@@ -296,6 +298,15 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
           });
 
           const details = await centrifugeVault.details();
+          // The two launch facts: an unlinked vault reverts every request, and
+          // a zero maxReserve reads as "Deposits Unavailable" in the dApp.
+          verify({ subject, fact: 'linked', expected: 'linked', actual: details.isLinked ? 'linked' : 'unlinked' });
+          verify({
+            subject,
+            fact: 'capacity (maxDeposit > 0)',
+            expected: 'open',
+            actual: details.maxDeposit.toBigInt() > 0n ? 'open' : 'closed (maxDeposit 0)'
+          });
           verify({
             subject,
             fact: 'Centrifuge-vault shape',
@@ -310,12 +321,14 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
             actual: String(details.share.decimals)
           });
           verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
-          // The contract's own symbol where it differs from the product's.
+          // The contract's own symbol where it differs from the product's —
+          // compared exactly, so `USDt` is not satisfied by `USDT`.
           verify({
             subject,
             fact: 'deposit asset symbol',
             expected: asset.onChainSymbol ?? asset.symbol,
-            actual: details.asset.symbol
+            actual: details.asset.symbol,
+            exact: true
           });
           verify({
             subject,
