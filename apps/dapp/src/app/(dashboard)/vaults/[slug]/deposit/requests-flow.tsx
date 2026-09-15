@@ -1,6 +1,7 @@
 'use client';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
 import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
@@ -28,7 +29,7 @@ import { type RedemptionRequestsByChain, useRedemptionRequests } from './_hooks/
  */
 export default function RequestsFlow() {
   const account = useAccount();
-  const { chains, isPending, pendingChains } = useRedemptionRequests();
+  const { chains, isPending, pendingChains, isEveryReadFailed, refetch } = useRedemptionRequests();
 
   if (account.isDisconnected)
     return (
@@ -43,6 +44,18 @@ export default function RequestsFlow() {
   // A skeleton until the wallet SDK has settled and the first vault has
   // answered; the chains still reading are named below whatever has landed.
   if (!account.address || isPending) return <RequestsSkeleton />;
+
+  // Every read failing at once is one outage (the indexer, which every vault
+  // resolves through), not a position problem on each of ten chains.
+  if (isEveryReadFailed)
+    return (
+      <Callout variant="warning">
+        Could not load your redemption requests.{' '}
+        <Button variant="link-primary" size="s" onPress={refetch}>
+          Retry
+        </Button>
+      </Callout>
+    );
 
   if (chains.length === 0)
     return (

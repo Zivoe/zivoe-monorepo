@@ -84,6 +84,7 @@ const mocks = vi.hoisted(() => ({
   refetchBalance: vi.fn(),
   requestRedeem: vi.fn(),
   requestVault: undefined as string | undefined,
+  positionRefetch: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
   zSmbBalance: 10n * 10n ** 18n,
@@ -218,6 +219,7 @@ vi.mock('@/centrifuge', () => ({
   useRedemptionPosition: ({ centrifugeVault }: { centrifugeVault: { chain: string; address: string } }) => ({
     isError: mocks.positionIsError,
     isFetching: false,
+    refetch: mocks.positionRefetch,
     data: mocks.positionIsError ? undefined : positionFor(centrifugeVault)
   }),
   // Records the vault the request was built for — the payout coin's, not the chain's default.
@@ -497,6 +499,15 @@ describe('RedeemFlow', () => {
       fireEvent.click(getButton('Retry'));
     });
     expect(mocks.refetchBalance).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a Retry beside a failed position read', () => {
+    mocks.positionIsError = true;
+    renderFlow();
+
+    expect(screen.getByText(/Could not load your redemption position on Ethereum/)).toBeTruthy();
+    fireEvent.click(getButton('Retry'));
+    expect(mocks.positionRefetch).toHaveBeenCalledOnce();
   });
 
   it('leaves the request live while the position read is failing', async () => {

@@ -45,6 +45,9 @@ export function useRedemptionRequests(): {
   count: number;
   isPending: boolean;
   pendingChains: Array<CentrifugeChain>;
+  /** True when no vault answered and every read failed — one outage, not ten. */
+  isEveryReadFailed: boolean;
+  refetch: () => void;
 } {
   const identities = useZivoeVaultIdentities();
   const positions = useRedemptionPositions({
@@ -70,6 +73,8 @@ export function useRedemptionRequests(): {
     chains,
     count: chains.reduce((sum, group) => sum + group.count, 0),
     isPending: positions.every((result) => result.isPending),
-    pendingChains
+    pendingChains,
+    isEveryReadFailed: positions.length > 0 && positions.every((result) => result.isError),
+    refetch: () => positions.forEach((result) => void result.refetch())
   };
 }

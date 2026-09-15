@@ -28,7 +28,8 @@ export const useAllowance = ({
 
   return useQuery({
     queryKey: queryKeys.account.allowance({ accountAddress: address, chain, contract, spender }),
-    meta: { toastErrorMessage: 'Error checking allowance' },
+    // Silent: the deposit form names a failed read in place, with a Retry.
+    meta: { skipErrorToast: true },
     queryFn: skip
       ? skipToken
       : () => {

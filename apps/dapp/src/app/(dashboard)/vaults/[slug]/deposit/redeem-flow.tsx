@@ -201,7 +201,10 @@ export default function RedeemFlow() {
           toast, so the form names it. */}
       {position.isError && (
         <Callout variant="warning">
-          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}.
+          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}.{' '}
+          <Button variant="link-primary" size="s" onPress={() => void position.refetch()}>
+            Retry
+          </Button>
         </Callout>
       )}
 

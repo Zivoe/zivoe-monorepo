@@ -41,6 +41,7 @@ type RequestMocks = {
   claimRedeem: ReturnType<typeof vi.fn>;
   cancelRedeem: ReturnType<typeof vi.fn>;
   claimReturnedShares: ReturnType<typeof vi.fn>;
+  refetchPositions: ReturnType<typeof vi.fn>;
   /** Position per Centrifuge-vault address (lowercase); absent means "empty". */
   positions: Record<string, Partial<RedemptionPosition>>;
   failing: Set<string>;
@@ -60,6 +61,7 @@ const mocks = vi.hoisted(
     claimRedeem: vi.fn(),
     cancelRedeem: vi.fn(),
     claimReturnedShares: vi.fn(),
+    refetchPositions: vi.fn(),
     positions: {},
     failing: new Set<string>(),
     isPending: false,
@@ -129,6 +131,7 @@ vi.mock('@/centrifuge', () => {
         return {
           isError: mocks.failing.has(centrifugeVault.address.toLowerCase()),
           isPending,
+          refetch: mocks.refetchPositions,
           data: isPending ? undefined : positionOf(centrifugeVault.address)
         };
       }),
@@ -349,6 +352,21 @@ describe('RequestsFlow', () => {
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
+  });
+
+  // Every vault resolves through the indexer, so an outage there fails all of
+  // them at once: one notice with a Retry, not ten groups each saying so.
+  it('collapses a failure of every read into one notice whose Retry re-reads every vault', () => {
+    mocks.failing = new Set(
+      [SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC].map((id) => id.centrifugeVault.address.toLowerCase())
+    );
+    renderRequests([SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC]);
+
+    expect(screen.getByText(/Could not load your redemption requests/)).toBeTruthy();
+    expect(screen.queryByText(/Could not load every position/)).toBeNull();
+
+    fireEvent.click(getButton('Retry'));
+    expect(mocks.refetchPositions).toHaveBeenCalledTimes(3);
   });
 
   it('shows the skeleton, not the connect prompt, while the wallet SDK is still loading', () => {
