@@ -54,7 +54,7 @@ function DepositContent({ initialView }: { initialView: DepositPageView }) {
               Deposit
             </Button>
 
-            <Button fullWidth variant="primary-light" onPress={() => navigateToTab('redeem')}>
+            <Button fullWidth variant="primary-light" className="relative" onPress={() => navigateToTab('redeem')}>
               Redeem
               <RequestsCountBadge />
             </Button>
@@ -130,10 +130,17 @@ function EarnBox({
 
         <DialogContentBox className={boxClassName}>
           <Tabs selectedKey={selectedTab} onSelectionChange={handleTabChange}>
+            {/* Three tabs and the badge outgrow the tab list on phones: 244px
+                of text and padding against 240px at 320px wide. Tighter tab
+                padding below sm buys the room. */}
             <TabList aria-label="Deposit, Redeem and Requests tabs">
-              <Tab id="deposit">Deposit</Tab>
-              <Tab id="redeem">Redeem</Tab>
-              <Tab id="requests">
+              <Tab id="deposit" className="px-2 sm:px-4">
+                Deposit
+              </Tab>
+              <Tab id="redeem" className="px-2 sm:px-4">
+                Redeem
+              </Tab>
+              <Tab id="requests" className="relative px-2 sm:px-4">
                 Requests
                 <RequestsCountBadge />
               </Tab>
@@ -168,11 +175,18 @@ function RequestsCountBadge() {
   if (count === 0) return null;
 
   // The digit is visual; assistive tech reads the sentence, joined onto the
-  // host's own label ("Requests (3 requests pending)").
+  // host's own label ("Requests (3 requests pending)"). Below 360px the pill
+  // has no room beside three tabs, so it floats over the host's top-right
+  // corner instead of taking width (the hosts are `relative`).
   return (
-    <span className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums">
-      <span aria-hidden="true">{count}</span>
+    <>
+      <span
+        aria-hidden="true"
+        className="absolute -top-1.5 -right-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums min-[360px]:static min-[360px]:ml-1.5"
+      >
+        {count}
+      </span>
       <span className="sr-only">{`(${String(count)} ${count === 1 ? 'request' : 'requests'} pending)`}</span>
-    </span>
+    </>
   );
 }
