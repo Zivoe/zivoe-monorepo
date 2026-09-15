@@ -119,6 +119,41 @@ describe('DepositAssetPicker', () => {
     expect(onSelect).toHaveBeenCalledWith(USDC_BASE);
   });
 
+  it('keeps two chains apart when their vaults share one address, and hands back the one clicked', async () => {
+    // Deterministic deployment puts USD1's vault at one address on Ethereum
+    // and BNB Smart Chain; keyed by address alone, the rows would collide.
+    const SHARED = '0xd1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1';
+    const usd1Sepolia = identityOnChain(FIXTURE_IDENTITY, 'sepolia', {
+      address: SHARED,
+      asset: { address: '0xe1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1', symbol: 'USD1', decimals: 18 }
+    });
+    const usd1Base = identityOnChain(FIXTURE_IDENTITY, 'base-sepolia', {
+      address: SHARED,
+      asset: { address: '0xe2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2', symbol: 'USD1', decimals: 6 }
+    });
+    const onSelect = vi.fn();
+    render(
+      <DepositAssetPicker
+        identities={[usd1Sepolia, usd1Base]}
+        selected={usd1Sepolia}
+        onSelect={onSelect}
+        isDisabled={false}
+      />
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Select token to deposit, currently USD1 on Ethereum' }));
+    });
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByText('USD1 on Ethereum')).toBeTruthy();
+    expect(within(dialog).getByText('USD1 on Base')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: /USD1 on Base/ }));
+    });
+    expect(onSelect).toHaveBeenCalledWith(usd1Base);
+  });
+
   it('searches the coin, never the network', async () => {
     renderPicker();
     const dialog = await openDialog();

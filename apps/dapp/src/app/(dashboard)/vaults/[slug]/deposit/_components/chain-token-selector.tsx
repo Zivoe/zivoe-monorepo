@@ -31,9 +31,15 @@ export function selectorTokenOf(symbol: string): ChainSelectorToken {
   return getTokenInfo(symbol) ?? { label: symbol, icon: null };
 }
 
-/** A Centrifuge vault's row key: its lowercased address — unique per chain by catalog lint, and the shape the asset memory stores. */
+/**
+ * A Centrifuge vault's row key: its chain and lowercased address. The address
+ * alone is unique per chain (catalog lint) but not across chains — under
+ * deterministic deployment USD1's vault sits at one address on Ethereum and
+ * BNB Smart Chain — and the deposit picker lists every chain at once.
+ */
 export function identityRowId(identity: TransactionIdentity): string {
-  return identity.centrifugeVault.address.toLowerCase();
+  const { chain, address } = identity.centrifugeVault;
+  return `${chain}:${address.toLowerCase()}`;
 }
 
 /** "USDC on Ethereum" / "zSMB on Base"-style row label — the selectors' shared vocabulary. */
