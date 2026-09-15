@@ -150,7 +150,7 @@ export function RedemptionPositionStrips({
               {share.symbol} returned from cancellation
             </p>
 
-            <ConnectedAccount fullWidth={false} type="skeleton">
+            <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
               {switchChain ? (
                 <SwitchButton {...switchChain} />
               ) : (
@@ -192,7 +192,7 @@ export function RedemptionPositionStrips({
               {asset.symbol} {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
             </p>
 
-            <ConnectedAccount fullWidth={false} type="skeleton">
+            <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
               {switchChain ? (
                 <SwitchButton {...switchChain} />
               ) : (
@@ -342,7 +342,7 @@ function RedemptionProcessingStrip({
         </p>
 
         {cancel && (
-          <ConnectedAccount fullWidth={false} type="skeleton">
+          <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-5 w-24">
             {cancel.switchChain ? (
               <SwitchButton {...cancel.switchChain} />
             ) : (

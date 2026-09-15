@@ -86,7 +86,7 @@ function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; 
   );
 }
 
-/** A chain group's silhouette, so loading and loaded share a layout. */
+/** A chain group's silhouette, so loading and loaded share a layout: one header and one strip at a strip's real height. */
 function RequestsSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
@@ -94,7 +94,7 @@ function RequestsSkeleton() {
         <Skeleton className="size-5 rounded-full" />
         <Skeleton className="h-5 w-24 rounded-sm" />
       </div>
-      <Skeleton className="h-14 w-full rounded-sm" />
+      <Skeleton className="h-16.5 w-full rounded-sm" />
     </div>
   );
 }
