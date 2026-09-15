@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CENTRIFUGE_CHAINS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
+  type CentrifugeChain,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
   assertChainDeploymentInvariants,
@@ -24,8 +25,11 @@ import {
   toShareStatsPayload
 } from './index';
 
+/** The chain's default Centrifuge vault — the first of its list. */
+const defaultIdentityOn = (chain: CentrifugeChain) => listShareClassChainIdentities({ chain, key: 'zsmb' })[0];
+
 const sepolia = {
-  ...getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' }),
+  ...defaultIdentityOn('sepolia'),
   indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS.testnet.indexerUrl
 };
 
@@ -100,7 +104,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves a live chain entry to the identity joined with the chain instance', () => {
-    expect(getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('sepolia')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -115,7 +119,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the second mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'pharos', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('pharos')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -130,7 +134,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the third mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'base', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('base')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -145,7 +149,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the fourth mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'arbitrum', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('arbitrum')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -168,7 +172,7 @@ describe('share-class catalog', () => {
   ] as const)(
     'resolves the %s mainnet instance — shared token, chain-specific Centrifuge vault and USDC',
     (chain, chainId, centrifugeVaultAddress, usdcAddress) => {
-      expect(getShareClassChainIdentity({ chain, key: 'zsmb' })).toEqual({
+      expect(defaultIdentityOn(chain)).toEqual({
         key: 'zsmb',
         symbol: 'zSMB',
         decimals: 18,
@@ -184,7 +188,7 @@ describe('share-class catalog', () => {
   );
 
   it('resolves the bnb mainnet instance — the one chain whose USDC is the 18-decimal Binance-Peg token', () => {
-    expect(getShareClassChainIdentity({ chain: 'bnb', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('bnb')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -199,7 +203,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the second testnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'base-sepolia', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('base-sepolia')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -215,7 +219,7 @@ describe('share-class catalog', () => {
 
   it('lists one identity per Centrifuge vault on a chain, the default first, and picks one by deposit asset', () => {
     const identities = listShareClassChainIdentities({ chain: 'sepolia', key: 'zsmb' });
-    expect(identities).toEqual([getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' })]);
+    expect(identities).toHaveLength(1);
 
     // Case-insensitive on purpose: indexer events carry lowercase addresses.
     expect(
@@ -257,7 +261,9 @@ describe('share-class catalog', () => {
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
-      expect(() => getShareClassChainIdentity({ chain: 'sepolia', key })).toThrow(/not in the catalog/);
+      expect(() => getShareClassChainIdentity({ chain: 'sepolia', key, assetAddress: '0x00' })).toThrow(
+        /not in the catalog/
+      );
       expect(listLiveChains({ environment: 'testnet', key })).toEqual([]);
     }
   });

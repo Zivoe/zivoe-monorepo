@@ -456,10 +456,15 @@ export function listShareClassChainIdentities({
 }
 
 /**
- * Resolves a share-class id to ONE live Centrifuge vault on one spoke chain:
- * the vault accepting `assetAddress`, or the chain's default (first) vault
- * when no asset is named. Throws for an asset the class does not accept
- * there, and for everything listShareClassChainIdentities throws for.
+ * Resolves a share-class id to ONE live Centrifuge vault on one spoke chain —
+ * the vault accepting `assetAddress`. The asset is required on purpose: a
+ * caller holding none (an indexer row whose asset relation is missing) must
+ * not fall through to the chain's first vault, which on a chain with several
+ * mis-scales the amount; a missing asset is unambiguous only where the class
+ * has one vault on the chain, which the caller decides off
+ * listShareClassChainIdentities (whose first entry is the chain's default).
+ * Throws for an asset the class does not accept there, and for everything
+ * listShareClassChainIdentities throws for.
  */
 export function getShareClassChainIdentity({
   chain,
@@ -468,13 +473,12 @@ export function getShareClassChainIdentity({
 }: {
   chain: CentrifugeChain;
   key: string;
-  assetAddress?: string;
+  assetAddress: string;
 }): ShareClassChainIdentity {
-  const [first, ...rest] = listShareClassChainIdentities({ chain, key });
-  if (assetAddress === undefined) return first;
-
   const wanted = assetAddress.toLowerCase();
-  const match = [first, ...rest].find((identity) => identity.asset.address.toLowerCase() === wanted);
+  const match = listShareClassChainIdentities({ chain, key }).find(
+    (identity) => identity.asset.address.toLowerCase() === wanted
+  );
   if (!match) throw new Error(`Share class "${key}" accepts no deposit asset ${assetAddress} on "${chain}".`);
   return match;
 }

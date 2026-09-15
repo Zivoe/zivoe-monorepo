@@ -140,7 +140,7 @@ export type InvestorTransactionEvent = {
   account: string;
   /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units; never negative. */
   tokenAmount: bigint | null;
-  /** Assets moved, in the vault's deposit-asset base units (a per-vault scale — resolve via `getShareClassChainIdentity(...).asset`, never a constant); 0 on redeem requests; never negative. */
+  /** Assets moved, in the vault's deposit-asset base units (a per-vault scale — resolve it from `assetAddress`, never a constant); 0 on redeem requests; never negative. */
   currencyAmount: bigint | null;
   /** Execution Share Price, D18; 0 when the row carries no price (redeem requests). */
   tokenPrice: bigint | null;
@@ -152,7 +152,9 @@ export type InvestorTransactionEvent = {
    * Lowercase address of the deposit asset the event's Centrifuge vault
    * trades — resolves WHICH vault of the share class on the chain the event
    * belongs to (`getShareClassChainIdentity({ chain, key, assetAddress })`).
-   * Null when the indexer's asset relation is unavailable.
+   * Null when the indexer's asset relation is unavailable — and null is never
+   * "the chain's default vault": it is unambiguous only where the class has
+   * one vault on the chain (`listShareClassChainIdentities`).
    */
   assetAddress: string | null;
   /** Indexer's chain name (e.g. "ethereum"); null when the relation is unavailable. */

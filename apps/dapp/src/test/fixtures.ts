@@ -2,7 +2,7 @@ import {
   type CentrifugeChain,
   getChainDeployment,
   getChainId,
-  getShareClassChainIdentity
+  listShareClassChainIdentities
 } from '@zivoe/centrifuge-indexer';
 
 import { type TransactedCentrifugeVault, type TransactionIdentity } from '@/centrifuge';
@@ -25,7 +25,7 @@ export const FIXTURE_IDENTITY: TransactionIdentity = {
     chain: 'sepolia',
     chainId: 11155111,
     address: '0xfafafafafafafafafafafafafafafafafafafafa',
-    asset: getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' }).asset,
+    asset: listShareClassChainIdentities({ chain: 'sepolia', key: 'zsmb' })[0].asset,
     vaultRouterAddress: getChainDeployment('sepolia').vaultRouter,
     supportsRedeemCancellation: getChainDeployment('sepolia').supportsRedeemCancellation,
     shareClass: {
