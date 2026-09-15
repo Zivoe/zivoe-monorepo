@@ -157,7 +157,8 @@ export function TokenSelectorDialogRow({
       // share the elevated fill) by an inset ring.
       aria-current={isSelected ? 'true' : undefined}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
+        // text-left: a button centres its text, and a label that wraps at 320px would centre its second line.
+        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-3 text-left outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
         isSelected && 'bg-surface-elevated inset-ring-1 inset-ring-default'
       )}
     >

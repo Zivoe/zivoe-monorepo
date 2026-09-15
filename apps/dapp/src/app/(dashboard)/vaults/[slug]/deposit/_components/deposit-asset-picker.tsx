@@ -206,7 +206,8 @@ function DepositAssetPickerPanes({
               variant="search"
               groupClassName="h-12"
               aria-label="Search a token"
-              placeholder="Search a token"
+              // Short enough for the 94px a 320px phone leaves the field.
+              placeholder="Search"
               value={search}
               onChange={setSearch}
               startContent={<SearchIcon className="size-4 text-icon-default" />}
