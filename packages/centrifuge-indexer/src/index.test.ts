@@ -1,3 +1,4 @@
+import { getAddress } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -572,6 +573,19 @@ describe('assertShareClassInvariants', () => {
     expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 6, address: '0x00' }))).toThrow(
       /implausible deposit asset address/
     );
+    // A mixed-case address with one wrong letter (the Avalanche USDt address
+    // once circulated with "5cd2" for "5cD2"): viem refuses it at call time,
+    // so the lint refuses it at build time. Lowercase carries no checksum.
+    expect(() =>
+      assertShareClassInvariants(
+        withAsset({ ...usdc, decimals: 6, address: '0x9702230A8Ea53601f5cd2dc00fDBc13d4dF4A8c7' })
+      )
+    ).toThrow(/implausible deposit asset address/);
+    expect(() =>
+      assertShareClassInvariants(
+        withAsset({ ...usdc, decimals: 6, address: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7' })
+      )
+    ).not.toThrow();
   });
 
   it('never lets a share class claim a deposit asset symbol — the display maps would collide', () => {
@@ -623,10 +637,8 @@ describe('assertShareClassInvariants', () => {
       assertShareClassInvariants(
         withVaults([
           vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
-          vault('0xcececececececececececececececececececece', {
-            ...usdc,
-            address: usdc.address.toUpperCase().replace('0X', '0x')
-          })
+          // Checksummed on purpose: identity comparisons must be case-insensitive.
+          vault('0xcececececececececececececececececececece', { ...usdc, address: getAddress(usdc.address) })
         ])
       )
     ).toThrow(/lists deposit asset .* twice/);
@@ -739,9 +751,9 @@ describe('assertShareClassInvariants', () => {
         b: entry({
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
-          // Case-shifted on purpose (prefix kept lowercase — 0X would fail the
-          // shape lint): identity comparisons must be case-insensitive.
-          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase().replace('0X', '0x'),
+          // Checksummed on purpose (the lint accepts only lowercase or EIP-55
+          // spellings): identity comparisons must be case-insensitive.
+          shareTokenAddress: getAddress('0xabababababababababababababababababababab'),
           centrifugeVaultAddress: '0xdededededededededededededededededededede'
         })
       })
@@ -756,8 +768,8 @@ describe('assertShareClassInvariants', () => {
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
           shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc',
-          // Case-shifted with the prefix kept lowercase, as above.
-          centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase().replace('0X', '0x')
+          // Checksummed, as above.
+          centrifugeVaultAddress: getAddress('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd')
         })
       })
     ).toThrow(/Centrifuge vault .* is claimed twice/);
