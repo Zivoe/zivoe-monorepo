@@ -49,7 +49,9 @@ function job(overrides: Partial<TransactionReceiptJob['event']> = {}): Transacti
       centrifugeId: '1',
       tokenAmount: 4405778757590310318n,
       currencyAmount: 5000000n,
-      assetAddress: null,
+      // Ethereum's USDC: the chain carries USDT and USD1 vaults too, so a
+      // receipt names its coin by address, as every live event does.
+      assetAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
       createdAtMs: 1786000000000,
       ...overrides
     }

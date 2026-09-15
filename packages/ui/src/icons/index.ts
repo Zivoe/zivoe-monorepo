@@ -30,6 +30,8 @@ export * from './hand';
 export * from './money';
 export * from './usdc';
 export * from './eurc';
+export * from './usdt';
+export * from './usd1';
 export * from './ethereum';
 export * from './pharos';
 export * from './base';

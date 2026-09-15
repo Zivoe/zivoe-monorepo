@@ -7,6 +7,8 @@ import { BASE_URL } from '@/server/utils/base-url';
 // degrades gracefully instead of breaking its receipts.
 const TOKEN_ICON_URL_BY_SYMBOL: Record<string, string> = {
   USDC: `${BASE_URL}/email-icons/usdc.png`,
+  USDT: `${BASE_URL}/email-icons/usdt.png`,
+  USD1: `${BASE_URL}/email-icons/usd1.png`,
   EURC: `${BASE_URL}/email-icons/eurc.png`,
   zSMB: `${BASE_URL}/email-icons/zsmb.png`
 };

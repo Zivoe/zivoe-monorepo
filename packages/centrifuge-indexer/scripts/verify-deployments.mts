@@ -9,7 +9,8 @@
  * Per live (share class × chain × deposit asset) it checks that:
  *   - the SDK resolves our Centrifuge vault from pool id + share-class id + deposit asset
  *   - the Centrifuge vault is sync-deposit / async-redeem, the shape the flows assume
- *   - its share token, share decimals and asset decimals match ours
+ *   - its share token, share decimals, asset address, symbol (the contract's
+ *     own where it differs from the product's) and asset decimals match ours
  *   - the protocol's VaultRouter (live, and the SDK's bundled mainnet allowlist) matches ours
  *   - the indexer prices the class with our decimals (hub-level) and holds a
  *     token instance with our share token on the chain (per chain)
@@ -312,7 +313,14 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
             actual: String(details.share.decimals)
           });
           verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
-          verify({ subject, fact: 'deposit asset symbol', expected: asset.symbol, actual: details.asset.symbol });
+          // The SDK reads `symbol()` off the contract, which is USD₮0 / USDT0 /
+          // USDt where the product says USDT — the catalog names that form.
+          verify({
+            subject,
+            fact: 'deposit asset symbol',
+            expected: asset.onChainSymbol ?? asset.symbol,
+            actual: details.asset.symbol
+          });
           verify({
             subject,
             fact: 'deposit asset decimals',

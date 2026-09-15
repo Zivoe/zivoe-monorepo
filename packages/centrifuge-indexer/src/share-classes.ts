@@ -21,7 +21,19 @@ import {
  */
 export type DepositAsset = {
   address: Address;
+  /**
+   * The product's name for the coin and the display-map key — one `USDT`
+   * serves Tether's USDT, USDT0 and USDt alike, so the accepted-stablecoins
+   * row shows one coin and every selector one icon.
+   */
   symbol: string;
+  /**
+   * The contract's own `symbol()` where it differs from the product's
+   * (`USD₮0` on Arbitrum, HyperEVM and X Layer, `USDT0` on Monad, `USDt` on
+   * Avalanche). Read by `pnpm centrifuge:verify` alone, which compares it
+   * against the chain; absent when the two agree.
+   */
+  onChainSymbol?: string;
   decimals: number;
   /**
    * `legacy` marks a token whose `approve` refuses to move a non-zero
@@ -161,6 +173,22 @@ export const SHARE_CLASSES = {
               {
                 address: '0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639',
                 asset: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 }
+              },
+              // Tether's own USDT: `approve` returns nothing and reverts on a
+              // non-zero → non-zero change (both verified on-chain 2026-09-14),
+              // hence the book's one `legacy` approval.
+              {
+                address: '0x4A60fba0Eb167f3Bf85eEf410e597397A644e2a8',
+                asset: {
+                  address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+                  symbol: 'USDT',
+                  decimals: 6,
+                  approval: 'legacy'
+                }
+              },
+              {
+                address: '0x818216d2A3AAAFfAD3060A67f4c5bc034Aa74338',
+                asset: { address: '0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d', symbol: 'USD1', decimals: 18 }
               }
             ]
           },
@@ -191,6 +219,17 @@ export const SHARE_CLASSES = {
               {
                 address: '0x2Aed63Ebf806B9C767e94F6F305ff628B59D454E',
                 asset: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6 }
+              },
+              // Tether's omnichain USDT0 — the former bridged USDT contract,
+              // upgraded in place, so the address every Arbitrum user knows.
+              {
+                address: '0x4ae36C393DBA69cAce2bd4434B3E58A86a51Ec86',
+                asset: {
+                  address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+                  symbol: 'USDT',
+                  onChainSymbol: 'USD₮0',
+                  decimals: 6
+                }
               }
             ]
           },
@@ -201,6 +240,16 @@ export const SHARE_CLASSES = {
               {
                 address: '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31',
                 asset: { address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', symbol: 'USDC', decimals: 6 }
+              },
+              // Tether-native USDt (standard approve, unlike Ethereum's).
+              {
+                address: '0x61960C30a50DD6Db9A44656F5EbA4bD9AC47B289',
+                asset: {
+                  address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
+                  symbol: 'USDT',
+                  onChainSymbol: 'USDt',
+                  decimals: 6
+                }
               }
             ]
           },
@@ -211,6 +260,11 @@ export const SHARE_CLASSES = {
               {
                 address: '0x991de0203E455dfC4B8f38F7c333487c16aDdE55',
                 asset: { address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', symbol: 'USDC', decimals: 6 }
+              },
+              // The Standard-Bridge USDT (0x94b0…)
+              {
+                address: '0xEe9D17D2B44874fbD58D909609DFe1A44c3Bf84F',
+                asset: { address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', symbol: 'USDT', decimals: 6 }
               }
             ]
           },
@@ -221,6 +275,17 @@ export const SHARE_CLASSES = {
               {
                 address: '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042',
                 asset: { address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', symbol: 'USDC', decimals: 6 }
+              },
+              // Tether's omnichain USDT0, linked 2026-09-14 — two days after the
+              // other chains' vaults.
+              {
+                address: '0x559cc40c8782251F03c77578EB4A44E5172174C3',
+                asset: {
+                  address: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb',
+                  symbol: 'USDT',
+                  onChainSymbol: 'USD₮0',
+                  decimals: 6
+                }
               }
             ]
           },
@@ -231,6 +296,19 @@ export const SHARE_CLASSES = {
               {
                 address: '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF',
                 asset: { address: '0xB6CEceAB302E2E4948951eE7843FC24E92933061', symbol: 'USDC', decimals: 6 }
+              },
+              {
+                address: '0x9364F02a6130ee418DA63048c4ed0cF13F8D3Dc9',
+                asset: {
+                  address: '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
+                  symbol: 'USDT',
+                  onChainSymbol: 'USD₮0',
+                  decimals: 6
+                }
+              },
+              {
+                address: '0x8047b87112d541E331232f62D5532D61A87fd4b1',
+                asset: { address: '0x111111d2bf19e43C34263401e0CAd979eD1cdb61', symbol: 'USD1', decimals: 18 }
               }
             ]
           },
@@ -238,11 +316,19 @@ export const SHARE_CLASSES = {
             status: 'live',
             shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
             centrifugeVaults: [
-              // Binance-Peg USD Coin, the only 18-decimal deposit asset in the
-              // book — BNB Smart Chain has no Circle-native USDC.
+              // Binance-Peg USD Coin and Binance-Peg USDT are both 18 decimals
+              // — BNB Smart Chain has no issuer-native USDC or USDT.
               {
                 address: '0x616997144B1Ae546359596311853A7Da297CbAe2',
                 asset: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', symbol: 'USDC', decimals: 18 }
+              },
+              {
+                address: '0x77abFc98e40862922550E593E71C1c38f31E00E9',
+                asset: { address: '0x55d398326f99059fF775485246999027B3197955', symbol: 'USDT', decimals: 18 }
+              },
+              {
+                address: '0x818216d2A3AAAFfAD3060A67f4c5bc034Aa74338',
+                asset: { address: '0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d', symbol: 'USD1', decimals: 18 }
               }
             ]
           },
@@ -253,6 +339,21 @@ export const SHARE_CLASSES = {
               {
                 address: '0xF6AB108f90e7fbdf34940685C0Be07acfff091CE',
                 asset: { address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', symbol: 'USDC', decimals: 6 }
+              },
+              {
+                address: '0x1f646591dd35FCbA30234C3A2D9F8865afb5A273',
+                asset: {
+                  address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
+                  symbol: 'USDT',
+                  onChainSymbol: 'USDT0',
+                  decimals: 6
+                }
+              },
+              // USD1 is 6 decimals HERE and 18 on X Layer, at the same vanity
+              // address — the scale is the contract's, verified per chain.
+              {
+                address: '0x8047b87112d541E331232f62D5532D61A87fd4b1',
+                asset: { address: '0x111111d2bf19e43C34263401e0CAd979eD1cdb61', symbol: 'USD1', decimals: 6 }
               }
             ]
           }
@@ -334,7 +435,7 @@ type ShareClassesLike = Record<
                   shareTokenAddress: string;
                   centrifugeVaults: ReadonlyArray<{
                     address: string;
-                    asset: { address: string; symbol: string; decimals: number };
+                    asset: { address: string; symbol: string; onChainSymbol?: string; decimals: number };
                   }>;
                 }
             >
@@ -615,6 +716,11 @@ export function assertShareClassInvariants(catalog: ShareClassesLike = SHARE_CLA
             );
           if (asset.symbol.trim() === '')
             throw new Error(`Share class "${key}" declares a deposit asset with no symbol on "${chain}".`);
+          // Only ever compared against the chain: present, it must be a symbol.
+          if (asset.onChainSymbol?.trim() === '')
+            throw new Error(
+              `Share class "${key}" declares an empty on-chain symbol for ${asset.symbol} on "${chain}".`
+            );
         }
 
         // One vault per deposit asset on a chain: the SDK resolves a vault

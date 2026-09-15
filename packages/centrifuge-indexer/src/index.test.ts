@@ -258,6 +258,61 @@ describe('share-class catalog', () => {
     ]);
   });
 
+  it("lists Ethereum's three mainnet vaults in product order — USDC first, then Tether's legacy-approval USDT, then USD1", () => {
+    const identities = listShareClassChainIdentities({ chain: 'ethereum', key: 'zsmb' });
+    expect(identities.map(({ centrifugeVaultAddress, asset }) => [centrifugeVaultAddress, asset.symbol])).toEqual([
+      ['0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', 'USDC'],
+      ['0x4A60fba0Eb167f3Bf85eEf410e597397A644e2a8', 'USDT'],
+      ['0x818216d2A3AAAFfAD3060A67f4c5bc034Aa74338', 'USD1']
+    ]);
+    expect(identities[1]?.asset).toEqual({
+      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      symbol: 'USDT',
+      decimals: 6,
+      approval: 'legacy'
+    });
+    // The class-wide listing dedupes by product symbol: USDT0 and USDt read as USDT.
+    expect(listDepositAssets({ environment: 'mainnet', key: 'zsmb' }).map(({ symbol }) => symbol)).toEqual([
+      'USDC',
+      'USDT',
+      'USD1'
+    ]);
+  });
+
+  it("marks Ethereum's USDT as the book's only legacy-approval asset, and names the on-chain symbol only where it differs", () => {
+    const mainnetAssets = listLiveChains({ environment: 'mainnet', key: 'zsmb' }).flatMap((chain) =>
+      listShareClassChainIdentities({ chain, key: 'zsmb' }).map(({ asset }) => ({ chain, ...asset }))
+    );
+
+    expect(
+      mainnetAssets.filter(({ approval }) => approval === 'legacy').map(({ chain, symbol }) => [chain, symbol])
+    ).toEqual([['ethereum', 'USDT']]);
+    expect(
+      mainnetAssets
+        .filter(({ onChainSymbol }) => onChainSymbol)
+        .map(({ chain, onChainSymbol }) => [chain, onChainSymbol])
+    ).toEqual([
+      ['arbitrum', 'USD₮0'],
+      ['avalanche', 'USDt'],
+      ['hyperliquid', 'USD₮0'],
+      ['xlayer', 'USD₮0'],
+      ['monad', 'USDT0']
+    ]);
+  });
+
+  it('scales USD1 per chain — 18 decimals on BNB Smart Chain, 6 on Monad, at one vanity address', () => {
+    const usd1 = '0x111111d2bf19e43c34263401e0cad979ed1cdb61';
+    expect(getShareClassChainIdentity({ chain: 'monad', key: 'zsmb', assetAddress: usd1 }).asset.decimals).toBe(6);
+    expect(getShareClassChainIdentity({ chain: 'xlayer', key: 'zsmb', assetAddress: usd1 }).asset.decimals).toBe(18);
+    expect(
+      getShareClassChainIdentity({
+        chain: 'bnb',
+        key: 'zsmb',
+        assetAddress: '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d'
+      }).asset.decimals
+    ).toBe(18);
+  });
+
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);

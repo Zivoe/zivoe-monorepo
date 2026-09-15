@@ -47,7 +47,9 @@ function event(overrides: Partial<InvestorTransactionEvent> = {}): InvestorTrans
     txHash: '0xccdab4d1b295d7a91f437ae2d9840b914cc8b94009c4edae1b44284f68cc619e',
     chainName: 'ethereum',
     explorerUrl: 'https://etherscan.io',
-    assetAddress: null,
+    // Ethereum's USDC: the live feed always names the asset, and the mainnet
+    // chains now carry several vaults, so an unnamed one resolves to nothing.
+    assetAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
     ...overrides
   };
 }
@@ -100,10 +102,26 @@ describe('resolveDepositAssetDisplay', () => {
   });
 
   it("reads BNB Smart Chain at 18 decimals off the real catalog — the one live chain whose USDC is not Circle's", () => {
-    expect(resolveDepositAssetDisplay({ event: event({ chainId: 56 }), shareClassKey: 'zsmb' })).toEqual({
-      symbol: 'USDC',
-      decimals: 18
-    });
+    expect(
+      resolveDepositAssetDisplay({
+        event: event({ chainId: 56, assetAddress: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' }),
+        shareClassKey: 'zsmb'
+      })
+    ).toEqual({ symbol: 'USDC', decimals: 18 });
+  });
+
+  it("names the mainnet USDT and USD1 vaults by address, at each chain's own scale — and nothing where the asset is unnamed", () => {
+    const resolve = (chainId: number, assetAddress: string | null) =>
+      resolveDepositAssetDisplay({ event: event({ chainId, assetAddress }), shareClassKey: 'zsmb' });
+
+    expect(resolve(1, '0xdac17f958d2ee523a2206206994597c13d831ec7')).toEqual({ symbol: 'USDT', decimals: 6 });
+    expect(resolve(1, '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d')).toEqual({ symbol: 'USD1', decimals: 18 });
+    expect(resolve(56, '0x55d398326f99059ff775485246999027b3197955')).toEqual({ symbol: 'USDT', decimals: 18 });
+    // USD1 sits at one vanity address on Monad and X Layer with different scales.
+    expect(resolve(143, '0x111111d2bf19e43c34263401e0cad979ed1cdb61')).toEqual({ symbol: 'USD1', decimals: 6 });
+    expect(resolve(196, '0x111111d2bf19e43c34263401e0cad979ed1cdb61')).toEqual({ symbol: 'USD1', decimals: 18 });
+    // Three vaults on Ethereum: an event naming no asset cannot be placed.
+    expect(resolve(1, null)).toBeNull();
   });
 
   it("picks the vault by the event's asset address, case-insensitively, and refuses an asset the class does not accept there", () => {
