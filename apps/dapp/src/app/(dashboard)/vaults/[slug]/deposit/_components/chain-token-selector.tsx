@@ -146,20 +146,23 @@ export function TokenSelectorDialogRow({
     <Aria.Button
       onPress={onPress}
       className={cn(
-        'flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
+        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
         isSelected && 'bg-surface-elevated'
       )}
     >
-      <div className="flex items-center gap-2">
-        <ChainBadgedTokenIcon chain={row.chain} icon={row.token.icon} className="size-8" />
+      <ChainBadgedTokenIcon chain={row.chain} icon={row.token.icon} className="size-8 shrink-0" />
 
+      {/* Phones stack the label over the detail and drop the sublabel; from sm the detail sits on the right. */}
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col items-start">
           <p className="text-regular font-medium text-primary">{label}</p>
-          {row.token.description && <p className="text-extraSmall text-tertiary">{row.token.description}</p>}
+          {row.token.description && (
+            <p className="hidden text-extraSmall text-tertiary sm:block">{row.token.description}</p>
+          )}
         </div>
-      </div>
 
-      {row.detail}
+        {row.detail}
+      </div>
     </Aria.Button>
   );
 }
