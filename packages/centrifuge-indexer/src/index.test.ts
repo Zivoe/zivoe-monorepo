@@ -17,6 +17,7 @@ import {
   getShareClassIdentity,
   listDepositAssets,
   listLiveChains,
+  listShareClassChainIdentities,
   listShareClassKeys,
   rayToPercent,
   sumShareClassNavs,
@@ -212,6 +213,23 @@ describe('share-class catalog', () => {
     });
   });
 
+  it('lists one identity per Centrifuge vault on a chain, the default first, and picks one by deposit asset', () => {
+    const identities = listShareClassChainIdentities({ chain: 'sepolia', key: 'zsmb' });
+    expect(identities).toEqual([getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' })]);
+
+    // Case-insensitive on purpose: indexer events carry lowercase addresses.
+    expect(
+      getShareClassChainIdentity({
+        chain: 'sepolia',
+        key: 'zsmb',
+        assetAddress: '0x3aaaa86458d576bafcb1b7ed290434f0696da65c'
+      })
+    ).toEqual(identities[0]);
+    expect(() =>
+      getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb', assetAddress: '0x' + 'de'.repeat(20) })
+    ).toThrow(/accepts no deposit asset/);
+  });
+
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
@@ -234,8 +252,7 @@ describe('share-class catalog', () => {
             sepolia: {
               status: 'live',
               shareTokenAddress: '0xab',
-              centrifugeVaultAddress: '0xcd',
-              asset: { address: '0xef', symbol: 'USDC', decimals: 6 }
+              centrifugeVaults: [{ address: '0xcd', asset: { address: '0xef', symbol: 'USDC', decimals: 6 } }]
             },
             'base-sepolia': { status: 'staged' }
           }
@@ -289,8 +306,7 @@ describe('share-class catalog', () => {
                 {
                   status: 'live' as const,
                   shareTokenAddress: '0xab',
-                  centrifugeVaultAddress: '0xcd',
-                  asset: assets[index]!
+                  centrifugeVaults: [{ address: '0xcd', asset: assets[index]! }]
                 }
               ])
             )
@@ -301,9 +317,33 @@ describe('share-class catalog', () => {
 
     // Two USDC instances of different scale are one stablecoin to a listing.
     expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, usdc18]))).toEqual([usdc6]);
+    // Two vaults on one chain list both assets, in vault order.
+    const twoOnSepolia = {
+      multi: {
+        symbol: 'zMUL',
+        decimals: 18,
+        environments: {
+          testnet: {
+            poolId: '1',
+            scId: '0x000100000000aaaa0000000000000001',
+            chains: {
+              sepolia: {
+                status: 'live' as const,
+                shareTokenAddress: '0xab',
+                centrifugeVaults: [
+                  { address: '0xcd', asset: usdc6 },
+                  { address: '0xce', asset: dai }
+                ]
+              }
+            }
+          }
+        }
+      }
+    };
+    expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, twoOnSepolia)).toEqual([usdc6, dai]);
     expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, dai]))).toEqual([usdc6, dai]);
     expect(listDepositAssets({ environment: 'testnet', key: 'live' }, book)).toEqual([
-      book.live.environments.testnet.chains.sepolia.asset
+      book.live.environments.testnet.chains.sepolia.centrifugeVaults[0].asset
     ]);
     expect(listDepositAssets({ environment: 'testnet', key: 'staged' }, book)).toEqual([]);
     expect(listDepositAssets({ environment: 'mainnet', key: 'live' }, book)).toEqual([]);
@@ -354,7 +394,13 @@ describe('assertShareClassInvariants', () => {
         [environment]: {
           poolId: '1',
           scId,
-          chains: { [chain]: { status: 'live' as const, shareTokenAddress, centrifugeVaultAddress, asset } }
+          chains: {
+            [chain]: {
+              status: 'live' as const,
+              shareTokenAddress,
+              centrifugeVaults: [{ address: centrifugeVaultAddress, asset }]
+            }
+          }
         }
       }
     };
@@ -394,8 +440,7 @@ describe('assertShareClassInvariants', () => {
     const onChain = {
       status: 'live' as const,
       shareTokenAddress: address,
-      centrifugeVaultAddress: address,
-      asset: { address, symbol: 'USDC', decimals: 6 }
+      centrifugeVaults: [{ address, asset: { address, symbol: 'USDC', decimals: 6 } }]
     };
 
     expect(() =>
@@ -454,6 +499,69 @@ describe('assertShareClassInvariants', () => {
         })
       })
     ).toThrow(/claims the deposit asset symbol "usdc"/);
+  });
+
+  it('rejects one chain entry listing a deposit asset (or its symbol) twice, and one listing no vault at all', () => {
+    const withVaults = (
+      centrifugeVaults: Array<{ address: string; asset: { address: string; symbol: string; decimals: number } }>
+    ) => ({
+      a: {
+        ...first,
+        environments: {
+          testnet: {
+            poolId: '1',
+            scId: '0x000100000000aaaa0000000000000001',
+            chains: {
+              sepolia: {
+                status: 'live' as const,
+                shareTokenAddress: '0xabababababababababababababababababababab',
+                centrifugeVaults
+              }
+            }
+          }
+        }
+      }
+    });
+    const usdc = { address: '0xefefefefefefefefefefefefefefefefefefefef', symbol: 'USDC', decimals: 6 };
+    const usdt = { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 };
+    const vault = (address: string, asset: typeof usdc) => ({ address, asset });
+
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcececececececececececececececececececece', usdt)
+        ])
+      )
+    ).not.toThrow();
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcececececececececececececececececececece', {
+            ...usdc,
+            address: usdc.address.toUpperCase().replace('0X', '0x')
+          })
+        ])
+      )
+    ).toThrow(/lists deposit asset .* twice/);
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcececececececececececececececececececece', { ...usdt, symbol: 'usdc' })
+        ])
+      )
+    ).toThrow(/symbol "usdc" twice/);
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdt)
+        ])
+      )
+    ).toThrow(/Centrifuge vault .* is claimed twice/);
+    expect(() => assertShareClassInvariants(withVaults([]))).toThrow(/declares no Centrifuge vault/);
   });
 
   it('throws on a placeholder or malformed pool id', () => {
@@ -567,7 +675,7 @@ describe('assertShareClassInvariants', () => {
           centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase().replace('0X', '0x')
         })
       })
-    ).toThrow(/Centrifuge vault .* is claimed by two share classes/);
+    ).toThrow(/Centrifuge vault .* is claimed twice/);
   });
 });
 
