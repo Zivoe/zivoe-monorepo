@@ -72,7 +72,9 @@ export function insufficientNativeFundsError({
 }): AppError {
   const { symbol } = nativeCurrency;
   const amount =
-    requiredValue !== undefined ? ` (at least ${formatAmountCeil(requiredValue, nativeCurrency.decimals)} ${symbol})` : '';
+    requiredValue !== undefined
+      ? ` (at least ${formatAmountCeil(requiredValue, nativeCurrency.decimals)} ${symbol})`
+      : '';
 
   return new AppError({
     message: `Not enough ${symbol} in your wallet to cover this transaction's network fee${amount}. Add ${symbol} and try again.`,

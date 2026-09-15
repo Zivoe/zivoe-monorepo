@@ -151,12 +151,14 @@ function RequestsCountBadge() {
   if (count === 0) return null;
 
   // The number is visual; assistive tech reads the sentence, which joins the
-  // host's own label ("Requests, 3 requests pending", "Redeem, 1 request
-  // pending") instead of an aria-label a plain span may not carry.
+  // host's own label ("Requests (3 requests pending)", "Redeem (1 request
+  // pending)") instead of an aria-label a plain span may not carry. In
+  // parentheses rather than after a comma: the badge is its own box, so the
+  // computed name gets a space before whatever the sentence starts with.
   return (
     <span className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums">
       <span aria-hidden="true">{count}</span>
-      <span className="sr-only">{`, ${String(count)} ${count === 1 ? 'request' : 'requests'} pending`}</span>
+      <span className="sr-only">{`(${String(count)} ${count === 1 ? 'request' : 'requests'} pending)`}</span>
     </span>
   );
 }
