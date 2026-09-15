@@ -102,7 +102,8 @@ describe('ChainTokenSelector', () => {
       />
     );
 
-    const select = screen.getByRole('button', { name: /Select Asset/ });
+    // Named with its current selection: the trigger renders no SelectValue.
+    const select = screen.getByRole('button', { name: 'Select Asset: zSMB on Ethereum' });
     await act(async () => {
       fireEvent.keyDown(select, { key: 'ArrowDown' });
     });

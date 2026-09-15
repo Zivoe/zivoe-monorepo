@@ -2,7 +2,10 @@
 import { type ReactNode } from 'react';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { getDefaultStore } from 'jotai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { pendingTxCountAtom } from '@/lib/store';
 
 import { type InvestorAccess } from '@/centrifuge';
 import { identityOnChain } from '@/test/fixtures';
@@ -319,6 +322,23 @@ describe('RedemptionPositionStrips', () => {
     fireEvent.click(switches[0]!);
     expect(onPress).toHaveBeenCalledTimes(1);
     expect(mocks.claimReturnedShares).not.toHaveBeenCalled();
+  });
+
+  it('waits out a write started anywhere else — the lifecycle-owned count locks every control', () => {
+    mocks.claimableAssets = 2_000000n;
+    mocks.returnedShares = 1n * D18;
+    mocks.pendingShares = 3n * D18;
+    // A request signing on the redeem tab, or a claim on another chain's
+    // strips: the lifecycle counts it wherever it started.
+    getDefaultStore().set(pendingTxCountAtom, 1);
+    try {
+      renderStrips();
+      expect(getButton('Claim zSMB').disabled).toBe(true);
+      expect(getButton('Claim USDC').disabled).toBe(true);
+      expect(getButton('Cancel request').disabled).toBe(true);
+    } finally {
+      getDefaultStore().set(pendingTxCountAtom, 0);
+    }
   });
 
   it('keeps its controls locked while prerequisites load or its own position refetches', async () => {

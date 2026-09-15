@@ -89,11 +89,16 @@ describe('Deposit', () => {
     empty.unmount();
 
     mocks.requestCount = 3;
-    render(<Deposit initialView="requests" />);
+    const three = render(<Deposit initialView="requests" />);
     // On the tab, and on the mobile bar's Redeem button (rendered regardless
     // of viewport in jsdom): the digit for sighted users, the sentence for
     // assistive tech, joined onto the host's own label.
     expect(screen.getAllByText(', 3 requests pending')).toHaveLength(2);
     expect(screen.getAllByText('3', { ignore: '.sr-only' })).toHaveLength(2);
+    three.unmount();
+
+    mocks.requestCount = 1;
+    render(<Deposit initialView="requests" />);
+    expect(screen.getAllByText(', 1 request pending')).toHaveLength(2);
   });
 });
