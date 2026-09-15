@@ -83,6 +83,7 @@ const mocks = vi.hoisted(() => ({
   balanceIsError: false,
   refetchBalance: vi.fn(),
   requestRedeem: vi.fn(),
+  requestVault: undefined as string | undefined,
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
   zSmbBalance: 10n * 10n ** 18n,
@@ -219,7 +220,15 @@ vi.mock('@/centrifuge', () => ({
     isFetching: false,
     data: mocks.positionIsError ? undefined : positionFor(centrifugeVault)
   }),
-  useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
+  // Records the vault the request was built for — the payout coin's, not the chain's default.
+  useRequestRedeem: ({ identity }: { identity: { centrifugeVault: { address: string } } }) => ({
+    isPending: false,
+    isTxPending: false,
+    mutate: (...args: Array<unknown>) => {
+      mocks.requestVault = identity.centrifugeVault.address;
+      mocks.requestRedeem(...args);
+    }
+  })
 }));
 vi.mock('@/hooks/useCurrentShareMetrics', () => ({
   useCurrentShareMetrics: () => ({
@@ -363,6 +372,7 @@ function getButton(name: string): HTMLButtonElement {
 /** One baseline for both suites — the mock surface is shared, so its reset must be too. */
 function resetMocks() {
   vi.clearAllMocks();
+  mocks.requestVault = undefined;
   mocks.canReceiveShares = true;
   mocks.canRequestRedemption = true;
   mocks.canClaimProceeds = true;
@@ -714,6 +724,21 @@ describe('RedeemFlow with two stablecoins on one chain', () => {
       </JotaiProvider>
     );
   }
+
+  it("requests against the chosen payout coin's Centrifuge vault, not the chain's default", async () => {
+    renderTwoVaultFlow();
+
+    await act(async () => {
+      fireEvent.click(getButton('Receive USDT'));
+    });
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+    await act(async () => {
+      fireEvent.click(getButton('Request redemption'));
+    });
+
+    expect(mocks.requestRedeem).toHaveBeenCalledTimes(1);
+    expect(mocks.requestVault).toBe(USDT_CENTRIFUGE_VAULT);
+  });
 
   it("opens on the chain's default coin and re-scales the estimate to the chosen payout asset", async () => {
     renderTwoVaultFlow();

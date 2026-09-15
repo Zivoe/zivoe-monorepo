@@ -93,6 +93,16 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).not.toContain('does not constitute an offer to sell');
   });
 
+  it('deposit of another coin on the same chain: the receipt names it and carries its own icon', async () => {
+    // Ethereum's USDT vault — same chain, different coin, resolved by address.
+    const { email } = build({ assetAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7' });
+    const html = await render(email);
+
+    expect(html).toContain('5.00 USDT deposited into zSMB');
+    expect(html).toContain('/email-icons/usdt.png');
+    expect(html).not.toContain('USDC');
+  });
+
   it("deposit on an 18-decimal chain: the amount is scaled by that chain's USDC, not a constant", async () => {
     mocks.eighteenDecimalUsdcChain = 'ethereum';
     const { email } = build({ currencyAmount: 5_000_000_000_000_000_000n });

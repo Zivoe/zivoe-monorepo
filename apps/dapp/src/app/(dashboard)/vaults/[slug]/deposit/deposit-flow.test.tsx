@@ -60,6 +60,7 @@ const mocks = vi.hoisted(() => ({
   baseCapacity: 5_000000n,
   capacityIsError: false,
   deposit: vi.fn(),
+  depositVault: undefined as string | undefined,
   isDebouncing: false,
   previewError: undefined as string | undefined,
   previewIsError: false,
@@ -80,7 +81,16 @@ vi.mock('wagmi', () => ({
   useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
 }));
 vi.mock('@/centrifuge', () => ({
-  useDeposit: () => ({ isPending: false, isTxPending: false, mutate: mocks.deposit }),
+  // Records the vault the write was built for: a form spending against the
+  // selected coin but depositing into another vault would pass every other check.
+  useDeposit: ({ identity }: { identity: { centrifugeVault: { address: string } } }) => ({
+    isPending: false,
+    isTxPending: false,
+    mutate: (...args: Array<unknown>) => {
+      mocks.depositVault = identity.centrifugeVault.address;
+      mocks.deposit(...args);
+    }
+  }),
   useDepositPreview: ({ assets }: { assets: bigint }) => ({
     data: assets > 0n && !mocks.previewIsError ? { shares: mocks.previewShares } : undefined,
     error: mocks.previewError,
@@ -305,6 +315,7 @@ async function press(name: string) {
 /** One baseline for both suites — the mock surface is shared, so its reset must be too. */
 function resetMocks() {
   vi.clearAllMocks();
+  mocks.depositVault = undefined;
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
   mocks.allowanceIsError = false;
@@ -823,6 +834,18 @@ describe('DepositFlow with two stablecoins on one chain', () => {
         successMessage: 'You can now deposit USDT.'
       })
     );
+  });
+
+  it("deposits into the selected coin's Centrifuge vault, not the chain's default", async () => {
+    mocks.allowance = 2_000000n;
+    renderTwoAssetFlow();
+
+    await press('USDT on Ethereum Tether USD Balance: 7.00');
+    await act(async () => enterAmount('1'));
+    await press('Deposit');
+
+    expect(mocks.deposit).toHaveBeenCalledTimes(1);
+    expect(mocks.depositVault).toBe(USDT_IDENTITY.centrifugeVault.address);
   });
 
   it('validates the amount against the selected coin, and Max fills its balance', async () => {
