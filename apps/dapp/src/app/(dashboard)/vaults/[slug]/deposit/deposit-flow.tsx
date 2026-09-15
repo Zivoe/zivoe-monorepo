@@ -285,11 +285,18 @@ export function DepositFlow() {
                         detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />,
                         identity: rowIdentity
                       })),
-                      ({ identity: { centrifugeVault } }) =>
-                        depositAssetBalanceOf({
+                      // Compared at one scale: a raw 18-decimal balance (BNB
+                      // Smart Chain's USDC) would otherwise outrank every
+                      // 6-decimal one, whatever the amounts.
+                      ({ identity: { centrifugeVault } }) => {
+                        const balance = depositAssetBalanceOf({
                           chain: centrifugeVault.chain,
                           tokenAddress: centrifugeVault.asset.address
-                        })
+                        });
+                        return balance === undefined
+                          ? undefined
+                          : balance * 10n ** BigInt(18 - centrifugeVault.asset.decimals);
+                      }
                     )}
                     selectedId={centrifugeVault.address.toLowerCase()}
                     onSelect={(id) => {

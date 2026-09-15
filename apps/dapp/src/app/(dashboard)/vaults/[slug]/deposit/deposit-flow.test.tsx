@@ -689,6 +689,30 @@ describe('DepositFlow with two stablecoins on one chain', () => {
     ]);
   });
 
+  it('orders by amount, not raw units, when the coins have different decimals', () => {
+    // An 18-decimal coin (BNB Smart Chain's USDC) holding 7 units has a raw
+    // balance a trillion times USDC's 10.00 — it must still sort second.
+    const usdt18 = identityOnChain(TEST_IDENTITY, 'sepolia', {
+      address: USDT_IDENTITY.centrifugeVault.address,
+      asset: { ...USDT_IDENTITY.centrifugeVault.asset, decimals: 18 }
+    });
+    mocks.usdtBalance = 7n * 10n ** 18n;
+    render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY, usdt18]} status="Open">
+          <EarnDialogProvider>
+            <DepositFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+
+    expect(screen.getAllByText(/ on Ethereum/).map((row) => row.textContent)).toEqual([
+      'USDC on Ethereum',
+      'USDT on Ethereum'
+    ]);
+  });
+
   it("opens on the chain's default (first) coin and needs no network switch to change coin", async () => {
     renderTwoAssetFlow();
 
