@@ -23,6 +23,8 @@ type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'childre
   'aria-describedby'?: Aria.DialogProps['aria-describedby'];
   logoType?: 'dark' | 'light';
   dialogClassName?: string;
+  /** Classes for the backdrop — e.g. to drop it where the dialog stacks over another modal's. */
+  overlayClassName?: string;
   showCloseButton?: boolean;
   showFullScreenHeader?: boolean;
   isDismissable?: boolean;
@@ -34,6 +36,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
     {
       className,
       dialogClassName,
+      overlayClassName,
       children,
       isDismissable = true,
       showCloseButton = true,
@@ -56,7 +59,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         !isFullScreen && 'px-2 py-6',
         'entering:animate-in entering:fade-in-0',
         'exiting:animate-out exiting:duration-300 exiting:fade-out-0',
-        'h-(--visual-viewport-height)'
+        'h-(--visual-viewport-height)',
+        overlayClassName
       )}
     >
       <Aria.Modal

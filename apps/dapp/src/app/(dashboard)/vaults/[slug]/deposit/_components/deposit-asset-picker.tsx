@@ -84,7 +84,13 @@ export function DepositAssetPicker({
         <ChainTokenTriggerContent token={selectedToken} chain={selectedChain} variant="token-on-chain" />
       </SelectTrigger>
 
-      <DialogContent dialogClassName="gap-0" className="max-w-190">
+      {/* Below lg the picker opens over the Earn dialog, whose backdrop is
+          already up: a second one stacked to twice the darkening. */}
+      <DialogContent
+        dialogClassName="gap-0"
+        className="max-w-190"
+        overlayClassName="bg-transparent backdrop-blur-none lg:bg-surface-contrast/40 lg:backdrop-blur-xs"
+      >
         {({ close }) => (
           <DepositAssetPickerPanes
             rows={rows}
