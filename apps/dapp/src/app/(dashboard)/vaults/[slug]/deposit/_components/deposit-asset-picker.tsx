@@ -227,8 +227,15 @@ function DepositAssetPickerPanes({
               clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
             />
 
-            {/* pr-2: a gutter between the rows' balances and the scrollbar, which otherwise hugs them. */}
-            <div className={nativeScrollAreaStyles({ className: 'flex min-h-0 flex-1 flex-col gap-1 pr-2' })}>
+            {/* pr-2: a gutter between the rows' balances and the scrollbar, which
+                otherwise hugs them. The other sides pad by a row's focus ring
+                (2px plus its 1px offset) and pull that back with a matching
+                margin, so the rows stay put: the scroll box clips what spills
+                past its edges, and the first row's ring would otherwise lose
+                its top edge, the last row's its bottom. */}
+            <div
+              className={nativeScrollAreaStyles({ className: '-m-1 mr-0 flex min-h-0 flex-1 flex-col gap-1 p-1 pr-2' })}
+            >
               {visible.map((row) => (
                 <TokenSelectorDialogRow
                   key={row.id}
