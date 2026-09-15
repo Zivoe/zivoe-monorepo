@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionAtom } from '@/lib/store';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { type TransactionIdentity, useDeposit } from './index';
@@ -137,8 +137,14 @@ describe('two share classes side by side', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['CENTRIFUGE', 'zsmb', 'VAULT_CAPACITY', 'sepolia']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify([
+          'CENTRIFUGE',
+          'zsmb',
+          'VAULT_CAPACITY',
+          'sepolia',
+          ZSMB_IDENTITY.centrifugeVault.address.toLowerCase()
+        ]),
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb']),
         JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
         JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),

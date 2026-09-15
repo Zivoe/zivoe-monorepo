@@ -20,14 +20,14 @@ export const ZIVOE_VAULT_DETAIL_LABELS = [
   'Entry/exit fees',
   'Redemptions',
   'Eligibility',
-  'Accepted stablecoin',
+  'Accepted stablecoins',
   'Accepted chains'
 ] as const;
 
 export type ZivoeVaultDetailLabel = (typeof ZIVOE_VAULT_DETAIL_LABELS)[number];
 
 /** Rows derived from the catalog or the Zivoe Vault's own fields at render — never authored in `details`. */
-export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted stablecoin' | 'Accepted chains';
+export type DerivedDetailLabel = 'Issuer' | 'Ticker' | 'Asset Type' | 'Accepted stablecoins' | 'Accepted chains';
 
 export type AuthoredDetailLabel = Exclude<ZivoeVaultDetailLabel, DerivedDetailLabel>;
 

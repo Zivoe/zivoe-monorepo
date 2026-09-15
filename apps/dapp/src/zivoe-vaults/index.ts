@@ -1,8 +1,10 @@
 import {
   type CentrifugeChain,
+  type ShareClassChainIdentity,
   type ShareClassKey,
   getChainDeployment,
-  getShareClassChainIdentity
+  getShareClassChainIdentity,
+  listShareClassChainIdentities
 } from '@zivoe/centrifuge-indexer';
 
 import { ACTIVE_CHAINS } from '@/lib/chains';
@@ -63,24 +65,29 @@ export function getZivoeVault(slug: string): ZivoeVault | undefined {
 }
 
 /**
- * Resolves a Zivoe Vault's transaction identity on ONE active chain — what
- * flows hand to every Centrifuge Module hook: the catalog's chain identity
- * joined with the chain's deployment facts, plus the stable public identity
- * for analytics and Sentry. Throws for a chain the Zivoe Vault is not live
- * on — callers pick the chain from zivoeVaultChains.
+ * Resolves a Zivoe Vault's transaction identity for ONE Centrifuge vault — the
+ * one on `chain` accepting `assetAddress`, or the chain's default (first)
+ * deposit asset when none is named. What flows hand to every Centrifuge
+ * Module hook: the catalog's chain identity joined with the chain's
+ * deployment facts, plus the stable public identity for analytics and Sentry.
+ * Throws for a chain the Zivoe Vault is not live on, or an asset it does not
+ * accept there — callers pick from resolveZivoeVaultIdentities.
  */
 export function resolveTransactionIdentity(
   zivoeVault: Pick<ZivoeVault, 'slug' | 'shareClass'>,
-  chain: CentrifugeChain
+  chain: CentrifugeChain,
+  assetAddress?: string
 ): TransactionIdentity {
-  const {
-    chain: identityChain,
-    chainId,
-    centrifugeVaultAddress,
-    asset,
-    ...shareClass
-  } = getShareClassChainIdentity({ chain, key: zivoeVault.shareClass.key });
+  return toTransactionIdentity(
+    zivoeVault,
+    getShareClassChainIdentity({ chain, key: zivoeVault.shareClass.key, assetAddress })
+  );
+}
 
+function toTransactionIdentity(
+  zivoeVault: Pick<ZivoeVault, 'slug'>,
+  { chain, chainId, centrifugeVaultAddress, asset, ...shareClass }: ShareClassChainIdentity
+): TransactionIdentity {
   // Chain facts are resolved ONCE here, onto the identity — hooks and flows
   // read the asset/vaultRouterAddress off the identity instead of the catalog
   // in render paths.
@@ -89,7 +96,7 @@ export function resolveTransactionIdentity(
   return {
     zivoeVaultSlug: zivoeVault.slug,
     centrifugeVault: {
-      chain: identityChain,
+      chain,
       chainId,
       address: centrifugeVaultAddress,
       asset,
@@ -101,15 +108,21 @@ export function resolveTransactionIdentity(
 }
 
 /**
- * One resolved identity per live chain, in deployment order — the value a
- * page hands the Zivoe Vault provider. Non-empty by type: the registry only
- * lists Zivoe Vaults live on at least one chain, and this throw keeps that
- * guarantee at the seam instead of in every client consumer.
+ * One resolved identity per live Centrifuge vault — every live chain in
+ * deployment order, and on each chain every deposit asset in catalog order
+ * (the chain's default first) — the value a page hands the Zivoe Vault
+ * provider. Non-empty by type: the registry only lists Zivoe Vaults live on
+ * at least one chain, and this throw keeps that guarantee at the seam instead
+ * of in every client consumer.
  */
 export function resolveZivoeVaultIdentities(
   zivoeVault: ZivoeVault
 ): [TransactionIdentity, ...Array<TransactionIdentity>] {
-  const [first, ...rest] = zivoeVaultChains(zivoeVault).map((chain) => resolveTransactionIdentity(zivoeVault, chain));
+  const [first, ...rest] = zivoeVaultChains(zivoeVault).flatMap((chain) =>
+    listShareClassChainIdentities({ chain, key: zivoeVault.shareClass.key }).map((chainIdentity) =>
+      toTransactionIdentity(zivoeVault, chainIdentity)
+    )
+  );
   if (!first) throw new Error(`The "${zivoeVault.slug}" Zivoe Vault has no live chains.`);
   return [first, ...rest];
 }

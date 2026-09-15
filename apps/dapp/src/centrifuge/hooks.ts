@@ -19,6 +19,11 @@ import { type TransactedCentrifugeVault } from './types';
  * wallet's transaction reverts on-chain rather than failing any check the form
  * could run. The reason is copy only and never widens what the flows allow.
  * Skipped without a wallet — there is nothing to ask about until one connects.
+ *
+ * Keyed per chain, not per Centrifuge vault, on purpose: every verdict is a
+ * fact of the SHARE token's transfer hook, identical for every deposit asset
+ * the class accepts on the chain — so two vaults on one chain share one read
+ * (React Query dedupes on the key; whichever vault mounts first answers).
  */
 export function useInvestorAccess({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
   const { address } = useAccount();
@@ -51,7 +56,8 @@ export function useCentrifugeVaultCapacity({ centrifugeVault }: { centrifugeVaul
   return useQuery({
     queryKey: queryKeys.app.centrifugeVaultCapacity({
       shareClassKey: centrifugeVault.shareClass.key,
-      chain: centrifugeVault.chain
+      chain: centrifugeVault.chain,
+      centrifugeVaultAddress: centrifugeVault.address
     }),
     meta: { toastErrorMessage: 'Error fetching vault capacity' },
     refetchInterval: 5 * 60 * 1000,
@@ -88,6 +94,7 @@ export function useDepositPreview({
     queryKey: queryKeys.app.depositPreview({
       shareClassKey: centrifugeVault.shareClass.key,
       chain: centrifugeVault.chain,
+      centrifugeVaultAddress: centrifugeVault.address,
       assets
     }),
     meta: { skipErrorToast: true },
@@ -113,7 +120,8 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
     queryKey: queryKeys.account.redemptionPosition({
       accountAddress: address,
       shareClassKey: centrifugeVault.shareClass.key,
-      chain: centrifugeVault.chain
+      chain: centrifugeVault.chain,
+      centrifugeVaultAddress: centrifugeVault.address
     }),
     meta: { toastErrorMessage: 'Error fetching redemption data' },
     // Cancellation Processing resolves without any user transaction (the hub

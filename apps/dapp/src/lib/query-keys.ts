@@ -31,6 +31,17 @@ type ChainProps = {
   chain: string;
 };
 
+/**
+ * Centrifuge-vault dimension of every vault-scoped key: one share class has
+ * one Centrifuge vault per deposit asset on a chain, and capacity, previews
+ * and Redemption Positions are facts of ONE vault. Appended AFTER the chain so
+ * class- and chain-prefixed invalidations keep matching. Lowercased here so a
+ * checksummed and a lowercase spelling of one vault cannot split the cache.
+ */
+type CentrifugeVaultProps = ChainProps & {
+  centrifugeVaultAddress: string;
+};
+
 const account = {
   by: ({ accountAddress }: AccountProps) => ['ACCOUNT', accountAddress],
   balance: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'BALANCE'],
@@ -58,9 +69,15 @@ const account = {
     'REDEMPTION_POSITION',
     shareClassKey
   ],
-  redemptionPosition: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
+  redemptionPosition: ({
+    accountAddress,
+    shareClassKey,
+    chain,
+    centrifugeVaultAddress
+  }: AccountProps & ShareClassProps & CentrifugeVaultProps) => [
     ...account.redemptionPositions({ accountAddress, shareClassKey }),
-    chain
+    chain,
+    centrifugeVaultAddress.toLowerCase()
   ],
   investorAccess: ({ accountAddress, shareClassKey, chain }: AccountProps & ShareClassProps & ChainProps) => [
     ...account.by({ accountAddress }),
@@ -72,17 +89,28 @@ const account = {
 
 const app = {
   emailPreferences: ({ token }: { token?: string }) => ['EMAIL_PREFERENCES', token ?? 'session'],
-  centrifugeVaultCapacity: ({ shareClassKey, chain }: ShareClassProps & ChainProps) => [
+  centrifugeVaultCapacity: ({
+    shareClassKey,
+    chain,
+    centrifugeVaultAddress
+  }: ShareClassProps & CentrifugeVaultProps) => [
     'CENTRIFUGE',
     shareClassKey,
     'VAULT_CAPACITY',
-    chain
+    chain,
+    centrifugeVaultAddress.toLowerCase()
   ],
-  depositPreview: ({ shareClassKey, chain, assets }: ShareClassProps & ChainProps & { assets: bigint }) => [
+  depositPreview: ({
+    shareClassKey,
+    chain,
+    centrifugeVaultAddress,
+    assets
+  }: ShareClassProps & CentrifugeVaultProps & { assets: bigint }) => [
     'CENTRIFUGE',
     shareClassKey,
     'DEPOSIT_PREVIEW',
     chain,
+    centrifugeVaultAddress.toLowerCase(),
     assets.toString()
   ],
   // Hub-level on purpose: Share Price / NAV / APY are identical across the

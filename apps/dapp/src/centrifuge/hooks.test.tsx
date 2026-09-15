@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorAccess, useRedemptionPosition } from './index';
 
@@ -119,7 +119,9 @@ describe('useCentrifugeVaultCapacity', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia'])).toEqual({
+    expect(
+      queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT])
+    ).toEqual({
       maxDeposit: 5_000_000000n
     });
   });
@@ -149,9 +151,51 @@ describe('useCentrifugeVaultCapacity', () => {
 
     expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(second.result.current.data).toEqual({ maxDeposit: 9_000_000000n });
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'base-sepolia'])).toEqual({
-      maxDeposit: 9_000_000000n
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'VAULT_CAPACITY',
+        'base-sepolia',
+        otherChainCentrifugeVault.address
+      ])
+    ).toEqual({ maxDeposit: 9_000_000000n });
+  });
+
+  // One share class can have several Centrifuge vaults on ONE chain (one per
+  // deposit asset), each with its own reserve — a chain-only key would serve
+  // the USDC vault's capacity for the USDT one.
+  it('keeps two same-chain Centrifuge vaults of one share class in separate cache entries', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const otherAssetCentrifugeVault = {
+      ...CENTRIFUGE_VAULT,
+      address: '0xBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBC',
+      asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 }
+    } as const;
+
+    const first = renderHook(() => useCentrifugeVaultCapacity({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve({ details: () => Promise.resolve({ maxDeposit: balance(7_000_000000n, 6) }) })
+    );
+    const second = renderHook(() => useCentrifugeVaultCapacity({ centrifugeVault: otherAssetCentrifugeVault }), {
+      wrapper
     });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+
+    expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
+    expect(second.result.current.data).toEqual({ maxDeposit: 7_000_000000n });
+    // Lowercased in the key, whatever spelling the identity carries.
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'VAULT_CAPACITY',
+        'sepolia',
+        otherAssetCentrifugeVault.address.toLowerCase()
+      ])
+    ).toEqual({ maxDeposit: 7_000_000000n });
   });
 });
 
@@ -171,7 +215,16 @@ describe('useDepositPreview', () => {
         args: [100_000000n]
       })
     );
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', 'sepolia', '100000000'])).toEqual({
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'DEPOSIT_PREVIEW',
+        'sepolia',
+        FIXTURE_CENTRIFUGE_VAULT,
+        '100000000'
+      ])
+    ).toEqual({
       shares: 50_000000000000000000n
     });
   });
@@ -213,7 +266,16 @@ describe('useRedemptionPosition', () => {
       hasPendingCancelRedeemRequest: false
     });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])).toBeDefined();
+    expect(
+      queryClient.getQueryData([
+        'ACCOUNT',
+        INVESTOR,
+        'REDEMPTION_POSITION',
+        'zfix',
+        'sepolia',
+        FIXTURE_CENTRIFUGE_VAULT
+      ])
+    ).toBeDefined();
     // A funded escrow: the diagnostics ran and found nothing to name or report.
     expect(readContract).toHaveBeenCalledWith(
       expect.objectContaining({

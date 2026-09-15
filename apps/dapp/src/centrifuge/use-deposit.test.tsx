@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { transactionAtom } from '@/lib/store';
 import { AppError } from '@/lib/utils';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
 import { useDeposit } from './index';
 
@@ -343,7 +343,7 @@ describe('useDeposit', () => {
           FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress
         ]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia']),
+        JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT]),
         JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
       ])
     );
