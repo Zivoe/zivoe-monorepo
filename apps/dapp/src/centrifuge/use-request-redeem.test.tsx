@@ -140,10 +140,14 @@ describe('useRequestRedeem', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])
       ])
     );
+    // Chain-scoped on purpose: the account's balances and the class's
+    // positions on every other chain stay as they were.
+    expect(invalidatedKeys).not.toContain(JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']));
+    expect(invalidatedKeys).not.toContain(JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']));
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_submitted',

@@ -145,8 +145,8 @@ describe('two share classes side by side', () => {
           ZSMB_IDENTITY.centrifugeVault.address.toLowerCase()
         ]),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zsmb', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia']),
         JSON.stringify(['CENTRIFUGE', 'zsmb', 'SHARE_METRICS']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'SHARE_METRICS'])
       ])

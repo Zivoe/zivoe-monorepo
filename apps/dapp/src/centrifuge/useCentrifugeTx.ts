@@ -6,6 +6,7 @@ import { type Address, type TransactionReceipt } from 'viem';
 import { useConfig, usePublicClient } from 'wagmi';
 import { getWalletClient } from 'wagmi/actions';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { toast } from '@zivoe/ui/core/sonner';
 
 import { getViemChain, waitForRpcCatchup } from '@/lib/chains';
@@ -118,7 +119,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.centrifugeVault.shareClass.key
+        shareClassKey: identity.centrifugeVault.shareClass.key,
+        chain: identity.centrifugeVault.chain
       });
       config.invalidateExtra?.(ctx);
     },
@@ -284,22 +286,28 @@ function vaultUnreachableError(): AppError {
 }
 
 /**
- * Invalidated after every settled Centrifuge tx, scoped to the transacted
- * share class. Stats included: NAV moves with issuance as soon as the indexer
+ * Invalidated after every settled Centrifuge tx. Balances and Redemption
+ * Positions are chain-local, so only the transacted chain's are refetched:
+ * every vault's position and every coin's balance stay observed from the
+ * Requests badge and the deposit picker, and a class-wide invalidation
+ * re-read all ten chains after one write. The portfolio and the class's
+ * stats are hub-level: NAV moves with issuance as soon as the indexer
  * processes the block.
  */
 export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
-  shareClassKey
+  shareClassKey,
+  chain
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
+  chain: CentrifugeChain;
 }) {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
+  void queryClient.invalidateQueries({ queryKey: [...queryKeys.account.balance({ accountAddress: address }), chain] });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPositions({ accountAddress: address, shareClassKey })
+    queryKey: [...queryKeys.account.redemptionPositions({ accountAddress: address, shareClassKey }), chain]
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });

@@ -342,9 +342,9 @@ describe('useDeposit', () => {
           FIXTURE_IDENTITY.centrifugeVault.asset.address,
           FIXTURE_IDENTITY.centrifugeVault.vaultRouterAddress
         ]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE', 'sepolia']),
         JSON.stringify(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT]),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])
       ])
     );
 
