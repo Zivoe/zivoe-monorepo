@@ -162,10 +162,14 @@ function DepositAssetPickerPanes({
             positioned in its cell), so it is capped to the visual viewport and
             scrolls itself: ten chains plus "All networks" outgrow a phone, and
             an uncapped rail would scroll the whole modal, search box included.
-            The 1px inset keeps a button's focus ring inside the scroll box. */}
+            It also carries a floor of about four coin rows, under the same
+            cap: a catalog on two chains makes a three-button rail, which alone
+            would leave the coins pane one row tall. The 1px inset keeps a
+            button's focus ring inside the scroll box. */}
         <div
           className={nativeScrollAreaStyles({
-            className: 'flex max-h-[calc(var(--visual-viewport-height)-8.5rem)] min-h-0 flex-col gap-1 px-2 py-px'
+            className:
+              'flex max-h-[calc(var(--visual-viewport-height)-8.5rem)] min-h-[min(22rem,calc(var(--visual-viewport-height)-8.5rem))] flex-col gap-1 px-2 py-px'
           })}
         >
           {/* not-sr-only resets padding, so the inset must ride the lg variant. */}
