@@ -405,4 +405,37 @@ describe('useSelectedIdentity', () => {
     });
     expect(screen.getByText('c: sepolia USDC')).toBeTruthy();
   });
+
+  it("keeps one Zivoe Vault's coin apart from another's on the same chain", () => {
+    // A second Zivoe Vault live on sepolia — same chain, its own page and vaults.
+    const OTHER_USDC = { ...USDC_SEPOLIA, zivoeVaultSlug: 'other-zivoe-vault' };
+    const OTHER_USDT = { ...USDT_SEPOLIA, zivoeVaultSlug: 'other-zivoe-vault' };
+
+    const firstPage = renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+      children: <IdentityConsumer label="a" tab="deposit" select={USDT_SEPOLIA} />
+    });
+    fireEvent.click(screen.getByText('a-select'));
+    expect(screen.getByText('a: sepolia USDT')).toBeTruthy();
+    firstPage.unmount();
+
+    // The other page opens on its own default, and choosing there does not
+    // touch the first page's memory.
+    const otherPage = renderConsumers({
+      store: createStore(),
+      identities: [OTHER_USDC, OTHER_USDT],
+      children: <IdentityConsumer label="b" tab="deposit" select={OTHER_USDC} />
+    });
+    expect(screen.getByText('b: sepolia USDC')).toBeTruthy();
+    fireEvent.click(screen.getByText('b-select'));
+    otherPage.unmount();
+
+    renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+      children: <IdentityConsumer label="c" tab="deposit" select={USDC_SEPOLIA} />
+    });
+    expect(screen.getByText('c: sepolia USDT')).toBeTruthy();
+  });
 });

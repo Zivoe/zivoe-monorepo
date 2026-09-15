@@ -30,17 +30,24 @@ import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.selected-chain', undefined);
 
 /**
- * The tab's deposit asset per chain, as the lowercased Centrifuge-vault
- * address (unique per chain by catalog lint). Per TAB because the two tabs
- * ask different questions — what to fund a deposit with, what to be paid out
- * in — and per CHAIN so a choice on one chain never leaks to another. Raw and
- * derived-valid at read time, like the chain: a vault no longer live falls
- * back to the chain's default (first) asset.
+ * The tab's deposit asset per Zivoe Vault and chain, as the lowercased
+ * Centrifuge-vault address (unique per chain by catalog lint). Per TAB
+ * because the two tabs ask different questions — what to fund a deposit
+ * with, what to be paid out in — and per Zivoe Vault AND chain so a choice
+ * on one page or chain never leaks to another (unlike the chain above, which
+ * is the wallet's and shared). Raw and derived-valid at read time, like the
+ * chain: a vault no longer live falls back to the chain's default (first)
+ * asset.
  */
 const selectedAssetAtoms = {
-  deposit: atomWithStorage<Partial<Record<CentrifugeChain, string>>>('zivoe.deposit-asset', {}),
-  redeem: atomWithStorage<Partial<Record<CentrifugeChain, string>>>('zivoe.redeem-asset', {})
+  deposit: atomWithStorage<Partial<Record<string, string>>>('zivoe.deposit-asset', {}),
+  redeem: atomWithStorage<Partial<Record<string, string>>>('zivoe.redeem-asset', {})
 };
+
+/** The stored-asset key: one Zivoe Vault's choice on one chain. */
+function selectedAssetKey({ zivoeVaultSlug, chain }: { zivoeVaultSlug: string; chain: CentrifugeChain }): string {
+  return `${zivoeVaultSlug}:${chain}`;
+}
 
 export type DepositTab = keyof typeof selectedAssetAtoms;
 
@@ -179,14 +186,17 @@ export function useSelectedIdentity({ tab }: { tab: DepositTab }) {
   const { selectedChain, chainIdentities, setSelectedChain } = selection;
 
   const [storedAssets, setStoredAssets] = useAtom(selectedAssetAtoms[tab]);
-  const storedAsset = storedAssets[selectedChain];
+  // Every identity on the page carries the page's slug, so the chain's first suffices.
+  const storedAsset =
+    storedAssets[selectedAssetKey({ zivoeVaultSlug: chainIdentities[0].zivoeVaultSlug, chain: selectedChain })];
   const selectedIdentity =
     chainIdentities.find((identity) => identity.centrifugeVault.address.toLowerCase() === storedAsset) ??
     chainIdentities[0];
 
   const setSelectedIdentity = (identity: TransactionIdentity) => {
     const { chain, address } = identity.centrifugeVault;
-    setStoredAssets((stored) => ({ ...stored, [chain]: address.toLowerCase() }));
+    const key = selectedAssetKey({ zivoeVaultSlug: identity.zivoeVaultSlug, chain });
+    setStoredAssets((stored) => ({ ...stored, [key]: address.toLowerCase() }));
     setSelectedChain(chain);
   };
 
