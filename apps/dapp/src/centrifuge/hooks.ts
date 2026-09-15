@@ -114,6 +114,31 @@ export function useDepositPreview({
 }
 
 /**
+ * How often a Redemption Position re-reads on its own. Cancellation Processing
+ * resolves without any user transaction (the hub finishes the unwind), so the
+ * one wait state a user actively watches is polled; every other transition
+ * refreshes through invalidations. An errored read polls too — focus refetch
+ * is off app-wide, and a failed read renders like "no position", hiding the
+ * strips a user needs to claim or cancel with — but it backs off: every vault
+ * of every chain is read on every page load, and a chain whose RPC is down
+ * would otherwise be hit every half minute for as long as the page is open.
+ * The interval doubles per failed cycle from 30s up to five minutes; the
+ * count is per query and page load, so a read that recovers and fails again
+ * later resumes high rather than from 30s — acceptable on an error path. An
+ * Unfunded Claim deliberately does NOT poll: funding the escrow can take a
+ * while, and a fresh load or the next transaction's refetch will pick it up.
+ */
+export function redemptionPositionRefetchInterval(state: {
+  status: 'pending' | 'error' | 'success';
+  errorUpdateCount: number;
+  data: { hasPendingCancelRedeemRequest: boolean } | undefined;
+}): number | false {
+  if (state.status === 'error')
+    return Math.min(30 * 1000 * 2 ** Math.max(0, state.errorUpdateCount - 1), 5 * 60 * 1000);
+  return state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false;
+}
+
+/**
  * The one Redemption Position query — shared by the single- and the many-vault
  * readers so the redeem tab's payout vault, the Requests tab's strips and its
  * badge all hit one cache entry per vault. A failed read never toasts: the
@@ -143,16 +168,7 @@ function redemptionPositionQueryOptions({
     // unmount each other, and each mount must not re-read nine chains.
     // Invalidations after a transaction bypass this and refetch regardless.
     staleTime: 30 * 1000,
-    // Cancellation Processing resolves without any user transaction (the hub
-    // finishes the unwind), so the only wait state a user actively watches is
-    // polled; every other transition refreshes through invalidations/focus.
-    // An errored read also polls: focus refetch is off app-wide, and a failed
-    // read renders like "no position" — the strips a user needs to claim or
-    // cancel with are missing until it recovers on its own. An Unfunded Claim
-    // deliberately does NOT poll: funding the escrow can take a while, and a
-    // fresh load or the next transaction's refetch will pick it up.
-    refetchInterval: ({ state }) =>
-      state.status === 'error' ? 30 * 1000 : state.data?.hasPendingCancelRedeemRequest ? 10 * 1000 : false,
+    refetchInterval: ({ state }) => redemptionPositionRefetchInterval(state),
     queryFn:
       !address || !web3
         ? skipToken

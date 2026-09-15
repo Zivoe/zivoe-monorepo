@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
+// A module-internal derivation, tested directly rather than through timers.
+import { redemptionPositionRefetchInterval } from './hooks';
 import {
   useCentrifugeVaultCapacity,
   useDepositPreview,
@@ -118,6 +120,25 @@ beforeEach(() => {
 function blockedCentrifugeVault() {
   return Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }));
 }
+
+describe('redemptionPositionRefetchInterval', () => {
+  it('polls Cancellation Processing, backs off a failing read, and leaves settled positions alone', () => {
+    const position = (hasPendingCancelRedeemRequest: boolean) => ({
+      status: 'success' as const,
+      errorUpdateCount: 0,
+      data: { hasPendingCancelRedeemRequest }
+    });
+    expect(redemptionPositionRefetchInterval(position(true))).toBe(10_000);
+    expect(redemptionPositionRefetchInterval(position(false))).toBe(false);
+
+    // Doubling from half a minute, capped at five: a chain whose RPC is down
+    // is not hit every 30s for as long as the page stays open.
+    const failed = (errorUpdateCount: number) => ({ status: 'error' as const, errorUpdateCount, data: undefined });
+    expect([1, 2, 3, 4, 5, 6].map((count) => redemptionPositionRefetchInterval(failed(count)))).toEqual([
+      30_000, 60_000, 120_000, 240_000, 300_000, 300_000
+    ]);
+  });
+});
 
 describe('useCentrifugeVaultCapacity', () => {
   it("reads the handed share class's Centrifuge vault and caches under its key", async () => {
