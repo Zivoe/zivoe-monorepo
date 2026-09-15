@@ -1,6 +1,7 @@
 'use client';
 
 import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
+import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -52,12 +53,19 @@ export default function RequestsFlow() {
       </p>
     );
 
+  // Capped a little above the redeem form's height and scrolled inside: the
+  // Earn box is sticky, so a tab that grows past the viewport would pin its
+  // last rows out of reach until the page itself runs out. A thin scrollbar
+  // rides the right edge, so the rows keep clear of it.
   return (
-    <div className="flex flex-col gap-2" aria-label={`${String(count)} redemption requests`}>
-      {chains.map((group) => (
-        <RequestsChainGroup key={group.chain} group={group} />
-      ))}
-    </div>
+    <ScrollArea className="-mr-2 max-h-120" viewportClassName="max-h-120">
+      <div className="flex flex-col gap-2 pr-2" aria-label={`${String(count)} redemption requests`}>
+        {chains.map((group) => (
+          <RequestsChainGroup key={group.chain} group={group} />
+        ))}
+      </div>
+      <ScrollBar orientation="vertical" />
+    </ScrollArea>
   );
 }
 
