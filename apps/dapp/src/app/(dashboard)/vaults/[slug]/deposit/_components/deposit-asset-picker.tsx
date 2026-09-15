@@ -134,6 +134,7 @@ function DepositAssetPickerPanes({
         <div className="flex min-h-80 flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
           <Input
             variant="search"
+            groupClassName="h-12"
             aria-label="Search a token"
             placeholder="Search a token"
             value={search}
