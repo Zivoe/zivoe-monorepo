@@ -125,6 +125,14 @@ export const SHARE_CLASSES = {
               {
                 address: '0x8aBb393C433375401EEeae24557475C3f36f5025',
                 asset: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 }
+              },
+              // Circle's Base Sepolia EURC — the book's first second asset on
+              // one chain, and its first non-dollar one: the hub values it
+              // for the USD pool, while the flows' dollar lines still read
+              // one asset unit as one dollar (see the runbook).
+              {
+                address: '0x882671dAFFdf7cFAda441C79599d9600c78F7d29',
+                asset: { address: '0x808456652fdb597867f38412077A9182bf77359F', symbol: 'EURC', decimals: 6 }
               }
             ]
           }

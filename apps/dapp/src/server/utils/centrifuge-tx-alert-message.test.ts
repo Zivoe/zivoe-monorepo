@@ -123,6 +123,26 @@ describe('resolveDepositAssetDisplay', () => {
     ).toBeNull();
   });
 
+  it('on a chain with several vaults, needs the asset — and refuses to guess without it', () => {
+    // Base Sepolia carries USDC and EURC for zSMB on the real catalog.
+    expect(
+      resolveDepositAssetDisplay({
+        event: event({ chainId: 84532, assetAddress: '0x808456652FDB597867F38412077A9182BF77359F' }),
+        shareClassKey: 'zsmb'
+      })
+    ).toEqual({ symbol: 'EURC', decimals: 6 });
+    expect(
+      resolveDepositAssetDisplay({
+        event: event({ chainId: 84532, assetAddress: '0x036cbd53842c5426634e7929541ec2318f3dcf7e' }),
+        shareClassKey: 'zsmb'
+      })
+    ).toEqual({ symbol: 'USDC', decimals: 6 });
+    // Two vaults and no asset on the row: a guessed coin could print the wrong one.
+    expect(
+      resolveDepositAssetDisplay({ event: event({ chainId: 84532, assetAddress: null }), shareClassKey: 'zsmb' })
+    ).toBeNull();
+  });
+
   it('is null for a chain the registry does not know, or a class not live there — an amount without a scale is unreadable', () => {
     expect(resolveDepositAssetDisplay({ event: event({ chainId: null }), shareClassKey: 'zsmb' })).toBeNull();
     expect(resolveDepositAssetDisplay({ event: event({ chainId: 98866 }), shareClassKey: 'zsmb' })).toBeNull();

@@ -1,5 +1,5 @@
 import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
-import { UsdcIcon } from '@zivoe/ui/icons';
+import { EurcIcon, UsdcIcon } from '@zivoe/ui/icons';
 
 import { type DepositToken, type ShareToken } from '@/types/constants';
 
@@ -15,6 +15,11 @@ const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
     label: 'USDC',
     description: 'US Dollar Coin',
     icon: <UsdcIcon />
+  },
+  EURC: {
+    label: 'EURC',
+    description: 'Euro Coin',
+    icon: <EurcIcon />
   }
 };
 

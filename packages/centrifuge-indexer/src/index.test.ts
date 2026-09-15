@@ -230,6 +230,30 @@ describe('share-class catalog', () => {
     ).toThrow(/accepts no deposit asset/);
   });
 
+  it("lists both Base Sepolia vaults — USDC as the default, then Circle's EURC — off the real catalog", () => {
+    const identities = listShareClassChainIdentities({ chain: 'base-sepolia', key: 'zsmb' });
+    expect(identities.map(({ centrifugeVaultAddress, asset }) => [centrifugeVaultAddress, asset.symbol])).toEqual([
+      ['0x8aBb393C433375401EEeae24557475C3f36f5025', 'USDC'],
+      ['0x882671dAFFdf7cFAda441C79599d9600c78F7d29', 'EURC']
+    ]);
+    expect(
+      getShareClassChainIdentity({
+        chain: 'base-sepolia',
+        key: 'zsmb',
+        assetAddress: '0x808456652fdb597867f38412077a9182bf77359f'
+      })
+    ).toEqual({
+      ...identities[0],
+      centrifugeVaultAddress: '0x882671dAFFdf7cFAda441C79599d9600c78F7d29',
+      asset: { address: '0x808456652fdb597867f38412077A9182bf77359F', symbol: 'EURC', decimals: 6 }
+    });
+    // The class-wide listing names both coins, in chain then vault order.
+    expect(listDepositAssets({ environment: 'testnet', key: 'zsmb' }).map(({ symbol }) => symbol)).toEqual([
+      'USDC',
+      'EURC'
+    ]);
+  });
+
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
