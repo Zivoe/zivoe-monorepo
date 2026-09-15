@@ -13,11 +13,13 @@ import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
-const { ZSMB_ADDRESS, BASE_SHARE_ADDRESS } = vi.hoisted(() => ({
+const { ZSMB_ADDRESS, BASE_SHARE_ADDRESS, USDT_CENTRIFUGE_VAULT } = vi.hoisted(() => ({
   ZSMB_ADDRESS: '0x19Dad928674E78665fE172A56Eb721589d7964A6',
   // The second chain's share token instance — distinct so a read against the
   // wrong chain's contract cannot pass by coincidence.
-  BASE_SHARE_ADDRESS: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2'
+  BASE_SHARE_ADDRESS: '0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2',
+  // The first chain's SECOND Centrifuge vault — same share token, another stablecoin.
+  USDT_CENTRIFUGE_VAULT: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3'
 }));
 
 const D18 = 10n ** 18n;
@@ -32,6 +34,14 @@ const TEST_IDENTITY = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
 const BASE_IDENTITY = identityOnChain(TEST_IDENTITY, 'base-sepolia', {
   address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3',
   shareClass: { shareTokenAddress: BASE_SHARE_ADDRESS as `0x${string}` }
+});
+
+// The first chain's second Centrifuge vault: the same zSMB, paid out in an
+// 18-decimal USDT — a different scale so a payout estimate formatted with the
+// wrong vault's decimals cannot pass by coincidence.
+const USDT_IDENTITY = identityOnChain(TEST_IDENTITY, 'sepolia', {
+  address: USDT_CENTRIFUGE_VAULT as `0x${string}`,
+  asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 18 }
 });
 
 // A fresh jotai store per render: the shared selected-chain atom must not
@@ -78,32 +88,52 @@ const mocks = vi.hoisted(() => ({
   baseClaimableAssets: 0n,
   basePendingShares: 0n,
   baseReturnedShares: 0n,
+  // The USDT vault's position on the first chain, read only by the two-vault suite.
+  usdtClaimableAssets: 0n,
+  usdtPendingShares: 0n,
+  usdtReturnedShares: 0n,
+  usdtHasPendingCancel: false,
   walletChainId: 11155111,
-  switchChain: vi.fn()
+  switchChain: vi.fn(),
+  updateTab: vi.fn()
 }));
 
+// Positions are per Centrifuge vault: keyed by chain, then by vault address.
 const positionFor = vi.hoisted(
-  () => (chain: string) =>
-    chain === 'base-sepolia'
-      ? {
-          pendingRedeemShares: mocks.basePendingShares,
-          claimableRedeemAssets: mocks.baseClaimableAssets,
-          claimableRedeemSharesEquivalent: 0n,
-          unfundedClaimableAssets: 0n,
-          claimableCancelRedeemShares: mocks.baseReturnedShares,
-          hasPendingCancelRedeemRequest: false
-        }
-      : {
-          pendingRedeemShares: mocks.pendingShares,
-          claimableRedeemAssets: mocks.claimableAssets,
-          claimableRedeemSharesEquivalent: 0n,
-          unfundedClaimableAssets: mocks.unfundedAssets,
-          claimableCancelRedeemShares: mocks.returnedShares,
-          hasPendingCancelRedeemRequest: mocks.hasPendingCancel
-        }
+  () =>
+    ({ chain, address }: { chain: string; address: string }) =>
+      chain === 'base-sepolia'
+        ? {
+            pendingRedeemShares: mocks.basePendingShares,
+            claimableRedeemAssets: mocks.baseClaimableAssets,
+            claimableRedeemSharesEquivalent: 0n,
+            unfundedClaimableAssets: 0n,
+            claimableCancelRedeemShares: mocks.baseReturnedShares,
+            hasPendingCancelRedeemRequest: false
+          }
+        : address.toLowerCase() === USDT_CENTRIFUGE_VAULT
+          ? {
+              pendingRedeemShares: mocks.usdtPendingShares,
+              claimableRedeemAssets: mocks.usdtClaimableAssets,
+              claimableRedeemSharesEquivalent: 0n,
+              unfundedClaimableAssets: 0n,
+              claimableCancelRedeemShares: mocks.usdtReturnedShares,
+              hasPendingCancelRedeemRequest: mocks.usdtHasPendingCancel
+            }
+          : {
+              pendingRedeemShares: mocks.pendingShares,
+              claimableRedeemAssets: mocks.claimableAssets,
+              claimableRedeemSharesEquivalent: 0n,
+              unfundedClaimableAssets: mocks.unfundedAssets,
+              claimableCancelRedeemShares: mocks.returnedShares,
+              hasPendingCancelRedeemRequest: mocks.hasPendingCancel
+            }
 );
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+vi.mock('./_hooks/useTabNavigation', () => ({
+  useTabNavigation: () => ({ updateTab: mocks.updateTab, navigateToTab: vi.fn(), isMobile: false })
+}));
 // Pulled in by the Zivoe Vault modules' logos and the token display map.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('wagmi', () => ({
@@ -179,10 +209,10 @@ vi.mock('@/centrifuge', () => ({
           isFetching: false,
           isSuccess: true
         },
-  useRedemptionPosition: ({ centrifugeVault }: { centrifugeVault: { chain: string } }) => ({
+  useRedemptionPosition: ({ centrifugeVault }: { centrifugeVault: { chain: string; address: string } }) => ({
     isError: mocks.positionIsError,
     isFetching: false,
-    data: mocks.positionIsError ? undefined : positionFor(centrifugeVault.chain)
+    data: mocks.positionIsError ? undefined : positionFor(centrifugeVault)
   }),
   useRequestRedeem: () => ({ isPending: false, isTxPending: false, mutate: mocks.requestRedeem })
 }));
@@ -223,6 +253,34 @@ vi.mock('./_components/max-button', () => ({
   )
 }));
 vi.mock('./_components/token-display', () => ({ TokenDisplay: () => null }));
+// Reduced to its contract: one button per payout asset on the chain.
+vi.mock('./_components/payout-asset-selector', () => ({
+  PayoutAssetSelector: ({
+    identities,
+    selected,
+    onSelect,
+    isDisabled
+  }: {
+    identities: Array<{ centrifugeVault: { address: string; asset: { symbol: string } } }>;
+    selected: { centrifugeVault: { asset: { symbol: string } } };
+    onSelect: (identity: never) => void;
+    isDisabled?: boolean;
+  }) => (
+    <div>
+      <span>Receive in: {selected.centrifugeVault.asset.symbol}</span>
+      {identities.map((identity) => (
+        <button
+          key={identity.centrifugeVault.address}
+          type="button"
+          disabled={isDisabled}
+          onClick={() => onSelect(identity as never)}
+        >
+          Receive {identity.centrifugeVault.asset.symbol}
+        </button>
+      ))}
+    </div>
+  )
+}));
 vi.mock('@zivoe/ui/core/button', () => ({
   Button: ({
     children,
@@ -313,6 +371,10 @@ function resetMocks() {
   mocks.baseClaimableAssets = 0n;
   mocks.basePendingShares = 0n;
   mocks.baseReturnedShares = 0n;
+  mocks.usdtClaimableAssets = 0n;
+  mocks.usdtPendingShares = 0n;
+  mocks.usdtReturnedShares = 0n;
+  mocks.usdtHasPendingCancel = false;
   mocks.walletChainId = 11155111;
 }
 
@@ -349,167 +411,6 @@ describe('RedeemFlow', () => {
     expect(action.compareDocumentPosition(processingWarning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(processingWarning.parentElement).toBe(whitelistWarning.parentElement);
     expect(processingWarning.parentElement?.className).toContain('flex-col');
-  });
-
-  it('still lets a wallet that is no longer whitelisted claim settled USDC while share moves are blocked', async () => {
-    // The protocol exempts a redeem claim from the memberlist, so proceeds the
-    // wallet is already owed must stay reachable. This is the assertion that
-    // stops a future "block everything when not whitelisted" from stranding
-    // funds.
-    mocks.canReceiveShares = false;
-    mocks.canRequestRedemption = false;
-    mocks.claimableAssets = 150_000000n;
-    mocks.pendingShares = 3n * D18;
-    renderFlow();
-
-    expect(getButton('Claim USDC').disabled).toBe(false);
-    expect(getButton('Cancel request').disabled).toBe(true);
-    expect(screen.getByText('Requires a whitelisted wallet.')).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.click(getButton('Claim USDC'));
-    });
-
-    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 150_000000n });
-  });
-
-  it('blocks cancelling and claiming returned shares for a wallet that cannot receive shares', async () => {
-    // Both reduce on-chain to the same "may this wallet receive shares" check,
-    // so neither may be offered while it answers no.
-    mocks.canReceiveShares = false;
-    mocks.returnedShares = 4n * D18;
-    mocks.pendingShares = 3n * D18;
-    renderFlow();
-
-    await act(async () => {
-      fireEvent.click(getButton('Claim zSMB'));
-    });
-    await act(async () => {
-      fireEvent.click(getButton('Cancel request'));
-    });
-
-    expect(getButton('Claim zSMB').disabled).toBe(true);
-    expect(getButton('Cancel request').disabled).toBe(true);
-    expect(mocks.claimReturnedShares).not.toHaveBeenCalled();
-    expect(mocks.cancelRedeem).not.toHaveBeenCalled();
-    expect(screen.getAllByText('Requires a whitelisted wallet.').length).toBe(2);
-    // The request form is untouched: this wallet may still send shares to
-    // escrow, it just cannot get them back.
-    expect(getInput('Redeem').disabled).toBe(false);
-  });
-
-  it('names a frozen wallet as frozen, down to the hints on the share controls', async () => {
-    // Freeze and a missing admission produce identical verdicts on-chain, so
-    // every surface that explains the block has to read the reason — the two
-    // narrow hints included, since they sit far from the callout.
-    mocks.canReceiveShares = false;
-    mocks.canRequestRedemption = false;
-    mocks.restriction = 'frozen';
-    mocks.returnedShares = 4n * D18;
-    mocks.pendingShares = 3n * D18;
-    renderFlow();
-
-    expect(getButton('Wallet Frozen').disabled).toBe(true);
-    expect(screen.getByText(/This wallet is frozen on this chain/)).toBeTruthy();
-    expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
-    expect(screen.getAllByText('This wallet is frozen.').length).toBe(2);
-    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
-  });
-
-  it('blocks a frozen wallet from claiming settled USDC, and says why', async () => {
-    // Unlike membership, a freeze does gate a claim: the hook refuses every
-    // transfer from a frozen wallet before it reaches the redeem-claim
-    // exemption, so the router's claim would revert. The amount stays visible.
-    mocks.canReceiveShares = false;
-    mocks.canRequestRedemption = false;
-    mocks.canClaimProceeds = false;
-    mocks.restriction = 'frozen';
-    mocks.claimableAssets = 150_000000n;
-    renderFlow();
-
-    // The headline must not contradict the disabled button: approved, not ready.
-    expect(screen.getByText(/150\.00 USDC\s+approved/)).toBeTruthy();
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
-    expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.click(getButton('Claim USDC'));
-    });
-
-    expect(mocks.claimRedeem).not.toHaveBeenCalled();
-  });
-
-  it('never calls an unexplained claim refusal "not whitelisted"', async () => {
-    // Membership does not gate a claim, so the share controls' fallback copy
-    // would be wrong here; the claim gets its own neutral line instead.
-    mocks.canReceiveShares = false;
-    mocks.canRequestRedemption = false;
-    mocks.canClaimProceeds = false;
-    mocks.restriction = 'unknown';
-    mocks.claimableAssets = 150_000000n;
-    renderFlow();
-
-    expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('This wallet cannot claim right now.')).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.click(getButton('Claim USDC'));
-    });
-
-    expect(mocks.claimRedeem).not.toHaveBeenCalled();
-  });
-
-  it("names a frozen wallet's Unfunded Claim and the freeze together", () => {
-    // Two things stand between this wallet and its USDC; hiding the amount
-    // (as the Centrifuge vault's permissioned view would) helps nobody.
-    mocks.canReceiveShares = false;
-    mocks.canRequestRedemption = false;
-    mocks.canClaimProceeds = false;
-    mocks.restriction = 'frozen';
-    mocks.unfundedAssets = 310_071n;
-    renderFlow();
-
-    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
-    expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
-  });
-
-  it('names the block instead of an impossible prerequisite in a blocked Split Outcome', () => {
-    // A wallet that cannot receive shares cannot clear the Returned Shares
-    // bucket, so "claim your returned shares first" would point at a step the
-    // panel itself refuses. Its own claim is not blocked — membership never
-    // gates it — but the SDK's aggregate claim makes it wait behind the same
-    // bucket (see the button's gate); accepted until the SDK offers the USDC
-    // claim alone.
-    mocks.canReceiveShares = false;
-    mocks.claimableAssets = 2_000000n;
-    mocks.returnedShares = 1n * D18;
-    renderFlow();
-
-    expect(getButton('Claim zSMB').disabled).toBe(true);
-    expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.queryByText('Claim your returned zSMB first.')).toBeNull();
-    expect(screen.getAllByText('Requires a whitelisted wallet.').length).toBe(2);
-  });
-
-  it('leaves share moves alone when only the redemption request is blocked', async () => {
-    // The mirror case: a member who may not send shares to escrow can still
-    // unwind a position it already has.
-    mocks.canRequestRedemption = false;
-    mocks.returnedShares = 4n * D18;
-    mocks.pendingShares = 3n * D18;
-    renderFlow();
-
-    expect(getButton('Claim zSMB').disabled).toBe(false);
-    expect(getButton('Cancel request').disabled).toBe(false);
-    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
-
-    await act(async () => {
-      fireEvent.click(getButton('Cancel request'));
-    });
-
-    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
 
   it('leaves the request live on a failed access read', async () => {
@@ -644,98 +545,35 @@ describe('RedeemFlow', () => {
     expect(getButton('Request redemption').disabled).toBe(false);
   });
 
-  it('renders one aggregate pending position with a cancel control that cancels the full amount', () => {
-    mocks.pendingShares = 3n * D18;
-
-    renderFlow();
-
-    expect(screen.getByText(/3\.00 zSMB\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
-    expect(getButton('Add to redemption')).toBeTruthy();
-
-    fireEvent.click(getButton('Cancel request'));
-    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
-  });
-
-  it('renders claimable proceeds first and claims all current partial fulfillments at once', () => {
-    mocks.pendingShares = 1n * D18;
-    mocks.claimableAssets = 2_000000n;
-
-    renderFlow();
-
-    expect(screen.getByText(/2\.00 USDC\s+ready to claim/)).toBeTruthy();
-
-    fireEvent.click(getButton('Claim USDC'));
-    expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 2_000000n });
-  });
-
-  it('offers an exact 0.57 USDC claim without shedding a cent off the row', () => {
-    mocks.claimableAssets = 570_000n;
-
-    renderFlow();
-
-    // The row and the post-claim receipt must agree on the same amount.
-    expect(screen.getByText(/0\.57 USDC\s+ready to claim/)).toBeTruthy();
-  });
-
-  it('names an Unfunded Claim with its chain and offers no claim', () => {
-    // Settled on-chain, but the chain's escrow cannot pay it: the SDK reports
-    // nothing claimable, so without this strip the tab would show nothing at all.
-    mocks.unfundedAssets = 310_071n;
-
-    renderFlow();
-
-    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
-    // Not a lock: the investor may still request more while operations fund the escrow.
-    expect(getButton('Add to redemption').disabled).toBe(false);
-  });
-
-  it('locks the whole form during Cancellation Processing and hides the cancel control', () => {
+  it('locks the form during Cancellation Processing and says why, linking to the Requests tab', () => {
     mocks.pendingShares = 3n * D18;
     mocks.hasPendingCancel = true;
 
     renderFlow();
 
-    expect(screen.getByText(/Cancelling redemption request for 3\.00 zSMB/)).toBeTruthy();
-    expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
-
-    // A new request would revert on-chain (CancellationIsPending).
+    // A new request would revert on-chain (CancellationIsPending). The strip
+    // itself lives on the Requests tab; the form keeps a one-line reason.
     expect(getInput('Redeem').disabled).toBe(true);
     expect(getButton('Cancellation in progress').disabled).toBe(true);
+    expect(screen.getByText(/New USDC requests on Ethereum are paused while a cancellation is processed/)).toBeTruthy();
+    expect(screen.queryByText(/Cancelling redemption request/)).toBeNull();
+
+    fireEvent.click(getButton('View requests'));
+    expect(mocks.updateTab).toHaveBeenCalledWith('requests');
   });
 
-  it('claims Returned Shares after a completed cancellation', () => {
-    mocks.returnedShares = 3n * D18;
-
-    renderFlow();
-
-    expect(screen.getByText(/3\.00 zSMB\s+returned from cancellation/)).toBeTruthy();
-
-    fireEvent.click(getButton('Claim zSMB'));
-    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 3n * D18 });
-
-    // No cancellation in flight: the form stays open for a fresh request.
-    expect(getInput('Redeem').disabled).toBe(false);
-    expect(getButton('Request redemption')).toBeTruthy();
-  });
-
-  it('gates the USDC claim behind the Returned Shares claim in a Split Outcome', () => {
+  it('keeps every position off the form — the Requests tab holds them', () => {
+    mocks.pendingShares = 3n * D18;
     mocks.claimableAssets = 2_000000n;
     mocks.returnedShares = 1n * D18;
 
     renderFlow();
 
-    // The vault claims Returned Shares before USDC in one shared transaction
-    // path, so the USDC button must wait its turn.
-    expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('Claim your returned zSMB first.')).toBeTruthy();
-    expect(getButton('Claim zSMB').disabled).toBe(false);
-
-    fireEvent.click(getButton('Claim zSMB'));
-    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
-    expect(mocks.claimRedeem).not.toHaveBeenCalled();
+    expect(screen.queryByText(/processing/)).toBeNull();
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Claim/ })).toBeNull();
+    // A position in the payout vault still turns the request into an addition.
+    expect(getButton('Add to redemption')).toBeTruthy();
   });
 });
 
@@ -780,26 +618,32 @@ describe('RedeemFlow across two chains', () => {
     expect(screen.getByText('25.00')).toBeTruthy();
   });
 
-  it("selecting another chain shows that chain's position and gates writes behind the switch", async () => {
-    mocks.baseClaimableAssets = 40_000000n;
+  it("selecting another chain binds the form to that chain's vault and gates the request behind the switch", async () => {
+    mocks.basePendingShares = 3n * D18;
     renderTwoChainFlow();
 
-    // Selected sepolia: base-sepolia's claimable is not this view's business.
-    expect(screen.queryByText(/USDC ready to claim/)).toBeNull();
+    expect(getButton('Request redemption')).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Select base-sepolia' }));
     });
 
-    // Selected base-sepolia: its claim strip renders, and — the wallet still
-    // sitting on sepolia — every write is gated behind the network switch.
-    expect(screen.getByText(/USDC ready to claim/)).toBeTruthy();
-    expect(getButton('Claim USDC').disabled).toBe(true);
-
+    // Selected base-sepolia — the wallet still sitting on sepolia — the main
+    // action is the switch.
     await act(async () => {
       fireEvent.click(getButton('Switch to Base'));
     });
     expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+
+    // Once the wallet is there, the pending request in Base's vault makes the
+    // request an addition — the form is bound to that chain's vault.
+    cleanup();
+    mocks.walletChainId = 84532;
+    renderTwoChainFlow();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Select base-sepolia' }));
+    });
+    expect(getButton('Add to redemption')).toBeTruthy();
   });
 
   it('keeps the chain selector usable when the selected chain blocks redemptions', async () => {
@@ -823,45 +667,75 @@ describe('RedeemFlow across two chains', () => {
   });
 });
 
-describe('RedeemFlow on a chain without redeem cancellation', () => {
+describe('RedeemFlow with two stablecoins on one chain', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    resetMocks();
-    // The wallet already sits on base-sepolia, so what follows tests the
-    // controls themselves rather than the network-switch gate.
-    mocks.walletChainId = 84532;
+  beforeEach(resetMocks);
+
+  function renderTwoVaultFlow() {
+    return render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY, USDT_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <RedeemFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+  }
+
+  it("opens on the chain's default coin and re-scales the estimate to the chosen payout asset", async () => {
+    renderTwoVaultFlow();
+
+    expect(screen.getByText('Receive in: USDC')).toBeTruthy();
+    fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
+    expect(getInput('Estimated receive').value).toBe('2.14');
+    expect(screen.getByText(/Your final USDC amount/)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(getButton('Receive USDT'));
+    });
+
+    // Same share balance, same chain, no network switch — only the payout changes.
+    expect(screen.getByText('Receive in: USDT')).toBeTruthy();
+    expect(getInput('Estimated receive').value).toBe('2.14');
+    expect(screen.getByText(/Your final USDT amount/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Switch to/ })).toBeNull();
+    expect(getButton('Request redemption').disabled).toBe(false);
   });
 
-  it('renders the pending position without a cancel control', () => {
-    mocks.basePendingShares = 3n * D18;
-    // Not even the whitelist verdict resurrects the control or its hint.
-    mocks.canReceiveShares = false;
+  it('locks the form for a Cancellation Processing in the payout vault only', async () => {
+    mocks.pendingShares = 3n * D18;
+    mocks.hasPendingCancel = true;
+    renderTwoVaultFlow();
 
-    renderFlow(BASE_IDENTITY);
+    // Paying out in USDC, whose vault is mid-unwind: a new request would revert.
+    expect(screen.getByText(/New USDC requests on Ethereum are paused/)).toBeTruthy();
+    expect(getInput('Redeem').disabled).toBe(true);
+    expect(getButton('Cancellation in progress').disabled).toBe(true);
 
-    expect(screen.getByText(/3\.00 zSMB\s+processing/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
-    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
+    await act(async () => {
+      fireEvent.click(getButton('Receive USDT'));
+    });
 
-    // The rest of the tab is untouched: adding to the position stays offered.
-    expect(getButton('Add to redemption')).toBeTruthy();
+    // The USDT vault is untouched, so a request into it stays open, and the
+    // banner about the USDC vault leaves with it.
     expect(getInput('Redeem').disabled).toBe(false);
+    expect(getButton('Request redemption').disabled).toBe(false);
+    expect(screen.queryByText(/requests on Ethereum are paused/)).toBeNull();
   });
 
-  it('keeps returned-shares recovery and the USDC claim ordering data-driven', () => {
-    // A cancellation made outside this dApp still resolves here — hiding the
-    // Returned Shares claim would strand the USDC claim behind an invisible
-    // prerequisite (the vault claims Returned Shares before USDC).
-    mocks.baseReturnedShares = 1n * D18;
-    mocks.baseClaimableAssets = 2_000000n;
+  it('says "Add to redemption" only when the PAYOUT vault already holds a request', async () => {
+    mocks.pendingShares = 3n * D18;
+    renderTwoVaultFlow();
 
-    renderFlow(BASE_IDENTITY);
+    expect(getButton('Add to redemption')).toBeTruthy();
 
-    expect(getButton('Claim USDC').disabled).toBe(true);
-    expect(screen.getByText('Claim your returned zSMB first.')).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(getButton('Receive USDT'));
+    });
 
-    fireEvent.click(getButton('Claim zSMB'));
-    expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 1n * D18 });
+    // The USDT vault has nothing to add to.
+    expect(getButton('Request redemption')).toBeTruthy();
   });
 });
