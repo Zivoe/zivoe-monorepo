@@ -7,6 +7,7 @@ import { type TransactionReceipt } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useTx, { type TxParams } from './useTx';
+import { SIGNING_TIMEOUT_MS } from './useTxLifecycle';
 
 const mocks = vi.hoisted(() => ({
   simulateContract: vi.fn(),
@@ -175,6 +176,30 @@ describe('useTx reset step', () => {
     await waitFor(() => expect(rendered.result.current.isError).toBe(true));
 
     expect(rendered.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('gives up on a signature the wallet never answers, so the mutation settles', async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.writeContract.mockReturnValueOnce(new Promise<never>(() => undefined));
+
+      const rendered = renderTx();
+      await act(async () => rendered.result.current.mutate({ amount: 5n, reset: false }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SIGNING_TIMEOUT_MS);
+      });
+      // The mutation's own state notification is a zero-delay timer too.
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+
+      // A settled mutation is what releases the app-wide write gate; the copy
+      // warns that a late approval in the wallet may still broadcast.
+      expect(rendered.result.current.isError).toBe(true);
+      expect(rendered.result.current.error?.message).toMatch(/wallet did not respond/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('sends only the main transaction when no reset is due', async () => {

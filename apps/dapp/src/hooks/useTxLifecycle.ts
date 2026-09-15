@@ -17,7 +17,7 @@ import {
 } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { type TransactionData, pendingTxCountAtom, transactionAtom } from '@/lib/store';
-import { onTxError, skipTxSettled } from '@/lib/utils';
+import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
 
@@ -114,6 +114,29 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
  * Config every transaction driver shares. The lifecycle consumes all of it
  * except pendingToast, which drivers surface while acquiring the receipt.
  */
+/**
+ * Bounds only the wait for a wallet signature, in both drivers. A request
+ * that never settles (e.g. a dead WalletConnect session) would otherwise hold
+ * the Centrifuge module's signer lock — and, since the lifecycle counts
+ * in-flight writes app-wide, every write control in the app — until reload.
+ * Once a hash exists the chain settles the outcome, so confirmation itself is
+ * never timed out here (viem's receipt wait carries its own bound).
+ */
+export const SIGNING_TIMEOUT_MS = 5 * 60_000;
+
+/**
+ * The timeout means "gave up waiting", not "did not happen": a wallet request
+ * cannot be cancelled, so a late approval may still broadcast — refetch stays
+ * on so balances self-correct, and the copy warns against blindly retrying.
+ */
+export function signingTimedOutError(): AppError {
+  return new AppError({
+    message:
+      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
+    type: 'warning'
+  });
+}
+
 export type TxSharedConfig<TVariables> = {
   /** Analytics choreography for the transaction flow; omit for un-instrumented transactions. */
   analytics?: {

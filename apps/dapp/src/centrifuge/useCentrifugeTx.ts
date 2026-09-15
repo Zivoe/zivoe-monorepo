@@ -13,7 +13,12 @@ import { type NativeCurrency, insufficientNativeFundsError, isInsufficientNative
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
+import useTxLifecycle, {
+  SIGNING_TIMEOUT_MS,
+  type TxSharedConfig,
+  signingTimedOutError,
+  toSentryExtras
+} from '@/hooks/useTxLifecycle';
 
 import { getCentrifugeVault, setTransactionSigner } from './client';
 import { type CentrifugeVaultEntity, type TransactionEntity } from './entities';
@@ -21,15 +26,6 @@ import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSi
 import { type TransactionIdentity } from './types';
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
-
-/**
- * Bounds only the wait for a wallet signature. A request that never settles
- * (e.g. a dead WalletConnect session) would otherwise hold the module-level
- * signer lock until reload, bricking every other flow with "Another
- * transaction is already in progress". Once a hash exists the chain settles
- * the outcome, so confirmation itself is never timed out.
- */
-const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
 type CentrifugeTxContext = { address: Address; centrifugeVault: CentrifugeVaultEntity; publicClient: PublicClient };
 
@@ -177,22 +173,11 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           let confirmed: TransactionReceipt | undefined;
 
           // Armed per signing step; a late timer is a no-op once a hash
-          // arrived, and a settled promise ignores the reject anyway. The
-          // timeout means "gave up waiting", not "did not happen": a wallet
-          // request cannot be cancelled, so a late approval may still
-          // broadcast — refetch stays on so balances self-correct, and the
-          // copy warns against blindly retrying.
+          // arrived, and a settled promise ignores the reject anyway.
           const armSigningTimeout = () => {
             clearTimeout(signingTimeout);
             signingTimeout = setTimeout(() => {
-              if (!txHash)
-                reject(
-                  new AppError({
-                    message:
-                      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
-                    type: 'warning'
-                  })
-                );
+              if (!txHash) reject(signingTimedOutError());
             }, SIGNING_TIMEOUT_MS);
           };
           armSigningTimeout();

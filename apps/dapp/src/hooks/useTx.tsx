@@ -26,7 +26,12 @@ import { chainOfChainId, getViemChain, waitForRpcCatchup } from '@/lib/chains';
 import { insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxContext, type TxSharedConfig } from './useTxLifecycle';
+import useTxLifecycle, {
+  SIGNING_TIMEOUT_MS,
+  type TxContext,
+  type TxSharedConfig,
+  signingTimedOutError
+} from './useTxLifecycle';
 
 // The transaction choreography lives in useTxLifecycle; re-exported here so
 // existing import sites keep working.
@@ -102,6 +107,20 @@ export function parseReceiptEvent<TAbi extends Abi, TEventName extends ContractE
 }
 
 /**
+ * Bounds the wait for the wallet's answer to a write request — the one step
+ * of this driver with no natural end, and the one that would otherwise leave
+ * the lifecycle's in-flight count (so every write control in the app) stuck
+ * behind a wallet that never answers.
+ */
+function withSigningTimeout<T>(request: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(signingTimedOutError()), SIGNING_TIMEOUT_MS);
+  });
+  return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
  * Viem driver for the shared transaction lifecycle in useTxLifecycle:
  * guards -> simulate -> send -> analytics -> pending toast until receipt ->
  * transaction dialog -> query refetches. Everything transaction-specific
@@ -137,7 +156,7 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
   };
 
   const sendTx = async (params: TParams) => {
-    const { err, res: hash } = await handlePromise(writeContract(params));
+    const { err, res: hash } = await handlePromise(withSigningTimeout(writeContract(params)));
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
