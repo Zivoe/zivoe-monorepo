@@ -12,6 +12,7 @@ import { getChainId } from '@/lib/chains';
 
 import { useAccount } from '@/hooks/useAccount';
 
+import { type TransactionIdentity } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
@@ -28,6 +29,21 @@ import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 // the wallet's own chain is shared across tabs.
 const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.selected-chain', undefined);
 
+/**
+ * The tab's deposit asset per chain, as the lowercased Centrifuge-vault
+ * address (unique per chain by catalog lint). Per TAB because the two tabs
+ * ask different questions — what to fund a deposit with, what to be paid out
+ * in — and per CHAIN so a choice on one chain never leaks to another. Raw and
+ * derived-valid at read time, like the chain: a vault no longer live falls
+ * back to the chain's default (first) asset.
+ */
+const selectedAssetAtoms = {
+  deposit: atomWithStorage<Partial<Record<CentrifugeChain, string>>>('zivoe.deposit-asset', {}),
+  redeem: atomWithStorage<Partial<Record<CentrifugeChain, string>>>('zivoe.redeem-asset', {})
+};
+
+export type DepositTab = keyof typeof selectedAssetAtoms;
+
 // Shared across every consumer of the switch mutation (the flows'
 // selection-triggered prompt and SwitchChainButton are separate hook
 // instances): one pending state means the button can never offer another
@@ -39,8 +55,13 @@ const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.se
 // re-render per prompt.
 const pendingSwitchCountAtom = atom(0);
 
-/** The switch mutation and wallet gate — module-private; only written in event handlers. */
-function useChainSwitch() {
+/**
+ * The switch mutation and wallet gate. `isWalletOffChain` answers for ANY
+ * chain — the Requests tab asks it per chain group, since a claim on Base
+ * needs the wallet there whichever chain the selectors show. `switchToChain`
+ * is only written in event handlers.
+ */
+export function useChainSwitch() {
   const { address } = useAccount();
   const { chainId: walletChainId } = useConnection();
   const identities = useZivoeVaultIdentities();
@@ -73,35 +94,57 @@ function useChainSwitch() {
   return { isWalletOffChain, switchToChain };
 }
 
+/** The page's identities grouped by chain, in deployment order — each chain's list is its Centrifuge vaults, default first. */
+export type ChainIdentities = {
+  chain: CentrifugeChain;
+  identities: [TransactionIdentity, ...Array<TransactionIdentity>];
+};
+
+export function groupIdentitiesByChain(
+  identities: ReadonlyArray<TransactionIdentity>
+): [ChainIdentities, ...Array<ChainIdentities>] {
+  const groups: Array<ChainIdentities> = [];
+  for (const identity of identities) {
+    const group = groups.find((candidate) => candidate.chain === identity.centrifugeVault.chain);
+    if (group) group.identities.push(identity);
+    else groups.push({ chain: identity.centrifugeVault.chain, identities: [identity] });
+  }
+  const [first, ...rest] = groups;
+  if (!first) throw new Error('A Zivoe Vault page needs at least one identity.');
+  return [first, ...rest];
+}
+
 /**
- * The selected chain, its resolved identity, and its wallet gate. One shared
+ * The selected chain, its Centrifuge vaults, and its wallet gate. One shared
  * selection serves every consumer — both tabs (which unmount each other) and
  * the double-mounted EarnBox copies — so no two surfaces can disagree, and a
  * selection survives tab switches. Defaults to the first live chain, and the
- * identity comes from the same non-empty list the selection is validated
- * against, so a selected chain without an identity is unrepresentable.
- * With nothing stored, the wallet's connected chain wins when it is live on
- * this page (ground truth on a first visit), then the first live chain.
- * Selecting a chain the wallet is not on prompts the switch immediately; the
- * wallet-facing plumbing itself stays module-internal (SwitchChainButton is
- * the only other consumer), and a refused switch surfaces as a toast rather
- * than a silent no-op.
+ * chain's identities come from the same non-empty list the selection is
+ * validated against, so a selected chain without an identity is
+ * unrepresentable. With nothing stored, the wallet's connected chain wins
+ * when it is live on this page (ground truth on a first visit), then the
+ * first live chain. Selecting a chain the wallet is not on prompts the switch
+ * immediately; the wallet-facing plumbing itself stays module-internal
+ * (SwitchChainButton is the only other consumer), and a refused switch
+ * surfaces as a toast rather than a silent no-op.
  *
- * Gating rule for BOTH flows' chain selectors: lock only on chain-agnostic
- * state (prerequisites still loading, a pending mutation) — never on
- * per-chain verdicts (capacity, whitelist); those are exactly what switching
- * chains escapes.
+ * Gating rule for BOTH flows' selectors: lock only on chain-agnostic state
+ * (prerequisites still loading, a pending mutation) — never on per-chain or
+ * per-vault verdicts (capacity, whitelist); those are exactly what switching
+ * escapes.
  */
 export function useSelectedChain() {
   const identities = useZivoeVaultIdentities();
   const { chainId: walletChainId } = useConnection();
 
+  const chains = groupIdentitiesByChain(identities);
+
   const [storedChain, setStoredChain] = useAtom(selectedChainAtom);
-  const selectedIdentity =
-    identities.find((identity) => identity.centrifugeVault.chain === storedChain) ??
-    identities.find((identity) => getChainId(identity.centrifugeVault.chain) === walletChainId) ??
-    identities[0];
-  const selectedChain = selectedIdentity.centrifugeVault.chain;
+  const selected =
+    chains.find((group) => group.chain === storedChain) ??
+    chains.find((group) => getChainId(group.chain) === walletChainId) ??
+    chains[0];
+  const selectedChain = selected.chain;
 
   const { isWalletOffChain, switchToChain } = useChainSwitch();
 
@@ -114,11 +157,40 @@ export function useSelectedChain() {
 
   return {
     identities,
-    selectedIdentity,
+    chains,
     selectedChain,
+    /** The selected chain's Centrifuge vaults — one per deposit asset, the chain's default first. */
+    chainIdentities: selected.identities,
     setSelectedChain,
     needsChainSwitch
   };
+}
+
+/**
+ * The selected chain narrowed to ONE Centrifuge vault — the identity a tab
+ * transacts against. The chain half is the shared selection above; the asset
+ * half is the tab's own (see selectedAssetAtoms), so the deposit tab's
+ * funding coin and the redeem tab's payout coin are chosen independently.
+ * Selecting an identity selects its chain too (prompting the wallet switch
+ * like setSelectedChain does).
+ */
+export function useSelectedIdentity({ tab }: { tab: DepositTab }) {
+  const selection = useSelectedChain();
+  const { selectedChain, chainIdentities, setSelectedChain } = selection;
+
+  const [storedAssets, setStoredAssets] = useAtom(selectedAssetAtoms[tab]);
+  const storedAsset = storedAssets[selectedChain];
+  const selectedIdentity =
+    chainIdentities.find((identity) => identity.centrifugeVault.address.toLowerCase() === storedAsset) ??
+    chainIdentities[0];
+
+  const setSelectedIdentity = (identity: TransactionIdentity) => {
+    const { chain, address } = identity.centrifugeVault;
+    setStoredAssets((stored) => ({ ...stored, [chain]: address.toLowerCase() }));
+    setSelectedChain(chain);
+  };
+
+  return { ...selection, selectedIdentity, setSelectedIdentity };
 }
 
 /** The one clear step an out-of-place wallet sees in place of every action. */

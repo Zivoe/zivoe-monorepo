@@ -32,7 +32,7 @@ import {
 
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
-import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
+import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
 import { ChainTokenSelector } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -50,7 +50,7 @@ export function DepositFlow() {
     selectedChain,
     setSelectedChain,
     needsChainSwitch
-  } = useSelectedChain();
+  } = useSelectedIdentity({ tab: 'deposit' });
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
