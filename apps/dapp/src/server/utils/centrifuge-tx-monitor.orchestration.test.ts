@@ -339,6 +339,27 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(state.notified.has('0xsc:1:0xnew1:SYNC_DEPOSIT:0xabc')).toBe(true);
   });
 
+  it('reports an event whose deposit asset the catalog cannot place, and still alerts it', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    const unknownAsset = '0x00000000000000000000000000000000000dead0';
+    serveFeed([mkEvent(0, { txHash: '0xodd', assetAddress: unknownAsset }), mkEvent(1000)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    // Alerted without an amount rather than at a guessed scale — and paged,
+    // since a vault the catalog does not know is an operations gap.
+    expect(result).toMatchObject({ eventsSeen: 2, notified: 2 });
+    expect(state.notified.has('0xsc:1:0xodd:SYNC_DEPOSIT:0xabc')).toBe(true);
+    expect(vi.mocked(Sentry.captureException).mock.calls).toContainEqual([
+      expect.objectContaining({ message: expect.stringContaining('deposit asset') }),
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          events: [expect.objectContaining({ chainId: SEPOLIA_CHAIN_ID, assetAddress: unknownAsset })]
+        })
+      })
+    ]);
+  });
+
   it('drops events from a chain this deployment does not serve — they would sit outside the clamp — and keeps chainless rows', async () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     serveFeed([

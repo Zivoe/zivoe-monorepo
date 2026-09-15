@@ -14,7 +14,11 @@ import { monitorCursor, transactionNotified, user, walletConnection } from '@ziv
 import { type Db, db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
 import { BASE_URL } from '@/server/utils/base-url';
-import { formatEmailLine, formatTelegramItem } from '@/server/utils/centrifuge-tx-alert-message';
+import {
+  formatEmailLine,
+  formatTelegramItem,
+  resolveDepositAssetDisplay
+} from '@/server/utils/centrifuge-tx-alert-message';
 import {
   TRANSACTION_RECEIPT_JOB_PATH,
   type TransactionReceiptJobInput,
@@ -414,6 +418,34 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         tags: SENTRY_TAGS,
         extra: { inWindow: events.length, unnotified: unnotified.length, processed: fresh.length }
       });
+
+    // -- An event naming a deposit asset the catalog cannot place on its chain
+    // is alerted and mailed without an amount (never at a guessed scale) —
+    // right for the reader, and an operations gap worth a page: a vault
+    // linked on-chain before its catalog entry, or an asset the indexer
+    // attributes differently. Chainless rows resolve nothing by construction.
+    const unresolvedAssets = fresh.filter(
+      ({ event, shareClassKey }) =>
+        event.chainId !== null &&
+        event.assetAddress !== null &&
+        resolveDepositAssetDisplay({ event, shareClassKey }) === null
+    );
+    if (unresolvedAssets.length > 0)
+      Sentry.captureException(
+        new Error("Centrifuge tx monitor could not resolve an event's deposit asset from the catalog"),
+        {
+          tags: SENTRY_TAGS,
+          extra: {
+            events: unresolvedAssets.map(({ id, event, shareClassKey }) => ({
+              id,
+              shareClassKey,
+              chainId: event.chainId,
+              assetAddress: event.assetAddress
+            })),
+            environment: ACTIVE_ENVIRONMENT
+          }
+        }
+      );
 
     const linkedUsersByAccount = await readLinkedUsersByAccount({
       tx,
