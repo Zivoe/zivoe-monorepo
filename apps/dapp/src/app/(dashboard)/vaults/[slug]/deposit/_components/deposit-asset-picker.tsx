@@ -59,7 +59,7 @@ export function DepositAssetPicker({
         <ChainTokenTriggerContent token={selected.token} chain={selected.chain} variant="token-on-chain" />
       </SelectTrigger>
 
-      <DialogContent dialogClassName="gap-0" className="max-w-210">
+      <DialogContent dialogClassName="gap-0" className="max-w-190">
         {({ close }) => (
           <DepositAssetPickerPanes
             rows={rows}
@@ -109,7 +109,7 @@ function DepositAssetPickerPanes({
       </div>
 
       {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}
-      <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[11rem_1fr]">
+      <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[13.5rem_1fr]">
         <nav aria-label="Networks" className="flex flex-col gap-1 px-2">
           <p className="px-2 pb-1 text-extraSmall font-medium text-tertiary sr-only lg:not-sr-only">Networks</p>
           <NetworkButton
