@@ -386,6 +386,15 @@ function normalizeCentrifugeError({
       capture: false
     });
 
+  // The flow's exact SDK pre-check messages come first: they are known
+  // strings thrown before any wallet interaction, so they outrank the
+  // shape-based funding heuristic below — whose patterns ("insufficient
+  // balance") would otherwise claim the SDK's own share-balance check.
+  if (err instanceof Error && sdkErrorCopy) {
+    const match = Object.entries(sdkErrorCopy).find(([sdkMessage]) => err.message.includes(sdkMessage));
+    if (match) return new AppError({ message: match[1], exception: err });
+  }
+
   // Send-path funding failures the simulation cannot see: the wallet or
   // txpool rejects for gas the eth_call never charged. The node's message is
   // authoritative about the sender, so no balance confirmation is needed here.
@@ -399,11 +408,6 @@ function normalizeCentrifugeError({
       message: 'Your wallet is connected to the wrong network. Switch networks and try again.',
       exception: err
     });
-
-  if (err instanceof Error && sdkErrorCopy) {
-    const match = Object.entries(sdkErrorCopy).find(([sdkMessage]) => err.message.includes(sdkMessage));
-    if (match) return new AppError({ message: match[1], exception: err });
-  }
 
   return err;
 }

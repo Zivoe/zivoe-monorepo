@@ -67,11 +67,13 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
  * provider's fleet into whole blocks of staleness, so the receipt and the
  * refetch straight after it can be answered from different heads (observed
  * live as a stale post-approval allowance). The margin there costs one
- * ~250ms poll, not Base's ~2s. Avalanche, HyperEVM, X Layer and BNB Smart
- * Chain are unlisted on purpose: none serves preconfirmations, their ~1s and
+ * ~250ms poll, not Base's ~2s. Avalanche, HyperEVM, X Layer, BNB Smart Chain
+ * and Monad are unlisted on purpose: none serves preconfirmations, and no
+ * stale read has been observed on any of them — the first four's ~1s and
  * slower blocks leave far less room for replica skew than Arbitrum's ~250ms
- * ones, and no stale read has been observed on any of them — add a margin on
- * evidence, as Arbitrum's was.
+ * ones, and Monad's ~400ms blocks are its one Arbitrum-like exposure, to be
+ * measured before it earns a margin. Add a margin on evidence, as Arbitrum's
+ * was.
  */
 const CATCHUP_CONFIRMATIONS: Partial<Record<CentrifugeChain, number>> = {
   base: 2,

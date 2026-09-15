@@ -1,5 +1,17 @@
 import { type Address, type Chain, defineChain } from 'viem';
-import { arbitrum, avalanche, base, baseSepolia, bsc, hyperEvm, mainnet, optimism, sepolia, xLayer } from 'viem/chains';
+import {
+  arbitrum,
+  avalanche,
+  base,
+  baseSepolia,
+  bsc,
+  hyperEvm,
+  mainnet,
+  monad,
+  optimism,
+  sepolia,
+  xLayer
+} from 'viem/chains';
 
 /**
  * The two axes of a Centrifuge deployment, split on purpose:
@@ -133,6 +145,13 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     viem: bsc,
     environment: 'mainnet',
     alchemyNetwork: 'bnb-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    supportsRedeemCancellation: false
+  },
+  monad: {
+    viem: monad,
+    environment: 'mainnet',
+    alchemyNetwork: 'monad-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     supportsRedeemCancellation: false
   },

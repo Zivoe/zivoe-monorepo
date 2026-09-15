@@ -58,7 +58,8 @@ describe('chain deployments', () => {
       'optimism',
       'hyperliquid',
       'xlayer',
-      'bnb'
+      'bnb',
+      'monad'
     ]);
     expect(chainsOfEnvironment('testnet')).toEqual(['sepolia', 'base-sepolia']);
     expect([...chainsOfEnvironment('mainnet'), ...chainsOfEnvironment('testnet')].sort()).toEqual(
@@ -76,6 +77,7 @@ describe('chain deployments', () => {
     expect(getChainId('hyperliquid')).toBe(999);
     expect(getChainId('xlayer')).toBe(196);
     expect(getChainId('bnb')).toBe(56);
+    expect(getChainId('monad')).toBe(143);
     expect(getChainId('sepolia')).toBe(11155111);
     expect(getChainId('base-sepolia')).toBe(84532);
   });
@@ -160,7 +162,8 @@ describe('share-class catalog', () => {
     ['avalanche', 43114, '0x3CAf4235Eb6d322aB38B0C3a49abD786D1eB4b31', '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'],
     ['optimism', 10, '0x991de0203E455dfC4B8f38F7c333487c16aDdE55', '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'],
     ['hyperliquid', 999, '0x8839273d6e0901Bbb5F674F8C4CDC6f5C1915042', '0xb88339CB7199b77E23DB6E890353E22632Ba630f'],
-    ['xlayer', 196, '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF', '0xB6CEceAB302E2E4948951eE7843FC24E92933061']
+    ['xlayer', 196, '0xde9A47aB87ED1a08B727009AF570381f7B7F6edF', '0xB6CEceAB302E2E4948951eE7843FC24E92933061'],
+    ['monad', 143, '0xF6AB108f90e7fbdf34940685C0Be07acfff091CE', '0x754704Bc059F8C67012fEd69BC8A327a5aafb603']
   ] as const)(
     'resolves the %s mainnet instance — shared token, chain-specific Centrifuge vault and USDC',
     (chain, chainId, centrifugeVaultAddress, usdcAddress) => {

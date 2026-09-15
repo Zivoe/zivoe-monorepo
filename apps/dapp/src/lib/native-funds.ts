@@ -7,13 +7,23 @@ import { AppError } from '@/lib/utils';
  * rejects the call/transaction at the protocol level (no revert data to
  * decode), so these errors are recognized by shape instead: viem's own
  * InsufficientFundsError, geth-style txpool messages ("insufficient funds for
- * gas * price + value"), and reth/Alchemy's eth_call rejection ("EVM error:
- * OutOfFunds").
+ * gas * price + value" — the same string on erigon, op-geth, nitro, coreth,
+ * the BSC fork, nethermind and reth), reth/Alchemy's eth_call rejection ("EVM
+ * error: OutOfFunds"), Besu's up-front-cost rejections and Monad's eth_call
+ * rejection ("insufficient balance", the execution client's own message,
+ * observed live on rpc.monad.xyz under JSON-RPC -32603 — a code viem never
+ * normalizes into InsufficientFundsError, so this list is the only catch).
+ *
+ * The Monad pattern is anchored to the start of a line (or viem's "Details:"
+ * line) on purpose: token contracts revert with strings like "execution
+ * reverted: ERC20: insufficient balance", which must stay a revert, not a
+ * funding prompt.
  */
 const INSUFFICIENT_NATIVE_FUNDS_PATTERNS = [
   /insufficient funds/i,
+  /^(details: )?insufficient balance\b/im,
   /out ?of ?funds/i,
-  /exceeds the balance of the account/i
+  /exceeds (the balance of the account|(transaction sender )?account balance)/i
 ];
 
 export function isInsufficientNativeFundsError(err: unknown): boolean {
@@ -23,7 +33,12 @@ export function isInsufficientNativeFundsError(err: unknown): boolean {
     current = current.cause as Error, depth++
   ) {
     if (current instanceof InsufficientFundsError) return true;
-    if (INSUFFICIENT_NATIVE_FUNDS_PATTERNS.some((pattern) => pattern.test(current.message))) return true;
+    // Wallet providers wrap the node's text as `data.message` under a generic
+    // "Internal JSON-RPC error." message, which viem's Details line does not
+    // carry — so the wrapped text is checked alongside the message itself.
+    const wrapped = (current as { data?: { message?: unknown } }).data?.message;
+    const texts = [current.message, ...(typeof wrapped === 'string' ? [wrapped] : [])];
+    if (INSUFFICIENT_NATIVE_FUNDS_PATTERNS.some((pattern) => texts.some((text) => pattern.test(text)))) return true;
   }
   return false;
 }

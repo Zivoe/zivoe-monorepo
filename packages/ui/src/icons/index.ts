@@ -38,6 +38,7 @@ export * from './optimism';
 export * from './hyperliquid';
 export * from './xlayer';
 export * from './bnb';
+export * from './monad';
 export * from './check-circle';
 export * from './close-circle';
 export * from './warning';

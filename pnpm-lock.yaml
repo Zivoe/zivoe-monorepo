@@ -132,8 +132,8 @@ importers:
   apps/dapp:
     dependencies:
       '@centrifuge/sdk':
-        specifier: 2.1.3
-        version: 2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: 2.4.4
+        version: 2.4.4(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@dynamic-labs/ethereum':
         specifier: 4.92.3
         version: 4.92.3(@dynamic-labs-wallet/primitives@1.0.48)(@types/react@19.0.10)(@upstash/redis@1.37.0)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.34))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.2.5))(utf-8-validate@6.0.6)(viem@2.54.1(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)
@@ -577,8 +577,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@centrifuge/sdk':
-        specifier: 2.1.3
-        version: 2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: 2.4.4
+        version: 2.4.4(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
         version: 5.2.2(prettier@3.8.3)
@@ -1602,8 +1602,8 @@ packages:
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
 
-  '@centrifuge/sdk@2.1.3':
-    resolution: {integrity: sha512-IJTRU+s8rLz3iiFhQQRSLz4dUYUrc+nu7HuDqWUugdcynCrEevdt7A1CyVnoiTp7cxL6S1jvzcEk1oO7YSYMbA==}
+  '@centrifuge/sdk@2.4.4':
+    resolution: {integrity: sha512-04bo84JsRmLokUeATbqSrxZ2DdfCkRakdCZkYuwRE2LEUs3PwexfpC8IPXjUBNHYGEJ8MTyUbnzKrpv3nRmbww==}
     engines: {node: '>=18.18'}
 
   '@coinbase/wallet-sdk@4.3.7':
@@ -12067,7 +12067,7 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@centrifuge/sdk@2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@centrifuge/sdk@2.4.4(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.20.1(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     dependencies:
       '@openzeppelin/merkle-tree': 1.0.8
       decimal.js-light: 2.5.1
@@ -12083,7 +12083,7 @@ snapshots:
       - ws
       - zod
 
-  '@centrifuge/sdk@2.1.3(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@centrifuge/sdk@2.4.4(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     dependencies:
       '@openzeppelin/merkle-tree': 1.0.8
       decimal.js-light: 2.5.1
