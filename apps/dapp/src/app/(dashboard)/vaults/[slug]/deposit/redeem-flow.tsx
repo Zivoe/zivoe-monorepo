@@ -13,7 +13,7 @@ import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBalance } from '@/hooks/useBalance';
+import { useBalance, useTokenBalances } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
@@ -31,7 +31,7 @@ import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
-import { ChainTokenSelector } from './_components/chain-token-selector';
+import { ChainTokenSelector, sortRowsByBalance } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { PayoutAssetSelector } from './_components/payout-asset-selector';
@@ -76,6 +76,13 @@ export default function RedeemFlow() {
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
+  // Every chain's share balance, to order the selector by where the position is.
+  const shareBalanceOf = useTokenBalances(
+    chains.map(({ chain, identities: [chainIdentity] }) => ({
+      chain,
+      tokenAddress: chainIdentity.centrifugeVault.shareClass.shareTokenAddress
+    }))
+  );
   // The PAYOUT vault's position: it decides whether a new request adds to one
   // and whether the form is locked. The Requests tab reads every vault's.
   const position = useRedemptionPosition({ centrifugeVault });
@@ -269,12 +276,16 @@ export default function RedeemFlow() {
                     // shows that chain's redeemable share balance — the position
                     // the user came here to redeem, and the one signal that
                     // tells them which chain actually holds it.
-                    rows={chains.map(({ chain, identities: [chainIdentity] }) => ({
-                      id: chain,
-                      chain,
-                      token: shareSelectorToken,
-                      detail: <ChainBalanceDetail identity={chainIdentity} token="share" />
-                    }))}
+                    rows={sortRowsByBalance(
+                      chains.map(({ chain, identities: [chainIdentity] }) => ({
+                        id: chain,
+                        chain,
+                        token: shareSelectorToken,
+                        detail: <ChainBalanceDetail identity={chainIdentity} token="share" />,
+                        shareTokenAddress: chainIdentity.centrifugeVault.shareClass.shareTokenAddress
+                      })),
+                      ({ chain, shareTokenAddress }) => shareBalanceOf({ chain, tokenAddress: shareTokenAddress })
+                    )}
                     selectedId={selectedChain}
                     onSelect={(id) => {
                       const next = chains.find((candidate) => candidate.chain === id);

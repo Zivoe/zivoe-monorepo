@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type ChainSelectorRow, ChainTokenSelector } from './chain-token-selector';
+import { type ChainSelectorRow, ChainTokenSelector, sortRowsByBalance } from './chain-token-selector';
 
 // Real @zivoe/ui primitives on purpose — the flow suites stub this control.
 // Only the icon barrel is mocked (raw UI TSX icons do not transform here).
@@ -114,5 +114,37 @@ describe('ChainTokenSelector', () => {
       fireEvent.click(options[1]!);
     });
     expect(onSelect).toHaveBeenCalledWith('base-sepolia');
+  });
+});
+
+describe('sortRowsByBalance', () => {
+  const rows: Array<ChainSelectorRow> = [
+    { id: 'sepolia-usdc', chain: 'sepolia', token: usdc },
+    { id: 'sepolia-usdt', chain: 'sepolia', token: usdt },
+    { id: 'base-usdc', chain: 'base-sepolia', token: usdc }
+  ];
+  const ids = (sorted: Array<ChainSelectorRow>) => sorted.map((row) => row.id);
+
+  it('orders chains by their largest balance and coins within a chain by their own, keeping a chain together', () => {
+    const balances: Record<string, bigint | undefined> = { 'sepolia-usdc': 10n, 'sepolia-usdt': 40n, 'base-usdc': 25n };
+    expect(ids(sortRowsByBalance(rows, (row) => balances[row.id]))).toEqual([
+      'sepolia-usdt',
+      'sepolia-usdc',
+      'base-usdc'
+    ]);
+
+    balances['sepolia-usdt'] = 5n;
+    expect(ids(sortRowsByBalance(rows, (row) => balances[row.id]))).toEqual([
+      'base-usdc',
+      'sepolia-usdc',
+      'sepolia-usdt'
+    ]);
+  });
+
+  it('keeps the catalog order for ties, zeros and unknown balances', () => {
+    expect(ids(sortRowsByBalance(rows, () => undefined))).toEqual(ids(rows));
+    expect(ids(sortRowsByBalance(rows, () => 0n))).toEqual(ids(rows));
+    // An unknown balance never outranks a known zero, nor the other way round.
+    expect(ids(sortRowsByBalance(rows, (row) => (row.id === 'base-usdc' ? 0n : undefined)))).toEqual(ids(rows));
   });
 });

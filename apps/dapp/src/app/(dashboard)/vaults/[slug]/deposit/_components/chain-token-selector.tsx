@@ -95,11 +95,33 @@ export type ChainSelectorRow = {
   detail?: ReactNode;
 };
 
-/** Rows grouped under their chain, in row order — the deposit picker's network list. */
-export function groupRowsByChain(
-  rows: Array<ChainSelectorRow>
-): Array<{ chain: CentrifugeChain; rows: Array<ChainSelectorRow> }> {
-  const groups: Array<{ chain: CentrifugeChain; rows: Array<ChainSelectorRow> }> = [];
+/**
+ * Rows ordered by where the wallet's money is: chains by their largest known
+ * balance, coins within a chain by their own, largest first — so the row the
+ * user most likely wants is at the top, and a chain's coins stay together.
+ * Unknown balances (no wallet, still loading) count as nothing to sort by,
+ * and ties keep the catalog's product order, so a wallet holding nothing sees
+ * exactly the catalog order. Pure: the flows feed it the balances they read.
+ */
+export function sortRowsByBalance<TRow extends ChainSelectorRow>(
+  rows: Array<TRow>,
+  balanceOf: (row: TRow) => bigint | undefined
+): Array<TRow> {
+  const groups = groupRowsByChain(rows);
+  const known = (row: TRow) => balanceOf(row) ?? 0n;
+  const descending = (a: bigint, b: bigint) => (a === b ? 0 : a > b ? -1 : 1);
+
+  return groups
+    .map((group) => ({ ...group, max: group.rows.reduce((max, row) => (known(row) > max ? known(row) : max), 0n) }))
+    .sort((a, b) => descending(a.max, b.max))
+    .flatMap((group) => [...group.rows].sort((a, b) => descending(known(a), known(b))));
+}
+
+/** Rows grouped under their chain, in row order — the deposit picker's network list and the balance ordering share it. */
+export function groupRowsByChain<TRow extends ChainSelectorRow>(
+  rows: Array<TRow>
+): Array<{ chain: CentrifugeChain; rows: Array<TRow> }> {
+  const groups: Array<{ chain: CentrifugeChain; rows: Array<TRow> }> = [];
   for (const row of rows) {
     const group = groups.find((candidate) => candidate.chain === row.chain);
     if (group) group.rows.push(row);

@@ -15,7 +15,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { useAccount } from '@/hooks/useAccount';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
 import { useApproveSpending } from '@/hooks/useApproveSpending';
-import { useBalance } from '@/hooks/useBalance';
+import { useBalance, useTokenBalances } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -33,6 +33,7 @@ import {
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
+import { sortRowsByBalance } from './_components/chain-token-selector';
 import { DepositAssetPicker } from './_components/deposit-asset-picker';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
@@ -65,6 +66,13 @@ export function DepositFlow() {
 
   const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
+  // Every vault's deposit asset, to order the selector by where the money is.
+  const depositAssetBalanceOf = useTokenBalances(
+    identities.map(({ centrifugeVault }) => ({
+      chain: centrifugeVault.chain,
+      tokenAddress: centrifugeVault.asset.address
+    }))
+  );
   const allowance = useAllowance({ chain: selectedChain, contract: asset.address, spender: vaultRouterAddress });
   const capacity = useCentrifugeVaultCapacity({ centrifugeVault });
   const access = useInvestorAccess({ centrifugeVault });
@@ -263,15 +271,23 @@ export function DepositFlow() {
                     // wallet's balance of THAT coin. The display entry may be
                     // missing for the fixture assets tests hand in, so a row
                     // falls back to the bare symbol without an icon.
-                    rows={identities.map((rowIdentity) => ({
-                      id: rowIdentity.centrifugeVault.address.toLowerCase(),
-                      chain: rowIdentity.centrifugeVault.chain,
-                      token: getTokenInfo(rowIdentity.centrifugeVault.asset.symbol) ?? {
-                        label: rowIdentity.centrifugeVault.asset.symbol,
-                        icon: null
-                      },
-                      detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />
-                    }))}
+                    rows={sortRowsByBalance(
+                      identities.map((rowIdentity) => ({
+                        id: rowIdentity.centrifugeVault.address.toLowerCase(),
+                        chain: rowIdentity.centrifugeVault.chain,
+                        token: getTokenInfo(rowIdentity.centrifugeVault.asset.symbol) ?? {
+                          label: rowIdentity.centrifugeVault.asset.symbol,
+                          icon: null
+                        },
+                        detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />,
+                        identity: rowIdentity
+                      })),
+                      ({ identity: { centrifugeVault } }) =>
+                        depositAssetBalanceOf({
+                          chain: centrifugeVault.chain,
+                          tokenAddress: centrifugeVault.asset.address
+                        })
+                    )}
                     selectedId={centrifugeVault.address.toLowerCase()}
                     onSelect={(id) => {
                       const next = identities.find(

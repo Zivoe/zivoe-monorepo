@@ -119,19 +119,23 @@ vi.mock('@/hooks/useAllowance', () => ({
 vi.mock('@/hooks/useApproveSpending', () => ({
   useApproveSpending: () => ({ isPending: false, isTxPending: false, mutate: mocks.approve })
 }));
+const balanceOf = vi.hoisted(
+  () => (tokenAddress: string) =>
+    tokenAddress === USDC_ADDRESS
+      ? mocks.usdcBalance
+      : tokenAddress === BASE_USDC_ADDRESS
+        ? mocks.baseUsdcBalance
+        : tokenAddress === USDT_ADDRESS
+          ? mocks.usdtBalance
+          : 0n
+);
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data:
-      tokenAddress === USDC_ADDRESS
-        ? mocks.usdcBalance
-        : tokenAddress === BASE_USDC_ADDRESS
-          ? mocks.baseUsdcBalance
-          : tokenAddress === USDT_ADDRESS
-            ? mocks.usdtBalance
-            : 0n,
+    data: balanceOf(tokenAddress),
     isFetching: false,
     isPending: false
-  })
+  }),
+  useTokenBalances: () => (token: { tokenAddress: string }) => balanceOf(token.tokenAddress)
 }));
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => ({ isFetching: false }) }));
 vi.mock('@/hooks/useDebouncedValue', () => ({
@@ -574,6 +578,16 @@ describe('DepositFlow across two chains', () => {
     expect(screen.getByText('3.00')).toBeTruthy();
   });
 
+  it('lists the chain holding more of the coin first, and keeps the selection where it was', () => {
+    mocks.baseUsdcBalance = 30_000000n;
+    renderTwoChainFlow();
+
+    const rows = screen.getAllByText(/USDC on /).map((row) => row.textContent);
+    expect(rows).toEqual(['USDC on Base', 'USDC on Ethereum']);
+    // Ordering is presentation: the default selection is still the catalog's first vault.
+    expect(screen.getAllByRole('button', { name: 'USDC Ethereum' }).length).toBeGreaterThan(0);
+  });
+
   it('swaps the action for a network switch when the wallet sits on another chain than the selected one', async () => {
     renderTwoChainFlow();
 
@@ -661,6 +675,16 @@ describe('DepositFlow with two stablecoins on one chain', () => {
     expect(screen.getByText('USDT on Ethereum')).toBeTruthy();
     expect(screen.getByText('10.00')).toBeTruthy();
     expect(screen.getByText('7.00')).toBeTruthy();
+  });
+
+  it('orders the coins within the chain by balance, largest first', () => {
+    mocks.usdtBalance = 20_000000n;
+    renderTwoAssetFlow();
+
+    expect(screen.getAllByText(/ on Ethereum/).map((row) => row.textContent)).toEqual([
+      'USDT on Ethereum',
+      'USDC on Ethereum'
+    ]);
   });
 
   it("opens on the chain's default (first) coin and needs no network switch to change coin", async () => {

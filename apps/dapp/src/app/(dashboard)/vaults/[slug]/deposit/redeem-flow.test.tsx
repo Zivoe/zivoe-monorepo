@@ -10,6 +10,7 @@ import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
 import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
+import type * as ChainTokenSelectorModule from './_components/chain-token-selector';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import RedeemFlow from './redeem-flow';
 
@@ -145,7 +146,9 @@ vi.mock('wagmi', () => ({
 // dialog/select scaffolding. isDisabled must reach the row buttons: it is
 // how this suite asserts the flow's selector gating (chain-agnostic locks
 // only, never per-chain verdicts).
-vi.mock('./_components/chain-token-selector', () => ({
+vi.mock('./_components/chain-token-selector', async (importOriginal) => ({
+  // The pure row ordering stays real: it is what the balance-order assertions exercise.
+  ...(await importOriginal<typeof ChainTokenSelectorModule>()),
   ChainTokenSelector: ({
     rows,
     onSelect,
@@ -228,17 +231,21 @@ vi.mock('@/hooks/useCurrentShareMetrics', () => ({
 vi.mock('@/hooks/useAccount', () => ({
   useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
 }));
+const balanceOf = vi.hoisted(
+  () => (tokenAddress: string) =>
+    tokenAddress === ZSMB_ADDRESS
+      ? mocks.zSmbBalance
+      : tokenAddress === BASE_SHARE_ADDRESS
+        ? mocks.baseShareBalance
+        : 0n
+);
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data:
-      tokenAddress === ZSMB_ADDRESS
-        ? mocks.zSmbBalance
-        : tokenAddress === BASE_SHARE_ADDRESS
-          ? mocks.baseShareBalance
-          : 0n,
+    data: balanceOf(tokenAddress),
     isFetching: false,
     isPending: false
-  })
+  }),
+  useTokenBalances: () => (token: { tokenAddress: string }) => balanceOf(token.tokenAddress)
 }));
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => ({ isFetching: false }) }));
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
@@ -608,14 +615,19 @@ describe('RedeemFlow across two chains', () => {
     expect(getInput('Redeem').value).toBe('10');
   });
 
-  it("lists each chain's own share balance in the selector rows", () => {
+  it("lists each chain's own share balance in the selector rows, the larger holding first", () => {
     mocks.baseShareBalance = 25n * D18;
     renderTwoChainFlow();
 
     // Row details read each chain's own share-token instance — the one
-    // signal that tells the user which chain actually holds their position.
+    // signal that tells the user which chain actually holds their position —
+    // and the chain holding more comes first.
     expect(screen.getByText('10.00')).toBeTruthy();
     expect(screen.getByText('25.00')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^Select / }).map((row) => row.textContent)).toEqual([
+      'Select base-sepolia',
+      'Select sepolia'
+    ]);
   });
 
   it("selecting another chain binds the form to that chain's vault and gates the request behind the switch", async () => {
