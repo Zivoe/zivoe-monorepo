@@ -50,9 +50,14 @@ export default function RequestsFlow() {
 
   // From lg the Earn box is sticky, so the list is capped and scrolls inside;
   // below lg the Earn dialog scrolls as a whole, and a second scroller would
-  // hide rows behind an invisible touch scrollbar.
+  // hide rows behind an invisible touch scrollbar. The cap follows the
+  // viewport: the sticky box's chrome plus a fixed 480px list outgrew a
+  // laptop's 650px of inner height, hiding the list's end and its scrollbar.
   return (
-    <ScrollArea className="-mr-2 lg:max-h-120" viewportClassName="lg:max-h-120">
+    <ScrollArea
+      className="-mr-2 lg:max-h-[min(30rem,calc(100dvh-16rem))]"
+      viewportClassName="lg:max-h-[min(30rem,calc(100dvh-16rem))]"
+    >
       <div className="flex flex-col gap-2 pr-2">
         {chains.map((group) => (
           <RequestsChainGroup key={group.chain} group={group} />
