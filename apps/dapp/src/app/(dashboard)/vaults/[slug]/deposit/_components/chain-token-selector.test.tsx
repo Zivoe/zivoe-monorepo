@@ -53,6 +53,17 @@ describe('ChainTokenSelector', () => {
     expect(within(dialog).getByText('zSMB on Ethereum')).toBeTruthy();
     expect(within(dialog).getByText('zSMB on Base')).toBeTruthy();
     expect(within(dialog).getByText('Balance: 25.00')).toBeTruthy();
+    // The current choice is named as such; the hover fill alone cannot tell it apart.
+    expect(
+      within(dialog)
+        .getByRole('button', { name: /zSMB on Ethereum/ })
+        .getAttribute('aria-current')
+    ).toBe('true');
+    expect(
+      within(dialog)
+        .getByRole('button', { name: /zSMB on Base/ })
+        .getAttribute('aria-current')
+    ).toBeNull();
 
     await act(async () => {
       fireEvent.click(within(dialog).getByText('zSMB on Base'));

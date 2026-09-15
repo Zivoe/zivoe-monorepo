@@ -153,9 +153,12 @@ export function TokenSelectorDialogRow({
   return (
     <Aria.Button
       onPress={onPress}
+      // Named as the current choice, and drawn apart from a hovered row (both
+      // share the elevated fill) by an inset ring.
+      aria-current={isSelected ? 'true' : undefined}
       className={cn(
         'flex cursor-pointer items-center gap-2 rounded-md px-2 py-3 outline-hidden hover:bg-surface-elevated focus:outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0 focus-visible:outline-hidden',
-        isSelected && 'bg-surface-elevated'
+        isSelected && 'bg-surface-elevated inset-ring-1 inset-ring-default'
       )}
     >
       <ChainBadgedTokenIcon chain={row.chain} icon={row.token.icon} className="size-8 shrink-0" />
