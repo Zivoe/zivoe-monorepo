@@ -53,6 +53,7 @@ const mocks = vi.hoisted(() => ({
   accessIsError: false,
   restriction: 'none',
   approve: vi.fn(),
+  approveIsResetPending: false,
   capacity: 5_000000n,
   baseCapacity: 5_000000n,
   capacityIsError: false,
@@ -124,7 +125,12 @@ vi.mock('@/hooks/useAllowance', () => ({
   })
 }));
 vi.mock('@/hooks/useApproveSpending', () => ({
-  useApproveSpending: () => ({ isPending: false, isTxPending: false, mutate: mocks.approve })
+  useApproveSpending: () => ({
+    isPending: mocks.approveIsResetPending,
+    isTxPending: mocks.approveIsResetPending,
+    isResetPending: mocks.approveIsResetPending,
+    mutate: mocks.approve
+  })
 }));
 const balanceOf = vi.hoisted(
   () => (tokenAddress: string) =>
@@ -298,6 +304,7 @@ function resetMocks() {
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
   mocks.allowanceIsError = false;
+  mocks.approveIsResetPending = false;
   mocks.accessIsAllowed = true;
   mocks.accessIsError = false;
   mocks.restriction = 'none';
@@ -437,6 +444,19 @@ describe('DepositFlow', () => {
 
     await press('Retry');
     expect(mocks.refetchAllowance).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the allowance reset while it runs, before the approve is offered', async () => {
+    // The toast already says "Resetting USDC approval..."; the button must not
+    // contradict it with "Approving USDC..." for a prompt the wallet has not
+    // seen yet.
+    mocks.approveIsResetPending = true;
+
+    renderFlow();
+    await act(async () => enterAmount('7'));
+
+    expect(screen.getByRole('button', { name: 'Resetting USDC approval...' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approving USDC...' })).toBeNull();
   });
 
   it('names no Retry while the wallet must switch chains first', async () => {

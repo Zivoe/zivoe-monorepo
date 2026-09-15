@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import * as Sentry from '@sentry/nextjs';
 import { toast as sonnerToast } from 'sonner';
 import {
@@ -202,25 +204,36 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     return receipt;
   };
 
-  return useTxLifecycle({
+  // True from the reset's wallet prompt to its receipt — the one stretch of
+  // the mutation where the pending toast names a reset, so the control that
+  // started it can say the same instead of "Approving…" for a transaction
+  // the wallet has not been offered yet.
+  const [isResetPending, setIsResetPending] = useState(false);
+
+  const lifecycle = useTxLifecycle({
     ...config,
     prepare: config.buildParams,
 
     send: async (vars, params, { address, choreography, capture, onTxHash, setIsTxPending }) => {
       const resetParams = config.reset?.buildParams(vars);
       if (config.reset && resetParams) {
-        await simulateTx(resetParams, address);
-        const resetHash = await sendTx(resetParams);
-        // Mirrored so a failure between here and the main send points Sentry
-        // at the reset; the main hash replaces it below.
-        onTxHash(resetHash);
-        const resetReceipt = await waitForTxReceipt({
-          params: resetParams,
-          hash: resetHash,
-          pendingMessage: config.reset.pendingToast(vars),
-          setIsTxPending
-        });
-        if (resetReceipt.status !== 'success') throw new AppError({ message: 'Allowance reset reverted on-chain' });
+        setIsResetPending(true);
+        try {
+          await simulateTx(resetParams, address);
+          const resetHash = await sendTx(resetParams);
+          // Mirrored so a failure between here and the main send points Sentry
+          // at the reset; the main hash replaces it below.
+          onTxHash(resetHash);
+          const resetReceipt = await waitForTxReceipt({
+            params: resetParams,
+            hash: resetHash,
+            pendingMessage: config.reset.pendingToast(vars),
+            setIsTxPending
+          });
+          if (resetReceipt.status !== 'success') throw new AppError({ message: 'Allowance reset reverted on-chain' });
+        } finally {
+          setIsResetPending(false);
+        }
       }
 
       await simulateTx(params, address);
@@ -232,4 +245,6 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
       return waitForTxReceipt({ params, hash, pendingMessage: config.pendingToast(vars), setIsTxPending });
     }
   });
+
+  return { ...lifecycle, isResetPending };
 }

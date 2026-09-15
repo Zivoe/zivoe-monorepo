@@ -121,6 +121,27 @@ describe('useTx reset step', () => {
     expect(mocks.simulateContract.mock.invocationCallOrder[1]).toBeGreaterThan(resetReceiptOrder ?? Infinity);
   });
 
+  it('reports the reset as pending only from its prompt to its receipt', async () => {
+    let confirmReset: (() => void) | undefined;
+    mocks.writeContract.mockResolvedValueOnce('0xreset').mockResolvedValueOnce('0xmain');
+    mocks.waitForTransactionReceipt.mockImplementation(({ hash }: { hash: string }) =>
+      hash === '0xreset'
+        ? new Promise<TransactionReceipt>((resolve) => {
+            confirmReset = () => resolve(receipt('0xreset'));
+          })
+        : Promise.resolve(receipt(hash))
+    );
+
+    const rendered = renderTx();
+    expect(rendered.result.current.isResetPending).toBe(false);
+    await act(async () => rendered.result.current.mutate({ amount: 5n, reset: true }));
+    await waitFor(() => expect(rendered.result.current.isResetPending).toBe(true));
+
+    await act(async () => confirmReset?.());
+    await waitFor(() => expect(rendered.result.current.isSuccess).toBe(true));
+    expect(rendered.result.current.isResetPending).toBe(false);
+  });
+
   it('stops before the main transaction when the reset reverts', async () => {
     mocks.writeContract.mockResolvedValueOnce('0xreset');
     mocks.waitForTransactionReceipt.mockResolvedValueOnce(receipt('0xreset', 'reverted'));

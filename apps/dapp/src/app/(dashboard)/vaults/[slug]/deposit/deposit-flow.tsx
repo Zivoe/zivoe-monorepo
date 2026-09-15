@@ -344,13 +344,18 @@ export function DepositFlow() {
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
-                  : approveSpending.isTxPending
-                    ? `Approving ${asset.symbol}...`
-                    : approveSpending.isPending
-                      ? 'Signing Transaction...'
-                      : isOtherWritePending
-                        ? OTHER_WRITE_PENDING_LABEL
-                        : undefined
+                  : // A legacy token's allowance reset runs first, under its own
+                    // toast; the button says the same until the real approve is
+                    // offered to the wallet.
+                    approveSpending.isResetPending
+                    ? `Resetting ${asset.symbol} approval...`
+                    : approveSpending.isTxPending
+                      ? `Approving ${asset.symbol}...`
+                      : approveSpending.isPending
+                        ? 'Signing Transaction...'
+                        : isOtherWritePending
+                          ? OTHER_WRITE_PENDING_LABEL
+                          : undefined
               }
             >
               Approve
