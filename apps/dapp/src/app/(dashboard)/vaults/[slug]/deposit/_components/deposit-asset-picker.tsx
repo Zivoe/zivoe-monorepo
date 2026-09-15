@@ -134,7 +134,10 @@ function DepositAssetPickerPanes({
           ))}
         </nav>
 
-        <div className="flex min-h-80 flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+        {/* min-w-0: a grid child's minimum is its content's, and the search
+            input's intrinsic width would otherwise push the pane past the
+            dialog's edge at phone widths. */}
+        <div className="flex min-h-80 min-w-0 flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
           <Input
             variant="search"
             groupClassName="h-12"
