@@ -19,15 +19,26 @@ import {
  * USDC is 18. The lint bounds the scale to the protocol's ceiling and `pnpm
  * centrifuge:verify` checks all three against what the vault reports.
  */
-export type DepositAsset = { address: Address; symbol: string; decimals: number };
+export type DepositAsset = {
+  address: Address;
+  symbol: string;
+  decimals: number;
+  /**
+   * `legacy` marks a token whose `approve` refuses to move a non-zero
+   * allowance to another non-zero value (Ethereum-mainnet USDT): the approve
+   * step resets the allowance to zero first when it is not already. Absent
+   * for every standard ERC-20.
+   */
+  approval?: 'legacy';
+};
 
 /**
  * One Centrifuge vault: the share class instantiated on one chain for one
  * deposit asset. A class accepting a second stablecoin on a chain is a second
  * entry in that chain's `centrifugeVaults` list — not a second chain entry,
  * and not new code. Before adding one, read docs/runbooks/add-deposit-asset.md:
- * some stablecoins (Ethereum-mainnet USDT) are not standard ERC-20s and need
- * approval handling the flows do not have yet.
+ * a token that is not a standard ERC-20 (Ethereum-mainnet USDT) must carry its
+ * `approval` mode, or the approve step will fail on it.
  */
 export type CentrifugeVaultDeployment = {
   address: Address;
