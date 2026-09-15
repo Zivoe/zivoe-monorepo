@@ -152,7 +152,16 @@ function DepositAssetPickerPanes({
       </div>
 
       <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[13.5rem_1fr]">
-        <div className="flex flex-col gap-1 px-2">
+        {/* The rail sets the dialog's height (the coins pane is absolutely
+            positioned in its cell), so it is capped to the visual viewport and
+            scrolls itself: ten chains plus "All networks" outgrow a phone, and
+            an uncapped rail would scroll the whole modal, search box included.
+            The 1px inset keeps a button's focus ring inside the scroll box. */}
+        <div
+          className={nativeScrollAreaStyles({
+            className: 'flex max-h-[calc(var(--visual-viewport-height)-8.5rem)] min-h-0 flex-col gap-1 px-2 py-px'
+          })}
+        >
           {/* not-sr-only resets padding, so the inset must ride the lg variant. */}
           <p
             id={networksHeadingId}
