@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } fr
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger } from '@zivoe/ui/core/select';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { getTokenInfo } from '@/components/token-info';
+
+import { type TransactionIdentity } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 /** The token a selector row offers — a deposit asset, or the share token on the redeem tab's chain selector. */
@@ -18,6 +21,20 @@ export type ChainSelectorToken = {
   description?: string;
   icon: ReactNode;
 };
+
+/**
+ * The display entry a selector shows for a symbol, falling back to the bare
+ * symbol without an icon — the fixture classes and assets tests hand in have
+ * no entry, and a catalog symbol missing its entry fails the build anyway.
+ */
+export function selectorTokenOf(symbol: string): ChainSelectorToken {
+  return getTokenInfo(symbol) ?? { label: symbol, icon: null };
+}
+
+/** A Centrifuge vault's row key: its lowercased address — unique per chain by catalog lint, and the shape the asset memory stores. */
+export function identityRowId(identity: TransactionIdentity): string {
+  return identity.centrifugeVault.address.toLowerCase();
+}
 
 /** "USDC on Ethereum" / "zSMB on Base"-style row label — the selectors' shared vocabulary. */
 export function tokenOnChainLabel(token: ChainSelectorToken, chain: CentrifugeChain): string {

@@ -1,25 +1,50 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ChainSelectorRow } from './chain-token-selector';
+import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
+
 import { DepositAssetPicker } from './deposit-asset-picker';
 
 // Real @zivoe/ui primitives on purpose: the two-pane dialog is what this proves.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
+vi.mock('@/hooks/useAccount', () => ({
+  useAccount: () => ({ isPending: false, isDisconnected: false, address: '0x1234567890abcdef1234567890abcdef12345678' })
+}));
 
-const usdc = { label: 'USDC', description: 'US Dollar Coin', icon: null };
-const usdt = { label: 'USDT', description: 'Tether USD', icon: null };
+// The wallet's balance of each coin on each chain — the picker reads these,
+// prints them on the rows and orders the rows by them.
+const balances = vi.hoisted(() => new Map<string, bigint>());
+const balanceKey = (chain: string, tokenAddress: string) => `${chain}:${tokenAddress.toLowerCase()}`;
+vi.mock('@/hooks/useBalance', () => ({
+  useBalance: ({ chain, tokenAddress }: { chain: string; tokenAddress: string }) => ({
+    data: balances.get(`${chain}:${tokenAddress.toLowerCase()}`),
+    isFetching: false,
+    isPending: false
+  }),
+  useTokenBalances: () => (token: { chain: string; tokenAddress: string }) =>
+    balances.get(`${token.chain}:${token.tokenAddress.toLowerCase()}`)
+}));
 
 /** Two coins on sepolia, one on base-sepolia — the grouped-and-flat mix the picker must handle. */
-const ROWS: Array<ChainSelectorRow> = [
-  { id: 'sepolia-usdc', chain: 'sepolia', token: usdc, detail: <span>Balance: 10.00</span> },
-  { id: 'sepolia-usdt', chain: 'sepolia', token: usdt, detail: <span>Balance: 7.00</span> },
-  { id: 'base-usdc', chain: 'base-sepolia', token: usdc, detail: <span>Balance: 3.00</span> }
-];
+const USDC_SEPOLIA = identityOnChain(FIXTURE_IDENTITY, 'sepolia');
+// An 18-decimal coin beside 6-decimal ones: raw balances are not comparable.
+const USDT_SEPOLIA = identityOnChain(FIXTURE_IDENTITY, 'sepolia', {
+  address: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3',
+  asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 18 }
+});
+const USDC_BASE = identityOnChain(FIXTURE_IDENTITY, 'base-sepolia', {
+  address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3'
+});
+const IDENTITIES = [USDC_SEPOLIA, USDT_SEPOLIA, USDC_BASE];
+
+function setBalance(identity: typeof FIXTURE_IDENTITY, value: bigint) {
+  const { chain, asset } = identity.centrifugeVault;
+  balances.set(balanceKey(chain, asset.address), value);
+}
 
 function renderPicker(onSelect = vi.fn()) {
-  render(<DepositAssetPicker rows={ROWS} selectedId="sepolia-usdc" onSelect={onSelect} isDisabled={false} />);
+  render(<DepositAssetPicker identities={IDENTITIES} selected={USDC_SEPOLIA} onSelect={onSelect} isDisabled={false} />);
   return onSelect;
 }
 
@@ -30,6 +55,20 @@ async function openDialog() {
   });
   return screen.getByRole('dialog');
 }
+
+/** The coin rows in the order the dialog lists them. */
+function listedRows(dialog: HTMLElement) {
+  return within(dialog)
+    .getAllByText(/^(USDC|USDT)( on \w+)?$/)
+    .map((row) => row.textContent);
+}
+
+beforeEach(() => {
+  balances.clear();
+  setBalance(USDC_SEPOLIA, 10_000000n);
+  setBalance(USDT_SEPOLIA, 7_000000000000000000n);
+  setBalance(USDC_BASE, 3_000000n);
+});
 
 afterEach(cleanup);
 
@@ -46,13 +85,22 @@ describe('DepositAssetPicker', () => {
     expect(within(networks).getByRole('radio', { name: 'Base 1', checked: false })).toBeTruthy();
 
     // Across all networks each row names its chain, with the wallet's balance of that coin there.
-    expect(within(dialog).getByText('USDC on Ethereum')).toBeTruthy();
-    expect(within(dialog).getByText('USDT on Ethereum')).toBeTruthy();
-    expect(within(dialog).getByText('USDC on Base')).toBeTruthy();
-    expect(within(dialog).getByText('Balance: 3.00')).toBeTruthy();
+    expect(listedRows(dialog)).toEqual(['USDC on Ethereum', 'USDT on Ethereum', 'USDC on Base']);
+    // The balance row prints its number in its own element.
+    expect(within(dialog).getByText('3.00').closest('p')?.textContent).toBe('Balance: 3.00');
   });
 
-  it('filters to one network, whose rows then name the coin alone', async () => {
+  it('orders the rows by where the money is, compared at one scale across decimals', async () => {
+    // Base holds the most, so its coin comes first; on sepolia the 18-decimal
+    // USDT's raw balance dwarfs USDC's, yet 7 < 10 once both are at one scale.
+    setBalance(USDC_BASE, 30_000000n);
+    renderPicker();
+    const dialog = await openDialog();
+
+    expect(listedRows(dialog)).toEqual(['USDC on Base', 'USDC on Ethereum', 'USDT on Ethereum']);
+  });
+
+  it('filters to one network, whose rows then name the coin alone, and hands back the chosen vault', async () => {
     const onSelect = renderPicker();
     const dialog = await openDialog();
 
@@ -68,7 +116,7 @@ describe('DepositAssetPicker', () => {
     await act(async () => {
       fireEvent.click(row);
     });
-    expect(onSelect).toHaveBeenCalledWith('base-usdc');
+    expect(onSelect).toHaveBeenCalledWith(USDC_BASE);
   });
 
   it('searches the coin, never the network', async () => {
@@ -76,7 +124,7 @@ describe('DepositAssetPicker', () => {
     const dialog = await openDialog();
     const search = within(dialog).getByRole('searchbox', { name: 'Search a token' });
 
-    fireEvent.change(search, { target: { value: 'tether' } });
+    fireEvent.change(search, { target: { value: 'usdt' } });
     expect(within(dialog).getByText('USDT on Ethereum')).toBeTruthy();
     expect(within(dialog).queryByText('USDC on Ethereum')).toBeNull();
 

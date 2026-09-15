@@ -13,13 +13,12 @@ import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useBalance, useTokenBalances } from '@/hooks/useBalance';
+import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 import { useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
-import { getTokenInfo } from '@/components/token-info';
 
 import {
   sharesToDepositAsset,
@@ -30,13 +29,12 @@ import {
 } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
-import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
-import { ChainTokenSelector, sortRowsByBalance } from './_components/chain-token-selector';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { PayoutAssetSelector } from './_components/payout-asset-selector';
 import { deriveRedeemAccessGates } from './_components/redemption-position-strips';
+import { ShareChainSelector } from './_components/share-chain-selector';
 import { TokenDisplay } from './_components/token-display';
 import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
@@ -76,13 +74,6 @@ export default function RedeemFlow() {
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
-  // Every chain's share balance, to order the selector by where the position is.
-  const shareBalanceOf = useTokenBalances(
-    chains.map(({ chain, identities: [chainIdentity] }) => ({
-      chain,
-      tokenAddress: chainIdentity.centrifugeVault.shareClass.shareTokenAddress
-    }))
-  );
   // The PAYOUT vault's position: it decides whether a new request adds to one
   // and whether the form is locked. The Requests tab reads every vault's.
   const position = useRedemptionPosition({ centrifugeVault });
@@ -201,10 +192,6 @@ export default function RedeemFlow() {
     if (account.address) form.clearErrors();
   }, [account.address, selectedChain, form]);
 
-  // Display entry for the share token; the fixture classes tests hand in have
-  // none, so the selector falls back to the bare symbol without an icon.
-  const shareSelectorToken = getTokenInfo(share.symbol) ?? { label: share.symbol, icon: null };
-
   const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, asset.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
@@ -269,28 +256,12 @@ export default function RedeemFlow() {
                 />
 
                 <div className="ml-3">
-                  <ChainTokenSelector
-                    title="Select network"
-                    // One row per CHAIN, whatever stablecoins it accepts: the
-                    // share token is the same for all of them, and each row
-                    // shows that chain's redeemable share balance — the position
-                    // the user came here to redeem, and the one signal that
-                    // tells them which chain actually holds it.
-                    rows={sortRowsByBalance(
-                      chains.map(({ chain, identities: [chainIdentity] }) => ({
-                        id: chain,
-                        chain,
-                        token: shareSelectorToken,
-                        detail: <ChainBalanceDetail identity={chainIdentity} token="share" />,
-                        shareTokenAddress: chainIdentity.centrifugeVault.shareClass.shareTokenAddress
-                      })),
-                      ({ chain, shareTokenAddress }) => shareBalanceOf({ chain, tokenAddress: shareTokenAddress })
-                    )}
-                    selectedId={selectedChain}
-                    onSelect={(id) => {
-                      const next = chains.find((candidate) => candidate.chain === id);
-                      if (next) setSelectedChain(next.chain);
-                    }}
+                  {/* One row per CHAIN, whatever stablecoins it accepts: the
+                      share balance being redeemed is one number per chain. */}
+                  <ShareChainSelector
+                    chains={chains}
+                    selectedChain={selectedChain}
+                    onSelect={setSelectedChain}
                     isDisabled={isChainSelectorLocked}
                   />
                 </div>

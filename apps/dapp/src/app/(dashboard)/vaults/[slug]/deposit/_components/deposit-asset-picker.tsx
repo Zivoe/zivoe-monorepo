@@ -11,13 +11,20 @@ import { SelectTrigger } from '@zivoe/ui/core/select';
 import { SearchIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { useTokenBalances } from '@/hooks/useBalance';
+
+import { type TransactionIdentity } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
+import { ChainBalanceDetail } from './chain-balance-detail';
 import {
   type ChainSelectorRow,
   ChainTokenTriggerContent,
   TokenSelectorDialogRow,
   groupRowsByChain,
+  identityRowId,
+  selectorTokenOf,
+  sortRowsByBalance,
   tokenOnChainLabel
 } from './chain-token-selector';
 
@@ -28,25 +35,49 @@ type NetworkFilter = 'all' | CentrifugeChain;
  * The deposit tab's coin picker: every coin of every chain the Zivoe Vault is
  * live on, as a two-pane dialog at every width — networks on the left with
  * how many coins each accepts, the coins on the right behind a token search —
- * because nine chains with several coins apiece outgrow a flat list. Each row
- * shows the wallet's balance of THAT coin on THAT chain. Below lg the networks
- * pane collapses to an icon rail rather than a different control, so a phone
- * and a desktop pick a coin the same way.
+ * because nine chains with several coins apiece outgrow a flat list. Takes the
+ * page's Transaction Identities and hands one back: the rows (one per
+ * Centrifuge vault, with the wallet's balance of THAT coin on THAT chain),
+ * their order by where the money is, and the vault key are all its own.
+ * Below lg the networks pane collapses to an icon rail rather than a
+ * different control, so a phone and a desktop pick a coin the same way.
  */
 export function DepositAssetPicker({
-  rows,
-  selectedId,
+  identities,
+  selected,
   onSelect,
   isDisabled
 }: {
-  /** Every Centrifuge vault as a row, in the order the list should show them (balance-sorted by the flow). */
-  rows: Array<ChainSelectorRow>;
-  selectedId: string;
-  onSelect: (id: string) => void;
+  /** Every Centrifuge vault the Zivoe Vault is live on, in catalog order. */
+  identities: ReadonlyArray<TransactionIdentity>;
+  selected: TransactionIdentity;
+  onSelect: (identity: TransactionIdentity) => void;
   isDisabled: boolean;
 }) {
-  const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
-  if (!selected) throw new Error('DepositAssetPicker needs at least one row.');
+  // Every vault's deposit asset, to order the list by where the money is.
+  const balanceOf = useTokenBalances(
+    identities.map(({ centrifugeVault }) => ({
+      chain: centrifugeVault.chain,
+      tokenAddress: centrifugeVault.asset.address
+    }))
+  );
+  const rows = sortRowsByBalance(
+    identities.map((identity) => ({
+      id: identityRowId(identity),
+      chain: identity.centrifugeVault.chain,
+      token: selectorTokenOf(identity.centrifugeVault.asset.symbol),
+      detail: <ChainBalanceDetail identity={identity} token="asset" />,
+      identity
+    })),
+    // Compared at one scale: a raw 18-decimal balance (BNB Smart Chain's
+    // USDC) would otherwise outrank every 6-decimal one, whatever the amounts.
+    ({ identity: { centrifugeVault } }) => {
+      const balance = balanceOf({ chain: centrifugeVault.chain, tokenAddress: centrifugeVault.asset.address });
+      return balance === undefined ? undefined : balance * 10n ** BigInt(18 - centrifugeVault.asset.decimals);
+    }
+  );
+  const selectedToken = selectorTokenOf(selected.centrifugeVault.asset.symbol);
+  const selectedChain = selected.centrifugeVault.chain;
 
   return (
     <Dialog>
@@ -55,20 +86,21 @@ export function DepositAssetPicker({
           screen reader (or a voice command) which token is chosen. */}
       <SelectTrigger
         variant="border-light"
-        aria-label={`Select token to deposit, currently ${tokenOnChainLabel(selected.token, selected.chain)}`}
+        aria-label={`Select token to deposit, currently ${tokenOnChainLabel(selectedToken, selectedChain)}`}
         className="h-auto w-34 justify-between gap-2 py-1"
         isDisabled={isDisabled}
       >
-        <ChainTokenTriggerContent token={selected.token} chain={selected.chain} variant="token-on-chain" />
+        <ChainTokenTriggerContent token={selectedToken} chain={selectedChain} variant="token-on-chain" />
       </SelectTrigger>
 
       <DialogContent dialogClassName="gap-0" className="max-w-190">
         {({ close }) => (
           <DepositAssetPickerPanes
             rows={rows}
-            selectedId={selected.id}
+            selectedId={identityRowId(selected)}
             onSelect={(id) => {
-              onSelect(id);
+              const next = rows.find((row) => row.id === id)?.identity;
+              if (next) onSelect(next);
               close();
             }}
           />

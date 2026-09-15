@@ -1,11 +1,9 @@
 'use client';
 
-import { getTokenInfo } from '@/components/token-info';
-
 import { type TransactionIdentity } from '@/centrifuge';
 
 import { ChainBalanceDetail } from './chain-balance-detail';
-import { ChainTokenSelector } from './chain-token-selector';
+import { ChainTokenSelector, identityRowId, selectorTokenOf } from './chain-token-selector';
 
 /**
  * The stablecoin a redemption request pays out in — one option per Centrifuge
@@ -27,24 +25,19 @@ export function PayoutAssetSelector({
   onSelect: (identity: TransactionIdentity) => void;
   isDisabled: boolean;
 }) {
-  const rowId = (identity: TransactionIdentity) => identity.centrifugeVault.address.toLowerCase();
-
   return (
     <ChainTokenSelector
       title="Select token to receive"
       trigger="token"
       rows={identities.map((identity) => ({
-        id: rowId(identity),
+        id: identityRowId(identity),
         chain: identity.centrifugeVault.chain,
-        token: getTokenInfo(identity.centrifugeVault.asset.symbol) ?? {
-          label: identity.centrifugeVault.asset.symbol,
-          icon: null
-        },
+        token: selectorTokenOf(identity.centrifugeVault.asset.symbol),
         detail: <ChainBalanceDetail identity={identity} token="asset" />
       }))}
-      selectedId={rowId(selected)}
+      selectedId={identityRowId(selected)}
       onSelect={(id) => {
-        const next = identities.find((candidate) => rowId(candidate) === id);
+        const next = identities.find((candidate) => identityRowId(candidate) === id);
         if (next) onSelect(next);
       }}
       isDisabled={isDisabled}
