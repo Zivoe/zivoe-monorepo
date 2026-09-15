@@ -17,7 +17,7 @@ export const DisclosureArrowIcon = React.forwardRef<SVGSVGElement, IconProps>(
         <path
           d="M3.125 3.95703V12.4987H16.6667M16.6667 12.4987L13.3333 9.16536M16.6667 12.4987L13.3333 15.832"
           stroke={color}
-          stroke-width="1.5"
+          strokeWidth="1.5"
           strokeLinecap="square"
         />
       </svg>

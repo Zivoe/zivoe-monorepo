@@ -17,7 +17,7 @@ export const LineChartIcon = React.forwardRef<SVGSVGElement, IconProps>(
         <path
           d="M2.2915 9.70703V16.7904M7.42985 4.70703V16.7904M12.5682 12.207V16.7904M17.7065 7.20703V16.7904"
           stroke={color}
-          stroke-width="1.5"
+          strokeWidth="1.5"
           strokeLinecap="square"
         />
       </svg>
