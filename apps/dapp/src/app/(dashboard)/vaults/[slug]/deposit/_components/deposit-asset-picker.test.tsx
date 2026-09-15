@@ -5,12 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type ChainSelectorRow } from './chain-token-selector';
 import { DepositAssetPicker } from './deposit-asset-picker';
 
-// Real @zivoe/ui primitives on purpose: the two-pane dialog and the mobile
-// list's mix of a react-aria section and bare items are what this proves.
+// Real @zivoe/ui primitives on purpose: the two-pane dialog is what this proves.
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
-
-// jsdom ships no CSS.escape; react-aria's collections call it when keying sections.
-if (typeof globalThis.CSS === 'undefined') globalThis.CSS = { escape: (value: string) => value } as typeof CSS;
 
 const usdc = { label: 'USDC', description: 'US Dollar Coin', icon: null };
 const usdt = { label: 'USDT', description: 'Tether USD', icon: null };
@@ -28,10 +24,8 @@ function renderPicker(onSelect = vi.fn()) {
 }
 
 async function openDialog() {
-  // Both triggers render in jsdom (no CSS breakpoints); the dialog's is first.
-  const [dialogTrigger] = screen.getAllByRole('button', { name: 'USDC Ethereum' });
   await act(async () => {
-    fireEvent.click(dialogTrigger!);
+    fireEvent.click(screen.getByRole('button', { name: 'Select token to deposit' }));
   });
   return screen.getByRole('dialog');
 }
@@ -87,29 +81,5 @@ describe('DepositAssetPicker', () => {
     fireEvent.change(search, { target: { value: 'base' } });
     expect(within(dialog).queryByText('USDC on Base')).toBeNull();
     expect(within(dialog).getByText(/No token matches “base”/)).toBeTruthy();
-  });
-
-  it('offers the same rows on the mobile select, the multi-coin chain as a labelled section', async () => {
-    const onSelect = renderPicker();
-
-    const select = screen.getByRole('button', { name: /Select token to deposit/ });
-    await act(async () => {
-      fireEvent.keyDown(select, { key: 'ArrowDown' });
-    });
-
-    const listbox = screen.getByRole('listbox');
-    const options = within(listbox).getAllByRole('option');
-    expect(options.map((option) => option.textContent)).toEqual([
-      'USDC on Ethereum',
-      'USDT on Ethereum',
-      'USDC on Base'
-    ]);
-    // The section's header names the network once; the flat row has none.
-    expect(within(listbox).getAllByRole('group')).toHaveLength(1);
-
-    await act(async () => {
-      fireEvent.click(options[2]!);
-    });
-    expect(onSelect).toHaveBeenCalledWith('base-usdc');
   });
 });

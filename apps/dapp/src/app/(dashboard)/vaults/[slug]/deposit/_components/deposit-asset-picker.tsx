@@ -7,14 +7,13 @@ import * as Aria from 'react-aria-components';
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Dialog, DialogContent, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
-import { Select, SelectItem, SelectListBox, SelectPopover, SelectTrigger } from '@zivoe/ui/core/select';
+import { SelectTrigger } from '@zivoe/ui/core/select';
 import { SearchIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import {
-  ChainBadgedTokenIcon,
   type ChainSelectorRow,
   ChainTokenTriggerContent,
   TokenSelectorDialogRow,
@@ -27,11 +26,12 @@ type NetworkFilter = 'all' | CentrifugeChain;
 
 /**
  * The deposit tab's coin picker: every coin of every chain the Zivoe Vault is
- * live on. On desktop a two-pane dialog — networks on the left with how many
- * coins each accepts, the coins on the right behind a token search — because
- * nine chains with several coins apiece outgrow a flat list. Each row shows
- * the wallet's balance of THAT coin on THAT chain. On mobile the compact
- * Select over the same rows, sectioned where a chain has several coins.
+ * live on, as a two-pane dialog at every width — networks on the left with
+ * how many coins each accepts, the coins on the right behind a token search —
+ * because nine chains with several coins apiece outgrow a flat list. Each row
+ * shows the wallet's balance of THAT coin on THAT chain. Below lg the networks
+ * pane collapses to an icon rail rather than a different control, so a phone
+ * and a desktop pick a coin the same way.
  */
 export function DepositAssetPicker({
   rows,
@@ -48,67 +48,30 @@ export function DepositAssetPicker({
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
   if (!selected) throw new Error('DepositAssetPicker needs at least one row.');
 
-  const groups = groupRowsByChain(rows);
-
   return (
-    <>
-      <Dialog>
-        <SelectTrigger
-          variant="border-light"
-          className="hidden h-auto w-34 justify-between gap-2 py-1 lg:flex"
-          isDisabled={isDisabled}
-        >
-          <ChainTokenTriggerContent token={selected.token} chain={selected.chain} variant="token-on-chain" />
-        </SelectTrigger>
-
-        <DialogContent dialogClassName="gap-0" className="max-w-210">
-          {({ close }) => (
-            <DepositAssetPickerPanes
-              rows={rows}
-              selectedId={selected.id}
-              onSelect={(id) => {
-                onSelect(id);
-                close();
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Select
-        placeholder="Select"
+    <Dialog>
+      <SelectTrigger
+        variant="border-light"
         aria-label="Select token to deposit"
-        selectedKey={selected.id}
-        onSelectionChange={(key) => {
-          const row = rows.find((candidate) => candidate.id === key);
-          if (row) onSelect(row.id);
-        }}
+        className="h-auto w-34 justify-between gap-2 py-1"
         isDisabled={isDisabled}
       >
-        <SelectTrigger variant="border-light" className="h-auto w-34 justify-between gap-2 py-1 lg:hidden">
-          <ChainTokenTriggerContent token={selected.token} chain={selected.chain} variant="token-on-chain" />
-        </SelectTrigger>
+        <ChainTokenTriggerContent token={selected.token} chain={selected.chain} variant="token-on-chain" />
+      </SelectTrigger>
 
-        <SelectPopover>
-          <SelectListBox>
-            {groups.map((group) =>
-              group.rows.length > 1 ? (
-                <Aria.ListBoxSection key={group.chain} id={group.chain}>
-                  <Aria.Header>
-                    <NetworkLabel chain={group.chain} className="px-2 pt-1 pb-1 text-extraSmall text-tertiary" />
-                  </Aria.Header>
-                  {group.rows.map((row) => (
-                    <DepositAssetItem key={row.id} row={row} />
-                  ))}
-                </Aria.ListBoxSection>
-              ) : (
-                group.rows.map((row) => <DepositAssetItem key={row.id} row={row} />)
-              )
-            )}
-          </SelectListBox>
-        </SelectPopover>
-      </Select>
-    </>
+      <DialogContent dialogClassName="gap-0" className="max-w-210">
+        {({ close }) => (
+          <DepositAssetPickerPanes
+            rows={rows}
+            selectedId={selected.id}
+            onSelect={(id) => {
+              onSelect(id);
+              close();
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -238,16 +201,6 @@ function NetworkButton({
   );
 }
 
-function NetworkLabel({ chain, className }: { chain: CentrifugeChain; className?: string }) {
-  const { label, Icon } = CHAIN_DISPLAY[chain];
-  return (
-    <span className={cn('flex items-center gap-2 font-medium', className)}>
-      <Icon className="size-4 rounded-full" />
-      {label}
-    </span>
-  );
-}
-
 function NetworkIcon({ chain }: { chain: CentrifugeChain }) {
   const { Icon } = CHAIN_DISPLAY[chain];
   return <Icon className="size-7 rounded-full" />;
@@ -262,19 +215,5 @@ function AllNetworksIcon({ chains }: { chains: Array<CentrifugeChain> }) {
         return <Icon key={chain} className="size-full rounded-full" />;
       })}
     </span>
-  );
-}
-
-function DepositAssetItem({ row }: { row: ChainSelectorRow }) {
-  return (
-    <SelectItem
-      id={row.id}
-      textValue={tokenOnChainLabel(row.token, row.chain)}
-      className="flex items-center gap-2"
-      showCheckmark={false}
-    >
-      <ChainBadgedTokenIcon chain={row.chain} icon={row.token.icon} className="size-5" />
-      {tokenOnChainLabel(row.token, row.chain)}
-    </SelectItem>
   );
 }
