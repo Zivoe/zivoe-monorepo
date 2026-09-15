@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import * as Aria from 'react-aria-components';
 
@@ -50,9 +50,12 @@ export function DepositAssetPicker({
 
   return (
     <Dialog>
+      {/* The name carries the selection: an aria-label replaces the visible
+          content, and a control named only by its purpose never tells a
+          screen reader (or a voice command) which token is chosen. */}
       <SelectTrigger
         variant="border-light"
-        aria-label="Select token to deposit"
+        aria-label={`Select token to deposit, currently ${tokenOnChainLabel(selected.token, selected.chain)}`}
         className="h-auto w-34 justify-between gap-2 py-1"
         isDisabled={isDisabled}
       >
@@ -90,8 +93,19 @@ function DepositAssetPickerPanes({
 }) {
   const [network, setNetwork] = useState<NetworkFilter>('all');
   const [search, setSearch] = useState('');
+  const networksHeadingId = useId();
 
   const groups = groupRowsByChain(rows);
+  // The filter is one choice among several, so it is a single-selection
+  // toggle group (a radio group to assistive tech, with arrow-key movement)
+  // rather than independent pressed buttons. Selection keys are the filter
+  // values themselves; the lookup keeps the state typed without a cast.
+  const filters: Array<NetworkFilter> = ['all', ...groups.map((group) => group.chain)];
+  const selectNetwork = (keys: Iterable<Aria.Key>) => {
+    const chosen = new Set(keys);
+    const next = filters.find((filter) => chosen.has(filter));
+    if (next) setNetwork(next);
+  };
   // The search matches the coin only — symbol or name — never the network:
   // networks have their own list, and one box filtering both would leave
   // "USDC on Base" ambiguous about which half matched.
@@ -113,27 +127,40 @@ function DepositAssetPickerPanes({
 
       {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}
       <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[13.5rem_1fr]">
-        <nav aria-label="Networks" className="flex flex-col gap-1 px-2">
+        <div className="flex flex-col gap-1 px-2">
           {/* The inset rides the lg variant: not-sr-only resets padding, and its rule lands after the plain px-2. */}
-          <p className="sr-only text-extraSmall font-medium text-tertiary lg:not-sr-only lg:px-2 lg:pb-1">Networks</p>
-          <NetworkButton
-            isSelected={network === 'all'}
-            onPress={() => setNetwork('all')}
-            count={rows.length}
-            label="All networks"
-            icon={<AllNetworksIcon chains={groups.map((group) => group.chain)} />}
-          />
-          {groups.map((group) => (
+          <p
+            id={networksHeadingId}
+            className="sr-only text-extraSmall font-medium text-tertiary lg:not-sr-only lg:px-2 lg:pb-1"
+          >
+            Networks
+          </p>
+          <Aria.ToggleButtonGroup
+            selectionMode="single"
+            disallowEmptySelection
+            orientation="vertical"
+            selectedKeys={[network]}
+            onSelectionChange={selectNetwork}
+            aria-labelledby={networksHeadingId}
+            className="flex flex-col gap-1"
+          >
             <NetworkButton
-              key={group.chain}
-              isSelected={network === group.chain}
-              onPress={() => setNetwork(group.chain)}
-              count={group.rows.length}
-              label={CHAIN_DISPLAY[group.chain].label}
-              icon={<NetworkIcon chain={group.chain} />}
+              id="all"
+              count={rows.length}
+              label="All networks"
+              icon={<AllNetworksIcon chains={groups.map((group) => group.chain)} />}
             />
-          ))}
-        </nav>
+            {groups.map((group) => (
+              <NetworkButton
+                key={group.chain}
+                id={group.chain}
+                count={group.rows.length}
+                label={CHAIN_DISPLAY[group.chain].label}
+                icon={<NetworkIcon chain={group.chain} />}
+              />
+            ))}
+          </Aria.ToggleButtonGroup>
+        </div>
 
         {/* min-w-0: a grid child's minimum is its content's, and the search
             input's intrinsic width would otherwise push the pane past the
@@ -174,38 +201,45 @@ function DepositAssetPickerPanes({
   );
 }
 
+/** One network filter option; selection state comes from the enclosing toggle group. */
 function NetworkButton({
-  isSelected,
-  onPress,
+  id,
   count,
   label,
   icon
 }: {
-  isSelected: boolean;
-  onPress: () => void;
+  id: NetworkFilter;
   count: number;
   label: string;
   icon: React.ReactNode;
 }) {
   return (
-    <Aria.Button
-      onPress={onPress}
-      aria-pressed={isSelected}
-      className={cn(
-        'flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2.5 text-left outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0',
-        isSelected && 'bg-surface-base font-medium shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.12)]'
-      )}
+    <Aria.ToggleButton
+      id={id}
+      className={({ isSelected }) =>
+        cn(
+          'flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2.5 text-left outline-hidden focus-visible:ring-2 focus-visible:ring-default focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-0',
+          isSelected && 'bg-surface-base font-medium shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.12)]'
+        )
+      }
     >
-      <span className="flex items-center gap-3">
-        {icon}
-        <span className="sr-only text-small text-primary lg:not-sr-only">{label}</span>
-      </span>
-      <span
-        className={cn('sr-only text-small tabular-nums lg:not-sr-only', isSelected ? 'text-primary' : 'text-tertiary')}
-      >
-        {count}
-      </span>
-    </Aria.Button>
+      {({ isSelected }) => (
+        <>
+          <span className="flex items-center gap-3">
+            {icon}
+            <span className="sr-only text-small text-primary lg:not-sr-only">{label}</span>
+          </span>
+          <span
+            className={cn(
+              'sr-only text-small tabular-nums lg:not-sr-only',
+              isSelected ? 'text-primary' : 'text-tertiary'
+            )}
+          >
+            {count}
+          </span>
+        </>
+      )}
+    </Aria.ToggleButton>
   );
 }
 

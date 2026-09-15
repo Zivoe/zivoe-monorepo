@@ -85,12 +85,15 @@ describe('Deposit', () => {
     mocks.isMobile = false;
     const empty = render(<Deposit initialView="requests" />);
     expect(screen.getByText('Requests')).toBeTruthy();
-    expect(screen.queryByLabelText(/requests$/)).toBeNull();
+    expect(screen.queryByText(/requests? pending/)).toBeNull();
     empty.unmount();
 
     mocks.requestCount = 3;
     render(<Deposit initialView="requests" />);
-    // On the tab, and on the mobile bar's Redeem button (rendered regardless of viewport in jsdom).
-    expect(screen.getAllByLabelText('3 requests')).toHaveLength(2);
+    // On the tab, and on the mobile bar's Redeem button (rendered regardless
+    // of viewport in jsdom): the digit for sighted users, the sentence for
+    // assistive tech, joined onto the host's own label.
+    expect(screen.getAllByText(', 3 requests pending')).toHaveLength(2);
+    expect(screen.getAllByText('3', { ignore: '.sr-only' })).toHaveLength(2);
   });
 });

@@ -150,12 +150,13 @@ function RequestsCountBadge() {
   const { count } = useRedemptionRequests();
   if (count === 0) return null;
 
+  // The number is visual; assistive tech reads the sentence, which joins the
+  // host's own label ("Requests, 3 requests pending", "Redeem, 1 request
+  // pending") instead of an aria-label a plain span may not carry.
   return (
-    <span
-      aria-label={`${String(count)} requests`}
-      className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums"
-    >
-      {count}
+    <span className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums">
+      <span aria-hidden="true">{count}</span>
+      <span className="sr-only">{`, ${String(count)} ${count === 1 ? 'request' : 'requests'} pending`}</span>
     </span>
   );
 }

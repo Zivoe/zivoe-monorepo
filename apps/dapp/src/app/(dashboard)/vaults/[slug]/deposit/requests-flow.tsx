@@ -28,7 +28,7 @@ import { type RedemptionRequestsByChain, useRedemptionRequests } from './_hooks/
  */
 export default function RequestsFlow() {
   const account = useAccount();
-  const { chains, count, isPending } = useRedemptionRequests();
+  const { chains, isPending } = useRedemptionRequests();
 
   if (account.isDisconnected)
     return (
@@ -53,13 +53,17 @@ export default function RequestsFlow() {
       </p>
     );
 
-  // Capped a little above the redeem form's height and scrolled inside: the
-  // Earn box is sticky, so a tab that grows past the viewport would pin its
-  // last rows out of reach until the page itself runs out. A thin scrollbar
-  // rides the right edge, so the rows keep clear of it.
+  // From lg, capped a little above the redeem form's height and scrolled
+  // inside: the Earn box is sticky there, so a tab that grows past the
+  // viewport would pin its last rows out of reach until the page itself runs
+  // out. A thin scrollbar rides the right edge, so the rows keep clear of it.
+  // Below lg the tab lives in the Earn dialog, which scrolls as a whole — a
+  // second scroller inside it would hide rows behind an invisible touch
+  // scrollbar. The count is the tab's badge; the list needs no name of its
+  // own (the tab panel already carries the tab's).
   return (
-    <ScrollArea className="-mr-2 max-h-120" viewportClassName="max-h-120">
-      <div className="flex flex-col gap-2 pr-2" aria-label={`${String(count)} redemption requests`}>
+    <ScrollArea className="-mr-2 lg:max-h-120" viewportClassName="lg:max-h-120">
+      <div className="flex flex-col gap-2 pr-2">
         {chains.map((group) => (
           <RequestsChainGroup key={group.chain} group={group} />
         ))}
@@ -72,7 +76,7 @@ export default function RequestsFlow() {
 /** A chain group's silhouette — header row and one strip — so loading and loaded share a layout. */
 function RequestsSkeleton() {
   return (
-    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading redemption requests">
+    <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
       <div className="flex items-center gap-2 px-1 py-2">
         <Skeleton className="size-5 rounded-full" />
         <Skeleton className="h-5 w-24 rounded-sm" />

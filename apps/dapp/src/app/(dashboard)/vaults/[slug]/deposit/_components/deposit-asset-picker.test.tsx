@@ -25,7 +25,8 @@ function renderPicker(onSelect = vi.fn()) {
 
 async function openDialog() {
   await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Select token to deposit' }));
+    // The trigger's name carries the current selection.
+    fireEvent.click(screen.getByRole('button', { name: 'Select token to deposit, currently USDC on Ethereum' }));
   });
   return screen.getByRole('dialog');
 }
@@ -38,10 +39,11 @@ describe('DepositAssetPicker', () => {
     const dialog = await openDialog();
 
     expect(within(dialog).getByRole('heading', { name: 'Select token to deposit' })).toBeTruthy();
-    const networks = within(dialog).getByRole('navigation', { name: 'Networks' });
-    expect(within(networks).getByRole('button', { name: 'All networks 3' })).toBeTruthy();
-    expect(within(networks).getByRole('button', { name: 'Ethereum 2' })).toBeTruthy();
-    expect(within(networks).getByRole('button', { name: 'Base 1' })).toBeTruthy();
+    // One choice among several: a radio group, with the current filter checked.
+    const networks = within(dialog).getByRole('radiogroup', { name: 'Networks' });
+    expect(within(networks).getByRole('radio', { name: 'All networks 3', checked: true })).toBeTruthy();
+    expect(within(networks).getByRole('radio', { name: 'Ethereum 2', checked: false })).toBeTruthy();
+    expect(within(networks).getByRole('radio', { name: 'Base 1', checked: false })).toBeTruthy();
 
     // Across all networks each row names its chain, with the wallet's balance of that coin there.
     expect(within(dialog).getByText('USDC on Ethereum')).toBeTruthy();
@@ -55,9 +57,10 @@ describe('DepositAssetPicker', () => {
     const dialog = await openDialog();
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Base 1' }));
+      fireEvent.click(within(dialog).getByRole('radio', { name: 'Base 1' }));
     });
 
+    expect(within(dialog).getByRole('radio', { name: 'Base 1', checked: true })).toBeTruthy();
     expect(within(dialog).queryByText(/on Ethereum/)).toBeNull();
     expect(within(dialog).queryByText('USDT')).toBeNull();
     const row = within(dialog).getByRole('button', { name: 'USDC US Dollar Coin Balance: 3.00' });

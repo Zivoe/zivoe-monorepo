@@ -239,10 +239,12 @@ export function ChainTokenSelector({
         </DialogContent>
       </Dialog>
 
-      {/* Mobile: the compact Select over the same rows. */}
+      {/* Mobile: the compact Select over the same rows. Named with the current
+          selection: the trigger renders no SelectValue, so the label alone
+          would be the whole accessible name. */}
       <Select
         placeholder="Select"
-        aria-label={title}
+        aria-label={`${title}: ${rowLabel(selected)}`}
         selectedKey={selected.id}
         onSelectionChange={(key) => {
           const row = rows.find((candidate) => candidate.id === key);

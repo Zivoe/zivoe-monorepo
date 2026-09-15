@@ -172,7 +172,12 @@ vi.mock('react-aria-components', () => ({
   // Only ever mounted inside the (null-mocked) mobile list — stubs so the
   // element types exist.
   ListBoxSection: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  Header: ({ children }: { children: ReactNode }) => <div>{children}</div>
+  Header: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  // The picker's network filter; its own suite covers the selection semantics.
+  ToggleButtonGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ToggleButton: ({ children }: { children: ReactNode | ((state: { isSelected: boolean }) => ReactNode) }) => (
+    <button type="button">{typeof children === 'function' ? children({ isSelected: false }) : children}</button>
+  )
 }));
 vi.mock('@zivoe/ui/core/button', () => ({
   Button: ({

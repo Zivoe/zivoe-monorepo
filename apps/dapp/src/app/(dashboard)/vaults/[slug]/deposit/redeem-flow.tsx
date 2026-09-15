@@ -270,7 +270,7 @@ export default function RedeemFlow() {
 
                 <div className="ml-3">
                   <ChainTokenSelector
-                    title="Select Asset"
+                    title="Select network"
                     // One row per CHAIN, whatever stablecoins it accepts: the
                     // share token is the same for all of them, and each row
                     // shows that chain's redeemable share balance — the position
