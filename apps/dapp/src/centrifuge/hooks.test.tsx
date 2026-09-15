@@ -122,7 +122,7 @@ function blockedCentrifugeVault() {
 }
 
 describe('redemptionPositionRefetchInterval', () => {
-  it('retries only a read that failed with nothing on hand, backing off; every answered position rests', () => {
+  it('retries a failed read, backing off; every answered position rests', () => {
     // A Cancellation Processing included: the hub's unwind can sit for a long
     // while, and polling it would only burn reads.
     const position = (hasPendingCancelRedeemRequest: boolean) => ({
@@ -140,10 +140,10 @@ describe('redemptionPositionRefetchInterval', () => {
       30_000, 60_000, 120_000, 240_000, 300_000, 300_000
     ]);
 
-    // A refetch failing with an earlier answer on hand rests too: the strips
-    // still render that answer, so nothing is missing to recover.
+    // A refetch failing with an earlier answer on hand retries the same way:
+    // after a transaction that answer is the pre-transaction position.
     const failedRefetch = { status: 'error' as const, errorUpdateCount: 3, data: position(false).data };
-    expect(redemptionPositionRefetchInterval(failedRefetch)).toBe(false);
+    expect(redemptionPositionRefetchInterval(failedRefetch)).toBe(120_000);
   });
 });
 
