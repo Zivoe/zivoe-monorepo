@@ -16,6 +16,14 @@ type DialogProps = React.ComponentProps<typeof Aria.DialogTrigger>;
 const Dialog = Aria.DialogTrigger;
 const Modal = Aria.Modal;
 type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'children' | 'isDismissable'> & {
+  /**
+   * Open state for a dialog with no trigger (one opened by an effect). Given
+   * here rather than on a wrapping `Dialog`: a DialogTrigger with no
+   * pressable child logs a PressResponder warning on every render.
+   */
+  isOpen?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
   children?: Aria.DialogProps['children'];
   role?: Aria.DialogProps['role'];
   'aria-label'?: Aria.DialogProps['aria-label'];
@@ -38,6 +46,9 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       dialogClassName,
       overlayClassName,
       children,
+      isOpen,
+      defaultOpen,
+      onOpenChange,
       isDismissable = true,
       showCloseButton = true,
       isFullScreen = false,
@@ -52,6 +63,9 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
     ref
   ) => (
     <Aria.ModalOverlay
+      isOpen={isOpen}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
       className={cn(

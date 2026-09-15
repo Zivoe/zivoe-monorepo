@@ -35,9 +35,8 @@ vi.mock('@zivoe/ui/core/tabs', () => ({
   TabPanel: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }));
 vi.mock('@zivoe/ui/core/dialog', () => ({
-  Dialog: ({ isOpen, children }: { isOpen?: boolean; children: ReactNode }) =>
-    isOpen ? <div role="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ isOpen, children }: { isOpen?: boolean; children: ReactNode }) =>
+    isOpen === false ? null : <div role="dialog">{children}</div>,
   DialogContentBox: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogTitle: ({ children }: { children: ReactNode }) => <div>{children}</div>

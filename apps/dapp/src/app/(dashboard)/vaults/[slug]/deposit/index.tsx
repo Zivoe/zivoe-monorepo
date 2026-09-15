@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { type Key } from 'react-aria-components';
 
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
+import { DialogContent, DialogContentBox, DialogHeader, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Tab, TabList, TabPanel, Tabs } from '@zivoe/ui/core/tabs';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -62,15 +62,18 @@ function DepositContent({ initialView }: { initialView: DepositPageView }) {
         </ConnectedAccount>
       </div>
 
-      <Dialog isOpen={isEarnDialogOpen} onOpenChange={setIsEarnDialogOpen}>
-        <DialogContent dialogClassName="gap-0" showCloseButton={false}>
-          <DialogHeader className="flex-row items-center justify-between">
-            <DialogTitle>Earn</DialogTitle>
-          </DialogHeader>
+      <DialogContent
+        isOpen={isEarnDialogOpen}
+        onOpenChange={setIsEarnDialogOpen}
+        dialogClassName="gap-0"
+        showCloseButton={false}
+      >
+        <DialogHeader className="flex-row items-center justify-between">
+          <DialogTitle>Earn</DialogTitle>
+        </DialogHeader>
 
-          <EarnBox initialView={initialView} className="block p-0 lg:hidden" withTitle={false} boxClassName="p-4" />
-        </DialogContent>
-      </Dialog>
+        <EarnBox initialView={initialView} className="block p-0 lg:hidden" withTitle={false} boxClassName="p-4" />
+      </DialogContent>
     </>
   );
 }
