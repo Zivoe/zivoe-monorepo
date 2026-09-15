@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { erc20Abi, formatUnits, parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
@@ -195,7 +195,10 @@ export function DepositFlow() {
       amount: depositRaw,
       name: asset.symbol,
       decimals: asset.decimals,
-      abi: erc20Abi,
+      // A legacy token (Ethereum-mainnet USDT) must zero a non-zero allowance
+      // before it accepts a new amount; the hook does that from these two.
+      approval: asset.approval,
+      allowance: allowance.data,
       successMessage: `You can now deposit ${asset.symbol}.`,
       errorMessage: `There was an error approving ${asset.symbol}`
     });

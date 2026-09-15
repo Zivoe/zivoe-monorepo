@@ -651,7 +651,9 @@ describe('DepositFlow with two stablecoins on one chain', () => {
   // asset, the chain's share token and router unchanged.
   const USDT_IDENTITY = identityOnChain(TEST_IDENTITY, 'sepolia', {
     address: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3',
-    asset: { address: USDT_ADDRESS as `0x${string}`, symbol: 'USDT', decimals: 6 }
+    // Marked legacy like Ethereum-mainnet USDT, so the approve call must
+    // carry what the reset decision needs.
+    asset: { address: USDT_ADDRESS as `0x${string}`, symbol: 'USDT', decimals: 6, approval: 'legacy' }
   });
 
   function renderTwoAssetFlow() {
@@ -701,7 +703,10 @@ describe('DepositFlow with two stablecoins on one chain', () => {
     expect(getButton('Deposit')).toBeTruthy();
   });
 
-  it("approves and spends the selected coin against the chain's router", async () => {
+  it("approves and spends the selected coin against the chain's router, forwarding its approval mode and allowance", async () => {
+    // A leftover allowance below the amount: still an Approve, and exactly
+    // the case a legacy token needs the reset for.
+    mocks.allowance = 500000n;
     renderTwoAssetFlow();
 
     await press('USDT on Ethereum Tether USD Balance: 7.00');
@@ -714,6 +719,8 @@ describe('DepositFlow with two stablecoins on one chain', () => {
         contract: USDT_ADDRESS,
         spender: ROUTER_ADDRESS,
         name: 'USDT',
+        approval: 'legacy',
+        allowance: 500000n,
         successMessage: 'You can now deposit USDT.'
       })
     );

@@ -61,6 +61,18 @@ export type TxParams<
 export type TxConfig<TVariables, TParams extends TxParams> = TxSharedConfig<TVariables> & {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
   buildParams: (vars: TVariables, ctx: TxContext) => TParams | Promise<TParams>;
+  /**
+   * An optional transaction sent and confirmed BEFORE the main one, inside the
+   * same mutation — the allowance reset a legacy ERC-20 demands. It runs the
+   * same simulate/send/receipt path and pins the same chain; a rejection or
+   * revert ends the mutation before the main call is offered to the wallet.
+   * The main transaction alone feeds analytics, the dialog and the refetches.
+   */
+  reset?: {
+    /** `undefined` when no reset is needed for these variables. */
+    buildParams: (vars: TVariables) => TParams | undefined;
+    pendingToast: (vars: TVariables) => string;
+  };
 };
 
 /**
@@ -195,6 +207,22 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     prepare: config.buildParams,
 
     send: async (vars, params, { address, choreography, capture, onTxHash, setIsTxPending }) => {
+      const resetParams = config.reset?.buildParams(vars);
+      if (config.reset && resetParams) {
+        await simulateTx(resetParams, address);
+        const resetHash = await sendTx(resetParams);
+        // Mirrored so a failure between here and the main send points Sentry
+        // at the reset; the main hash replaces it below.
+        onTxHash(resetHash);
+        const resetReceipt = await waitForTxReceipt({
+          params: resetParams,
+          hash: resetHash,
+          pendingMessage: config.reset.pendingToast(vars),
+          setIsTxPending
+        });
+        if (resetReceipt.status !== 'success') throw new AppError({ message: 'Allowance reset reverted on-chain' });
+      }
+
       await simulateTx(params, address);
 
       const hash = await sendTx(params);
