@@ -105,7 +105,10 @@ function DepositAssetPickerPanes({
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between px-4 pt-4 pr-14">
-        <DialogTitle>Select token to deposit</DialogTitle>
+        {/* The suffix wraps the title onto two lines beside the close button at phone widths. */}
+        <DialogTitle>
+          Select token<span className="hidden sm:inline"> to deposit</span>
+        </DialogTitle>
       </div>
 
       {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}

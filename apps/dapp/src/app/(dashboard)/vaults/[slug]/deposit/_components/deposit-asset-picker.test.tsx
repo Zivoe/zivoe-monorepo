@@ -37,7 +37,7 @@ describe('DepositAssetPicker', () => {
     renderPicker();
     const dialog = await openDialog();
 
-    expect(within(dialog).getByText('Select token to deposit')).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Select token to deposit' })).toBeTruthy();
     const networks = within(dialog).getByRole('navigation', { name: 'Networks' });
     expect(within(networks).getByRole('button', { name: 'All networks 3' })).toBeTruthy();
     expect(within(networks).getByRole('button', { name: 'Ethereum 2' })).toBeTruthy();
