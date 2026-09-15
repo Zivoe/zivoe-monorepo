@@ -46,6 +46,8 @@ type RequestMocks = {
   failing: Set<string>;
   /** Set to model the first read still in flight on every vault. */
   isPending: boolean;
+  /** Set to model the wallet SDK not having settled yet. */
+  isAccountPending: boolean;
 };
 
 const mocks = vi.hoisted(
@@ -58,7 +60,8 @@ const mocks = vi.hoisted(
     claimReturnedShares: vi.fn(),
     positions: {},
     failing: new Set<string>(),
-    isPending: false
+    isPending: false,
+    isAccountPending: false
   })
 );
 
@@ -69,7 +72,11 @@ vi.mock('wagmi', () => ({
   useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
 }));
 vi.mock('@/hooks/useAccount', () => ({
-  useAccount: () => ({ isPending: false, isDisconnected: !mocks.address, address: mocks.address })
+  useAccount: () => ({
+    isPending: mocks.isAccountPending,
+    isDisconnected: !mocks.isAccountPending && !mocks.address,
+    address: mocks.isAccountPending ? undefined : mocks.address
+  })
 }));
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => ({ isFetching: false }) }));
 vi.mock('@/hooks/useCurrentShareMetrics', () => ({
@@ -192,6 +199,7 @@ beforeEach(() => {
   mocks.positions = {};
   mocks.failing = new Set();
   mocks.isPending = false;
+  mocks.isAccountPending = false;
 });
 
 afterEach(cleanup);
@@ -277,6 +285,14 @@ describe('RequestsFlow', () => {
     mocks.isPending = false;
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
+  });
+
+  it('shows the skeleton, not the connect prompt, while the wallet SDK is still loading', () => {
+    mocks.isAccountPending = true;
+    renderRequests([SEPOLIA_USDC]);
+    expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Connect your wallet/)).toBeNull();
+    expect(screen.queryByText(/No redemption requests/)).toBeNull();
   });
 
   it('asks for a wallet when none is connected', () => {

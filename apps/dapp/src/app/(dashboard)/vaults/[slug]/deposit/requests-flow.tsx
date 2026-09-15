@@ -29,7 +29,7 @@ export default function RequestsFlow() {
   const account = useAccount();
   const { chains, count, isPending } = useRedemptionRequests();
 
-  if (!account.address)
+  if (account.isDisconnected)
     return (
       <div className="flex flex-col gap-4">
         <p className="text-small text-secondary">
@@ -39,13 +39,13 @@ export default function RequestsFlow() {
       </div>
     );
 
+  // Until the wallet SDK has settled and every vault has answered once, the
+  // tab holds the shape of a chain group rather than a verdict: the connect
+  // prompt above is only for a wallet known to be absent, not one still loading.
+  if (!account.address || (chains.length === 0 && isPending)) return <RequestsSkeleton />;
+
   if (chains.length === 0)
-    return isPending ? (
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-14 w-full rounded-sm" />
-        <Skeleton className="h-14 w-full rounded-sm" />
-      </div>
-    ) : (
+    return (
       <p className="py-6 text-center text-small text-secondary">
         No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in progress
         will appear here.
@@ -57,6 +57,19 @@ export default function RequestsFlow() {
       {chains.map((group) => (
         <RequestsChainGroup key={group.chain} group={group} />
       ))}
+    </div>
+  );
+}
+
+/** A chain group's silhouette — header row and one strip — so loading and loaded share a layout. */
+function RequestsSkeleton() {
+  return (
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading redemption requests">
+      <div className="flex items-center gap-2 px-1 py-2">
+        <Skeleton className="size-5 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-sm" />
+      </div>
+      <Skeleton className="h-14 w-full rounded-sm" />
     </div>
   );
 }
