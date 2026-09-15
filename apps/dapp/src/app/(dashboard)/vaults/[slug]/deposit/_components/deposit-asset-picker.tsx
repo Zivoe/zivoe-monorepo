@@ -165,7 +165,7 @@ function DepositAssetPickerPanes({
           {/* not-sr-only resets padding, so the inset must ride the lg variant. */}
           <p
             id={networksHeadingId}
-            className="sr-only text-extraSmall font-medium text-tertiary lg:not-sr-only lg:px-2 lg:pb-1"
+            className="sr-only text-extraSmall font-medium text-secondary lg:not-sr-only lg:px-2 lg:pb-1"
           >
             Networks
           </p>
@@ -233,7 +233,7 @@ function DepositAssetPickerPanes({
               ))}
 
               {visible.length === 0 && (
-                <p className="px-2 py-6 text-center text-small text-tertiary">
+                <p className="px-2 py-6 text-center text-small text-secondary">
                   No token matches &ldquo;{search.trim()}&rdquo;
                   {network !== 'all' ? ` on ${CHAIN_DISPLAY[network].label}` : ''}.
                 </p>
@@ -276,7 +276,7 @@ function NetworkButton({
           <span
             className={cn(
               'sr-only text-small tabular-nums lg:not-sr-only',
-              isSelected ? 'text-primary' : 'text-tertiary'
+              isSelected ? 'text-primary' : 'text-secondary'
             )}
           >
             {count}

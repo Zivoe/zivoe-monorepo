@@ -1,5 +1,6 @@
 'use client';
 
+import { Callout } from '@zivoe/ui/core/callout';
 import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
@@ -123,7 +124,7 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
       <DisclosurePanel>
         <div className="flex flex-col gap-2 pb-2">
           {entries.some((entry) => entry.isError) && (
-            <p className="text-extraSmall text-tertiary">Could not load every position on {label}.</p>
+            <Callout variant="warning">Could not load every position on {label}.</Callout>
           )}
 
           {entries.map(({ identity }) => (

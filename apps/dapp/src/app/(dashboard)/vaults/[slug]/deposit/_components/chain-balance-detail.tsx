@@ -26,7 +26,7 @@ export function ChainBalanceDetail({ identity, token }: { identity: TransactionI
   if (!account.address || balance.data === undefined) return null;
 
   return (
-    <p className="text-small text-tertiary">
+    <p className="text-small text-secondary">
       Balance: <span className="font-medium text-primary">{formatBigIntToReadable(balance.data, decimals)}</span>
     </p>
   );

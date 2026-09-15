@@ -20,7 +20,7 @@ export function InputExtraInfo({
 }) {
   return (
     <div className="flex w-full items-center justify-between">
-      <div className="text-extraSmall font-medium text-tertiary">
+      <div className="text-extraSmall font-medium text-secondary">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : dollarValue !== null ? (
@@ -44,6 +44,6 @@ function BalanceDisplay({
 }) {
   if (isPending || value === undefined) return null;
   return (
-    <p className="text-extraSmall font-medium text-tertiary">Balance: {formatBigIntToReadable(value, decimals)}</p>
+    <p className="text-extraSmall font-medium text-secondary">Balance: {formatBigIntToReadable(value, decimals)}</p>
   );
 }

@@ -96,7 +96,7 @@ export function ChainTokenTriggerContent({
 
       <div className="flex flex-col items-start">
         <span className="text-small leading-4">{token.label}</span>
-        <span className="text-extraSmall leading-none text-tertiary">{CHAIN_DISPLAY[chain].label}</span>
+        <span className="text-extraSmall leading-none text-secondary">{CHAIN_DISPLAY[chain].label}</span>
       </div>
     </div>
   );
@@ -164,7 +164,7 @@ export function TokenSelectorDialogRow({
         <div className="flex flex-col items-start">
           <p className="text-regular font-medium text-primary">{label}</p>
           {row.token.description && (
-            <p className="hidden text-extraSmall text-tertiary sm:block">{row.token.description}</p>
+            <p className="hidden text-extraSmall text-secondary sm:block">{row.token.description}</p>
           )}
         </div>
 

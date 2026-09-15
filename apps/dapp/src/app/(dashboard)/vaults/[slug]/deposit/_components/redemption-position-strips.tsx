@@ -136,7 +136,7 @@ export function RedemptionPositionStrips({
   };
 
   const assetLabel = labelAsset ? (
-    <p className="text-extraSmall font-medium tracking-wide text-tertiary uppercase">{asset.symbol} redemption</p>
+    <p className="text-extraSmall font-medium tracking-wide text-secondary uppercase">{asset.symbol} redemption</p>
   ) : null;
 
   return (
@@ -177,7 +177,7 @@ export function RedemptionPositionStrips({
             </ConnectedAccount>
           </div>
 
-          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">{shareReturnHint}</p>}
+          {isShareReturnBlocked && <p className="text-extraSmall text-secondary">{shareReturnHint}</p>}
         </div>
       )}
 
@@ -232,9 +232,9 @@ export function RedemptionPositionStrips({
           {/* The block wins over the turn-taking hint: "claim your returned
               shares first" is no help to a wallet that cannot claim them. */}
           {isProceedsClaimBlocked ? (
-            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
+            <p className="text-extraSmall text-secondary">{proceedsClaimHint}</p>
           ) : returnedShares > 0n ? (
-            <p className="text-extraSmall text-tertiary">
+            <p className="text-extraSmall text-secondary">
               {isShareReturnBlocked ? shareReturnHint : `Claim your returned ${share.symbol} first.`}
             </p>
           ) : null}
@@ -253,7 +253,7 @@ export function RedemptionPositionStrips({
               both. An unexplained refusal adds nothing to a strip that already
               says nobody can claim yet. */}
           {isProceedsClaimBlocked && restriction === 'frozen' && (
-            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
+            <p className="text-extraSmall text-secondary">{proceedsClaimHint}</p>
           )}
         </div>
       )}
@@ -369,7 +369,7 @@ function RedemptionProcessingStrip({
         )}
       </div>
 
-      {cancel?.blockedHint && <p className="text-extraSmall text-tertiary">{cancel.blockedHint}</p>}
+      {cancel?.blockedHint && <p className="text-extraSmall text-secondary">{cancel.blockedHint}</p>}
     </div>
   );
 }
@@ -394,7 +394,7 @@ function CancellationProcessingStrip({
           : ''}
       </p>
 
-      <p className="text-extraSmall text-tertiary">
+      <p className="text-extraSmall text-secondary">
         Your {shareClass.symbol} will be available to claim once the cancellation is processed. Any portion already
         approved still executes as {asset.symbol}.
       </p>
