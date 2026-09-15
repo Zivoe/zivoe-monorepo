@@ -46,6 +46,8 @@ type RequestMocks = {
   failing: Set<string>;
   /** Set to model the first read still in flight on every vault. */
   isPending: boolean;
+  /** Vault addresses (lowercase) whose first read is still in flight. */
+  pending: Set<string>;
   /** Set to model the wallet SDK not having settled yet. */
   isAccountPending: boolean;
 };
@@ -61,6 +63,7 @@ const mocks = vi.hoisted(
     positions: {},
     failing: new Set<string>(),
     isPending: false,
+    pending: new Set<string>(),
     isAccountPending: false
   })
 );
@@ -121,11 +124,14 @@ vi.mock('@/centrifuge', () => {
       data: positionOf(centrifugeVault.address)
     }),
     useRedemptionPositions: ({ centrifugeVaults }: { centrifugeVaults: Array<{ address: string }> }) =>
-      centrifugeVaults.map((centrifugeVault) => ({
-        isError: mocks.failing.has(centrifugeVault.address.toLowerCase()),
-        isPending: mocks.isPending,
-        data: mocks.isPending ? undefined : positionOf(centrifugeVault.address)
-      })),
+      centrifugeVaults.map((centrifugeVault) => {
+        const isPending = mocks.isPending || mocks.pending.has(centrifugeVault.address.toLowerCase());
+        return {
+          isError: mocks.failing.has(centrifugeVault.address.toLowerCase()),
+          isPending,
+          data: isPending ? undefined : positionOf(centrifugeVault.address)
+        };
+      }),
     // Each write records the vault it was built for: a strip acting on the
     // tab's selected identity instead of its own would call the wrong vault.
     useCancelRedeem: ({ identity }: { identity: TransactionIdentity }) => ({
@@ -213,6 +219,7 @@ beforeEach(() => {
   mocks.walletChainId = 11155111;
   mocks.positions = {};
   mocks.failing = new Set();
+  mocks.pending = new Set();
   mocks.isPending = false;
   mocks.isAccountPending = false;
 });
@@ -315,7 +322,7 @@ describe('RequestsFlow', () => {
     expect(screen.getByText(/ready to claim/)).toBeTruthy();
   });
 
-  it('shows a skeleton until every vault has answered once, then says so when nothing is in flight', () => {
+  it('shows a skeleton until the first vault answers, then says so when nothing is in flight', () => {
     mocks.isPending = true;
     const loading = renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
@@ -325,6 +332,23 @@ describe('RequestsFlow', () => {
     mocks.isPending = false;
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
+  });
+
+  // One dead RPC must not hide the other chains' answers behind the skeleton
+  // for a minute of retries — nor pass an empty tab off as a settled answer.
+  it('renders what has landed while a chain is still on its first read, and names that chain', () => {
+    setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 1_000000n });
+    mocks.pending = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
+    const withPosition = renderRequests([SEPOLIA_USDC, BASE_USDC]);
+    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText('Still checking Base…')).toBeTruthy();
+    expect(screen.queryByText('Loading')).toBeNull();
+    withPosition.unmount();
+
+    mocks.positions = {};
+    renderRequests([SEPOLIA_USDC, BASE_USDC]);
+    expect(screen.getByText(/No redemption requests/)).toBeTruthy();
+    expect(screen.getByText('Still checking Base…')).toBeTruthy();
   });
 
   it('shows the skeleton, not the connect prompt, while the wallet SDK is still loading', () => {

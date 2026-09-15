@@ -1,9 +1,11 @@
 'use client';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Callout } from '@zivoe/ui/core/callout';
 import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
@@ -26,7 +28,7 @@ import { type RedemptionRequestsByChain, useRedemptionRequests } from './_hooks/
  */
 export default function RequestsFlow() {
   const account = useAccount();
-  const { chains, isPending } = useRedemptionRequests();
+  const { chains, isPending, pendingChains } = useRedemptionRequests();
 
   if (account.isDisconnected)
     return (
@@ -38,15 +40,19 @@ export default function RequestsFlow() {
       </div>
     );
 
-  // A skeleton until the wallet SDK has settled and every vault has answered once.
-  if (!account.address || (chains.length === 0 && isPending)) return <RequestsSkeleton />;
+  // A skeleton until the wallet SDK has settled and the first vault has
+  // answered; the chains still reading are named below whatever has landed.
+  if (!account.address || isPending) return <RequestsSkeleton />;
 
   if (chains.length === 0)
     return (
-      <p className="py-6 text-center text-small text-secondary">
-        No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in progress
-        will appear here.
-      </p>
+      <div className="flex flex-col gap-2 py-6 text-center text-small text-secondary">
+        <p>
+          No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in
+          progress will appear here.
+        </p>
+        <StillChecking chains={pendingChains} />
+      </div>
     );
 
   // From lg the Earn box is sticky, so the list is capped and scrolls inside;
@@ -63,9 +69,20 @@ export default function RequestsFlow() {
         {chains.map((group) => (
           <RequestsChainGroup key={group.chain} group={group} />
         ))}
+        <StillChecking chains={pendingChains} className="px-1 py-2 text-extraSmall" />
       </div>
       <ScrollBar orientation="vertical" />
     </ScrollArea>
+  );
+}
+
+/** Names the chains whose first position read is still in flight; nothing once all have answered. */
+function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; className?: string }) {
+  if (chains.length === 0) return null;
+  return (
+    <p aria-live="polite" className={cn('text-secondary', className)}>
+      Still checking {chains.map((chain) => CHAIN_DISPLAY[chain].label).join(', ')}…
+    </p>
   );
 }
 

@@ -35,33 +35,41 @@ export type RedemptionRequestsByChain = {
 /**
  * The wallet's Redemption Positions across every Centrifuge vault of the page,
  * grouped by chain in deployment order. Chains holding nothing for the wallet
- * are left out; `isPending` holds until every vault has answered once.
+ * are left out. `isPending` holds only until the first vault answers: one
+ * dead RPC would otherwise hide every other chain's answer (and the empty
+ * state) for a minute of retries. `pendingChains` names the chains still on
+ * their first read, so a surface can say what it has not counted yet.
  */
 export function useRedemptionRequests(): {
   chains: Array<RedemptionRequestsByChain>;
   count: number;
   isPending: boolean;
+  pendingChains: Array<CentrifugeChain>;
 } {
   const identities = useZivoeVaultIdentities();
   const positions = useRedemptionPositions({
     centrifugeVaults: identities.map((identity) => identity.centrifugeVault)
   });
+  const resultOf = (identity: TransactionIdentity) => positions[identities.indexOf(identity)];
 
-  const chains = groupIdentitiesByChain(identities).flatMap(
-    ({ chain, identities: [firstIdentity, ...restIdentities] }) => {
-      const toEntry = (identity: TransactionIdentity): RedemptionRequestEntry => {
-        const result = positions[identities.indexOf(identity)];
-        return { identity, position: result?.data, isError: result?.isError ?? false };
-      };
-      const entries: RedemptionRequestsByChain['entries'] = [toEntry(firstIdentity), ...restIdentities.map(toEntry)];
-      const count = entries.reduce((sum, entry) => sum + countRedemptionRequests(entry.position), 0);
-      return count > 0 || entries.some((entry) => entry.isError) ? [{ chain, entries, count }] : [];
-    }
-  );
+  const groups = groupIdentitiesByChain(identities);
+  const chains = groups.flatMap(({ chain, identities: [firstIdentity, ...restIdentities] }) => {
+    const toEntry = (identity: TransactionIdentity): RedemptionRequestEntry => {
+      const result = resultOf(identity);
+      return { identity, position: result?.data, isError: result?.isError ?? false };
+    };
+    const entries: RedemptionRequestsByChain['entries'] = [toEntry(firstIdentity), ...restIdentities.map(toEntry)];
+    const count = entries.reduce((sum, entry) => sum + countRedemptionRequests(entry.position), 0);
+    return count > 0 || entries.some((entry) => entry.isError) ? [{ chain, entries, count }] : [];
+  });
+  const pendingChains = groups
+    .filter(({ identities: chainIdentities }) => chainIdentities.some((identity) => resultOf(identity)?.isPending))
+    .map(({ chain }) => chain);
 
   return {
     chains,
     count: chains.reduce((sum, group) => sum + group.count, 0),
-    isPending: positions.some((result) => result.isPending)
+    isPending: positions.every((result) => result.isPending),
+    pendingChains
   };
 }
