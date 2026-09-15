@@ -49,6 +49,8 @@ const mocks = vi.hoisted(() => ({
   allowance: 0n,
   allowanceIsError: false,
   refetchAllowance: vi.fn(),
+  balanceIsError: false,
+  refetchBalance: vi.fn(),
   accessIsAllowed: true,
   accessIsError: false,
   restriction: 'none',
@@ -144,9 +146,11 @@ const balanceOf = vi.hoisted(
 );
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: balanceOf(tokenAddress),
+    data: mocks.balanceIsError ? undefined : balanceOf(tokenAddress),
+    isError: mocks.balanceIsError,
     isFetching: false,
-    isPending: false
+    isPending: false,
+    refetch: mocks.refetchBalance
   }),
   useTokenBalances: () => (token: { tokenAddress: string }) => balanceOf(token.tokenAddress)
 }));
@@ -304,6 +308,7 @@ function resetMocks() {
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
   mocks.allowanceIsError = false;
+  mocks.balanceIsError = false;
   mocks.approveIsResetPending = false;
   mocks.accessIsAllowed = true;
   mocks.accessIsError = false;
@@ -444,6 +449,22 @@ describe('DepositFlow', () => {
 
     await press('Retry');
     expect(mocks.refetchAllowance).toHaveBeenCalledTimes(1);
+  });
+
+  it('withholds Approve and Deposit while the balance read has failed, and retries it on press', async () => {
+    // Balance reads no longer toast (the pickers read every chain on load),
+    // so the coin the form spends names its own failure here.
+    mocks.balanceIsError = true;
+
+    renderFlow();
+    await act(async () => enterAmount('7'));
+
+    expect(screen.getByText(/Could not load your USDC balance/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+
+    await press('Retry');
+    expect(mocks.refetchBalance).toHaveBeenCalledTimes(1);
   });
 
   it('names the allowance reset while it runs, before the approve is offered', async () => {

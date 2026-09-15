@@ -126,6 +126,16 @@ export function DepositFlow() {
   // fail at simulation with no readable reason — while Deposit would fail
   // for want of one. The read is retried first.
   const isAllowanceUnavailable = allowance.isError && !allowance.isFetching;
+  // Same for the balance of the coin the form spends: balance reads no longer
+  // toast (the pickers read every chain on every page load, and one flaky RPC
+  // would toast per chain), so the form names its own failure — an unknown
+  // balance would otherwise validate every amount as too large.
+  const isBalanceUnavailable = assetBalance.isError && !assetBalance.isFetching;
+  const isReadUnavailable = isAllowanceUnavailable || isBalanceUnavailable;
+  const retryReads = () => {
+    if (isAllowanceUnavailable) void allowance.refetch();
+    if (isBalanceUnavailable) void assetBalance.refetch();
+  };
 
   const approveSpending = useApproveSpending({ zivoeVaultSlug: identity.zivoeVaultSlug });
   const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
@@ -331,8 +341,8 @@ export function DepositFlow() {
             <Button fullWidth isDisabled>
               {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
             </Button>
-          ) : isAllowanceUnavailable ? (
-            <Button fullWidth onPress={() => void allowance.refetch()}>
+          ) : isReadUnavailable ? (
+            <Button fullWidth onPress={retryReads}>
               Retry
             </Button>
           ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
@@ -393,12 +403,17 @@ export function DepositFlow() {
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
       ) : isNotAdmitted ? (
         <WalletAccessCallout restriction={restriction} />
-      ) : isAllowanceUnavailable && !needsChainSwitch && !isPrereqsLoading ? (
+      ) : isReadUnavailable && !needsChainSwitch && !isPrereqsLoading ? (
         // Only while the Retry above is the action: a wallet on another chain
         // or a read in flight puts a different step there, and "Retry to
         // continue" beside "Switch to Base" would name a control that is not
         // on screen.
-        <Callout variant="warning">Could not check your {asset.symbol} approval. Retry to continue.</Callout>
+        <Callout variant="warning">
+          {isBalanceUnavailable
+            ? `Could not load your ${asset.symbol} balance.`
+            : `Could not check your ${asset.symbol} approval.`}{' '}
+          Retry to continue.
+        </Callout>
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an

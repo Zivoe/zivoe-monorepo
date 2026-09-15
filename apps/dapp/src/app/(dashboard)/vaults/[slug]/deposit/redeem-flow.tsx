@@ -158,6 +158,12 @@ export default function RedeemFlow() {
   // one — repeating them here would describe states this gate never sees.
   const isSubmitBlocked = isAnyWritePending && !requestRedeem.isPending;
 
+  // Balance reads no longer toast (the pickers read every chain on every page
+  // load), so the form names a failed read of the shares it spends and
+  // withholds the request: an unknown balance would validate every amount as
+  // too large behind a live button.
+  const isBalanceUnavailable = shareBalance.isError && !shareBalance.isFetching;
+
   // Both states are presentation only, and both are scoped to an entered amount
   // to match the deposit tab. The estimate quotes a price that will not be the
   // settlement price anyway — the callout below the row says as much — so it
@@ -326,6 +332,10 @@ export default function RedeemFlow() {
           <Button fullWidth isDisabled>
             {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
           </Button>
+        ) : isBalanceUnavailable ? (
+          <Button fullWidth onPress={() => void shareBalance.refetch()}>
+            Retry
+          </Button>
         ) : (
           <Button
             fullWidth
@@ -355,7 +365,12 @@ export default function RedeemFlow() {
 
         {/* Why the action above is disabled — the verdict only exists once a
             wallet is connected. */}
-        {isNotAdmitted && <WalletAccessCallout restriction={restriction} />}
+        {isNotAdmitted ? (
+          <WalletAccessCallout restriction={restriction} />
+        ) : isBalanceUnavailable && !needsChainSwitch && !isPrereqsLoading && !isCancellationProcessing ? (
+          // Only while the Retry above is the action.
+          <Callout variant="warning">Could not load your {share.symbol} balance. Retry to continue.</Callout>
+        ) : null}
       </div>
     </>
   );

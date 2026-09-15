@@ -80,6 +80,8 @@ const mocks = vi.hoisted(() => ({
   metricsRefetch: vi.fn(),
   pendingShares: 0n,
   positionIsError: false,
+  balanceIsError: false,
+  refetchBalance: vi.fn(),
   requestRedeem: vi.fn(),
   returnedShares: 0n,
   sharePrice: 1_070000000000000000n,
@@ -241,9 +243,11 @@ const balanceOf = vi.hoisted(
 );
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: ({ tokenAddress }: { tokenAddress: string }) => ({
-    data: balanceOf(tokenAddress),
+    data: mocks.balanceIsError ? undefined : balanceOf(tokenAddress),
+    isError: mocks.balanceIsError,
     isFetching: false,
-    isPending: false
+    isPending: false,
+    refetch: mocks.refetchBalance
   }),
   useTokenBalances: () => (token: { tokenAddress: string }) => balanceOf(token.tokenAddress)
 }));
@@ -371,6 +375,7 @@ function resetMocks() {
   mocks.metricsIsFetching = false;
   mocks.pendingShares = 0n;
   mocks.positionIsError = false;
+  mocks.balanceIsError = false;
   mocks.returnedShares = 0n;
   mocks.sharePrice = 1_070000000000000000n;
   mocks.zSmbBalance = 10n * 10n ** 18n;
@@ -469,6 +474,22 @@ describe('RedeemFlow', () => {
     expect(getInput('Redeem').value).toBe('2');
     act(() => options.onSuccess({ receipt: { status: 'success' } }));
     expect(getInput('Redeem').value).toBe('');
+  });
+
+  it('withholds the request while the share balance read has failed, and retries it on press', async () => {
+    // Balance reads no longer toast (the pickers read every chain on load),
+    // so the form names its own failure; an unknown balance would otherwise
+    // validate every amount as too large behind a live button.
+    mocks.balanceIsError = true;
+    renderFlow();
+
+    expect(screen.getByText(/Could not load your zSMB balance/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /redemption$/ })).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(getButton('Retry'));
+    });
+    expect(mocks.refetchBalance).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the request live while the position read is failing', async () => {

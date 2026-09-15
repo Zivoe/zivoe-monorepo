@@ -25,7 +25,12 @@ function balanceQueryOptions({
   // queryOptions keeps the bigint result typed through both useQuery and useQueries.
   return queryOptions({
     queryKey: queryKeys.account.balanceOf({ accountAddress: holder, chain, id: tokenAddress }),
-    meta: { toastErrorMessage: 'Error fetching balance' },
+    // Silent on purpose: the many-token reader below runs for every chain on
+    // every page load, and one flaky public RPC would otherwise toast "Error
+    // fetching balance" per chain to a user who never picked it. Both readers
+    // share this entry, so the flag cannot differ per reader; the forms name
+    // a failed read of the coin they spend in place, with a Retry.
+    meta: { skipErrorToast: true },
     queryFn:
       !web3 || !holder
         ? skipToken
