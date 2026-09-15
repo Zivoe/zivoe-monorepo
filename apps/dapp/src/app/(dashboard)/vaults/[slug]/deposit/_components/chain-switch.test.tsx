@@ -406,6 +406,22 @@ describe('useSelectedIdentity', () => {
     expect(screen.getByText('c: sepolia USDC')).toBeTruthy();
   });
 
+  it('falls back to the default coin when the stored memory is a null, not a map', () => {
+    // A hand-edited or foreign-tab write: the storage returns the parsed null
+    // rather than the initial value, and the page must not throw on it.
+    localStorage.setItem('zivoe.deposit-asset', 'null');
+    try {
+      renderConsumers({
+        store: createStore(),
+        identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+        children: <IdentityConsumer label="n" tab="deposit" select={USDT_SEPOLIA} />
+      });
+      expect(screen.getByText('n: sepolia USDC')).toBeTruthy();
+    } finally {
+      localStorage.removeItem('zivoe.deposit-asset');
+    }
+  });
+
   it("keeps one Zivoe Vault's coin apart from another's on the same chain", () => {
     // A second Zivoe Vault live on sepolia — same chain, its own page and vaults.
     const OTHER_USDC = { ...USDC_SEPOLIA, zivoeVaultSlug: 'other-zivoe-vault' };

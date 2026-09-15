@@ -39,9 +39,11 @@ const selectedChainAtom = atomWithStorage<CentrifugeChain | undefined>('zivoe.se
  * chain: a vault no longer live falls back to the chain's default (first)
  * asset.
  */
+// Nullable on purpose: the storage falls back to the initial value only when
+// the stored JSON fails to parse, and a `null` left there parses fine.
 const selectedAssetAtoms = {
-  deposit: atomWithStorage<Partial<Record<string, string>>>('zivoe.deposit-asset', {}),
-  redeem: atomWithStorage<Partial<Record<string, string>>>('zivoe.redeem-asset', {})
+  deposit: atomWithStorage<Partial<Record<string, string>> | null>('zivoe.deposit-asset', {}),
+  redeem: atomWithStorage<Partial<Record<string, string>> | null>('zivoe.redeem-asset', {})
 };
 
 /** The stored-asset key: one Zivoe Vault's choice on one chain. */
@@ -188,7 +190,7 @@ export function useSelectedIdentity({ tab }: { tab: DepositTab }) {
   const [storedAssets, setStoredAssets] = useAtom(selectedAssetAtoms[tab]);
   // Every identity on the page carries the page's slug, so the chain's first suffices.
   const storedAsset =
-    storedAssets[selectedAssetKey({ zivoeVaultSlug: chainIdentities[0].zivoeVaultSlug, chain: selectedChain })];
+    storedAssets?.[selectedAssetKey({ zivoeVaultSlug: chainIdentities[0].zivoeVaultSlug, chain: selectedChain })];
   const selectedIdentity =
     chainIdentities.find((identity) => identity.centrifugeVault.address.toLowerCase() === storedAsset) ??
     chainIdentities[0];
