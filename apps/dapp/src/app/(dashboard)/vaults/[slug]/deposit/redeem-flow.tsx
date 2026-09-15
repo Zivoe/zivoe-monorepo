@@ -218,7 +218,7 @@ export default function RedeemFlow() {
           lock. Named here since the read no longer toasts. */}
       {position.isError && (
         <Callout variant="warning">
-          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}. Retrying automatically.
+          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}.
         </Callout>
       )}
 

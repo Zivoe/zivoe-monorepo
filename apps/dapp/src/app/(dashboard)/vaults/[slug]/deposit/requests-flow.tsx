@@ -120,7 +120,7 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
         <div className="flex flex-col gap-2 pb-2">
           {entries.some((entry) => entry.isError) && (
             <p className="text-extraSmall text-tertiary">
-              Could not load every position on {label}. Retrying automatically.
+              Could not load every position on {label}.
             </p>
           )}
 
