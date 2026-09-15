@@ -212,8 +212,11 @@ function DepositAssetPickerPanes({
               variant="search"
               groupClassName="h-12"
               aria-label="Search a token"
-              // Short enough for the 94px a 320px phone leaves the field.
-              placeholder="Search"
+              // 'Search tokens' is 89px in Instrument Sans, inside the 94px a 320px
+              // phone leaves the field; truncate turns any residual overflow into an
+              // ellipsis instead of a cut glyph.
+              placeholder="Search tokens"
+              inputClassName="truncate"
               value={search}
               onChange={setSearch}
               startContent={<SearchIcon className="size-4 text-icon-default" />}
