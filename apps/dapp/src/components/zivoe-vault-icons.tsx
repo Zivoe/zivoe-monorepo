@@ -9,16 +9,16 @@ import { getTokenInfo } from './token-info';
  * The logo rows the listing card and the Zivoe Vault's Details section both
  * render — one component per fact, so the two surfaces cannot disagree about
  * which stablecoins are accepted or which chains a Zivoe Vault is available on.
- * Every logo names itself on hover; the chain row overlaps its logos so nine
- * chains still fit beside the row label at 375px.
+ * Both rows overlap their logos (so nine chains still fit beside the row label
+ * at 375px) and every logo names itself on hover, lifting above its neighbours.
  */
-export function AcceptedStablecoinIcons({ zivoeVault }: { zivoeVault: ZivoeVault }) {
+export function AcceptedStablecoinIcons({ zivoeVault, surface = 'base' }: StackedRowProps) {
   return (
-    <IconRow className="gap-1.5">
+    <IconRow>
       {zivoeVaultDepositAssets(zivoeVault).map(({ symbol }) => {
         const info = getTokenInfo(symbol);
         return (
-          <Logo key={symbol} label={info?.label ?? symbol}>
+          <Logo key={symbol} label={info?.label ?? symbol} className={STACK_RING[surface]}>
             {info?.icon ?? symbol}
           </Logo>
         );
@@ -27,20 +27,11 @@ export function AcceptedStablecoinIcons({ zivoeVault }: { zivoeVault: ZivoeVault
   );
 }
 
-/** Ring colour behind each overlapped logo — must match the surface the row sits on. */
-const STACK_RING = { base: 'ring-neutral-0', elevated: 'ring-neutral-50' } as const;
-
-export function AcceptedChainIcons({
-  zivoeVault,
-  surface = 'base'
-}: {
-  zivoeVault: ZivoeVault;
-  surface?: keyof typeof STACK_RING;
-}) {
+export function AcceptedChainIcons({ zivoeVault, surface = 'base' }: StackedRowProps) {
   return (
-    <IconRow className="-space-x-1">
+    <IconRow>
       {zivoeVaultChainDisplays(zivoeVault).map(({ label, Icon }) => (
-        <Logo key={label} label={label} className={cn('ring-2', STACK_RING[surface])}>
+        <Logo key={label} label={label} className={STACK_RING[surface]}>
           <Icon />
         </Logo>
       ))}
@@ -48,11 +39,16 @@ export function AcceptedChainIcons({
   );
 }
 
+/** Ring colour behind each overlapped logo — must match the surface the row sits on. */
+const STACK_RING = { base: 'ring-2 ring-neutral-0', elevated: 'ring-2 ring-neutral-50' } as const;
+
+type StackedRowProps = { zivoeVault: ZivoeVault; surface?: keyof typeof STACK_RING };
+
 // `relative z-20` lifts the row above the listing card's whole-card link
 // overlay (z-10) so the logos receive hover; the Details section has no
 // overlay, where it is inert.
-function IconRow({ className, children }: { className: string; children: React.ReactNode }) {
-  return <div className={cn('relative z-20 flex shrink-0 items-center', className)}>{children}</div>;
+function IconRow({ children }: { children: React.ReactNode }) {
+  return <div className="relative z-20 flex shrink-0 items-center -space-x-1">{children}</div>;
 }
 
 function Logo({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
