@@ -47,8 +47,12 @@ type StackedRowProps = { zivoeVault: ZivoeVault; surface?: keyof typeof STACK_RI
 // `relative z-20` lifts the row above the listing card's whole-card link
 // overlay (z-10) so the logos receive hover; the Details section has no
 // overlay, where it is inert.
+// Wraps rather than overflows: ten chain logos beside the row label are
+// wider than a 320px card's term.
 function IconRow({ children }: { children: React.ReactNode }) {
-  return <div className="relative z-20 flex shrink-0 items-center -space-x-1">{children}</div>;
+  return (
+    <div className="relative z-20 flex min-w-0 flex-wrap items-center justify-end -space-x-1 gap-y-1">{children}</div>
+  );
 }
 
 function Logo({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
