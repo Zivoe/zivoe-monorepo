@@ -213,6 +213,9 @@ function DepositAssetPickerPanes({
               value={search}
               onChange={setSearch}
               startContent={<SearchIcon className="size-4 text-icon-default" />}
+              isClearable
+              clearButtonAriaLabel="Clear search"
+              clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
             />
 
             <div className={nativeScrollAreaStyles({ className: 'flex min-h-0 flex-1 flex-col gap-1' })}>

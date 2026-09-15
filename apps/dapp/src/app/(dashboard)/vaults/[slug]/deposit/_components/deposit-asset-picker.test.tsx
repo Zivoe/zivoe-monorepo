@@ -167,5 +167,10 @@ describe('DepositAssetPicker', () => {
     fireEvent.change(search, { target: { value: 'base' } });
     expect(within(dialog).queryByText('USDC on Base')).toBeNull();
     expect(within(dialog).getByText(/No token matches “base”/)).toBeTruthy();
+
+    // The X empties the box in one press and brings every coin back.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clear search' }));
+    expect(search).toHaveProperty('value', '');
+    expect(listedRows(dialog)).toHaveLength(IDENTITIES.length);
   });
 });
