@@ -42,10 +42,10 @@ describe('ChainTokenSelector', () => {
       />
     );
 
-    // Both triggers render in jsdom (no CSS breakpoints); the dialog's is first.
-    const [dialogTrigger] = screen.getAllByRole('button', { name: 'zSMB Ethereum' });
+    // Both triggers render in jsdom (no CSS breakpoints); each names what it does and the current choice.
+    const dialogTrigger = screen.getByRole('button', { name: 'Select Asset, currently zSMB on Ethereum' });
     await act(async () => {
-      fireEvent.click(dialogTrigger!);
+      fireEvent.click(dialogTrigger);
     });
 
     const dialog = screen.getByRole('dialog');
@@ -84,9 +84,9 @@ describe('ChainTokenSelector', () => {
       />
     );
 
-    const [dialogTrigger] = screen.getAllByRole('button', { name: 'USDC' });
+    const dialogTrigger = screen.getByRole('button', { name: 'Select token to receive, currently USDC' });
     await act(async () => {
-      fireEvent.click(dialogTrigger!);
+      fireEvent.click(dialogTrigger);
     });
 
     const dialog = screen.getByRole('dialog');

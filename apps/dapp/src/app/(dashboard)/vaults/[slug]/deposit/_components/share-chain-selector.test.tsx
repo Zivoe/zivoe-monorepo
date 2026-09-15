@@ -41,10 +41,10 @@ describe('ShareChainSelector', () => {
     const onSelect = vi.fn();
     render(<ShareChainSelector chains={CHAINS} selectedChain="sepolia" onSelect={onSelect} isDisabled={false} />);
 
-    // Both triggers render in jsdom (no CSS breakpoints); the dialog's is first.
-    const [dialogTrigger] = screen.getAllByRole('button', { name: 'zFIX Ethereum' });
+    // Both triggers render in jsdom (no CSS breakpoints); each names what it does and the current choice.
+    const dialogTrigger = screen.getByRole('button', { name: 'Select network, currently zFIX on Ethereum' });
     await act(async () => {
-      fireEvent.click(dialogTrigger!);
+      fireEvent.click(dialogTrigger);
     });
 
     const dialog = screen.getByRole('dialog');

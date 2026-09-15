@@ -214,6 +214,8 @@ export function ChainTokenSelector({
       <Dialog>
         <SelectTrigger
           variant="border-light"
+          // Named like the mobile Select below: the content alone reads "zSMB Ethereum".
+          aria-label={`${title}, currently ${rowLabel(selected)}`}
           className={cn('hidden lg:flex', triggerClassName)}
           isDisabled={isDisabled}
         >
