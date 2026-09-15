@@ -7,6 +7,7 @@ import * as Aria from 'react-aria-components';
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Dialog, DialogContent, DialogTitle } from '@zivoe/ui/core/dialog';
 import { Input } from '@zivoe/ui/core/input';
+import { nativeScrollAreaStyles } from '@zivoe/ui/core/native-scroll-area';
 import { SelectTrigger } from '@zivoe/ui/core/select';
 import { SearchIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -194,38 +195,45 @@ function DepositAssetPickerPanes({
           </Aria.ToggleButtonGroup>
         </div>
 
-        {/* min-w-0: a grid child's minimum is its content's, and the search
-            input's intrinsic width would otherwise push the pane past the
-            dialog's edge at phone widths. */}
-        <div className="flex min-h-80 min-w-0 flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
-          <Input
-            variant="search"
-            groupClassName="h-12"
-            aria-label="Search a token"
-            placeholder="Search a token"
-            value={search}
-            onChange={setSearch}
-            startContent={<SearchIcon className="size-4 text-icon-default" />}
-          />
+        {/* The networks pane alone sets the dialog's height: the coins pane
+            is absolutely positioned inside its grid cell, so it adds nothing
+            to the row and instead fills whatever height the networks take,
+            and the coin list scrolls within it. Without this the dialog grew
+            and shrank with every keystroke in the search. min-w-0: a grid
+            child's minimum is its content's, and the search input's intrinsic
+            width would otherwise push the cell past the dialog's edge at
+            phone widths. */}
+        <div className="relative min-w-0">
+          <div className="absolute inset-0 flex flex-col gap-2 rounded-2xl bg-surface-base p-3 shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]">
+            <Input
+              variant="search"
+              groupClassName="h-12"
+              aria-label="Search a token"
+              placeholder="Search a token"
+              value={search}
+              onChange={setSearch}
+              startContent={<SearchIcon className="size-4 text-icon-default" />}
+            />
 
-          <div className="flex flex-col gap-1">
-            {visible.map((row) => (
-              <TokenSelectorDialogRow
-                key={row.id}
-                row={row}
-                // Under one network the chain is in the list's title; across all of them each row names its own.
-                label={network === 'all' ? tokenOnChainLabel(row.token, row.chain) : row.token.label}
-                isSelected={row.id === selectedId}
-                onPress={() => onSelect(row.id)}
-              />
-            ))}
+            <div className={nativeScrollAreaStyles({ className: 'flex min-h-0 flex-1 flex-col gap-1' })}>
+              {visible.map((row) => (
+                <TokenSelectorDialogRow
+                  key={row.id}
+                  row={row}
+                  // Under one network the chain is in the list's title; across all of them each row names its own.
+                  label={network === 'all' ? tokenOnChainLabel(row.token, row.chain) : row.token.label}
+                  isSelected={row.id === selectedId}
+                  onPress={() => onSelect(row.id)}
+                />
+              ))}
 
-            {visible.length === 0 && (
-              <p className="px-2 py-6 text-center text-small text-tertiary">
-                No token matches &ldquo;{search.trim()}&rdquo;
-                {network !== 'all' ? ` on ${CHAIN_DISPLAY[network].label}` : ''}.
-              </p>
-            )}
+              {visible.length === 0 && (
+                <p className="px-2 py-6 text-center text-small text-tertiary">
+                  No token matches &ldquo;{search.trim()}&rdquo;
+                  {network !== 'all' ? ` on ${CHAIN_DISPLAY[network].label}` : ''}.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
