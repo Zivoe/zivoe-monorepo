@@ -44,8 +44,12 @@ function setBalance(identity: typeof FIXTURE_IDENTITY, value: bigint) {
 }
 
 function renderPicker(onSelect = vi.fn()) {
-  render(<DepositAssetPicker identities={IDENTITIES} selected={USDC_SEPOLIA} onSelect={onSelect} isDisabled={false} />);
-  return onSelect;
+  // A fresh element per render: React skips a child handed the very same element again.
+  const picker = () => (
+    <DepositAssetPicker identities={IDENTITIES} selected={USDC_SEPOLIA} onSelect={onSelect} isDisabled={false} />
+  );
+  const { rerender } = render(picker());
+  return { onSelect, rerender: () => rerender(picker()) };
 }
 
 async function openDialog() {
@@ -90,18 +94,39 @@ describe('DepositAssetPicker', () => {
     expect(within(dialog).getByText('3.00').closest('p')?.textContent).toBe('Balance: 3.00');
   });
 
-  it('orders the rows by where the money is, compared at one scale across decimals', async () => {
-    // Base holds the most, so its coin comes first; on sepolia the 18-decimal
-    // USDT's raw balance dwarfs USDC's, yet 7 < 10 once both are at one scale.
-    setBalance(USDC_BASE, 30_000000n);
+  it('orders the rows by balance across chains, compared at one scale across decimals', async () => {
+    // Base's 3 USDC sits between Ethereum's two coins: the chain holding the
+    // most does not carry its empty coins up with it. The 18-decimal USDT's
+    // raw balance dwarfs both USDC ones, yet 1 < 3 once all are at one scale.
+    setBalance(USDT_SEPOLIA, 1_000000000000000000n);
     renderPicker();
     const dialog = await openDialog();
 
+    expect(listedRows(dialog)).toEqual(['USDC on Ethereum', 'USDC on Base', 'USDT on Ethereum']);
+  });
+
+  it('keeps the order it opened with while balances change, and sorts afresh on the next open', async () => {
+    const { rerender } = renderPicker();
+    let dialog = await openDialog();
+    expect(listedRows(dialog)).toEqual(['USDC on Ethereum', 'USDT on Ethereum', 'USDC on Base']);
+
+    // A balance lands while the dialog is open: the rows stay put, the balance shown is the new one.
+    setBalance(USDC_BASE, 30_000000n);
+    await act(async () => rerender());
+    expect(listedRows(dialog)).toEqual(['USDC on Ethereum', 'USDT on Ethereum', 'USDC on Base']);
+    expect(within(dialog).getByText('30.00')).toBeTruthy();
+
+    // Choosing a row closes the dialog; the next open orders by the balances of that moment.
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: /^USDC on Ethereum/ }));
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    dialog = await openDialog();
     expect(listedRows(dialog)).toEqual(['USDC on Base', 'USDC on Ethereum', 'USDT on Ethereum']);
   });
 
   it('filters to one network, whose rows then name the coin alone, and hands back the chosen vault', async () => {
-    const onSelect = renderPicker();
+    const { onSelect } = renderPicker();
     const dialog = await openDialog();
 
     await act(async () => {

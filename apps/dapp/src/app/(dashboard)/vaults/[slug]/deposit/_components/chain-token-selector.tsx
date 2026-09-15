@@ -119,25 +119,23 @@ export type ChainSelectorRow = {
 };
 
 /**
- * Rows ordered by where the wallet's money is: chains by their largest known
- * balance, coins within a chain by their own, largest first — so the row the
- * user most likely wants is at the top, and a chain's coins stay together.
- * Unknown balances (no wallet, still loading) count as nothing to sort by,
- * and ties keep the catalog's product order, so a wallet holding nothing sees
- * exactly the catalog order. Pure: the flows feed it the balances they read.
+ * Rows ordered by where the wallet's money is: largest known balance first,
+ * whatever the chain — so the row the user most likely wants is at the top.
+ * Chains are not kept together: a list that grouped them showed a chain's
+ * empty coins above another chain's funded one, and the network filter is
+ * the place to browse one chain. Unknown balances (no wallet, still loading)
+ * count as nothing to sort by, and ties keep the catalog's product order, so
+ * a wallet holding nothing sees exactly the catalog order. Pure: the flows
+ * feed it the balances they read.
  */
 export function sortRowsByBalance<TRow extends ChainSelectorRow>(
   rows: Array<TRow>,
   balanceOf: (row: TRow) => bigint | undefined
 ): Array<TRow> {
-  const groups = groupRowsByChain(rows);
   const known = (row: TRow) => balanceOf(row) ?? 0n;
   const descending = (a: bigint, b: bigint) => (a === b ? 0 : a > b ? -1 : 1);
-
-  return groups
-    .map((group) => ({ ...group, max: group.rows.reduce((max, row) => (known(row) > max ? known(row) : max), 0n) }))
-    .sort((a, b) => descending(a.max, b.max))
-    .flatMap((group) => [...group.rows].sort((a, b) => descending(known(a), known(b))));
+  // Array.prototype.sort is stable, which is what keeps ties in catalog order.
+  return [...rows].sort((a, b) => descending(known(a), known(b)));
 }
 
 /** Rows grouped under their chain, in row order — the deposit picker's network list and the balance ordering share it. */

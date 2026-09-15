@@ -112,14 +112,16 @@ export function DepositAssetPicker({
 }
 
 /**
- * The dialog's body. Its own component so the filter and search reset every
- * time the dialog opens (DialogContent mounts its children per open).
+ * The dialog's body. Its own component so the filter, the search and the row
+ * order reset every time the dialog opens (DialogContent mounts its children
+ * per open).
  */
 function DepositAssetPickerPanes({
-  rows,
+  rows: liveRows,
   selectedId,
   onSelect
 }: {
+  /** In balance order as of the latest render; the panes keep the order they opened with. */
   rows: Array<ChainSelectorRow>;
   selectedId: string;
   onSelect: (id: string) => void;
@@ -127,6 +129,13 @@ function DepositAssetPickerPanes({
   const [network, setNetwork] = useState<NetworkFilter>('all');
   const [search, setSearch] = useState('');
   const networksHeadingId = useId();
+
+  // Balances land one chain at a time, and re-sorting on each would move the
+  // rows under the pointer. The order is fixed at open; the rows themselves
+  // (and the balances they print) stay live. The next open sorts afresh.
+  const [orderAtOpen] = useState(() => new Map(liveRows.map((row, index) => [row.id, index])));
+  const rank = (row: ChainSelectorRow) => orderAtOpen.get(row.id) ?? orderAtOpen.size;
+  const rows = [...liveRows].sort((a, b) => rank(a) - rank(b));
 
   const groups = groupRowsByChain(rows);
   // The filter is one choice among several, so it is a single-selection
@@ -218,7 +227,8 @@ function DepositAssetPickerPanes({
               clearButtonClassName="text-icon-default opacity-100 transition-colors hover:text-primary"
             />
 
-            <div className={nativeScrollAreaStyles({ className: 'flex min-h-0 flex-1 flex-col gap-1' })}>
+            {/* pr-2: a gutter between the rows' balances and the scrollbar, which otherwise hugs them. */}
+            <div className={nativeScrollAreaStyles({ className: 'flex min-h-0 flex-1 flex-col gap-1 pr-2' })}>
               {visible.map((row) => (
                 <TokenSelectorDialogRow
                   key={row.id}

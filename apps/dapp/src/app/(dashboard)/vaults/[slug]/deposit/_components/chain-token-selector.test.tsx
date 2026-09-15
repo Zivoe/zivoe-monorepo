@@ -126,12 +126,13 @@ describe('sortRowsByBalance', () => {
   ];
   const ids = (sorted: Array<ChainSelectorRow>) => sorted.map((row) => row.id);
 
-  it('orders chains by their largest balance and coins within a chain by their own, keeping a chain together', () => {
+  it('orders the rows by balance alone, largest first, across chains', () => {
+    // Base's coin outranks sepolia's smaller one even though sepolia holds the most.
     const balances: Record<string, bigint | undefined> = { 'sepolia-usdc': 10n, 'sepolia-usdt': 40n, 'base-usdc': 25n };
     expect(ids(sortRowsByBalance(rows, (row) => balances[row.id]))).toEqual([
       'sepolia-usdt',
-      'sepolia-usdc',
-      'base-usdc'
+      'base-usdc',
+      'sepolia-usdc'
     ]);
 
     balances['sepolia-usdt'] = 5n;
