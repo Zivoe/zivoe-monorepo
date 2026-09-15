@@ -17,11 +17,11 @@ vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
-      const identity = actual.getShareClassChainIdentity(args);
+    listShareClassChainIdentities: (args: { chain: CentrifugeChain; key: string }) => {
+      const [identity, ...rest] = actual.listShareClassChainIdentities(args);
       return args.chain === mocks.eighteenDecimalUsdcChain
-        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
-        : identity;
+        ? [{ ...identity, asset: { ...identity.asset, decimals: 18 } }, ...rest]
+        : [identity, ...rest];
     }
   };
 });
@@ -49,6 +49,7 @@ function job(overrides: Partial<TransactionReceiptJob['event']> = {}): Transacti
       centrifugeId: '1',
       tokenAmount: 4405778757590310318n,
       currencyAmount: 5000000n,
+      assetAddress: null,
       createdAtMs: 1786000000000,
       ...overrides
     }

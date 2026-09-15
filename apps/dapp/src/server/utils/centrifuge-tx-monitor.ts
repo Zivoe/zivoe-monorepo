@@ -471,6 +471,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
             centrifugeId: event.centrifugeId,
             tokenAmount: event.tokenAmount === null ? null : event.tokenAmount.toString(),
             currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
+            assetAddress: event.assetAddress,
             createdAtMs: event.createdAtMs
           }
         }));

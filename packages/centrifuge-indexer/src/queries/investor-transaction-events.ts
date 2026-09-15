@@ -57,6 +57,9 @@ const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
           network
           explorer
         }
+        currencyAsset {
+          address
+        }
       }
       pageInfo {
         hasNextPage
@@ -103,7 +106,11 @@ const itemSchema = z
     createdAtTxHash: z.string(),
     // `id` is the EVM chain id as a decimal string — the key the app's
     // own chain registry is indexed by.
-    blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
+    blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable(),
+    // The deposit asset the event's Centrifuge vault trades — the ONLY thing
+    // that tells two vaults of one share class on one chain apart. Nullable
+    // like `blockchain`: the relation may be unavailable.
+    currencyAsset: z.object({ address: z.string().nullable() }).nullable()
   })
   // API-v3 copies the non-zero uint256 `shares` from RedeemRequest into
   // tokenAmount. A missing or non-positive value is upstream drift, not
@@ -141,6 +148,13 @@ export type InvestorTransactionEvent = {
   createdAtMs: number;
   /** Lowercase transaction hash. */
   txHash: string;
+  /**
+   * Lowercase address of the deposit asset the event's Centrifuge vault
+   * trades — resolves WHICH vault of the share class on the chain the event
+   * belongs to (`getShareClassChainIdentity({ chain, key, assetAddress })`).
+   * Null when the indexer's asset relation is unavailable.
+   */
+  assetAddress: string | null;
   /** Indexer's chain name (e.g. "ethereum"); null when the relation is unavailable. */
   chainName: string | null;
   /** Block-explorer base URL for the event's chain; null when the indexer has none. */
@@ -257,6 +271,7 @@ export async function fetchInvestorTransactionEventsSince({
         tokenPrice: item.tokenPrice === null ? null : BigInt(item.tokenPrice),
         createdAtMs,
         txHash: item.createdAtTxHash.toLowerCase(),
+        assetAddress: item.currencyAsset?.address?.toLowerCase() ?? null,
         chainName: item.blockchain?.network ?? null,
         explorerUrl: item.blockchain?.explorer ?? null
       });

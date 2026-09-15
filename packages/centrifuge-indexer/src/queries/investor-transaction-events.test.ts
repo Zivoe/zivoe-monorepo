@@ -18,6 +18,7 @@ function investorTxItem(overrides: Record<string, unknown> = {}) {
     createdAt: at(3000),
     createdAtTxHash: '0xCCdaB4D1',
     blockchain: { id: '1', network: 'ethereum', explorer: 'https://etherscan.io' },
+    currencyAsset: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
     ...overrides
   };
 }
@@ -62,6 +63,7 @@ describe('fetchInvestorTransactionEventsSince', () => {
       tokenPrice: 1134873146180107400n,
       createdAtMs: T0 + 2000,
       txHash: '0xccdab4d1',
+      assetAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
       chainName: 'ethereum',
       explorerUrl: 'https://etherscan.io'
     });
@@ -190,6 +192,20 @@ describe('fetchInvestorTransactionEventsSince', () => {
     await expect(
       fetchInvestorTransactionEventsSince({ environment: 'testnet', shareClassKey: 'zsmb', sinceMs: 0 })
     ).rejects.toThrow(/unorderable investor transaction/);
+  });
+
+  it('carries no asset address when the asset relation is unavailable', async () => {
+    fakeIndexerResponse(
+      investorTxPage([investorTxItem({ currencyAsset: null })], { hasNextPage: false, endCursor: null })
+    );
+
+    const { events } = await fetchInvestorTransactionEventsSince({
+      environment: 'testnet',
+      shareClassKey: 'zsmb',
+      sinceMs: T0
+    });
+
+    expect(events[0]).toMatchObject({ assetAddress: null });
   });
 
   it('carries no chain id when the blockchain relation is unavailable', async () => {

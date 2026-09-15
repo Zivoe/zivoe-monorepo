@@ -3,7 +3,7 @@ import 'server-only';
 import {
   type DepositAsset,
   type InvestorTransactionEvent,
-  getShareClassChainIdentity
+  listShareClassChainIdentities
 } from '@zivoe/centrifuge-indexer';
 
 import { chainOfChainId, getViemChain } from '@/lib/chains';
@@ -61,31 +61,49 @@ export function resolveChainDisplay(
  * The deposit asset behind the event: the catalog's instance for the share
  * class's Centrifuge vault on the event's chain, resolved per event because
  * symbol and scale are facts of that vault (USDC is 6 decimals on Circle-
- * native chains, 18 on BNB Smart Chain; another class may accept DAI). Null
- * when the event names no chain this deployment knows, or the class is not
- * live there: the amount then has no readable scale, and both renderers show
- * it as absent rather than at a guessed one — a 10^12x misprint in an
- * investor's receipt is worse than a dash.
+ * native chains, 18 on BNB Smart Chain; another vault may pay USDT). Where
+ * the class has several vaults on the chain, the event's own asset address
+ * picks the one — and an event that names no asset there is unresolvable,
+ * never guessed. Null when the event names no chain this deployment knows,
+ * the class is not live there, or the asset cannot be told apart: the amount
+ * then has no readable scale, and both renderers show it as absent rather
+ * than at a guessed one — a 10^12x misprint in an investor's receipt is worse
+ * than a dash.
  */
 export function resolveDepositAssetDisplay({
   event,
   shareClassKey
 }: {
-  event: Pick<InvestorTransactionEvent, 'chainId'>;
+  event: Pick<InvestorTransactionEvent, 'chainId' | 'assetAddress'>;
   shareClassKey: string;
 }): Pick<DepositAsset, 'symbol' | 'decimals'> | null {
   const chain = event.chainId === null ? undefined : chainOfChainId(event.chainId);
   if (!chain) return null;
 
-  // The catalog's chain identity is a trust boundary that throws for a class
-  // unknown, unavailable or staged on the chain — for a formatter that is
-  // "no asset to name", not a failed pass.
+  // The catalog's chain identities are a trust boundary that throws for a
+  // class unknown, unavailable or staged on the chain — for a formatter that
+  // is "no asset to name", not a failed pass.
+  let identities;
   try {
-    const { symbol, decimals } = getShareClassChainIdentity({ chain, key: shareClassKey }).asset;
-    return { symbol, decimals };
+    identities = listShareClassChainIdentities({ chain, key: shareClassKey });
   } catch {
     return null;
   }
+
+  // Both sides lowercased: the fetch normalizes, but a replayed or hand-published
+  // job may carry a checksummed address.
+  const wanted = event.assetAddress?.toLowerCase();
+  const match =
+    wanted === undefined
+      ? // No asset on the event: unambiguous only while the class has one vault here.
+        identities.length === 1
+        ? identities[0]
+        : undefined
+      : identities.find((identity) => identity.asset.address.toLowerCase() === wanted);
+  if (!match) return null;
+
+  const { symbol, decimals } = match.asset;
+  return { symbol, decimals };
 }
 
 /**

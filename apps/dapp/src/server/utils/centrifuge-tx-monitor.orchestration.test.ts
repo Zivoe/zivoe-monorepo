@@ -152,6 +152,7 @@ function mkEvent(offsetMs: number, overrides: Partial<InvestorTransactionEvent> 
     txHash: `0xtx${offsetMs}`,
     chainName: 'ethereum',
     explorerUrl: null,
+    assetAddress: null,
     ...overrides
   };
 }

@@ -21,11 +21,11 @@ vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
-      const identity = actual.getShareClassChainIdentity(args);
+    listShareClassChainIdentities: (args: { chain: CentrifugeChain; key: string }) => {
+      const [identity, ...rest] = actual.listShareClassChainIdentities(args);
       return args.chain === mocks.eighteenDecimalUsdcChain
-        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
-        : identity;
+        ? [{ ...identity, asset: { ...identity.asset, decimals: 18 } }, ...rest]
+        : [identity, ...rest];
     }
   };
 });
@@ -47,6 +47,7 @@ function event(overrides: Partial<InvestorTransactionEvent> = {}): InvestorTrans
     txHash: '0xccdab4d1b295d7a91f437ae2d9840b914cc8b94009c4edae1b44284f68cc619e',
     chainName: 'ethereum',
     explorerUrl: 'https://etherscan.io',
+    assetAddress: null,
     ...overrides
   };
 }
@@ -103,6 +104,23 @@ describe('resolveDepositAssetDisplay', () => {
       symbol: 'USDC',
       decimals: 18
     });
+  });
+
+  it("picks the vault by the event's asset address, case-insensitively, and refuses an asset the class does not accept there", () => {
+    expect(
+      resolveDepositAssetDisplay({
+        event: event({ chainId: 1, assetAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' }),
+        shareClassKey: 'zsmb'
+      })
+    ).toEqual({ symbol: 'USDC', decimals: 6 });
+    // Another chain's USDC is not this chain's — a stale or mis-indexed
+    // relation must not borrow a scale.
+    expect(
+      resolveDepositAssetDisplay({
+        event: event({ chainId: 1, assetAddress: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' }),
+        shareClassKey: 'zsmb'
+      })
+    ).toBeNull();
   });
 
   it('is null for a chain the registry does not know, or a class not live there — an amount without a scale is unreadable', () => {
