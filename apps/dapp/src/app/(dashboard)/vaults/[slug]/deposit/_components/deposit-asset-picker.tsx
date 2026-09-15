@@ -114,7 +114,8 @@ function DepositAssetPickerPanes({
       {/* Below lg the networks pane is an icon rail: the same buttons with their text kept for screen readers only. */}
       <div className="grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[13.5rem_1fr]">
         <nav aria-label="Networks" className="flex flex-col gap-1 px-2">
-          <p className="sr-only px-2 pb-1 text-extraSmall font-medium text-tertiary lg:not-sr-only">Networks</p>
+          {/* The inset rides the lg variant: not-sr-only resets padding, and its rule lands after the plain px-2. */}
+          <p className="sr-only text-extraSmall font-medium text-tertiary lg:not-sr-only lg:px-2 lg:pb-1">Networks</p>
           <NetworkButton
             isSelected={network === 'all'}
             onPress={() => setNetwork('all')}
