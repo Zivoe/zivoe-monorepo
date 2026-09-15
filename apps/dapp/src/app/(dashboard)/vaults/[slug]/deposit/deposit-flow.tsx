@@ -33,7 +33,7 @@ import {
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
 import { ChainBalanceDetail } from './_components/chain-balance-detail';
 import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
-import { ChainTokenSelector } from './_components/chain-token-selector';
+import { DepositAssetPicker } from './_components/deposit-asset-picker';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
@@ -48,16 +48,13 @@ export function DepositFlow() {
     identities,
     selectedIdentity: identity,
     selectedChain,
-    setSelectedChain,
+    setSelectedIdentity,
     needsChainSwitch
   } = useSelectedIdentity({ tab: 'deposit' });
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
   const { asset, vaultRouterAddress } = centrifugeVault;
-  // Display entry for the deposit asset; the fixture identities tests hand in
-  // may carry none, so the selector falls back to the bare symbol without an icon.
-  const assetSelectorToken = getTokenInfo(asset.symbol) ?? { label: asset.symbol, icon: null };
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -169,13 +166,13 @@ export function DepositFlow() {
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
-  // The balance and capacity rules are wallet- and chain-scoped, so a verdict
-  // about the previous wallet or chain outlives it — 'exceeds balance' would
-  // sit on a context that can afford the amount until the next keystroke
-  // revalidates.
+  // The balance and capacity rules are wallet- and vault-scoped, so a verdict
+  // about the previous wallet or Centrifuge vault (another chain, or another
+  // stablecoin on the same chain) outlives it — 'exceeds balance' would sit on
+  // a context that can afford the amount until the next keystroke revalidates.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, selectedChain, form]);
+  }, [account.address, selectedChain, centrifugeVault.address, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 
@@ -260,15 +257,28 @@ export function DepositFlow() {
                 />
 
                 <div className="ml-3">
-                  <ChainTokenSelector
-                    title="Select Asset"
-                    token={assetSelectorToken}
+                  <DepositAssetPicker
+                    // One row per Centrifuge vault: a chain accepting two
+                    // stablecoins lists both under the chain, each with the
+                    // wallet's balance of THAT coin. The display entry may be
+                    // missing for the fixture assets tests hand in, so a row
+                    // falls back to the bare symbol without an icon.
                     rows={identities.map((rowIdentity) => ({
+                      id: rowIdentity.centrifugeVault.address.toLowerCase(),
                       chain: rowIdentity.centrifugeVault.chain,
+                      token: getTokenInfo(rowIdentity.centrifugeVault.asset.symbol) ?? {
+                        label: rowIdentity.centrifugeVault.asset.symbol,
+                        icon: null
+                      },
                       detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />
                     }))}
-                    selectedChain={selectedChain}
-                    onSelect={setSelectedChain}
+                    selectedId={centrifugeVault.address.toLowerCase()}
+                    onSelect={(id) => {
+                      const next = identities.find(
+                        (candidate) => candidate.centrifugeVault.address.toLowerCase() === id
+                      );
+                      if (next) setSelectedIdentity(next);
+                    }}
                     isDisabled={isChainSelectorLocked}
                   />
                 </div>

@@ -117,22 +117,20 @@ vi.mock('wagmi', () => ({
 // only, never per-chain verdicts).
 vi.mock('./_components/chain-token-selector', () => ({
   ChainTokenSelector: ({
-    token,
     rows,
     onSelect,
     isDisabled
   }: {
-    token: { label: string };
-    rows: Array<{ chain: string; detail?: React.ReactNode }>;
-    onSelect: (chain: never) => void;
+    rows: Array<{ id: string; chain: string; token: { label: string }; detail?: React.ReactNode }>;
+    onSelect: (id: string) => void;
     isDisabled?: boolean;
   }) => (
     <div>
-      <span>Selector token: {token.label}</span>
       {rows.map((row) => (
-        <div key={row.chain}>
-          <button type="button" disabled={isDisabled} onClick={() => onSelect(row.chain as never)}>
-            Select {row.chain}
+        <div key={row.id}>
+          <span>Selector token: {row.token.label}</span>
+          <button type="button" disabled={isDisabled} onClick={() => onSelect(row.id)}>
+            Select {row.id}
           </button>
           {row.detail}
         </div>
@@ -766,7 +764,7 @@ describe('RedeemFlow across two chains', () => {
 
     // The selector offers the SHARE token's chain instances — "zSMB on X" is
     // the position being redeemed; the USDC side is a plain display.
-    expect(screen.getByText('Selector token: zSMB')).toBeTruthy();
+    expect(screen.getAllByText('Selector token: zSMB')).toHaveLength(2);
 
     fireEvent.click(screen.getByRole('button', { name: 'Max' }));
     expect(getInput('Redeem').value).toBe('10');

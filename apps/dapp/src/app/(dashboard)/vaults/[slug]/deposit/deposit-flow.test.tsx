@@ -13,13 +13,15 @@ import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { DepositFlow } from './deposit-flow';
 
-const { USDC_ADDRESS, ROUTER_ADDRESS, BASE_USDC_ADDRESS, BASE_ROUTER_ADDRESS } = vi.hoisted(() => ({
+const { USDC_ADDRESS, ROUTER_ADDRESS, BASE_USDC_ADDRESS, BASE_ROUTER_ADDRESS, USDT_ADDRESS } = vi.hoisted(() => ({
   USDC_ADDRESS: '0x3aaaa86458d576BafCB1B7eD290434F0696dA65c',
   ROUTER_ADDRESS: '0x792676c9B261B80BC3D7dD0f2D3A83d91A819BCD',
   // A second chain's instances — distinct addresses so a read against the
   // wrong chain's contracts cannot pass by coincidence.
   BASE_USDC_ADDRESS: '0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0',
-  BASE_ROUTER_ADDRESS: '0xb1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1'
+  BASE_ROUTER_ADDRESS: '0xb1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1',
+  // A second stablecoin on the FIRST chain — its own Centrifuge vault, same router.
+  USDT_ADDRESS: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0'
 }));
 
 // The zSMB identity exactly as the app resolves it — no hand-rolled copy to
@@ -62,6 +64,7 @@ const mocks = vi.hoisted(() => ({
   staleDebouncedValue: undefined as string | undefined,
   usdcBalance: 10_000000n,
   baseUsdcBalance: 3_000000n,
+  usdtBalance: 7_000000n,
   walletChainId: 11155111,
   switchChain: vi.fn()
 }));
@@ -123,7 +126,9 @@ vi.mock('@/hooks/useBalance', () => ({
         ? mocks.usdcBalance
         : tokenAddress === BASE_USDC_ADDRESS
           ? mocks.baseUsdcBalance
-          : 0n,
+          : tokenAddress === USDT_ADDRESS
+            ? mocks.usdtBalance
+            : 0n,
     isFetching: false,
     isPending: false
   })
@@ -139,7 +144,11 @@ vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
 vi.mock('@/components/token-info', () => ({
   getTokenInfo: (symbol: string) =>
-    symbol === 'USDC' ? { label: 'USDC', description: 'US Dollar Coin', icon: <span /> } : undefined
+    symbol === 'USDC'
+      ? { label: 'USDC', description: 'US Dollar Coin', icon: <span /> }
+      : symbol === 'USDT'
+        ? { label: 'USDT', description: 'Tether USD', icon: <span /> }
+        : undefined
 }));
 vi.mock('./_components/input-extra-info', () => ({ InputExtraInfo: () => null }));
 vi.mock('./_components/max-button', () => ({
@@ -155,7 +164,11 @@ vi.mock('react-aria-components', () => ({
     <button type="button" onClick={onPress}>
       {children}
     </button>
-  )
+  ),
+  // Only ever mounted inside the (null-mocked) mobile list — stubs so the
+  // element types exist.
+  ListBoxSection: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Header: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }));
 vi.mock('@zivoe/ui/core/button', () => ({
   Button: ({
@@ -223,9 +236,9 @@ vi.mock('@zivoe/ui/core/dialog', () => ({
 vi.mock('@zivoe/ui/core/select', () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectListBox: ({ children }: { children: ReactNode | ((item: never) => ReactNode) }) => (
-    <div>{typeof children === 'function' ? null : children}</div>
-  ),
+  // The mobile list mirrors the dialog's rows; rendering both would double
+  // every row's text, so the suites assert on the dialog alone.
+  SelectListBox: () => null,
   SelectPopover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   // Honors isDisabled: the chain-selector gating tests assert on it.
   SelectTrigger: ({ children, isDisabled }: { children: ReactNode; isDisabled?: boolean }) => (
@@ -281,6 +294,7 @@ function resetMocks() {
   mocks.staleDebouncedValue = undefined;
   mocks.usdcBalance = 10_000000n;
   mocks.baseUsdcBalance = 3_000000n;
+  mocks.usdtBalance = 7_000000n;
   mocks.walletChainId = 11155111;
 }
 
@@ -611,5 +625,86 @@ describe('DepositFlow across two chains', () => {
     // Selecting the other chain still works and swaps the CTA to the switch.
     await press('USDC on Base US Dollar Coin Balance: 3.00');
     expect(getButton('Switch to Base')).toBeTruthy();
+  });
+});
+
+describe('DepositFlow with two stablecoins on one chain', () => {
+  afterEach(cleanup);
+
+  beforeEach(resetMocks);
+
+  // The same chain's second Centrifuge vault: its own address and deposit
+  // asset, the chain's share token and router unchanged.
+  const USDT_IDENTITY = identityOnChain(TEST_IDENTITY, 'sepolia', {
+    address: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3',
+    asset: { address: USDT_ADDRESS as `0x${string}`, symbol: 'USDT', decimals: 6 }
+  });
+
+  function renderTwoAssetFlow() {
+    return render(
+      <JotaiProvider>
+        <ZivoeVaultIdentityProvider identities={[TEST_IDENTITY, USDT_IDENTITY]} status="Open">
+          <EarnDialogProvider>
+            <DepositFlow />
+          </EarnDialogProvider>
+        </ZivoeVaultIdentityProvider>
+      </JotaiProvider>
+    );
+  }
+
+  it("lists both coins under the chain, each with the wallet's balance of that coin", () => {
+    renderTwoAssetFlow();
+
+    // Grouped: the chain names the group once, and each row keeps the full
+    // "coin on chain" label the single-asset selector uses.
+    expect(screen.getByText('USDC on Ethereum')).toBeTruthy();
+    expect(screen.getByText('USDT on Ethereum')).toBeTruthy();
+    expect(screen.getByText('10.00')).toBeTruthy();
+    expect(screen.getByText('7.00')).toBeTruthy();
+  });
+
+  it("opens on the chain's default (first) coin and needs no network switch to change coin", async () => {
+    renderTwoAssetFlow();
+
+    // USDC first: the catalog order is the default.
+    expect(screen.getAllByRole('button', { name: 'USDC Ethereum' }).length).toBeGreaterThan(0);
+
+    await press('USDT on Ethereum Tether USD Balance: 7.00');
+
+    // Same chain, so the action stays a deposit action — never the switch.
+    expect(screen.getAllByRole('button', { name: 'USDT Ethereum' }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /Switch to/ })).toBeNull();
+    expect(getButton('Deposit')).toBeTruthy();
+  });
+
+  it("approves and spends the selected coin against the chain's router", async () => {
+    renderTwoAssetFlow();
+
+    await press('USDT on Ethereum Tether USD Balance: 7.00');
+    await act(async () => enterAmount('1'));
+    await press('Approve');
+
+    expect(mocks.approve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chain: 'sepolia',
+        contract: USDT_ADDRESS,
+        spender: ROUTER_ADDRESS,
+        name: 'USDT',
+        successMessage: 'You can now deposit USDT.'
+      })
+    );
+  });
+
+  it('validates the amount against the selected coin, and Max fills its balance', async () => {
+    mocks.capacity = 100_000000n;
+    renderTwoAssetFlow();
+
+    await press('USDT on Ethereum Tether USD Balance: 7.00');
+
+    fireEvent.click(getButton('Max'));
+    expect(getInput('Deposit').value).toBe('7');
+
+    await act(async () => enterAmount('8'));
+    expect(screen.getByText('Deposit amount exceeds balance')).toBeTruthy();
   });
 });

@@ -49,7 +49,7 @@ type RedeemForm = { redeem: string };
 
 export default function RedeemFlow() {
   const {
-    identities,
+    chains,
     selectedIdentity: identity,
     selectedChain,
     setSelectedChain,
@@ -411,16 +411,22 @@ export default function RedeemFlow() {
                 <div className="ml-3">
                   <ChainTokenSelector
                     title="Select Asset"
-                    token={shareSelectorToken}
-                    // Each row shows that chain's redeemable share balance —
-                    // the position the user came here to redeem, and the one
-                    // signal that tells them which chain actually holds it.
-                    rows={identities.map((rowIdentity) => ({
-                      chain: rowIdentity.centrifugeVault.chain,
-                      detail: <ChainBalanceDetail identity={rowIdentity} token="share" />
+                    // One row per CHAIN, whatever stablecoins it accepts: the
+                    // share token is the same for all of them, and each row
+                    // shows that chain's redeemable share balance — the position
+                    // the user came here to redeem, and the one signal that
+                    // tells them which chain actually holds it.
+                    rows={chains.map(({ chain, identities: [chainIdentity] }) => ({
+                      id: chain,
+                      chain,
+                      token: shareSelectorToken,
+                      detail: <ChainBalanceDetail identity={chainIdentity} token="share" />
                     }))}
-                    selectedChain={selectedChain}
-                    onSelect={setSelectedChain}
+                    selectedId={selectedChain}
+                    onSelect={(id) => {
+                      const next = chains.find((candidate) => candidate.chain === id);
+                      if (next) setSelectedChain(next.chain);
+                    }}
                     isDisabled={isChainSelectorLocked}
                   />
                 </div>
