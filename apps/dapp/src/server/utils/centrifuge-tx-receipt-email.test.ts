@@ -136,7 +136,7 @@ describe('buildTransactionReceiptEmail', () => {
     // The token-flow row joins value and symbol with a non-breaking space.
     expect(html).toContain('5.00\u00A0USDC');
     // Deep link to the redeem tab, where the claim control actually lives.
-    expect(html).toContain(`${VIEW_IN_APP_URL}?view=redeem`);
+    expect(html).toContain(`${VIEW_IN_APP_URL}?view=requests`);
   });
 
   it('claimed: redemption receipt without a fee row', async () => {

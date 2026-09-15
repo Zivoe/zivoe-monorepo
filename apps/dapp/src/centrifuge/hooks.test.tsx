@@ -7,13 +7,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorAccess, useRedemptionPosition } from './index';
+import {
+  useCentrifugeVaultCapacity,
+  useDepositPreview,
+  useInvestorAccess,
+  useRedemptionPosition,
+  useRedemptionPositions
+} from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getCentrifugeVault }));
 
 const readContract = vi.hoisted(() => vi.fn());
-vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
+vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }), useConfig: () => ({}) }));
+// The many-vault reader resolves each chain's client off the config; one fake client serves every chain here.
+vi.mock('wagmi/actions', () => ({ getPublicClient: () => ({ readContract }) }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -292,6 +300,33 @@ describe('useRedemptionPosition', () => {
       })
     );
     expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('shares one cache entry per vault between the single- and the many-vault readers', async () => {
+    // The Requests tab's badge reads every vault while the redeem form reads
+    // its payout vault: the same key, so one fetch serves both.
+    const { queryClient, wrapper } = createWrapper();
+    const otherCentrifugeVault = {
+      ...CENTRIFUGE_VAULT,
+      address: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+    } as const;
+
+    const many = renderHook(
+      () => useRedemptionPositions({ centrifugeVaults: [CENTRIFUGE_VAULT, otherCentrifugeVault] }),
+      { wrapper }
+    );
+    await waitFor(() => expect(many.result.current.every((result) => result.isSuccess)).toBe(true));
+    expect(getCentrifugeVault).toHaveBeenCalledTimes(2);
+
+    const single = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    await waitFor(() => expect(single.result.current.isSuccess).toBe(true));
+
+    // Served from the cache: no third resolution, one entry per vault.
+    expect(getCentrifugeVault).toHaveBeenCalledTimes(2);
+    expect(single.result.current.data).toEqual(many.result.current[0]?.data);
+    expect(
+      queryClient.getQueryCache().findAll({ queryKey: ['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'] })
+    ).toHaveLength(2);
   });
 
   it('names an Unfunded Claim when the escrow is reserved beyond its holdings, and reports it', async () => {

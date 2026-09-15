@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Deposit from './index';
 
-const mocks = vi.hoisted(() => ({ isMobile: true }));
+const mocks = vi.hoisted(() => ({ isMobile: true, requestCount: 0 }));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('view=redeem'),
@@ -44,6 +44,10 @@ vi.mock('@zivoe/ui/core/dialog', () => ({
 
 vi.mock('./deposit-flow', () => ({ DepositFlow: () => null }));
 vi.mock('./redeem-flow', () => ({ default: () => null }));
+vi.mock('./requests-flow', () => ({ default: () => null }));
+vi.mock('./_hooks/use-redemption-requests', () => ({
+  useRedemptionRequests: () => ({ chains: [], count: mocks.requestCount, isPending: false })
+}));
 vi.mock('./_components/transaction-dialog', () => ({ TransactionDialog: () => null }));
 vi.mock('@/components/connected-account', () => ({
   default: ({ children }: { children?: ReactNode }) => children
@@ -51,6 +55,7 @@ vi.mock('@/components/connected-account', () => ({
 
 beforeEach(() => {
   mocks.isMobile = true;
+  mocks.requestCount = 0;
 });
 
 afterEach(() => {
@@ -74,5 +79,18 @@ describe('Deposit', () => {
     render(<Deposit initialView="redeem" />);
 
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offers a Requests tab, badged with how many rows it holds — and unbadged when it holds none', () => {
+    mocks.isMobile = false;
+    const empty = render(<Deposit initialView="requests" />);
+    expect(screen.getByText('Requests')).toBeTruthy();
+    expect(screen.queryByLabelText(/requests$/)).toBeNull();
+    empty.unmount();
+
+    mocks.requestCount = 3;
+    render(<Deposit initialView="requests" />);
+    // On the tab, and on the mobile bar's Redeem button (rendered regardless of viewport in jsdom).
+    expect(screen.getAllByLabelText('3 requests')).toHaveLength(2);
   });
 });

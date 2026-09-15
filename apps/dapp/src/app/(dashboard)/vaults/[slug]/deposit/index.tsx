@@ -15,10 +15,12 @@ import ConnectedAccount from '@/components/connected-account';
 
 import { TransactionDialog } from './_components/transaction-dialog';
 import { EarnDialogProvider, useEarnDialog } from './_hooks/earn-dialog';
+import { useRedemptionRequests } from './_hooks/use-redemption-requests';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
+import RequestsFlow from './requests-flow';
 
 export default function Deposit({ initialView }: { initialView: DepositPageView }) {
   return (
@@ -45,6 +47,7 @@ function DepositContent({ initialView }: { initialView: DepositPageView }) {
 
             <Button fullWidth variant="primary-light" onPress={() => navigateToTab('redeem')}>
               Redeem
+              <RequestsCountBadge />
             </Button>
           </div>
         </ConnectedAccount>
@@ -108,9 +111,13 @@ function EarnBox({
 
         <DialogContentBox className={boxClassName}>
           <Tabs selectedKey={selectedTab} onSelectionChange={handleTabChange}>
-            <TabList aria-label="Deposit and Redeem tabs">
+            <TabList aria-label="Deposit, Redeem and Requests tabs">
               <Tab id="deposit">Deposit</Tab>
               <Tab id="redeem">Redeem</Tab>
+              <Tab id="requests">
+                Requests
+                <RequestsCountBadge />
+              </Tab>
             </TabList>
 
             <TabPanel id="deposit">
@@ -120,11 +127,35 @@ function EarnBox({
             <TabPanel id="redeem">
               <RedeemFlow />
             </TabPanel>
+
+            <TabPanel id="requests">
+              <RequestsFlow />
+            </TabPanel>
           </Tabs>
         </DialogContentBox>
 
         <TransactionDialog />
       </div>
     </div>
+  );
+}
+
+/**
+ * How many rows the Requests tab holds for the connected wallet — on the tab
+ * itself, and on the mobile bar's Redeem button, which is where a phone user
+ * reaches the tabs from. Nothing while there are none: a "0" would only add
+ * noise to the common case.
+ */
+function RequestsCountBadge() {
+  const { count } = useRedemptionRequests();
+  if (count === 0) return null;
+
+  return (
+    <span
+      aria-label={`${String(count)} requests`}
+      className="ml-1.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-element-primary px-1.5 text-extraSmall font-semibold text-base tabular-nums"
+    >
+      {count}
+    </span>
   );
 }

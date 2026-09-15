@@ -206,6 +206,15 @@ export default function RedeemFlow() {
 
   return (
     <>
+      {/* A failed position read renders like "no position", which would let
+          the form call an addition a first request — and hide a cancellation
+          lock. Named here since the read no longer toasts. */}
+      {position.isError && (
+        <Callout variant="warning">
+          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}. Retrying automatically.
+        </Callout>
+      )}
+
       {/* The one position fact that reaches the form: a cancellation unwinding
           in the payout vault refuses new requests into it until it lands. The
           position itself is on the Requests tab. */}

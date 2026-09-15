@@ -1,8 +1,9 @@
 'use client';
 
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { queryOptions, skipToken, useQueries, useQuery } from '@tanstack/react-query';
 import { BaseError, ContractFunctionRevertedError, parseAbi } from 'viem';
-import { usePublicClient } from 'wagmi';
+import { useConfig, usePublicClient } from 'wagmi';
+import { getPublicClient } from 'wagmi/actions';
 
 import { queryKeys } from '@/lib/query-keys';
 
@@ -112,18 +113,36 @@ export function useDepositPreview({
   });
 }
 
-export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
-  const { address } = useAccount();
-  const web3 = usePublicClient({ chainId: centrifugeVault.chainId });
-
-  return useQuery({
+/**
+ * The one Redemption Position query — shared by the single- and the many-vault
+ * readers so the redeem tab's payout vault, the Requests tab's strips and its
+ * badge all hit one cache entry per vault. A failed read never toasts: the
+ * many-vault reader runs on every page load for every chain, and one flaky
+ * public RPC would otherwise toast "Error fetching redemption data" per
+ * chain on the deposit tab — the surfaces that read a position say in place
+ * when it could not be loaded.
+ */
+function redemptionPositionQueryOptions({
+  centrifugeVault,
+  address,
+  web3
+}: {
+  centrifugeVault: TransactedCentrifugeVault;
+  address: `0x${string}` | undefined;
+  web3: ReturnType<typeof usePublicClient>;
+}) {
+  return queryOptions({
     queryKey: queryKeys.account.redemptionPosition({
       accountAddress: address,
       shareClassKey: centrifugeVault.shareClass.key,
       chain: centrifugeVault.chain,
       centrifugeVaultAddress: centrifugeVault.address
     }),
-    meta: { toastErrorMessage: 'Error fetching redemption data' },
+    meta: { skipErrorToast: true },
+    // Fresh for half a minute: the Requests tab and the redeem form mount and
+    // unmount each other, and each mount must not re-read nine chains.
+    // Invalidations after a transaction bypass this and refetch regardless.
+    staleTime: 30 * 1000,
     // Cancellation Processing resolves without any user transaction (the hub
     // finishes the unwind), so the only wait state a user actively watches is
     // polled; every other transition refreshes through invalidations/focus.
@@ -146,5 +165,38 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
               shareClassId: centrifugeVault.shareClass.scId,
               assetAddress: centrifugeVault.asset.address
             })
+  });
+}
+
+export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: TransactedCentrifugeVault }) {
+  const { address } = useAccount();
+  const web3 = usePublicClient({ chainId: centrifugeVault.chainId });
+
+  return useQuery(redemptionPositionQueryOptions({ centrifugeVault, address, web3 }));
+}
+
+/**
+ * The wallet's Redemption Position in EVERY given Centrifuge vault at once —
+ * the Requests tab's whole-book read, and the count on its badge. One entry
+ * per vault, in the given order; same query per vault as useRedemptionPosition.
+ */
+export function useRedemptionPositions({
+  centrifugeVaults
+}: {
+  centrifugeVaults: ReadonlyArray<TransactedCentrifugeVault>;
+}) {
+  const { address } = useAccount();
+  const config = useConfig();
+
+  return useQueries({
+    queries: centrifugeVaults.map((centrifugeVault) =>
+      redemptionPositionQueryOptions({
+        centrifugeVault,
+        address,
+        // The hook form can only read one chain per call; the action form
+        // resolves each vault's own chain client off the same config.
+        web3: getPublicClient(config, { chainId: centrifugeVault.chainId })
+      })
+    )
   });
 }

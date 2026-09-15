@@ -6,6 +6,7 @@ export {
   useDepositPreview,
   useInvestorAccess,
   useRedemptionPosition,
+  useRedemptionPositions,
   useCentrifugeVaultCapacity
 } from './hooks';
 export { useCancelRedeem } from './use-cancel-redeem';
