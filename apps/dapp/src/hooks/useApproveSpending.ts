@@ -63,7 +63,7 @@ type ApproveSpendingVariables = {
  * — such tokens revert on any non-zero → non-zero change. A standard token
  * never does, whatever the allowance.
  */
-function needsAllowanceReset({ approval, allowance }: Pick<ApproveSpendingVariables, 'approval' | 'allowance'>) {
+export function needsAllowanceReset({ approval, allowance }: Pick<ApproveSpendingVariables, 'approval' | 'allowance'>) {
   return approval === 'legacy' && allowance !== undefined && allowance > 0n;
 }
 

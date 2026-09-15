@@ -239,6 +239,21 @@ describe('RedemptionPositionStrips', () => {
     expect(screen.getAllByText('Requires a whitelisted wallet.')).toHaveLength(2);
   });
 
+  it('leaves cancelling and claiming returned shares alone when only the request is blocked', () => {
+    // The mirror case: a member who may not send shares to escrow can still
+    // unwind a position it already has — the request gate is the form's alone.
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderStrips({ gates: gatesFor({ canRequestRedemption: false }) });
+
+    expect(getButton('Claim zSMB').disabled).toBe(false);
+    expect(getButton('Cancel request').disabled).toBe(false);
+    expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
+
+    fireEvent.click(getButton('Cancel request'));
+    expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
+  });
+
   it('names a frozen wallet as frozen on every hint, and blocks its settled USDC claim', () => {
     mocks.returnedShares = 4n * D18;
     mocks.pendingShares = 3n * D18;
