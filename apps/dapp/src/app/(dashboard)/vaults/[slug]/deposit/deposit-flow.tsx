@@ -388,7 +388,11 @@ export function DepositFlow() {
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
       ) : isNotAdmitted ? (
         <WalletAccessCallout restriction={restriction} />
-      ) : isAllowanceUnavailable ? (
+      ) : isAllowanceUnavailable && !needsChainSwitch && !isPrereqsLoading ? (
+        // Only while the Retry above is the action: a wallet on another chain
+        // or a read in flight puts a different step there, and "Retry to
+        // continue" beside "Switch to Base" would name a control that is not
+        // on screen.
         <Callout variant="warning">Could not check your {asset.symbol} approval. Retry to continue.</Callout>
       ) : null}
 

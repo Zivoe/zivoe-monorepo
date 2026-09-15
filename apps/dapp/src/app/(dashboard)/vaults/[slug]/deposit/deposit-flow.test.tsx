@@ -439,6 +439,19 @@ describe('DepositFlow', () => {
     expect(mocks.refetchAllowance).toHaveBeenCalledTimes(1);
   });
 
+  it('names no Retry while the wallet must switch chains first', async () => {
+    // The switch is the action on screen; a callout telling the user to retry
+    // would point at a control that is not there.
+    mocks.allowanceIsError = true;
+    mocks.walletChainId = 84532;
+
+    renderFlow();
+    await act(async () => enterAmount('7'));
+
+    expect(getButton('Switch to Ethereum')).toBeTruthy();
+    expect(screen.queryByText(/Could not check your USDC approval/)).toBeNull();
+  });
+
   it('shows a retry action when the estimate fails and refetches on press', async () => {
     mocks.previewIsError = true;
     renderFlow();
