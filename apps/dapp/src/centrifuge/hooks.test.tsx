@@ -137,6 +137,16 @@ describe('redemptionPositionRefetchInterval', () => {
     expect([1, 2, 3, 4, 5, 6].map((count) => redemptionPositionRefetchInterval(failed(count)))).toEqual([
       30_000, 60_000, 120_000, 240_000, 300_000, 300_000
     ]);
+
+    // A refetch failing with an earlier answer on hand keeps that answer's
+    // cadence: the strips still render it, so nothing is missing to recover.
+    const failedRefetch = (hasPendingCancelRedeemRequest: boolean) => ({
+      status: 'error' as const,
+      errorUpdateCount: 3,
+      data: { hasPendingCancelRedeemRequest }
+    });
+    expect(redemptionPositionRefetchInterval(failedRefetch(true))).toBe(10_000);
+    expect(redemptionPositionRefetchInterval(failedRefetch(false))).toBe(false);
   });
 });
 
