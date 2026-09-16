@@ -176,7 +176,7 @@ vi.mock('@/components/connected-account', () => ({ default: ({ children }: { chi
 vi.mock('@/components/token-info', () => ({
   getTokenInfo: (symbol: string) =>
     symbol === 'USDC'
-      ? { label: 'USDC', description: 'US Dollar Coin', icon: <span /> }
+      ? { label: 'USDC', description: 'USD Coin', icon: <span /> }
       : symbol === 'USDT'
         ? { label: 'USDT', description: 'Tether USD', icon: <span /> }
         : undefined
@@ -681,7 +681,7 @@ describe('DepositFlow across two chains', () => {
 
     // Wallet is on sepolia; selecting the Base row must not silently send a
     // sepolia transaction — the primary action becomes the switch.
-    await press('USDC on Base US Dollar Coin Balance: 3.00');
+    await press('USDC on Base USD Coin Balance: 3.00');
 
     const switchButton = getButton('Switch to Base');
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
@@ -697,7 +697,7 @@ describe('DepositFlow across two chains', () => {
     mocks.walletChainId = 84532;
     renderTwoChainFlow();
 
-    await press('USDC on Base US Dollar Coin Balance: 3.00');
+    await press('USDC on Base USD Coin Balance: 3.00');
     await act(async () => enterAmount('1'));
     await press('Approve');
 
@@ -725,7 +725,7 @@ describe('DepositFlow across two chains', () => {
     for (const trigger of triggers) expect(trigger.hasAttribute('disabled')).toBe(false);
 
     // Selecting the other chain still works and swaps the CTA to the switch.
-    await press('USDC on Base US Dollar Coin Balance: 3.00');
+    await press('USDC on Base USD Coin Balance: 3.00');
     expect(getButton('Switch to Base')).toBeTruthy();
   });
 });
@@ -882,7 +882,7 @@ describe('DepositFlow with two stablecoins on one chain', () => {
     await act(async () => enterAmount('0.1234567'));
     expect(getInput('Deposit').value).toBe('0.1234567');
 
-    await press('USDC on Ethereum US Dollar Coin Balance: 10.00');
+    await press('USDC on Ethereum USD Coin Balance: 10.00');
 
     expect(getInput('Deposit').value).toBe('');
   });

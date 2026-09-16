@@ -135,7 +135,7 @@ describe('DepositAssetPicker', () => {
     expect(within(dialog).getByRole('radio', { name: 'Base 1', checked: true })).toBeTruthy();
     expect(within(dialog).queryByText(/on Ethereum/)).toBeNull();
     expect(within(dialog).queryByText('USDT')).toBeNull();
-    const row = within(dialog).getByRole('button', { name: 'USDC US Dollar Coin Balance: 3.00' });
+    const row = within(dialog).getByRole('button', { name: 'USDC USD Coin Balance: 3.00' });
 
     await act(async () => {
       fireEvent.click(row);

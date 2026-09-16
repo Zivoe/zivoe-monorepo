@@ -12,7 +12,7 @@ vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_
 if (typeof globalThis.CSS === 'undefined') globalThis.CSS = { escape: (value: string) => value } as typeof CSS;
 
 const zsmb = { label: 'zSMB', description: 'Zivoe SMB Credit', icon: null };
-const usdc = { label: 'USDC', description: 'US Dollar Coin', icon: null };
+const usdc = { label: 'USDC', description: 'USD Coin', icon: null };
 const usdt = { label: 'USDT', description: 'Tether USD', icon: null };
 
 /** The redeem tab's chain selector: one row per chain, the share token on each. */

@@ -10,11 +10,13 @@ type TokenInfo = { label: string; description: string; icon: React.ReactNode };
 // Keyed by the catalog's deposit asset symbols, so a stablecoin added to the
 // catalog demands its display entry here at compile time. One entry per
 // symbol: USDC at 6 and at 18 decimals share one icon and name on purpose,
-// as do Tether's USDT, USDT0 and USDt under `USDT`.
+// as do Tether's USDT, USDT0 and USDt under `USDT`. The description is the
+// token's on-chain `name()` on its issuer-native deployment (Ethereum mainnet;
+// Base Sepolia for EURC) — some spoke deployments say `USDC` or `USD₮0` instead.
 const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
   USDC: {
     label: 'USDC',
-    description: 'US Dollar Coin',
+    description: 'USD Coin',
     icon: <UsdcIcon />
   },
   USDT: {
@@ -29,7 +31,7 @@ const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
   },
   EURC: {
     label: 'EURC',
-    description: 'Euro Coin',
+    description: 'EURC',
     icon: <EurcIcon />
   }
 };

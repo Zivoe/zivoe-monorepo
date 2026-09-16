@@ -17,7 +17,7 @@ import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 /** The token a selector row offers — a deposit asset, or the share token on the redeem tab's chain selector. */
 export type ChainSelectorToken = {
   label: string;
-  /** Row sublabel (e.g. "US Dollar Coin"); omitted for tokens with no display entry. */
+  /** Row sublabel (e.g. "USD Coin"); omitted for tokens with no display entry. */
   description?: string;
   icon: ReactNode;
 };
