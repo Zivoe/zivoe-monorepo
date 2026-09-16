@@ -117,9 +117,6 @@ describe('resolveDepositAssetDisplay', () => {
     expect(resolve(1, '0xdac17f958d2ee523a2206206994597c13d831ec7')).toEqual({ symbol: 'USDT', decimals: 6 });
     expect(resolve(1, '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d')).toEqual({ symbol: 'USD1', decimals: 18 });
     expect(resolve(56, '0x55d398326f99059ff775485246999027b3197955')).toEqual({ symbol: 'USDT', decimals: 18 });
-    // USD1 sits at one vanity address on Monad and X Layer with different scales.
-    expect(resolve(143, '0x111111d2bf19e43c34263401e0cad979ed1cdb61')).toEqual({ symbol: 'USD1', decimals: 6 });
-    expect(resolve(196, '0x111111d2bf19e43c34263401e0cad979ed1cdb61')).toEqual({ symbol: 'USD1', decimals: 18 });
     // Three vaults on Ethereum: an event naming no asset cannot be placed.
     expect(resolve(1, null)).toBeNull();
   });

@@ -277,10 +277,6 @@ export const SHARE_CLASSES = {
                   onChainSymbol: 'USD₮0',
                   decimals: 6
                 }
-              },
-              {
-                address: '0x8047b87112d541E331232f62D5532D61A87fd4b1',
-                asset: { address: '0x111111d2bf19e43C34263401e0CAd979eD1cdb61', symbol: 'USD1', decimals: 18 }
               }
             ]
           },
@@ -320,11 +316,6 @@ export const SHARE_CLASSES = {
                   onChainSymbol: 'USDT0',
                   decimals: 6
                 }
-              },
-              // USD1 is 6 decimals here and 18 on X Layer, at the same address.
-              {
-                address: '0x8047b87112d541E331232f62D5532D61A87fd4b1',
-                asset: { address: '0x111111d2bf19e43C34263401e0CAd979eD1cdb61', symbol: 'USD1', decimals: 6 }
               }
             ]
           }

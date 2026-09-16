@@ -301,19 +301,6 @@ describe('share-class catalog', () => {
     ]);
   });
 
-  it('scales USD1 per chain — 18 decimals on BNB Smart Chain, 6 on Monad, at one vanity address', () => {
-    const usd1 = '0x111111d2bf19e43c34263401e0cad979ed1cdb61';
-    expect(getShareClassChainIdentity({ chain: 'monad', key: 'zsmb', assetAddress: usd1 }).asset.decimals).toBe(6);
-    expect(getShareClassChainIdentity({ chain: 'xlayer', key: 'zsmb', assetAddress: usd1 }).asset.decimals).toBe(18);
-    expect(
-      getShareClassChainIdentity({
-        chain: 'bnb',
-        key: 'zsmb',
-        assetAddress: '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d'
-      }).asset.decimals
-    ).toBe(18);
-  });
-
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
