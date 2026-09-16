@@ -57,6 +57,9 @@ const INVESTOR_TRANSACTION_EVENTS_QUERY = graphql(`
           network
           explorer
         }
+        currencyAsset {
+          address
+        }
       }
       pageInfo {
         hasNextPage
@@ -103,7 +106,10 @@ const itemSchema = z
     createdAtTxHash: z.string(),
     // `id` is the EVM chain id as a decimal string — the key the app's
     // own chain registry is indexed by.
-    blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable()
+    blockchain: z.object({ id: integerString, network: z.string(), explorer: z.string().nullable() }).nullable(),
+    // The event's deposit asset, which tells two vaults of one share class on
+    // one chain apart. Nullable like `blockchain`.
+    currencyAsset: z.object({ address: z.string().nullable() }).nullable()
   })
   // API-v3 copies the non-zero uint256 `shares` from RedeemRequest into
   // tokenAmount. A missing or non-positive value is upstream drift, not
@@ -133,7 +139,7 @@ export type InvestorTransactionEvent = {
   account: string;
   /** Shares moved by THIS call (a positive increment for redeem requests), share-token base units; never negative. */
   tokenAmount: bigint | null;
-  /** Assets moved, in the vault's deposit-asset base units (a per-vault scale — resolve via `getShareClassChainIdentity(...).asset`, never a constant); 0 on redeem requests; never negative. */
+  /** Assets moved, in the vault's deposit-asset base units (a per-vault scale — resolve it from `assetAddress`, never a constant); 0 on redeem requests; never negative. */
   currencyAmount: bigint | null;
   /** Execution Share Price, D18; 0 when the row carries no price (redeem requests). */
   tokenPrice: bigint | null;
@@ -141,6 +147,12 @@ export type InvestorTransactionEvent = {
   createdAtMs: number;
   /** Lowercase transaction hash. */
   txHash: string;
+  /**
+   * Lowercase address of the event's deposit asset, which resolves WHICH vault
+   * of the share class on the chain the event belongs to. Null when the
+   * relation is unavailable — never read as "the chain's default vault".
+   */
+  assetAddress: string | null;
   /** Indexer's chain name (e.g. "ethereum"); null when the relation is unavailable. */
   chainName: string | null;
   /** Block-explorer base URL for the event's chain; null when the indexer has none. */
@@ -257,6 +269,7 @@ export async function fetchInvestorTransactionEventsSince({
         tokenPrice: item.tokenPrice === null ? null : BigInt(item.tokenPrice),
         createdAtMs,
         txHash: item.createdAtTxHash.toLowerCase(),
+        assetAddress: item.currencyAsset?.address?.toLowerCase() ?? null,
         chainName: item.blockchain?.network ?? null,
         explorerUrl: item.blockchain?.explorer ?? null
       });

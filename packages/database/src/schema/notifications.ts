@@ -62,8 +62,9 @@ export const monitorCursor = pgTable('monitor_cursor', {
 /**
  * Event-level "already alerted" ledger — one row per notified on-chain event,
  * keyed by the event's canonical id (scId : centrifugeId : txHash : type :
- * account; addresses and hashes lowercase) so events never collide across
- * share classes or spoke chains. Channel-agnostic on purpose: the same
+ * account : deposit-asset address, or `no-asset`; addresses and hashes
+ * lowercase) so events never collide across share classes, spoke chains or
+ * the several Centrifuge vaults one chain can hold. Channel-agnostic on purpose: the same
  * eventId keys transactionEmailSent, whose per-(event, user) grain is the
  * Receipt Mailer's own dedupe.
  */

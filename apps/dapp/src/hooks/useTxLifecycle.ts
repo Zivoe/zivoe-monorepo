@@ -16,8 +16,8 @@ import {
   getAnalyticsErrorType
 } from '@/lib/analytics/events';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
-import { type TransactionData, transactionAtom } from '@/lib/store';
-import { onTxError, skipTxSettled } from '@/lib/utils';
+import { type TransactionData, pendingTxCountAtom, transactionAtom } from '@/lib/store';
+import { AppError, onTxError, skipTxSettled } from '@/lib/utils';
 
 import { useAccount } from './useAccount';
 
@@ -109,6 +109,45 @@ export const TX_ANALYTICS: Record<TxAnalyticsFlow, TxAnalyticsChoreography> = {
     failed: { event: 'tx:approval_failed', step: 'failed' }
   }
 };
+
+/**
+ * Bounds only the wait for a wallet signature, in both drivers. A request that
+ * never settles (e.g. a dead WalletConnect session) would otherwise hold the
+ * signer lock and the app-wide write gate until reload. Once a hash exists the
+ * chain settles the outcome, so confirmation is never timed out.
+ */
+export const SIGNING_TIMEOUT_MS = 5 * 60_000;
+
+/**
+ * The timeout means "gave up waiting", not "did not happen": a wallet request
+ * cannot be cancelled, so a late approval may still broadcast — refetch stays
+ * on so balances self-correct, and the copy warns against blindly retrying.
+ */
+export function signingTimedOutError(): AppError {
+  return new AppError({
+    message:
+      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
+    type: 'warning'
+  });
+}
+
+/**
+ * Bounds one step of a write by SIGNING_TIMEOUT_MS. Used for the wallet's
+ * answer in both drivers, and by the Centrifuge driver for the steps before
+ * it (vault resolution through the indexer, the wallet client), which can
+ * hang just the same and would otherwise hold the app-wide write gate until
+ * reload.
+ */
+export function withSigningTimeout<T>(
+  request: Promise<T>,
+  timedOut: () => AppError = signingTimedOutError
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(timedOut()), SIGNING_TIMEOUT_MS);
+  });
+  return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
+}
 
 /**
  * Config every transaction driver shares. The lifecycle consumes all of it
@@ -219,6 +258,7 @@ export default function useTxLifecycle<TVariables, TPrepared>(
   const analytics = useAnalytics();
   const queryClient = useQueryClient();
   const setTransaction = useSetAtom(transactionAtom);
+  const setPendingTxCount = useSetAtom(pendingTxCountAtom);
 
   // The extras default is resolved once here — capture sites below must not
   // each re-implement the fallback — and the Zivoe Vault/chain identity is
@@ -353,9 +393,11 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         });
 
         // Settled non-rejection failures still refetch — the chain may have
-        // moved (e.g. a late broadcast) even though this mutation failed. A
-        // throwing invalidation must not displace the real error below.
-        if (!skipTxSettled(normalized)) {
+        // moved (e.g. a late broadcast) even though this mutation failed. So
+        // does a rejection after a mirrored hash: an allowance reset already
+        // confirmed before the wallet refused the main call. A throwing
+        // invalidation must not displace the real error below.
+        if (!skipTxSettled(normalized) || txHash !== undefined) {
           try {
             config.invalidate({ queryClient, address, vars });
           } catch (invalidateError) {
@@ -366,6 +408,11 @@ export default function useTxLifecycle<TVariables, TPrepared>(
         throw normalized;
       }
     },
+
+    // These callbacks belong to the Mutation and fire even after the component
+    // that called mutate has unmounted, so the count survives tab switches.
+    onMutate: () => setPendingTxCount((count) => count + 1),
+    onSettled: () => setPendingTxCount((count) => count - 1),
 
     onError: (err, vars) => {
       onTxError({

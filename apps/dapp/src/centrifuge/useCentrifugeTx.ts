@@ -6,18 +6,21 @@ import { type Address, type TransactionReceipt } from 'viem';
 import { useConfig, usePublicClient } from 'wagmi';
 import { getWalletClient } from 'wagmi/actions';
 
+import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { toast } from '@zivoe/ui/core/sonner';
 
 import { getViemChain, waitForRpcCatchup } from '@/lib/chains';
-import {
-  type NativeCurrency,
-  insufficientNativeFundsError,
-  isInsufficientNativeFundsError
-} from '@/lib/native-funds';
+import { type NativeCurrency, insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { queryKeys } from '@/lib/query-keys';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxSharedConfig, toSentryExtras } from '@/hooks/useTxLifecycle';
+import useTxLifecycle, {
+  SIGNING_TIMEOUT_MS,
+  type TxSharedConfig,
+  signingTimedOutError,
+  toSentryExtras,
+  withSigningTimeout
+} from '@/hooks/useTxLifecycle';
 
 import { getCentrifugeVault, setTransactionSigner } from './client';
 import { type CentrifugeVaultEntity, type TransactionEntity } from './entities';
@@ -25,15 +28,6 @@ import { type ExpectedContractCall, type SimulationErrorCopy, createSimulationSi
 import { type TransactionIdentity } from './types';
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
-
-/**
- * Bounds only the wait for a wallet signature. A request that never settles
- * (e.g. a dead WalletConnect session) would otherwise hold the module-level
- * signer lock until reload, bricking every other flow with "Another
- * transaction is already in progress". Once a hash exists the chain settles
- * the outcome, so confirmation itself is never timed out.
- */
-const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
 type CentrifugeTxContext = { address: Address; centrifugeVault: CentrifugeVaultEntity; publicClient: PublicClient };
 
@@ -75,7 +69,7 @@ export type CentrifugeTxConfig<TVariables> = Omit<
   expectedCall?: (vars: TVariables, ctx: CentrifugeTxContext) => ExpectedContractCall;
   /** Decoded protocol error names mapped to flow-specific copy for the simulation block. */
   simulationErrorCopy: SimulationErrorCopy;
-  /** SDK plain pre-signature error messages (matched by inclusion) mapped to product copy. */
+  /** SDK plain pre-signature error messages (matched exactly — see normalizeCentrifugeError) mapped to product copy. */
   sdkErrorCopy?: Record<string, string>;
 };
 
@@ -125,7 +119,8 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       invalidateAfterCentrifugeTx({
         queryClient: ctx.queryClient,
         address: ctx.address,
-        shareClassKey: identity.centrifugeVault.shareClass.key
+        shareClassKey: identity.centrifugeVault.shareClass.key,
+        chain: identity.centrifugeVault.chain
       });
       config.invalidateExtra?.(ctx);
     },
@@ -154,7 +149,13 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
       };
 
       try {
-        const centrifugeVault = await getCentrifugeVault(identity.centrifugeVault);
+        // Bounded like the signature itself: the SDK resolves the vault through
+        // an indexer fetch with no timeout, and this mutation already holds
+        // the app-wide write gate, so a stalled connection here would lock
+        // every write until reload.
+        const centrifugeVault = await withSigningTimeout(getCentrifugeVault(identity.centrifugeVault), () =>
+          vaultUnreachableError()
+        );
         const txContext = { address, centrifugeVault, publicClient };
 
         // Lazy signer resolution: the current wallet client is fetched per
@@ -162,8 +163,10 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
         // Requested for the identity's chain — the CTA gates on the wallet
         // already sitting there, and the SDK re-asserts before submitting.
         const { err: walletErr, res: walletClient } = await handlePromise(
-          getWalletClient(wagmiConfig, { chainId: identity.centrifugeVault.chainId })
+          withSigningTimeout(getWalletClient(wagmiConfig, { chainId: identity.centrifugeVault.chainId }))
         );
+        // The timeout's own warning must not be rewritten into 'Wallet not connected'.
+        if (walletErr instanceof AppError) throw walletErr;
         if (walletErr || !walletClient) throw normalizeWalletClientError(walletErr);
 
         const signer = createSimulationSigner({
@@ -181,22 +184,11 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
           let confirmed: TransactionReceipt | undefined;
 
           // Armed per signing step; a late timer is a no-op once a hash
-          // arrived, and a settled promise ignores the reject anyway. The
-          // timeout means "gave up waiting", not "did not happen": a wallet
-          // request cannot be cancelled, so a late approval may still
-          // broadcast — refetch stays on so balances self-correct, and the
-          // copy warns against blindly retrying.
+          // arrived, and a settled promise ignores the reject anyway.
           const armSigningTimeout = () => {
             clearTimeout(signingTimeout);
             signingTimeout = setTimeout(() => {
-              if (!txHash)
-                reject(
-                  new AppError({
-                    message:
-                      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
-                    type: 'warning'
-                  })
-                );
+              if (!txHash) reject(signingTimedOutError());
             }, SIGNING_TIMEOUT_MS);
           };
           armSigningTimeout();
@@ -285,23 +277,37 @@ export default function useCentrifugeTx<TVariables>(config: CentrifugeTxConfig<T
   });
 }
 
+/** The vault resolution timed out — a connection problem, not a wallet one, so it says so. */
+function vaultUnreachableError(): AppError {
+  return new AppError({
+    message: 'Could not reach the vault. Check your connection and try again.',
+    type: 'warning'
+  });
+}
+
 /**
- * Invalidated after every settled Centrifuge tx, scoped to the transacted
- * share class. Stats included: NAV moves with issuance as soon as the indexer
+ * Invalidated after every settled Centrifuge tx. Balances and Redemption
+ * Positions are chain-local, so only the transacted chain's are refetched:
+ * every vault's position and every coin's balance stay observed from the
+ * Pending badge and the deposit picker, and a class-wide invalidation
+ * re-read all ten chains after one write. The portfolio and the class's
+ * stats are hub-level: NAV moves with issuance as soon as the indexer
  * processes the block.
  */
 export function invalidateAfterCentrifugeTx({
   queryClient,
   address,
-  shareClassKey
+  shareClassKey,
+  chain
 }: {
   queryClient: QueryClient;
   address: Address | undefined;
   shareClassKey: string;
+  chain: CentrifugeChain;
 }) {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.account.balance({ accountAddress: address }) });
+  void queryClient.invalidateQueries({ queryKey: [...queryKeys.account.balance({ accountAddress: address }), chain] });
   void queryClient.invalidateQueries({
-    queryKey: queryKeys.account.redemptionPositions({ accountAddress: address, shareClassKey })
+    queryKey: [...queryKeys.account.redemptionPositions({ accountAddress: address, shareClassKey }), chain]
   });
   void queryClient.invalidateQueries({ queryKey: queryKeys.account.portfolio({ accountAddress: address }) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.app.shareMetrics({ shareClassKey }) });
@@ -390,9 +396,12 @@ function normalizeCentrifugeError({
   // strings thrown before any wallet interaction, so they outrank the
   // shape-based funding heuristic below — whose patterns ("insufficient
   // balance") would otherwise claim the SDK's own share-balance check.
+  // Matched by equality, not containment: the SDK throws them verbatim, and
+  // "Insufficient balance" differs from Monad's node text only by case, so a
+  // reworded node rejection must still reach the funding prompt below.
   if (err instanceof Error && sdkErrorCopy) {
-    const match = Object.entries(sdkErrorCopy).find(([sdkMessage]) => err.message.includes(sdkMessage));
-    if (match) return new AppError({ message: match[1], exception: err });
+    const copy = sdkErrorCopy[err.message];
+    if (copy) return new AppError({ message: copy, exception: err });
   }
 
   // Send-path funding failures the simulation cannot see: the wallet or

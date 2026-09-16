@@ -7,7 +7,7 @@ import { getDefaultStore } from 'jotai';
 import { type TransactionReceipt } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type TransactionData, transactionAtom } from '@/lib/store';
+import { type TransactionData, pendingTxCountAtom, transactionAtom } from '@/lib/store';
 
 import useTxLifecycle from './useTxLifecycle';
 
@@ -25,6 +25,7 @@ const RECEIPT = { status: 'success', transactionHash: '0xabc' } as unknown as Tr
 function renderLifecycle(overrides: {
   transactionData?: (receipt: TransactionReceipt) => TransactionData;
   invalidate?: () => void;
+  send?: () => Promise<TransactionReceipt>;
 }) {
   const queryClient = new QueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -43,7 +44,7 @@ function renderLifecycle(overrides: {
           ((receipt) => ({ type: 'SUCCESS', title: 'ok', description: 'ok', hash: receipt.transactionHash })),
         invalidate: overrides.invalidate ?? (() => undefined),
         prepare: () => ({}),
-        send: async () => RECEIPT
+        send: overrides.send ?? (async () => RECEIPT)
       }),
     { wrapper }
   );
@@ -53,6 +54,32 @@ describe('useTxLifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getDefaultStore().set(transactionAtom, undefined);
+    getDefaultStore().set(pendingTxCountAtom, 0);
+  });
+
+  it('counts the mutation as in flight until it settles, even after the hook that started it unmounts', async () => {
+    let settle: (() => void) | undefined;
+    const rendered = renderLifecycle({
+      send: () =>
+        new Promise<TransactionReceipt>((resolve) => {
+          settle = () => resolve(RECEIPT);
+        })
+    });
+
+    await act(async () => {
+      rendered.result.current.mutate({});
+    });
+    expect(getDefaultStore().get(pendingTxCountAtom)).toBe(1);
+
+    // The Earn box's tabs unmount each other: a signature still pending on
+    // one tab must keep gating the writes offered on the next.
+    rendered.unmount();
+    expect(getDefaultStore().get(pendingTxCountAtom)).toBe(1);
+
+    await act(async () => {
+      settle?.();
+    });
+    await waitFor(() => expect(getDefaultStore().get(pendingTxCountAtom)).toBe(0));
   });
 
   it('falls back to a minimal payload that still carries the ZivoeVault slug when payload construction throws', async () => {

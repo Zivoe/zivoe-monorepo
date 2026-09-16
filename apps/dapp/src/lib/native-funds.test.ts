@@ -26,7 +26,10 @@ describe('isInsufficientNativeFundsError', () => {
       'besu validator message',
       new Error('transaction up-front cost 100 exceeds transaction sender account balance 1 for sender 0x0')
     ],
-    ['viem total-cost message', new Error('The total cost of executing this transaction exceeds the balance of the account.')]
+    [
+      'viem total-cost message',
+      new Error('The total cost of executing this transaction exceeds the balance of the account.')
+    ]
   ])('recognizes %s', (_label, err) => {
     expect(isInsufficientNativeFundsError(err)).toBe(true);
   });

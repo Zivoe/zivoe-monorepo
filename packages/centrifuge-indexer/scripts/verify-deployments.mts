@@ -6,10 +6,11 @@
  *   pnpm centrifuge:verify            # both environments
  *   pnpm centrifuge:verify mainnet    # one environment
  *
- * Per live (share class × chain) it checks that:
+ * Per live (share class × chain × deposit asset) it checks that:
  *   - the SDK resolves our Centrifuge vault from pool id + share-class id + deposit asset
  *   - the Centrifuge vault is sync-deposit / async-redeem, the shape the flows assume
- *   - its share token, share decimals and asset decimals match ours
+ *   - its share token, share decimals, asset address, symbol (the contract's
+ *     own where it differs from the product's) and asset decimals match ours
  *   - the protocol's VaultRouter (live, and the SDK's bundled mainnet allowlist) matches ours
  *   - the indexer prices the class with our decimals (hub-level) and holds a
  *     token instance with our share token on the chain (per chain)
@@ -38,10 +39,10 @@ const {
   getChainDeployment,
   getChainId,
   getChainRpcUrls,
-  getShareClassChainIdentity,
   getShareClassIdentity,
   graphql,
   listLiveChains,
+  listShareClassChainIdentities,
   listShareClassKeys
 } = indexer;
 
@@ -120,19 +121,21 @@ const tokenInstancesSchema = z.object({
   tokenInstances: z.object({ items: z.array(z.object({ centrifugeId: z.string(), address: z.string() })) })
 }) satisfies z.ZodType<ResultOf<typeof TOKEN_INSTANCES_QUERY>>;
 
-/** Prints one row as it is known; returns whether it matched. */
+/** Prints one row as it is known; returns whether it matched. Addresses compare case-insensitively; `exact` for symbols. */
 function check({
   subject,
   fact,
   expected,
-  actual
+  actual,
+  exact = false
 }: {
   subject: string;
   fact: string;
   expected: string;
   actual: string;
+  exact?: boolean;
 }) {
-  const ok = same(expected, actual);
+  const ok = exact ? expected === actual : same(expected, actual);
   const label = `${subject} · ${fact}`.padEnd(44);
   console.log(ok ? `  ✓ ${label}  ${actual}` : `  ✗ ${label}  expected ${expected}, got ${actual}`);
   return ok;
@@ -257,52 +260,85 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
     }
 
     for (const chain of listLiveChains({ environment, key })) {
-      const identity = getShareClassChainIdentity({ chain, key });
-      const subject = `${key} on ${chain}`;
-      const { asset } = identity;
-
+      // The indexer's token instance is a share-token fact, checked once per chain.
+      let centrifugeId: number | undefined;
       try {
-        const centrifugeId = await centrifuge.id(identity.chainId);
-        const pool = await centrifuge.pool(new PoolId(identity.poolId));
-        const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), asset.address);
-        verify({
-          subject,
-          fact: 'Centrifuge vault',
-          expected: identity.centrifugeVaultAddress,
-          actual: centrifugeVault.address
-        });
-
-        const details = await centrifugeVault.details();
-        verify({
-          subject,
-          fact: 'Centrifuge-vault shape',
-          expected: 'sync-deposit/async-redeem',
-          actual: shapeOf(details)
-        });
-        verify({ subject, fact: 'share token', expected: identity.shareTokenAddress, actual: details.share.address });
-        verify({
-          subject,
-          fact: 'share decimals (chain)',
-          expected: String(identity.decimals),
-          actual: String(details.share.decimals)
-        });
-        verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
-        verify({ subject, fact: 'deposit asset symbol', expected: asset.symbol, actual: details.asset.symbol });
-        verify({
-          subject,
-          fact: 'deposit asset decimals',
-          expected: String(asset.decimals),
-          actual: String(details.asset.decimals)
-        });
-
-        if (indexedAddressByCentrifugeId) {
-          const indexed = indexedAddressByCentrifugeId.get(String(centrifugeId));
-          if (indexed === undefined) failWith(subject, 'share token (indexer)', 'no token instance on this chain');
-          else
-            verify({ subject, fact: 'share token (indexer)', expected: identity.shareTokenAddress, actual: indexed });
-        }
+        centrifugeId = await centrifuge.id(getChainId(chain));
       } catch (error) {
-        fail(subject, 'Centrifuge vault', error);
+        fail(`${key} on ${chain}`, 'Centrifuge vault', error);
+        continue;
+      }
+
+      if (indexedAddressByCentrifugeId) {
+        const indexed = indexedAddressByCentrifugeId.get(String(centrifugeId));
+        const [{ shareTokenAddress }] = listShareClassChainIdentities({ chain, key });
+        if (indexed === undefined)
+          failWith(`${key} on ${chain}`, 'share token (indexer)', 'no token instance on this chain');
+        else
+          verify({
+            subject: `${key} on ${chain}`,
+            fact: 'share token (indexer)',
+            expected: shareTokenAddress,
+            actual: indexed
+          });
+      }
+
+      for (const identity of listShareClassChainIdentities({ chain, key })) {
+        const { asset } = identity;
+        const subject = `${key} on ${chain} (${asset.symbol})`;
+
+        try {
+          const pool = await centrifuge.pool(new PoolId(identity.poolId));
+          const centrifugeVault = await pool.vault(centrifugeId, new ShareClassId(identity.scId), asset.address);
+          verify({
+            subject,
+            fact: 'Centrifuge vault',
+            expected: identity.centrifugeVaultAddress,
+            actual: centrifugeVault.address
+          });
+
+          const details = await centrifugeVault.details();
+          // The two launch facts: an unlinked vault reverts every request, and
+          // a zero maxReserve reads as "Deposits Unavailable" in the dApp.
+          verify({ subject, fact: 'linked', expected: 'linked', actual: details.isLinked ? 'linked' : 'unlinked' });
+          verify({
+            subject,
+            fact: 'capacity (maxDeposit > 0)',
+            expected: 'open',
+            actual: details.maxDeposit.toBigInt() > 0n ? 'open' : 'closed (maxDeposit 0)'
+          });
+          verify({
+            subject,
+            fact: 'Centrifuge-vault shape',
+            expected: 'sync-deposit/async-redeem',
+            actual: shapeOf(details)
+          });
+          verify({ subject, fact: 'share token', expected: identity.shareTokenAddress, actual: details.share.address });
+          verify({
+            subject,
+            fact: 'share decimals (chain)',
+            expected: String(identity.decimals),
+            actual: String(details.share.decimals)
+          });
+          verify({ subject, fact: 'deposit asset', expected: asset.address, actual: details.asset.address });
+          // The contract's own symbol where it differs from the product's —
+          // compared exactly, so `USDt` is not satisfied by `USDT`.
+          verify({
+            subject,
+            fact: 'deposit asset symbol',
+            expected: asset.onChainSymbol ?? asset.symbol,
+            actual: details.asset.symbol,
+            exact: true
+          });
+          verify({
+            subject,
+            fact: 'deposit asset decimals',
+            expected: String(asset.decimals),
+            actual: String(details.asset.decimals)
+          });
+        } catch (error) {
+          fail(subject, 'Centrifuge vault', error);
+        }
       }
     }
   }

@@ -2,11 +2,12 @@
 import { type ReactNode } from 'react';
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { type Address } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Deposit from './index';
 
-const mocks = vi.hoisted(() => ({ isMobile: true }));
+const mocks = vi.hoisted(() => ({ isMobile: true, requestCount: 0, address: undefined as Address | undefined }));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('view=redeem'),
@@ -34,9 +35,8 @@ vi.mock('@zivoe/ui/core/tabs', () => ({
   TabPanel: ({ children }: { children: ReactNode }) => <div>{children}</div>
 }));
 vi.mock('@zivoe/ui/core/dialog', () => ({
-  Dialog: ({ isOpen, children }: { isOpen?: boolean; children: ReactNode }) =>
-    isOpen ? <div role="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ isOpen, children }: { isOpen?: boolean; children: ReactNode }) =>
+    isOpen === false ? null : <div role="dialog">{children}</div>,
   DialogContentBox: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogTitle: ({ children }: { children: ReactNode }) => <div>{children}</div>
@@ -44,13 +44,22 @@ vi.mock('@zivoe/ui/core/dialog', () => ({
 
 vi.mock('./deposit-flow', () => ({ DepositFlow: () => null }));
 vi.mock('./redeem-flow', () => ({ default: () => null }));
+vi.mock('./pending-flow', () => ({ default: () => null }));
+vi.mock('./_hooks/use-redemption-requests', () => ({
+  useRedemptionRequests: () => ({ chains: [], count: mocks.requestCount, isPending: false })
+}));
 vi.mock('./_components/transaction-dialog', () => ({ TransactionDialog: () => null }));
 vi.mock('@/components/connected-account', () => ({
   default: ({ children }: { children?: ReactNode }) => children
 }));
+vi.mock('@/hooks/useAccount', () => ({
+  useAccount: () => ({ address: mocks.address, isPending: false, isDisconnected: mocks.address === undefined })
+}));
 
 beforeEach(() => {
   mocks.isMobile = true;
+  mocks.requestCount = 0;
+  mocks.address = '0x000000000000000000000000000000000000dEaD';
 });
 
 afterEach(() => {
@@ -69,10 +78,50 @@ describe('Deposit', () => {
     await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
   });
 
+  // The modal marks Dynamic's connect sheet inert, so a dialog opened over a
+  // disconnected page shows a wallet list that ignores taps.
+  it('holds the mobile deep link until a wallet connects, then opens the Earn dialog once', async () => {
+    mocks.address = undefined;
+    const { rerender } = render(<Deposit initialView="redeem" />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    mocks.address = '0x000000000000000000000000000000000000dEaD';
+    rerender(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+  });
+
+  it('closes the mobile Earn dialog when the wallet disconnects', async () => {
+    const { rerender } = render(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+
+    mocks.address = undefined;
+    rerender(<Deposit initialView="redeem" />);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('leaves the Earn dialog closed for the same deep link on desktop', () => {
     mocks.isMobile = false;
     render(<Deposit initialView="redeem" />);
 
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offers a Pending tab, badged with how many rows it holds — and unbadged when it holds none', () => {
+    mocks.isMobile = false;
+    const empty = render(<Deposit initialView="pending" />);
+    expect(screen.getByText('Pending')).toBeTruthy();
+    expect(screen.queryByText(/requests? pending/)).toBeNull();
+    empty.unmount();
+
+    mocks.requestCount = 3;
+    const three = render(<Deposit initialView="pending" />);
+    // On the tab and on the mobile bar's Redeem button (both render in jsdom).
+    expect(screen.getAllByText('(3 requests pending)')).toHaveLength(2);
+    expect(screen.getAllByText('3', { ignore: '.sr-only' })).toHaveLength(2);
+    three.unmount();
+
+    mocks.requestCount = 1;
+    render(<Deposit initialView="pending" />);
+    expect(screen.getAllByText('(1 request pending)')).toHaveLength(2);
   });
 });

@@ -1,5 +1,5 @@
 import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
-import { UsdcIcon } from '@zivoe/ui/icons';
+import { EurcIcon, Usd1Icon, UsdcIcon, UsdtIcon } from '@zivoe/ui/icons';
 
 import { type DepositToken, type ShareToken } from '@/types/constants';
 
@@ -9,12 +9,30 @@ type TokenInfo = { label: string; description: string; icon: React.ReactNode };
 
 // Keyed by the catalog's deposit asset symbols, so a stablecoin added to the
 // catalog demands its display entry here at compile time. One entry per
-// symbol: USDC at 6 and at 18 decimals share one icon and name on purpose.
+// symbol: USDC at 6 and at 18 decimals share one icon and name on purpose,
+// as do Tether's USDT, USDT0 and USDt under `USDT`. The description is the
+// token's on-chain `name()` on its issuer-native deployment (Ethereum mainnet;
+// Base Sepolia for EURC) — some spoke deployments say `USDC` or `USD₮0` instead.
 const DEPOSIT_TOKEN_INFO: Record<DepositToken, TokenInfo> = {
   USDC: {
     label: 'USDC',
-    description: 'US Dollar Coin',
+    description: 'USD Coin',
     icon: <UsdcIcon />
+  },
+  USDT: {
+    label: 'USDT',
+    description: 'Tether USD',
+    icon: <UsdtIcon />
+  },
+  USD1: {
+    label: 'USD1',
+    description: 'World Liberty Financial USD',
+    icon: <Usd1Icon />
+  },
+  EURC: {
+    label: 'EURC',
+    description: 'EURC',
+    icon: <EurcIcon />
   }
 };
 

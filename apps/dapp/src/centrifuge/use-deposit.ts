@@ -132,7 +132,8 @@ export function useDeposit({
       void queryClient.invalidateQueries({
         queryKey: queryKeys.app.centrifugeVaultCapacity({
           shareClassKey: shareClass.key,
-          chain: identity.centrifugeVault.chain
+          chain: identity.centrifugeVault.chain,
+          centrifugeVaultAddress: identity.centrifugeVault.address
         })
       });
     }

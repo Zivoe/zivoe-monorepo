@@ -9,9 +9,10 @@ import { type DepositAsset, type ShareClassChainIdentity } from '@zivoe/centrifu
  * catalog's chain-identity shape so a new identity field cannot be added in
  * one package and forgotten here, with `key`/`symbol` widened to plain
  * strings on purpose: the module stays a pure, testable boundary with no
- * registry coupling (these imports are type-only). The chain is part of the
- * identity: the same class on another chain is a different Centrifuge vault,
- * a different wallet balance, and a different cache entry.
+ * registry coupling (these imports are type-only). The chain AND the deposit
+ * asset are part of the identity: the same class on another chain, or for
+ * another stablecoin on the same chain, is a different Centrifuge vault, a
+ * different position, and a different cache entry (keyed by `address`).
  */
 export type TransactedCentrifugeVault = Pick<ShareClassChainIdentity, 'chain' | 'chainId'> & {
   /** The Centrifuge vault's own address on the chain. */

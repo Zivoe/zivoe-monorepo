@@ -6,7 +6,7 @@ import { useAtom } from 'jotai';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
-import { Dialog, DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
+import { DialogContent, DialogContentBox } from '@zivoe/ui/core/dialog';
 import { Link } from '@zivoe/ui/core/link';
 import { ArrowRightIcon, CheckCircleIcon, CloseCircleIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -52,119 +52,119 @@ export function TransactionDialog() {
   const explorerLink = explorerTxUrl(transaction.chain, transaction.hash);
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent aria-label={transaction.title} showCloseButton={false}>
-        <DialogContentBox className="p-4">
-          <div className="flex flex-col items-center gap-6 py-3">
-            <div
-              className={cn(
-                'flex size-12 items-center justify-center rounded-md',
-                transaction.type === 'SUCCESS' ? 'bg-element-primary-gentle' : 'bg-element-alert-light'
-              )}
-            >
-              {transaction.type === 'SUCCESS' ? (
-                <CheckCircleIcon className="size-8 text-primary" />
-              ) : (
-                <CloseCircleIcon className="size-8 text-alert-contrast" />
-              )}
-            </div>
-
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-h5 text-primary">{transaction.title}</p>
-                <p className="text-center text-regular text-secondary">{transaction.description}</p>
-              </div>
-
-              {explorerLink && (
-                <Link size="m" href={explorerLink} target="_blank">
-                  See transaction details
-                </Link>
-              )}
-            </div>
+    <DialogContent
+      isOpen={isOpen}
+      onOpenChange={handleOpenChange}
+      aria-label={transaction.title}
+      showCloseButton={false}
+    >
+      <DialogContentBox className="p-4">
+        <div className="flex flex-col items-center gap-6 py-3">
+          <div
+            className={cn(
+              'flex size-12 items-center justify-center rounded-md',
+              transaction.type === 'SUCCESS' ? 'bg-element-primary-gentle' : 'bg-element-alert-light'
+            )}
+          >
+            {transaction.type === 'SUCCESS' ? (
+              <CheckCircleIcon className="size-8 text-primary" />
+            ) : (
+              <CloseCircleIcon className="size-8 text-alert-contrast" />
+            )}
           </div>
 
-          {transaction.meta?.approve && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken token={transaction.meta.approve.token} amount={transaction.meta.approve.amount} />
-            </TransactionDialogTokensSection>
-          )}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-h5 text-primary">{transaction.title}</p>
+              <p className="text-center text-regular text-secondary">{transaction.description}</p>
+            </div>
 
-          {transaction.meta?.deposit && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken token={transaction.meta.deposit.asset} amount={transaction.meta.deposit.amount} />
+            {explorerLink && (
+              <Link size="m" href={explorerLink} target="_blank">
+                See transaction details
+              </Link>
+            )}
+          </div>
+        </div>
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+        {transaction.meta?.approve && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken token={transaction.meta.approve.token} amount={transaction.meta.approve.amount} />
+          </TransactionDialogTokensSection>
+        )}
 
-              <TransactionDialogToken
-                token={transaction.meta.deposit.share}
-                amount={transaction.meta.deposit.receive}
-              />
-            </TransactionDialogTokensSection>
-          )}
+        {transaction.meta?.deposit && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken token={transaction.meta.deposit.asset} amount={transaction.meta.deposit.amount} />
 
-          {transaction.meta?.redeem && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken token={transaction.meta.redeem.share} amount={transaction.meta.redeem.amount} />
+            <ArrowRightIcon className="size-4 text-icon-default" />
 
-              {/* The USDC side is an estimate at request time, so it drops out
+            <TransactionDialogToken token={transaction.meta.deposit.share} amount={transaction.meta.deposit.receive} />
+          </TransactionDialogTokensSection>
+        )}
+
+        {transaction.meta?.redeem && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken token={transaction.meta.redeem.share} amount={transaction.meta.redeem.amount} />
+
+            {/* The USDC side is an estimate at request time, so it drops out
                   entirely when the Share Price was unavailable — the shares
                   submitted are the fact worth showing either way. */}
-              {transaction.meta.redeem.receive !== undefined && (
-                <>
-                  <ArrowRightIcon className="size-4 text-icon-default" />
+            {transaction.meta.redeem.receive !== undefined && (
+              <>
+                <ArrowRightIcon className="size-4 text-icon-default" />
 
-                  <TransactionDialogToken
-                    token={transaction.meta.redeem.asset}
-                    amount={transaction.meta.redeem.receive}
-                    prefix="≈ "
-                  />
-                </>
-              )}
-            </TransactionDialogTokensSection>
-          )}
+                <TransactionDialogToken
+                  token={transaction.meta.redeem.asset}
+                  amount={transaction.meta.redeem.receive}
+                  prefix="≈ "
+                />
+              </>
+            )}
+          </TransactionDialogTokensSection>
+        )}
 
-          {transaction.meta?.claimRedeem && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.claimRedeem.share}
-                amount={transaction.meta.claimRedeem.shares}
-              />
+        {transaction.meta?.claimRedeem && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken
+              token={transaction.meta.claimRedeem.share}
+              amount={transaction.meta.claimRedeem.shares}
+            />
 
-              <ArrowRightIcon className="size-4 text-icon-default" />
+            <ArrowRightIcon className="size-4 text-icon-default" />
 
-              <TransactionDialogToken
-                token={transaction.meta.claimRedeem.asset}
-                amount={transaction.meta.claimRedeem.assets}
-              />
-            </TransactionDialogTokensSection>
-          )}
+            <TransactionDialogToken
+              token={transaction.meta.claimRedeem.asset}
+              amount={transaction.meta.claimRedeem.assets}
+            />
+          </TransactionDialogTokensSection>
+        )}
 
-          {transaction.meta?.cancelRedeem && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.cancelRedeem.share}
-                amount={transaction.meta.cancelRedeem.shares}
-              />
-            </TransactionDialogTokensSection>
-          )}
+        {transaction.meta?.cancelRedeem && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken
+              token={transaction.meta.cancelRedeem.share}
+              amount={transaction.meta.cancelRedeem.shares}
+            />
+          </TransactionDialogTokensSection>
+        )}
 
-          {transaction.meta?.claimReturnedShares && (
-            <TransactionDialogTokensSection>
-              <TransactionDialogToken
-                token={transaction.meta.claimReturnedShares.share}
-                amount={transaction.meta.claimReturnedShares.shares}
-              />
-            </TransactionDialogTokensSection>
-          )}
+        {transaction.meta?.claimReturnedShares && (
+          <TransactionDialogTokensSection>
+            <TransactionDialogToken
+              token={transaction.meta.claimReturnedShares.share}
+              amount={transaction.meta.claimReturnedShares.shares}
+            />
+          </TransactionDialogTokensSection>
+        )}
 
-          <div className="flex gap-4">
-            <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContentBox>
-      </DialogContent>
-    </Dialog>
+        <div className="flex gap-4">
+          <Button variant="border-light" fullWidth onPress={() => handleOpenChange(false)}>
+            Close
+          </Button>
+        </div>
+      </DialogContentBox>
+    </DialogContent>
   );
 }
 

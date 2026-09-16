@@ -152,6 +152,7 @@ function mkEvent(offsetMs: number, overrides: Partial<InvestorTransactionEvent> 
     txHash: `0xtx${offsetMs}`,
     chainName: 'ethereum',
     explorerUrl: null,
+    assetAddress: null,
     ...overrides
   };
 }
@@ -202,7 +203,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
     const replayed = mkEvent(0);
     const fresh = mkEvent(1000);
-    state.notified.add(`0xsc:1:${replayed.txHash}:SYNC_DEPOSIT:0xabc`);
+    state.notified.add(`0xsc:1:${replayed.txHash}:SYNC_DEPOSIT:0xabc:no-asset`);
     vi.mocked(fetchInvestorTransactionEventsSince).mockResolvedValue({
       events: [replayed, fresh],
       truncated: false,
@@ -215,7 +216,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     const items = vi.mocked(sendBatchedTelegramMessages).mock.calls[0]?.[0]?.items;
     expect(items).toHaveLength(1);
     expect(items?.[0]).toContain(fresh.txHash);
-    expect(state.notified.has(`0xsc:1:${fresh.txHash}:SYNC_DEPOSIT:0xabc`)).toBe(true);
+    expect(state.notified.has(`0xsc:1:${fresh.txHash}:SYNC_DEPOSIT:0xabc:no-asset`)).toBe(true);
     // Advance goes to the slowest chain's head (NOW - 60s), not to the newest event.
     expect(state.cursors.get(CENTRIFUGE_TX_MONITOR_KEY)).toBe(NOW - 60_000);
   });
@@ -328,14 +329,35 @@ describe('runCentrifugeTransactionMonitor', () => {
     const replays = Array.from({ length: 120 }, (_, i) =>
       mkEvent(0, { createdAtMs: cursor - 14 * 60_000 + i * 1000, txHash: `0xold${i}` })
     );
-    for (const event of replays) state.notified.add(`0xsc:1:${event.txHash}:SYNC_DEPOSIT:0xabc`);
+    for (const event of replays) state.notified.add(`0xsc:1:${event.txHash}:SYNC_DEPOSIT:0xabc:no-asset`);
     const newer = [mkEvent(0, { createdAtMs: cursor + 1000, txHash: '0xnew1' })];
     serveFeed([...replays, ...newer]);
 
     const result = await runCentrifugeTransactionMonitor();
 
     expect(result).toMatchObject({ eventsSeen: 121, notified: 1, skippedDuplicates: 120 });
-    expect(state.notified.has('0xsc:1:0xnew1:SYNC_DEPOSIT:0xabc')).toBe(true);
+    expect(state.notified.has('0xsc:1:0xnew1:SYNC_DEPOSIT:0xabc:no-asset')).toBe(true);
+  });
+
+  it('reports an event whose deposit asset the catalog cannot place, and still alerts it', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    const unknownAsset = '0x00000000000000000000000000000000000dead0';
+    serveFeed([mkEvent(0, { txHash: '0xodd', assetAddress: unknownAsset }), mkEvent(1000)]);
+
+    const result = await runCentrifugeTransactionMonitor();
+
+    // Alerted without an amount rather than at a guessed scale — and paged,
+    // since a vault the catalog does not know is an operations gap.
+    expect(result).toMatchObject({ eventsSeen: 2, notified: 2 });
+    expect(state.notified.has(`0xsc:1:0xodd:SYNC_DEPOSIT:0xabc:${unknownAsset}`)).toBe(true);
+    expect(vi.mocked(Sentry.captureException).mock.calls).toContainEqual([
+      expect.objectContaining({ message: expect.stringContaining('deposit asset') }),
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          events: [expect.objectContaining({ chainId: SEPOLIA_CHAIN_ID, assetAddress: unknownAsset })]
+        })
+      })
+    ]);
   });
 
   it('drops events from a chain this deployment does not serve — they would sit outside the clamp — and keeps chainless rows', async () => {
@@ -349,7 +371,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     const result = await runCentrifugeTransactionMonitor();
 
     expect(result).toMatchObject({ eventsSeen: 2, notified: 2 });
-    expect(state.notified.has('0xsc:1:0xforeign:SYNC_DEPOSIT:0xabc')).toBe(false);
+    expect(state.notified.has('0xsc:1:0xforeign:SYNC_DEPOSIT:0xabc:no-asset')).toBe(false);
     expect(vi.mocked(Sentry.captureException).mock.calls[0]?.[1]).toMatchObject({
       extra: { chainIds: [BASE_SEPOLIA_CHAIN_ID] }
     });
@@ -400,7 +422,7 @@ describe('runCentrifugeTransactionMonitor', () => {
     expect(result).toMatchObject({ notified: 2, emailJobsEnqueued: 2 });
     const batch = batchJSONMock.mock.calls[0]?.[0];
     expect(batch).toHaveLength(2);
-    const eventId = '0xsc:1:0xtx0:SYNC_DEPOSIT:0xabc';
+    const eventId = '0xsc:1:0xtx0:SYNC_DEPOSIT:0xabc:no-asset';
     expect(batch?.[0]).toMatchObject({
       url: expect.stringContaining('/api/email/transaction-receipt'),
       label: 'email.transaction-receipt',

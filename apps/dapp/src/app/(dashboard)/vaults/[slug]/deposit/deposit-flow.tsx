@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { erc20Abi, formatUnits, parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
@@ -18,9 +18,9 @@ import { useApproveSpending } from '@/hooks/useApproveSpending';
 import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
-import { getTokenInfo } from '@/components/token-info';
 
 import {
   isPriceUnavailableError,
@@ -31,9 +31,8 @@ import {
 } from '@/centrifuge';
 
 import { useZivoeVaultStatus } from '../zivoe-vault-provider';
-import { ChainBalanceDetail } from './_components/chain-balance-detail';
-import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
-import { ChainTokenSelector } from './_components/chain-token-selector';
+import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
+import { DepositAssetPicker } from './_components/deposit-asset-picker';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
@@ -48,16 +47,13 @@ export function DepositFlow() {
     identities,
     selectedIdentity: identity,
     selectedChain,
-    setSelectedChain,
+    setSelectedIdentity,
     needsChainSwitch
-  } = useSelectedChain();
+  } = useSelectedIdentity({ tab: 'deposit' });
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
   const { asset, vaultRouterAddress } = centrifugeVault;
-  // Display entry for the deposit asset; the fixture identities tests hand in
-  // may carry none, so the selector falls back to the bare symbol without an icon.
-  const assetSelectorToken = getTokenInfo(asset.symbol) ?? { label: asset.symbol, icon: null };
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -125,6 +121,17 @@ export function DepositFlow() {
   const isPriceUnavailable = isPreviewFailed && isPriceUnavailableError(preview.error);
 
   const hasEnoughAllowance = checkHasEnoughAllowance({ allowance: allowance.data, amount: depositRaw });
+  // Nothing signs against an unknown allowance or balance: Approve could ask
+  // for an approval the wallet does not need, Deposit could fail for want of
+  // one, and an unknown balance would validate every amount as too large.
+  // Balance reads do not toast (see useBalance), so the form names the failure.
+  const isAllowanceUnavailable = allowance.isError && !allowance.isFetching;
+  const isBalanceUnavailable = assetBalance.isError && !assetBalance.isFetching;
+  const isReadUnavailable = isAllowanceUnavailable || isBalanceUnavailable;
+  const retryReads = () => {
+    if (isAllowanceUnavailable) void allowance.refetch();
+    if (isBalanceUnavailable) void assetBalance.refetch();
+  };
 
   const approveSpending = useApproveSpending({ zivoeVaultSlug: identity.zivoeVaultSlug });
   const depositMutation = useDeposit({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
@@ -148,34 +155,39 @@ export function DepositFlow() {
   // it clears is reasonable. A deploying Zivoe Vault, a Centrifuge vault with no capacity
   // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
   // the form itself: there is no amount worth entering.
+  // Any write, on any tab, locks it too (see useIsAnyTxPending).
+  const isAnyWritePending = useIsAnyTxPending();
+  const isOtherWritePending = isAnyWritePending && !approveSpending.isPending && !depositMutation.isPending;
   const isFormLocked =
-    isPrereqsLoading ||
-    approveSpending.isPending ||
-    depositMutation.isPending ||
-    isZivoeVaultDeploying ||
-    isCapacityUnavailable ||
-    isNotAdmitted;
+    isPrereqsLoading || isAnyWritePending || isZivoeVaultDeploying || isCapacityUnavailable || isNotAdmitted;
 
   // The chain selector must NOT inherit the per-chain verdicts (capacity,
   // access): they are exactly what switching chains escapes, and freezing
   // the selector on them would trap the user on the failing chain. Same
   // gating as the redeem tab's selector.
-  const isChainSelectorLocked = isPrereqsLoading || approveSpending.isPending || depositMutation.isPending;
+  const isChainSelectorLocked = isPrereqsLoading || isAnyWritePending;
 
-  // Only the quote gates the action. The settled facts above are enforced one
-  // level up, where the ladder swaps this button for a named one — repeating
-  // them here would describe states this gate never sees.
-  const isSubmitBlocked = isPreviewLoading || isPreviewFailed;
+  // Only the quote and a sibling write gate the action. The settled facts
+  // above are enforced one level up, where the ladder swaps this button for a
+  // named one — repeating them here would describe states this gate never sees.
+  const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isOtherWritePending;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
 
-  // The balance and capacity rules are wallet- and chain-scoped, so a verdict
-  // about the previous wallet or chain outlives it — 'exceeds balance' would
-  // sit on a context that can afford the amount until the next keystroke
-  // revalidates.
+  // The balance and capacity rules are wallet-scoped, so a verdict about the
+  // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
+  // can afford the amount until the next keystroke revalidates.
   useEffect(() => {
     if (account.address) form.clearErrors();
-  }, [account.address, selectedChain, form]);
+  }, [account.address, form]);
+
+  // An amount is typed against one coin on one chain: its balance, capacity
+  // and scale all change with the Centrifuge vault. Kept, a value with more
+  // decimals than the new coin carries would be rounded silently at signing
+  // (0.1234567 USD1 reads as 0.123457 USDC), so the field starts over.
+  useEffect(() => {
+    form.resetField('deposit');
+  }, [selectedChain, centrifugeVault.address, form]);
 
   const validateForm = () => form.trigger('deposit', { shouldFocus: true });
 
@@ -190,7 +202,9 @@ export function DepositFlow() {
       amount: depositRaw,
       name: asset.symbol,
       decimals: asset.decimals,
-      abi: erc20Abi,
+      // A legacy token's allowance is zeroed first; the hook decides from these two.
+      approval: asset.approval,
+      allowance: allowance.data,
       successMessage: `You can now deposit ${asset.symbol}.`,
       errorMessage: `There was an error approving ${asset.symbol}`
     });
@@ -260,15 +274,10 @@ export function DepositFlow() {
                 />
 
                 <div className="ml-3">
-                  <ChainTokenSelector
-                    title="Select Asset"
-                    token={assetSelectorToken}
-                    rows={identities.map((rowIdentity) => ({
-                      chain: rowIdentity.centrifugeVault.chain,
-                      detail: <ChainBalanceDetail identity={rowIdentity} token="asset" />
-                    }))}
-                    selectedChain={selectedChain}
-                    onSelect={setSelectedChain}
+                  <DepositAssetPicker
+                    identities={identities}
+                    selected={identity}
+                    onSelect={setSelectedIdentity}
                     isDisabled={isChainSelectorLocked}
                   />
                 </div>
@@ -329,20 +338,29 @@ export function DepositFlow() {
             <Button fullWidth isDisabled>
               {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
             </Button>
+          ) : isReadUnavailable ? (
+            <Button fullWidth onPress={retryReads}>
+              Retry
+            </Button>
           ) : hasDepositRaw && !hasEnoughAllowance && canOfferApproval ? (
             <Button
               fullWidth
               onPress={() => void handleApprove()}
               isDisabled={isSubmitBlocked}
-              isPending={approveSpending.isPending || isPreviewLoading}
+              isPending={approveSpending.isPending || isPreviewLoading || isOtherWritePending}
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
-                  : approveSpending.isTxPending
-                    ? `Approving ${asset.symbol}...`
-                    : approveSpending.isPending
-                      ? 'Signing Transaction...'
-                      : undefined
+                  : // A legacy token's allowance reset runs first; match its toast.
+                    approveSpending.isResetPending
+                    ? `Resetting ${asset.symbol} approval...`
+                    : approveSpending.isTxPending
+                      ? `Approving ${asset.symbol}...`
+                      : approveSpending.isPending
+                        ? 'Signing Transaction...'
+                        : isOtherWritePending
+                          ? OTHER_WRITE_PENDING_LABEL
+                          : undefined
               }
             >
               Approve
@@ -352,7 +370,7 @@ export function DepositFlow() {
               fullWidth
               onPress={() => void handleDeposit()}
               isDisabled={isSubmitBlocked}
-              isPending={depositMutation.isPending || isPreviewLoading}
+              isPending={depositMutation.isPending || isPreviewLoading || isOtherWritePending}
               pendingContent={
                 isPreviewLoading
                   ? `Estimating ${share.symbol}...`
@@ -360,7 +378,9 @@ export function DepositFlow() {
                     ? `Depositing ${asset.symbol}...`
                     : depositMutation.isPending
                       ? 'Signing Transaction...'
-                      : undefined
+                      : isOtherWritePending
+                        ? OTHER_WRITE_PENDING_LABEL
+                        : undefined
               }
             >
               Deposit
@@ -378,6 +398,15 @@ export function DepositFlow() {
         <Callout variant="warning">Deposits are currently unavailable, redemptions are enabled.</Callout>
       ) : isNotAdmitted ? (
         <WalletAccessCallout restriction={restriction} />
+      ) : isReadUnavailable && !needsChainSwitch && !isPrereqsLoading ? (
+        // Only while the Retry above is the action; beside "Switch to Base" it
+        // would name a control that is not on screen.
+        <Callout variant="warning">
+          {isBalanceUnavailable
+            ? `Could not load your ${asset.symbol} balance.`
+            : `Could not check your ${asset.symbol} approval.`}{' '}
+          Retry to continue.
+        </Callout>
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an

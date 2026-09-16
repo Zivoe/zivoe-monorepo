@@ -140,10 +140,14 @@ describe('useRequestRedeem', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
     expect(invalidatedKeys).toEqual(
       expect.arrayContaining([
-        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']),
-        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'])
+        JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE', 'sepolia']),
+        JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])
       ])
     );
+    // Chain-scoped on purpose: the account's balances and the class's
+    // positions on every other chain stay as they were.
+    expect(invalidatedKeys).not.toContain(JSON.stringify(['ACCOUNT', INVESTOR, 'BALANCE']));
+    expect(invalidatedKeys).not.toContain(JSON.stringify(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix']));
 
     expect(analyticsCapture).toHaveBeenCalledWith(
       'tx:redeem_submitted',
@@ -169,6 +173,25 @@ describe('useRequestRedeem', () => {
     expect(uiToast).toHaveBeenCalledWith({
       type: 'error',
       title: "You don't have enough shares for this redemption request."
+    });
+  });
+
+  it('keeps a node funding rejection that merely contains the SDK wording on the funding prompt', async () => {
+    // Monad's node rejects with "insufficient balance"; a wallet that rewords it
+    // with a capital I must not be mistaken for the SDK's share pre-check.
+    getCentrifugeVault.mockResolvedValue(
+      fakeCentrifugeVault({ redeemError: new Error('Insufficient balance to cover the transaction') })
+    );
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useRequestRedeem({ identity: FIXTURE_IDENTITY }), { wrapper });
+
+    act(() => result.current.mutate({ shares: SHARES, estimatedAssets: ESTIMATED_ASSETS }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(uiToast).toHaveBeenCalledWith({
+      type: 'warning',
+      title: "Not enough ETH in your wallet to cover this transaction's network fee. Add ETH and try again."
     });
   });
 });

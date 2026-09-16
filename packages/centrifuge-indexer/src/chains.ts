@@ -1,4 +1,4 @@
-import { type Address, type Chain, defineChain } from 'viem';
+import { type Address, type Chain, defineChain, isAddress } from 'viem';
 import {
   arbitrum,
   avalanche,
@@ -174,13 +174,15 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
 export type CentrifugeChain = keyof typeof CENTRIFUGE_CHAIN_DEPLOYMENTS;
 
 /**
- * 20 bytes and not the zero placeholder — the shape every configured address
- * must have. Internal to the package's import-time lints: `Address` only
- * types the 0x prefix, so a truncated paste or a leftover zero placeholder
- * needs a runtime sweep to fail the build instead of a transaction.
+ * 20 bytes with a valid EIP-55 checksum (or all lowercase) and not the zero
+ * placeholder — the shape every configured address must have. Internal to
+ * the package's import-time lints: `Address` only types the 0x prefix, so a
+ * truncated paste, a leftover zero placeholder or a mixed-case address with
+ * one wrong letter (viem refuses those at call time) needs a runtime sweep
+ * to fail the build instead of a transaction.
  */
 export function isPlausibleAddress(address: string): boolean {
-  return /^0x[0-9a-fA-F]{40}$/.test(address) && !/^0x0+$/.test(address);
+  return isAddress(address) && !/^0x0+$/.test(address);
 }
 
 /**

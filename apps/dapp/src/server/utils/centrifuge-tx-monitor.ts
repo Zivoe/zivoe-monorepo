@@ -14,7 +14,11 @@ import { monitorCursor, transactionNotified, user, walletConnection } from '@ziv
 import { type Db, db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
 import { BASE_URL } from '@/server/utils/base-url';
-import { formatEmailLine, formatTelegramItem } from '@/server/utils/centrifuge-tx-alert-message';
+import {
+  formatEmailLine,
+  formatTelegramItem,
+  resolveDepositAssetDisplay
+} from '@/server/utils/centrifuge-tx-alert-message';
 import {
   TRANSACTION_RECEIPT_JOB_PATH,
   type TransactionReceiptJobInput,
@@ -106,19 +110,22 @@ const EMPTY_PASS = {
 
 /**
  * Canonical event identity: one on-chain moment notifies once, ever. Scoped by
- * share class AND spoke chain — the pass spans several of each, and one tx can
- * legitimately carry same-type events for the same account across them. All
- * parts arrive lowercase from the indexer boundary. This is also the value
- * the Receipt Mailer records in transactionEmailSent.eventId.
+ * share class, spoke chain AND deposit asset — the pass spans several of each,
+ * and one tx can legitimately carry same-type events for the same account
+ * across them: on a chain with several Centrifuge vaults, one manager
+ * transaction can settle an investor's USDC and EURC redemptions at once. All
+ * parts arrive lowercase from the indexer boundary; a row whose asset
+ * relation is missing gets a fixed placeholder so its id stays stable. This
+ * is also the value the Receipt Mailer records in transactionEmailSent.eventId.
  */
 export function buildEventId({
   scId,
   event
 }: {
   scId: string;
-  event: Pick<InvestorTransactionEvent, 'centrifugeId' | 'txHash' | 'type' | 'account'>;
+  event: Pick<InvestorTransactionEvent, 'centrifugeId' | 'txHash' | 'type' | 'account' | 'assetAddress'>;
 }): string {
-  return `${scId}:${event.centrifugeId}:${event.txHash}:${event.type}:${event.account}`;
+  return `${scId}:${event.centrifugeId}:${event.txHash}:${event.type}:${event.account}:${event.assetAddress ?? 'no-asset'}`;
 }
 
 /** One in-window event joined with everything the pass needs — identity attached exactly once. */
@@ -415,6 +422,30 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         extra: { inWindow: events.length, unnotified: unnotified.length, processed: fresh.length }
       });
 
+    // -- An event whose deposit asset cannot be placed on its chain is alerted
+    // and mailed without an amount, and paged: a vault linked on-chain before
+    // its catalog entry is an operations gap. Chainless rows are left out.
+    const unresolvedAssets = fresh.filter(
+      ({ event, shareClassKey }) =>
+        event.chainId !== null && resolveDepositAssetDisplay({ event, shareClassKey }) === null
+    );
+    if (unresolvedAssets.length > 0)
+      Sentry.captureException(
+        new Error("Centrifuge tx monitor could not resolve an event's deposit asset from the catalog"),
+        {
+          tags: SENTRY_TAGS,
+          extra: {
+            events: unresolvedAssets.map(({ id, event, shareClassKey }) => ({
+              id,
+              shareClassKey,
+              chainId: event.chainId,
+              assetAddress: event.assetAddress
+            })),
+            environment: ACTIVE_ENVIRONMENT
+          }
+        }
+      );
+
     const linkedUsersByAccount = await readLinkedUsersByAccount({
       tx,
       accounts: [...new Set(fresh.map((row) => row.event.account))]
@@ -471,6 +502,7 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
             centrifugeId: event.centrifugeId,
             tokenAmount: event.tokenAmount === null ? null : event.tokenAmount.toString(),
             currencyAmount: event.currencyAmount === null ? null : event.currencyAmount.toString(),
+            assetAddress: event.assetAddress,
             createdAtMs: event.createdAtMs
           }
         }));

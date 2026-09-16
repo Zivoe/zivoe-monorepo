@@ -68,4 +68,11 @@ export type TransactionData = {
 
 const transactionAtom = atom<TransactionData | undefined>(undefined);
 
-export { transactionAtom };
+/**
+ * How many Transaction Hook mutations are in flight, app-wide. Written only by
+ * the transaction lifecycle from the mutation's own callbacks, so a write
+ * outlives the component that started it. Read through useIsAnyTxPending.
+ */
+const pendingTxCountAtom = atom(0);
+
+export { pendingTxCountAtom, transactionAtom };

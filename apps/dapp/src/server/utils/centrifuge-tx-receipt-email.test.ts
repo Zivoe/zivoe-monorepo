@@ -17,11 +17,11 @@ vi.mock(import('@zivoe/centrifuge-indexer'), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getShareClassChainIdentity: (args: { chain: CentrifugeChain; key: string }) => {
-      const identity = actual.getShareClassChainIdentity(args);
+    listShareClassChainIdentities: (args: { chain: CentrifugeChain; key: string }) => {
+      const [identity, ...rest] = actual.listShareClassChainIdentities(args);
       return args.chain === mocks.eighteenDecimalUsdcChain
-        ? { ...identity, asset: { ...identity.asset, decimals: 18 } }
-        : identity;
+        ? [{ ...identity, asset: { ...identity.asset, decimals: 18 } }, ...rest]
+        : [identity, ...rest];
     }
   };
 });
@@ -49,6 +49,9 @@ function job(overrides: Partial<TransactionReceiptJob['event']> = {}): Transacti
       centrifugeId: '1',
       tokenAmount: 4405778757590310318n,
       currencyAmount: 5000000n,
+      // Ethereum's USDC: the chain carries USDT and USD1 vaults too, so a
+      // receipt names its coin by address, as every live event does.
+      assetAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
       createdAtMs: 1786000000000,
       ...overrides
     }
@@ -88,6 +91,16 @@ describe('buildTransactionReceiptEmail', () => {
     // Receipts close with the transaction fine print, not the marketing one.
     expect(html).toContain('It is not an offer, solicitation, or investment recommendation.');
     expect(html).not.toContain('does not constitute an offer to sell');
+  });
+
+  it('deposit of another coin on the same chain: the receipt names it and carries its own icon', async () => {
+    // Ethereum's USDT vault — same chain, different coin, resolved by address.
+    const { email } = build({ assetAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7' });
+    const html = await render(email);
+
+    expect(html).toContain('5.00 USDT deposited into zSMB');
+    expect(html).toContain('/email-icons/usdt.png');
+    expect(html).not.toContain('USDC');
   });
 
   it("deposit on an 18-decimal chain: the amount is scaled by that chain's USDC, not a constant", async () => {
@@ -135,8 +148,8 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('ready to claim in the app on Ethereum.');
     // The token-flow row joins value and symbol with a non-breaking space.
     expect(html).toContain('5.00\u00A0USDC');
-    // Deep link to the redeem tab, where the claim control actually lives.
-    expect(html).toContain(`${VIEW_IN_APP_URL}?view=redeem`);
+    // Deep link to the Pending tab, where the claim control actually lives.
+    expect(html).toContain(`${VIEW_IN_APP_URL}?view=pending`);
   });
 
   it('claimed: redemption receipt without a fee row', async () => {

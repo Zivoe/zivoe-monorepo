@@ -46,8 +46,8 @@ export default async function ZivoeVaultPage({
   const zivoeVault = getZivoeVault(slug);
   if (!zivoeVault) notFound();
 
-  // Resolved once here, one identity per live chain; client trees read only
-  // these serializable objects.
+  // Resolved once here, one identity per Centrifuge vault (chain × deposit
+  // asset); client trees read only these serializable objects.
   const identities = resolveZivoeVaultIdentities(zivoeVault);
 
   const validatedView = depositPageViewSchema.safeParse(view);

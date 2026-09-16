@@ -12,11 +12,7 @@ import {
   parseAbi
 } from 'viem';
 
-import {
-  type NativeCurrency,
-  insufficientNativeFundsError,
-  isInsufficientNativeFundsError
-} from '@/lib/native-funds';
+import { type NativeCurrency, insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
 /** Maps decoded protocol error names to flow-specific product copy. */

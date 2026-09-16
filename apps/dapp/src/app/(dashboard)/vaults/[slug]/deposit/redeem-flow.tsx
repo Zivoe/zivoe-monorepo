@@ -12,99 +12,76 @@ import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
-import { formatBigIntWithCommas } from '@/lib/utils';
-
 import { useAccount } from '@/hooks/useAccount';
 import { useBalance } from '@/hooks/useBalance';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
+import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
-import { getTokenInfo } from '@/components/token-info';
 
 import {
-  type TransactedCentrifugeVault,
   sharesToDepositAsset,
   sharesToValueD18,
-  useCancelRedeem,
-  useClaimRedeem,
-  useClaimReturnedShares,
   useInvestorAccess,
   useRedemptionPosition,
   useRequestRedeem
 } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
-import { ChainBalanceDetail } from './_components/chain-balance-detail';
-import { SwitchChainButton, useSelectedChain } from './_components/chain-switch';
-import { ChainTokenSelector } from './_components/chain-token-selector';
+import { SwitchChainButton, useSelectedIdentity } from './_components/chain-switch';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
+import { PayoutAssetSelector } from './_components/payout-asset-selector';
+import { deriveRedeemAccessGates } from './_components/redemption-position-strips';
+import { ShareChainSelector } from './_components/share-chain-selector';
 import { TokenDisplay } from './_components/token-display';
 import { WalletAccessCallout } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
+import { useTabNavigation } from './_hooks/useTabNavigation';
 import { createAmountValidator, parseInput } from './_utils';
 
 type RedeemForm = { redeem: string };
 
+/**
+ * The request form alone: the selected chain's share balance redeemed into
+ * the selected payout asset. Positions live on the Pending tab; only a
+ * Cancellation Processing in the payout vault reaches back here, as a lock
+ * with a banner that links there.
+ */
 export default function RedeemFlow() {
   const {
-    identities,
+    chains,
+    chainIdentities,
     selectedIdentity: identity,
     selectedChain,
     setSelectedChain,
+    setSelectedIdentity,
     needsChainSwitch
-  } = useSelectedChain();
+  } = useSelectedIdentity({ tab: 'redeem' });
 
   const { centrifugeVault } = identity;
   const share = centrifugeVault.shareClass;
   const asset = centrifugeVault.asset;
-  // Chains without the hub-side unwind get no cancel control at all — the
-  // claims and the Cancellation Processing strip stay data-driven, so a
-  // cancellation made outside this dApp still resolves here.
-  const supportsCancel = centrifugeVault.supportsRedeemCancellation;
 
   const account = useAccount();
   const chainalysis = useChainalysis();
   const { setIsOpen: setIsEarnDialogOpen } = useEarnDialog();
+  const closeEarnDialog = () => setIsEarnDialogOpen(false);
+  const { updateTab } = useTabNavigation();
 
   const shareBalance = useBalance({ chain: selectedChain, tokenAddress: share.shareTokenAddress });
   const assetBalance = useBalance({ chain: selectedChain, tokenAddress: asset.address });
+  // The PAYOUT vault's position: whether a request adds to one, and the cancellation lock.
   const position = useRedemptionPosition({ centrifugeVault });
   const metrics = useCurrentShareMetrics({ shareClassKey: share.key });
   const access = useInvestorAccess({ centrifugeVault });
-
-  // Three gates, because the Centrifuge vault's verdicts do not fall along
-  // this panel's own lines. Only a definitive `false` gates anything: a failed
-  // read is a fetch problem and not a verdict, so it leaves them alone and lets
-  // the pre-sign simulation decode the real revert if the Centrifuge vault does refuse.
-  const isNotAdmitted = access.isSuccess && !access.data.canRequestRedemption;
-  // Cancelling and claiming returned shares both reduce on-chain to "may this
-  // wallet receive shares", so they stand or fall together.
-  const isShareReturnBlocked = access.isSuccess && !access.data.canReceiveShares;
-  // Claiming settled USDC is exempt from the memberlist (a wallet that is no
-  // longer whitelisted keeps proceeds it is already owed) but not from a
-  // freeze, so it carries its own verdict rather than either of the above.
-  const isProceedsClaimBlocked = access.isSuccess && !access.data.canClaimProceeds;
-  // Names the block; never widens it. An unread or unexplained reason falls
-  // back to the general "not whitelisted" presentation.
-  const restriction = access.data?.restriction;
-  // The buttons below are too narrow to carry the reason and sit a long way
-  // from the callout at the foot of the panel, so they get their own short
-  // form of the same answer.
-  const shareReturnHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'Requires a whitelisted wallet.';
-  // Membership never blocks a claim, so an unexplained refusal here cannot be
-  // named "not whitelisted" the way the share controls' fallback is.
-  const proceedsClaimHint = restriction === 'frozen' ? 'This wallet is frozen.' : 'This wallet cannot claim right now.';
+  const { isNotAdmitted, restriction } = deriveRedeemAccessGates(access);
 
   const sharePrice = metrics.data ? BigInt(metrics.data.sharePriceD18) : undefined;
   const pendingShares = position.data?.pendingRedeemShares ?? 0n;
   const claimableAssets = position.data?.claimableRedeemAssets ?? 0n;
-  // Unfunded Claim: settled, but this chain's escrow cannot pay it yet. Nothing
-  // the investor does resolves it, so its strip carries no action at all — just
-  // the amount and the chain — until a later position read sees it funded.
   const unfundedAssets = position.data?.unfundedClaimableAssets ?? 0n;
-  const returnedShares = position.data?.claimableCancelRedeemShares ?? 0n;
   const isCancellationProcessing = position.data?.hasPendingCancelRedeemRequest ?? false;
   const hasPosition = pendingShares > 0n || claimableAssets > 0n || unfundedAssets > 0n;
 
@@ -138,54 +115,46 @@ export default function RedeemFlow() {
         ? null
         : 0n;
 
-  const requestRedeem = useRequestRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
-  const claimRedeem = useClaimRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
-  const cancelRedeem = useCancelRedeem({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
-  const claimReturnedShares = useClaimReturnedShares({ identity, onSuccessClose: () => setIsEarnDialogOpen(false) });
+  const requestRedeem = useRequestRedeem({ identity, onSuccessClose: closeEarnDialog });
 
   // Balances/position use isFetching so post-transaction invalidations keep
-  // the form locked until fresh data lands. Cancellation Processing polls the
-  // position, so it deliberately does NOT feed isPrereqsLoading — only the
-  // initial load and post-transaction refetches do.
+  // the form locked until fresh data lands; the position never polls, so
+  // only the initial load and those refetches ever set it.
   const isPrereqsLoading =
     account.isPending ||
     shareBalance.isFetching ||
     assetBalance.isFetching ||
     chainalysis.isFetching ||
     access.isFetching ||
-    (position.isFetching && !isCancellationProcessing) ||
+    position.isFetching ||
     // isPending on purpose: metrics refetch on a 5-minute interval, and
     // isFetching would flash the whole form to loading on every refresh.
     metrics.isPending;
 
-  const isMutationPending =
-    requestRedeem.isPending || claimRedeem.isPending || cancelRedeem.isPending || claimReturnedShares.isPending;
-  // Every write on this tab (request, cancel, both claims) executes on the
-  // selected chain, so one gate serves them all: the strips' buttons disable
-  // and the main action becomes the switch.
-  const isWriteBlocked = isPrereqsLoading || needsChainSwitch;
-  /**
-   * All four writes share one transaction path, so each control waits out the
-   * other three. Pass the control's own pending flag — its own run is already
-   * shown (and blocked) by the button's `isPending`.
-   */
-  const isOtherMutationPending = (isSelfPending: boolean) => isMutationPending && !isSelfPending;
-  // Cancellation Processing locks the whole form: a new request would revert
-  // on-chain until the hub finishes the unwind. A wallet the Centrifuge vault
-  // will not admit locks it for the same reason — there is no amount worth entering.
-  // Only the request gate applies here: a wallet that may still send shares to
-  // escrow can use this form even when its share moves back are blocked.
-  const isFormLocked = isPrereqsLoading || isMutationPending || isCancellationProcessing || isNotAdmitted;
+  // Any write, on any tab, locks the form (see useIsAnyTxPending).
+  const isAnyWritePending = useIsAnyTxPending();
+  // A Cancellation Processing in the PAYOUT vault locks the form: a new request
+  // into it would revert until the hub finishes the unwind, while another
+  // payout asset on the chain stays open. A wallet the Centrifuge vault will
+  // not admit locks it too. Only the request gate applies here: a wallet that
+  // may still send shares to escrow can use this form even when its share
+  // moves back are blocked.
+  const isFormLocked = isPrereqsLoading || isAnyWritePending || isCancellationProcessing || isNotAdmitted;
 
   // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
   // Named like the deposit tab's carrier so the two selectors cannot drift.
-  const isChainSelectorLocked = isPrereqsLoading || isMutationPending;
+  const isChainSelectorLocked = isPrereqsLoading || isAnyWritePending;
 
   // Named once, like the deposit tab's, so the button and its handler cannot
   // drift apart. Only a sibling write gates the action; the settled facts above
   // are enforced one level up, where the ladder swaps this button for a named
   // one — repeating them here would describe states this gate never sees.
-  const isSubmitBlocked = isOtherMutationPending(requestRedeem.isPending);
+  const isSubmitBlocked = isAnyWritePending && !requestRedeem.isPending;
+
+  // Balance reads do not toast (see useBalance), so the form names a failed
+  // read of the shares it spends: an unknown balance would validate every
+  // amount as too large behind a live button.
+  const isBalanceUnavailable = shareBalance.isError && !shareBalance.isFetching;
 
   // Both states are presentation only, and both are scoped to an entered amount
   // to match the deposit tab. The estimate quotes a price that will not be the
@@ -220,28 +189,6 @@ export default function RedeemFlow() {
     if (account.address) form.clearErrors();
   }, [account.address, selectedChain, form]);
 
-  const handleClaim = () => {
-    if (claimableAssets <= 0n || isProceedsClaimBlocked) return;
-
-    claimRedeem.mutate({ claimableAssets });
-  };
-
-  const handleCancelRedeem = () => {
-    if (pendingShares <= 0n || isShareReturnBlocked || !supportsCancel) return;
-
-    cancelRedeem.mutate({ pendingShares });
-  };
-
-  const handleClaimReturnedShares = () => {
-    if (returnedShares <= 0n || isShareReturnBlocked) return;
-
-    claimReturnedShares.mutate({ returnedShares });
-  };
-
-  // Display entry for the share token; the fixture classes tests hand in have
-  // none, so the selector falls back to the bare symbol without an icon.
-  const shareSelectorToken = getTokenInfo(share.symbol) ?? { label: share.symbol, icon: null };
-
   const receiveValue = estimatedAssets !== undefined ? formatUnits(estimatedAssets, asset.decimals) : '';
   // Suppress the amount input's `0.0` ghost while the estimate is loading —
   // it would otherwise read as "you receive 0.0" next to the skeleton.
@@ -250,129 +197,25 @@ export default function RedeemFlow() {
 
   return (
     <>
-      {returnedShares > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: returnedShares, tokenDecimals: share.decimals, displayDecimals: 2 })}{' '}
-              {share.symbol} returned from cancellation
-            </p>
-
-            <ConnectedAccount fullWidth={false} type="skeleton">
-              <Button
-                onPress={handleClaimReturnedShares}
-                size="s"
-                isDisabled={
-                  isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(claimReturnedShares.isPending)
-                }
-                isPending={claimReturnedShares.isPending}
-                pendingContent={
-                  claimReturnedShares.isTxPending
-                    ? `Claiming ${share.symbol}...`
-                    : claimReturnedShares.isPending
-                      ? 'Signing Transaction...'
-                      : undefined
-                }
-              >
-                Claim {share.symbol}
-              </Button>
-            </ConnectedAccount>
-          </div>
-
-          {isShareReturnBlocked && <p className="text-extraSmall text-tertiary">{shareReturnHint}</p>}
-        </div>
+      {/* A failed position read renders like "no position" and does not
+          toast, so the form names it. */}
+      {position.isError && (
+        <Callout variant="warning">
+          Could not load your redemption position on {CHAIN_DISPLAY[selectedChain].label}.{' '}
+          <Button variant="link-primary" size="s" onPress={() => void position.refetch()}>
+            Retry
+          </Button>
+        </Callout>
       )}
 
-      {claimableAssets > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* A blocked wallet's headline cannot say ready: the amount is
-                approved, the claim is not — the hint below says why. */}
-            <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
-              {asset.symbol} {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
-            </p>
-
-            <ConnectedAccount fullWidth={false} type="skeleton">
-              <Button
-                onPress={handleClaim}
-                size="s"
-                isDisabled={
-                  isWriteBlocked ||
-                  isProceedsClaimBlocked ||
-                  isOtherMutationPending(claimRedeem.isPending) ||
-                  // The SDK's aggregate claim empties Returned Shares before USDC
-                  // in one shared transaction path, so the USDC claim waits its
-                  // turn. The protocol itself would pay the USDC on its own (the
-                  // router's claimRedeem), so a wallet that can no longer receive
-                  // shares waits here until re-admitted — an SDK limitation we
-                  // accept; revisit if the SDK ever exposes the USDC claim alone.
-                  returnedShares > 0n
-                }
-                isPending={claimRedeem.isPending}
-                pendingContent={
-                  claimRedeem.isTxPending
-                    ? `Claiming ${asset.symbol}...`
-                    : claimRedeem.isPending
-                      ? 'Signing Transaction...'
-                      : undefined
-                }
-              >
-                Claim {asset.symbol}
-              </Button>
-            </ConnectedAccount>
-          </div>
-
-          {/* The block wins over the turn-taking hint: "claim your returned
-              shares first" is no help to a wallet that cannot claim them. */}
-          {isProceedsClaimBlocked ? (
-            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
-          ) : returnedShares > 0n ? (
-            <p className="text-extraSmall text-tertiary">
-              {isShareReturnBlocked ? shareReturnHint : `Claim your returned ${share.symbol} first.`}
-            </p>
-          ) : null}
-        </div>
-      )}
-
-      {unfundedAssets > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          <p className="text-regular text-primary">
-            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
-            {asset.symbol} approved, awaiting liquidity on {CHAIN_DISPLAY[selectedChain].label}
-          </p>
-
-          {/* Two things stand between a frozen wallet and its USDC; name both.
-              An unexplained refusal adds nothing to a strip that already says
-              nobody can claim yet. */}
-          {isProceedsClaimBlocked && restriction === 'frozen' && (
-            <p className="text-extraSmall text-tertiary">{proceedsClaimHint}</p>
-          )}
-        </div>
-      )}
-
-      {isCancellationProcessing ? (
-        <CancellationProcessingStrip pendingShares={pendingShares} centrifugeVault={centrifugeVault} />
-      ) : (
-        pendingShares > 0n && (
-          <RedemptionProcessingStrip
-            pendingShares={pendingShares}
-            sharePrice={sharePrice}
-            centrifugeVault={centrifugeVault}
-            cancel={
-              supportsCancel
-                ? {
-                    onPress: handleCancelRedeem,
-                    isDisabled:
-                      isWriteBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-                    blockedHint: isShareReturnBlocked ? shareReturnHint : undefined,
-                    isPending: cancelRedeem.isPending,
-                    isTxPending: cancelRedeem.isTxPending
-                  }
-                : undefined
-            }
-          />
-        )
+      {isCancellationProcessing && (
+        <Callout variant="warning">
+          New redemption requests into {asset.symbol} on {CHAIN_DISPLAY[selectedChain].label} are paused while a
+          cancellation is processed.{' '}
+          <Button variant="link-primary" size="s" onPress={() => updateTab('pending')}>
+            View pending
+          </Button>
+        </Callout>
       )}
 
       <Controller
@@ -409,16 +252,8 @@ export default function RedeemFlow() {
                 />
 
                 <div className="ml-3">
-                  <ChainTokenSelector
-                    title="Select Asset"
-                    token={shareSelectorToken}
-                    // Each row shows that chain's redeemable share balance —
-                    // the position the user came here to redeem, and the one
-                    // signal that tells them which chain actually holds it.
-                    rows={identities.map((rowIdentity) => ({
-                      chain: rowIdentity.centrifugeVault.chain,
-                      detail: <ChainBalanceDetail identity={rowIdentity} token="share" />
-                    }))}
+                  <ShareChainSelector
+                    chains={chains}
                     selectedChain={selectedChain}
                     onSelect={setSelectedChain}
                     isDisabled={isChainSelectorLocked}
@@ -457,7 +292,18 @@ export default function RedeemFlow() {
             balance={{ value: assetBalance.data, isPending: assetBalance.isPending, decimals: asset.decimals }}
           />
         }
-        endContent={<TokenDisplay symbol={asset.symbol} />}
+        endContent={
+          chainIdentities.length > 1 ? (
+            <PayoutAssetSelector
+              identities={chainIdentities}
+              selected={identity}
+              onSelect={setSelectedIdentity}
+              isDisabled={isChainSelectorLocked}
+            />
+          ) : (
+            <TokenDisplay symbol={asset.symbol} />
+          )
+        }
       />
 
       <ConnectedAccount>
@@ -473,18 +319,24 @@ export default function RedeemFlow() {
           <Button fullWidth isDisabled>
             {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
           </Button>
+        ) : isBalanceUnavailable ? (
+          <Button fullWidth onPress={() => void shareBalance.refetch()}>
+            Retry
+          </Button>
         ) : (
           <Button
             fullWidth
             onPress={() => void handleRequestRedeem()}
             isDisabled={isSubmitBlocked}
-            isPending={requestRedeem.isPending}
+            isPending={requestRedeem.isPending || isSubmitBlocked}
             pendingContent={
               requestRedeem.isTxPending
                 ? 'Requesting redemption...'
                 : requestRedeem.isPending
                   ? 'Signing Transaction...'
-                  : undefined
+                  : isSubmitBlocked
+                    ? OTHER_WRITE_PENDING_LABEL
+                    : undefined
             }
           >
             {hasPosition ? 'Add to redemption' : 'Request redemption'}
@@ -500,91 +352,13 @@ export default function RedeemFlow() {
 
         {/* Why the action above is disabled — the verdict only exists once a
             wallet is connected. */}
-        {isNotAdmitted && <WalletAccessCallout restriction={restriction} />}
+        {isNotAdmitted ? (
+          <WalletAccessCallout restriction={restriction} />
+        ) : isBalanceUnavailable && !needsChainSwitch && !isPrereqsLoading && !isCancellationProcessing ? (
+          // Only while the Retry above is the action.
+          <Callout variant="warning">Could not load your {share.symbol} balance. Retry to continue.</Callout>
+        ) : null}
       </div>
     </>
-  );
-}
-
-function RedemptionProcessingStrip({
-  pendingShares,
-  sharePrice,
-  centrifugeVault,
-  cancel
-}: {
-  pendingShares: bigint;
-  sharePrice: bigint | undefined;
-  centrifugeVault: TransactedCentrifugeVault;
-  /** Absent on chains without redeem cancellation — the strip is then read-only. */
-  cancel?: {
-    onPress: () => void;
-    isDisabled: boolean;
-    /** Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */
-    blockedHint?: string;
-    isPending: boolean;
-    isTxPending: boolean;
-  };
-}) {
-  const { asset, shareClass } = centrifugeVault;
-  const pendingAssets = sharePrice
-    ? sharesToDepositAsset({ shares: pendingShares, sharePrice, shareClass, asset })
-    : undefined;
-
-  return (
-    <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-regular text-primary">
-          {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
-          {shareClass.symbol} processing
-          {pendingAssets !== undefined
-            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })} ${asset.symbol}`
-            : ''}
-        </p>
-
-        {cancel && (
-          <ConnectedAccount fullWidth={false} type="skeleton">
-            <Button
-              variant="link-neutral-light"
-              size="s"
-              onPress={cancel.onPress}
-              isDisabled={cancel.isDisabled}
-              isPending={cancel.isPending}
-              pendingContent={
-                cancel.isTxPending ? 'Cancelling...' : cancel.isPending ? 'Signing Transaction...' : undefined
-              }
-            >
-              Cancel request
-            </Button>
-          </ConnectedAccount>
-        )}
-      </div>
-
-      {cancel?.blockedHint && <p className="text-extraSmall text-tertiary">{cancel.blockedHint}</p>}
-    </div>
-  );
-}
-
-function CancellationProcessingStrip({
-  pendingShares,
-  centrifugeVault
-}: {
-  pendingShares: bigint;
-  centrifugeVault: TransactedCentrifugeVault;
-}) {
-  const { asset, shareClass } = centrifugeVault;
-  return (
-    <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-      <p className="text-regular text-primary">
-        Cancelling redemption request
-        {pendingShares > 0n
-          ? ` for ${formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })} ${shareClass.symbol}`
-          : ''}
-      </p>
-
-      <p className="text-extraSmall text-tertiary">
-        Your {shareClass.symbol} will be available to claim once the cancellation is processed. Any portion already
-        approved still executes as {asset.symbol}.
-      </p>
-    </div>
   );
 }

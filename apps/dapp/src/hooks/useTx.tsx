@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import * as Sentry from '@sentry/nextjs';
 import { toast as sonnerToast } from 'sonner';
 import {
@@ -24,7 +26,7 @@ import { chainOfChainId, getViemChain, waitForRpcCatchup } from '@/lib/chains';
 import { insufficientNativeFundsError, isInsufficientNativeFundsError } from '@/lib/native-funds';
 import { AppError, handlePromise } from '@/lib/utils';
 
-import useTxLifecycle, { type TxContext, type TxSharedConfig } from './useTxLifecycle';
+import useTxLifecycle, { type TxContext, type TxSharedConfig, withSigningTimeout } from './useTxLifecycle';
 
 // The transaction choreography lives in useTxLifecycle; re-exported here so
 // existing import sites keep working.
@@ -61,6 +63,17 @@ export type TxParams<
 export type TxConfig<TVariables, TParams extends TxParams> = TxSharedConfig<TVariables> & {
   /** Builds (and guards) the contract call; throw AppError for validation failures. May be async (e.g. permit signing). */
   buildParams: (vars: TVariables, ctx: TxContext) => TParams | Promise<TParams>;
+  /**
+   * An optional transaction sent and confirmed BEFORE the main one, inside the
+   * same mutation — the allowance reset a legacy ERC-20 demands. A rejection or
+   * revert ends the mutation before the main call reaches the wallet; the main
+   * transaction alone feeds analytics, the dialog and the refetches.
+   */
+  reset?: {
+    /** `undefined` when these variables need no reset. */
+    buildParams: (vars: TVariables) => TParams | undefined;
+    pendingToast: (vars: TVariables) => string;
+  };
 };
 
 /**
@@ -123,7 +136,7 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
   };
 
   const sendTx = async (params: TParams) => {
-    const { err, res: hash } = await handlePromise(writeContract(params));
+    const { err, res: hash } = await handlePromise(withSigningTimeout(writeContract(params)));
 
     if (err || !hash) {
       const isUserRejection = err && err instanceof Error && err.message.includes('User rejected the request');
@@ -190,11 +203,36 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
     return receipt;
   };
 
-  return useTxLifecycle({
+  // From the reset's wallet prompt to its receipt, so the control can say
+  // "Resetting…" rather than "Approving…" for a call the wallet has not seen.
+  const [isResetPending, setIsResetPending] = useState(false);
+
+  const lifecycle = useTxLifecycle({
     ...config,
     prepare: config.buildParams,
 
     send: async (vars, params, { address, choreography, capture, onTxHash, setIsTxPending }) => {
+      const resetParams = config.reset?.buildParams(vars);
+      if (config.reset && resetParams) {
+        setIsResetPending(true);
+        try {
+          await simulateTx(resetParams, address);
+          const resetHash = await sendTx(resetParams);
+          // Mirrored so a failure between here and the main send points Sentry
+          // at the reset; the main hash replaces it below.
+          onTxHash(resetHash);
+          const resetReceipt = await waitForTxReceipt({
+            params: resetParams,
+            hash: resetHash,
+            pendingMessage: config.reset.pendingToast(vars),
+            setIsTxPending
+          });
+          if (resetReceipt.status !== 'success') throw new AppError({ message: 'Allowance reset reverted on-chain' });
+        } finally {
+          setIsResetPending(false);
+        }
+      }
+
       await simulateTx(params, address);
 
       const hash = await sendTx(params);
@@ -204,4 +242,6 @@ export default function useTx<TVariables, TParams extends TxParams>(config: TxCo
       return waitForTxReceipt({ params, hash, pendingMessage: config.pendingToast(vars), setIsTxPending });
     }
   });
+
+  return { ...lifecycle, isResetPending };
 }

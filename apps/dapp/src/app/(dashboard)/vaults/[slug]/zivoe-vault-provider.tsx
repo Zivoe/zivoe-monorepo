@@ -9,12 +9,13 @@ import { type ZivoeVaultStatus } from '@/zivoe-vaults/zivoe-vault';
 
 type ZivoeVaultContextValue = {
   /**
-   * One resolved identity per live chain, in deployment order — the single
-   * source the flows derive both the selector domain and the selected
-   * identity from, so a chain with no identity is unrepresentable. Non-empty
-   * by type: the registry throws before a chainless Zivoe Vault reaches a
-   * page. Resolved server-side so client trees stay on serializable plain
-   * data.
+   * One resolved identity per live Centrifuge vault — chains in deployment
+   * order, and on each chain one identity per deposit asset, the default
+   * first — the single source the flows derive both the selector domain and
+   * the selected identity from, so a chain or asset with no identity is
+   * unrepresentable. Non-empty by type: the registry throws before a
+   * chainless Zivoe Vault reaches a page. Resolved server-side so client
+   * trees stay on serializable plain data.
    */
   identities: [TransactionIdentity, ...Array<TransactionIdentity>];
   status: ZivoeVaultStatus;
@@ -23,7 +24,7 @@ type ZivoeVaultContextValue = {
 const ZivoeVaultContext = createContext<ZivoeVaultContextValue | null>(null);
 
 /**
- * Hands the route-resolved Zivoe Vault identities (one per live chain) and
+ * Hands the route-resolved Zivoe Vault identities (one per Centrifuge vault) and
  * the subscription status to the page's client trees. The value is
  * serializable plain data only — components, rich content and other
  * server-only presentation never cross this boundary.
@@ -44,7 +45,7 @@ function useZivoeVaultContext(): ZivoeVaultContextValue {
   return value;
 }
 
-/** The Zivoe Vault's identities, one per live chain in deployment order — the flows' selector domain. */
+/** The Zivoe Vault's identities, one per Centrifuge vault (chain × deposit asset) in deployment order — the flows' selector domain. */
 export function useZivoeVaultIdentities(): [TransactionIdentity, ...Array<TransactionIdentity>] {
   return useZivoeVaultContext().identities;
 }

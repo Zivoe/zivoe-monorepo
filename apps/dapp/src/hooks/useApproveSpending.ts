@@ -1,7 +1,6 @@
-import { type erc20Abi } from 'viem';
 import { type Address } from 'viem/accounts';
 
-import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
+import { type CentrifugeChain, type DepositAsset } from '@zivoe/centrifuge-indexer';
 
 import { getChainId } from '@/lib/chains';
 import { queryKeys } from '@/lib/query-keys';
@@ -10,8 +9,34 @@ import { AppError } from '@/lib/utils';
 
 import useTx, { type TxParams, parseReceiptEvent } from './useTx';
 
-export type ApproveTokenAbi = typeof erc20Abi;
-export type ApproveTokenParams = TxParams<ApproveTokenAbi, 'approve'>;
+/**
+ * `approve` declared WITHOUT its boolean output, on purpose: declaring it makes
+ * viem decode return data that Ethereum-mainnet USDT does not return, so its
+ * approvals failed at simulation. The flow never read the boolean anyway.
+ */
+export const APPROVE_ABI = [
+  {
+    type: 'function',
+    name: 'approve',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: []
+  },
+  {
+    type: 'event',
+    name: 'Approval',
+    inputs: [
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'spender', type: 'address', indexed: true },
+      { name: 'value', type: 'uint256', indexed: false }
+    ]
+  }
+] as const;
+
+export type ApproveTokenParams = TxParams<typeof APPROVE_ABI, 'approve'>;
 
 type ApproveSpendingVariables = {
   /** The chain the approval executes on — token and spender addresses are chain-scoped. */
@@ -22,10 +47,18 @@ type ApproveSpendingVariables = {
   name: string;
   /** Snapshotted onto the payload so the receipt dialog renders the approved token exactly. */
   decimals: number;
-  abi: ApproveTokenAbi;
+  /** The catalog's approval mode; see needsAllowanceReset. */
+  approval?: DepositAsset['approval'];
+  /** The allowance as the flow last read it; decides whether a reset is due. */
+  allowance?: bigint;
   successMessage: string;
   errorMessage: string;
 };
+
+/** A legacy token reverts on a non-zero → non-zero allowance change, so it is zeroed first. */
+export function needsAllowanceReset({ approval, allowance }: Pick<ApproveSpendingVariables, 'approval' | 'allowance'>) {
+  return approval === 'legacy' && allowance !== undefined && allowance > 0n;
+}
 
 /**
  * The approval itself is deliberately cross-Zivoe Vault (one router spender), but
@@ -34,21 +67,30 @@ type ApproveSpendingVariables = {
  * useCentrifugeTx tags every transaction of the flows behind it.
  */
 export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string }) => {
+  const approveParams = ({
+    chain,
+    contract,
+    spender,
+    amount
+  }: Pick<ApproveSpendingVariables, 'chain' | 'contract' | 'spender'> & { amount: bigint }): ApproveTokenParams => ({
+    abi: APPROVE_ABI,
+    address: contract,
+    functionName: 'approve',
+    args: [spender, amount],
+    // Pins simulation, sending and the receipt wait to the approval's
+    // chain; wagmi additionally refuses to send if the wallet sits elsewhere.
+    chainId: getChainId(chain)
+  });
+
   return useTx<ApproveSpendingVariables, ApproveTokenParams>({
-    buildParams: ({ chain, contract, spender, amount, abi }) => {
-      if (!amount || amount === 0n) throw new AppError({ message: 'No amount to approve' });
+    buildParams: (vars) => {
+      if (!vars.amount || vars.amount === 0n) throw new AppError({ message: 'No amount to approve' });
+      return approveParams({ ...vars, amount: vars.amount });
+    },
 
-      const params: ApproveTokenParams = {
-        abi,
-        address: contract,
-        functionName: 'approve',
-        args: [spender, amount],
-        // Pins simulation, sending and the receipt wait to the approval's
-        // chain; wagmi additionally refuses to send if the wallet sits elsewhere.
-        chainId: getChainId(chain)
-      };
-
-      return params;
+    reset: {
+      buildParams: (vars) => (needsAllowanceReset(vars) ? approveParams({ ...vars, amount: 0n }) : undefined),
+      pendingToast: ({ name }) => `Resetting ${name} approval...`
     },
 
     analytics: {
@@ -70,13 +112,17 @@ export const useApproveSpending = ({ zivoeVaultSlug }: { zivoeVaultSlug: string 
     // payload stamps from these.
     zivoeVaultSlug,
     chain: (vars) => vars.chain,
-    sentryExtras: ({ abi: _abi, ...variables }) => variables,
 
-    transactionData: (receipt, { name, decimals, abi, successMessage, errorMessage }) => {
+    transactionData: (receipt, { name, decimals, successMessage, errorMessage }) => {
       let meta: TransactionData['meta'] = undefined;
 
       if (receipt.status === 'success') {
-        const approvalLog = parseReceiptEvent({ receipt, abi, eventName: 'Approval', sentryFlow: 'approve' });
+        const approvalLog = parseReceiptEvent({
+          receipt,
+          abi: APPROVE_ABI,
+          eventName: 'Approval',
+          sentryFlow: 'approve'
+        });
         const amount = approvalLog?.args.value;
 
         if (amount) {

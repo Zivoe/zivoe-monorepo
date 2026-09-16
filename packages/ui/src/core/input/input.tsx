@@ -215,7 +215,9 @@ const inputGroupStyles = tv({
   base: [
     'flex w-full cursor-text flex-col items-start justify-center gap-2 overflow-hidden rounded-sm border border-default',
     'hover:border-contrast',
-    'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus-within:outline-hidden',
+    // Tailwind emits the hover rule after focus-within, so focus needs the
+    // stacked variant to win while the mouse is still over the input.
+    'focus-within:border-active focus-within:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus-within:outline-hidden focus-within:hover:border-active',
     'group-data-readonly:cursor-not-allowed disabled:cursor-not-allowed disabled:opacity-60',
     'invalid:border-alert! invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]!',
     '[&_svg]:size-4 [&_svg]:text-icon-default'

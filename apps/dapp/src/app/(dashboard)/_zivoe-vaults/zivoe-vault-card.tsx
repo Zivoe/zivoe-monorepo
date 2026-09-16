@@ -51,7 +51,10 @@ export default function ZivoeVaultCard({
             help={<TargetApyDisclosure triggerClassName="relative z-20" />}
           />
           <Term label="NAV" value={nav !== null ? `$${formatNav(nav)}` : '—'} />
-          <Term label="Accepted stablecoin" value={<AcceptedStablecoinIcons zivoeVault={zivoeVault} />} />
+          <Term
+            label="Accepted stablecoins"
+            value={<AcceptedStablecoinIcons zivoeVault={zivoeVault} surface="elevated" />}
+          />
           <Term label="Available on" value={<AcceptedChainIcons zivoeVault={zivoeVault} surface="elevated" />} />
         </div>
 

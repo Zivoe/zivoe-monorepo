@@ -66,6 +66,7 @@ const JOB: TransactionReceiptJob = {
     centrifugeId: '1',
     tokenAmount: 1000000000000000000n,
     currencyAmount: 1000000n,
+    assetAddress: null,
     createdAtMs: 1786000000000
   }
 };

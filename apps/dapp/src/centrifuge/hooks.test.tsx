@@ -5,15 +5,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FIXTURE_IDENTITY } from '@/test/fixtures';
+import { FIXTURE_CENTRIFUGE_VAULT, FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { useCentrifugeVaultCapacity, useDepositPreview, useInvestorAccess, useRedemptionPosition } from './index';
+// A module-internal derivation, tested directly rather than through timers.
+import { redemptionPositionRefetchInterval } from './hooks';
+import {
+  useCentrifugeVaultCapacity,
+  useDepositPreview,
+  useInvestorAccess,
+  useRedemptionPosition,
+  useRedemptionPositions
+} from './index';
 
 const getCentrifugeVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getCentrifugeVault }));
 
 const readContract = vi.hoisted(() => vi.fn());
-vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }) }));
+vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }), useConfig: () => ({}) }));
+// The many-vault reader resolves each chain's client off the config; one fake client serves every chain here.
+vi.mock('wagmi/actions', () => ({ getPublicClient: () => ({ readContract }) }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
@@ -111,6 +121,32 @@ function blockedCentrifugeVault() {
   return Promise.resolve(fakeCentrifugeVault({ whitelist: { isAllowedToDeposit: false, isAllowedToRedeem: false } }));
 }
 
+describe('redemptionPositionRefetchInterval', () => {
+  it('retries a failed read, backing off; every answered position rests', () => {
+    // A Cancellation Processing included: the hub's unwind can sit for a long
+    // while, and polling it would only burn reads.
+    const position = (hasPendingCancelRedeemRequest: boolean) => ({
+      status: 'success' as const,
+      errorUpdateCount: 0,
+      data: { hasPendingCancelRedeemRequest }
+    });
+    expect(redemptionPositionRefetchInterval(position(true))).toBe(false);
+    expect(redemptionPositionRefetchInterval(position(false))).toBe(false);
+
+    // Doubling from half a minute, capped at five: a chain whose RPC is down
+    // is not hit every 30s for as long as the page stays open.
+    const failed = (errorUpdateCount: number) => ({ status: 'error' as const, errorUpdateCount, data: undefined });
+    expect([1, 2, 3, 4, 5, 6].map((count) => redemptionPositionRefetchInterval(failed(count)))).toEqual([
+      30_000, 60_000, 120_000, 240_000, 300_000, 300_000
+    ]);
+
+    // A refetch failing with an earlier answer on hand retries the same way:
+    // after a transaction that answer is the pre-transaction position.
+    const failedRefetch = { status: 'error' as const, errorUpdateCount: 3, data: position(false).data };
+    expect(redemptionPositionRefetchInterval(failedRefetch)).toBe(120_000);
+  });
+});
+
 describe('useCentrifugeVaultCapacity', () => {
   it("reads the handed share class's Centrifuge vault and caches under its key", async () => {
     const { queryClient, wrapper } = createWrapper();
@@ -119,7 +155,9 @@ describe('useCentrifugeVaultCapacity', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia'])).toEqual({
+    expect(
+      queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'sepolia', FIXTURE_CENTRIFUGE_VAULT])
+    ).toEqual({
       maxDeposit: 5_000_000000n
     });
   });
@@ -149,9 +187,51 @@ describe('useCentrifugeVaultCapacity', () => {
 
     expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
     expect(second.result.current.data).toEqual({ maxDeposit: 9_000_000000n });
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'VAULT_CAPACITY', 'base-sepolia'])).toEqual({
-      maxDeposit: 9_000_000000n
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'VAULT_CAPACITY',
+        'base-sepolia',
+        otherChainCentrifugeVault.address
+      ])
+    ).toEqual({ maxDeposit: 9_000_000000n });
+  });
+
+  // One share class can have several Centrifuge vaults on ONE chain (one per
+  // deposit asset), each with its own reserve — a chain-only key would serve
+  // the USDC vault's capacity for the USDT one.
+  it('keeps two same-chain Centrifuge vaults of one share class in separate cache entries', async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const otherAssetCentrifugeVault = {
+      ...CENTRIFUGE_VAULT,
+      address: '0xBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBC',
+      asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 }
+    } as const;
+
+    const first = renderHook(() => useCentrifugeVaultCapacity({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+
+    getCentrifugeVault.mockImplementation(() =>
+      Promise.resolve({ details: () => Promise.resolve({ maxDeposit: balance(7_000_000000n, 6) }) })
+    );
+    const second = renderHook(() => useCentrifugeVaultCapacity({ centrifugeVault: otherAssetCentrifugeVault }), {
+      wrapper
     });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+
+    expect(first.result.current.data).toEqual({ maxDeposit: 5_000_000000n });
+    expect(second.result.current.data).toEqual({ maxDeposit: 7_000_000000n });
+    // Lowercased in the key, whatever spelling the identity carries.
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'VAULT_CAPACITY',
+        'sepolia',
+        otherAssetCentrifugeVault.address.toLowerCase()
+      ])
+    ).toEqual({ maxDeposit: 7_000_000000n });
   });
 });
 
@@ -171,7 +251,16 @@ describe('useDepositPreview', () => {
         args: [100_000000n]
       })
     );
-    expect(queryClient.getQueryData(['CENTRIFUGE', 'zfix', 'DEPOSIT_PREVIEW', 'sepolia', '100000000'])).toEqual({
+    expect(
+      queryClient.getQueryData([
+        'CENTRIFUGE',
+        'zfix',
+        'DEPOSIT_PREVIEW',
+        'sepolia',
+        FIXTURE_CENTRIFUGE_VAULT,
+        '100000000'
+      ])
+    ).toEqual({
       shares: 50_000000000000000000n
     });
   });
@@ -213,7 +302,16 @@ describe('useRedemptionPosition', () => {
       hasPendingCancelRedeemRequest: false
     });
     expect(getCentrifugeVault).toHaveBeenCalledWith(CENTRIFUGE_VAULT);
-    expect(queryClient.getQueryData(['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix', 'sepolia'])).toBeDefined();
+    expect(
+      queryClient.getQueryData([
+        'ACCOUNT',
+        INVESTOR,
+        'REDEMPTION_POSITION',
+        'zfix',
+        'sepolia',
+        FIXTURE_CENTRIFUGE_VAULT
+      ])
+    ).toBeDefined();
     // A funded escrow: the diagnostics ran and found nothing to name or report.
     expect(readContract).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -230,6 +328,33 @@ describe('useRedemptionPosition', () => {
       })
     );
     expect(sentryCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('shares one cache entry per vault between the single- and the many-vault readers', async () => {
+    // The Pending tab's badge reads every vault while the redeem form reads
+    // its payout vault: the same key, so one fetch serves both.
+    const { queryClient, wrapper } = createWrapper();
+    const otherCentrifugeVault = {
+      ...CENTRIFUGE_VAULT,
+      address: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc'
+    } as const;
+
+    const many = renderHook(
+      () => useRedemptionPositions({ centrifugeVaults: [CENTRIFUGE_VAULT, otherCentrifugeVault] }),
+      { wrapper }
+    );
+    await waitFor(() => expect(many.result.current.every((result) => result.isSuccess)).toBe(true));
+    expect(getCentrifugeVault).toHaveBeenCalledTimes(2);
+
+    const single = renderHook(() => useRedemptionPosition({ centrifugeVault: CENTRIFUGE_VAULT }), { wrapper });
+    await waitFor(() => expect(single.result.current.isSuccess).toBe(true));
+
+    // Served from the cache: no third resolution, one entry per vault.
+    expect(getCentrifugeVault).toHaveBeenCalledTimes(2);
+    expect(single.result.current.data).toEqual(many.result.current[0]?.data);
+    expect(
+      queryClient.getQueryCache().findAll({ queryKey: ['ACCOUNT', INVESTOR, 'REDEMPTION_POSITION', 'zfix'] })
+    ).toHaveLength(2);
   });
 
   it('names an Unfunded Claim when the escrow is reserved beyond its holdings, and reports it', async () => {

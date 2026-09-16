@@ -23,10 +23,13 @@ export function ChainBalanceDetail({ identity, token }: { identity: TransactionI
       : { tokenAddress: shareClass.shareTokenAddress, decimals: shareClass.decimals };
   const balance = useBalance({ chain, tokenAddress });
 
-  if (!account.address || balance.data === undefined) return null;
+  if (!account.address) return null;
+  // Below sm the balance sits under the label, so its line is reserved while
+  // the read is in flight: rows would otherwise grow as chains answer.
+  if (balance.data === undefined) return <span aria-hidden="true" className="block h-5 sm:hidden" />;
 
   return (
-    <p className="text-small text-tertiary">
+    <p className="text-small text-secondary">
       Balance: <span className="font-medium text-primary">{formatBigIntToReadable(balance.data, decimals)}</span>
     </p>
   );

@@ -1,8 +1,10 @@
+import { getAddress } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CENTRIFUGE_CHAINS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
+  type CentrifugeChain,
   CentrifugeIndexerError,
   type CurrentShareMetrics,
   assertChainDeploymentInvariants,
@@ -17,14 +19,18 @@ import {
   getShareClassIdentity,
   listDepositAssets,
   listLiveChains,
+  listShareClassChainIdentities,
   listShareClassKeys,
   rayToPercent,
   sumShareClassNavs,
   toShareStatsPayload
 } from './index';
 
+/** The chain's default Centrifuge vault — the first of its list. */
+const defaultIdentityOn = (chain: CentrifugeChain) => listShareClassChainIdentities({ chain, key: 'zsmb' })[0];
+
 const sepolia = {
-  ...getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' }),
+  ...defaultIdentityOn('sepolia'),
   indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS.testnet.indexerUrl
 };
 
@@ -99,7 +105,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves a live chain entry to the identity joined with the chain instance', () => {
-    expect(getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('sepolia')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -114,7 +120,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the second mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'pharos', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('pharos')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -129,7 +135,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the third mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'base', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('base')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -144,7 +150,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the fourth mainnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'arbitrum', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('arbitrum')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -167,7 +173,7 @@ describe('share-class catalog', () => {
   ] as const)(
     'resolves the %s mainnet instance — shared token, chain-specific Centrifuge vault and USDC',
     (chain, chainId, centrifugeVaultAddress, usdcAddress) => {
-      expect(getShareClassChainIdentity({ chain, key: 'zsmb' })).toEqual({
+      expect(defaultIdentityOn(chain)).toEqual({
         key: 'zsmb',
         symbol: 'zSMB',
         decimals: 18,
@@ -183,7 +189,7 @@ describe('share-class catalog', () => {
   );
 
   it('resolves the bnb mainnet instance — the one chain whose USDC is the 18-decimal Binance-Peg token', () => {
-    expect(getShareClassChainIdentity({ chain: 'bnb', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('bnb')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -198,7 +204,7 @@ describe('share-class catalog', () => {
   });
 
   it('resolves the second testnet chain with its deterministically shared token address', () => {
-    expect(getShareClassChainIdentity({ chain: 'base-sepolia', key: 'zsmb' })).toEqual({
+    expect(defaultIdentityOn('base-sepolia')).toEqual({
       key: 'zsmb',
       symbol: 'zSMB',
       decimals: 18,
@@ -212,10 +218,95 @@ describe('share-class catalog', () => {
     });
   });
 
+  it('lists one identity per Centrifuge vault on a chain, the default first, and picks one by deposit asset', () => {
+    const identities = listShareClassChainIdentities({ chain: 'sepolia', key: 'zsmb' });
+    expect(identities).toHaveLength(1);
+
+    // Case-insensitive on purpose: indexer events carry lowercase addresses.
+    expect(
+      getShareClassChainIdentity({
+        chain: 'sepolia',
+        key: 'zsmb',
+        assetAddress: '0x3aaaa86458d576bafcb1b7ed290434f0696da65c'
+      })
+    ).toEqual(identities[0]);
+    expect(() =>
+      getShareClassChainIdentity({ chain: 'sepolia', key: 'zsmb', assetAddress: '0x' + 'de'.repeat(20) })
+    ).toThrow(/accepts no deposit asset/);
+  });
+
+  it("lists both Base Sepolia vaults — USDC as the default, then Circle's EURC — off the real catalog", () => {
+    const identities = listShareClassChainIdentities({ chain: 'base-sepolia', key: 'zsmb' });
+    expect(identities.map(({ centrifugeVaultAddress, asset }) => [centrifugeVaultAddress, asset.symbol])).toEqual([
+      ['0x8aBb393C433375401EEeae24557475C3f36f5025', 'USDC'],
+      ['0x882671dAFFdf7cFAda441C79599d9600c78F7d29', 'EURC']
+    ]);
+    expect(
+      getShareClassChainIdentity({
+        chain: 'base-sepolia',
+        key: 'zsmb',
+        assetAddress: '0x808456652fdb597867f38412077a9182bf77359f'
+      })
+    ).toEqual({
+      ...identities[0],
+      centrifugeVaultAddress: '0x882671dAFFdf7cFAda441C79599d9600c78F7d29',
+      asset: { address: '0x808456652fdb597867f38412077A9182bf77359F', symbol: 'EURC', decimals: 6 }
+    });
+    // The class-wide listing names both coins, in chain then vault order.
+    expect(listDepositAssets({ environment: 'testnet', key: 'zsmb' }).map(({ symbol }) => symbol)).toEqual([
+      'USDC',
+      'EURC'
+    ]);
+  });
+
+  it("lists Ethereum's three mainnet vaults in product order — USDC first, then Tether's legacy-approval USDT, then USD1", () => {
+    const identities = listShareClassChainIdentities({ chain: 'ethereum', key: 'zsmb' });
+    expect(identities.map(({ centrifugeVaultAddress, asset }) => [centrifugeVaultAddress, asset.symbol])).toEqual([
+      ['0xD3A4fe3E0d0b89fFaf43D296727540C23de6d639', 'USDC'],
+      ['0x4A60fba0Eb167f3Bf85eEf410e597397A644e2a8', 'USDT'],
+      ['0x818216d2A3AAAFfAD3060A67f4c5bc034Aa74338', 'USD1']
+    ]);
+    expect(identities[1]?.asset).toEqual({
+      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      symbol: 'USDT',
+      decimals: 6,
+      approval: 'legacy'
+    });
+    // The class-wide listing dedupes by product symbol: USDT0 and USDt read as USDT.
+    expect(listDepositAssets({ environment: 'mainnet', key: 'zsmb' }).map(({ symbol }) => symbol)).toEqual([
+      'USDC',
+      'USDT',
+      'USD1'
+    ]);
+  });
+
+  it("marks Ethereum's USDT as the book's only legacy-approval asset, and names the on-chain symbol only where it differs", () => {
+    const mainnetAssets = listLiveChains({ environment: 'mainnet', key: 'zsmb' }).flatMap((chain) =>
+      listShareClassChainIdentities({ chain, key: 'zsmb' }).map(({ asset }) => ({ chain, ...asset }))
+    );
+
+    expect(
+      mainnetAssets.filter(({ approval }) => approval === 'legacy').map(({ chain, symbol }) => [chain, symbol])
+    ).toEqual([['ethereum', 'USDT']]);
+    expect(
+      mainnetAssets
+        .filter(({ onChainSymbol }) => onChainSymbol)
+        .map(({ chain, onChainSymbol }) => [chain, onChainSymbol])
+    ).toEqual([
+      ['arbitrum', 'USD₮0'],
+      ['avalanche', 'USDt'],
+      ['hyperliquid', 'USD₮0'],
+      ['xlayer', 'USD₮0'],
+      ['monad', 'USDT0']
+    ]);
+  });
+
   it('rejects prototype-chain keys with the boundary error, not a TypeError', () => {
     for (const key of ['toString', '__proto__', 'constructor']) {
       expect(() => getShareClassIdentity({ environment: 'testnet', key })).toThrow(/not in the catalog/);
-      expect(() => getShareClassChainIdentity({ chain: 'sepolia', key })).toThrow(/not in the catalog/);
+      expect(() => getShareClassChainIdentity({ chain: 'sepolia', key, assetAddress: '0x00' })).toThrow(
+        /not in the catalog/
+      );
       expect(listLiveChains({ environment: 'testnet', key })).toEqual([]);
     }
   });
@@ -234,8 +325,7 @@ describe('share-class catalog', () => {
             sepolia: {
               status: 'live',
               shareTokenAddress: '0xab',
-              centrifugeVaultAddress: '0xcd',
-              asset: { address: '0xef', symbol: 'USDC', decimals: 6 }
+              centrifugeVaults: [{ address: '0xcd', asset: { address: '0xef', symbol: 'USDC', decimals: 6 } }]
             },
             'base-sepolia': { status: 'staged' }
           }
@@ -289,8 +379,7 @@ describe('share-class catalog', () => {
                 {
                   status: 'live' as const,
                   shareTokenAddress: '0xab',
-                  centrifugeVaultAddress: '0xcd',
-                  asset: assets[index]!
+                  centrifugeVaults: [{ address: '0xcd', asset: assets[index]! }]
                 }
               ])
             )
@@ -301,9 +390,33 @@ describe('share-class catalog', () => {
 
     // Two USDC instances of different scale are one stablecoin to a listing.
     expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, usdc18]))).toEqual([usdc6]);
+    // Two vaults on one chain list both assets, in vault order.
+    const twoOnSepolia = {
+      multi: {
+        symbol: 'zMUL',
+        decimals: 18,
+        environments: {
+          testnet: {
+            poolId: '1',
+            scId: '0x000100000000aaaa0000000000000001',
+            chains: {
+              sepolia: {
+                status: 'live' as const,
+                shareTokenAddress: '0xab',
+                centrifugeVaults: [
+                  { address: '0xcd', asset: usdc6 },
+                  { address: '0xce', asset: dai }
+                ]
+              }
+            }
+          }
+        }
+      }
+    };
+    expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, twoOnSepolia)).toEqual([usdc6, dai]);
     expect(listDepositAssets({ environment: 'testnet', key: 'multi' }, withAssets([usdc6, dai]))).toEqual([usdc6, dai]);
     expect(listDepositAssets({ environment: 'testnet', key: 'live' }, book)).toEqual([
-      book.live.environments.testnet.chains.sepolia.asset
+      book.live.environments.testnet.chains.sepolia.centrifugeVaults[0].asset
     ]);
     expect(listDepositAssets({ environment: 'testnet', key: 'staged' }, book)).toEqual([]);
     expect(listDepositAssets({ environment: 'mainnet', key: 'live' }, book)).toEqual([]);
@@ -354,7 +467,13 @@ describe('assertShareClassInvariants', () => {
         [environment]: {
           poolId: '1',
           scId,
-          chains: { [chain]: { status: 'live' as const, shareTokenAddress, centrifugeVaultAddress, asset } }
+          chains: {
+            [chain]: {
+              status: 'live' as const,
+              shareTokenAddress,
+              centrifugeVaults: [{ address: centrifugeVaultAddress, asset }]
+            }
+          }
         }
       }
     };
@@ -394,8 +513,7 @@ describe('assertShareClassInvariants', () => {
     const onChain = {
       status: 'live' as const,
       shareTokenAddress: address,
-      centrifugeVaultAddress: address,
-      asset: { address, symbol: 'USDC', decimals: 6 }
+      centrifugeVaults: [{ address, asset: { address, symbol: 'USDC', decimals: 6 } }]
     };
 
     expect(() =>
@@ -442,6 +560,19 @@ describe('assertShareClassInvariants', () => {
     expect(() => assertShareClassInvariants(withAsset({ ...usdc, decimals: 6, address: '0x00' }))).toThrow(
       /implausible deposit asset address/
     );
+    // A mixed-case address with one wrong letter (the Avalanche USDt address
+    // once circulated with "5cd2" for "5cD2"): viem refuses it at call time,
+    // so the lint refuses it at build time. Lowercase carries no checksum.
+    expect(() =>
+      assertShareClassInvariants(
+        withAsset({ ...usdc, decimals: 6, address: '0x9702230A8Ea53601f5cd2dc00fDBc13d4dF4A8c7' })
+      )
+    ).toThrow(/implausible deposit asset address/);
+    expect(() =>
+      assertShareClassInvariants(
+        withAsset({ ...usdc, decimals: 6, address: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7' })
+      )
+    ).not.toThrow();
   });
 
   it('never lets a share class claim a deposit asset symbol — the display maps would collide', () => {
@@ -454,6 +585,67 @@ describe('assertShareClassInvariants', () => {
         })
       })
     ).toThrow(/claims the deposit asset symbol "usdc"/);
+  });
+
+  it('rejects one chain entry listing a deposit asset (or its symbol) twice, and one listing no vault at all', () => {
+    const withVaults = (
+      centrifugeVaults: Array<{ address: string; asset: { address: string; symbol: string; decimals: number } }>
+    ) => ({
+      a: {
+        ...first,
+        environments: {
+          testnet: {
+            poolId: '1',
+            scId: '0x000100000000aaaa0000000000000001',
+            chains: {
+              sepolia: {
+                status: 'live' as const,
+                shareTokenAddress: '0xabababababababababababababababababababab',
+                centrifugeVaults
+              }
+            }
+          }
+        }
+      }
+    });
+    const usdc = { address: '0xefefefefefefefefefefefefefefefefefefefef', symbol: 'USDC', decimals: 6 };
+    const usdt = { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 };
+    const vault = (address: string, asset: typeof usdc) => ({ address, asset });
+
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcececececececececececececececececececece', usdt)
+        ])
+      )
+    ).not.toThrow();
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          // Checksummed on purpose: identity comparisons must be case-insensitive.
+          vault('0xcececececececececececececececececececece', { ...usdc, address: getAddress(usdc.address) })
+        ])
+      )
+    ).toThrow(/lists deposit asset .* twice/);
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcececececececececececececececececececece', { ...usdt, symbol: 'usdc' })
+        ])
+      )
+    ).toThrow(/symbol "usdc" twice/);
+    expect(() =>
+      assertShareClassInvariants(
+        withVaults([
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdc),
+          vault('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', usdt)
+        ])
+      )
+    ).toThrow(/Centrifuge vault .* is claimed twice/);
+    expect(() => assertShareClassInvariants(withVaults([]))).toThrow(/declares no Centrifuge vault/);
   });
 
   it('throws on a placeholder or malformed pool id', () => {
@@ -546,9 +738,9 @@ describe('assertShareClassInvariants', () => {
         b: entry({
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
-          // Case-shifted on purpose (prefix kept lowercase — 0X would fail the
-          // shape lint): identity comparisons must be case-insensitive.
-          shareTokenAddress: '0xabababababababababababababababababababab'.toUpperCase().replace('0X', '0x'),
+          // Checksummed on purpose (the lint accepts only lowercase or EIP-55
+          // spellings): identity comparisons must be case-insensitive.
+          shareTokenAddress: getAddress('0xabababababababababababababababababababab'),
           centrifugeVaultAddress: '0xdededededededededededededededededededede'
         })
       })
@@ -563,11 +755,11 @@ describe('assertShareClassInvariants', () => {
           symbol: 'zBBB',
           scId: '0x000100000000bbbb0000000000000001',
           shareTokenAddress: '0xbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc',
-          // Case-shifted with the prefix kept lowercase, as above.
-          centrifugeVaultAddress: '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd'.toUpperCase().replace('0X', '0x')
+          // Checksummed, as above.
+          centrifugeVaultAddress: getAddress('0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd')
         })
       })
-    ).toThrow(/Centrifuge vault .* is claimed by two share classes/);
+    ).toThrow(/Centrifuge vault .* is claimed twice/);
   });
 });
 

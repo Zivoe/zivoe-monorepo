@@ -16,6 +16,14 @@ type DialogProps = React.ComponentProps<typeof Aria.DialogTrigger>;
 const Dialog = Aria.DialogTrigger;
 const Modal = Aria.Modal;
 type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'children' | 'isDismissable'> & {
+  /**
+   * Open state for a dialog with no trigger (one opened by an effect). Given
+   * here rather than on a wrapping `Dialog`: a DialogTrigger with no
+   * pressable child logs a PressResponder warning on every render.
+   */
+  isOpen?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
   children?: Aria.DialogProps['children'];
   role?: Aria.DialogProps['role'];
   'aria-label'?: Aria.DialogProps['aria-label'];
@@ -23,6 +31,8 @@ type DialogContentProps = Omit<React.ComponentProps<typeof Aria.Modal>, 'childre
   'aria-describedby'?: Aria.DialogProps['aria-describedby'];
   logoType?: 'dark' | 'light';
   dialogClassName?: string;
+  /** Classes for the backdrop — e.g. to drop it where the dialog stacks over another modal's. */
+  overlayClassName?: string;
   showCloseButton?: boolean;
   showFullScreenHeader?: boolean;
   isDismissable?: boolean;
@@ -34,7 +44,11 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
     {
       className,
       dialogClassName,
+      overlayClassName,
       children,
+      isOpen,
+      defaultOpen,
+      onOpenChange,
       isDismissable = true,
       showCloseButton = true,
       isFullScreen = false,
@@ -49,6 +63,9 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
     ref
   ) => (
     <Aria.ModalOverlay
+      isOpen={isOpen}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={!isDismissable}
       className={cn(
@@ -56,7 +73,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         !isFullScreen && 'px-2 py-6',
         'entering:animate-in entering:fade-in-0',
         'exiting:animate-out exiting:duration-300 exiting:fade-out-0',
-        'h-(--visual-viewport-height)'
+        'h-(--visual-viewport-height)',
+        overlayClassName
       )}
     >
       <Aria.Modal

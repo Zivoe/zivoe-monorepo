@@ -11,7 +11,7 @@ import { type TransactionIdentity } from '@/centrifuge';
 import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 
 import { ZivoeVaultIdentityProvider } from '../../zivoe-vault-provider';
-import { SwitchChainButton, useSelectedChain } from './chain-switch';
+import { type DepositTab, SwitchChainButton, useSelectedChain, useSelectedIdentity } from './chain-switch';
 
 /** The two chains this suite drives (identityOnChain derives their real chainIds: 11155111 / 84532). */
 type TestChain = Extract<CentrifugeChain, 'sepolia' | 'base-sepolia'>;
@@ -110,16 +110,35 @@ function Consumer({ label, select }: { label: string; select: CentrifugeChain })
   );
 }
 
+/** A consumer of the narrowed selection — reports which vault the tab transacts against. */
+function IdentityConsumer({ label, tab, select }: { label: string; tab: DepositTab; select: TransactionIdentity }) {
+  const { selectedIdentity, setSelectedIdentity } = useSelectedIdentity({ tab });
+
+  return (
+    <div>
+      <span>
+        {label}: {selectedIdentity.centrifugeVault.chain} {selectedIdentity.centrifugeVault.asset.symbol}
+      </span>
+      <button type="button" onClick={() => setSelectedIdentity(select)}>
+        {label}-select
+      </button>
+    </div>
+  );
+}
+
 function renderConsumers({
   store,
   chains,
+  identities,
   children
 }: {
   store: ReturnType<typeof createStore>;
-  chains: Array<TestChain>;
+  chains?: Array<TestChain>;
+  /** Explicit identities win over `chains` — for suites with several vaults on one chain. */
+  identities?: Array<TransactionIdentity>;
   children: ReactNode;
 }) {
-  const [first, ...rest] = chains.map(identityOn);
+  const [first, ...rest] = identities ?? (chains ?? []).map(identityOn);
   if (!first) throw new Error('renderConsumers needs at least one chain');
 
   return render(
@@ -307,5 +326,132 @@ describe('useSelectedChain', () => {
     // The next Zivoe Vault serves sepolia only — the leftover selection must not stick.
     renderConsumers({ store, chains: ['sepolia'], children: <Consumer label="b" select="sepolia" /> });
     expect(screen.getByText('b: sepolia')).toBeTruthy();
+  });
+});
+
+describe('useSelectedIdentity', () => {
+  const USDC_SEPOLIA = identityOn('sepolia');
+  const USDT_SEPOLIA = identityOnChain(FIXTURE_IDENTITY, 'sepolia', {
+    address: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3',
+    asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 }
+  });
+  const USDC_BASE = identityOn('base-sepolia');
+
+  it("opens on the chain's default (first) vault and keeps each tab's coin apart", () => {
+    renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA, USDC_BASE],
+      children: (
+        <>
+          <IdentityConsumer label="deposit" tab="deposit" select={USDT_SEPOLIA} />
+          <IdentityConsumer label="redeem" tab="redeem" select={USDT_SEPOLIA} />
+        </>
+      )
+    });
+
+    expect(screen.getByText('deposit: sepolia USDC')).toBeTruthy();
+    expect(screen.getByText('redeem: sepolia USDC')).toBeTruthy();
+
+    // Funding a deposit with USDT says nothing about which coin to be paid out in.
+    fireEvent.click(screen.getByText('deposit-select'));
+    expect(screen.getByText('deposit: sepolia USDT')).toBeTruthy();
+    expect(screen.getByText('redeem: sepolia USDC')).toBeTruthy();
+  });
+
+  it('selecting a vault on another chain moves the shared chain selection and prompts the switch', () => {
+    renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA, USDC_BASE],
+      children: (
+        <>
+          <IdentityConsumer label="deposit" tab="deposit" select={USDC_BASE} />
+          <Consumer label="redeem" select="sepolia" />
+        </>
+      )
+    });
+
+    fireEvent.click(screen.getByText('deposit-select'));
+
+    expect(screen.getByText('deposit: base-sepolia USDC')).toBeTruthy();
+    expect(screen.getByText('redeem: base-sepolia')).toBeTruthy();
+    expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 84532 });
+  });
+
+  it('remembers the coin per chain, and falls back to the default when the stored vault is gone', () => {
+    const store = createStore();
+    const firstPage = renderConsumers({
+      store,
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA, USDC_BASE],
+      children: <IdentityConsumer label="a" tab="deposit" select={USDT_SEPOLIA} />
+    });
+    fireEvent.click(screen.getByText('a-select'));
+    expect(screen.getByText('a: sepolia USDT')).toBeTruthy();
+    firstPage.unmount();
+
+    // Persisted: a fresh mount on the same page reopens on USDT.
+    const secondPage = renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA, USDC_BASE],
+      children: <IdentityConsumer label="b" tab="deposit" select={USDT_SEPOLIA} />
+    });
+    expect(screen.getByText('b: sepolia USDT')).toBeTruthy();
+    secondPage.unmount();
+
+    // A deploy that dropped the USDT vault: the stale choice yields to the default.
+    renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDC_BASE],
+      children: <IdentityConsumer label="c" tab="deposit" select={USDC_SEPOLIA} />
+    });
+    expect(screen.getByText('c: sepolia USDC')).toBeTruthy();
+  });
+
+  it('falls back to the default coin when the stored memory is a null, not a map', () => {
+    // A hand-edited or foreign-tab write: the storage returns the parsed null
+    // rather than the initial value, and the page must not throw on it.
+    localStorage.setItem('zivoe.deposit-asset', 'null');
+    try {
+      renderConsumers({
+        store: createStore(),
+        identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+        children: <IdentityConsumer label="n" tab="deposit" select={USDT_SEPOLIA} />
+      });
+      expect(screen.getByText('n: sepolia USDC')).toBeTruthy();
+    } finally {
+      localStorage.removeItem('zivoe.deposit-asset');
+    }
+  });
+
+  it("keeps one Zivoe Vault's coin apart from another's on the same chain", () => {
+    // A second Zivoe Vault live on sepolia — same chain, its own page and vaults.
+    const OTHER_USDC = { ...USDC_SEPOLIA, zivoeVaultSlug: 'other-zivoe-vault' };
+    const OTHER_USDT = { ...USDT_SEPOLIA, zivoeVaultSlug: 'other-zivoe-vault' };
+
+    const firstPage = renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+      children: <IdentityConsumer label="a" tab="deposit" select={USDT_SEPOLIA} />
+    });
+    fireEvent.click(screen.getByText('a-select'));
+    expect(screen.getByText('a: sepolia USDT')).toBeTruthy();
+    firstPage.unmount();
+
+    // The other page opens on its own default, and choosing there does not
+    // touch the first page's memory.
+    const otherPage = renderConsumers({
+      store: createStore(),
+      identities: [OTHER_USDC, OTHER_USDT],
+      children: <IdentityConsumer label="b" tab="deposit" select={OTHER_USDC} />
+    });
+    expect(screen.getByText('b: sepolia USDC')).toBeTruthy();
+    fireEvent.click(screen.getByText('b-select'));
+    otherPage.unmount();
+
+    renderConsumers({
+      store: createStore(),
+      identities: [USDC_SEPOLIA, USDT_SEPOLIA],
+      children: <IdentityConsumer label="c" tab="deposit" select={USDC_SEPOLIA} />
+    });
+    expect(screen.getByText('c: sepolia USDT')).toBeTruthy();
   });
 });

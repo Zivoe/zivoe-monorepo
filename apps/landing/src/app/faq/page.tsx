@@ -123,8 +123,8 @@ const FAQs: Array<{
     question: 'How do deposits and redemptions work?',
     answer: (
       <>
-        After verification and whitelisting, participants can deposit USDC into an available Zivoe vault and receive a
-        position in that vault.
+        After verification and whitelisting, participants can deposit a supported stablecoin (USDC, USDT or USD1) into
+        an available Zivoe vault and receive a position in that vault.
         <br />
         <br />
         Redemption requests are processed weekly, subject to available liquidity, processing requirements, and the
@@ -132,7 +132,7 @@ const FAQs: Array<{
       </>
     ),
     jsonLdAnswer:
-      'After verification and whitelisting, participants can deposit USDC into an available Zivoe vault and receive a position in that vault. Redemption requests are processed weekly, subject to available liquidity, processing requirements, and the applicable vault terms.'
+      'After verification and whitelisting, participants can deposit a supported stablecoin (USDC, USDT or USD1) into an available Zivoe vault and receive a position in that vault. Redemption requests are processed weekly, subject to available liquidity, processing requirements, and the applicable vault terms.'
   },
   {
     question: 'What reporting does Zivoe provide?',
