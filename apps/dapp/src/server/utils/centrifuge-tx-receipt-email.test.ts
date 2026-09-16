@@ -148,8 +148,8 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('ready to claim in the app on Ethereum.');
     // The token-flow row joins value and symbol with a non-breaking space.
     expect(html).toContain('5.00\u00A0USDC');
-    // Deep link to the Requests tab, where the claim control actually lives.
-    expect(html).toContain(`${VIEW_IN_APP_URL}?view=requests`);
+    // Deep link to the Pending tab, where the claim control actually lives.
+    expect(html).toContain(`${VIEW_IN_APP_URL}?view=pending`);
   });
 
   it('claimed: redemption receipt without a fee row', async () => {

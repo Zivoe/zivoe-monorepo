@@ -22,7 +22,7 @@ import { useTabNavigation } from './_hooks/useTabNavigation';
 import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
 import RedeemFlow from './redeem-flow';
-import RequestsFlow from './requests-flow';
+import PendingFlow from './pending-flow';
 
 export default function Deposit({ initialView }: { initialView: DepositPageView }) {
   return (
@@ -56,7 +56,7 @@ function DepositContent({ initialView }: { initialView: DepositPageView }) {
 
             <Button fullWidth variant="primary-light" className="relative" onPress={() => navigateToTab('redeem')}>
               Redeem
-              <RequestsCountBadge />
+              <PendingCountBadge />
             </Button>
           </div>
         </ConnectedAccount>
@@ -136,16 +136,16 @@ function EarnBox({
             {/* Three tabs and the badge outgrow the tab list on phones: 244px
                 of text and padding against 240px at 320px wide. Tighter tab
                 padding below sm buys the room. */}
-            <TabList aria-label="Deposit, Redeem and Requests tabs">
+            <TabList aria-label="Deposit, Redeem and Pending tabs">
               <Tab id="deposit" className="px-2 sm:px-4">
                 Deposit
               </Tab>
               <Tab id="redeem" className="px-2 sm:px-4">
                 Redeem
               </Tab>
-              <Tab id="requests" className="relative px-2 sm:px-4">
-                Requests
-                <RequestsCountBadge />
+              <Tab id="pending" className="relative px-2 sm:px-4">
+                Pending
+                <PendingCountBadge />
               </Tab>
             </TabList>
 
@@ -157,8 +157,8 @@ function EarnBox({
               <RedeemFlow />
             </TabPanel>
 
-            <TabPanel id="requests">
-              <RequestsFlow />
+            <TabPanel id="pending">
+              <PendingFlow />
             </TabPanel>
           </Tabs>
         </DialogContentBox>
@@ -170,15 +170,15 @@ function EarnBox({
 }
 
 /**
- * How many rows the Requests tab holds, on the tab itself and on the mobile
+ * How many rows the Pending tab holds, on the tab itself and on the mobile
  * bar's Redeem button. Nothing while there are none.
  */
-function RequestsCountBadge() {
+function PendingCountBadge() {
   const { count } = useRedemptionRequests();
   if (count === 0) return null;
 
   // The digit is visual; assistive tech reads the sentence, joined onto the
-  // host's own label ("Requests (3 requests pending)"). Below 360px the pill
+  // host's own label ("Pending (3 requests pending)"). Below 360px the pill
   // has no room beside three tabs, so it floats over the host's top-right
   // corner instead of taking width (the hosts are `relative`).
   return (

@@ -289,7 +289,7 @@ function vaultUnreachableError(): AppError {
  * Invalidated after every settled Centrifuge tx. Balances and Redemption
  * Positions are chain-local, so only the transacted chain's are refetched:
  * every vault's position and every coin's balance stay observed from the
- * Requests badge and the deposit picker, and a class-wide invalidation
+ * Pending badge and the deposit picker, and a class-wide invalidation
  * re-read all ten chains after one write. The portfolio and the class's
  * stats are hub-level: NAV moves with issuance as soon as the indexer
  * processes the block.

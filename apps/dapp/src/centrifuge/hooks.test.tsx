@@ -331,7 +331,7 @@ describe('useRedemptionPosition', () => {
   });
 
   it('shares one cache entry per vault between the single- and the many-vault readers', async () => {
-    // The Requests tab's badge reads every vault while the redeem form reads
+    // The Pending tab's badge reads every vault while the redeem form reads
     // its payout vault: the same key, so one fetch serves both.
     const { queryClient, wrapper } = createWrapper();
     const otherCentrifugeVault = {

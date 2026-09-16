@@ -156,7 +156,7 @@ function redemptionPositionQueryOptions({
       centrifugeVaultAddress: centrifugeVault.address
     }),
     meta: { skipErrorToast: true },
-    // The Requests tab and the redeem form mount and unmount each other, and
+    // The Pending tab and the redeem form mount and unmount each other, and
     // each mount must not re-read nine chains; invalidations bypass this.
     staleTime: 30 * 1000,
     refetchInterval: ({ state }) => redemptionPositionRefetchInterval(state),

@@ -7,7 +7,7 @@ import { type RedemptionPosition, type TransactionIdentity, useRedemptionPositio
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 import { groupIdentitiesByChain } from '../_components/chain-switch';
 
-/** How many strips a position renders — the Requests tab's badge counts these. */
+/** How many strips a position renders — the Pending tab's badge counts these. */
 export function countRedemptionRequests(position: RedemptionPosition | undefined): number {
   if (!position) return 0;
   return (

@@ -27,7 +27,7 @@ import { type RedemptionRequestsByChain, useRedemptionRequests } from './_hooks/
  * chain and coin, one collapsible group per chain. Each row's action offers
  * the network switch while the wallet is elsewhere.
  */
-export default function RequestsFlow() {
+export default function PendingFlow() {
   const account = useAccount();
   const { chains, isPending, pendingChains, isEveryReadFailed, refetch } = useRedemptionRequests();
 

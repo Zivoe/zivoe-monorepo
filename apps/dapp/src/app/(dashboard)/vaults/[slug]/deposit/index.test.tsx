@@ -44,7 +44,7 @@ vi.mock('@zivoe/ui/core/dialog', () => ({
 
 vi.mock('./deposit-flow', () => ({ DepositFlow: () => null }));
 vi.mock('./redeem-flow', () => ({ default: () => null }));
-vi.mock('./requests-flow', () => ({ default: () => null }));
+vi.mock('./pending-flow', () => ({ default: () => null }));
 vi.mock('./_hooks/use-redemption-requests', () => ({
   useRedemptionRequests: () => ({ chains: [], count: mocks.requestCount, isPending: false })
 }));
@@ -106,22 +106,22 @@ describe('Deposit', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('offers a Requests tab, badged with how many rows it holds — and unbadged when it holds none', () => {
+  it('offers a Pending tab, badged with how many rows it holds — and unbadged when it holds none', () => {
     mocks.isMobile = false;
-    const empty = render(<Deposit initialView="requests" />);
-    expect(screen.getByText('Requests')).toBeTruthy();
+    const empty = render(<Deposit initialView="pending" />);
+    expect(screen.getByText('Pending')).toBeTruthy();
     expect(screen.queryByText(/requests? pending/)).toBeNull();
     empty.unmount();
 
     mocks.requestCount = 3;
-    const three = render(<Deposit initialView="requests" />);
+    const three = render(<Deposit initialView="pending" />);
     // On the tab and on the mobile bar's Redeem button (both render in jsdom).
     expect(screen.getAllByText('(3 requests pending)')).toHaveLength(2);
     expect(screen.getAllByText('3', { ignore: '.sr-only' })).toHaveLength(2);
     three.unmount();
 
     mocks.requestCount = 1;
-    render(<Deposit initialView="requests" />);
+    render(<Deposit initialView="pending" />);
     expect(screen.getAllByText('(1 request pending)')).toHaveLength(2);
   });
 });

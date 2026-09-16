@@ -61,7 +61,7 @@ const pendingSwitchCountAtom = atom(0);
 
 /**
  * The switch mutation and wallet gate. `isWalletOffChain` answers for any
- * chain (the Requests tab asks per chain group); `switchToChain` is only
+ * chain (the Pending tab asks per chain group); `switchToChain` is only
  * written in event handlers.
  */
 export function useChainSwitch() {

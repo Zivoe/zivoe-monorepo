@@ -139,9 +139,9 @@ export function buildTransactionReceiptEmail({
             amountLabel="Amount Approved"
             amountValue={sharesAmount}
             ctaLabel={asset ? `Claim ${asset.symbol} in App` : 'Claim in App'}
-            // The claim control lives on the Requests tab; ?view= is the page's
+            // The claim control lives on the Pending tab; ?view= is the page's
             // validated tab selector (and opens the dialog on mobile).
-            ctaUrl={`${viewInAppUrl}?view=requests`}
+            ctaUrl={`${viewInAppUrl}?view=pending`}
           />
         )
       };

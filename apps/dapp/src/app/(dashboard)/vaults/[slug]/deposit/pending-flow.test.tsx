@@ -12,7 +12,7 @@ import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 import { ZivoeVaultIdentityProvider } from '../zivoe-vault-provider';
 import { EarnDialogProvider } from './_hooks/earn-dialog';
 import { countRedemptionRequests } from './_hooks/use-redemption-requests';
-import RequestsFlow from './requests-flow';
+import PendingFlow from './pending-flow';
 
 const D18 = 10n ** 18n;
 
@@ -199,7 +199,7 @@ function renderRequests(identities: [TransactionIdentity, ...Array<TransactionId
     <JotaiProvider>
       <ZivoeVaultIdentityProvider identities={identities} status="Open">
         <EarnDialogProvider>
-          <RequestsFlow />
+          <PendingFlow />
         </EarnDialogProvider>
       </ZivoeVaultIdentityProvider>
     </JotaiProvider>
@@ -247,7 +247,7 @@ describe('countRedemptionRequests', () => {
   });
 });
 
-describe('RequestsFlow', () => {
+describe('PendingFlow', () => {
   it('lists every chain the wallet has a position on, whichever chain is selected, and skips the rest', () => {
     setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 1_200_000000n });
     setPosition(BASE_USDC, { pendingRedeemShares: 500n * D18 });

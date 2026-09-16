@@ -45,7 +45,7 @@ type RedeemForm = { redeem: string };
 
 /**
  * The request form alone: the selected chain's share balance redeemed into
- * the selected payout asset. Positions live on the Requests tab; only a
+ * the selected payout asset. Positions live on the Pending tab; only a
  * Cancellation Processing in the payout vault reaches back here, as a lock
  * with a banner that links there.
  */
@@ -212,8 +212,8 @@ export default function RedeemFlow() {
         <Callout variant="warning">
           New redemption requests into {asset.symbol} on {CHAIN_DISPLAY[selectedChain].label} are paused while a
           cancellation is processed.{' '}
-          <Button variant="link-primary" size="s" onPress={() => updateTab('requests')}>
-            View requests
+          <Button variant="link-primary" size="s" onPress={() => updateTab('pending')}>
+            View pending
           </Button>
         </Callout>
       )}

@@ -591,7 +591,7 @@ describe('RedeemFlow', () => {
     expect(getButton('Request redemption').disabled).toBe(false);
   });
 
-  it('locks the form during Cancellation Processing and says why, linking to the Requests tab', () => {
+  it('locks the form during Cancellation Processing and says why, linking to the Pending tab', () => {
     mocks.pendingShares = 3n * D18;
     mocks.hasPendingCancel = true;
 
@@ -605,11 +605,11 @@ describe('RedeemFlow', () => {
     ).toBeTruthy();
     expect(screen.queryByText(/Cancelling redemption request/)).toBeNull();
 
-    fireEvent.click(getButton('View requests'));
-    expect(mocks.updateTab).toHaveBeenCalledWith('requests');
+    fireEvent.click(getButton('View pending'));
+    expect(mocks.updateTab).toHaveBeenCalledWith('pending');
   });
 
-  it('keeps every position off the form — the Requests tab holds them', () => {
+  it('keeps every position off the form — the Pending tab holds them', () => {
     mocks.pendingShares = 3n * D18;
     mocks.claimableAssets = 2_000000n;
     mocks.returnedShares = 1n * D18;
