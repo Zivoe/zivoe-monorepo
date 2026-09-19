@@ -20,6 +20,8 @@ import { ArrowLeftIcon, GoogleIcon, TwitterIcon } from '@zivoe/ui/icons';
 
 import { WITH_TURNSTILE } from '@/types/constants';
 
+import { continueAfterSignInAction } from '@/server/actions/auth';
+
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { authClient } from '@/lib/auth-client';
 import { handlePromise } from '@/lib/utils';
@@ -135,9 +137,11 @@ function EmailStepForm({
     else setIsTwitterLoading(true);
 
     const { err } = await handlePromise(
+      // A new user can only need onboarding, so they skip the post-signin hop that decides it for returning users.
       authClient.signIn.social({
         provider,
-        callbackURL: '/api/auth/post-signin'
+        callbackURL: '/api/auth/post-signin',
+        newUserCallbackURL: '/onboarding'
       })
     );
 
@@ -316,7 +320,16 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       return;
     }
 
-    router.push('/api/auth/post-signin');
+    // The action always redirects: its promise rejects with NEXT_REDIRECT while the router navigates, or resolves
+    // while a full page load does. Any other rejection is a real failure; the session exists by then, so fall
+    // back to the dashboard and its onboarding guard.
+    const { err } = await handlePromise(continueAfterSignInAction());
+    const isRedirect = err instanceof Error && err.message.includes('NEXT_REDIRECT');
+
+    if (err && !isRedirect) {
+      Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'post-signin' } });
+      router.push('/');
+    }
   };
 
   const handleResendCode = async () => {
