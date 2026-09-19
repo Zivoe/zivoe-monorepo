@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
   const { user } = await getUser();
   if (!user) return redirectTo(withNext('/sign-in', next));
 
-  // Onboarding leaves the user in the dapp afterwards, so the way back to Lighthouse ends here.
+  // Onboarding keeps the way back to Lighthouse and hands the user to the pass route once they finish.
   const isOnboarded = await isUserOnboarded(user.id);
-  if (!isOnboarded) return redirectTo('/onboarding');
+  if (!isOnboarded) return redirectTo(withNext('/onboarding', next));
 
   return redirectTo(onboardedDestination(next));
 }

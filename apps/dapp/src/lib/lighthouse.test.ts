@@ -33,6 +33,8 @@ describe('lighthouseReturnUrl', () => {
     const relativeCallbackURL = /^\/(?!\/|\\|%2f|%5c)[\w\-.\+/@]*(?:\?[\w\-.\+/=&%@]*)?$/;
     const next = lighthouseReturnUrl(`${LIGHTHOUSE_URL}/positions/North_Star.v2`);
 
+    // callbackURL for returning users, newUserCallbackURL for new ones.
     expect(withNext('/api/auth/post-signin', next)).toMatch(relativeCallbackURL);
+    expect(withNext('/onboarding', next)).toMatch(relativeCallbackURL);
   });
 });

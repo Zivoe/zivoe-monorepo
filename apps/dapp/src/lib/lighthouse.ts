@@ -4,15 +4,14 @@ import { env } from '@/env';
  * Lighthouse has no sign-in of its own. It lets a visitor in only with a pass, a signed cookie the
  * dapp issues to signed-in, onboarded users (server/utils/lighthouse-pass.ts). Lighthouse sends
  * everyone else to `/api/lighthouse/pass?next=<lighthouse url>`, and `next` rides along through
- * sign-in until that route can issue the pass and return the visitor. A visitor who still has to
- * onboard does that instead and stays in the dapp; `next` is dropped there.
+ * sign-in and onboarding until that route can issue the pass and return the visitor.
  * Outside production, run Lighthouse on port 3100: localhost cookies are shared across ports.
  */
 export const LIGHTHOUSE_URL =
   env.NEXT_PUBLIC_ENV === 'production' ? 'https://lighthouse.zivoe.com' : 'http://localhost:3100';
 
 /**
- * The Lighthouse page to return to after sign-in, or undefined when `next` is not one, so `next`
+ * The Lighthouse page to return to after sign-in and onboarding, or undefined when `next` is not one, so `next`
  * can never become an open redirect. The query is dropped and the path is limited to characters
  * better-auth accepts inside a social sign-in `callbackURL`.
  */
@@ -25,7 +24,7 @@ export function lighthouseReturnUrl(next: string | Array<string> | null | undefi
   return `${url.origin}${url.pathname}`;
 }
 
-/** Carries the Lighthouse return URL on a dapp path so it survives sign-in. */
+/** Carries the Lighthouse return URL on a dapp path so it survives sign-in and onboarding. */
 export function withNext(path: string, next: string | undefined) {
   return next ? `${path}?next=${encodeURIComponent(next)}` : path;
 }

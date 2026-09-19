@@ -48,14 +48,14 @@ describe('GET /api/lighthouse/pass', () => {
     expect((await visit('https://evil.example/liquidity')).headers.get('location')).toBe(`${LIGHTHOUSE_URL}/?pass=1`);
   });
 
-  it('sends a signed-out visitor to sign-in with `next` and a not-onboarded one to onboarding without it, and no pass', async () => {
+  it('sends a signed-out visitor to sign-in and a not-onboarded one to onboarding, both with `next` and no pass', async () => {
     mocks.isUserOnboarded.mockResolvedValue(false);
     const notOnboarded = await visit(PAGE);
 
     mocks.getUser.mockResolvedValue({ user: undefined });
     const signedOut = await visit(PAGE);
 
-    expect(notOnboarded.headers.get('location')).toBe(`${DAPP}/onboarding`);
+    expect(notOnboarded.headers.get('location')).toBe(`${DAPP}/onboarding?next=${encodeURIComponent(PAGE)}`);
     expect(signedOut.headers.get('location')).toBe(`${DAPP}/sign-in?next=${encodeURIComponent(PAGE)}`);
 
     for (const response of [notOnboarded, signedOut]) {

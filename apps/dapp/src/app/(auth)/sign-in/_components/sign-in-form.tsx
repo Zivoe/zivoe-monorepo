@@ -145,7 +145,7 @@ function EmailStepForm({
       authClient.signIn.social({
         provider,
         callbackURL: withNext('/api/auth/post-signin', next),
-        newUserCallbackURL: '/onboarding',
+        newUserCallbackURL: withNext('/onboarding', next),
         errorCallbackURL: withNext('/sign-in', next)
       })
     );

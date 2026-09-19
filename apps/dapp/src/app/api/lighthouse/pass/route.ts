@@ -12,9 +12,9 @@ const noStore = { 'Cache-Control': 'private, no-store' };
 /**
  * Where Lighthouse sends every visitor without a valid pass, and the only place a pass is issued:
  * a signed-in, onboarded user gets one and returns to the Lighthouse page in `next`. A signed-out
- * visitor goes to sign-in first, which leads back here; one who has not onboarded goes to onboarding
- * and stays in the dapp afterwards. `/api/*` is outside the proxy matcher,
- * so signed-out visitors reach this route and it has to handle them itself.
+ * visitor goes to sign-in first and one who has not onboarded to onboarding; both lead back here.
+ * `/api/*` is outside the proxy matcher, so signed-out visitors reach this route and it has to
+ * handle them itself.
  */
 export async function GET(request: NextRequest) {
   // Without the secret no pass can be issued, and sending the visitor on would bounce them between the two apps.
@@ -28,8 +28,7 @@ export async function GET(request: NextRequest) {
   const isOnboarded = !!user && (await isUserOnboarded(user.id));
 
   if (!isOnboarded) {
-    // Sign-in brings the visitor back here; onboarding does not, it leaves them in the dapp.
-    const detour = user ? '/onboarding' : withNext('/sign-in', next);
+    const detour = withNext(user ? '/onboarding' : '/sign-in', next);
     return NextResponse.redirect(new URL(detour, request.url), { headers: noStore });
   }
 

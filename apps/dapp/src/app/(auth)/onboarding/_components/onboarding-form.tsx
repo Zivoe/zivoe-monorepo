@@ -9,15 +9,15 @@ import AccountTypeForm from './account-type-form';
 import IndividualForm from './individual-form';
 import OrganizationForm from './organization-form';
 
-export default function OnboardingForm() {
+export default function OnboardingForm({ next }: { next?: string }) {
   const [accountType, setAccountType] = useState<AccountType | null>(null);
 
   return (
     <>
       <Auth.Container>
         {!accountType && <AccountTypeForm onSubmit={(type) => setAccountType(type)} />}
-        {accountType === 'individual' && <IndividualForm onBack={() => setAccountType(null)} />}
-        {accountType === 'organization' && <OrganizationForm onBack={() => setAccountType(null)} />}
+        {accountType === 'individual' && <IndividualForm next={next} onBack={() => setAccountType(null)} />}
+        {accountType === 'organization' && <OrganizationForm next={next} onBack={() => setAccountType(null)} />}
       </Auth.Container>
 
       <Auth.HelpFooter />

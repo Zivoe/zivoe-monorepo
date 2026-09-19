@@ -28,12 +28,12 @@ const howFoundZivoeItems = Object.entries(HOW_FOUND_ZIVOE_OPTIONS).map(([value, 
   label
 }));
 
-export default function IndividualForm({ onBack }: { onBack: () => void }) {
+export default function IndividualForm({ next, onBack }: { next?: string; onBack: () => void }) {
   const { control, handleSubmit } = useForm<IndividualFormData>({
     resolver: zodResolver(individualSchema)
   });
 
-  const onboarding = useCompleteOnboarding();
+  const onboarding = useCompleteOnboarding({ next });
 
   const onSubmit = (data: IndividualFormData) => {
     onboarding.mutate({

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { getOnboardedStatus, getUser } from '@/server/data/auth';
 
-import { lighthouseReturnUrl, onboardedDestination } from '@/lib/lighthouse';
+import { lighthouseReturnUrl, onboardedDestination, withNext } from '@/lib/lighthouse';
 
 import SignInForm from './_components/sign-in-form';
 
@@ -16,7 +16,7 @@ export default async function SignInPage({
 
   if (user) {
     const { isOnboarded } = await getOnboardedStatus();
-    redirect(isOnboarded ? onboardedDestination(next) : '/onboarding');
+    redirect(isOnboarded ? onboardedDestination(next) : withNext('/onboarding', next));
   }
 
   return (

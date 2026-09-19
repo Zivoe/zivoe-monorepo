@@ -35,9 +35,10 @@ describe('GET /api/auth/post-signin', () => {
     expect(await destination('https://evil.example/liquidity')).toBe(`${DAPP}/`);
   });
 
-  it('sends a user who has not onboarded to onboarding without the Lighthouse page, and keeps it through sign-in', async () => {
+  it('keeps the Lighthouse page through onboarding for a user who has not onboarded, and through sign-in', async () => {
     mocks.isUserOnboarded.mockResolvedValue(false);
-    expect(await destination(PAGE)).toBe(`${DAPP}/onboarding`);
+    expect(await destination()).toBe(`${DAPP}/onboarding`);
+    expect(await destination(PAGE)).toBe(`${DAPP}/onboarding?next=${encodeURIComponent(PAGE)}`);
 
     mocks.getUser.mockResolvedValue({ user: undefined });
     expect(await destination(PAGE)).toBe(`${DAPP}/sign-in?next=${encodeURIComponent(PAGE)}`);

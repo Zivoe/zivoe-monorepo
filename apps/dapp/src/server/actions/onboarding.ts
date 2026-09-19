@@ -1,7 +1,6 @@
 'use server';
 
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
@@ -66,9 +65,9 @@ export async function completeOnboarding(data: OnboardingFormData) {
     return { error: 'Failed to complete onboarding. Please try again.' };
   }
 
-  // onConflictDoNothing returns no rows when a profile already exists — the
-  // user is already onboarded, so skip the one-time side effects below.
-  if (!res?.length) redirect('/');
+  // onConflictDoNothing returns no rows when a profile already exists — the user is already onboarded, so skip
+  // the one-time side effects below. Still a success: the client sends them on to wherever an onboarded user goes.
+  if (!res?.length) return { success: true };
 
   after(async () => {
     const flows = ['schedule-welcome-email', 'schedule-telegram-notification', 'onboarding-posthog-capture'];
