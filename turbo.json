@@ -27,6 +27,7 @@
         "QSTASH_TOKEN",
         "BETTER_AUTH_SECRET",
         "AGENT_SIGN_IN_SECRET",
+        "LIGHTHOUSE_PASS_SECRET",
         "VERCEL",
         "VERCEL_ENV",
         "GOOGLE_CLIENT_ID",

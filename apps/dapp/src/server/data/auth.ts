@@ -30,21 +30,20 @@ export const verifySession = cache(async () => {
   return { user };
 });
 
-export const getOnboardedStatus = cache(async () => {
-  const { user } = await verifySession();
-
+/** Whether the user finished onboarding, i.e. has a profile row. Never redirects, so route handlers can call it. */
+export const isUserOnboarded = async (userId: string) => {
   const { err, res } = await handlePromise(
     db
       .select({ id: schema.profile.id, createdAt: schema.profile.createdAt })
       .from(schema.profile)
-      .where(eq(schema.profile.id, user.id))
+      .where(eq(schema.profile.id, userId))
       .limit(1)
   );
 
   if (err || !res) {
     Sentry.captureException(err, {
       tags: { source: 'SERVER', flow: 'verify-onboarded' },
-      extra: { userId: user.id }
+      extra: { userId }
     });
 
     throw new AppError({ message: 'Failed to verify onboarded status', type: 'error', capture: false });
@@ -52,7 +51,13 @@ export const getOnboardedStatus = cache(async () => {
 
   const profile = res[0];
 
-  return { isOnboarded: !!profile && profile.id && profile.createdAt, user };
+  return !!profile && !!profile.id && !!profile.createdAt;
+};
+
+export const getOnboardedStatus = cache(async () => {
+  const { user } = await verifySession();
+
+  return { isOnboarded: await isUserOnboarded(user.id), user };
 });
 
 export const verifyOnboarded = async () => {
