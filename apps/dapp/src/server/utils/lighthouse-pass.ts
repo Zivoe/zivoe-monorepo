@@ -5,12 +5,12 @@ import { createHmac } from 'node:crypto';
 import { BASE_URL } from './base-url';
 
 // The Lighthouse pass: a signed cookie that lets its holder view Lighthouse (lib/lighthouse.ts) for
-// 24 hours. `/api/lighthouse/pass` issues it and sign-out clears it. Lighthouse verifies it on its
+// one hour. `/api/lighthouse/pass` issues it and sign-out clears it. Lighthouse verifies it on its
 // own with the shared LIGHTHOUSE_PASS_SECRET (its src/lib/dapp-access.ts), so the cookie name and
 // the format below must stay identical in both apps. It names nobody and grants nothing in the
 // dapp, which is why the session cookies stay host-only and the secret is not BETTER_AUTH_SECRET.
 
-const PASS_SECONDS = 24 * 60 * 60;
+const PASS_SECONDS = 60 * 60;
 
 /**
  * Cookie attributes, shared by issuing and clearing. `Domain=zivoe.com` only when the dapp is served

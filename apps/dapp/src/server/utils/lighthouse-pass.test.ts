@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { createLighthousePass, lighthousePassCookie } from './lighthouse-pass';
 
 describe('createLighthousePass', () => {
-  it('matches the test vector Lighthouse verifies (its tests/unit/dapp-access.test.ts), so the two cannot drift', () => {
-    const exp = 2_000_000_000;
+  it('issues the one-hour test vector Lighthouse verifies (its tests/unit/dapp-access.test.ts)', () => {
+    const issuedAt = 1_999_996_400_000;
     const pass = createLighthousePass({
       secret: 'lighthouse-pass-test-vector-secret-32ch',
-      now: (exp - 24 * 60 * 60) * 1000
+      now: issuedAt
     });
 
-    expect(pass).toEqual({ value: '2000000000.kbYHBzPIW4Pdnc8Q0j5RLu2oJ-7IZ9BJITbU2raiNoE', maxAge: 86_400 });
+    expect(pass).toEqual({ value: '2000000000.kbYHBzPIW4Pdnc8Q0j5RLu2oJ-7IZ9BJITbU2raiNoE', maxAge: 3_600 });
   });
 });
 

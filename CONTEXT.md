@@ -105,7 +105,7 @@ _Avoid_: hidden claim, stuck redemption
 ### Lighthouse access
 
 **Lighthouse Pass**:
-The signed `lighthouse-pass` cookie that lets its holder view Lighthouse (`lighthouse.zivoe.com`), which has no sign-in of its own. `/api/lighthouse/pass` issues it to a signed-in, onboarded user for 24 hours on `Domain=zivoe.com`, and sign-out clears it — `apps/dapp/src/server/utils/lighthouse-pass.ts`. Lighthouse verifies it alone with the shared `LIGHTHOUSE_PASS_SECRET`. It names nobody and grants nothing in the dApp, which is why the better-auth session cookies stay host-only. Unrelated to a Monitor Pass.
+The signed `lighthouse-pass` cookie that lets its holder view Lighthouse (`lighthouse.zivoe.com`), which has no sign-in of its own. `/api/lighthouse/pass` issues it to a signed-in, onboarded user for one hour on `Domain=zivoe.com`, and sign-out clears it — `apps/dapp/src/server/utils/lighthouse-pass.ts`. Lighthouse verifies it alone with the shared `LIGHTHOUSE_PASS_SECRET`. It names nobody and grants nothing in the dApp, which is why the better-auth session cookies stay host-only. Unrelated to a Monitor Pass.
 _Avoid_: Lighthouse session, Lighthouse token
 
 ## Example dialogue

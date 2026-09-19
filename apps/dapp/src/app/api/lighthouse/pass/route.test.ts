@@ -31,14 +31,14 @@ beforeEach(() => {
 });
 
 describe('GET /api/lighthouse/pass', () => {
-  it('issues a 24-hour pass to a signed-in, onboarded user and returns them to the Lighthouse page', async () => {
+  it('issues a one-hour pass to a signed-in, onboarded user and returns them to the Lighthouse page', async () => {
     const response = await visit(PAGE);
 
     expect(response.headers.get('location')).toBe(`${PAGE}?pass=1`);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     // Host-only and not Secure here, because the dapp under test is served from http://localhost.
     expect(response.headers.get('set-cookie')).toMatch(
-      /^lighthouse-pass=\d{10}\.[\w-]{43}; Path=\/; Expires=[^;]+; Max-Age=86400; HttpOnly; SameSite=lax$/
+      /^lighthouse-pass=\d{10}\.[\w-]{43}; Path=\/; Expires=[^;]+; Max-Age=3600; HttpOnly; SameSite=lax$/
     );
     expect(mocks.getUser).toHaveBeenCalledOnce();
   });
