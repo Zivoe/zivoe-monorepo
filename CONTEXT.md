@@ -102,6 +102,12 @@ _Avoid_: partial cancel
 A settled redemption on a chain whose pool escrow is reserved beyond its holdings for the share class: the amount is owed regardless of the wallet's own admission or freeze, but the SDK zeroes every claim on that spoke, so it reads like no position at all. An operations gap (liquidity never moved to the spoke), never something the investor can act on — the redeem tab names it ("approved, awaiting liquidity on <chain>") with no claim control. A wallet no longer whitelisted still collects it once funded — the FullRestrictions hook every zSMB instance uses exempts a redeem claim from the memberlist (a FreelyTransferable hook would not); only a freeze blocks the claim too.
 _Avoid_: hidden claim, stuck redemption
 
+### Lighthouse access
+
+**Lighthouse Pass**:
+The signed `lighthouse-pass` cookie that lets its holder view Lighthouse (`lighthouse.zivoe.com`), which has no sign-in of its own. `/api/lighthouse/pass` issues it to a signed-in, onboarded user for 24 hours on `Domain=zivoe.com`, and sign-out clears it — `apps/dapp/src/server/utils/lighthouse-pass.ts`. Lighthouse verifies it alone with the shared `LIGHTHOUSE_PASS_SECRET`. It names nobody and grants nothing in the dApp, which is why the better-auth session cookies stay host-only. Unrelated to a Monitor Pass.
+_Avoid_: Lighthouse session, Lighthouse token
+
 ## Example dialogue
 
 > **Dev**: The transactions channel missed a deposit yesterday.

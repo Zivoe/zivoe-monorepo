@@ -24,6 +24,7 @@ import { continueAfterSignInAction } from '@/server/actions/auth';
 
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { authClient } from '@/lib/auth-client';
+import { withNext } from '@/lib/lighthouse';
 import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -34,7 +35,8 @@ import { useTurnstile } from '../_hooks/useTurnstile';
 
 type Step = 'EMAIL' | 'OTP';
 
-export default function SignInForm() {
+/** `next` is the validated Lighthouse page to return to once signed in and onboarded (lib/lighthouse.ts). */
+export default function SignInForm({ next }: { next?: string }) {
   const searchParams = useSearchParams();
 
   const [step, setStep] = useState<Step>('EMAIL');
@@ -57,10 +59,10 @@ export default function SignInForm() {
           type: 'error'
         });
 
-        window.history.replaceState({}, '', '/sign-in');
+        window.history.replaceState({}, '', withNext('/sign-in', next));
       }, 0);
     }
-  }, [searchParams]);
+  }, [searchParams, next]);
 
   return (
     <>
@@ -72,7 +74,7 @@ export default function SignInForm() {
               description="Enter your email to sign in to your account. If you don't have an account yet, one will be created for you."
             />
 
-            <EmailStepForm onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
+            <EmailStepForm next={next} onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
           </>
         ) : (
           <>
@@ -90,7 +92,7 @@ export default function SignInForm() {
               </Button>
             </Auth.Header>
 
-            <OtpStepForm email={email} executeTurnstile={executeTurnstile} />
+            <OtpStepForm next={next} email={email} executeTurnstile={executeTurnstile} />
           </>
         )}
 
@@ -122,9 +124,11 @@ const emailSchema = z.object({
 type EmailFormData = z.infer<typeof emailSchema>;
 
 function EmailStepForm({
+  next,
   onSuccess,
   executeTurnstile
 }: {
+  next?: string;
   onSuccess: (data: EmailFormData) => void;
   executeTurnstile: () => Promise<string>;
 }) {
@@ -140,8 +144,9 @@ function EmailStepForm({
       // A new user can only need onboarding, so they skip the post-signin hop that decides it for returning users.
       authClient.signIn.social({
         provider,
-        callbackURL: '/api/auth/post-signin',
-        newUserCallbackURL: '/onboarding'
+        callbackURL: withNext('/api/auth/post-signin', next),
+        newUserCallbackURL: '/onboarding',
+        errorCallbackURL: withNext('/sign-in', next)
       })
     );
 
@@ -278,7 +283,15 @@ const otpSchema = z.object({
 
 type OtpFormData = z.infer<typeof otpSchema>;
 
-function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnstile: () => Promise<string> }) {
+function OtpStepForm({
+  next,
+  email,
+  executeTurnstile
+}: {
+  next?: string;
+  email: string;
+  executeTurnstile: () => Promise<string>;
+}) {
   const analytics = useAnalytics();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -317,6 +330,12 @@ function OtpStepForm({ email, executeTurnstile }: { email: string; executeTurnst
       form.reset();
       setIsLoading(false);
       setTimeout(() => form.setFocus('otp'), 0);
+      return;
+    }
+
+    // Returning to Lighthouse ends in a cross-origin redirect, which the client router cannot follow.
+    if (next) {
+      window.location.assign(withNext('/api/auth/post-signin', next));
       return;
     }
 

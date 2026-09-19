@@ -1,12 +1,13 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import * as Sentry from '@sentry/nextjs';
 
 import { auth } from '@/server/auth';
 import { getOnboardedStatus } from '@/server/data/auth';
+import { lighthousePassCookie } from '@/server/utils/lighthouse-pass';
 
 import { handlePromise } from '@/lib/utils';
 
@@ -32,6 +33,9 @@ export async function signOutAction() {
     Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'sign-out' } });
     return { error: 'Error signing out' };
   }
+
+  // Signing out of the dapp revokes Lighthouse at once instead of when the pass expires.
+  (await cookies()).delete(lighthousePassCookie());
 
   redirect('/sign-in');
 }

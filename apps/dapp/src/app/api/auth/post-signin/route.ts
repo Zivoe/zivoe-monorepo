@@ -1,10 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { getOnboardedStatus } from '@/server/data/auth';
+import { getUser, isUserOnboarded } from '@/server/data/auth';
 
+import { lighthouseReturnUrl, onboardedDestination, withNext } from '@/lib/lighthouse';
+
+/** Decides where a signed-in user lands: onboarding, the dapp, or, via the pass route, the Lighthouse page in `next`. */
 export async function GET(request: NextRequest) {
-  const { isOnboarded } = await getOnboardedStatus();
-  const destination = isOnboarded ? '/' : '/onboarding';
+  const next = lighthouseReturnUrl(request.nextUrl.searchParams.get('next'));
+  const redirectTo = (path: string) => NextResponse.redirect(new URL(path, request.url));
 
-  return NextResponse.redirect(new URL(destination, request.url));
+  // The session is gone: sign in again, keeping the way back to Lighthouse.
+  const { user } = await getUser();
+  if (!user) return redirectTo(withNext('/sign-in', next));
+
+  // Onboarding leaves the user in the dapp afterwards, so the way back to Lighthouse ends here.
+  const isOnboarded = await isUserOnboarded(user.id);
+  if (!isOnboarded) return redirectTo('/onboarding');
+
+  return redirectTo(onboardedDestination(next));
 }
