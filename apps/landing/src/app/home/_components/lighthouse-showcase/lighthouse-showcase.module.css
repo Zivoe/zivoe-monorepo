@@ -1,0 +1,222 @@
+.section {
+  --lighthouse-mint: #a3dbd6;
+  --lighthouse-border: #315d5f;
+
+  background: #052a2e;
+  color: #fefefe;
+}
+
+.container {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 64px 16px;
+}
+
+.showcase {
+  display: grid;
+  align-items: center;
+  gap: 40px;
+  min-width: 0;
+}
+
+.introduction {
+  min-width: 0;
+  max-width: 520px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  color: var(--lighthouse-mint);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 440px;
+  margin-top: 24px;
+  color: #c1d9da;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.cta {
+  margin-top: 32px;
+}
+
+.cta a:focus-visible,
+.previewLink:focus-visible {
+  outline: 2px solid var(--lighthouse-mint);
+  outline-offset: 6px;
+}
+
+.preview {
+  min-width: 0;
+  margin: 0;
+}
+
+.previewLink {
+  display: block;
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid var(--lighthouse-border);
+  border-radius: 16px;
+  background: #10393b;
+  box-shadow:
+    0 0 64px -24px #a3dbd630,
+    0 24px 56px -32px #001719;
+}
+
+.previewLink:hover {
+  border-color: var(--lighthouse-mint);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.caption {
+  margin-top: 16px;
+  color: #afc9ca;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: right;
+}
+
+.features {
+  display: grid;
+  gap: 28px;
+  margin: 40px 0 0;
+  padding: 32px 0 0;
+  border-top: 1px solid var(--lighthouse-border);
+  list-style: none;
+}
+
+.feature {
+  min-width: 0;
+}
+
+.featureHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.featureIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--lighthouse-border);
+  border-radius: 12px;
+  background: #10393b;
+  color: var(--lighthouse-mint);
+}
+
+.featureIcon svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.featureTitle {
+  margin: 0;
+  font-family: var(--font-paragraph);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
+
+.featureDescription {
+  max-width: 480px;
+  margin-top: 10px;
+  color: #afc9ca;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+@media (min-width: 600px) {
+  .container {
+    padding: 80px 40px;
+  }
+
+  .showcase {
+    gap: 48px;
+  }
+
+  .heading {
+    font-size: 48px;
+  }
+
+  .previewLink {
+    padding: 10px;
+    border-radius: 20px;
+  }
+
+  .features {
+    gap: 32px;
+    margin-top: 48px;
+    padding-top: 40px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-block: 96px;
+  }
+
+  .showcase {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 40px;
+  }
+
+  .features {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+    margin-top: 64px;
+    padding-top: 40px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    padding: 112px 64px;
+  }
+
+  .showcase {
+    gap: 56px;
+  }
+
+  .heading {
+    font-size: 56px;
+  }
+
+  .features {
+    gap: 56px;
+  }
+}

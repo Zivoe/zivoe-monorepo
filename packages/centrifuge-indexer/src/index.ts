@@ -57,3 +57,4 @@ export {
 } from './queries/investor-transaction-events';
 export { fetchShareClassNavs, sumShareClassNavs } from './queries/share-class-navs';
 export { navD18, rayToPercent } from './units';
+export { fetchNetworkShareMetrics, type NetworkShareMetrics } from './queries/network-share-metrics';

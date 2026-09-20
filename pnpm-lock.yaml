@@ -472,6 +472,9 @@ importers:
       typescript-eslint:
         specifier: ^8.57.1
         version: 8.59.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.7.3)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.9.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(lightningcss@1.32.0)(sass@1.77.4)(terser@5.46.1)(tsx@4.21.0)
 
   apps/storybook:
     dependencies:

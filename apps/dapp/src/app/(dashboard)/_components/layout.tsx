@@ -59,7 +59,7 @@ export function NavigationItems() {
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: '_blank'; isDisabled?: boolean }> = [
   { title: 'Vaults', href: '/' },
-  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/liquidity', target: '_blank' }
+  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/', target: '_blank' }
 ];
 
 export function Wallet() {
