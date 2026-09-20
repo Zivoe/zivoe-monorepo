@@ -38,7 +38,7 @@ const howFoundZivoeItems = Object.entries(HOW_FOUND_ZIVOE_OPTIONS).map(([value, 
 
 type Step = 'PERSONAL' | 'ENTITY';
 
-export default function OrganizationForm({ onBack }: { onBack: () => void }) {
+export default function OrganizationForm({ next, onBack }: { next?: string; onBack: () => void }) {
   const [step, setStep] = useState<Step>('PERSONAL');
   const [personalInfo, setPersonalInfo] = useState<OrgPersonalInfoFormData | null>(null);
 
@@ -51,7 +51,7 @@ export default function OrganizationForm({ onBack }: { onBack: () => void }) {
     return <PersonalInfoForm onBack={onBack} onSuccess={handlePersonalSuccess} personalInfo={personalInfo} />;
 
   if (step === 'ENTITY' && personalInfo)
-    return <EntityInfoForm personalInfo={personalInfo} onBack={() => setStep('PERSONAL')} />;
+    return <EntityInfoForm next={next} personalInfo={personalInfo} onBack={() => setStep('PERSONAL')} />;
 
   return null;
 }
@@ -170,11 +170,12 @@ function PersonalInfoForm({
 }
 
 interface EntityInfoFormProps {
+  next?: string;
   personalInfo: OrgPersonalInfoFormData;
   onBack: () => void;
 }
 
-function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
+function EntityInfoForm({ next, personalInfo, onBack }: EntityInfoFormProps) {
   const { control, handleSubmit } = useForm<OrgEntityInfoFormData>({
     resolver: zodResolver(orgEntityInfoSchema),
     defaultValues: {
@@ -183,7 +184,7 @@ function EntityInfoForm({ personalInfo, onBack }: EntityInfoFormProps) {
     }
   });
 
-  const onboarding = useCompleteOnboarding();
+  const onboarding = useCompleteOnboarding({ next });
 
   const onSubmit = (data: OrgEntityInfoFormData) => {
     onboarding.mutate({

@@ -34,7 +34,7 @@ export function NavigationItems() {
 
   return (
     <>
-      {NAVIGATION_ITEMS.map(({ href, title, isDisabled }) => {
+      {NAVIGATION_ITEMS.map(({ href, title, target, isDisabled }) => {
         const isCurrent = pathName === href;
 
         return (
@@ -44,6 +44,7 @@ export function NavigationItems() {
             size="l"
             className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
             href={href}
+            target={target}
             aria-current={isCurrent}
             isDisabled={isDisabled}
             onPress={() => state?.close()}
@@ -56,7 +57,10 @@ export function NavigationItems() {
   );
 }
 
-const NAVIGATION_ITEMS: Array<{ href: string; title: string; isDisabled?: boolean }> = [{ title: 'Vaults', href: '/' }];
+const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: '_blank'; isDisabled?: boolean }> = [
+  { title: 'Vaults', href: '/' },
+  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/liquidity', target: '_blank' }
+];
 
 export function Wallet() {
   const { setShowDynamicUserProfile, primaryWallet } = useDynamicContext();

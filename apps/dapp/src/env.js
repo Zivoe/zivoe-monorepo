@@ -24,6 +24,8 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     // Vercel Preview only: enables POST /api/agent-sign-in (see docs/runbooks/agent-sign-in.md)
     AGENT_SIGN_IN_SECRET: z.string().min(32).optional(),
+    // Signs the Lighthouse pass cookie; the same value is set in the Lighthouse project (see lib/lighthouse.ts)
+    LIGHTHOUSE_PASS_SECRET: z.string().min(32).optional(),
     APP_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
@@ -89,6 +91,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     AGENT_SIGN_IN_SECRET: process.env.AGENT_SIGN_IN_SECRET,
+    LIGHTHOUSE_PASS_SECRET: process.env.LIGHTHOUSE_PASS_SECRET,
     APP_URL: process.env.APP_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
