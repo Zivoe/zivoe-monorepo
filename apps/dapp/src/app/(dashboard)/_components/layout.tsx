@@ -22,6 +22,7 @@ import { tv } from '@zivoe/ui/lib/tw-utils';
 
 import { signOutAction } from '@/server/actions/auth';
 
+import { LIGHTHOUSE_URL } from '@/lib/lighthouse';
 import { handlePromise, truncateAddress } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
@@ -59,7 +60,7 @@ export function NavigationItems() {
 
 const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: '_blank'; isDisabled?: boolean }> = [
   { title: 'Vaults', href: '/' },
-  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/liquidity', target: '_blank' }
+  { title: 'Lighthouse', href: `${LIGHTHOUSE_URL}/`, target: '_blank' }
 ];
 
 export function Wallet() {
