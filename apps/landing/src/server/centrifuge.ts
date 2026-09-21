@@ -6,7 +6,12 @@ import { unstable_cache as nextCache } from 'next/cache';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { type ShareStatsPayload, fetchCurrentShareMetrics, toShareStatsPayload } from '@zivoe/centrifuge-indexer';
+import {
+  type ShareClassKey,
+  type ShareStatsPayload,
+  fetchCurrentShareMetrics,
+  toShareStatsPayload
+} from '@zivoe/centrifuge-indexer';
 
 import { env } from '@/env';
 
@@ -14,7 +19,7 @@ import { env } from '@/env';
 // the environment is all it needs.
 const environment = env.NEXT_PUBLIC_CHAIN_ENV;
 
-async function fetchCurrentMetrics(shareClassKey: string): Promise<ShareStatsPayload> {
+async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareStatsPayload> {
   const { payload } = toShareStatsPayload(await fetchCurrentShareMetrics({ environment, shareClassKey }));
   return payload;
 }
@@ -37,13 +42,15 @@ const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current
  * undefined so the hero renders the metric as unavailable instead of a
  * wrong number.
  */
-const getCurrentShareMetrics = reactCache(async (shareClassKey: string): Promise<ShareStatsPayload | undefined> => {
-  try {
-    return await cachedCurrentMetrics(shareClassKey);
-  } catch (error) {
-    Sentry.captureException(error, { tags: { source: 'SERVER' }, extra: { shareClassKey } });
+const getCurrentShareMetrics = reactCache(
+  async (shareClassKey: ShareClassKey): Promise<ShareStatsPayload | undefined> => {
+    try {
+      return await cachedCurrentMetrics(shareClassKey);
+    } catch (error) {
+      Sentry.captureException(error, { tags: { source: 'SERVER' }, extra: { shareClassKey } });
+    }
   }
-});
+);
 
 export const centrifuge = {
   getCurrentShareMetrics

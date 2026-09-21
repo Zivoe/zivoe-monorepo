@@ -1,4 +1,4 @@
-import { getShareClassIdentity, listLiveChains } from '@zivoe/centrifuge-indexer';
+import { type ShareClassKey, getShareClassIdentity, listLiveChains } from '@zivoe/centrifuge-indexer';
 
 import { centrifuge } from '@/server/centrifuge';
 
@@ -18,8 +18,9 @@ import { env } from '@/env';
 import { HeroClouds } from './clouds';
 import { Statistics } from './statistics';
 
-// The share class whose live figures the hero shows: the landing's one Zivoe Vault.
-const SHARE_CLASS_KEY = 'zsmb';
+// The share class whose live figures the hero shows: the landing's one Zivoe Vault. Typed against
+// the catalog so a renamed or retired key fails the build instead of throwing while the page renders.
+const SHARE_CLASS_KEY: ShareClassKey = 'zsmb';
 
 export default async function Hero() {
   const environment = env.NEXT_PUBLIC_CHAIN_ENV;
