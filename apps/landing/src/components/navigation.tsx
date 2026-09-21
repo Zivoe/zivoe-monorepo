@@ -4,14 +4,18 @@ import { usePathname } from 'next/navigation';
 
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import NavigationMobileDialog from '@zivoe/ui/components/navigation-mobile-dialog';
+import { NavigationMobileLink } from '@zivoe/ui/components/navigation-mobile-link';
 import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
 import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
-import { HamburgerIcon } from '@zivoe/ui/icons';
+import { HamburgerIcon, ZSmbLogo } from '@zivoe/ui/icons';
+
+import { APP_URL, LIGHTHOUSE_URL } from '@/lib/utils';
 
 import Container from './container';
 import { LighthouseCta } from './lighthouse-cta';
+import { LighthouseMark } from './lighthouse-mark';
 import { VaultsCta } from './vaults-cta';
 
 export default function NavigationSection() {
@@ -60,9 +64,21 @@ function Mobile() {
 
       <NavigationMobileDialog>
         <NavigationItems />
-        <div className="mt-3 flex flex-col items-center gap-3">
-          <LighthouseCta />
-          <VaultsCta />
+        <div className="mt-3 grid w-80 max-w-full gap-3">
+          <NavigationMobileLink
+            href={LIGHTHOUSE_URL}
+            target="_blank"
+            title="Lighthouse"
+            description="View the transparency dashboard"
+            icon={<LighthouseMark />}
+          />
+          <NavigationMobileLink
+            href={APP_URL}
+            target="_blank"
+            title="Vaults"
+            description="View Zivoe SMB Credit (zSMB)"
+            icon={<ZSmbLogo />}
+          />
         </div>
       </NavigationMobileDialog>
     </Dialog>
