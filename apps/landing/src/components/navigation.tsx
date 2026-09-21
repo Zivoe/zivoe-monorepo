@@ -36,7 +36,7 @@ function Navigation() {
 
 function Desktop() {
   return (
-    <div className="hidden items-center gap-4 rounded-full border border-base/60 bg-surface-base/95 p-2 pl-6 shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] backdrop-blur-sm lg:flex">
+    <div className="hidden items-center gap-4 rounded-full border border-base/60 bg-surface-base/95 p-2 pl-10 shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] backdrop-blur-sm lg:flex">
       <div className="flex items-center gap-6">
         <NavigationItems />
       </div>
