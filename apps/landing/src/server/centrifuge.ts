@@ -27,8 +27,10 @@ async function fetchCurrentMetrics(shareClassKey: ShareClassKey): Promise<ShareS
 // The environment reaches the fetch through module state, not an argument, so
 // it must be an explicit keyPart: deployments sharing a data cache must not
 // share entries across environments. The share-class key argument is part of
-// the key too, so entries split per class. 60 seconds matches the homepage's
-// `revalidate` (app/page.tsx): the hero's figures move at most once a minute.
+// the key too, so entries split per class. The 60-second lifetime is also the
+// homepage's ISR period: the page is otherwise static, and Next adopts the
+// shortest `unstable_cache` revalidate it meets while prerendering, so the
+// hero's figures move at most once a minute with no page-level `revalidate`.
 const cachedCurrentMetrics = nextCache(fetchCurrentMetrics, ['centrifuge-current-share-metrics', environment], {
   revalidate: 60
 });
