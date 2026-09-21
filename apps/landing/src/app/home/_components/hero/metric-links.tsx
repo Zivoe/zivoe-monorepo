@@ -19,8 +19,9 @@ export function AvailableNetworks({ chains }: { chains: Array<CentrifugeChain> }
   // Deduped by display family like the dApp's chips: a testnet advertises its mainnet brand.
   const displays = [...new Map(chains.map((chain) => [CHAIN_DISPLAY[chain].label, CHAIN_DISPLAY[chain]])).values()];
 
+  // gap-y clears the App link's hover underline (offset 8) when the chips wrap under it.
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
       <MetricLink href={APP_URL}>App</MetricLink>
       <span aria-hidden="true" className="text-primary/30">
         |
