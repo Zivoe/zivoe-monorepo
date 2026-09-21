@@ -1,3 +1,8 @@
+'use client';
+
+// Client module on purpose: react-aria's Focusable inspects its child with React.Children.only,
+// which is not safe for an element streamed in from a server component (the dApp renders its
+// chip rows from client components too).
 import { type ReactNode } from 'react';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
@@ -19,8 +24,9 @@ export function AvailableNetworks({ chains }: { chains: Array<CentrifugeChain> }
   // Deduped by display family like the dApp's chips: a testnet advertises its mainnet brand.
   const displays = [...new Map(chains.map((chain) => [CHAIN_DISPLAY[chain].label, CHAIN_DISPLAY[chain]])).values()];
 
-  // Sized to share one row with ten chips inside the NAV card (~240px wide on tablets); gap-y
-  // keeps the App link's hover underline (offset 8) clear of the chips if they ever wrap.
+  // Sized so ten chips share the row with the label inside a desktop NAV card (288px wide);
+  // on tablets (~240px) the chips wrap under it, and gap-y keeps the App link's hover
+  // underline (offset 8) clear of them.
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-3 text-extraSmall">
       <MetricLink href={APP_URL}>App</MetricLink>
