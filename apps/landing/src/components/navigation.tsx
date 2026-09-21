@@ -8,10 +8,11 @@ import { Button } from '@zivoe/ui/core/button';
 import { Dialog } from '@zivoe/ui/core/dialog';
 import { NextLink } from '@zivoe/ui/core/link';
 import { Link } from '@zivoe/ui/core/link';
-import { SplitCta } from '@zivoe/ui/core/split-cta';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
 import Container from './container';
+import { LighthouseCta } from './lighthouse-cta';
+import { VaultsCta } from './vaults-cta';
 
 export default function NavigationSection() {
   return (
@@ -35,14 +36,17 @@ function Navigation() {
 
 function Desktop() {
   return (
-    <div className="hidden items-center gap-6 rounded-lg bg-surface-base shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] lg:flex">
-      <div className="ml-5 flex gap-6">
+    <div className="hidden items-center gap-4 rounded-full border border-base/60 bg-surface-base/95 p-2 pl-6 shadow-[0px_16px_32px_0px_rgba(0,0,0,0.04)] backdrop-blur-sm lg:flex">
+      <div className="flex items-center gap-6">
         <NavigationItems />
       </div>
 
-      <SplitCta href="https://app.zivoe.com" target="_blank" size="m" className="my-2.5 mr-2.5">
-        View Vaults
-      </SplitCta>
+      <span aria-hidden="true" className="h-8 w-px shrink-0 bg-surface-elevated-emphasis" />
+
+      <div className="flex items-center gap-3">
+        <LighthouseCta size="m" />
+        <VaultsCta size="m" />
+      </div>
     </div>
   );
 }
@@ -56,6 +60,10 @@ function Mobile() {
 
       <NavigationMobileDialog>
         <NavigationItems />
+        <div className="mt-3 flex flex-col items-center gap-3">
+          <LighthouseCta />
+          <VaultsCta />
+        </div>
       </NavigationMobileDialog>
     </Dialog>
   );
@@ -74,7 +82,7 @@ function NavigationItems() {
             key={title}
             variant="nav"
             size="l"
-            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
+            className="h-14 text-base hover:shadow-secondary lg:h-12 lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
             href={href}
             target={target}
             aria-current={isCurrent}
