@@ -23,7 +23,6 @@
     "@radix-ui/react-portal": "^1.1.6",
     "@radix-ui/react-scroll-area": "^1.2.3",
     "@storybook/react": "^8.5.8",
-    "@zivoe/centrifuge-indexer": "workspace:*",
     "input-otp": "^1.4.2",
     "next": "15.6.0-canary.60",
     "prettier-plugin-tailwindcss": "^0.8.0",
