@@ -39,7 +39,7 @@ export default async function Hero() {
         <div className="flex w-full max-w-[21.45rem] flex-col gap-8 sm:max-w-150 sm:gap-10 lg:max-w-165">
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4">
-              <p className="text-tiny font-medium tracking-[0.2em] text-brand-subtle uppercase sm:text-extraSmall">
+              <p className="text-tiny font-medium tracking-[0.2em] text-tertiary uppercase sm:text-extraSmall">
                 Private credit. On-chain. Transparent.
               </p>
               <h1 className="text-h4 text-primary sm:text-h2">The private credit layer for stablecoins</h1>

@@ -32,7 +32,11 @@ export function PillCta({
       hideExternalLinkIcon
       variant={tone === 'teal' ? 'primary-light' : 'secondary-light'}
       size={size}
-      className={cn('group rounded-full', size === 'l' ? 'gap-3 pr-5 pl-2' : 'gap-2.5 pr-4 pl-1.5')}
+      className={cn(
+        'group rounded-full',
+        size === 'l' ? 'gap-3 pr-5 pl-2' : 'gap-2.5 pr-4 pl-1.5',
+        tone === 'orange' && 'text-[#53210a]'
+      )}
     >
       {/* The brand mark keeps its own size; the Link's icon rule only sizes the arrow. */}
       <span
