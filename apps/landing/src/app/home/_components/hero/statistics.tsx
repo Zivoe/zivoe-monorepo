@@ -25,8 +25,9 @@ export function Statistics({
     ? `Price published ${utcTime.format(new Date(metrics.priceComputedAtMs))} UTC.`
     : 'Live figures are temporarily unavailable.';
 
+  // NAV takes the larger column: its footer holds the App link plus one chip per live chain.
   return (
-    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr] sm:gap-4">
       <Statistic
         label="NAV"
         value={metrics && `$${formatNav(Number(metrics.navD18) / 1e18)}`}
@@ -88,7 +89,7 @@ function Statistic({
         )}
       </p>
 
-      {footer && <div className="mt-2 text-small">{footer}</div>}
+      {footer && <div className="mt-2">{footer}</div>}
     </div>
   );
 }
