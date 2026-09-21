@@ -33,14 +33,14 @@ const FEATURES: Array<{ title: string; description: string; Icon: ComponentType<
 export default function LighthouseShowcase() {
   return (
     <section id="lighthouse" aria-labelledby="lighthouse-heading" className="bg-primary-950 text-base">
-      <Container className="gap-10 py-16 sm:gap-12 sm:px-10 sm:py-20 lg:gap-16 lg:py-24 xl:px-16 xl:py-28">
+      <Container className="gap-10 py-16 sm:gap-12 sm:px-10 sm:py-20 lg:gap-16 lg:py-24 xl:px-26 xl:py-28 2xl:px-48">
         <div className="grid w-full items-center gap-10 sm:gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] xl:gap-14">
           <div className="max-w-130">
             <div className="flex items-center gap-3 text-h7 text-primary-300">
               <LighthouseMark className="size-11" />
               <span>Lighthouse</span>
             </div>
-            <h2 id="lighthouse-heading" className="mt-7 text-h4 text-balance sm:text-h2 xl:text-h1">
+            <h2 id="lighthouse-heading" className="mt-7 text-h4 text-balance sm:text-h2">
               A clearer view of private credit
             </h2>
             <p className="mt-6 max-w-110 text-leading text-base/80">
