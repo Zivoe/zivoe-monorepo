@@ -149,11 +149,6 @@ function Statistic({
       >
         {metric.status === 'unavailable' ? (loading ? 'Loading…' : 'Unavailable') : format(metric.value)}
       </p>
-      {metric.status === 'stale' && (
-        <p className="text-xs mt-2 leading-relaxed text-primary/75">
-          Stale · last read {metricTime(metric.observedAt)}
-        </p>
-      )}
       <div className="mt-2 text-[0.8125rem] leading-5">{footer}</div>
     </div>
   );

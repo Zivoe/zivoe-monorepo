@@ -67,9 +67,9 @@ async function UserMenuWrapper() {
 
 function DesktopNavigation() {
   return (
-    <div className="hidden gap-6 lg:flex">
+    <nav aria-label="Main navigation" className="hidden gap-6 lg:flex">
       <NavigationItems />
-    </div>
+    </nav>
   );
 }
 
@@ -81,7 +81,9 @@ function MobileNavigation() {
       </Button>
 
       <NavigationMobileDialog>
-        <NavigationItems />
+        <nav aria-label="Main navigation" className="grid w-[min(20rem,calc(100vw-2rem))] gap-3 py-4">
+          <NavigationItems mobile />
+        </nav>
       </NavigationMobileDialog>
     </Dialog>
   );

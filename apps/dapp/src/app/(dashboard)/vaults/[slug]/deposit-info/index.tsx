@@ -20,13 +20,16 @@ export default function DepositInfo({ zivoeVault }: { zivoeVault: ZivoeVault }) 
       <DepositChartsComponent shareClassKey={zivoeVault.shareClass.key} />
       <DiamondSeparator />
 
-      <DepositStatsComponent shareClassKey={zivoeVault.shareClass.key} targetApyPercent={zivoeVault.targetApyPercent} />
+      <div className="flex flex-col gap-8">
+        <DepositStatsComponent
+          shareClassKey={zivoeVault.shareClass.key}
+          targetApyPercent={zivoeVault.targetApyPercent}
+        />
+        <DepositHighlights />
+      </div>
       <DiamondSeparator />
 
       <DepositAbout paragraphs={zivoeVault.about} />
-      <DiamondSeparator />
-
-      <DepositHighlights />
       <DiamondSeparator />
 
       <DepositDetails zivoeVault={zivoeVault} />

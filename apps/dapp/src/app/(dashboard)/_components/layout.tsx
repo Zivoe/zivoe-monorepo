@@ -14,10 +14,10 @@ import { OverlayTriggerStateContext } from 'react-aria-components';
 import { toast } from 'sonner';
 
 import { Button } from '@zivoe/ui/core/button';
-import { Link } from '@zivoe/ui/core/link';
+import { Link, NextLink } from '@zivoe/ui/core/link';
 import { Popover, PopoverTrigger } from '@zivoe/ui/core/popover';
 import { Separator } from '@zivoe/ui/core/separator';
-import { LogoutIcon } from '@zivoe/ui/icons';
+import { ArrowRightIcon, LogoutIcon, ZSmbLogo } from '@zivoe/ui/icons';
 import { tv } from '@zivoe/ui/lib/tw-utils';
 
 import { signOutAction } from '@/server/actions/auth';
@@ -27,39 +27,76 @@ import { handlePromise, truncateAddress } from '@/lib/utils';
 import { useAccount } from '@/hooks/useAccount';
 
 import ConnectedAccount from '@/components/connected-account';
+import { LighthouseMark } from '@/components/lighthouse-mark';
 
-export function NavigationItems() {
+export function NavigationItems({ mobile = false }: { mobile?: boolean }) {
   const pathName = usePathname() ?? '';
   const state = React.useContext(OverlayTriggerStateContext);
 
   return (
     <>
-      {NAVIGATION_ITEMS.map(({ href, title, target, isDisabled }) => {
+      {NAVIGATION_ITEMS.map(({ href, title, target, description, Icon }) => {
         const isCurrent = pathName === href;
 
+        if (!mobile) {
+          return (
+            <Link
+              key={title}
+              variant="nav"
+              size="l"
+              className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
+              href={href}
+              target={target}
+              aria-current={isCurrent}
+            >
+              {title}
+            </Link>
+          );
+        }
+
         return (
-          <Link
+          <NextLink
             key={title}
-            variant="nav"
-            size="l"
-            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
+            className="group flex shrink-0 items-center gap-3 rounded-lg border border-primary-300/25 bg-surface-base/[0.06] p-4 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-primary-300/50 hover:bg-surface-base/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-300"
             href={href}
             target={target}
-            aria-current={isCurrent}
-            isDisabled={isDisabled}
-            onPress={() => state?.close()}
+            aria-current={isCurrent ? 'page' : undefined}
+            onClick={() => state?.close()}
           >
-            {title}
-          </Link>
+            <span aria-hidden="true" className="flex shrink-0">
+              <Icon className="size-8" />
+            </span>
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="font-heading text-[1.125rem] leading-6">{title}</span>
+              <span className="text-[0.75rem] leading-4 text-primary-300">{description}</span>
+            </span>
+            <ArrowRightIcon
+              aria-hidden="true"
+              className="ml-auto size-4 shrink-0 text-primary-300 transition-transform motion-safe:group-hover:translate-x-1"
+            />
+            {target === '_blank' && <span className="sr-only">(opens in a new tab)</span>}
+          </NextLink>
         );
       })}
     </>
   );
 }
 
-const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: '_blank'; isDisabled?: boolean }> = [
-  { title: 'Vaults', href: '/' },
-  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/', target: '_blank' }
+const NAVIGATION_ITEMS = [
+  {
+    title: 'Vaults',
+    href: '/',
+    target: '_self',
+    description: 'View zSMB Zivoe Credit',
+    Icon: ZSmbLogo
+  },
+  {
+    title: 'Lighthouse',
+    href: 'https://lighthouse.zivoe.com/',
+    target: '_blank',
+    description: 'View Transparency Dashboard',
+    Icon: LighthouseMark
+  }
 ];
 
 export function Wallet() {
