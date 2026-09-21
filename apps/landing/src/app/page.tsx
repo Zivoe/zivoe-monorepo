@@ -4,6 +4,10 @@ import { JsonLd, SITE_DESCRIPTION, SITE_IMAGE, SITE_ORIGIN, SITE_TITLE, ZIVOE_SO
 
 import Home from './home';
 
+// The hero's live zSMB figures come from a 60-second server cache (server/centrifuge.ts);
+// the page regenerates on the same cadence so visitors never wait on the indexer.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   alternates: {
     canonical: '/'
