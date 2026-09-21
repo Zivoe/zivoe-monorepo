@@ -1,14 +1,11 @@
-import { env } from '@/env';
-
 /**
  * Lighthouse has no sign-in of its own. It lets a visitor in only with a pass, a signed cookie the
  * dapp issues to signed-in, onboarded users (server/utils/lighthouse-pass.ts). Lighthouse sends
  * everyone else to `/api/lighthouse/pass?next=<lighthouse url>`, and `next` rides along through
  * sign-in and onboarding until that route can issue the pass and return the visitor.
- * Outside production, run Lighthouse on port 3100: localhost cookies are shared across ports.
+ * Every link out and every redirect goes to production Lighthouse, whatever environment the dapp runs in.
  */
-export const LIGHTHOUSE_URL =
-  env.NEXT_PUBLIC_ENV === 'production' ? 'https://lighthouse.zivoe.com' : 'http://localhost:3100';
+export const LIGHTHOUSE_URL = 'https://lighthouse.zivoe.com';
 
 /**
  * The Lighthouse page to return to after sign-in and onboarding, or undefined when `next` is not one, so `next`

@@ -15,7 +15,7 @@ import { getUserMenuData } from '@/server/data/auth';
 import ChainalysisAssessmentDialog from '@/app/(dashboard)/_components/chainalysis-assessment-dialog';
 import Footer from '@/app/(dashboard)/_components/footer';
 
-import { NavigationItems, UserMenu, Wallet } from './_components/layout';
+import { MobileNavigationItems, NavigationItems, UserMenu, Wallet } from './_components/layout';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -67,9 +67,9 @@ async function UserMenuWrapper() {
 
 function DesktopNavigation() {
   return (
-    <div className="hidden gap-6 lg:flex">
+    <nav aria-label="Main navigation" className="hidden gap-6 lg:flex">
       <NavigationItems />
-    </div>
+    </nav>
   );
 }
 
@@ -81,7 +81,9 @@ function MobileNavigation() {
       </Button>
 
       <NavigationMobileDialog>
-        <NavigationItems />
+        <nav aria-label="Main navigation" className="grid w-80 max-w-full gap-3">
+          <MobileNavigationItems />
+        </nav>
       </NavigationMobileDialog>
     </Dialog>
   );

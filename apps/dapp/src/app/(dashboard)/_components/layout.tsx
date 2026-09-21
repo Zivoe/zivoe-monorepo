@@ -10,56 +10,84 @@ import { WalletIcon } from '@dynamic-labs/wallet-book';
 import * as Sentry from '@sentry/nextjs';
 import { usePostHog } from 'posthog-js/react';
 import * as Aria from 'react-aria-components';
-import { OverlayTriggerStateContext } from 'react-aria-components';
 import { toast } from 'sonner';
 
+import { NavigationMobileLink } from '@zivoe/ui/components/navigation-mobile-link';
 import { Button } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Popover, PopoverTrigger } from '@zivoe/ui/core/popover';
 import { Separator } from '@zivoe/ui/core/separator';
-import { LogoutIcon } from '@zivoe/ui/icons';
+import { LogoutIcon, ZSmbLogo } from '@zivoe/ui/icons';
 import { tv } from '@zivoe/ui/lib/tw-utils';
 
 import { signOutAction } from '@/server/actions/auth';
 
+import { LIGHTHOUSE_URL } from '@/lib/lighthouse';
 import { handlePromise, truncateAddress } from '@/lib/utils';
 
 import { useAccount } from '@/hooks/useAccount';
 
 import ConnectedAccount from '@/components/connected-account';
+import { LighthouseMark } from '@/components/lighthouse-mark';
 
 export function NavigationItems() {
   const pathName = usePathname() ?? '';
-  const state = React.useContext(OverlayTriggerStateContext);
 
   return (
     <>
-      {NAVIGATION_ITEMS.map(({ href, title, target, isDisabled }) => {
-        const isCurrent = pathName === href;
-
-        return (
-          <Link
-            key={title}
-            variant="nav"
-            size="l"
-            className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
-            href={href}
-            target={target}
-            aria-current={isCurrent}
-            isDisabled={isDisabled}
-            onPress={() => state?.close()}
-          >
-            {title}
-          </Link>
-        );
-      })}
+      {NAVIGATION_ITEMS.map(({ href, title, target }) => (
+        <Link
+          key={title}
+          variant="nav"
+          size="l"
+          className="h-14 text-base hover:shadow-secondary lg:text-primary lg:hover:shadow-active current:shadow-secondary lg:current:shadow-active"
+          href={href}
+          target={target}
+          aria-current={pathName === href ? 'page' : undefined}
+        >
+          {title}
+        </Link>
+      ))}
     </>
   );
 }
 
-const NAVIGATION_ITEMS: Array<{ href: string; title: string; target?: '_blank'; isDisabled?: boolean }> = [
-  { title: 'Vaults', href: '/' },
-  { title: 'Lighthouse', href: 'https://lighthouse.zivoe.com/liquidity', target: '_blank' }
+/** The mobile menu's items: one card per destination, with its product mark and a line on what is behind it. */
+export function MobileNavigationItems() {
+  const pathName = usePathname() ?? '';
+
+  return (
+    <>
+      {NAVIGATION_ITEMS.map(({ href, title, description, target, Icon }) => (
+        <NavigationMobileLink
+          key={title}
+          href={href}
+          target={target}
+          title={title}
+          description={description}
+          icon={<Icon />}
+          isCurrent={pathName === href}
+        />
+      ))}
+    </>
+  );
+}
+
+const NAVIGATION_ITEMS: Array<{
+  title: string;
+  href: string;
+  description: string;
+  Icon: React.ComponentType;
+  target?: '_blank';
+}> = [
+  { title: 'Vaults', href: '/', description: 'View Zivoe SMB Credit (zSMB)', Icon: ZSmbLogo },
+  {
+    title: 'Lighthouse',
+    href: `${LIGHTHOUSE_URL}/`,
+    description: 'View the transparency dashboard',
+    Icon: LighthouseMark,
+    target: '_blank'
+  }
 ];
 
 export function Wallet() {
