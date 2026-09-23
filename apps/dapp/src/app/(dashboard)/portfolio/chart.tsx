@@ -6,10 +6,48 @@ import { formatUnits } from 'viem';
 import { Button } from '@zivoe/ui/core/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
 import { ZSmbLogo } from '@zivoe/ui/icons';
+import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { HISTORY_RANGES, type HistoryRange, type WalletHistory, selectHistory } from '@/portfolio/history';
 
-import { Card, dateLabel, money } from './common';
+import { Card, dateLabel } from './common';
+
+const balanceDollars = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+const balanceTooltipDollars = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4
+});
+const balanceAxisDollars = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  notation: 'compact',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+const balanceMoney = (value: bigint | null, formatter = balanceDollars) =>
+  value === null ? '—' : formatter.format(Number(formatUnits(value, 18)));
+const rangeLabels: Record<HistoryRange, string> = {
+  '7D': 'over the past 7 days',
+  '30D': 'over the past 30 days',
+  '90D': 'over the past 90 days',
+  '1Y': 'over the past year',
+  All: 'all time'
+};
+
+function walletValueDomain([min, max]: [number, number]): [number, number] {
+  // The observed range fills 70% of the plot, leaving 15% above and below.
+  // A flat history is centered in a nonzero domain instead.
+  const spread = max - min;
+  const padding = spread > 0 ? (spread * 0.15) / 0.7 : Math.max(Math.abs(min) * 0.05, 0.01);
+  return [min - padding, max + padding];
+}
 
 export function WalletChart({
   history,
@@ -32,20 +70,29 @@ export function WalletChart({
   }));
   const known = data.filter((point) => point.value !== null);
   const current = data.at(-1)?.valueD18 ?? null;
+  const change = selected.changeD18;
   return (
     <Card
-      title="Wallet"
+      title="zSMB Balance"
+      titleIcon={<ZSmbLogo aria-hidden="true" focusable="false" className="size-6 shrink-0" />}
       className="order-1"
-      extra={
-        <span className="inline-flex items-center gap-2 text-small font-medium text-primary">
-          <ZSmbLogo aria-hidden="true" focusable="false" className="size-5 shrink-0" />
-          zSMB
-        </span>
-      }
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-heading! text-h4 text-primary">{money(current)}</p>
+          <p className="font-heading! text-h4 text-primary">{balanceMoney(current)}</p>
+          <p className="mt-2 text-small text-secondary" aria-live="polite">
+            <span
+              className={cn(
+                'font-medium tabular-nums',
+                change !== null && change > 0n && 'text-success',
+                change !== null && change < 0n && 'text-alert'
+              )}
+            >
+              {change !== null && change > 0n ? '+' : ''}
+              {balanceMoney(change)}
+            </span>{' '}
+            {rangeLabels[range]}
+          </p>
         </div>
         <div className="flex gap-1" aria-label="History range">
           {HISTORY_RANGES.map((item) => (
@@ -64,7 +111,7 @@ export function WalletChart({
       {known.length > 1 ? (
         <ChartContainer
           config={{ value: { label: 'Wallet value', color: 'hsl(var(--secondary-700))' } }}
-          className="mt-8 aspect-auto h-64 w-full"
+          className="mt-8 -ml-4 aspect-auto h-64 w-[calc(100%+1rem)]"
         >
           <AreaChart accessibilityLayer data={data} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
@@ -81,14 +128,12 @@ export function WalletChart({
               minTickGap={40}
             />
             <YAxis
+              domain={walletValueDomain}
               tickLine={false}
               axisLine={false}
-              width={58}
-              tickFormatter={(value: number) =>
-                new Intl.NumberFormat('en-US', { notation: 'compact', style: 'currency', currency: 'USD' }).format(
-                  value
-                )
-              }
+              width={56}
+              tickMargin={4}
+              tickFormatter={(value: number) => balanceAxisDollars.format(value)}
             />
             <ChartTooltip
               content={
@@ -96,7 +141,7 @@ export function WalletChart({
                   labelFormatter={(_, payload) =>
                     payload?.[0]?.payload ? dateLabel(payload[0].payload.timestampMs) : ''
                   }
-                  formatter={(value) => money(BigInt(Math.round(Number(value) * 1e6)) * 10n ** 12n)}
+                  formatter={(_, __, item) => balanceMoney(item.payload?.valueD18 ?? null, balanceTooltipDollars)}
                 />
               }
             />

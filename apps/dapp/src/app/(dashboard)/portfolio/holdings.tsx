@@ -30,10 +30,10 @@ function Balances({ row }: { row: AssetHolding }) {
   const stale = row.chains.some((chain) => !chain.complete && chain.availableKnown && chain.requestsKnown);
   return (
     <div className="text-small leading-5 text-secondary tabular-nums">
-      <p>
+      <p className="text-small leading-5">
         {hasAvailable ? (
           <>
-            <span className="font-bold text-primary">{amount(row.available)}</span> {row.asset}
+            <span className="text-primary">{amount(row.available)}</span> {row.asset}
             {availableKnown ? '' : ' (partial)'}
           </>
         ) : (
@@ -41,13 +41,13 @@ function Balances({ row }: { row: AssetHolding }) {
         )}
       </p>
       {row.pending > 0n && (
-        <p className="text-extraSmall text-secondary">
-          <span className="font-bold text-primary">{amount(row.pending)}</span> {row.asset} pending
+        <p className="text-small leading-5 text-secondary">
+          <span className="text-primary">{amount(row.pending)}</span> {row.asset} pending
         </p>
       )}
       {row.claimable > 0n && (
-        <p className="text-extraSmall text-secondary">
-          <span className="font-bold text-primary">{amount(row.claimable)}</span> {row.asset} claimable
+        <p className="text-small leading-5 text-secondary">
+          <span className="text-primary">{amount(row.claimable)}</span> {row.asset} claimable
         </p>
       )}
       {!requestsKnown && <p className="text-extraSmall text-secondary">Requests incomplete · view chains</p>}
@@ -69,7 +69,7 @@ export function Holdings({ model }: { model: PortfolioModel }) {
           </colgroup>
           <thead className="text-extraSmall text-secondary">
             <tr>
-              {['Asset', 'Balance', 'Value'].map((label) => (
+              {['Balance', 'Asset', 'Value'].map((label) => (
                 <th key={label} scope="col" className="px-3 pb-2 text-left font-normal">
                   {label}
                 </th>
@@ -79,6 +79,9 @@ export function Holdings({ model }: { model: PortfolioModel }) {
           <tbody>
             {model.holdings.map((row) => (
               <tr key={row.asset} className="border-t border-default odd:bg-surface-base even:bg-surface-elevated">
+                <td className="px-3 py-2">
+                  <Balances row={row} />
+                </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                     <Asset asset={row.asset} />
@@ -94,10 +97,9 @@ export function Holdings({ model }: { model: PortfolioModel }) {
                     </Button>
                   </div>
                 </td>
-                <td className="px-3 py-2">
-                  <Balances row={row} />
+                <td className="px-3 py-2 text-small leading-5 whitespace-nowrap text-primary tabular-nums">
+                  {money(row.valueD18)}
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap text-primary tabular-nums">{money(row.valueD18)}</td>
               </tr>
             ))}
           </tbody>

@@ -45,7 +45,7 @@ const actions = [
 
 export function QuickActions() {
   return (
-    <Card title="Quick actions" className="order-4">
+    <Card title="Actions" className="order-4">
       <div className="@container">
         <ul role="list" className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
           {actions.map(({ title, description, href, icon, iconBackground, external }) => (
