@@ -35,7 +35,7 @@ export function WalletChart({
   return (
     <Card
       title="Wallet"
-      className="order-2"
+      className="order-1"
       extra={
         <span className="inline-flex items-center gap-2 text-small font-medium text-primary">
           <ZSmbLogo aria-hidden="true" focusable="false" className="size-5 shrink-0" />

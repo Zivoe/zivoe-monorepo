@@ -59,7 +59,7 @@ export function Holdings({ model }: { model: PortfolioModel }) {
   const [selected, setSelected] = useState<string | null>(null);
   const selectedRow = model.holdings.find((row) => row.asset === selected);
   return (
-    <Card title="Holdings" className="order-3">
+    <Card title="Holdings" className="order-2">
       <div className="hidden overflow-x-auto rounded-lg md:block">
         <table className="w-full table-fixed text-left text-small leading-5">
           <colgroup>
@@ -178,7 +178,7 @@ export function Allocation({ model }: { model: PortfolioModel }) {
   const activeHolding = model.holdings.find((row) => row.asset === activeAsset);
   let offset = 0;
   return (
-    <Card title="Allocation" className="order-5">
+    <Card title="Allocation" className="order-3">
       <div className="flex flex-wrap items-center justify-center gap-8">
         <div className="relative size-40 shrink-0">
           <svg

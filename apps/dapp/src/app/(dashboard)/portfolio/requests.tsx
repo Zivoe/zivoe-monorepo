@@ -12,7 +12,7 @@ export function Requests({ model, refresh }: { model: PortfolioModel; refresh: (
   return (
     <Card
       title="Redemptions"
-      className="order-1 lg:order-last"
+      className="order-5 lg:order-last"
       extra={
         <span className="flex items-center gap-2 rounded-full bg-surface-elevated px-3 py-1 text-small text-primary">
           <svg
