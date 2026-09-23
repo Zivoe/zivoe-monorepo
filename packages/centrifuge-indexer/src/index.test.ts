@@ -1139,6 +1139,7 @@ describe('fetchDailyTokenSnapshots', () => {
     fakeIndexerResponse({
       data: {
         tokenSnapshots: {
+          pageInfo: { hasNextPage: false, endCursor: null },
           items: [
             snapshotRow({ timestamp: day2 + 2000, tokenPrice: '1200000000000000000' }),
             snapshotRow({ timestamp: day2 + 1000, tokenPrice: '1100000000000000000' }),
@@ -1176,6 +1177,7 @@ describe('fetchDailyTokenSnapshots', () => {
     fakeIndexerResponse({
       data: {
         tokenSnapshots: {
+          pageInfo: { hasNextPage: false, endCursor: null },
           items: [
             snapshotRow({ timestamp: day2, tokenPrice: '1070000000000000000' }),
             snapshotRow({ timestamp: day1 + 14 * 60 * 60 * 1000, tokenPrice: '1050000000000000000' })
@@ -1205,6 +1207,7 @@ describe('fetchDailyTokenSnapshots', () => {
     fakeIndexerResponse({
       data: {
         tokenSnapshots: {
+          pageInfo: { hasNextPage: false, endCursor: null },
           items: [
             snapshotRow({ timestamp: day3, tokenPrice: '1090000000000000000' }),
             snapshotRow({ timestamp: day2, tokenPrice: '1070000000000000000' }),
@@ -1226,6 +1229,7 @@ describe('fetchDailyTokenSnapshots', () => {
     fakeIndexerResponse({
       data: {
         tokenSnapshots: {
+          pageInfo: { hasNextPage: false, endCursor: null },
           items: [
             snapshotRow({ timestamp: day1 + 2000, tokenPrice: null }),
             snapshotRow({ timestamp: day1 + 1000, tokenPrice: '1050000000000000000' })
@@ -1244,6 +1248,7 @@ describe('fetchDailyTokenSnapshots', () => {
     fakeIndexerResponse({
       data: {
         tokenSnapshots: {
+          pageInfo: { hasNextPage: true, endCursor: 'older' },
           items: Array.from({ length: 1000 }, (_, index) => snapshotRow({ timestamp: day1 + index * DAY_MS }))
         }
       }
