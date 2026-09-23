@@ -48,9 +48,9 @@ function setup() {
   });
 }
 
-it('previews all six wallets and returns to the connected wallet without attributing the user profile to a holder', () => {
+it('previews all six wallets in production builds and returns to the connected wallet without attributing the user profile to a holder', () => {
   setup();
-  vi.stubEnv('NODE_ENV', 'development');
+  vi.stubEnv('NODE_ENV', 'production');
   render(<Portfolio identities={[]} userInfo={<span>Connected user profile</span>} />);
   expect(screen.getByText('Connected user profile')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'My wallet' }).getAttribute('aria-pressed')).toBe('true');
@@ -72,18 +72,18 @@ it('previews all six wallets and returns to the connected wallet without attribu
   expect(screen.getByText('Connected user profile')).toBeTruthy();
 });
 
-it('allows a read-only preview while disconnected and keeps the wallet selector out of production', () => {
+it('allows a read-only preview while disconnected in production builds and returns to the connect prompt', () => {
   setup();
   mocks.account = undefined;
-  vi.stubEnv('NODE_ENV', 'development');
-  const { rerender } = render(<Portfolio identities={[]} userInfo={null} />);
+  vi.stubEnv('NODE_ENV', 'production');
+  render(<Portfolio identities={[]} userInfo={null} />);
   expect(screen.getByRole('button', { name: 'Connect wallet' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: `Preview ${PREVIEW_WALLETS[0]}` }));
   expect(mocks.portfolio).toHaveBeenLastCalledWith([], PREVIEW_WALLETS[0]);
   expect(screen.queryByRole('button', { name: 'Connect wallet' })).toBeNull();
 
-  vi.stubEnv('NODE_ENV', 'production');
-  rerender(<Portfolio identities={[]} userInfo={null} />);
-  expect(screen.queryByRole('group', { name: 'Portfolio wallet preview' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'My wallet' }));
+  expect(screen.getByRole('button', { name: 'My wallet' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByRole('group', { name: 'Portfolio wallet preview' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Connect wallet' })).toBeTruthy();
 });

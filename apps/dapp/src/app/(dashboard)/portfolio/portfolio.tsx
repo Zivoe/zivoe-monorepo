@@ -31,13 +31,11 @@ type Props = { identities: ReadonlyArray<TransactionIdentity>; userInfo: ReactNo
 export default function Portfolio(props: Props) {
   const { address: connectedAddress } = useAccount();
   const [previewAddress, setPreviewAddress] = useState<Address | null>(null);
-  const isPreview = process.env.NODE_ENV === 'development' && previewAddress !== null;
+  const isPreview = previewAddress !== null;
   const address = isPreview ? previewAddress : connectedAddress;
   return (
     <>
-      {process.env.NODE_ENV === 'development' && (
-        <WalletPreview selected={previewAddress} onSelect={setPreviewAddress} />
-      )}
+      <WalletPreview selected={previewAddress} onSelect={setPreviewAddress} />
       {address ? (
         // Remount on account changes: dialogs and local selections belong to the displayed wallet.
         <ConnectedPortfolio key={address.toLowerCase()} {...props} address={address} isPreview={isPreview} />

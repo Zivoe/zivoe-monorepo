@@ -27,7 +27,7 @@ export function WalletPreview({
       <Container className="gap-2 py-3">
         <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1">
           <p className="text-small font-medium text-primary">Preview wallet</p>
-          <p className="text-extraSmall text-secondary">Development only · Vault actions use your connected wallet.</p>
+          <p className="text-extraSmall text-secondary">Read-only view · Vault actions use your connected wallet.</p>
         </div>
         <div role="group" aria-label="Portfolio wallet preview" className="flex flex-wrap gap-2">
           <Button
