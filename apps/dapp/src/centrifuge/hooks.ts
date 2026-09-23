@@ -1,7 +1,7 @@
 'use client';
 
 import { queryOptions, skipToken, useQueries, useQuery } from '@tanstack/react-query';
-import { BaseError, ContractFunctionRevertedError, parseAbi } from 'viem';
+import { type Address, BaseError, ContractFunctionRevertedError, parseAbi } from 'viem';
 import { useConfig, usePublicClient } from 'wagmi';
 import { getPublicClient } from 'wagmi/actions';
 
@@ -187,11 +187,14 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
  * per vault in the given order; the same query as useRedemptionPosition.
  */
 export function useRedemptionPositions({
-  centrifugeVaults
+  centrifugeVaults,
+  accountAddress
 }: {
   centrifugeVaults: ReadonlyArray<TransactedCentrifugeVault>;
+  accountAddress?: Address;
 }) {
-  const { address } = useAccount();
+  const { address: connectedAddress } = useAccount();
+  const address = accountAddress ?? connectedAddress;
   const config = useConfig();
 
   return useQueries({

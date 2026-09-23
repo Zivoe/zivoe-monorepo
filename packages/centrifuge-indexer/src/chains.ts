@@ -231,7 +231,16 @@ export function getChainRpcUrls({
 }): Array<string> {
   const { alchemyNetwork, viem } = CENTRIFUGE_CHAIN_DEPLOYMENTS[chain];
   const alchemyUrl = alchemyKey ? `https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}` : undefined;
-  return [...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http];
+  // The SDK resolves every spoke's vault through the Ethereum hub. Keep an
+  // independent public fallback: Merkle rate limits must not disable reads
+  // on every chain when the dedicated endpoint is unavailable. Base's
+  // default public RPC also rate limits the SDK's vault-resolution reads.
+  const publicFallbacks: Partial<Record<CentrifugeChain, Array<string>>> = {
+    ethereum: ['https://ethereum-rpc.publicnode.com'],
+    base: ['https://base-rpc.publicnode.com']
+  };
+  const extraUrls = publicFallbacks[chain] ?? [];
+  return [...new Set([...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http, ...extraUrls])];
 }
 
 /** The environment's chains in canonical (CENTRIFUGE_CHAINS) order. */

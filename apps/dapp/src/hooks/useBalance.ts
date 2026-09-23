@@ -71,10 +71,20 @@ export type TokenOnChain = { chain: CentrifugeChain; tokenAddress: Address };
  * failed), so callers treat "unknown" as nothing to sort by, not as zero.
  */
 export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: TokenOnChain) => bigint | undefined {
-  const { address: holder } = useAccount();
-  const config = useConfig();
+  const results = useTokenBalanceQueries(tokens);
 
-  const results = useQueries({
+  const balances = new Map(
+    tokens.map(({ chain, tokenAddress }, index) => [balanceKey({ chain, tokenAddress }), results[index]?.data])
+  );
+  return (token) => balances.get(balanceKey(token));
+}
+
+/** Full read states for surfaces that must distinguish zero, unknown and stale balances. */
+export function useTokenBalanceQueries(tokens: ReadonlyArray<TokenOnChain>, accountAddress?: Address) {
+  const { address: connectedAddress } = useAccount();
+  const holder = accountAddress ?? connectedAddress;
+  const config = useConfig();
+  return useQueries({
     queries: tokens.map(({ chain, tokenAddress }) =>
       balanceQueryOptions({
         chain,
@@ -85,11 +95,6 @@ export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: T
       })
     )
   });
-
-  const balances = new Map(
-    tokens.map(({ chain, tokenAddress }, index) => [balanceKey({ chain, tokenAddress }), results[index]?.data])
-  );
-  return (token) => balances.get(balanceKey(token));
 }
 
 function balanceKey({ chain, tokenAddress }: TokenOnChain): string {
