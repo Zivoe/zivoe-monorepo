@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(['development', 'test', 'production']),
+    PERENA_DEMO_ENABLED: z.enum(['true', 'false']).default('false'),
     QSTASH_URL: z.string().url().optional(),
     QSTASH_TOKEN: z.string(),
     QSTASH_CURRENT_SIGNING_KEY: z.string(),
@@ -64,6 +65,7 @@ export const env = createEnv({
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    PERENA_DEMO_ENABLED: process.env.PERENA_DEMO_ENABLED ?? 'false',
     NEXT_PUBLIC_CHAIN_ENV: process.env.NEXT_PUBLIC_CHAIN_ENV,
     NEXT_PUBLIC_MAINNET_ALCHEMY_KEY: process.env.NEXT_PUBLIC_MAINNET_ALCHEMY_KEY,
     NEXT_PUBLIC_TESTNET_ALCHEMY_KEY: process.env.NEXT_PUBLIC_TESTNET_ALCHEMY_KEY,

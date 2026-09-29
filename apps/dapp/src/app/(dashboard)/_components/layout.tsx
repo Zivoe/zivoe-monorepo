@@ -30,6 +30,8 @@ import { useAccount } from '@/hooks/useAccount';
 import ConnectedAccount from '@/components/connected-account';
 import { LighthouseMark } from '@/components/lighthouse-mark';
 
+import { PERENA_DEMO_PATH } from '@/prototypes/perena/config';
+
 export function NavigationItems() {
   const pathName = usePathname() ?? '';
 
@@ -91,6 +93,16 @@ const NAVIGATION_ITEMS: Array<{
 ];
 
 export function Wallet() {
+  const pathname = usePathname();
+  if (pathname === PERENA_DEMO_PATH) {
+    return (
+      <span className="rounded-full bg-element-primary-light px-4 py-2 text-small font-medium text-brand">Demo</span>
+    );
+  }
+  return <RealWallet />;
+}
+
+function RealWallet() {
   const { setShowDynamicUserProfile, primaryWallet } = useDynamicContext();
   const { address } = useAccount();
 

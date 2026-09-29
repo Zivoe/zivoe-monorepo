@@ -2,7 +2,24 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { getSessionCookie } from 'better-auth/cookies';
 
+import { PERENA_DEMO_PATH } from '@/prototypes/perena/config';
+import { isPerenaDemoAllowed } from '@/prototypes/perena/gate';
+
 export function proxy(request: NextRequest) {
+  // Refuse before layouts can stream: notFound() inside a streamed page can have HTTP 200.
+  if (
+    request.nextUrl.pathname.replace(/\/$/, '') === PERENA_DEMO_PATH &&
+    !isPerenaDemoAllowed({
+      enabled: process.env.PERENA_DEMO_ENABLED,
+      nodeEnv: process.env.NODE_ENV,
+      publicEnv: process.env.NEXT_PUBLIC_ENV,
+      vercel: process.env.VERCEL,
+      vercelEnv: process.env.VERCEL_ENV
+    })
+  ) {
+    return new NextResponse('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {

@@ -1,5 +1,11 @@
+import { Suspense } from 'react';
+
+import { connection } from 'next/server';
+
 import Page from '@/components/page';
 
+import { PerenaDemoCard } from '@/prototypes/perena/card';
+import { isPerenaDemoEnabled } from '@/prototypes/perena/enabled';
 import { ZIVOE_VAULTS } from '@/zivoe-vaults';
 
 import { OnboardingGuard } from './_components/onboarding-guard';
@@ -28,9 +34,18 @@ export default async function HomePage() {
                 nav={cardNavs[zivoeVault.shareClass.key] ?? null}
               />
             ))}
+            <Suspense fallback={null}>
+              <DemoCardSlot />
+            </Suspense>
           </div>
         </Page>
       </div>
     </>
   );
+}
+
+async function DemoCardSlot() {
+  // Never bake preview-only visibility into the prerendered vault grid.
+  await connection();
+  return isPerenaDemoEnabled() ? <PerenaDemoCard /> : null;
 }
