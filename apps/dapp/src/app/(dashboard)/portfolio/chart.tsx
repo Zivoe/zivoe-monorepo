@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { formatUnits } from 'viem';
@@ -10,6 +10,7 @@ import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { HISTORY_RANGES, type HistoryRange, type WalletHistory, selectHistory } from '@/portfolio/history';
 
+import { walletValueAxis } from './chart-axis';
 import { Card, dateLabel } from './common';
 
 const balanceDollars = new Intl.NumberFormat('en-US', {
@@ -24,13 +25,6 @@ const balanceTooltipDollars = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 4,
   maximumFractionDigits: 4
 });
-const balanceAxisDollars = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  notation: 'compact',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-});
 const balanceMoney = (value: bigint | null, formatter = balanceDollars) =>
   value === null ? '—' : formatter.format(Number(formatUnits(value, 18)));
 const rangeLabels: Record<HistoryRange, string> = {
@@ -41,12 +35,44 @@ const rangeLabels: Record<HistoryRange, string> = {
   All: 'all time'
 };
 
-function walletValueDomain([min, max]: [number, number]): [number, number] {
-  // The observed range fills 70% of the plot, leaving 15% above and below.
-  // A flat history is centered in a nonzero domain instead.
-  const spread = max - min;
-  const padding = spread > 0 ? (spread * 0.15) / 0.7 : Math.max(Math.abs(min) * 0.05, 0.01);
-  return [min - padding, max + padding];
+function useAxisWidth(labels: Array<string>) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const key = labels.join('\0');
+  const estimate = Math.max(0, ...labels.map((label) => label.length * 8)) + 20;
+  const [measured, setMeasured] = useState<{ key: string; width: number }>();
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const context = document.createElement('canvas').getContext('2d');
+    if (!chart || !context) return;
+    let active = true;
+    const measure = () => {
+      if (!active) return;
+      const tick = chart.querySelector('.recharts-yAxis .recharts-cartesian-axis-tick-value');
+      const style = getComputedStyle(tick ?? chart);
+      context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const letterSpacing = parseFloat(style.letterSpacing) || 0;
+      const width =
+        Math.ceil(
+          Math.max(0, ...labels.map((label) => context.measureText(label).width + label.length * letterSpacing))
+        ) + 20;
+      setMeasured((previous) => (previous?.key === key && previous.width === width ? previous : { key, width }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(chart);
+    window.addEventListener('resize', measure);
+    void document.fonts?.ready.then(measure);
+    document.fonts?.addEventListener('loadingdone', measure);
+    return () => {
+      active = false;
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+      document.fonts?.removeEventListener('loadingdone', measure);
+    };
+  }, [key, labels]);
+
+  return { chartRef, width: measured?.key === key ? measured.width : estimate };
 }
 
 export function WalletChart({
@@ -63,11 +89,17 @@ export function WalletChart({
   refresh: () => void;
 }) {
   const [range, setRange] = useState<HistoryRange>('30D');
-  const selected = selectHistory(history, range, nowMs);
-  const data = selected.points.map((point) => ({
-    ...point,
-    value: point.valueD18 === null ? null : Number(formatUnits(point.valueD18, 18))
-  }));
+  const selected = useMemo(() => selectHistory(history, range, nowMs), [history, range, nowMs]);
+  const data = useMemo(
+    () =>
+      selected.points.map((point) => ({
+        ...point,
+        value: point.valueD18 === null ? null : Number(formatUnits(point.valueD18, 18))
+      })),
+    [selected.points]
+  );
+  const axis = useMemo(() => walletValueAxis(data.map((point) => point.value)), [data]);
+  const { chartRef, width: axisWidth } = useAxisWidth(axis.labels);
   const known = data.filter((point) => point.value !== null);
   const current = data.at(-1)?.valueD18 ?? null;
   const change = selected.changeD18;
@@ -110,11 +142,12 @@ export function WalletChart({
       </div>
       {known.length > 1 ? (
         <ChartContainer
+          ref={chartRef}
           config={{ value: { label: 'Wallet value', color: 'hsl(var(--secondary-700))' } }}
-          className="mt-8 -ml-4 aspect-auto h-64 w-[calc(100%+1rem)]"
+          className="mt-8 aspect-auto h-64 w-full"
         >
           <AreaChart accessibilityLayer data={data} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} horizontalValues={axis.ticks} syncWithTicks />
             <XAxis
               dataKey="timestampMs"
               type="number"
@@ -128,12 +161,15 @@ export function WalletChart({
               minTickGap={40}
             />
             <YAxis
-              domain={walletValueDomain}
-              tickLine={false}
+              domain={axis.domain}
+              ticks={axis.ticks}
+              interval={0}
+              tickLine={{ stroke: 'hsl(var(--neutral-300))' }}
+              tickSize={4}
               axisLine={false}
-              width={56}
-              tickMargin={4}
-              tickFormatter={(value: number) => balanceAxisDollars.format(value)}
+              width={axisWidth}
+              tickMargin={8}
+              tickFormatter={axis.formatTick}
             />
             <ChartTooltip
               content={

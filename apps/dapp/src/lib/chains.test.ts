@@ -2,6 +2,20 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { getChainId, waitForRpcCatchup } from './chains';
 
+it('adds the configured Pharos backup without routing another chain to it', async () => {
+  const url = 'https://pharos-backup.example';
+  vi.stubEnv('NEXT_PUBLIC_PHAROS_RPC_FALLBACK_URL', url);
+  vi.resetModules();
+  try {
+    const { getChainRpcUrls } = await import('./chains');
+    expect(getChainRpcUrls('pharos')).toContain(url);
+    expect(getChainRpcUrls('ethereum')).not.toContain(url);
+  } finally {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  }
+});
+
 describe('waitForRpcCatchup', () => {
   const receiptBlock = 10n;
 

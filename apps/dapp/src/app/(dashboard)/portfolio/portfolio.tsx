@@ -22,7 +22,7 @@ import { usePortfolio } from '@/portfolio/use-portfolio';
 import { Activity } from './activity';
 import { WalletChart } from './chart';
 import { money } from './common';
-import { Allocation, Holdings } from './holdings';
+import { Holdings } from './holdings';
 import { QuickActions } from './quick-actions';
 import { Requests } from './requests';
 import { WalletPreview } from './wallet-preview';
@@ -136,15 +136,21 @@ function ConnectedPortfolio({
               error={historyQuery.isError}
               refresh={refresh}
             />
-            <Holdings model={model} />
             <QuickActions />
+            <Holdings model={model} />
           </div>
           <div className="contents lg:col-span-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-            <Allocation model={model} />
             <Activity identities={identities} accountAddress={address} />
             <Requests model={model} refresh={refresh} />
           </div>
         </div>
+        <p className="w-full text-extraSmall leading-relaxed text-secondary italic">
+          Portfolio values are estimates based on each vault&apos;s most recent net asset value and may not reflect the
+          amount received on redemption. Displayed performance may not cover the full holding period for positions
+          migrated from earlier vault structures, and returns may be lower while a vault is deploying capital.
+          Redemptions are processed subject to each vault&apos;s available liquidity. Past performance is not indicative
+          of future results.
+        </p>
       </Page>
     </div>
   );

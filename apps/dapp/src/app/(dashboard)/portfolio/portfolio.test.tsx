@@ -24,7 +24,7 @@ vi.mock('@/components/connected-account', () => ({ default: () => <button>Connec
 vi.mock('@/components/hero/asset', () => ({ HeroAsset: () => null }));
 vi.mock('@/components/zivoe-vault-icons', () => ({ TokenIconStack: () => null }));
 vi.mock('./chart', () => ({ WalletChart: () => null }));
-vi.mock('./holdings', () => ({ Holdings: () => null, Allocation: () => null }));
+vi.mock('./holdings', () => ({ Holdings: () => null }));
 vi.mock('./requests', () => ({ Requests: () => null }));
 vi.mock('./quick-actions', () => ({ QuickActions: () => null }));
 vi.mock('./activity', () => ({

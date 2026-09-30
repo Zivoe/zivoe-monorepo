@@ -219,28 +219,42 @@ export function getChainId(chain: CentrifugeChain): number {
 
 /**
  * Ordered RPC URLs for one chain: the dedicated Alchemy endpoint first (when
- * the chain environment's key is given), then the chain's viem public
- * defaults as failover — so an Alchemy incident degrades to public RPCs.
+ * the chain environment's key is given), then viem defaults, optional
+ * additional providers and verified public backups.
  */
 export function getChainRpcUrls({
   chain,
-  alchemyKey
+  alchemyKey,
+  additionalRpcUrls = []
 }: {
   chain: CentrifugeChain;
   alchemyKey: string | undefined;
+  additionalRpcUrls?: Array<string>;
 }): Array<string> {
   const { alchemyNetwork, viem } = CENTRIFUGE_CHAIN_DEPLOYMENTS[chain];
   const alchemyUrl = alchemyKey ? `https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}` : undefined;
-  // The SDK resolves every spoke's vault through the Ethereum hub. Keep an
-  // independent public fallback: Merkle rate limits must not disable reads
-  // on every chain when the dedicated endpoint is unavailable. Base's
-  // default public RPC also rate limits the SDK's vault-resolution reads.
-  const publicFallbacks: Partial<Record<CentrifugeChain, Array<string>>> = {
+  // Keep this exhaustive so adding a chain requires reviewing its fallback.
+  // These URLs are shared by wagmi, the SDK and server contract readers.
+  // Pharos's dRPC endpoint cannot serve uncapped balance reads, so keep it
+  // out and allow a compatible additional provider to be configured instead.
+  const publicFallbacks: Record<CentrifugeChain, Array<string>> = {
     ethereum: ['https://ethereum-rpc.publicnode.com'],
-    base: ['https://base-rpc.publicnode.com']
+    pharos: [],
+    base: ['https://base-rpc.publicnode.com'],
+    arbitrum: ['https://arbitrum-one-rpc.publicnode.com'],
+    avalanche: ['https://avalanche-c-chain-rpc.publicnode.com'],
+    optimism: ['https://optimism-rpc.publicnode.com'],
+    hyperliquid: ['https://hyperliquid.drpc.org'],
+    xlayer: ['https://rpc.xlayer.tech', 'https://xlayer.drpc.org'],
+    bnb: ['https://bsc-rpc.publicnode.com'],
+    monad: ['https://rpc2.monad.xyz'],
+    sepolia: ['https://ethereum-sepolia-rpc.publicnode.com'],
+    'base-sepolia': ['https://base-sepolia-rpc.publicnode.com']
   };
-  const extraUrls = publicFallbacks[chain] ?? [];
-  return [...new Set([...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http, ...extraUrls])];
+  const extraUrls = publicFallbacks[chain];
+  return [
+    ...new Set([...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http, ...additionalRpcUrls, ...extraUrls])
+  ];
 }
 
 /** The environment's chains in canonical (CENTRIFUGE_CHAINS) order. */

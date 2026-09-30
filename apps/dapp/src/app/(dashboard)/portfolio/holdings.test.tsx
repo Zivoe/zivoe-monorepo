@@ -5,7 +5,7 @@ import { afterEach, expect, it } from 'vitest';
 import { buildPortfolio, portfolioTokens, positionKey, tokenKey } from '@/portfolio/model';
 import { FIXTURE_IDENTITY, identityOnChain } from '@/test/fixtures';
 
-import { Allocation, Holdings } from './holdings';
+import { Holdings } from './holdings';
 
 afterEach(cleanup);
 
@@ -24,19 +24,16 @@ it('shows known wallet balances when requests fail without inventing totals or a
     positions: new Map(),
     sharePrice: { data: 10n ** 18n, isError: false, isPending: false }
   });
-  render(
-    <>
-      <Holdings model={data} />
-      <Allocation model={data} />
-    </>
-  );
+  render(<Holdings model={data} />);
   const table = within(screen.getByRole('table'));
   expect(table.getByText((_, node) => node?.tagName === 'P' && node.textContent === '12 zSMB (partial)')).toBeTruthy();
   expect(table.getByText((_, node) => node?.tagName === 'P' && node.textContent === '12 USDC (partial)')).toBeTruthy();
   expect(table.getAllByText('Requests incomplete · view chains')).toHaveLength(2);
   expect(data.totalD18).toBeNull();
   expect(data.holdings.every((row) => row.sharePercent === null)).toBe(true);
-  expect(screen.getByRole('img', { name: 'Allocation unavailable until all balances load' })).toBeTruthy();
+  expect(screen.getByRole('img', { name: 'Distribution unavailable until all balances load' })).toBeTruthy();
+  expect(within(screen.getByRole('region', { name: 'Tokens' })).getByRole('img')).toBeTruthy();
+  expect(screen.queryByRole('region', { name: 'Distribution' })).toBeNull();
 });
 
 function allocationModel(stablecoinBalance = 10n) {
@@ -74,43 +71,50 @@ function allocationModel(stablecoinBalance = 10n) {
   });
 }
 
-it('links chart hover and legend hover, and restores all assets when the pointer leaves', () => {
-  render(<Allocation model={allocationModel()} />);
-  const chart = screen.getByRole('img', { name: /Portfolio allocation/ });
+it('links the integrated chart to token rows and restores all assets when the pointer leaves', () => {
+  render(<Holdings model={allocationModel()} />);
+  const chart = screen.getByRole('img', { name: /Portfolio distribution/ });
+  const center = within(chart.parentElement!);
+  const table = within(screen.getByRole('table'));
   const usdc = chart.querySelector('[data-asset="USDC"]')!;
   const zsmb = chart.querySelector('[data-asset="zSMB"]')!;
-  const usdcButton = screen.getByRole('button', { name: 'Highlight USDC allocation: $10.00' });
-  const zsmbButton = screen.getByRole('button', { name: 'Highlight zSMB allocation: $20.00' });
+  const usdcRow = table.getByRole('button', { name: 'View USDC chains' }).closest('tr')!;
+  const zsmbRow = table.getByRole('button', { name: 'View zSMB chains' }).closest('tr')!;
 
   fireEvent.mouseEnter(usdc);
   expect(usdc.getAttribute('opacity')).toBe('1');
   expect(zsmb.getAttribute('opacity')).toBe('0.2');
-  expect(zsmbButton.className).toContain('opacity-40');
-  expect(screen.getByText('$10.00')).toBeTruthy();
+  expect(zsmbRow.className).toContain('opacity-40');
+  expect(center.getByText('$10.00')).toBeTruthy();
 
   fireEvent.mouseLeave(usdc);
   expect(zsmb.getAttribute('opacity')).toBe('1');
-  expect(screen.getByText('Total value')).toBeTruthy();
+  expect(center.getByText('Total value')).toBeTruthy();
 
-  fireEvent.mouseEnter(zsmbButton);
+  fireEvent.mouseEnter(zsmbRow);
   expect(usdc.getAttribute('opacity')).toBe('0.2');
   expect(zsmb.getAttribute('stroke-width')).toBe('18');
-  expect(usdcButton.className).toContain('opacity-40');
-  fireEvent.mouseLeave(zsmbButton);
+  expect(usdcRow.className).toContain('opacity-40');
+  fireEvent.mouseLeave(zsmbRow);
   expect(usdc.getAttribute('opacity')).toBe('1');
+  expect(screen.queryByRole('button', { name: /Highlight .* distribution/ })).toBeNull();
 });
 
-it('supports keyboard focus and a single-asset allocation without empty interactive segments', () => {
-  render(<Allocation model={allocationModel(0n)} />);
-  const chart = screen.getByRole('img', { name: /Portfolio allocation/ });
+it('supports keyboard focus through token rows and a single asset without empty chart segments', () => {
+  render(<Holdings model={allocationModel(0n)} />);
+  const chart = screen.getByRole('img', { name: /Portfolio distribution/ });
+  const center = within(chart.parentElement!);
+  const table = within(screen.getByRole('table'));
   expect(chart.querySelectorAll('[data-asset]')).toHaveLength(1);
   const zsmb = chart.querySelector('[data-asset="zSMB"]')!;
   expect(zsmb.getAttribute('d')?.match(/A48/g)).toHaveLength(2);
-  const button = screen.getByRole('button', { name: 'Highlight zSMB allocation: $20.00' });
+  const button = table.getByRole('button', { name: 'View zSMB chains' });
   act(() => button.focus());
   expect(zsmb.getAttribute('stroke-width')).toBe('18');
-  expect(screen.queryByText('Total value')).toBeNull();
+  expect(center.queryByText('Total value')).toBeNull();
   act(() => button.blur());
-  expect(screen.getByText('Total value')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Highlight USDC allocation: $0.00' }).hasAttribute('disabled')).toBe(true);
+  expect(center.getByText('Total value')).toBeTruthy();
+  act(() => table.getByRole('button', { name: 'View USDC chains' }).focus());
+  expect(zsmb.getAttribute('stroke-width')).toBe('15');
+  expect(center.getByText('Total value')).toBeTruthy();
 });
