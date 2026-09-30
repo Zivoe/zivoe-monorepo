@@ -157,7 +157,19 @@ async function verifyEnvironment(environment: CentrifugeEnvironment): Promise<nu
   const centrifuge = new Centrifuge({
     environment,
     indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
-    rpcUrls: Object.fromEntries(chains.map((chain) => [getChainId(chain), getChainRpcUrls({ chain, alchemyKey })])),
+    rpcUrls: Object.fromEntries(
+      chains.map((chain) => [
+        getChainId(chain),
+        getChainRpcUrls({
+          chain,
+          alchemyKey,
+          additionalRpcUrls:
+            chain === 'pharos' && process.env.NEXT_PUBLIC_PHAROS_RPC_FALLBACK_URL
+              ? [process.env.NEXT_PUBLIC_PHAROS_RPC_FALLBACK_URL]
+              : []
+        })
+      ])
+    ),
     permitDisabled: true,
     disableRepeatOnEvents: true
   });

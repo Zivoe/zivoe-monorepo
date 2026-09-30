@@ -53,7 +53,9 @@ export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
       ? env.NEXT_PUBLIC_MAINNET_ALCHEMY_KEY
       : env.NEXT_PUBLIC_TESTNET_ALCHEMY_KEY;
 
-  return getChainRpcUrlsFor({ chain, alchemyKey });
+  const additionalRpcUrls =
+    chain === 'pharos' && env.NEXT_PUBLIC_PHAROS_RPC_FALLBACK_URL ? [env.NEXT_PUBLIC_PHAROS_RPC_FALLBACK_URL] : [];
+  return getChainRpcUrlsFor({ chain, alchemyKey, additionalRpcUrls });
 }
 
 /**

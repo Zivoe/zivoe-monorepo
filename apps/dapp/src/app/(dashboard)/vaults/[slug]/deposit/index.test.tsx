@@ -7,10 +7,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Deposit from './index';
 
-const mocks = vi.hoisted(() => ({ isMobile: true, requestCount: 0, address: undefined as Address | undefined }));
+const mocks = vi.hoisted(() => ({
+  isMobile: true,
+  requestCount: 0,
+  address: undefined as Address | undefined,
+  view: 'redeem'
+}));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('view=redeem'),
+  useSearchParams: () => new URLSearchParams(`view=${mocks.view}`),
   usePathname: () => '/vaults/zivoe-smb-credit',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() })
 }));
@@ -58,6 +63,7 @@ vi.mock('@/hooks/useAccount', () => ({
 
 beforeEach(() => {
   mocks.isMobile = true;
+  mocks.view = 'redeem';
   mocks.requestCount = 0;
   mocks.address = '0x000000000000000000000000000000000000dEaD';
 });
@@ -72,11 +78,14 @@ describe('Deposit', () => {
   // global atom, a reset effect racing this auto-open on mount could win and
   // leave mobile deep links with the Earn sheet closed. (No shipped build had
   // the bug — the design was chosen over the atom before release.)
-  it('auto-opens the Earn dialog for a mobile ?view= deep link', async () => {
-    render(<Deposit initialView="redeem" />);
-
-    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
-  });
+  it.each(['deposit', 'redeem', 'pending'] as const)(
+    'auto-opens the Earn dialog for a mobile ?view=%s deep link',
+    async (view) => {
+      mocks.view = view;
+      render(<Deposit initialView={view} />);
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+    }
+  );
 
   // The modal marks Dynamic's connect sheet inert, so a dialog opened over a
   // disconnected page shows a wallet list that ignores taps.

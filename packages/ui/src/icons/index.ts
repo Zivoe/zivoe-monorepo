@@ -18,6 +18,7 @@ export * from './arrow-right';
 export * from './info';
 export * from './question';
 export * from './search';
+export * from './eye';
 export * from './zsmb-logo';
 export * from './diamond';
 export * from './trending';

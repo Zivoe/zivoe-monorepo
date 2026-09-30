@@ -13,9 +13,19 @@ import { getTokenInfo } from './token-info';
  * at 375px) and every logo names itself on hover, lifting above its neighbours.
  */
 export function AcceptedStablecoinIcons({ zivoeVault, surface = 'base' }: StackedRowProps) {
+  return <TokenIconStack symbols={zivoeVaultDepositAssets(zivoeVault).map(({ symbol }) => symbol)} surface={surface} />;
+}
+
+export function TokenIconStack({
+  symbols,
+  surface = 'base'
+}: {
+  symbols: ReadonlyArray<string>;
+  surface?: keyof typeof STACK_RING;
+}) {
   return (
     <IconRow>
-      {zivoeVaultDepositAssets(zivoeVault).map(({ symbol }) => {
+      {symbols.map((symbol) => {
         const info = getTokenInfo(symbol);
         return (
           <Logo key={symbol} label={info?.label ?? symbol} className={STACK_RING[surface]}>
@@ -40,7 +50,11 @@ export function AcceptedChainIcons({ zivoeVault, surface = 'base' }: StackedRowP
 }
 
 /** Ring colour behind each overlapped logo — must match the surface the row sits on. */
-const STACK_RING = { base: 'ring-2 ring-neutral-0', elevated: 'ring-2 ring-neutral-50' } as const;
+const STACK_RING = {
+  base: 'ring-2 ring-neutral-0',
+  elevated: 'ring-2 ring-neutral-50',
+  primary: 'ring-2 ring-primary-900'
+} as const;
 
 type StackedRowProps = { zivoeVault: ZivoeVault; surface?: keyof typeof STACK_RING };
 
