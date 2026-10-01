@@ -13,6 +13,7 @@ import { CameraIcon, ClockIcon, DocumentIcon, Spinner } from '@zivoe/ui/icons';
 
 import { type KycStatusView as KycStatusViewModel } from '@/server/kyc/kyc-status';
 
+import { withNext } from '@/lib/lighthouse';
 import { handlePromise } from '@/lib/utils';
 
 import { Auth } from '@/app/(auth)/_components/common';
@@ -178,8 +179,9 @@ export default function KycFlow({
       // redo once Persona holds one). The frame stays mounted.
       router.refresh();
     } else if (res?.status === 401) {
-      // Signed out mid-visit: the sign-in page is the answer, not a retry loop.
-      router.push('/sign-in');
+      // Signed out mid-visit: the sign-in page is the answer, not a retry loop
+      // — and it brings them back here, like the page's own redirect does.
+      router.push(withNext('/sign-in', '/verification'));
     } else if (res?.status === 409) {
       // The start lock: a request from this user is still running (a double
       // click, a second tab) or a release failed and the key has yet to

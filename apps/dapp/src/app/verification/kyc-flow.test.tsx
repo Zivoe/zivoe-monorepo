@@ -87,6 +87,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
   window.sessionStorage.clear();
   router.refresh.mockClear();
+  router.push.mockClear();
 });
 afterEach(() => {
   cleanup();
@@ -320,6 +321,15 @@ describe('KycFlow start answers another click cannot change yet', () => {
       vi.advanceTimersByTime(1_000);
     });
     expect(startButton().disabled).toBe(false);
+  });
+
+  it('sends a start that finds the session gone to sign-in, with the way back here', async () => {
+    answer(401, { error: 'Unauthorized' });
+    render(<KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+
+    await pressStart();
+
+    expect(router.push).toHaveBeenCalledWith('/sign-in?next=%2Fverification');
   });
 
   it("shows the page's own words for a server fault, never the server's", async () => {
