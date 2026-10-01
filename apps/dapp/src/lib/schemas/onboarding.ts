@@ -7,6 +7,8 @@ import {
   orgAmountValues
 } from '@zivoe/database/onboarding';
 
+import { COUNTRIES } from '@/types/countries';
+
 export { accountTypeValues } from '@zivoe/database/onboarding';
 
 const individualAmountEnum = z.enum(individualAmountValues, {
@@ -66,3 +68,29 @@ export const onboardingSchema = z.discriminatedUnion('accountType', [
   z.object({ accountType: z.literal(accountTypeValues[1]) }).merge(organizationSchema)
 ]);
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
+
+/** Persona prefills the inquiry from these, so a name is trimmed and bounded. */
+const MAX_NAME_LENGTH = 100;
+
+/**
+ * The Investor Profile step of `/verification`: the onboarding answers an
+ * individual confirms or corrects before the Persona flow. The email is not
+ * here on purpose — it is the sign-in identity and stays locked.
+ */
+export const investorProfileSchema = z.object({
+  firstName: z
+    .string({ required_error: 'First name is required' })
+    .trim()
+    .min(1, 'First name is required')
+    .max(MAX_NAME_LENGTH, 'First name is too long'),
+  lastName: z
+    .string({ required_error: 'Last name is required' })
+    .trim()
+    .min(1, 'Last name is required')
+    .max(MAX_NAME_LENGTH, 'Last name is too long'),
+  // One of the select's own options: anything else has no ISO code to prefill.
+  countryOfResidence: z
+    .string({ required_error: 'Please select a country' })
+    .refine((value) => COUNTRIES.some((country) => country.value === value), 'Please select a country')
+});
+export type InvestorProfileFormData = z.infer<typeof investorProfileSchema>;
