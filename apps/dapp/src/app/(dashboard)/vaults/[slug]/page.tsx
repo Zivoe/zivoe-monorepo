@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
+import { getUser } from '@/server/data/auth';
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
+import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
 import { getQueryClient } from '@/lib/get-query-client';
 import { queryKeys } from '@/lib/query-keys';
@@ -17,6 +19,7 @@ import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { depositPageViewSchema } from './deposit/_utils';
+import { KycFlagProvider } from './kyc-flag-provider';
 import ZivoeVaultHeader from './zivoe-vault-header';
 import { ZivoeVaultIdentityProvider } from './zivoe-vault-provider';
 
@@ -56,16 +59,20 @@ export default async function ZivoeVaultPage({
   // consumers mount on hydrated data instead of re-fetching the document the
   // RSCs just rendered. React cache dedupes this with the RSC reads below.
   const queryClient = getQueryClient();
-  await queryClient.prefetchQuery({
-    queryKey: queryKeys.app.shareMetrics({ shareClassKey: zivoeVault.shareClass.key }),
-    queryFn: async () => {
-      const payload = await getCurrentShareMetrics(zivoeVault.shareClass.key);
-      // Throwing keeps a failed prefetch out of the dehydrated state, so the
-      // browser fetches fresh on mount instead of hydrating an empty success.
-      if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
-      return payload;
-    }
-  });
+  const [isKycFlagOn] = await Promise.all([
+    // The `kyc` flag, alongside the prefetch so the page never waits on it alone.
+    getUser().then(({ user }) => (user ? isKycEnabled({ user }) : false)),
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.app.shareMetrics({ shareClassKey: zivoeVault.shareClass.key }),
+      queryFn: async () => {
+        const payload = await getCurrentShareMetrics(zivoeVault.shareClass.key);
+        // Throwing keeps a failed prefetch out of the dehydrated state, so the
+        // browser fetches fresh on mount instead of hydrating an empty success.
+        if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
+        return payload;
+      }
+    })
+  ]);
 
   return (
     <>
@@ -81,7 +88,9 @@ export default async function ZivoeVaultPage({
           <Page key={zivoeVault.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
             <ZivoeVaultIdentityProvider identities={identities} status={zivoeVault.status}>
               <DepositInfo zivoeVault={zivoeVault} />
-              <Deposit initialView={validatedView.success ? validatedView.data : null} />
+              <KycFlagProvider isEnabled={isKycFlagOn}>
+                <Deposit initialView={validatedView.success ? validatedView.data : null} />
+              </KycFlagProvider>
             </ZivoeVaultIdentityProvider>
           </Page>
         </HydrationBoundary>

@@ -72,8 +72,11 @@ const mocks = vi.hoisted(() => ({
   baseUsdcBalance: 3_000000n,
   usdtBalance: 7_000000n,
   walletChainId: 11155111,
-  switchChain: vi.fn()
+  switchChain: vi.fn(),
+  isKycEnabled: true
 }));
+
+vi.mock('../kyc-flag-provider', () => ({ useIsKycEnabled: () => mocks.isKycEnabled }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // The whitelist callout's link to /verification; the real one needs a mounted app router.
@@ -319,6 +322,7 @@ async function press(name: string) {
 /** One baseline for both suites — the mock surface is shared, so its reset must be too. */
 function resetMocks() {
   vi.clearAllMocks();
+  mocks.isKycEnabled = true;
   mocks.depositVault = undefined;
   mocks.address = '0x1234567890abcdef1234567890abcdef12345678';
   mocks.allowance = 0n;
@@ -387,6 +391,18 @@ describe('DepositFlow', () => {
     expect(getInput('Deposit').disabled).toBe(false);
     expect(mocks.approve).not.toHaveBeenCalled();
     expect(mocks.deposit).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pre-KYC dead end for a wallet the vault does not admit while the kyc flag is off', () => {
+    mocks.isKycEnabled = false;
+    mocks.accessIsAllowed = false;
+    mocks.restriction = 'not-member';
+    renderFlow();
+
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByText(/to request access/)).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Get whitelisted' })).toBeNull();
+    expect(getInput('Deposit').disabled).toBe(true);
   });
 
   it('names a frozen wallet as frozen rather than as unadmitted', async () => {

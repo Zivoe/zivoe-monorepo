@@ -36,7 +36,7 @@ import { PayoutAssetSelector } from './_components/payout-asset-selector';
 import { deriveRedeemAccessGates } from './_components/redemption-position-strips';
 import { ShareChainSelector } from './_components/share-chain-selector';
 import { TokenDisplay } from './_components/token-display';
-import { WalletAccessAction, WalletAccessCallout, isWalletFrozen } from './_components/wallet-access-callout';
+import { WalletAccessAction, WalletAccessCallout, useNotAdmittedLocksForm } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { createAmountValidator, parseInput } from './_utils';
@@ -140,8 +140,9 @@ export default function RedeemFlow() {
   // estimate (see the deposit tab). Only the request gate applies here: a
   // wallet that may still send shares to escrow can use this form even when
   // its share moves back are blocked.
+  const notAdmittedLocksForm = useNotAdmittedLocksForm(restriction);
   const isFormLocked =
-    isPrereqsLoading || isAnyWritePending || isCancellationProcessing || (isNotAdmitted && isWalletFrozen(restriction));
+    isPrereqsLoading || isAnyWritePending || isCancellationProcessing || (isNotAdmitted && notAdmittedLocksForm);
 
   // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
   // Named like the deposit tab's carrier so the two selectors cannot drift.

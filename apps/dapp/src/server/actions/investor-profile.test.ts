@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   set: vi.fn(),
   returning: vi.fn(),
   captureException: vi.fn(),
+  isKycEnabled: vi.fn(),
   getKycStatus: vi.fn()
 }));
 
@@ -15,6 +16,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException }));
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
+vi.mock('@/server/kyc/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 vi.mock('@/server/kyc', () => ({ kycVerification: { getKycStatus: mocks.getKycStatus } }));
 // `update(profile).set(values).where(...).returning(...)`: `set` records the values, `returning` answers.
 vi.mock('@/server/clients/db', () => ({
@@ -33,6 +35,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getSession.mockResolvedValue({ user: { id: 'user_1' } });
   mocks.returning.mockResolvedValue([{ id: 'user_1' }]);
+  mocks.isKycEnabled.mockResolvedValue(true);
   mocks.getKycStatus.mockResolvedValue({ canStart: true });
 });
 
@@ -45,6 +48,13 @@ describe('updateInvestorProfile', () => {
 
   it('refuses without a session and touches nothing', async () => {
     mocks.getSession.mockResolvedValue(null);
+
+    expect(await updateInvestorProfile(DETAILS)).toEqual({ error: 'Unauthorized' });
+    expect(mocks.set).not.toHaveBeenCalled();
+  });
+
+  it('refuses a user the kyc flag is off for and touches nothing', async () => {
+    mocks.isKycEnabled.mockResolvedValue(false);
 
     expect(await updateInvestorProfile(DETAILS)).toEqual({ error: 'Unauthorized' });
     expect(mocks.set).not.toHaveBeenCalled();

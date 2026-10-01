@@ -1,9 +1,10 @@
 import { type Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { kycVerification } from '@/server/kyc';
+import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
 import { withNext } from '@/lib/lighthouse';
 
@@ -18,12 +19,15 @@ export const metadata: Metadata = { title: 'Identity verification | Zivoe' };
  * redirect, not a KYC guard: nothing here ever redirects for KYC reasons,
  * and no wallet is needed. The profile read doubles as the onboarding check
  * (a profile row is what "onboarded" means), so the page waits on one round
- * of parallel reads after the session instead of two.
+ * of parallel reads after the session instead of two. Behind the `kyc` flag:
+ * a 404 for anyone it is off for.
  */
 export default async function KycPage() {
   // Signed out (the proxy catches a missing cookie; this, an expired session): back here after sign-in.
   const { user } = await getUser();
   if (!user) redirect(withNext('/sign-in', '/verification'));
+
+  if (!(await isKycEnabled({ user }))) notFound();
 
   const [view, profile] = await Promise.all([
     kycVerification.getKycStatus({ userId: user.id }),

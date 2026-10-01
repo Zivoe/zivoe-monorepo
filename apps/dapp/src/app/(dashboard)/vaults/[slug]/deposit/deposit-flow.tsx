@@ -36,7 +36,7 @@ import { DepositAssetPicker } from './_components/deposit-asset-picker';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
-import { WalletAccessAction, WalletAccessCallout, isWalletFrozen } from './_components/wallet-access-callout';
+import { WalletAccessAction, WalletAccessCallout, useNotAdmittedLocksForm } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
@@ -156,8 +156,10 @@ export function DepositFlow() {
   // and a frozen wallet are settled answers, so they lock the form itself:
   // there is no amount worth entering. A wallet that is not whitelisted is a
   // "not yet" — whitelisting follows verification — so it may still size a
-  // deposit and see the estimate; only the action is swapped.
+  // deposit and see the estimate; only the action is swapped (while the `kyc`
+  // flag is on — see useNotAdmittedLocksForm).
   // Any write, on any tab, locks it too (see useIsAnyTxPending).
+  const notAdmittedLocksForm = useNotAdmittedLocksForm(restriction);
   const isAnyWritePending = useIsAnyTxPending();
   const isOtherWritePending = isAnyWritePending && !approveSpending.isPending && !depositMutation.isPending;
   const isFormLocked =
@@ -165,7 +167,7 @@ export function DepositFlow() {
     isAnyWritePending ||
     isZivoeVaultDeploying ||
     isCapacityUnavailable ||
-    (isNotAdmitted && isWalletFrozen(restriction));
+    (isNotAdmitted && notAdmittedLocksForm);
 
   // The chain selector must NOT inherit the per-chain verdicts (capacity,
   // access): they are exactly what switching chains escapes, and freezing

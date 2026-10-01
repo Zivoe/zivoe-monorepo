@@ -10,6 +10,7 @@ import { profile } from '@zivoe/database/schema';
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
 import { kycVerification } from '@/server/kyc';
+import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
 import { type InvestorProfileFormData, investorProfileSchema } from '@/lib/schemas/onboarding';
 import { handlePromise } from '@/lib/utils';
@@ -28,6 +29,8 @@ export async function updateInvestorProfile(
 ): Promise<{ success?: true; error?: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) return { error: 'Unauthorized' };
+  // Behind the `kyc` flag, like the page that calls it.
+  if (!(await isKycEnabled({ user: session.user }))) return { error: 'Unauthorized' };
 
   const result = investorProfileSchema.safeParse(data);
   if (!result.success) return { error: 'Invalid form data' };

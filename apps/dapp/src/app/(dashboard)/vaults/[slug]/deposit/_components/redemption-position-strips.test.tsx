@@ -37,8 +37,11 @@ const mocks = vi.hoisted(() => ({
   hasPendingCancel: false,
   pendingShares: 0n,
   returnedShares: 0n,
-  positionIsFetching: false
+  positionIsFetching: false,
+  isKycEnabled: true
 }));
+
+vi.mock('../../kyc-flag-provider', () => ({ useIsKycEnabled: () => mocks.isKycEnabled }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // The whitelist hint's link to /verification; the real one needs a mounted app router.
@@ -143,6 +146,7 @@ function getButton(name: string): HTMLButtonElement {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.isKycEnabled = true;
   mocks.claimableAssets = 0n;
   mocks.unfundedAssets = 0n;
   mocks.hasPendingCancel = false;
@@ -245,6 +249,16 @@ describe('RedemptionPositionStrips', () => {
     const links = screen.getAllByRole('link', { name: 'Check your verification' });
     expect(links).toHaveLength(2);
     expect(links.every((link) => link.getAttribute('href') === '/verification')).toBe(true);
+  });
+
+  it('leaves the verification link out while the kyc flag is off', () => {
+    mocks.isKycEnabled = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderStrips({ gates: gatesFor({ canReceiveShares: false }) });
+
+    expect(screen.getAllByText('Requires a whitelisted wallet.')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: 'Check your verification' })).toBeNull();
   });
 
   it('leaves cancelling and claiming returned shares alone when only the request is blocked', () => {

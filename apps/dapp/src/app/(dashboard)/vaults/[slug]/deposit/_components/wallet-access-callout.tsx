@@ -6,6 +6,8 @@ import { EMAILS } from '@/lib/utils';
 
 import { type InvestorRestriction } from '@/centrifuge';
 
+import { useIsKycEnabled } from '../../kyc-flag-provider';
+
 // What a flow shows when the Centrifuge vault will not admit the wallet: the
 // action and, beneath it, why. Shared by both flows so the routes out cannot
 // drift between them.
@@ -17,15 +19,24 @@ import { type InvestorRestriction } from '@/centrifuge';
 // or unexplained one) is "not whitelisted yet": whitelisting follows identity
 // verification, so the action leads to `/verification`, which knows the
 // investor's exact status and next step whoever they are.
+//
+// Behind the `kyc` flag: while it is off, "not whitelisted" stays the pre-KYC
+// dead end — a disabled action, a locked form and "contact us".
 
-/** A frozen wallet's form stays locked; any other not-admitted wallet may still size an amount. */
-export const isWalletFrozen = (restriction: InvestorRestriction | undefined) => restriction === 'frozen';
+const isWalletFrozen = (restriction: InvestorRestriction | undefined) => restriction === 'frozen';
+
+/** Whether a not-admitted wallet also locks the form: a frozen one always does; any other may still size an amount. */
+export function useNotAdmittedLocksForm(restriction: InvestorRestriction | undefined): boolean {
+  return !useIsKycEnabled() || isWalletFrozen(restriction);
+}
 
 export function WalletAccessAction({ restriction }: { restriction: InvestorRestriction | undefined }) {
-  if (isWalletFrozen(restriction))
+  const isKycEnabled = useIsKycEnabled();
+
+  if (isWalletFrozen(restriction) || !isKycEnabled)
     return (
       <Button fullWidth isDisabled>
-        Wallet Frozen
+        {isWalletFrozen(restriction) ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
       </Button>
     );
 
@@ -37,11 +48,20 @@ export function WalletAccessAction({ restriction }: { restriction: InvestorRestr
 }
 
 export function WalletAccessCallout({ restriction }: { restriction: InvestorRestriction | undefined }) {
+  const isKycEnabled = useIsKycEnabled();
+
   if (isWalletFrozen(restriction))
     return (
       <Callout variant="warning">
         This wallet is frozen on this chain and cannot transact in this vault. Contact us at <ContactLink /> if you
         believe this is a mistake.
+      </Callout>
+    );
+
+  if (!isKycEnabled)
+    return (
+      <Callout variant="warning">
+        You must be whitelisted to interact with this vault. Contact us at <ContactLink /> to request access.
       </Callout>
     );
 

@@ -21,6 +21,8 @@ import {
 } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
+import { useIsKycEnabled } from '../../kyc-flag-provider';
+
 /**
  * The redeem tab's reading of the wallet's access verdicts — three gates,
  * because the Centrifuge vault's verdicts do not fall along the panel's own
@@ -120,9 +122,11 @@ export function RedemptionPositionStrips({
   // A wallet that held a position and is no longer whitelisted was most likely
   // removed on purpose — a revoked verification is the usual reason — so the
   // hint leads to the page that shows the investor's exact status. A freeze
-  // is support's to review, so its hint stays as it is.
+  // is support's to review, so its hint stays as it is — as does every hint
+  // while the `kyc` flag is off.
+  const isKycEnabled = useIsKycEnabled();
   const shareReturnBlockedHint =
-    restriction === 'frozen' ? (
+    restriction === 'frozen' || !isKycEnabled ? (
       shareReturnHint
     ) : (
       <>

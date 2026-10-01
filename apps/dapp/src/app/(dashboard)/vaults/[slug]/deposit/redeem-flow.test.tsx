@@ -100,8 +100,11 @@ const mocks = vi.hoisted(() => ({
   usdtHasPendingCancel: false,
   walletChainId: 11155111,
   switchChain: vi.fn(),
-  updateTab: vi.fn()
+  updateTab: vi.fn(),
+  isKycEnabled: true
 }));
+
+vi.mock('../kyc-flag-provider', () => ({ useIsKycEnabled: () => mocks.isKycEnabled }));
 
 // Positions are per Centrifuge vault: keyed by chain, then by vault address.
 const positionFor = vi.hoisted(
@@ -378,6 +381,7 @@ function getButton(name: string): HTMLButtonElement {
 /** One baseline for both suites — the mock surface is shared, so its reset must be too. */
 function resetMocks() {
   vi.clearAllMocks();
+  mocks.isKycEnabled = true;
   mocks.requestVault = undefined;
   mocks.canReceiveShares = true;
   mocks.canRequestRedemption = true;
@@ -423,6 +427,17 @@ describe('RedeemFlow', () => {
     // A "not yet": sizing a redemption stays open.
     expect(getInput('Redeem').disabled).toBe(false);
     expect(mocks.requestRedeem).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pre-KYC dead end for a wallet the vault does not admit while the kyc flag is off', () => {
+    mocks.isKycEnabled = false;
+    mocks.canRequestRedemption = false;
+    renderFlow();
+
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByText(/to request access/)).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Get whitelisted' })).toBeNull();
+    expect(getInput('Redeem').disabled).toBe(true);
   });
 
   it('keeps a frozen wallet on a dead end with the form locked', () => {

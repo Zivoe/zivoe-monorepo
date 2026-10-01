@@ -14,6 +14,9 @@ export const env = createEnv({
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
     CHAINALYSIS_API_KEY: z.string(),
+    // PostHog Feature Flags Secure API Key (`phs_…`): lets the server evaluate flags locally.
+    // Production only; without it every flag reads as off.
+    POSTHOG_FEATURE_FLAGS_KEY: z.string().optional(),
 
     // Persona (KYC) — sandbox values on previews, production values in production;
     // the webhook secret differs per registered endpoint.
@@ -93,6 +96,7 @@ export const env = createEnv({
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
     ZAPPER_API_KEY: process.env.ZAPPER_API_KEY,
     CHAINALYSIS_API_KEY: process.env.CHAINALYSIS_API_KEY,
+    POSTHOG_FEATURE_FLAGS_KEY: process.env.POSTHOG_FEATURE_FLAGS_KEY,
 
     // Persona (KYC)
     PERSONA_API_KEY: process.env.PERSONA_API_KEY,
