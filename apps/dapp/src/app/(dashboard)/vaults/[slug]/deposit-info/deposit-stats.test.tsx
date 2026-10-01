@@ -7,9 +7,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import DepositStats from './deposit-stats';
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
-vi.mock('@/components/info-section', () => ({
-  default: ({ children }: { children: ReactNode }) => <section>{children}</section>
-}));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 // The real popover renders its content only once opened; the mock renders it
 // inline so the assertions can read the disclosure copy itself.

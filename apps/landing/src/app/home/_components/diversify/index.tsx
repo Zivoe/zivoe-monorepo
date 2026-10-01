@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
 
-import { SplitCta } from '@zivoe/ui/core/split-cta';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import Container from '@/components/container';
+import { VaultsCta } from '@/components/vaults-cta';
 
 import { EthereumIcon, LiquidityIcon, TargetIcon } from './assets';
 
@@ -20,9 +20,7 @@ export default function Diversify() {
           </p>
         </div>
 
-        <SplitCta href="https://app.zivoe.com" target="_blank">
-          View Vaults
-        </SplitCta>
+        <VaultsCta />
       </div>
 
       <div className="flex w-full flex-col gap-6 sm:gap-8 xl:w-auto">

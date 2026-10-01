@@ -4,8 +4,12 @@ import * as Sentry from '@sentry/nextjs';
 import { formatUnits } from 'viem';
 
 import { toast } from '@zivoe/ui/core/sonner';
+import { floorToDecimals } from '@zivoe/ui/lib/format';
 
 import { env } from '@/env';
+
+// Shared with the landing hero so both surfaces print NAV and Token Price identically.
+export { formatNav, formatTokenPrice } from '@zivoe/ui/lib/format';
 
 export const DAY_IN_SECONDS = 86400;
 export const DAYS_PER_YEAR = 365;
@@ -62,28 +66,6 @@ export const formatBigIntWithCommas = ({
 
   return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
-
-const floorToDecimals = (num: number, decimals = 2) => {
-  const multiplier = Math.pow(10, decimals);
-  // Scaling first introduces representation error (1.14 * 100 is
-  // 113.99999999999999), which floors a whole display unit off the value.
-  // Round that noise away before flooring: anything within 5e-7 of the next
-  // step rounds up — wide enough to absorb bigint-D18 / 1e18 conversion
-  // noise, yet far enough below display precision that genuine near-boundary
-  // values still truncate down.
-  return Math.floor(Math.round(num * multiplier * 1e6) / 1e6) / multiplier;
-};
-
-// NAV displays: the full dollar amount with separators, truncated to whole
-// dollars (values arrive as navD18 / 1e18).
-export const formatNav = (nav: number) => floorToDecimals(nav, 0).toLocaleString('en-US');
-
-// Token price displays: truncated at 4 decimals, trailing zeros trimmed down
-// to the familiar 2-decimal money shape (1.12345 -> 1.1234, 1.13 -> 1.13).
-export const formatTokenPrice = (price: number) =>
-  floorToDecimals(price, 4)
-    .toFixed(4)
-    .replace(/(\.\d{2}\d*?)0+$/, '$1');
 
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 
