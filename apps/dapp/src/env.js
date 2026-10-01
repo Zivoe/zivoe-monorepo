@@ -15,6 +15,15 @@ export const env = createEnv({
     ZAPPER_API_KEY: z.string(),
     CHAINALYSIS_API_KEY: z.string(),
 
+    // Persona (KYC) — sandbox values on previews, production values in production;
+    // the webhook secret differs per registered endpoint.
+    PERSONA_API_KEY: z.string(),
+    PERSONA_WEBHOOK_SECRET: z.string(),
+    PERSONA_TEMPLATE_VERSION_ID: z.string(),
+    // The template the pinned version belongs to (`itmpl_…`); lets the daily drift check notice a
+    // newer published version. Optional: without it the check skips the template.
+    PERSONA_TEMPLATE_ID: z.string().optional(),
+
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
     BEEHIIV_API_KEY: z.string(),
@@ -40,6 +49,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: z.string(),
     TELEGRAM_CHAINALYSIS_CHAT_ID: z.string(),
     TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
+    TELEGRAM_PERSONA_CHAT_ID: z.string(),
     TELEGRAM_TXS_CHAT_ID: z.string(),
 
     // Vercel (auto-populated on Vercel)
@@ -59,7 +69,8 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
     NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
+    NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: z.string()
   },
 
   runtimeEnv: {
@@ -82,6 +93,13 @@ export const env = createEnv({
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
     ZAPPER_API_KEY: process.env.ZAPPER_API_KEY,
     CHAINALYSIS_API_KEY: process.env.CHAINALYSIS_API_KEY,
+
+    // Persona (KYC)
+    PERSONA_API_KEY: process.env.PERSONA_API_KEY,
+    PERSONA_WEBHOOK_SECRET: process.env.PERSONA_WEBHOOK_SECRET,
+    PERSONA_TEMPLATE_VERSION_ID: process.env.PERSONA_TEMPLATE_VERSION_ID,
+    PERSONA_TEMPLATE_ID: process.env.PERSONA_TEMPLATE_ID,
+    NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: process.env.NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID,
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
@@ -107,6 +125,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAINALYSIS_CHAT_ID: process.env.TELEGRAM_CHAINALYSIS_CHAT_ID,
     TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
+    TELEGRAM_PERSONA_CHAT_ID: process.env.TELEGRAM_PERSONA_CHAT_ID,
     TELEGRAM_TXS_CHAT_ID: process.env.TELEGRAM_TXS_CHAT_ID,
 
     // Vercel
