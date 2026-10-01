@@ -23,9 +23,9 @@ export const env = createEnv({
     PERSONA_API_KEY: z.string(),
     PERSONA_WEBHOOK_SECRET: z.string(),
     PERSONA_TEMPLATE_VERSION_ID: z.string(),
-    // The template the pinned version belongs to (`itmpl_…`); lets the daily drift check notice a
-    // newer published version. Optional: without it the check skips the template.
-    PERSONA_TEMPLATE_ID: z.string().optional(),
+    // The investor template the pinned version belongs to (`itmpl_…`): inquiries on any other
+    // template are ignored, and the daily drift check notices a newer published version.
+    PERSONA_TEMPLATE_ID: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),

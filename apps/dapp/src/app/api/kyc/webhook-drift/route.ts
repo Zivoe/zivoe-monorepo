@@ -57,8 +57,8 @@ const handler = async (
 
     // In production the template half of the check is not optional: the pin
     // is what guards against a version published unnoticed, so a run that did
-    // not compare it — no template id configured, or a read that failed (a key
-    // without inquiry_template.read, say) — must not stay a silent
+    // not compare it — a read that failed (a key without
+    // inquiry_template.read, say) — must not stay a silent
     // `templateChecked: false` in a response nobody reads. Elsewhere it is the
     // expected answer: Persona does not expose templates to sandbox keys.
     if (!report.templateChecked && env.VERCEL_ENV === 'production') {
@@ -66,9 +66,9 @@ const handler = async (
         tags: {
           source: 'API',
           flow: KYC_WEBHOOK_DRIFT_SLUG,
-          reason: report.templateUnavailable?.reason ?? 'not_configured'
+          reason: report.templateUnavailable?.reason ?? 'unknown'
         },
-        extra: { templateId: env.PERSONA_TEMPLATE_ID ?? null, error: report.templateUnavailable }
+        extra: { templateId: env.PERSONA_TEMPLATE_ID, error: report.templateUnavailable }
       });
     }
 
