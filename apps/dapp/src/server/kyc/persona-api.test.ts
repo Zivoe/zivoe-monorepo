@@ -252,7 +252,32 @@ describe('createPersonaApi', () => {
             }
           },
           // A legacy webhook with no explicit events or version still parses.
-          { type: 'webhook', id: 'wbh_2', attributes: { status: 'disabled', url: 'https://old.example.com' } }
+          { type: 'webhook', id: 'wbh_2', attributes: { status: 'disabled', url: 'https://old.example.com' } },
+          // The object shape Persona returns since 2026-10 collapses to what the drift check compares.
+          {
+            type: 'webhook',
+            id: 'wbh_3',
+            attributes: {
+              status: 'enabled',
+              url: 'https://all.example.com',
+              'relationship-allowlist': { state: 'include_all' }
+            }
+          },
+          {
+            type: 'webhook',
+            id: 'wbh_4',
+            attributes: {
+              status: 'enabled',
+              url: 'https://some.example.com',
+              'relationship-allowlist': { state: 'include_some', relationships: ['account'] }
+            }
+          },
+          // A setting in a shape the adapter does not know costs that field, not the read.
+          {
+            type: 'webhook',
+            id: 'wbh_5',
+            attributes: { status: 'enabled', url: 'https://odd.example.com', 'enabled-events': { state: 'all' } }
+          }
         ]
       })
     );
@@ -270,7 +295,8 @@ describe('createPersonaApi', () => {
           enabledEvents: ['inquiry.approved'],
           keyInflection: 'kebab',
           attributeBlocklist: ['/data/attributes/*'],
-          relationshipAllowlist: 'include_all'
+          relationshipAllowlist: 'include_all',
+          unreadable: []
         },
         {
           id: 'wbh_2',
@@ -280,8 +306,12 @@ describe('createPersonaApi', () => {
           enabledEvents: [],
           keyInflection: null,
           attributeBlocklist: [],
-          relationshipAllowlist: null
-        }
+          relationshipAllowlist: null,
+          unreadable: []
+        },
+        expect.objectContaining({ id: 'wbh_3', relationshipAllowlist: 'include_all' }),
+        expect.objectContaining({ id: 'wbh_4', relationshipAllowlist: ['account'] }),
+        expect.objectContaining({ id: 'wbh_5', enabledEvents: [], unreadable: ['enabled-events'] })
       ]
     });
     expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://api.withpersona.com/api/v1/webhooks');

@@ -53,6 +53,12 @@ export function diffPersonaWebhookConfig({
   for (const webhook of matching) {
     const name = `webhook ${webhook.id}`;
 
+    // A setting the adapter could not read is drift the check cannot rule
+    // out: named here, and the fallback it was compared at may add its own finding.
+    for (const field of webhook.unreadable) {
+      findings.push(`${name} returned ${field} in a shape the check cannot read`);
+    }
+
     if (webhook.status !== 'enabled') findings.push(`${name} is ${webhook.status}, not enabled`);
     if (webhook.apiVersion !== expectedApiVersion) {
       findings.push(

@@ -154,6 +154,8 @@ export type PersonaWebhookConfig = {
   attributeBlocklist: Array<string>;
   /** Which relationships a delivery carries: `include_all`, or a list of names; null reads as `include_all`. */
   relationshipAllowlist: string | Array<string> | null;
+  /** Settings Persona returned in a shape the adapter could not read; each is compared at its fallback above. */
+  unreadable: Array<string>;
 };
 
 /**

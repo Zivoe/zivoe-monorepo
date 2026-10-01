@@ -33,22 +33,42 @@ const listResponseSchema = z.object({
   data: z.array(personaInquiryResourceSchema)
 });
 
+// Only what identifies a webhook is required of the envelope. Each setting is
+// read on its own below, so Persona repackaging one of them (as it did with
+// `relationship-allowlist` in 2026-10) costs that field, not the whole read.
 const webhookConfigListSchema = z.object({
   data: z.array(
     z.object({
       id: z.string().min(1),
-      attributes: z.object({
-        status: z.string(),
-        url: z.string(),
-        'api-version': z.string().nullish(),
-        'enabled-events': z.array(z.string()).nullish(),
-        'api-key-inflection': z.string().nullish(),
-        'api-attributes-blocklist': z.array(z.string()).nullish(),
-        'relationship-allowlist': z.union([z.string(), z.array(z.string())]).nullish()
-      })
+      attributes: z.object({ status: z.string(), url: z.string() }).passthrough()
     })
   )
 });
+
+const webhookSettingSchemas = {
+  'api-version': z.string().nullish(),
+  'enabled-events': z.array(z.string()).nullish(),
+  'api-key-inflection': z.string().nullish(),
+  'api-attributes-blocklist': z.array(z.string()).nullish(),
+  // Persona has returned this as a string, an array, and (since 2026-10) an object
+  // such as `{ state: 'include_all' }` or `{ state: 'include_some', relationships: [...] }`.
+  'relationship-allowlist': z
+    .union([
+      z.string(),
+      z.array(z.string()),
+      z.object({ state: z.string(), relationships: z.array(z.string()).optional() })
+    ])
+    .nullish()
+};
+
+/** Collapses the allowlist's shapes to the `'include_all' | string[] | null` the drift check compares. */
+function normalizeRelationshipAllowlist(
+  value: string | Array<string> | { state: string; relationships?: Array<string> } | null | undefined
+): string | Array<string> | null {
+  if (value == null) return null;
+  if (typeof value === 'string' || Array.isArray(value)) return value;
+  return value.state === 'include_all' ? 'include_all' : (value.relationships ?? []);
+}
 
 const templateResponseSchema = z.object({
   data: z.object({
@@ -256,16 +276,29 @@ export function createPersonaApi({
       if (!result.ok) return result;
 
       return ok(
-        result.value.data.map((webhook) => ({
-          id: webhook.id,
-          status: webhook.attributes.status,
-          url: webhook.attributes.url,
-          apiVersion: webhook.attributes['api-version'] ?? null,
-          enabledEvents: webhook.attributes['enabled-events'] ?? [],
-          keyInflection: webhook.attributes['api-key-inflection'] ?? null,
-          attributeBlocklist: webhook.attributes['api-attributes-blocklist'] ?? [],
-          relationshipAllowlist: webhook.attributes['relationship-allowlist'] ?? null
-        }))
+        result.value.data.map((webhook) => {
+          const unreadable: Array<string> = [];
+          const read = <K extends keyof typeof webhookSettingSchemas>(
+            key: K
+          ): z.infer<(typeof webhookSettingSchemas)[K]> | null => {
+            const parsed = webhookSettingSchemas[key].safeParse(webhook.attributes[key]);
+            if (parsed.success) return parsed.data;
+            unreadable.push(key);
+            return null;
+          };
+
+          return {
+            id: webhook.id,
+            status: webhook.attributes.status,
+            url: webhook.attributes.url,
+            apiVersion: read('api-version') ?? null,
+            enabledEvents: read('enabled-events') ?? [],
+            keyInflection: read('api-key-inflection') ?? null,
+            attributeBlocklist: read('api-attributes-blocklist') ?? [],
+            relationshipAllowlist: normalizeRelationshipAllowlist(read('relationship-allowlist')),
+            unreadable
+          };
+        })
       );
     },
 

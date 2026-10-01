@@ -18,6 +18,7 @@ function webhook(overrides: Partial<PersonaWebhookConfig> = {}): PersonaWebhookC
     keyInflection: 'kebab',
     attributeBlocklist: ['/data/attributes/*', '!/data/attributes/status'],
     relationshipAllowlist: 'include_all',
+    unreadable: [],
     ...overrides
   };
 }
@@ -34,6 +35,12 @@ function diff(webhooks: Array<PersonaWebhookConfig>) {
 describe('diffPersonaWebhookConfig', () => {
   it('finds nothing when the registered webhook matches expectations exactly', () => {
     expect(diff([webhook()])).toEqual([]);
+  });
+
+  it('names a setting Persona returned in a shape the adapter could not read', () => {
+    expect(diff([webhook({ unreadable: ['relationship-allowlist'] })])).toEqual([
+      'webhook wbh_1 returned relationship-allowlist in a shape the check cannot read'
+    ]);
   });
 
   it('does not count a trailing slash or host case as a different endpoint', () => {
