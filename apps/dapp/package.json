@@ -46,6 +46,7 @@
     "jotai": "^2.12.5",
     "ky": "^1.14.2",
     "next": "15.6.0-canary.60",
+    "persona-react": "6.7.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",
     "posthog-node": "^5.17.2",
