@@ -41,8 +41,14 @@ const handler = async (
     // Persona being unreachable is its own condition, not drift; the next
     // day's run tries again. Same stance as the sweep's `unavailable`.
     if (!report.reachable) {
-      Sentry.captureException(new Error('KYC webhook drift check could not reach Persona'), {
-        tags: { source: 'API', flow: KYC_WEBHOOK_DRIFT_SLUG },
+      // An answer the adapter cannot parse is Persona changing shape under a
+      // pinned version, not an outage: titled apart so nobody chases the network.
+      const title =
+        report.unavailable?.reason === 'invalid_response'
+          ? 'KYC webhook drift check could not parse the answer from Persona'
+          : 'KYC webhook drift check could not reach Persona';
+      Sentry.captureException(new Error(title), {
+        tags: { source: 'API', flow: KYC_WEBHOOK_DRIFT_SLUG, reason: report.unavailable?.reason ?? 'unknown' },
         extra: { error: report.unavailable }
       });
       Sentry.captureCheckIn({ checkInId: sentryCheckInId, monitorSlug: KYC_WEBHOOK_DRIFT_SLUG, status: 'ok' });
