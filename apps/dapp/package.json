@@ -16,6 +16,7 @@
     "schedules:sync": "tsx --env-file=.env scripts/qstash-schedules.ts sync",
     "schedules:list": "tsx --env-file=.env scripts/qstash-schedules.ts list",
     "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove",
+    "kyc:e2e": "vitest run --config vitest.e2e.config.ts",
     "kyc:operator": "tsx --env-file=.env scripts/kyc-operator.ts"
   },
   "dependencies": {
