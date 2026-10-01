@@ -76,6 +76,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+// The whitelist callout's link to /verification; the real one needs a mounted app router.
+vi.mock('@zivoe/ui/core/link', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>
+}));
 vi.mock('wagmi', () => ({
   useConnection: () => ({ chainId: mocks.walletChainId }),
   useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
@@ -368,18 +372,19 @@ describe('DepositFlow', () => {
     expect(getInput('Deposit').disabled).toBe(true);
   });
 
-  it('names the wallet and blocks the action when the vault does not admit it', async () => {
+  it('sends a wallet the vault does not admit to get whitelisted, leaving the form open', () => {
     mocks.accessIsAllowed = false;
     mocks.restriction = 'not-member';
     renderFlow();
     enterAmount('1');
 
-    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    // Whitelisting follows verification, and /verification knows each investor's next step.
+    expect(screen.getByRole('link', { name: 'Get whitelisted' }).getAttribute('href')).toBe('/verification');
     expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
-    expect(getInput('Deposit').disabled).toBe(true);
-
-    await press('Wallet Not Whitelisted');
-
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Deposit' })).toBeNull();
+    // A "not yet": sizing a deposit stays open.
+    expect(getInput('Deposit').disabled).toBe(false);
     expect(mocks.approve).not.toHaveBeenCalled();
     expect(mocks.deposit).not.toHaveBeenCalled();
   });
@@ -396,6 +401,8 @@ describe('DepositFlow', () => {
     expect(getButton('Wallet Frozen').disabled).toBe(true);
     expect(screen.getByText(/This wallet is frozen on this chain/)).toBeTruthy();
     expect(screen.queryByText(/You must be whitelisted/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Get whitelisted' })).toBeNull();
+    // A settled answer: nothing to enter an amount for.
     expect(getInput('Deposit').disabled).toBe(true);
   });
 
@@ -405,7 +412,7 @@ describe('DepositFlow', () => {
     mocks.restriction = 'unknown';
     renderFlow();
 
-    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByRole('link', { name: 'Get whitelisted' }).getAttribute('href')).toBe('/verification');
     expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
   });
 

@@ -36,7 +36,7 @@ import { DepositAssetPicker } from './_components/deposit-asset-picker';
 import { InputExtraInfo } from './_components/input-extra-info';
 import { MaxButton } from './_components/max-button';
 import { TokenDisplay } from './_components/token-display';
-import { WalletAccessCallout } from './_components/wallet-access-callout';
+import { WalletAccessAction, WalletAccessCallout, isWalletFrozen } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { createAmountValidator, parseInput } from './_utils';
 
@@ -153,13 +153,19 @@ export function DepositFlow() {
   // failed preview may still clear on its own, so it only gates the action
   // (isSubmitBlocked) and leaves the inputs editable — typing an amount while
   // it clears is reasonable. A deploying Zivoe Vault, a Centrifuge vault with no capacity
-  // and a wallet the Centrifuge vault will not admit are settled answers, so they lock
-  // the form itself: there is no amount worth entering.
+  // and a frozen wallet are settled answers, so they lock the form itself:
+  // there is no amount worth entering. A wallet that is not whitelisted is a
+  // "not yet" — whitelisting follows verification — so it may still size a
+  // deposit and see the estimate; only the action is swapped.
   // Any write, on any tab, locks it too (see useIsAnyTxPending).
   const isAnyWritePending = useIsAnyTxPending();
   const isOtherWritePending = isAnyWritePending && !approveSpending.isPending && !depositMutation.isPending;
   const isFormLocked =
-    isPrereqsLoading || isAnyWritePending || isZivoeVaultDeploying || isCapacityUnavailable || isNotAdmitted;
+    isPrereqsLoading ||
+    isAnyWritePending ||
+    isZivoeVaultDeploying ||
+    isCapacityUnavailable ||
+    (isNotAdmitted && isWalletFrozen(restriction));
 
   // The chain selector must NOT inherit the per-chain verdicts (capacity,
   // access): they are exactly what switching chains escapes, and freezing
@@ -335,9 +341,7 @@ export function DepositFlow() {
           ) : isPrereqsLoading ? (
             <Button fullWidth isPending={true} pendingContent="Loading..." />
           ) : isNotAdmitted ? (
-            <Button fullWidth isDisabled>
-              {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
-            </Button>
+            <WalletAccessAction restriction={restriction} />
           ) : isReadUnavailable ? (
             <Button fullWidth onPress={retryReads}>
               Retry

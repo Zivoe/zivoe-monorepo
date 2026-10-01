@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@zivoe/ui/core/button';
+import { NextLink } from '@zivoe/ui/core/link';
 
 import { formatBigIntWithCommas } from '@/lib/utils';
 
@@ -116,6 +117,22 @@ export function RedemptionPositionStrips({
   const isAnyWritePending = useIsAnyTxPending();
   const isOtherMutationPending = (isSelfPending: boolean) => isAnyWritePending && !isSelfPending;
 
+  // A wallet that held a position and is no longer whitelisted was most likely
+  // removed on purpose — a revoked verification is the usual reason — so the
+  // hint leads to the page that shows the investor's exact status. A freeze
+  // is support's to review, so its hint stays as it is.
+  const shareReturnBlockedHint =
+    restriction === 'frozen' ? (
+      shareReturnHint
+    ) : (
+      <>
+        {shareReturnHint}{' '}
+        <NextLink href="/verification" className="underline underline-offset-4 hover:no-underline">
+          Check your verification
+        </NextLink>
+      </>
+    );
+
   // A post-transaction refetch of this vault's position locks its controls
   // until fresh data lands.
   const isBlocked = isWriteBlocked || position.isFetching;
@@ -177,7 +194,7 @@ export function RedemptionPositionStrips({
             </ConnectedAccount>
           </div>
 
-          {isShareReturnBlocked && <p className="text-extraSmall text-secondary">{shareReturnHint}</p>}
+          {isShareReturnBlocked && <p className="text-extraSmall text-secondary">{shareReturnBlockedHint}</p>}
         </div>
       )}
 
@@ -235,7 +252,7 @@ export function RedemptionPositionStrips({
             <p className="text-extraSmall text-secondary">{proceedsClaimHint}</p>
           ) : returnedShares > 0n ? (
             <p className="text-extraSmall text-secondary">
-              {isShareReturnBlocked ? shareReturnHint : `Claim your returned ${share.symbol} first.`}
+              {isShareReturnBlocked ? shareReturnBlockedHint : `Claim your returned ${share.symbol} first.`}
             </p>
           ) : null}
         </div>
@@ -276,7 +293,7 @@ export function RedemptionPositionStrips({
                 ? {
                     onPress: handleCancelRedeem,
                     isDisabled: isBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-                    blockedHint: isShareReturnBlocked ? shareReturnHint : undefined,
+                    blockedHint: isShareReturnBlocked ? shareReturnBlockedHint : undefined,
                     isPending: cancelRedeem.isPending,
                     isTxPending: cancelRedeem.isTxPending,
                     isOtherWritePending: isOtherMutationPending(cancelRedeem.isPending),
@@ -316,7 +333,7 @@ function RedemptionProcessingStrip({
     onPress: () => void;
     isDisabled: boolean;
     /** Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */
-    blockedHint?: string;
+    blockedHint?: React.ReactNode;
     isPending: boolean;
     isTxPending: boolean;
     /** A write started elsewhere is in flight. */

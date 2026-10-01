@@ -36,7 +36,7 @@ import { PayoutAssetSelector } from './_components/payout-asset-selector';
 import { deriveRedeemAccessGates } from './_components/redemption-position-strips';
 import { ShareChainSelector } from './_components/share-chain-selector';
 import { TokenDisplay } from './_components/token-display';
-import { WalletAccessCallout } from './_components/wallet-access-callout';
+import { WalletAccessAction, WalletAccessCallout, isWalletFrozen } from './_components/wallet-access-callout';
 import { useEarnDialog } from './_hooks/earn-dialog';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { createAmountValidator, parseInput } from './_utils';
@@ -135,11 +135,13 @@ export default function RedeemFlow() {
   const isAnyWritePending = useIsAnyTxPending();
   // A Cancellation Processing in the PAYOUT vault locks the form: a new request
   // into it would revert until the hub finishes the unwind, while another
-  // payout asset on the chain stays open. A wallet the Centrifuge vault will
-  // not admit locks it too. Only the request gate applies here: a wallet that
-  // may still send shares to escrow can use this form even when its share
-  // moves back are blocked.
-  const isFormLocked = isPrereqsLoading || isAnyWritePending || isCancellationProcessing || isNotAdmitted;
+  // payout asset on the chain stays open. A frozen wallet locks it too; one
+  // that is not whitelisted yet may still size a redemption and see the
+  // estimate (see the deposit tab). Only the request gate applies here: a
+  // wallet that may still send shares to escrow can use this form even when
+  // its share moves back are blocked.
+  const isFormLocked =
+    isPrereqsLoading || isAnyWritePending || isCancellationProcessing || (isNotAdmitted && isWalletFrozen(restriction));
 
   // Chain-agnostic locks only — the rule lives on useSelectedChain's doc.
   // Named like the deposit tab's carrier so the two selectors cannot drift.
@@ -316,9 +318,7 @@ export default function RedeemFlow() {
             Cancellation in progress
           </Button>
         ) : isNotAdmitted ? (
-          <Button fullWidth isDisabled>
-            {restriction === 'frozen' ? 'Wallet Frozen' : 'Wallet Not Whitelisted'}
-          </Button>
+          <WalletAccessAction restriction={restriction} />
         ) : isBalanceUnavailable ? (
           <Button fullWidth onPress={() => void shareBalance.refetch()}>
             Retry
