@@ -8,7 +8,13 @@
  */
 import { Client, type CreateScheduleRequest } from '@upstash/qstash';
 
-import { CENTRIFUGE_TX_MONITOR_CRON, QSTASH_JOB_LABELS, getQstashFailureCallback } from '../src/lib/qstash';
+import {
+  CENTRIFUGE_TX_MONITOR_CRON,
+  KYC_RECONCILE_CRON,
+  KYC_WEBHOOK_DRIFT_CRON,
+  QSTASH_JOB_LABELS,
+  getQstashFailureCallback
+} from '../src/lib/qstash';
 
 type ScheduleConfig = Required<
   Pick<CreateScheduleRequest, 'scheduleId' | 'cron' | 'retries' | 'failureCallback' | 'label'>
@@ -32,6 +38,22 @@ const SCHEDULES: Array<ScheduleConfig> = [
     retries: 1,
     failureCallback: '/api/qstash/failure',
     label: QSTASH_JOB_LABELS.monitorCentrifugeTransactions
+  },
+  {
+    destination: '/api/kyc/reconcile',
+    scheduleId: 'kyc-reconcile',
+    cron: KYC_RECONCILE_CRON, // Every 15 minutes
+    retries: 1,
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.kycReconcile
+  },
+  {
+    destination: '/api/kyc/webhook-drift',
+    scheduleId: 'kyc-webhook-drift',
+    cron: KYC_WEBHOOK_DRIFT_CRON, // Daily at 08:00 UTC
+    retries: 1,
+    failureCallback: '/api/qstash/failure',
+    label: QSTASH_JOB_LABELS.kycWebhookDrift
   }
 ];
 
