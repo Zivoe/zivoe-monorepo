@@ -1229,6 +1229,83 @@ describe('reconcile', () => {
     expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'approved', personaInquiryId: 'inq_1' });
   });
 
+  it("refuses an old inquiry's event that read the record before a concurrent start replaced it", async () => {
+    const s = setup();
+    // Same footing as above: the next start creates instead of resuming.
+    seedSynced({ setup: s, userId: USER_ID, status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
+    const oldInquiryId = `inq_${USER_ID}`;
+    s.persona.inquiries.get(oldInquiryId)!.templateVersionId = 'itmplv_previous';
+
+    const gate = () => {
+      let open!: () => void;
+      const opened = new Promise<void>((resolve) => {
+        open = resolve;
+      });
+      return { opened, open };
+    };
+    const created = gate();
+    const startLanded = gate();
+    const eventEnqueued = gate();
+    const startReturned = gate();
+    // The start is held after Persona made the replacement, before the record
+    // is written; the old inquiry's approval reads the record in that window
+    // and is held in turn, after its guards, until the start has landed.
+    const kyc = createKycVerification({
+      store: s.store.store,
+      statusEmails: s.emails.sender,
+      operatorMessages: s.operator.messenger,
+      persona: {
+        ...s.persona.persona,
+        async createInquiry(input) {
+          const session = await s.persona.persona.createInquiry(input);
+          created.open();
+          await startLanded.opened;
+          return session;
+        }
+      },
+      outbox: {
+        async enqueue(notification) {
+          // The approval's first job (its email); the operator message that follows finds the gates open.
+          if (notification.kind === 'status_email' && notification.inquiryId === oldInquiryId) {
+            eventEnqueued.open();
+            await startReturned.opened;
+          }
+          await s.outbox.outbox.enqueue(notification);
+        }
+      },
+      clock: s.clock.clock,
+      config: { webhookSecret: WEBHOOK_SECRET, templateVersionId: FAKE_TEMPLATE_VERSION_ID }
+    });
+
+    const start = kyc.startKyc({ userId: USER_ID });
+    await created.opened;
+    const lateApproval = delivery({ kyc, name: 'inquiry.approved', status: 'approved', inquiryId: oldInquiryId });
+    await eventEnqueued.opened;
+    startLanded.open();
+    await expect(start).resolves.toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
+    startReturned.open();
+
+    // Its stamp is the later one, so only the ownership guard can refuse it — and does.
+    await expect(lateApproval).resolves.toEqual({ ok: true, value: { outcome: 'unchanged' } });
+    expect(s.store.records.get(USER_ID)).toMatchObject({
+      status: 'in_progress',
+      personaInquiryId: 'inq_1',
+      attemptCount: 1
+    });
+    // The replacement's own decision is the one that lands.
+    await expect(
+      delivery({
+        kyc,
+        name: 'inquiry.declined',
+        status: 'declined',
+        inquiryId: 'inq_1',
+        id: 'evt_2',
+        minutesAfterT0: 2
+      })
+    ).resolves.toEqual({ ok: true, value: { outcome: 'applied' } });
+    expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'declined', personaInquiryId: 'inq_1' });
+  });
+
   it('re-reads a stale failed record and applies the Workflow decision whose webhook was lost', async () => {
     const s = setup();
     seedSynced({ setup: s, userId: 'u-failed', status: 'failed', personaStatus: 'needs_review', staleMinutes: 45 });

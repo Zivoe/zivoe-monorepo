@@ -42,11 +42,12 @@ export function createInMemoryKycStore() {
       failIfArmed('get');
       return records.get(userId) ?? null;
     },
-    async upsert(record, { overrideHumanOwned = false } = {}) {
+    async upsert(record, { overrideHumanOwned = false, expectInquiryId }) {
       failIfArmed('upsert');
       const stored = records.get(record.userId);
       if (stored && record.statusChangedAt < stored.statusChangedAt) return false;
       if (stored && isHumanOwned(stored.status) && !overrideHumanOwned) return false;
+      if (stored && stored.personaInquiryId !== expectInquiryId) return false;
       records.set(record.userId, { ...record });
       return true;
     },

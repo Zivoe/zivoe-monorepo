@@ -75,9 +75,17 @@ export type KycStore = {
    * order they arrive in — and a write that read the record before an
    * operator's revocation cannot undo it. `overrideHumanOwned` is the
    * operator's word (a revocation, a resync's release), the one writer that
-   * may replace a Human-owned status.
+   * may replace a Human-owned status. `expectInquiryId` is the inquiry the
+   * writer saw the record pointing at when it read (null for no record): a
+   * row re-pointed meanwhile — a start replacing the inquiry while an event
+   * for the old one was in flight — refuses the write, whatever its
+   * timestamp, so the stale writer re-reads instead of taking the record
+   * back. The insert path has no row to compare against.
    */
-  upsert(record: KycVerificationRecord, options?: { overrideHumanOwned?: boolean }): Promise<boolean>;
+  upsert(
+    record: KycVerificationRecord,
+    options: { overrideHumanOwned?: boolean; expectInquiryId: string | null }
+  ): Promise<boolean>;
   /**
    * Confirms the record against Persona — `lastSyncedAt` only, nothing else
    * — so a confirmation can never carry a stale snapshot over a concurrent
@@ -615,9 +623,14 @@ export function createKycVerification({
 
     // The store refuses a write older than what a concurrent writer landed
     // meanwhile — then the other write was the newer one and this is a no-op —
-    // and, unless releasing, one over a Human-owned status an operator set
-    // after guard 1 read the record.
-    const applied = await store.upsert(next, { overrideHumanOwned: releasing });
+    // one whose inquiry the record no longer points at (a start replaced it
+    // after the read above; the event is the old inquiry's, however late its
+    // stamp) and, unless releasing, one over a Human-owned status an
+    // operator set after guard 1 read the record.
+    const applied = await store.upsert(next, {
+      overrideHumanOwned: releasing,
+      expectInquiryId: record?.personaInquiryId ?? null
+    });
     return applied
       ? { outcome: 'changed', record: next }
       : { outcome: 'unchanged', record: await store.get({ userId }) };
@@ -834,7 +847,10 @@ export function createKycVerification({
             record.status === 'expired'
               ? new Date(Math.max(resumed.value.inquiry.updatedAt.getTime(), record.statusChangedAt.getTime() + 1))
               : record.statusChangedAt;
-          const written = await store.upsert({ ...record, status: 'in_progress', statusChangedAt, lastSyncedAt: now });
+          const written = await store.upsert(
+            { ...record, status: 'in_progress', statusChangedAt, lastSyncedAt: now },
+            { expectInquiryId: record.personaInquiryId }
+          );
           // A newer write landed meanwhile (a webhook between the read and here): it decides, not this session.
           if (!written) {
             const latest = await store.get({ userId });
@@ -876,15 +892,18 @@ export function createKycVerification({
       const statusChangedAt = new Date(
         Math.max(inquiry.updatedAt.getTime(), (record?.statusChangedAt.getTime() ?? 0) + 1)
       );
-      const written = await store.upsert({
-        userId,
-        status: 'in_progress',
-        personaInquiryId: inquiry.id,
-        personaAccountId: inquiry.accountId,
-        attemptCount: (record?.attemptCount ?? 0) + (outdated || vanished ? 0 : 1),
-        statusChangedAt,
-        lastSyncedAt: now
-      });
+      const written = await store.upsert(
+        {
+          userId,
+          status: 'in_progress',
+          personaInquiryId: inquiry.id,
+          personaAccountId: inquiry.accountId,
+          attemptCount: (record?.attemptCount ?? 0) + (outdated || vanished ? 0 : 1),
+          statusChangedAt,
+          lastSyncedAt: now
+        },
+        { expectInquiryId: record?.personaInquiryId ?? null }
+      );
       // Same race as on resume; the created inquiry is adopted by the next refresh if it is still the newest.
       if (!written) {
         const latest = await store.get({ userId });
@@ -1143,7 +1162,7 @@ export function createKycVerification({
           // Not a confirmation against Persona, so an existing sync stamp stays.
           lastSyncedAt: record?.lastSyncedAt ?? now
         },
-        { overrideHumanOwned: true }
+        { overrideHumanOwned: true, expectInquiryId: inquiryId }
       );
       if (!written) return err({ code: 'conflict' });
       return ok({ from: record?.status ?? 'not_started', to: 'revoked', inquiryId });

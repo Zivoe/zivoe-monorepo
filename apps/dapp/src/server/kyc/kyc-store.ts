@@ -30,7 +30,10 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
       return rows[0] ?? null;
     },
 
-    async upsert(record, { overrideHumanOwned = false } = {}) {
+    async upsert(record, { overrideHumanOwned = false, expectInquiryId }) {
+      // Ownership guard: the row must still point at the inquiry the writer
+      // read. `is not distinct from`, so a null expectation compares too.
+      const ownsInquiry = sql`${kycVerification.personaInquiryId} is not distinct from ${expectInquiryId}`;
       const written = await db
         .insert(kycVerification)
         .values(record)
@@ -47,10 +50,11 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
           },
           // Monotonic guard, decided at the database: a writer holding an
           // older source timestamp than what landed meanwhile loses. So does
-          // one over a Human-owned status, unless it is the operator's own.
+          // one over a Human-owned status, unless it is the operator's own,
+          // and one for an inquiry the row has moved away from.
           setWhere: overrideHumanOwned
-            ? sql`excluded.status_changed_at >= ${kycVerification.statusChangedAt}`
-            : sql`excluded.status_changed_at >= ${kycVerification.statusChangedAt} and ${notInArray(kycVerification.status, [...HUMAN_OWNED_STATUSES])}`
+            ? sql`excluded.status_changed_at >= ${kycVerification.statusChangedAt} and ${ownsInquiry}`
+            : sql`excluded.status_changed_at >= ${kycVerification.statusChangedAt} and ${notInArray(kycVerification.status, [...HUMAN_OWNED_STATUSES])} and ${ownsInquiry}`
         })
         .returning({ userId: kycVerification.userId });
       return written.length > 0;
