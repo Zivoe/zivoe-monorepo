@@ -26,6 +26,64 @@ _Avoid_: dedupe table, sent log
 The per-user email half of transaction monitoring: a Monitor Pass publishes one QStash job per (alertable event, linked user) — payloads self-contained and free of email addresses — consumed by `/api/email/transaction-receipt` behind `runReceiptMailer`. The mailer reads the recipient fresh from the user row, gates on the `transaction_receipts` preference, dedupes per (event, user) in `transaction_email_sent`, and sends the receipt templates in `apps/dapp/src/server/utils/emails`. Send precedes record, mirroring the Monitor Pass; Resend's 24-hour idempotency key eats the crash-window duplicate, and QStash's own dedup id holds for only ten minutes, so the `transaction_email_sent` row is the durable guard. The wallet→user link is self-reported at connect time, so receipts go to every linked user and read as wallet activity, not verified identity.
 _Avoid_: email cron, notification job
 
+### KYC Verification
+
+**KYC Verification**:
+The module behind investor identity verification — `apps/dapp/src/server/kyc/kyc-verification.ts`, seven operations (`getKycStatus`, `startKyc`, `receiveWebhook`, `reconcile`, `deliverNotification`, and the operator's `revoke` and `resyncFromPersona`) over five injected ports (store, Persona API, Outbox, status email sender, operator messenger) and a clock — and one user's verification record: Persona identifiers, a Verification Status, the Attempt count and timestamps. Exactly one record per user (`kyc_verification`); absence means `not_started`, and the database refuses a stored `not_started`. It stores identifiers and a status only — never a name, document or image.
+_Avoid_: KYC record, inquiry row, webhook handler (that is the thin route)
+
+**Verification Status**:
+The app's own status for a user, distinct from Persona's inquiry status: `not_started` · `in_progress` · `submitted` · `pending_review` · `approved` · `declined` · `failed` · `expired` · `manually_approved` · `revoked`. Mutable, not a one-way latch — an approval can be revoked. `submitted` is "the user finished, the decision has not arrived": with a decisioning Workflow it lasts seconds; without one, rows pile up there and the Reconciliation Sweep's alarm is how the team learns the Workflow was never configured. `failed` is transient in the same way: the Inquiry Failed Workflow decides it within seconds, and investors see it as processing.
+_Avoid_: KYC state, inquiry status (Persona's), verified flag
+
+**Inquiry**:
+Persona's unit of work — one run of one person through the template, locked to the template version it was created on. The app stores its id and listens to its events; it never stores its contents. A user has at most one current Inquiry, and an older one's late events are ignored. An inquiry on any other template (`PERSONA_TEMPLATE_ID` names the investor one) is never the user's Inquiry, whatever reference id it carries: its events are ignored and no re-read adopts it.
+_Avoid_: verification session, KYC session
+
+**Attempt**:
+One Inquiry the app created for a user, counted on the record — an informational count, not a limit: a failed Inquiry is the Workflow's to decide, never the investor's to retry. An Inquiry adopted from outside the app (made in the dashboard) counts as one; a fresh Inquiry created only because the template version moved on does not.
+_Avoid_: try, retry count
+
+**Decision**:
+The subset of Verification Status that answers "is this person verified": `approved` and `manually_approved` are yes, `declined` and `revoked` are no, everything else is not yet. The Decision gates nothing in the vault tabs — the Centrifuge whitelist does (see Vault Access). In code, `DECISION_STATUSES` holds only the Persona-made pair; the Human-owned pair is guarded on its own.
+_Avoid_: outcome, result
+
+**Vault Access**:
+What decides whether the Deposit, Redeem and Pending tabs let a wallet act: the Centrifuge whitelist (and freeze) for that wallet on that chain, never the Verification Status. Whitelisting follows a yes Decision — today an ops rule, later the wallet-link step on `/verification` — so a wallet that is not whitelisted keeps the form open and gets **Get whitelisted** (a link to `/verification`) as its action; a frozen wallet stays locked. See `docs/decisions/kyc-transaction-gate.md` for why the browser-side Transaction Gate was dropped.
+_Avoid_: Transaction Gate (the dropped browser gate), KYC guard, verified-only mode
+
+**Status Write Path**:
+The single operation through which a Persona Inquiry becomes a Verification Status: map Persona's status, guard against regression (a Human-owned status is never overwritten, except by an operator's resync, which releases it; an event for a non-current Inquiry is ignored; a source timestamp older than `statusChangedAt` no-ops — a fetch compares at second granularity, since Persona's inquiry timestamps carry no milliseconds; a Decision is never replaced by a non-Decision from the same Inquiry), persist, and enqueue the notifications for the transition (inquiry, status, `statusChangedAt`), which `deliverNotification` checks against the record before sending. Webhooks, the Reconciliation Sweep and a start's re-read all go through it; a start's own resume and create write the record directly, under the same store guard. The Human-owned rule is enforced by the store itself, so a write already in flight when an operator revokes cannot undo the revocation.
+_Avoid_: webhook handler, status update, sync
+
+**Start read**:
+A start (`startKyc`) re-reads the user's newest Inquiry from Persona through the Status Write Path whenever the record is non-terminal or missing, however recently it was synced: the policy must see the present. Page reads never call Persona — they answer from the record, and webhooks and the Reconciliation Sweep keep it honest.
+_Avoid_: lazy refresh, staleness check
+
+**Reconciliation Sweep**:
+The scheduled pass (`reconcile`, every 15 minutes) that re-reads stale non-terminal records from Persona through the Status Write Path on three horizons — `submitted` and `failed` for seven days, `pending_review` every six hours for 45 days, `in_progress` and `expired` for a day — and reports rows still waiting on a decision past the alert threshold as stuck. The safety net for a lost webhook and the alarm for a missing decisioning Workflow. Idempotent: nothing changed → nothing written, nothing sent.
+_Avoid_: cron, backfill, poller
+
+**Outbox**:
+The port through which the Status Write Path and a start hand notifications to QStash: one job per notification to the receiver route for its channel, enqueued before the record is persisted so a failed persist is retried rather than silently unnotified. The receiver routes are transport only: each hands its job back to `deliverNotification`, which re-reads the record, skips a job it has moved past, asks for a retry of one it has not caught up with, and sends through the channel port for the job's kind.
+_Avoid_: queue, mailer
+
+**Operator message**:
+The Telegram line the Persona Telegram channel (`TELEGRAM_PERSONA_CHAT_ID`, shared with future KYB work, separate from the sign-up channel) gets for each lifecycle move in `KYC_OPERATOR_STATUSES`, including every start and resume the server performs; a Continue that reuses the session token its tab stored never reaches the server and is not announced. A feed, not a queue — nothing waits on a reply.
+_Avoid_: alert, ping (in prose), notification (that is the email too)
+
+**Drift check**:
+The module (`createPersonaDriftCheck` in `kyc-webhook-drift.ts`, wired next to KYC Verification over the same Persona adapter) that reads Persona's registered webhook and, given the template id, the template's latest published version, and reports any difference from what the code handles and pins. `/api/kyc/webhook-drift` runs it daily and turns the report into the cron check-in and the captures. It sees the silence a lost subscription produces, which no delivery can.
+_Avoid_: config audit, health check
+
+**Human-owned status**:
+`manually_approved` and `revoked`. Only a human sets them and only a human clears them; the Status Write Path never overwrites one, so everything Persona sends meanwhile is dropped. An operator sets `revoked` with `pnpm kyc:operator revoke` and clears either with `pnpm kyc:operator resync` (both run in `/api/kyc/operator`, published through QStash, and answer in the Persona Telegram channel). Clearing is always a re-read: the record becomes what Persona holds now, never a status typed by hand. Nothing produces `manually_approved` yet.
+_Avoid_: admin override, manual status
+
+**Investor Profile step**:
+The first of the two steps on `/verification`, ahead of the Persona flow: the onboarding answers an individual may still correct — first name, last name, country of residence — prefilled from the profile, with the account type and the email shown locked. Continue validates, saves them to `profile` (`updateInvestorProfile`) and moves on, so the Inquiry `startKyc` creates next is prefilled from what they confirmed; a resume carries no prefill, so a correction made once an Inquiry exists changes the profile only. Offered only while no Inquiry exists (`canStart`): from the first Inquiry on — in progress, expired, submitted or decided — the page holds the identity step with the profile step marked done, so nothing can be edited that Persona would never see; an organization sees the step locked with the team as the way forward. Back on the identity step returns to it, rebuilt from the saved values, and is withheld while a start is in flight or a Persona frame is up, so nothing on the page can unmount a live Inquiry. The page has a shell of its own — the step rail and Exit — and none of the dashboard's navigation.
+_Avoid_: KYC form, profile page (a step, not a destination), account settings
+
 ### Client transactions
 
 **Transaction Hook**:
