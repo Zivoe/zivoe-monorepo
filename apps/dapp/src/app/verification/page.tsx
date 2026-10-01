@@ -1,9 +1,11 @@
 import { type Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { verifySession } from '@/server/data/auth';
+import { getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { kycVerification } from '@/server/kyc';
+
+import { withNext } from '@/lib/lighthouse';
 
 import VerificationFlow from './verification-flow';
 
@@ -19,13 +21,16 @@ export const metadata: Metadata = { title: 'Identity verification | Zivoe' };
  * of parallel reads after the session instead of two.
  */
 export default async function KycPage() {
-  const { user } = await verifySession();
+  // Signed out (the proxy catches a missing cookie; this, an expired session): back here after sign-in.
+  const { user } = await getUser();
+  if (!user) redirect(withNext('/sign-in', '/verification'));
+
   const [view, profile] = await Promise.all([
     kycVerification.getKycStatus({ userId: user.id }),
     getInvestorProfile({ userId: user.id })
   ]);
-  // No profile row means onboarding isn't finished.
-  if (!profile) redirect('/onboarding');
+  // No profile row means onboarding isn't finished; it hands the user back here.
+  if (!profile) redirect(withNext('/onboarding', '/verification'));
 
   return <VerificationFlow view={view} profile={profile} />;
 }

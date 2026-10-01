@@ -35,7 +35,7 @@ import { useTurnstile } from '../_hooks/useTurnstile';
 
 type Step = 'EMAIL' | 'OTP';
 
-/** `next` is the validated Lighthouse page to return to once signed in and onboarded (lib/lighthouse.ts). */
+/** `next` is the validated page to return to once signed in and onboarded: a Lighthouse page or a dapp page emails link to (lib/lighthouse.ts). */
 export default function SignInForm({ next }: { next?: string }) {
   const searchParams = useSearchParams();
 
@@ -333,7 +333,7 @@ function OtpStepForm({
       return;
     }
 
-    // Returning to Lighthouse ends in a cross-origin redirect, which the client router cannot follow.
+    // Post-signin decides where `next` leads; returning to Lighthouse ends in a cross-origin redirect, which the client router cannot follow.
     if (next) {
       window.location.assign(withNext('/api/auth/post-signin', next));
       return;

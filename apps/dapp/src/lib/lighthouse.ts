@@ -1,5 +1,7 @@
 import { env } from '@/env';
 
+import { isDappReturnPath } from './return-paths';
+
 /**
  * Lighthouse has no sign-in of its own. It lets a visitor in only with a pass, a signed cookie the
  * dapp issues to signed-in, onboarded users (server/utils/lighthouse-pass.ts). Lighthouse sends
@@ -24,15 +26,25 @@ export function lighthouseReturnUrl(next: string | Array<string> | null | undefi
   return `${url.origin}${url.pathname}`;
 }
 
-/** Carries the Lighthouse return URL on a dapp path so it survives sign-in and onboarding. */
+/**
+ * The `next` that rides along through sign-in and onboarding: a Lighthouse
+ * page, or one of the dapp pages emails link to (lib/return-paths.ts).
+ * Undefined for anything else.
+ */
+export function signInReturnUrl(next: string | Array<string> | null | undefined) {
+  return isDappReturnPath(next) ? next : lighthouseReturnUrl(next);
+}
+
+/** Carries the return URL on a dapp path so it survives sign-in and onboarding. */
 export function withNext(path: string, next: string | undefined) {
   return next ? `${path}?next=${encodeURIComponent(next)}` : path;
 }
 
 /**
- * Where a signed-in, onboarded user lands: the dapp, or, when Lighthouse sent them, the pass route,
- * so they arrive at the Lighthouse page in `next` holding a pass.
+ * Where a signed-in, onboarded user lands: the dapp page in `next`, the dapp home, or, when Lighthouse
+ * sent them, the pass route, so they arrive at the Lighthouse page in `next` holding a pass.
  */
 export function onboardedDestination(next: string | undefined) {
-  return next ? withNext('/api/lighthouse/pass', next) : '/';
+  if (!next) return '/';
+  return isDappReturnPath(next) ? next : withNext('/api/lighthouse/pass', next);
 }
