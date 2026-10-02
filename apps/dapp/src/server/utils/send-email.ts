@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { type ReactElement } from 'react';
+
 import { render } from '@react-email/components';
 import { Resend } from 'resend';
 
@@ -7,9 +9,15 @@ import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
+import { type KycEmailStatus } from '../kyc/kyc-status';
+import { BASE_URL } from './base-url';
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob, buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
+import KycActionRequiredEmail from './emails/kyc-action-required-email';
+import KycApprovedEmail from './emails/kyc-approved-email';
+import KycDeclinedEmail from './emails/kyc-declined-email';
+import KycUnderReviewEmail from './emails/kyc-under-review-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
 import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
@@ -184,6 +192,58 @@ export async function sendTransactionReceiptEmail({
       },
       {
         idempotencyKey: `transaction-receipt/${receiptKey}`
+      }
+    )
+  );
+}
+
+/** One subject and template per emailable status — the table a reviewer scans against the page copy. */
+const KYC_EMAILS: Record<
+  KycEmailStatus,
+  { subject: string; render: (props: { name?: string; kycUrl: string }) => ReactElement }
+> = {
+  approved: { subject: 'Your identity is verified', render: (props) => KycApprovedEmail(props) },
+  declined: { subject: 'An update on your identity verification', render: (props) => KycDeclinedEmail(props) },
+  pending_review: {
+    subject: 'Your identity verification is under review',
+    render: (props) => KycUnderReviewEmail(props)
+  },
+  expired: { subject: 'Finish your identity verification', render: (props) => KycActionRequiredEmail(props) }
+};
+
+/**
+ * One status email per outcome, from the transactional sender (like the OTP
+ * email): no unsubscribe metadata, since a compliance decision about a person
+ * must never be withheld. Idempotent per transition (status, inquiry and when
+ * it changed) on Resend's side, so a status reached a second time is emailed.
+ */
+export async function sendKycStatusEmail({
+  to,
+  name,
+  status,
+  inquiryId,
+  statusChangedAt
+}: {
+  to: string;
+  name?: string;
+  status: KycEmailStatus;
+  inquiryId: string;
+  statusChangedAt: Date;
+}) {
+  const { subject, render: renderTemplate } = KYC_EMAILS[status];
+  const html = await render(renderTemplate({ name, kycUrl: `${BASE_URL}/verification` }));
+
+  return handleIdempotentResult(
+    await resend.emails.send(
+      {
+        from: 'Zivoe <verify@auth.zivoe.com>',
+        replyTo: EMAILS.INQUIRE,
+        to,
+        subject,
+        html
+      },
+      {
+        idempotencyKey: `kyc-${status}-email/${inquiryId}/${statusChangedAt.getTime()}`
       }
     )
   );

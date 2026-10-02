@@ -138,7 +138,7 @@ const avatarButtonStyles = tv({
   }
 });
 
-export function UserMenu({ user }: { user: User }) {
+export function UserMenu({ user, showVerification }: { user: User; showVerification: boolean }) {
   const posthog = usePostHog();
 
   const [isPending, setIsPending] = React.useState(false);
@@ -188,6 +188,12 @@ export function UserMenu({ user }: { user: User }) {
           </div>
 
           <Separator />
+
+          {showVerification && (
+            <Link variant="ghost-light" fullWidth className="justify-start" href="/verification">
+              Identity verification
+            </Link>
+          )}
 
           <Link variant="ghost-light" fullWidth className="justify-start" href="/unsubscribe">
             Settings

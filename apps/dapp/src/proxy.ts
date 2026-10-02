@@ -2,11 +2,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { getSessionCookie } from 'better-auth/cookies';
 
+import { isDappReturnPath } from '@/lib/return-paths';
+
 export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
+    const signIn = new URL('/sign-in', request.url);
+    // A page an email links to is where the visitor lands once signed in.
+    const { pathname } = request.nextUrl;
+    if (isDappReturnPath(pathname)) signIn.searchParams.set('next', pathname);
+    return NextResponse.redirect(signIn);
   }
 
   return NextResponse.next();

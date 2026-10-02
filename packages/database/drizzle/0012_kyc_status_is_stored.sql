@@ -1,0 +1,1 @@
+ALTER TABLE "kyc_verification" ADD CONSTRAINT "kyc_verification_status_is_stored" CHECK ("kyc_verification"."status" <> 'not_started');

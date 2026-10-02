@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./onboarding": "./src/onboarding.ts",
+    "./kyc": "./src/kyc.ts",
     "./schema": "./src/schema/index.ts",
     "./agent": "./src/agent.ts"
   },
@@ -12,6 +13,9 @@
     "lint": "eslint ./src/ drizzle.config.ts",
     "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
     "check-types": "tsc --noEmit",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait && DATABASE_URL=postgresql://zivoe:zivoe@localhost:5433/zivoe pnpm db:migrate",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",

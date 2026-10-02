@@ -1,0 +1,33 @@
+# Local Postgres for development. Matches the Postgres 18 major version used in staging/production.
+# Host port is 5433 to avoid clashing with a system Postgres on the default 5432, and it is
+# published on loopback only: the credentials below are in the repository, so the database
+# must not be reachable from the network the machine sits on.
+#
+#   pnpm --filter @zivoe/database db:up      # start it
+#   pnpm --filter @zivoe/database db:migrate # apply migrations
+#   pnpm --filter @zivoe/database db:reset   # wipe and re-migrate from scratch
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: zivoe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zivoe
+      POSTGRES_PASSWORD: zivoe
+      POSTGRES_DB: zivoe
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      # Postgres 18 moved the data directory under /var/lib/postgresql/<major>/ and declares
+      # the parent as its volume; mounting the pre-18 path /var/lib/postgresql/data here would
+      # silently keep the data outside the volume.
+      - zivoe-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zivoe -d zivoe']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  zivoe-postgres-data:

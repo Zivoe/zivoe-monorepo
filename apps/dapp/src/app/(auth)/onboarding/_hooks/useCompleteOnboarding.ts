@@ -12,7 +12,7 @@ import { onboardedDestination } from '@/lib/lighthouse';
 import { type OnboardingFormData } from '@/lib/schemas/onboarding';
 import { AppError, onTxError } from '@/lib/utils';
 
-/** `next` is the validated Lighthouse page to return to once onboarded (lib/lighthouse.ts); without it the dashboard is next. */
+/** `next` is the validated page to return to once onboarded (lib/lighthouse.ts); without it the dashboard is next. */
 export function useCompleteOnboarding({ next }: { next?: string } = {}) {
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export function useCompleteOnboarding({ next }: { next?: string } = {}) {
         description: 'Your account has been set up successfully.'
       });
 
-      // Returning to Lighthouse ends in a cross-origin redirect from the pass route, which the client router cannot follow.
+      // A full load: returning to Lighthouse ends in a cross-origin redirect from the pass route, which the client router cannot follow.
       if (next) window.location.assign(onboardedDestination(next));
       else router.push('/');
     },

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { getOnboardedStatus, getUser } from '@/server/data/auth';
 
-import { lighthouseReturnUrl, onboardedDestination, withNext } from '@/lib/lighthouse';
+import { onboardedDestination, signInReturnUrl, withNext } from '@/lib/lighthouse';
 
 import SignInForm from './_components/sign-in-form';
 
@@ -11,7 +11,7 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{ next?: string | Array<string> }>;
 }) {
-  const next = lighthouseReturnUrl((await searchParams).next);
+  const next = signInReturnUrl((await searchParams).next);
   const { user } = await getUser();
 
   if (user) {

@@ -30,6 +30,12 @@ export interface CalloutProps extends VariantProps<typeof calloutVariants> {
   className?: string;
   /** Drops the leading icon when the surrounding layout already carries one. */
   hideIcon?: boolean;
+  /**
+   * `note` for standing guidance. A callout that appears in answer to the
+   * user's action is announced instead: `alert` for a failure, `status` for
+   * a wait.
+   */
+  role?: 'note' | 'alert' | 'status';
 }
 
 /**
@@ -38,11 +44,11 @@ export interface CalloutProps extends VariantProps<typeof calloutVariants> {
  * transient feedback reach for `toast`, and for field-level validation use the
  * input's own `errorMessage`.
  */
-export function Callout({ children, className, variant, hideIcon }: CalloutProps) {
+export function Callout({ children, className, variant, hideIcon, role = 'note' }: CalloutProps) {
   const Icon = CALLOUT_ICONS[variant ?? 'info'];
 
   return (
-    <div className={calloutVariants({ variant, className })} role="note">
+    <div className={calloutVariants({ variant, className })} role={role}>
       {!hideIcon && <Icon />}
       <div>{children}</div>
     </div>

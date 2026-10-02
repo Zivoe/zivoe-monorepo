@@ -100,8 +100,11 @@ const mocks = vi.hoisted(() => ({
   usdtHasPendingCancel: false,
   walletChainId: 11155111,
   switchChain: vi.fn(),
-  updateTab: vi.fn()
+  updateTab: vi.fn(),
+  isKycEnabled: true
 }));
+
+vi.mock('../kyc-flag-provider', () => ({ useIsKycEnabled: () => mocks.isKycEnabled }));
 
 // Positions are per Centrifuge vault: keyed by chain, then by vault address.
 const positionFor = vi.hoisted(
@@ -136,6 +139,10 @@ const positionFor = vi.hoisted(
 );
 
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+// The whitelist callout's link to /verification; the real one needs a mounted app router.
+vi.mock('@zivoe/ui/core/link', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>
+}));
 vi.mock('./_hooks/useTabNavigation', () => ({
   useTabNavigation: () => ({ updateTab: mocks.updateTab, navigateToTab: vi.fn(), isMobile: false })
 }));
@@ -374,6 +381,7 @@ function getButton(name: string): HTMLButtonElement {
 /** One baseline for both suites — the mock surface is shared, so its reset must be too. */
 function resetMocks() {
   vi.clearAllMocks();
+  mocks.isKycEnabled = true;
   mocks.requestVault = undefined;
   mocks.canReceiveShares = true;
   mocks.canRequestRedemption = true;
@@ -407,28 +415,46 @@ describe('RedeemFlow', () => {
 
   beforeEach(resetMocks);
 
-  it('names the wallet and blocks the request when the vault does not admit it', async () => {
+  it('sends a wallet the vault does not admit to get whitelisted, leaving the form open', () => {
     mocks.canRequestRedemption = false;
     renderFlow();
 
     fireEvent.change(getInput('Redeem'), { target: { value: '2' } });
 
-    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByRole('link', { name: 'Get whitelisted' }).getAttribute('href')).toBe('/verification');
     expect(screen.getByText(/You must be whitelisted to interact with this vault/)).toBeTruthy();
-    expect(getInput('Redeem').disabled).toBe(true);
-
-    await act(async () => {
-      fireEvent.click(getButton('Wallet Not Whitelisted'));
-    });
-
+    expect(screen.queryByRole('button', { name: /redemption/ })).toBeNull();
+    // A "not yet": sizing a redemption stays open.
+    expect(getInput('Redeem').disabled).toBe(false);
     expect(mocks.requestRedeem).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pre-KYC dead end for a wallet the vault does not admit while the kyc flag is off', () => {
+    mocks.isKycEnabled = false;
+    mocks.canRequestRedemption = false;
+    renderFlow();
+
+    expect(getButton('Wallet Not Whitelisted').disabled).toBe(true);
+    expect(screen.getByText(/to request access/)).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Get whitelisted' })).toBeNull();
+    expect(getInput('Redeem').disabled).toBe(true);
+  });
+
+  it('keeps a frozen wallet on a dead end with the form locked', () => {
+    mocks.canRequestRedemption = false;
+    mocks.restriction = 'frozen';
+    renderFlow();
+
+    expect(getButton('Wallet Frozen').disabled).toBe(true);
+    expect(screen.queryByRole('link', { name: 'Get whitelisted' })).toBeNull();
+    expect(getInput('Redeem').disabled).toBe(true);
   });
 
   it('stacks both warnings below the main action', () => {
     mocks.canRequestRedemption = false;
     renderFlow();
 
-    const action = getButton('Wallet Not Whitelisted');
+    const action = screen.getByRole('link', { name: 'Get whitelisted' });
     const processingWarning = screen.getByText(/Redemptions are processed periodically/);
     const whitelistWarning = screen.getByText(/You must be whitelisted to interact with this vault/);
 

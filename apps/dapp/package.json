@@ -15,7 +15,9 @@
     "email:dev": "email dev --dir src/server/utils/emails --port 3001",
     "schedules:sync": "tsx --env-file=.env scripts/qstash-schedules.ts sync",
     "schedules:list": "tsx --env-file=.env scripts/qstash-schedules.ts list",
-    "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove"
+    "schedules:remove": "tsx --env-file=.env scripts/qstash-schedules.ts remove",
+    "kyc:e2e": "vitest run --config vitest.e2e.config.ts",
+    "kyc:operator": "tsx --env-file=.env scripts/kyc-operator.ts"
   },
   "dependencies": {
     "@centrifuge/sdk": "2.5.0",
@@ -45,6 +47,7 @@
     "jotai": "^2.12.5",
     "ky": "^1.14.2",
     "next": "15.6.0-canary.60",
+    "persona-react": "6.7.0",
     "postgres": "^3.4.5",
     "posthog-js": "^1.257.0",
     "posthog-node": "^5.17.2",
