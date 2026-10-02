@@ -126,9 +126,9 @@ export default function KycFlow({
   const beginAction = action.kind === 'start' || action.kind === 'resume' ? action : null;
 
   // The step's header, above every phase. Back is withheld while a start is
-  // in flight, the frame is up, or a submission is being confirmed — there is
-  // nothing to go back for then, and leaving would only lose the answer.
-  const canLeaveStep = phase.kind !== 'starting' && phase.kind !== 'inquiry' && phase.kind !== 'submitted';
+  // in flight, the frame is up, or a submission/refusal is being confirmed.
+  const canLeaveStep =
+    phase.kind !== 'starting' && phase.kind !== 'inquiry' && phase.kind !== 'submitted' && phase.kind !== 'refused';
   const header = (
     <Auth.Header
       title="Identity verification"
@@ -167,9 +167,7 @@ export default function KycFlow({
       });
     } else if (isRefusal(body)) {
       setPhase({ kind: 'refused', code: body.code });
-      // A refusal is the server's answer about a state this page rendered
-      // before it existed (approved by a webhook since load, say): refresh so
-      // the card and the button beneath the callout agree with it.
+      // The server has newer information: hide the obsolete action while the view refreshes.
       router.refresh();
     } else if ('success' in body) {
       rememberSessionToken(body.data);
@@ -361,18 +359,28 @@ export default function KycFlow({
     );
   }
 
+  // A refused action cannot be retried. A full reload is the fallback if the refresh stalls.
+  if (phase.kind === 'refused' && beginAction) {
+    return (
+      <>
+        {header}
+        <div className="flex flex-col gap-6">
+          <Callout variant="warning" role="alert">
+            {START_REFUSAL_COPY[phase.code]}
+          </Callout>
+          <Button variant="border-light" className="self-start" onPress={() => window.location.reload()}>
+            Refresh status
+          </Button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {header}
 
       <div className="flex flex-col gap-6">
-        {/* Only until the refresh lands: from then on the card below names the state the refusal was about. */}
-        {phase.kind === 'refused' && beginAction ? (
-          <Callout variant="warning" role="alert">
-            {START_REFUSAL_COPY[phase.code]}
-          </Callout>
-        ) : null}
-
         {phase.kind === 'cooldown' ? (
           <Callout variant="warning" role="status">
             {phase.message}
