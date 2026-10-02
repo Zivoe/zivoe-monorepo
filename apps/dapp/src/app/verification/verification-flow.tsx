@@ -65,9 +65,9 @@ export default function VerificationFlow({ view, profile }: { view: KycStatusVie
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface-base lg:flex-row lg:gap-3 lg:p-4">
-      {/* The rail: a plain panel in the auth layout's colour, full height beside the scrolling content. */}
-      <aside className="hidden shrink-0 flex-col rounded-xl bg-element-tertiary p-8 lg:sticky lg:top-4 lg:flex lg:h-[calc(100dvh-2rem)] lg:w-80 xl:w-96 xl:p-10">
+    <div className="flex min-h-dvh shrink-0 flex-col bg-surface-base lg:flex-row lg:gap-3 lg:p-4">
+      {/* The shell grows with its content; the rail stretches to the full page height. */}
+      <aside className="hidden shrink-0 flex-col rounded-xl bg-element-tertiary p-8 lg:flex lg:w-80 xl:w-96 xl:p-10">
         <ZivoeLogo aria-hidden="true" className="h-8 w-auto self-start" />
 
         <nav className="mt-14">
