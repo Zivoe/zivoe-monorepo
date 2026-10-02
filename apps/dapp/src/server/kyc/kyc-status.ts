@@ -15,6 +15,7 @@ export const isOneOf =
 
 /** The Status Write Path never overwrites these: only a human sets or clears them. */
 export const HUMAN_OWNED_STATUSES = ['manually_approved', 'revoked'] as const satisfies ReadonlyArray<KycStatus>;
+export type HumanOwnedStatus = (typeof HUMAN_OWNED_STATUSES)[number];
 
 /** A Decision answers "is this person verified"; everything else is "not yet". */
 export const DECISION_STATUSES = ['approved', 'declined'] as const satisfies ReadonlyArray<KycStatus>;

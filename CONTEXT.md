@@ -29,7 +29,7 @@ _Avoid_: email cron, notification job
 ### KYC Verification
 
 **KYC Verification**:
-The module behind investor identity verification — `apps/dapp/src/server/kyc/kyc-verification.ts`, seven operations (`getKycStatus`, `startKyc`, `receiveWebhook`, `reconcile`, `deliverNotification`, and the operator's `revoke` and `resyncFromPersona`) over five injected ports (store, Persona API, Outbox, status email sender, operator messenger) and a clock — and one user's verification record: Persona identifiers, a Verification Status, the Attempt count and timestamps. Exactly one record per user (`kyc_verification`); absence means `not_started`, and the database refuses a stored `not_started`. It stores identifiers and a status only — never a name, document or image.
+The module behind investor identity verification — `apps/dapp/src/server/kyc/kyc-verification.ts`, eight operations (`getKycStatus`, `startKyc`, `receiveWebhook`, `reconcile`, `deliverNotification`, and the operator's `revoke`, `approveManually` and `resyncFromPersona`) over five injected ports (store, Persona API, Outbox, status email sender, operator messenger) and a clock — and one user's verification record: Persona identifiers, a Verification Status, the Attempt count and timestamps. Exactly one record per user (`kyc_verification`); absence means `not_started`, and the database refuses a stored `not_started`. It stores identifiers and a status only — never a name, document or image.
 _Avoid_: KYC record, inquiry row, webhook handler (that is the thin route)
 
 **Verification Status**:
@@ -77,7 +77,7 @@ The module (`createPersonaDriftCheck` in `kyc-webhook-drift.ts`, wired next to K
 _Avoid_: config audit, health check
 
 **Human-owned status**:
-`manually_approved` and `revoked`. Only a human sets them and only a human clears them; the Status Write Path never overwrites one, so everything Persona sends meanwhile is dropped. An operator sets `revoked` with `pnpm kyc:operator revoke` and clears either with `pnpm kyc:operator resync` (both run in `/api/kyc/operator`, published through QStash, and answer in the Persona Telegram channel). Clearing is always a re-read: the record becomes what Persona holds now, never a status typed by hand. Nothing produces `manually_approved` yet.
+`manually_approved` and `revoked`. Only a human sets them and only a human clears them; the Status Write Path never overwrites one, so everything Persona sends meanwhile is dropped. An operator sets `revoked` with `pnpm kyc:operator revoke` and `manually_approved` with `pnpm kyc:operator approve`, and clears either with `pnpm kyc:operator resync` (all three run in `/api/kyc/operator`, published through QStash, and answer in the Persona Telegram channel). Clearing is always a re-read: the record becomes what Persona holds now. `manually_approved` is for a user Persona never decides — an organization, or an investor verified before Persona; an individual with an Inquiry is decided in Persona, so the record keeps hearing it.
 _Avoid_: admin override, manual status
 
 **Investor Profile step**:

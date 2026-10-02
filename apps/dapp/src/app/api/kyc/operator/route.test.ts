@@ -12,12 +12,13 @@ vi.mock('@/lib/qstash', async (importOriginal) => ({
   withQstashSignature: (handler: unknown) => handler
 }));
 // Hoisted so the mock factories below can reach them; the tests set what the module answers.
-const { revoke, resyncFromPersona, sendTelegramMessage } = vi.hoisted(() => ({
+const { revoke, approveManually, resyncFromPersona, sendTelegramMessage } = vi.hoisted(() => ({
   revoke: vi.fn(),
+  approveManually: vi.fn(),
   resyncFromPersona: vi.fn(),
   sendTelegramMessage: vi.fn()
 }));
-vi.mock('@/server/kyc', () => ({ kycVerification: { revoke, resyncFromPersona } }));
+vi.mock('@/server/kyc', () => ({ kycVerification: { revoke, approveManually, resyncFromPersona } }));
 vi.mock('@/server/utils/send-telegram', () => ({ sendTelegramMessage }));
 vi.mock('@/env', () => ({ env: { TELEGRAM_PERSONA_CHAT_ID: 'persona-chat' } }));
 vi.mock('@sentry/nextjs', () => ({ setTag: vi.fn(), captureException: vi.fn() }));
@@ -71,6 +72,29 @@ describe('POST /api/kyc/operator', () => {
     expect(revoke).toHaveBeenCalledWith({ userId: USER_ID });
   });
 
+  it('approves manually and reports the change', async () => {
+    approveManually.mockResolvedValue({
+      ok: true,
+      value: { from: 'not_started', to: 'manually_approved', inquiryId: null }
+    });
+
+    expect((await post({ action: 'approve', userId: USER_ID })).status).toBe(200);
+    expect(approveManually).toHaveBeenCalledWith({ userId: USER_ID });
+    expect(reported()).toContain('<b>Status:</b> not_started → manually_approved');
+    expect(reported()).toContain('<b>Inquiry:</b> none');
+    expect(reported()).not.toContain('⚠️');
+  });
+
+  it('warns when the manually approved user has an Inquiry', async () => {
+    approveManually.mockResolvedValue({
+      ok: true,
+      value: { from: 'declined', to: 'manually_approved', inquiryId: 'inq_1' }
+    });
+
+    expect((await post({ action: 'approve', userId: USER_ID })).status).toBe(200);
+    expect(reported()).toContain('⚠️ This user has an Inquiry');
+  });
+
   it('reports an unknown user and tells QStash not to retry', async () => {
     revoke.mockResolvedValue({ ok: false, error: { code: 'profile_missing' } });
 
@@ -82,16 +106,17 @@ describe('POST /api/kyc/operator', () => {
 
   it.each([
     ['Persona cannot be read', 'resync', { code: 'persona_unavailable', cause: { reason: 'network', message: 'x' } }],
-    ['the record changed under the revocation', 'revoke', { code: 'conflict' }]
+    ['the record changed under a revocation', 'revoke', { code: 'conflict' }],
+    ['the record changed under a manual approval', 'approve', { code: 'conflict' }]
   ])('answers 500 so QStash retries when %s', async (_label, action, error) => {
-    (action === 'revoke' ? revoke : resyncFromPersona).mockResolvedValue({ ok: false, error });
+    ({ revoke, approve: approveManually, resync: resyncFromPersona })[action]!.mockResolvedValue({ ok: false, error });
 
     expect((await post({ action, userId: USER_ID })).status).toBe(500);
     expect(sendTelegramMessage).not.toHaveBeenCalled();
   });
 
   it.each([
-    ['an action it does not know', { action: 'approve', userId: USER_ID }],
+    ['an action it does not know', { action: 'delete', userId: USER_ID }],
     ['a user id that is not a UUID', { action: 'revoke', userId: 'ada@example.com' }]
   ])('refuses %s as non-retryable without consulting the module', async (_label, body) => {
     const response = await post(body);
@@ -99,6 +124,7 @@ describe('POST /api/kyc/operator', () => {
     expect(response.status).toBe(489);
     expect(response.headers.get('Upstash-NonRetryable-Error')).toBe('true');
     expect(revoke).not.toHaveBeenCalled();
+    expect(approveManually).not.toHaveBeenCalled();
     expect(resyncFromPersona).not.toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import { type Result, err, ok } from '@/lib/result';
 
 import {
   AWAITING_INVESTOR_STATUSES,
+  type HumanOwnedStatus,
   IN_REVIEW_STATUSES,
   type KycEmailStatus,
   type KycOperatorStatus,
@@ -26,7 +27,7 @@ import {
 import { parsePersonaWebhookEvent, verifyPersonaSignature } from './persona-webhook';
 
 // ---------------------------------------------------------------------------
-// KYC Verification — one module, one external seam, seven operations.
+// KYC Verification — one module, one external seam, eight operations.
 //
 // Dependencies are accepted, not created: a store, a Persona API, an outbox,
 // the two notification channels and a clock. Production wires Postgres /
@@ -74,13 +75,13 @@ export type KycStore = {
    * roll the status back — the older source loses at the database, whatever
    * order they arrive in — and a write that read the record before an
    * operator's revocation cannot undo it. `overrideHumanOwned` is the
-   * operator's word (a revocation, a resync's release), the one writer that
-   * may replace a Human-owned status. `expectInquiryId` is the inquiry the
-   * writer saw the record pointing at when it read (null for no record): a
-   * row re-pointed meanwhile — a start replacing the inquiry while an event
-   * for the old one was in flight — refuses the write, whatever its
-   * timestamp, so the stale writer re-reads instead of taking the record
-   * back. The insert path has no row to compare against.
+   * operator's word (a revocation, a manual approval, a resync's release),
+   * the one writer that may replace a Human-owned status. `expectInquiryId`
+   * is the inquiry the writer saw the record pointing at when it read (null
+   * for no record): a row re-pointed meanwhile — a start replacing the
+   * inquiry while an event for the old one was in flight — refuses the write,
+   * whatever its timestamp, so the stale writer re-reads instead of taking
+   * the record back. The insert path has no row to compare against.
    */
   upsert(
     record: KycVerificationRecord,
@@ -331,7 +332,7 @@ export type DeliveryOutcome = 'sent' | 'skipped';
 export type OperatorChange = { from: KycStatus; to: KycStatus; inquiryId: string | null };
 
 /** `conflict`: a concurrent write landed a later stamp between the read and the write — the caller's "retry". */
-export type RevokeError = { code: 'profile_missing' | 'conflict' };
+export type HumanOwnedWriteError = { code: 'profile_missing' | 'conflict' };
 
 export type ResyncError = { code: 'profile_missing' } | { code: 'persona_unavailable'; cause: PersonaApiError };
 
@@ -360,7 +361,16 @@ export type KycVerification = {
    * `resyncFromPersona` releases it. A user without a record gets one, which
    * also keeps them from starting.
    */
-  revoke(input: { userId: string }): Promise<Result<OperatorChange, RevokeError>>;
+  revoke(input: { userId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
+  /**
+   * An operator's approval — the one producer of the Human-owned
+   * `manually_approved`, for a user Persona never decides: an organization, or
+   * an investor verified before Persona. Deaf to Persona like a revocation,
+   * so an individual with an Inquiry is decided in Persona instead. `revoke`
+   * undoes it; it is also how a revoked organization is restored, which a
+   * resync cannot do with no Inquiry to go back to.
+   */
+  approveManually(input: { userId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
   /**
    * An operator's re-read of one user, whatever the record says: the one way a
    * Human-owned status is cleared, and the recovery for a Decision whose
@@ -706,6 +716,44 @@ export function createKycVerification({
       now
     });
     return { ...applied, inquiry };
+  }
+
+  /**
+   * The operator's own write of a Human-owned status, behind `revoke` and
+   * `approveManually`. Keeps the record's Persona identifiers and notifies
+   * nobody: the operator route reports the change.
+   */
+  async function setHumanOwned({
+    userId,
+    status
+  }: {
+    userId: string;
+    status: HumanOwnedStatus;
+  }): Promise<Result<OperatorChange, HumanOwnedWriteError>> {
+    const now = clock.now();
+    const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
+    if (!profile) return err({ code: 'profile_missing' });
+    const inquiryId = record?.personaInquiryId ?? null;
+    if (record?.status === status) return ok({ from: status, to: status, inquiryId });
+
+    // Strictly after the last transition, like every other stamp: Persona's
+    // clock may run ahead of this one, and the store refuses an older write.
+    const statusChangedAt = new Date(Math.max(now.getTime(), (record?.statusChangedAt.getTime() ?? 0) + 1));
+    const written = await store.upsert(
+      {
+        userId,
+        status,
+        personaInquiryId: inquiryId,
+        personaAccountId: record?.personaAccountId ?? null,
+        attemptCount: record?.attemptCount ?? 0,
+        statusChangedAt,
+        // Not a confirmation against Persona, so an existing sync stamp stays.
+        lastSyncedAt: record?.lastSyncedAt ?? now
+      },
+      { overrideHumanOwned: true, expectInquiryId: inquiryId }
+    );
+    if (!written) return err({ code: 'conflict' });
+    return ok({ from: record?.status ?? 'not_started', to: status, inquiryId });
   }
 
   return {
@@ -1141,32 +1189,9 @@ export function createKycVerification({
       );
     },
 
-    async revoke({ userId }) {
-      const now = clock.now();
-      const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
-      if (!profile) return err({ code: 'profile_missing' });
-      const inquiryId = record?.personaInquiryId ?? null;
-      if (record?.status === 'revoked') return ok({ from: 'revoked', to: 'revoked', inquiryId });
+    revoke: ({ userId }) => setHumanOwned({ userId, status: 'revoked' }),
 
-      // Strictly after the last transition, like every other stamp: Persona's
-      // clock may run ahead of this one, and the store refuses an older write.
-      const statusChangedAt = new Date(Math.max(now.getTime(), (record?.statusChangedAt.getTime() ?? 0) + 1));
-      const written = await store.upsert(
-        {
-          userId,
-          status: 'revoked',
-          personaInquiryId: inquiryId,
-          personaAccountId: record?.personaAccountId ?? null,
-          attemptCount: record?.attemptCount ?? 0,
-          statusChangedAt,
-          // Not a confirmation against Persona, so an existing sync stamp stays.
-          lastSyncedAt: record?.lastSyncedAt ?? now
-        },
-        { overrideHumanOwned: true, expectInquiryId: inquiryId }
-      );
-      if (!written) return err({ code: 'conflict' });
-      return ok({ from: record?.status ?? 'not_started', to: 'revoked', inquiryId });
-    },
+    approveManually: ({ userId }) => setHumanOwned({ userId, status: 'manually_approved' }),
 
     async resyncFromPersona({ userId }) {
       const now = clock.now();

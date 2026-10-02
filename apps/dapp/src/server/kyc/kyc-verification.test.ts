@@ -1830,7 +1830,7 @@ describe('reads are local; the start is where Persona is consulted', () => {
   });
 });
 
-describe('operator actions — revoke and resyncFromPersona', () => {
+describe('operator actions — revoke, approveManually and resyncFromPersona', () => {
   /** The user's Inquiry as Persona holds it, decided `minutesAfterT0` after the seed time. */
   function personaHolds({
     s,
@@ -1887,6 +1887,10 @@ describe('operator actions — revoke and resyncFromPersona', () => {
     const { kyc, store } = setup();
 
     await expect(kyc.revoke({ userId: 'nobody' })).resolves.toEqual({ ok: false, error: { code: 'profile_missing' } });
+    await expect(kyc.approveManually({ userId: 'nobody' })).resolves.toEqual({
+      ok: false,
+      error: { code: 'profile_missing' }
+    });
     await expect(kyc.resyncFromPersona({ userId: 'nobody' })).resolves.toEqual({
       ok: false,
       error: { code: 'profile_missing' }
@@ -1974,6 +1978,44 @@ describe('operator actions — revoke and resyncFromPersona', () => {
 
     s.seedRecord({ status: 'manually_approved' });
     await expect(s.kyc.revoke({ userId: USER_ID })).resolves.toMatchObject({
+      ok: true,
+      value: { from: 'manually_approved', to: 'revoked' }
+    });
+  });
+
+  it('approves a user Persona never decides, and the approval is deaf to Persona and to a resync', async () => {
+    const { kyc, store, outbox } = setup();
+
+    await expect(kyc.approveManually({ userId: USER_ID })).resolves.toEqual({
+      ok: true,
+      value: { from: 'not_started', to: 'manually_approved', inquiryId: null }
+    });
+    expect(store.records.get(USER_ID)).toMatchObject({ status: 'manually_approved', personaInquiryId: null });
+    await expect(kyc.startKyc({ userId: USER_ID })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_verified' }
+    });
+
+    // No Inquiry to go back to: a resync leaves the approval standing.
+    await expect(kyc.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+      ok: true,
+      value: { from: 'manually_approved', to: 'manually_approved', inquiryId: null }
+    });
+    expect(outbox.notifications).toHaveLength(0);
+  });
+
+  it('restores a revoked record by manual approval, and revoke undoes it', async () => {
+    const { kyc, seedRecord, store } = setup();
+    seedRecord({ status: 'revoked' });
+    const revokedAt = store.records.get(USER_ID)!.statusChangedAt;
+
+    await expect(kyc.approveManually({ userId: USER_ID })).resolves.toEqual({
+      ok: true,
+      value: { from: 'revoked', to: 'manually_approved', inquiryId: 'inq_seeded' }
+    });
+    expect(store.records.get(USER_ID)!.statusChangedAt.getTime()).toBeGreaterThan(revokedAt.getTime());
+
+    await expect(kyc.revoke({ userId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { from: 'manually_approved', to: 'revoked' }
     });

@@ -4,8 +4,9 @@
  * outcome is posted to the Persona Telegram channel; QStash carries no
  * response back. See docs/runbooks/persona-kyc-launch.md §7.
  *
- *   pnpm kyc:operator revoke <user-id>   set the Human-owned `revoked`
- *   pnpm kyc:operator resync <user-id>   re-read the user from Persona; lifts a revocation
+ *   pnpm kyc:operator revoke <user-id>    set the Human-owned `revoked`
+ *   pnpm kyc:operator approve <user-id>   set the Human-owned `manually_approved`
+ *   pnpm kyc:operator resync <user-id>    re-read the user from Persona; lifts either
  */
 import { Client } from '@upstash/qstash';
 
@@ -15,10 +16,11 @@ const [action, userId] = process.argv.slice(2);
 const token = process.env.QSTASH_TOKEN;
 const baseUrl = process.env.APP_URL?.replace(/\/+$/, '');
 
-if ((action !== 'revoke' && action !== 'resync') || !userId || !token || !baseUrl) {
+if (!action || !['revoke', 'approve', 'resync'].includes(action) || !userId || !token || !baseUrl) {
   console.error(`
 Usage:
   pnpm kyc:operator revoke <user-id>
+  pnpm kyc:operator approve <user-id>
   pnpm kyc:operator resync <user-id>
 
 Environment variables:
