@@ -110,7 +110,6 @@ const view = (overrides: Partial<KycStatusView> = {}): KycStatusView => ({
   canStart: true,
   canResume: false,
   inquiryId: null,
-  attemptCount: 0,
   ...overrides
 });
 
@@ -135,8 +134,7 @@ function renderFlow({ statusView = view(), investor = profile() } = {}) {
 }
 
 /** The record once an inquiry exists but the investor can still resume it. */
-const inProgress = () =>
-  view({ status: 'in_progress', canStart: false, canResume: true, inquiryId: 'inq_1', attemptCount: 1 });
+const inProgress = () => view({ status: 'in_progress', canStart: false, canResume: true, inquiryId: 'inq_1' });
 
 const field = (label: string) => screen.getByLabelText<HTMLInputElement>(label);
 /** The desktop rail; the mobile one repeats it. */

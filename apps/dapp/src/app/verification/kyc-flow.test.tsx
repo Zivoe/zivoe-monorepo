@@ -58,7 +58,6 @@ const view = (overrides: Partial<KycStatusViewModel>): KycStatusViewModel => ({
   canStart: false,
   canResume: true,
   inquiryId: 'inq_1',
-  attemptCount: 1,
   ...overrides
 });
 

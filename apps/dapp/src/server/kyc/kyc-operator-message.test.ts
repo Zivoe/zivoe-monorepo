@@ -6,13 +6,12 @@ import { createTelegramOperatorMessenger, formatOperatorMessage } from './kyc-op
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 
 describe('the operator message', () => {
-  it('names the move, the user and their email, the inquiry and the attempt', () => {
+  it('names the move, the user and their email and the inquiry', () => {
     const text = formatOperatorMessage({
       status: 'pending_review',
       userId: 'user-1',
       email: 'ada@example.com',
-      inquiryId: 'inq_1',
-      attemptCount: 2
+      inquiryId: 'inq_1'
     });
 
     expect(text.split('\n')).toEqual([
@@ -21,8 +20,7 @@ describe('the operator message', () => {
       '<b>Status:</b> Needs manual review',
       '<b>User:</b> user-1',
       '<b>Email:</b> ada@example.com',
-      '<b>Inquiry:</b> inq_1',
-      '<b>Attempt:</b> 2'
+      '<b>Inquiry:</b> inq_1'
     ]);
   });
 
@@ -33,8 +31,7 @@ describe('the operator message', () => {
       status: 'approved',
       userId: 'user-1',
       email: null,
-      inquiryId: 'inq_1',
-      attemptCount: 1
+      inquiryId: 'inq_1'
     });
 
     expect(sendTelegramMessage).toHaveBeenCalledWith({

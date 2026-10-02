@@ -173,6 +173,4 @@ export type KycStatusView = {
   canResume: boolean;
   /** The current inquiry when a resume is possible. */
   inquiryId: string | null;
-  /** Inquiries the app created for this user so far — informational, never a limit. */
-  attemptCount: number;
 };

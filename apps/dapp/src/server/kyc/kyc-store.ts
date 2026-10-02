@@ -20,7 +20,6 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
           status: kycVerification.status,
           personaInquiryId: kycVerification.personaInquiryId,
           personaAccountId: kycVerification.personaAccountId,
-          attemptCount: kycVerification.attemptCount,
           statusChangedAt: kycVerification.statusChangedAt,
           lastSyncedAt: kycVerification.lastSyncedAt
         })
@@ -43,7 +42,6 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
             status: record.status,
             personaInquiryId: record.personaInquiryId,
             personaAccountId: record.personaAccountId,
-            attemptCount: record.attemptCount,
             statusChangedAt: record.statusChangedAt,
             lastSyncedAt: record.lastSyncedAt,
             updatedAt: sql`now()`
@@ -91,7 +89,6 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
           status: kycVerification.status,
           personaInquiryId: kycVerification.personaInquiryId,
           personaAccountId: kycVerification.personaAccountId,
-          attemptCount: kycVerification.attemptCount,
           statusChangedAt: kycVerification.statusChangedAt,
           lastSyncedAt: kycVerification.lastSyncedAt
         })

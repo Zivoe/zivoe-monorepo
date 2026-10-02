@@ -97,7 +97,6 @@ export function createScopedKyc(userIds: ReadonlySet<string>) {
           status: kycVerification.status,
           personaInquiryId: kycVerification.personaInquiryId,
           personaAccountId: kycVerification.personaAccountId,
-          attemptCount: kycVerification.attemptCount,
           statusChangedAt: kycVerification.statusChangedAt,
           lastSyncedAt: kycVerification.lastSyncedAt
         })

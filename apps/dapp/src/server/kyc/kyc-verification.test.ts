@@ -54,7 +54,6 @@ function setup() {
       userId: USER_ID,
       personaInquiryId: 'inq_seeded',
       personaAccountId: 'act_seeded',
-      attemptCount: 1,
       statusChangedAt: T0,
       lastSyncedAt: T0,
       ...overrides
@@ -84,8 +83,7 @@ describe('getKycStatus', () => {
       path: 'individual',
       canStart: true,
       canResume: false,
-      inquiryId: null,
-      attemptCount: 0
+      inquiryId: null
     });
     expect(persona.calls).toHaveLength(0);
   });
@@ -106,7 +104,7 @@ describe('getKycStatus', () => {
 
   it.each(kycStatusValues)('maps a stored %s record to its view', async (status) => {
     const { kyc, seedRecord, persona } = setup();
-    seedRecord({ status, attemptCount: 1 });
+    seedRecord({ status });
 
     const view = await kyc.getKycStatus({ userId: USER_ID });
 
@@ -114,8 +112,7 @@ describe('getKycStatus', () => {
       status,
       path: 'individual',
       ...EXPECTED_FLAGS[status],
-      inquiryId: EXPECTED_FLAGS[status].canResume ? 'inq_seeded' : null,
-      attemptCount: 1
+      inquiryId: EXPECTED_FLAGS[status].canResume ? 'inq_seeded' : null
     });
     expect(persona.calls).toHaveLength(0);
   });
@@ -130,8 +127,7 @@ describe('getKycStatus', () => {
       path: 'organization',
       canStart: false,
       canResume: false,
-      inquiryId: null,
-      attemptCount: 1
+      inquiryId: null
     });
   });
 });
@@ -525,8 +521,7 @@ describe('receiveWebhook — the Status Write Path', () => {
     expect(store.records.get(USER_ID)).toMatchObject({
       status: 'submitted',
       personaInquiryId: 'inq_dash',
-      personaAccountId: 'act_seeded',
-      attemptCount: 1
+      personaAccountId: 'act_seeded'
     });
   });
 
@@ -684,7 +679,7 @@ describe('receiveWebhook — notifications', () => {
 });
 
 describe('startKyc', () => {
-  it('creates a prefilled inquiry for a user without a record and records attempt 1', async () => {
+  it('creates a prefilled inquiry for a user without a record', async () => {
     const { kyc, store, persona } = setup();
 
     const result = await kyc.startKyc({ userId: USER_ID });
@@ -706,7 +701,6 @@ describe('startKyc', () => {
       status: 'in_progress',
       personaInquiryId: 'inq_1',
       personaAccountId: `act_${USER_ID}`,
-      attemptCount: 1,
       statusChangedAt: T0,
       lastSyncedAt: T0
     });
@@ -814,25 +808,25 @@ describe('startKyc', () => {
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_orphan' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'resumeInquiry']);
-    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_orphan', attemptCount: 1 });
+    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_orphan' });
     // The adoption already announced the session; the resume does not announce it again.
     expect(outbox.notifications.map((n) => `${n.kind}:${n.status}`)).toEqual(['operator_message:in_progress']);
   });
 
-  it('creates a fresh inquiry when Persona no longer lists the one the record points at, at no attempt cost', async () => {
+  it('creates a fresh inquiry when Persona no longer lists the one the record points at', async () => {
     const { kyc, store, persona, seedRecord } = setup();
-    seedRecord({ status: 'in_progress', attemptCount: 1, personaInquiryId: 'inq_retained_away' });
+    seedRecord({ status: 'in_progress', personaInquiryId: 'inq_retained_away' });
 
     const result = await kyc.startKyc({ userId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
-    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1', attemptCount: 1 });
+    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1' });
   });
 
-  it('creates a fresh inquiry when Persona has redacted the one the record points at, at no attempt cost', async () => {
+  it('creates a fresh inquiry when Persona has redacted the one the record points at', async () => {
     const { kyc, store, persona, seedRecord } = setup();
-    seedRecord({ status: 'expired', attemptCount: 1 });
+    seedRecord({ status: 'expired' });
     persona.inquiries.set('inq_seeded', {
       id: 'inq_seeded',
       status: 'expired',
@@ -848,7 +842,7 @@ describe('startKyc', () => {
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
-    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1', attemptCount: 1 });
+    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1' });
   });
 
   it('adopts a decided inquiry Persona holds for a user the app has no record of, then refuses', async () => {
@@ -872,7 +866,7 @@ describe('startKyc', () => {
     expect(outbox.notifications.map((n) => `${n.kind}:${n.status}`)).toEqual(['operator_message:submitted']);
   });
 
-  it('resumes an in-progress inquiry with a fresh session token and no new attempt', async () => {
+  it('resumes an in-progress inquiry with a fresh session token', async () => {
     const { kyc, store, persona, seedRecord } = setup();
     persona.inquiries.set('inq_seeded', {
       id: 'inq_seeded',
@@ -883,17 +877,17 @@ describe('startKyc', () => {
       createdAt: T0,
       updatedAt: T0
     });
-    seedRecord({ status: 'in_progress', attemptCount: 1 });
+    seedRecord({ status: 'in_progress' });
 
     const result = await kyc.startKyc({ userId: USER_ID });
 
     expect(result).toEqual({ ok: true, value: { inquiryId: 'inq_seeded', sessionToken: 'session_inq_seeded_1' } });
     // Always a fresh read first: a start never trusts the staleness gate.
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'resumeInquiry']);
-    expect(store.records.get(USER_ID)).toMatchObject({ status: 'in_progress', attemptCount: 1, statusChangedAt: T0 });
+    expect(store.records.get(USER_ID)).toMatchObject({ status: 'in_progress', statusChangedAt: T0 });
   });
 
-  it('creates a fresh inquiry instead of resuming one made on an older template version, at no attempt', async () => {
+  it('creates a fresh inquiry instead of resuming one made on an older template version', async () => {
     const { kyc, store, persona, seedRecord } = setup();
     persona.inquiries.set('inq_seeded', {
       id: 'inq_seeded',
@@ -904,13 +898,13 @@ describe('startKyc', () => {
       createdAt: T0,
       updatedAt: T0
     });
-    seedRecord({ status: 'in_progress', attemptCount: 1 });
+    seedRecord({ status: 'in_progress' });
 
     const result = await kyc.startKyc({ userId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
-    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1', attemptCount: 1 });
+    expect(store.records.get(USER_ID)).toMatchObject({ personaInquiryId: 'inq_1' });
   });
 
   it('refuses a fresh in_progress record whose inquiry Persona has meanwhile completed, and moves it on', async () => {
@@ -947,7 +941,7 @@ describe('startKyc', () => {
       createdAt: T0,
       updatedAt: T0
     });
-    seedRecord({ status: 'expired', attemptCount: 1 });
+    seedRecord({ status: 'expired' });
     clock.advance(60 * MINUTE);
 
     const result = await kyc.startKyc({ userId: USER_ID });
@@ -955,7 +949,6 @@ describe('startKyc', () => {
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_seeded' } });
     expect(store.records.get(USER_ID)).toMatchObject({
       status: 'in_progress',
-      attemptCount: 1,
       statusChangedAt: new Date(T0.getTime() + 60 * MINUTE)
     });
     expect(persona.inquiries.get('inq_seeded')?.status).toBe('pending');
@@ -991,7 +984,7 @@ describe('startKyc', () => {
       updatedAt: T0
     });
     const expiredAt = new Date(T0.getTime() + 10_598);
-    s.seedRecord({ status: 'expired', attemptCount: 1, statusChangedAt: expiredAt, lastSyncedAt: expiredAt });
+    s.seedRecord({ status: 'expired', statusChangedAt: expiredAt, lastSyncedAt: expiredAt });
     s.clock.set(new Date(T0.getTime() + 10_900));
 
     const result = await kyc.startKyc({ userId: USER_ID });
@@ -1131,7 +1124,6 @@ describe('reconcile', () => {
       status,
       personaInquiryId: inquiryId,
       personaAccountId: `act_${userId}`,
-      attemptCount: 1,
       statusChangedAt: new Date(now.getTime() - changedHoursAgo * HOUR - 2 * MINUTE),
       lastSyncedAt: new Date(now.getTime() - staleMinutes * MINUTE)
     });
@@ -1219,8 +1211,7 @@ describe('reconcile', () => {
     expect(report).toMatchObject({ checked: 1, changed: 0 });
     expect(s.store.records.get(USER_ID)).toMatchObject({
       status: 'in_progress',
-      personaInquiryId: 'inq_1',
-      attemptCount: 1
+      personaInquiryId: 'inq_1'
     });
     await expect(delivery({ kyc, name: 'inquiry.approved', status: 'approved', inquiryId: 'inq_1' })).resolves.toEqual({
       ok: true,
@@ -1289,8 +1280,7 @@ describe('reconcile', () => {
     await expect(lateApproval).resolves.toEqual({ ok: true, value: { outcome: 'unchanged' } });
     expect(s.store.records.get(USER_ID)).toMatchObject({
       status: 'in_progress',
-      personaInquiryId: 'inq_1',
-      attemptCount: 1
+      personaInquiryId: 'inq_1'
     });
     // The replacement's own decision is the one that lands.
     await expect(
@@ -1346,8 +1336,7 @@ describe('reconcile', () => {
     expect(report).toMatchObject({ checked: 1, changed: 0 });
     expect(s.store.records.get(USER_ID)).toMatchObject({
       status: 'pending_review',
-      personaInquiryId: `inq_${USER_ID}`,
-      attemptCount: 1
+      personaInquiryId: `inq_${USER_ID}`
     });
 
     await delivery({ kyc: s.kyc, name: 'inquiry.approved', status: 'approved', inquiryId: `inq_${USER_ID}` });
@@ -1374,7 +1363,6 @@ describe('reconcile', () => {
     expect(s.store.records.get('u-retried')).toMatchObject({
       status: 'approved',
       personaInquiryId: 'inq_newer',
-      attemptCount: 2,
       lastSyncedAt: T0
     });
     // Confirmed, so it is not re-read on the very next sweep.
@@ -1629,7 +1617,7 @@ describe('reconcile', () => {
 
   it('leaves a record alone when the newest inquiry carries a status the mapping does not cover', async () => {
     // Adopting the previous (readable) inquiry instead would re-point the
-    // record backwards and charge an attempt for a status Persona just added.
+    // record backwards for a status Persona just added.
     const s = setup();
     seedSynced({ setup: s, userId: 'u-new-status', status: 'submitted', personaStatus: 'completed', staleMinutes: 45 });
     s.persona.inquiries.set('inq_unknown', {
@@ -1743,9 +1731,9 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
     expect(operator.sent).toHaveLength(0);
   });
 
-  it('sends an operator message with the attempt count from the record', async () => {
+  it('sends an operator message for the record', async () => {
     const { kyc, seedRecord, operator, emails } = setup();
-    seedRecord({ status: 'pending_review', personaInquiryId: 'inq_new', statusChangedAt: LATER, attemptCount: 2 });
+    seedRecord({ status: 'pending_review', personaInquiryId: 'inq_new', statusChangedAt: LATER });
 
     await expect(
       kyc.deliverNotification({
@@ -1753,7 +1741,7 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
       })
     ).resolves.toEqual({ ok: true, value: 'sent' });
     expect(operator.sent).toEqual([
-      { status: 'pending_review', userId: USER_ID, email: 'ada@example.com', inquiryId: 'inq_new', attemptCount: 2 }
+      { status: 'pending_review', userId: USER_ID, email: 'ada@example.com', inquiryId: 'inq_new' }
     ]);
     expect(emails.sent).toHaveLength(0);
   });
@@ -1777,9 +1765,7 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
     await expect(
       kyc.deliverNotification({ notification: { ...approvalOfNew, kind: 'operator_message', status: 'approved' } })
     ).resolves.toEqual({ ok: true, value: 'sent' });
-    expect(operator.sent).toEqual([
-      { status: 'approved', userId: USER_ID, email: null, inquiryId: 'inq_new', attemptCount: 1 }
-    ]);
+    expect(operator.sent).toEqual([{ status: 'approved', userId: USER_ID, email: null, inquiryId: 'inq_new' }]);
   });
 
   it('cannot address an email for a user whose onboarding profile is gone', async () => {
@@ -1807,7 +1793,7 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
       expect.objectContaining({ to: 'ada@example.com', name: 'Ada', status: 'approved', inquiryId: 'inq_seeded' })
     ]);
     expect(operator.sent).toEqual([
-      { status: 'approved', userId: USER_ID, email: 'ada@example.com', inquiryId: 'inq_seeded', attemptCount: 1 }
+      { status: 'approved', userId: USER_ID, email: 'ada@example.com', inquiryId: 'inq_seeded' }
     ]);
   });
 });
@@ -1878,7 +1864,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
       value: { from: 'not_started', to: 'revoked', inquiryId: null }
     });
 
-    expect(store.records.get(USER_ID)).toMatchObject({ status: 'revoked', personaInquiryId: null, attemptCount: 0 });
+    expect(store.records.get(USER_ID)).toMatchObject({ status: 'revoked', personaInquiryId: null });
     await expect(kyc.startKyc({ userId: USER_ID })).resolves.toEqual({ ok: false, error: { code: 'revoked' } });
     expect(persona.calls).toHaveLength(0);
   });
@@ -1914,7 +1900,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
       value: { from: 'revoked', to: 'declined', inquiryId: 'inq_seeded' }
     });
 
-    expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'declined', attemptCount: 1 });
+    expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'declined' });
     expect(s.outbox.notifications.map((n) => `${n.kind}:${n.status}`)).toEqual([
       'status_email:declined',
       'operator_message:declined'

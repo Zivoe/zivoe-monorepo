@@ -21,14 +21,13 @@ const LABELS: Record<KycOperatorStatus, string> = {
 
 /**
  * Names the user (id and email), the inquiry id and the status; the name and
- * documents stay in Persona. The Attempt line is informational.
+ * documents stay in Persona.
  */
 export function formatOperatorMessage({
   status,
   userId,
   email,
-  inquiryId,
-  attemptCount
+  inquiryId
 }: Parameters<OperatorMessenger['send']>[0]): string {
   return [
     '<b>KYC Verification</b>',
@@ -36,8 +35,7 @@ export function formatOperatorMessage({
     `<b>Status:</b> ${escapeHtml(LABELS[status])}`,
     `<b>User:</b> ${escapeHtml(userId)}`,
     `<b>Email:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
-    `<b>Inquiry:</b> ${escapeHtml(inquiryId)}`,
-    `<b>Attempt:</b> ${attemptCount}`
+    `<b>Inquiry:</b> ${escapeHtml(inquiryId)}`
   ].join('\n');
 }
 

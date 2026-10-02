@@ -92,6 +92,13 @@
       "when": 1788480894212,
       "tag": "0012_kyc_status_is_stored",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790884805630,
+      "tag": "0013_drop_kyc_attempt_count",
+      "breakpoints": true
     }
   ]
 }

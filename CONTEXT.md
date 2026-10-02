@@ -29,7 +29,7 @@ _Avoid_: email cron, notification job
 ### KYC Verification
 
 **KYC Verification**:
-The module behind investor identity verification — `apps/dapp/src/server/kyc/kyc-verification.ts`, eight operations (`getKycStatus`, `startKyc`, `receiveWebhook`, `reconcile`, `deliverNotification`, and the operator's `revoke`, `approveManually` and `resyncFromPersona`) over five injected ports (store, Persona API, Outbox, status email sender, operator messenger) and a clock — and one user's verification record: Persona identifiers, a Verification Status, the Attempt count and timestamps. Exactly one record per user (`kyc_verification`); absence means `not_started`, and the database refuses a stored `not_started`. It stores identifiers and a status only — never a name, document or image.
+The module behind investor identity verification — `apps/dapp/src/server/kyc/kyc-verification.ts`, eight operations (`getKycStatus`, `startKyc`, `receiveWebhook`, `reconcile`, `deliverNotification`, and the operator's `revoke`, `approveManually` and `resyncFromPersona`) over five injected ports (store, Persona API, Outbox, status email sender, operator messenger) and a clock — and one user's verification record: Persona identifiers, a Verification Status and timestamps. Exactly one record per user (`kyc_verification`); absence means `not_started`, and the database refuses a stored `not_started`. It stores identifiers and a status only — never a name, document or image.
 _Avoid_: KYC record, inquiry row, webhook handler (that is the thin route)
 
 **Verification Status**:
@@ -39,10 +39,6 @@ _Avoid_: KYC state, inquiry status (Persona's), verified flag
 **Inquiry**:
 Persona's unit of work — one run of one person through the template, locked to the template version it was created on. The app stores its id and listens to its events; it never stores its contents. A user has at most one current Inquiry, and an older one's late events are ignored. An inquiry on any other template (`PERSONA_TEMPLATE_ID` names the investor one) is never the user's Inquiry, whatever reference id it carries: its events are ignored and no re-read adopts it.
 _Avoid_: verification session, KYC session
-
-**Attempt**:
-One Inquiry the app created for a user, counted on the record — an informational count, not a limit: a failed Inquiry is the Workflow's to decide, never the investor's to retry. An Inquiry adopted from outside the app (made in the dashboard) counts as one; a fresh Inquiry created only because the template version moved on does not.
-_Avoid_: try, retry count
 
 **Decision**:
 The subset of Verification Status that answers "is this person verified": `approved` and `manually_approved` are yes, `declined` and `revoked` are no, everything else is not yet. The Decision gates nothing in the vault tabs — the Centrifuge whitelist does (see Vault Access). In code, `DECISION_STATUSES` holds only the Persona-made pair; the Human-owned pair is guarded on its own.

@@ -93,8 +93,7 @@ describe.concurrent('Persona sandbox', () => {
     console.log(`[approve] user ${userId} inquiry ${inquiryId}`);
     expect(await store.get({ userId })).toMatchObject({
       status: 'in_progress',
-      personaInquiryId: inquiryId,
-      attemptCount: 1
+      personaInquiryId: inquiryId
     });
 
     await simulate({ inquiryId, actions: ['start_inquiry', 'complete_inquiry'] });
@@ -169,12 +168,11 @@ describe.concurrent('Persona sandbox', () => {
       oneOf: DECIDED,
       what: 'the Inquiry Failed Workflow to decide the inquiry (still `failed` = that Workflow is inactive)'
     });
-    expect(record.attemptCount).toBe(1);
     // Whatever the Workflow decided, the investor never gets a retry from here.
     expect(await kyc.startKyc({ userId })).toMatchObject({ ok: false, error: { code: refusalFrom(record.status) } });
   });
 
-  it('expire — an expired inquiry resumes on the same inquiry at no extra attempt', async ({ expect }) => {
+  it('expire — an expired inquiry resumes on the same inquiry', async ({ expect }) => {
     const { userId } = await createTestUser({ scenario: 'expire', lastName: 'E2E-APPROVE' });
     const { inquiryId } = unwrap(await kyc.startKyc({ userId }), 'startKyc');
     console.log(`[expire] user ${userId} inquiry ${inquiryId}`);
@@ -189,8 +187,7 @@ describe.concurrent('Persona sandbox', () => {
     expect(resumed.sessionToken).not.toBe('');
     expect(await store.get({ userId })).toMatchObject({
       status: 'in_progress',
-      personaInquiryId: inquiryId,
-      attemptCount: 1
+      personaInquiryId: inquiryId
     });
   });
 
@@ -214,8 +211,7 @@ describe.concurrent('Persona sandbox', () => {
     // Guard 2: both events were recorded, and the record still follows the first inquiry.
     expect(await store.get({ userId })).toMatchObject({
       status: 'in_progress',
-      personaInquiryId: first,
-      attemptCount: 1
+      personaInquiryId: first
     });
 
     // The sweep, 31 minutes "later": the stale record is re-read and re-pointed at the newest inquiry.
@@ -224,8 +220,7 @@ describe.concurrent('Persona sandbox', () => {
     expect(report).toMatchObject({ checked: 1, changed: 1, unavailable: 0 });
     expect(await store.get({ userId })).toMatchObject({
       status: 'approved',
-      personaInquiryId: second,
-      attemptCount: 2
+      personaInquiryId: second
     });
     expect(await kyc.startKyc({ userId })).toMatchObject({ ok: false, error: { code: 'already_verified' } });
   });
@@ -245,14 +240,13 @@ describe.concurrent('Persona sandbox', () => {
     // As if neither webhook had reached the app: back to the start's snapshot.
     await rewindRecord({ userId, to: started });
 
-    // The sweep, 31 minutes "later": the stale record is re-read and Persona's decision applied — same inquiry, same attempt.
+    // The sweep, 31 minutes "later": the stale record is re-read and Persona's decision applied — same inquiry.
     const sweep = createScopedKyc(new Set([userId]));
     const report = await sweep.reconcile({ now: new Date(Date.now() + 31 * 60_000) });
     expect(report).toMatchObject({ checked: 1, changed: 1, unavailable: 0 });
     expect(await store.get({ userId })).toMatchObject({
       status: 'approved',
-      personaInquiryId: inquiryId,
-      attemptCount: 1
+      personaInquiryId: inquiryId
     });
   });
 });

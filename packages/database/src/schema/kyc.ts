@@ -10,7 +10,7 @@ export const kycStatusEnum = pgEnum('kyc_status', kycStatusValues);
 
 /**
  * One KYC Verification per user — the app's read model of a Persona inquiry:
- * identifiers, a Verification Status, the attempt count and timestamps. No
+ * identifiers, a Verification Status and timestamps. No
  * PII, ever: names, documents and images stay in Persona. Rows are created
  * lazily on the first start (or the first webhook), so a missing row is
  * `not_started`.
@@ -24,7 +24,6 @@ export const kycVerification = pgTable(
     status: kycStatusEnum('status').notNull(),
     personaInquiryId: text('persona_inquiry_id'),
     personaAccountId: text('persona_account_id'),
-    attemptCount: integer('attempt_count').notNull().default(0),
     /** When `status` last changed — the regression guard compares event timestamps against it. */
     statusChangedAt: timestamp('status_changed_at', { withTimezone: true }).notNull(),
     /** When the row was last confirmed against Persona (webhook, sweep or lazy refresh). */

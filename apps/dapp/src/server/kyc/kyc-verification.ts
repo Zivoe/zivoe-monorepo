@@ -43,7 +43,6 @@ export type KycVerificationRecord = {
   status: KycStatus;
   personaInquiryId: string | null;
   personaAccountId: string | null;
-  attemptCount: number;
   /** When `status` last changed, on Persona's clock — the regression guard compares source timestamps against it. */
   statusChangedAt: Date;
   /** When the record was last confirmed against Persona (webhook, sweep or start). */
@@ -236,13 +235,7 @@ export type StatusEmailSender = {
  * carried in the job; null when the profile is gone, and the line still goes.
  */
 export type OperatorMessenger = {
-  send(input: {
-    status: KycOperatorStatus;
-    userId: string;
-    email: string | null;
-    inquiryId: string;
-    attemptCount: number;
-  }): Promise<void>;
+  send(input: { status: KycOperatorStatus; userId: string; email: string | null; inquiryId: string }): Promise<void>;
 };
 
 export type Clock = { now(): Date };
@@ -388,7 +381,7 @@ export type KycVerificationConfig = {
    * The template version the app creates inquiries on. When set, an inquiry
    * created on an older version is not resumed: Persona's guidance is to
    * create a fresh one so the investor goes through the current
-   * configuration, and that costs no attempt.
+   * configuration.
    */
   templateVersionId?: string;
   /**
@@ -572,7 +565,7 @@ export function createKycVerification({
 
     // Guard 2: an older inquiry's late event cannot clobber a retry. The
     // newest inquiry under the user's reference id, fetched just now, IS the
-    // current one — a record pointing elsewhere adopts it as a new attempt.
+    // current one — a record pointing elsewhere adopts it.
     const currentInquiry = !record?.personaInquiryId || record.personaInquiryId === inquiry.id;
     if (!currentInquiry && source === 'event') return confirmed('superseded');
 
@@ -600,8 +593,6 @@ export function createKycVerification({
       status: mapped,
       personaInquiryId: inquiry.id,
       personaAccountId: inquiry.accountId ?? record?.personaAccountId ?? null,
-      // A record created or re-pointed here (an inquiry made outside the app) is a new attempt.
-      attemptCount: currentInquiry ? (record?.attemptCount ?? 1) : (record?.attemptCount ?? 0) + 1,
       // Strictly after the last change, so the store's monotonic guard accepts
       // a same-second fetch and no two transitions ever share a timestamp —
       // the receivers tell an early job from a stale one by that ordering.
@@ -697,8 +688,8 @@ export function createKycVerification({
     }
     // A status the mapping does not cover on the newest inquiry is not ours
     // to interpret: the record is confirmed but not re-pointed at an older
-    // inquiry, which would also charge an attempt. The webhook for the same
-    // inquiry raises `unmapped_status`, which is where the drift shows.
+    // inquiry. The webhook for the same inquiry raises `unmapped_status`,
+    // which is where the drift shows.
     if (!newest.status) {
       if (record) await store.markSynced({ userId, syncedAt: now });
       const error: PersonaApiError = { reason: 'invalid_response', message: `unknown inquiry status on ${newest.id}` };
@@ -745,7 +736,6 @@ export function createKycVerification({
         status,
         personaInquiryId: inquiryId,
         personaAccountId: record?.personaAccountId ?? null,
-        attemptCount: record?.attemptCount ?? 0,
         statusChangedAt,
         // Not a confirmation against Persona, so an existing sync stamp stays.
         lastSyncedAt: record?.lastSyncedAt ?? now
@@ -765,12 +755,11 @@ export function createKycVerification({
       const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
 
       const status = record?.status ?? 'not_started';
-      const attemptCount = record?.attemptCount ?? 0;
 
       // Entities are verified with the team, never through the individual
       // flow — the stored status still renders (a human may have set it).
       if (profile?.accountType === 'organization') {
-        return { status, path: 'organization', canStart: false, canResume: false, inquiryId: null, attemptCount };
+        return { status, path: 'organization', canStart: false, canResume: false, inquiryId: null };
       }
 
       const canResume = canResumeFrom(status);
@@ -780,8 +769,7 @@ export function createKycVerification({
         path: 'individual',
         canStart: canStartFrom(status),
         canResume,
-        inquiryId: canResume ? (record?.personaInquiryId ?? null) : null,
-        attemptCount
+        inquiryId: canResume ? (record?.personaInquiryId ?? null) : null
       };
     },
 
@@ -845,11 +833,10 @@ export function createKycVerification({
       if (refusal) return err({ code: refusal });
 
       // Two reasons not to resume the record's inquiry even though the policy
-      // allows it, neither of them a new attempt since nothing failed: an
-      // inquiry is locked to the template version it was created on, and once
-      // the app's pin has moved past it Persona's guidance is to create a
-      // fresh one rather than resume the old configuration; and an inquiry
-      // Persona no longer lists, or has redacted (retention, a deletion
+      // allows it: an inquiry is locked to the template version it was created
+      // on, and once the app's pin has moved past it Persona's guidance is to
+      // create a fresh one rather than resume the old configuration; and an
+      // inquiry Persona no longer lists, or has redacted (retention, a deletion
       // request), cannot be resumed at all — Persona errors on every try.
       const outdated =
         !!config.templateVersionId &&
@@ -857,7 +844,7 @@ export function createKycVerification({
         liveInquiry.templateVersionId !== config.templateVersionId;
       const vanished = listed && !!record?.personaInquiryId && (!liveInquiry || !!liveInquiry.redacted);
 
-      // -- Resume: same inquiry, fresh session token, attempt count unchanged.
+      // -- Resume: same inquiry, fresh session token.
       // Persona moves an expired inquiry back to pending on resume, and resumes
       // a never-started (`created`) inquiry as well — probed in the sandbox on
       // 2026-09-04: 200, status unchanged, a session token returned — so
@@ -946,7 +933,6 @@ export function createKycVerification({
           status: 'in_progress',
           personaInquiryId: inquiry.id,
           personaAccountId: inquiry.accountId,
-          attemptCount: (record?.attemptCount ?? 0) + (outdated || vanished ? 0 : 1),
           statusChangedAt,
           lastSyncedAt: now
         },
@@ -1169,8 +1155,7 @@ export function createKycVerification({
             status: notification.status,
             userId,
             email: profile?.email ?? null,
-            inquiryId,
-            attemptCount: record.attemptCount
+            inquiryId
           })
         );
       }

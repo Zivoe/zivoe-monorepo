@@ -1,0 +1,1 @@
+ALTER TABLE "kyc_verification" DROP COLUMN "attempt_count";

@@ -25,7 +25,6 @@ const view = (overrides: Partial<KycStatusViewModel>): KycStatusViewModel => ({
   canStart: true,
   canResume: false,
   inquiryId: null,
-  attemptCount: 0,
   ...overrides
 });
 
@@ -37,7 +36,7 @@ describe('KycStatusView', () => {
   // of them carries a link.
   it.each([
     ['submitted', view({ status: 'submitted', canStart: false }), 'Verification processing'],
-    ['failed', view({ status: 'failed', canStart: false, attemptCount: 1 }), 'Verification processing'],
+    ['failed', view({ status: 'failed', canStart: false }), 'Verification processing'],
     ['pending_review', view({ status: 'pending_review', canStart: false }), 'Verification under review']
   ] as const)('renders %s with its title and no link', (_label, statusView, title) => {
     render(<KycStatusView view={statusView} />);
