@@ -1,0 +1,35 @@
+import React from 'react';
+
+import { type IconProps } from './types';
+
+export const ArcIcon = React.forwardRef<SVGSVGElement, IconProps>((props, forwardedRef) => {
+  // The icon repeats across chain selectors and chip rows; a per-instance id
+  // keeps each copy's gradient its own instead of the document's first.
+  const gradientId = React.useId();
+
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+      ref={forwardedRef}
+    >
+      <defs>
+        {/* Arc's brand gradient (navy → plum → magenta), as in its colour wordmark. */}
+        <linearGradient id={gradientId} x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1C2998" />
+          <stop offset="0.53" stopColor="#3E2B63" />
+          <stop offset="1" stopColor="#942753" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="16" fill={`url(#${gradientId})`} />
+      {/* The "A" arch from Arc's official wordmark (arc.io brand toolkit), scaled from its 96x100 frame, in the on-dark white. */}
+      <g transform="translate(7.4 7) scale(0.18)" fill="white">
+        <path d="M47.8828 0C62.2413 0 75.005 12.3958 83.8252 34.9043C88.4125 46.6111 91.7876 60.5208 93.7871 75.6523C93.9659 77.0038 94.1183 78.3775 94.2744 79.748C94.3252 79.8326 94.3552 79.9115 94.3447 79.9756C94.3447 79.9756 95.5209 87.2895 95.7705 100H95.6377C93.8946 98.5745 73.3379 82.4781 39.2617 87.1387C39.7759 81.3926 40.4821 75.8016 41.3955 70.4424C41.4421 70.1686 41.4964 69.9036 41.5439 69.6318C54.9094 69.2302 66.6083 70.7768 75.5791 72.8037C75.5457 72.5916 75.5175 72.3733 75.4834 72.1621C73.6394 60.7195 70.9188 50.2435 67.4111 41.291C61.676 26.6528 54.192 17.5576 47.8828 17.5576C41.574 17.5581 34.0904 26.6532 28.3555 41.291C26.9672 44.8318 25.7037 48.6079 24.5703 52.5908C22.977 58.1717 21.6384 64.1547 20.5693 70.4414C18.987 79.7259 17.9979 89.6835 17.6338 100H0C0.813667 75.5187 4.97869 52.6703 11.9414 34.9043C20.7594 12.396 33.5247 0.000279101 47.8828 0Z" />
+      </g>
+    </svg>
+  );
+});

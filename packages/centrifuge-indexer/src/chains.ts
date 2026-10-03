@@ -1,6 +1,7 @@
 import { type Address, type Chain, defineChain, isAddress } from 'viem';
 import {
   arbitrum,
+  arc,
   avalanche,
   base,
   baseSepolia,
@@ -152,6 +153,18 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     viem: monad,
     environment: 'mainnet',
     alchemyNetwork: 'monad-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    supportsRedeemCancellation: false
+  },
+  // Arc pays gas in USDC: the native currency is USDC at 18 decimals
+  // (msg.value, gas, eth_getBalance) and the SAME balance is the 6-decimal
+  // ERC-20 at 0x3600…0000 that the zSMB vault accepts — one balance, two
+  // views, no wrapper. viem's definition carries the native view, which the
+  // insufficient-gas copy formats with.
+  arc: {
+    viem: arc,
+    environment: 'mainnet',
+    alchemyNetwork: 'arc-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     supportsRedeemCancellation: false
   },

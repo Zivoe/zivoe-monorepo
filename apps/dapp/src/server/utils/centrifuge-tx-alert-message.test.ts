@@ -330,6 +330,13 @@ describe('resolveChainDisplay', () => {
       label: 'Monad',
       explorerUrl: 'https://monadscan.com'
     });
+    // viem ships Arc without an explorer; the registry's own definition supplies one.
+    expect(resolveChainDisplay(event({ chainId: 5042, chainName: 'arc', explorerUrl: 'https://arcscan.app' }))).toEqual(
+      {
+        label: 'Arc',
+        explorerUrl: 'https://explorer.arc.io'
+      }
+    );
   });
 
   it('keeps the indexer values for a chain the registry does not know', () => {
