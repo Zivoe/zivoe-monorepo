@@ -59,6 +59,13 @@ export type CentrifugeChainDeployment = {
    * gated on this: they only ever react to on-chain state that already exists.
    */
   supportsRedeemCancellation: boolean;
+  /**
+   * The ERC-20 view of the chain's gas token, where one exists and a vault
+   * accepts it as a deposit asset (Arc: USDC pays gas and is the deposit
+   * asset, one balance behind two views). Lets a flow tell that spending the
+   * asset also spends gas; absent on every chain whose gas token is its own coin.
+   */
+  gasToken?: Address;
 };
 
 /**
@@ -166,7 +173,8 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     environment: 'mainnet',
     alchemyNetwork: 'arc-mainnet',
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
-    supportsRedeemCancellation: false
+    supportsRedeemCancellation: false,
+    gasToken: '0x3600000000000000000000000000000000000000'
   },
   sepolia: {
     viem: sepolia,

@@ -3,6 +3,7 @@ import { type Chain } from 'viem';
 import {
   CENTRIFUGE_CHAINS,
   type CentrifugeChain,
+  type DepositAsset,
   chainsOfEnvironment,
   getChainDeployment,
   getChainId,
@@ -135,6 +136,17 @@ export function chainOfChainId(chainId: number): CentrifugeChain | undefined {
 }
 
 export const ACTIVE_CHAIN_IDS: Array<number> = ACTIVE_CHAINS.map(getChainId);
+
+/**
+ * Whether the deposit asset is the chain's gas token (the registry's
+ * `gasToken`): Arc pays gas in USDC through the very ERC-20 the zSMB vault
+ * accepts — one balance, two views — so spending the asset also spends the
+ * gas, and a deposit of the whole balance can never execute. The flows hide
+ * Max and say so there; no fee is predicted, the user keeps what they judge.
+ */
+export function isGasToken({ chain, asset }: { chain: CentrifugeChain; asset: DepositAsset }): boolean {
+  return getChainDeployment(chain).gasToken?.toLowerCase() === asset.address.toLowerCase();
+}
 
 export function isActiveChainId(chainId: number | undefined): boolean {
   return chainId !== undefined && ACTIVE_CHAIN_IDS.includes(chainId);

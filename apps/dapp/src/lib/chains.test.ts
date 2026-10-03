@@ -1,6 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getChainId, waitForRpcCatchup } from './chains';
+import { getChainId, isGasToken, waitForRpcCatchup } from './chains';
+
+describe('isGasToken', () => {
+  const usdc = { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 } as const;
+
+  it('tells Arc USDC apart as the gas token, and nothing else — same chain, other asset included', () => {
+    expect(isGasToken({ chain: 'arc', asset: usdc })).toBe(true);
+    expect(isGasToken({ chain: 'ethereum', asset: usdc })).toBe(false);
+    expect(
+      isGasToken({
+        chain: 'arc',
+        asset: { address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', symbol: 'USDT', decimals: 6 }
+      })
+    ).toBe(false);
+  });
+});
 
 describe('waitForRpcCatchup', () => {
   const receiptBlock = 10n;
