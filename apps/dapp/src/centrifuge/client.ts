@@ -16,8 +16,10 @@ function getCentrifuge(): Centrifuge {
     throw new Error('The Centrifuge SDK client is client-only and must never be constructed on the server.');
 
   // One client serves every active chain: the SDK routes per-chain calls by
-  // chainId, and each chain's ordered URL list (dedicated endpoint first,
-  // public failover after) replaces the SDK's own defaults.
+  // chainId, and each chain's URL list replaces the SDK's own defaults. The
+  // list is a single Alchemy URL per chain by design: given more than one,
+  // the SDK builds a latency-RANKED fallback that can promote a public RPC
+  // above Alchemy (see the registry's getChainRpcUrls).
   const rpcUrls = Object.fromEntries(ACTIVE_CHAINS.map((chain) => [getChainId(chain), getChainRpcUrls(chain)]));
 
   client ??= new Centrifuge({

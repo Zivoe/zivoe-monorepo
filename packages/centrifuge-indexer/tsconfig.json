@@ -2,6 +2,11 @@
   "extends": "@zivoe/ts-config/base.json",
   "compilerOptions": {
     "noEmit": true,
+    // The package is consumed as source (Next, vitest, tsx), never emitted, so
+    // resolve like a bundler. NodeNext rejects viem >= 2.56 from CommonJS: its
+    // `_types/package.json` marks the declarations ESM (TS1479).
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "plugins": [
       {
         "name": "gql.tada/ts-plugin",

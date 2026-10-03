@@ -6,6 +6,8 @@ import { Provider as JotaiProvider } from 'jotai';
 import { formatUnits } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as Chains from '@/lib/chains';
+
 import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, type ZivoeVaultStatus, resolveTransactionIdentity } from '@/zivoe-vaults';
 
@@ -58,6 +60,7 @@ const mocks = vi.hoisted(() => ({
   approveIsResetPending: false,
   capacity: 5_000000n,
   baseCapacity: 5_000000n,
+  paysGasInAsset: false,
   capacityIsError: false,
   deposit: vi.fn(),
   depositVault: undefined as string | undefined,
@@ -172,6 +175,12 @@ vi.mock('@/hooks/useDebouncedValue', () => ({
   })
 }));
 vi.mock('@/lib/analytics/use-analytics', () => ({ useAnalytics: () => ({ capture: vi.fn() }) }));
+// The flows under test run on testnet identities, none of which pays gas in
+// its deposit asset; the Arc case is stood in for by the mock.
+vi.mock('@/lib/chains', async (importOriginal) => ({
+  ...(await importOriginal<typeof Chains>()),
+  isGasToken: () => mocks.paysGasInAsset
+}));
 vi.mock('@/components/connected-account', () => ({ default: ({ children }: { children: ReactNode }) => children }));
 vi.mock('@/components/token-info', () => ({
   getTokenInfo: (symbol: string) =>
@@ -320,6 +329,7 @@ function resetMocks() {
   mocks.allowance = 0n;
   mocks.allowanceIsError = false;
   mocks.balanceIsError = false;
+  mocks.paysGasInAsset = false;
   mocks.approveIsResetPending = false;
   mocks.accessIsAllowed = true;
   mocks.accessIsError = false;
@@ -859,6 +869,14 @@ describe('DepositFlow with two stablecoins on one chain', () => {
 
     await act(async () => enterAmount('8'));
     expect(screen.getByText('Deposit amount exceeds balance')).toBeTruthy();
+  });
+
+  it('offers no Max and says why where the coin pays the gas, as on Arc', async () => {
+    mocks.paysGasInAsset = true;
+    renderTwoAssetFlow();
+
+    expect(screen.queryByRole('button', { name: 'Max' })).toBeNull();
+    expect(screen.getByText('Maintain enough USDC balance when depositing to cover gas fees.')).toBeTruthy();
   });
 
   it('starts the amount over when the coin changes, so an 18-decimal value is never rounded into a 6-decimal coin', async () => {

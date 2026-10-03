@@ -1,6 +1,7 @@
 import { type Address, type Chain, defineChain, isAddress } from 'viem';
 import {
   arbitrum,
+  arc,
   avalanche,
   base,
   baseSepolia,
@@ -58,6 +59,13 @@ export type CentrifugeChainDeployment = {
    * gated on this: they only ever react to on-chain state that already exists.
    */
   supportsRedeemCancellation: boolean;
+  /**
+   * The ERC-20 view of the chain's gas token, where one exists and a vault
+   * accepts it as a deposit asset (Arc: USDC pays gas and is the deposit
+   * asset, one balance behind two views). Lets a flow tell that spending the
+   * asset also spends gas; absent on every chain whose gas token is its own coin.
+   */
+  gasToken?: Address;
 };
 
 /**
@@ -155,6 +163,19 @@ export const CENTRIFUGE_CHAIN_DEPLOYMENTS = {
     vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
     supportsRedeemCancellation: false
   },
+  // Arc pays gas in USDC: the native currency is USDC at 18 decimals
+  // (msg.value, gas, eth_getBalance) and the SAME balance is the 6-decimal
+  // ERC-20 at 0x3600…0000 that the zSMB vault accepts — one balance, two
+  // views, no wrapper. viem's definition carries the native view, which the
+  // insufficient-gas copy formats with.
+  arc: {
+    viem: arc,
+    environment: 'mainnet',
+    alchemyNetwork: 'arc-mainnet',
+    vaultRouter: '0xF684014771C01e50B8B526968B3a1e33acDA63f6',
+    supportsRedeemCancellation: false,
+    gasToken: '0x3600000000000000000000000000000000000000'
+  },
   sepolia: {
     viem: sepolia,
     environment: 'testnet',
@@ -218,9 +239,14 @@ export function getChainId(chain: CentrifugeChain): number {
 }
 
 /**
- * Ordered RPC URLs for one chain: the dedicated Alchemy endpoint first (when
- * the chain environment's key is given), then the chain's viem public
- * defaults as failover — so an Alchemy incident degrades to public RPCs.
+ * RPC URLs for one chain: the dedicated Alchemy endpoint alone when the chain
+ * environment's key is given, the chain's viem public defaults only without
+ * one. The public RPCs are deliberately NOT appended as failover: the
+ * Centrifuge SDK ranks every multi-URL list by `net_listening` latency and
+ * routes reads to whichever endpoint answers fastest, so a public RPC that
+ * answers quickly but wrongly (Arc's returns an empty 204 to current Chrome,
+ * which viem reads as success) outranks Alchemy and breaks every SDK read on
+ * the chain. One URL means no ranking and no health-check noise.
  */
 export function getChainRpcUrls({
   chain,
@@ -230,8 +256,8 @@ export function getChainRpcUrls({
   alchemyKey: string | undefined;
 }): Array<string> {
   const { alchemyNetwork, viem } = CENTRIFUGE_CHAIN_DEPLOYMENTS[chain];
-  const alchemyUrl = alchemyKey ? `https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}` : undefined;
-  return [...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http];
+  if (alchemyKey) return [`https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}`];
+  return [...viem.rpcUrls.default.http];
 }
 
 /** The environment's chains in canonical (CENTRIFUGE_CHAINS) order. */

@@ -318,6 +318,19 @@ export const SHARE_CLASSES = {
                 }
               }
             ]
+          },
+          arc: {
+            status: 'live',
+            shareTokenAddress: '0x49C8919162daE24468965557C9344bA2aa8121b8',
+            centrifugeVaults: [
+              // Circle-native USDC at Arc's reserved address — also the chain's
+              // gas token (see the `arc` chain definition), so it pays the
+              // deposit's gas and the redeem message fee out of the same balance.
+              {
+                address: '0xF17d322350561Cc5A3554c22197ca648D4A4B956',
+                asset: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 }
+              }
+            ]
           }
         }
       }

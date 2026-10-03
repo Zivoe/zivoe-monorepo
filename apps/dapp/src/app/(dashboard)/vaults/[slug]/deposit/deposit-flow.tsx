@@ -12,6 +12,8 @@ import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 
+import { isGasToken } from '@/lib/chains';
+
 import { useAccount } from '@/hooks/useAccount';
 import { checkHasEnoughAllowance, useAllowance } from '@/hooks/useAllowance';
 import { useApproveSpending } from '@/hooks/useApproveSpending';
@@ -173,6 +175,10 @@ export function DepositFlow() {
   const isSubmitBlocked = isPreviewLoading || isPreviewFailed || isOtherWritePending;
 
   const maxAmount = maxDeposit !== undefined && maxDeposit < balance ? maxDeposit : balance;
+  // Where the asset pays the gas (Arc), the whole balance can never be
+  // deposited — Max would always be wrong, so it is not offered; the note
+  // below the form says why, and the user keeps back what they judge.
+  const paysGasInAsset = isGasToken({ chain: selectedChain, asset });
 
   // The balance and capacity rules are wallet-scoped, so a verdict about the
   // previous wallet outlives it — 'exceeds balance' would sit on a wallet that
@@ -266,12 +272,14 @@ export function DepositFlow() {
             }
             endContent={
               <div className="flex items-center">
-                <MaxButton
-                  balance={maxAmount}
-                  decimals={asset.decimals}
-                  onPress={(value) => onChange(value)}
-                  isDisabled={isFormLocked}
-                />
+                {paysGasInAsset ? null : (
+                  <MaxButton
+                    balance={maxAmount}
+                    decimals={asset.decimals}
+                    onPress={(value) => onChange(value)}
+                    isDisabled={isFormLocked}
+                  />
+                )}
 
                 <div className="ml-3">
                   <DepositAssetPicker
@@ -406,6 +414,12 @@ export function DepositFlow() {
             ? `Could not load your ${asset.symbol} balance.`
             : `Could not check your ${asset.symbol} approval.`}{' '}
           Retry to continue.
+        </Callout>
+      ) : null}
+
+      {paysGasInAsset ? (
+        <Callout>
+          Maintain enough {asset.symbol} balance when depositing to cover gas fees.
         </Callout>
       ) : null}
 

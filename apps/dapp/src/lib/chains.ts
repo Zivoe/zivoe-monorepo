@@ -3,6 +3,7 @@ import { type Chain } from 'viem';
 import {
   CENTRIFUGE_CHAINS,
   type CentrifugeChain,
+  type DepositAsset,
   chainsOfEnvironment,
   getChainDeployment,
   getChainId,
@@ -40,12 +41,12 @@ export function getViemChain(chain: CentrifugeChain): Chain {
 export { getChainId };
 
 /**
- * Ordered RPC URLs for one chain: the deployment's dedicated Alchemy endpoint
- * first (when the chain environment's key is configured — testnet's is
- * optional), then the chain's viem public defaults as failover. Every
- * consumer (wagmi transports, the Centrifuge SDK, server reads) rides this
- * one list, so an Alchemy incident degrades to public RPCs instead of taking
- * down every read and receipt wait.
+ * RPC URLs for one chain: the deployment's dedicated Alchemy endpoint alone
+ * when the chain environment's key is configured (mainnet's is required,
+ * testnet's optional), the chain's viem public defaults only without one.
+ * Every consumer (wagmi transports, the Centrifuge SDK, server reads) rides
+ * this one list. No public failover on purpose — the registry's
+ * getChainRpcUrls says why.
  */
 export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
   const alchemyKey =
@@ -135,6 +136,17 @@ export function chainOfChainId(chainId: number): CentrifugeChain | undefined {
 }
 
 export const ACTIVE_CHAIN_IDS: Array<number> = ACTIVE_CHAINS.map(getChainId);
+
+/**
+ * Whether the deposit asset is the chain's gas token (the registry's
+ * `gasToken`): Arc pays gas in USDC through the very ERC-20 the zSMB vault
+ * accepts — one balance, two views — so spending the asset also spends the
+ * gas, and a deposit of the whole balance can never execute. The flows hide
+ * Max and say so there; no fee is predicted, the user keeps what they judge.
+ */
+export function isGasToken({ chain, asset }: { chain: CentrifugeChain; asset: DepositAsset }): boolean {
+  return getChainDeployment(chain).gasToken?.toLowerCase() === asset.address.toLowerCase();
+}
 
 export function isActiveChainId(chainId: number | undefined): boolean {
   return chainId !== undefined && ACTIVE_CHAIN_IDS.includes(chainId);
