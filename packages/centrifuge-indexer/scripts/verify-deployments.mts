@@ -25,14 +25,11 @@ import Centrifuge, { KNOWN_DEPLOYMENTS, PoolId, ShareClassId } from '@centrifuge
 import { existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 
-// Default import on purpose: the package's sources are CommonJS under Node
-// (no "type": "module"), and Node cannot see TypeScript's re-exports as named
-// exports from an ES module — so the whole export object is taken instead.
-import indexer, { type CentrifugeEnvironment, type ResultOf } from '../src/index.js';
-
-const {
+import {
   CENTRIFUGE_ENVIRONMENTS,
   CENTRIFUGE_ENVIRONMENT_FACTS,
+  type CentrifugeEnvironment,
+  type ResultOf,
   chainsOfEnvironment,
   fetchCentrifugeIndexer,
   fetchCurrentShareMetrics,
@@ -44,7 +41,7 @@ const {
   listLiveChains,
   listShareClassChainIdentities,
   listShareClassKeys
-} = indexer;
+} from '../src/index.js';
 
 // Two SDK warnings are muted as routine noise: chains the SDK has no RPC for
 // (this script only queries the chains it configured), and dropped allowlist

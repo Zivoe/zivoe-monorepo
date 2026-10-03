@@ -21,7 +21,7 @@
     "@payloadcms/sdk": "3.80.0",
     "@sentry/nextjs": "^10.13.0",
     "@t3-oss/env-nextjs": "^0.12.0",
-    "@tanstack/react-query": "^5.74.0",
+    "@tanstack/react-query": "^5.104.1",
     "@vercel/analytics": "^1.5.0",
     "@zivoe/centrifuge-indexer": "workspace:*",
     "@zivoe/cms-types": "workspace:*",
@@ -33,7 +33,7 @@
     "react-hook-form": "^7.70.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.3",
-    "viem": "2.54.1",
+    "viem": "2.57.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
