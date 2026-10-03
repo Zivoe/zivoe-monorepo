@@ -218,9 +218,14 @@ export function getChainId(chain: CentrifugeChain): number {
 }
 
 /**
- * Ordered RPC URLs for one chain: the dedicated Alchemy endpoint first (when
- * the chain environment's key is given), then the chain's viem public
- * defaults as failover — so an Alchemy incident degrades to public RPCs.
+ * RPC URLs for one chain: the dedicated Alchemy endpoint alone when the chain
+ * environment's key is given, the chain's viem public defaults only without
+ * one. The public RPCs are deliberately NOT appended as failover: the
+ * Centrifuge SDK ranks every multi-URL list by `net_listening` latency and
+ * routes reads to whichever endpoint answers fastest, so a public RPC that
+ * answers quickly but wrongly (Arc's returns an empty 204 to current Chrome,
+ * which viem reads as success) outranks Alchemy and breaks every SDK read on
+ * the chain. One URL means no ranking and no health-check noise.
  */
 export function getChainRpcUrls({
   chain,
@@ -230,8 +235,8 @@ export function getChainRpcUrls({
   alchemyKey: string | undefined;
 }): Array<string> {
   const { alchemyNetwork, viem } = CENTRIFUGE_CHAIN_DEPLOYMENTS[chain];
-  const alchemyUrl = alchemyKey ? `https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}` : undefined;
-  return [...(alchemyUrl ? [alchemyUrl] : []), ...viem.rpcUrls.default.http];
+  if (alchemyKey) return [`https://${alchemyNetwork}.g.alchemy.com/v2/${alchemyKey}`];
+  return [...viem.rpcUrls.default.http];
 }
 
 /** The environment's chains in canonical (CENTRIFUGE_CHAINS) order. */

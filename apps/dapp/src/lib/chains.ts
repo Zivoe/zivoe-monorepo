@@ -40,12 +40,12 @@ export function getViemChain(chain: CentrifugeChain): Chain {
 export { getChainId };
 
 /**
- * Ordered RPC URLs for one chain: the deployment's dedicated Alchemy endpoint
- * first (when the chain environment's key is configured — testnet's is
- * optional), then the chain's viem public defaults as failover. Every
- * consumer (wagmi transports, the Centrifuge SDK, server reads) rides this
- * one list, so an Alchemy incident degrades to public RPCs instead of taking
- * down every read and receipt wait.
+ * RPC URLs for one chain: the deployment's dedicated Alchemy endpoint alone
+ * when the chain environment's key is configured (mainnet's is required,
+ * testnet's optional), the chain's viem public defaults only without one.
+ * Every consumer (wagmi transports, the Centrifuge SDK, server reads) rides
+ * this one list. No public failover on purpose — the registry's
+ * getChainRpcUrls says why.
  */
 export function getChainRpcUrls(chain: CentrifugeChain): Array<string> {
   const alchemyKey =
