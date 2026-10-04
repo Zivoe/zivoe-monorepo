@@ -60,3 +60,6 @@ export * from './clock';
 export * from './google';
 export * from './twitter';
 export * from './logout';
+export * from './camera';
+export * from './reset';
+export * from './user';

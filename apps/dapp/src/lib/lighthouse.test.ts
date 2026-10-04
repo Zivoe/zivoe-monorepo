@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LIGHTHOUSE_URL, lighthouseReturnUrl, withNext } from './lighthouse';
+import { LIGHTHOUSE_URL, lighthouseReturnUrl, onboardedDestination, signInReturnUrl, withNext } from './lighthouse';
 
 describe('lighthouseReturnUrl', () => {
   it('returns a Lighthouse page without its query or fragment', () => {
@@ -36,5 +36,21 @@ describe('lighthouseReturnUrl', () => {
     // callbackURL for returning users, newUserCallbackURL for new ones.
     expect(withNext('/api/auth/post-signin', next)).toMatch(relativeCallbackURL);
     expect(withNext('/onboarding', next)).toMatch(relativeCallbackURL);
+  });
+});
+
+describe('signInReturnUrl', () => {
+  it('keeps a dapp page an email links to, and lands on it once onboarded', () => {
+    expect(signInReturnUrl('/verification')).toBe('/verification');
+    expect(onboardedDestination('/verification')).toBe('/verification');
+    expect(withNext('/api/auth/post-signin', '/verification')).toMatch(
+      /^\/(?!\/|\\|%2f|%5c)[\w\-.\+/@]*(?:\?[\w\-.\+/=&%@]*)?$/
+    );
+  });
+
+  it('keeps a Lighthouse page and rejects any other dapp path', () => {
+    expect(signInReturnUrl(`${LIGHTHOUSE_URL}/`)).toBe(`${LIGHTHOUSE_URL}/`);
+    for (const next of ['/liquidity', '/verification/x', '//verification', ['/verification']])
+      expect(signInReturnUrl(next)).toBeUndefined();
   });
 });

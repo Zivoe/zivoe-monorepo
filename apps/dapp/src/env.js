@@ -14,6 +14,19 @@ export const env = createEnv({
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
     CHAINALYSIS_API_KEY: z.string(),
+    // PostHog project secret API key with the `feature_flag:read` scope (the "Local feature flag
+    // evaluation" preset; never the public `phc_` key): lets the server evaluate flags locally.
+    // Production only; without it every flag reads as off.
+    POSTHOG_FEATURE_FLAGS_KEY: z.string().optional(),
+
+    // Persona (KYC) — sandbox values on previews, production values in production;
+    // the webhook secret differs per registered endpoint.
+    PERSONA_API_KEY: z.string(),
+    PERSONA_WEBHOOK_SECRET: z.string(),
+    PERSONA_TEMPLATE_VERSION_ID: z.string(),
+    // The investor template the pinned version belongs to (`itmpl_…`): inquiries on any other
+    // template are ignored, and the daily drift check notices a newer published version.
+    PERSONA_TEMPLATE_ID: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
@@ -40,6 +53,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: z.string(),
     TELEGRAM_CHAINALYSIS_CHAT_ID: z.string(),
     TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
+    TELEGRAM_PERSONA_CHAT_ID: z.string(),
     TELEGRAM_TXS_CHAT_ID: z.string(),
 
     // Vercel (auto-populated on Vercel)
@@ -59,7 +73,8 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: z.string(),
     NEXT_PUBLIC_INTERCOM_APP_ID: z.string(),
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string()
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
+    NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: z.string()
   },
 
   runtimeEnv: {
@@ -82,6 +97,14 @@ export const env = createEnv({
     ZIVOE_API_KEY: process.env.ZIVOE_API_KEY,
     ZAPPER_API_KEY: process.env.ZAPPER_API_KEY,
     CHAINALYSIS_API_KEY: process.env.CHAINALYSIS_API_KEY,
+    POSTHOG_FEATURE_FLAGS_KEY: process.env.POSTHOG_FEATURE_FLAGS_KEY,
+
+    // Persona (KYC)
+    PERSONA_API_KEY: process.env.PERSONA_API_KEY,
+    PERSONA_WEBHOOK_SECRET: process.env.PERSONA_WEBHOOK_SECRET,
+    PERSONA_TEMPLATE_VERSION_ID: process.env.PERSONA_TEMPLATE_VERSION_ID,
+    PERSONA_TEMPLATE_ID: process.env.PERSONA_TEMPLATE_ID,
+    NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: process.env.NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID,
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: process.env.BEEHIIV_PUBLICATION_ID,
@@ -107,6 +130,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAINALYSIS_CHAT_ID: process.env.TELEGRAM_CHAINALYSIS_CHAT_ID,
     TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
+    TELEGRAM_PERSONA_CHAT_ID: process.env.TELEGRAM_PERSONA_CHAT_ID,
     TELEGRAM_TXS_CHAT_ID: process.env.TELEGRAM_TXS_CHAT_ID,
 
     // Vercel

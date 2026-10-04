@@ -10,7 +10,8 @@ import { NextLink } from '@zivoe/ui/core/link';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
-import { getUserMenuData } from '@/server/data/auth';
+import { getUserMenuData, verifySession } from '@/server/data/auth';
+import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
 import ChainalysisAssessmentDialog from '@/app/(dashboard)/_components/chainalysis-assessment-dialog';
 import Footer from '@/app/(dashboard)/_components/footer';
@@ -61,8 +62,9 @@ function Header() {
 }
 
 async function UserMenuWrapper() {
-  const user = await getUserMenuData();
-  return <UserMenu user={user} />;
+  const { user: sessionUser } = await verifySession();
+  const [user, showVerification] = await Promise.all([getUserMenuData(), isKycEnabled({ user: sessionUser })]);
+  return <UserMenu user={user} showVerification={showVerification} />;
 }
 
 function DesktopNavigation() {

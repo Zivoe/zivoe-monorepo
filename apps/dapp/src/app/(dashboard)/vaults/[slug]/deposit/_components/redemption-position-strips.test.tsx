@@ -37,10 +37,17 @@ const mocks = vi.hoisted(() => ({
   hasPendingCancel: false,
   pendingShares: 0n,
   returnedShares: 0n,
-  positionIsFetching: false
+  positionIsFetching: false,
+  isKycEnabled: true
 }));
 
+vi.mock('../../kyc-flag-provider', () => ({ useIsKycEnabled: () => mocks.isKycEnabled }));
+
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
+// The whitelist hint's link to /verification; the real one needs a mounted app router.
+vi.mock('@zivoe/ui/core/link', () => ({
+  NextLink: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>
+}));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@/centrifuge', () => ({
   sharesToDepositAsset: ({
@@ -139,6 +146,7 @@ function getButton(name: string): HTMLButtonElement {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.isKycEnabled = true;
   mocks.claimableAssets = 0n;
   mocks.unfundedAssets = 0n;
   mocks.hasPendingCancel = false;
@@ -237,6 +245,20 @@ describe('RedemptionPositionStrips', () => {
     expect(getButton('Claim zSMB').disabled).toBe(true);
     expect(getButton('Cancel request').disabled).toBe(true);
     expect(screen.getAllByText('Requires a whitelisted wallet.')).toHaveLength(2);
+    // Most likely removed on purpose (a revoked verification): each hint leads to the exact status.
+    const links = screen.getAllByRole('link', { name: 'Check your verification' });
+    expect(links).toHaveLength(2);
+    expect(links.every((link) => link.getAttribute('href') === '/verification')).toBe(true);
+  });
+
+  it('leaves the verification link out while the kyc flag is off', () => {
+    mocks.isKycEnabled = false;
+    mocks.returnedShares = 4n * D18;
+    mocks.pendingShares = 3n * D18;
+    renderStrips({ gates: gatesFor({ canReceiveShares: false }) });
+
+    expect(screen.getAllByText('Requires a whitelisted wallet.')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: 'Check your verification' })).toBeNull();
   });
 
   it('leaves cancelling and claiming returned shares alone when only the request is blocked', () => {
@@ -272,6 +294,8 @@ describe('RedemptionPositionStrips', () => {
     expect(getButton('Claim USDC').disabled).toBe(true);
     expect(screen.getAllByText('This wallet is frozen.')).toHaveLength(3);
     expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
+    // A freeze is support's to review, not a verification question.
+    expect(screen.queryByRole('link', { name: 'Check your verification' })).toBeNull();
   });
 
   it('never calls an unexplained claim refusal "not whitelisted"', () => {
