@@ -14,7 +14,8 @@ export const env = createEnv({
     ZIVOE_API_KEY: z.string(),
     ZAPPER_API_KEY: z.string(),
     CHAINALYSIS_API_KEY: z.string(),
-    // PostHog Feature Flags Secure API Key (`phs_…`): lets the server evaluate flags locally.
+    // PostHog project secret API key with the `feature_flag:read` scope (the "Local feature flag
+    // evaluation" preset; never the public `phc_` key): lets the server evaluate flags locally.
     // Production only; without it every flag reads as off.
     POSTHOG_FEATURE_FLAGS_KEY: z.string().optional(),
 
