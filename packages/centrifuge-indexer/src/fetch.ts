@@ -10,6 +10,7 @@ export type CentrifugeIndexerErrorKind = 'network' | 'http' | 'graphql' | 'valid
  * fetch); callers can pass their own `fetchOptions.signal` to override.
  */
 const DEFAULT_TIMEOUT_MS = 10_000;
+const RETRY_DELAY_MS = 250;
 
 export class CentrifugeIndexerError extends Error {
   public readonly kind: CentrifugeIndexerErrorKind;
@@ -23,13 +24,7 @@ export class CentrifugeIndexerError extends Error {
   }
 }
 
-export async function fetchCentrifugeIndexer<TData, TResult, TVariables>({
-  indexerUrl,
-  query,
-  variables,
-  dataSchema,
-  fetchOptions
-}: {
+type FetchCentrifugeIndexerOptions<TData, TResult, TVariables> = {
   indexerUrl: string;
   /** A document from this package's `graphql()` — type-checked against the pinned schema. */
   query: TadaDocumentNode<TResult, TVariables>;
@@ -41,7 +36,48 @@ export async function fetchCentrifugeIndexer<TData, TResult, TVariables>({
    */
   dataSchema: z.ZodType<TData>;
   fetchOptions?: RequestInit;
-}): Promise<TData> {
+};
+
+/** Retry one transient read failure within the original request's time budget. */
+export async function fetchCentrifugeIndexer<TData, TResult, TVariables>(
+  options: FetchCentrifugeIndexerOptions<TData, TResult, TVariables>
+): Promise<TData> {
+  const signal = options.fetchOptions?.signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS);
+  const request = { ...options, fetchOptions: { ...options.fetchOptions, signal } };
+  try {
+    return await fetchCentrifugeIndexerOnce(request);
+  } catch (error) {
+    const retryable =
+      error instanceof CentrifugeIndexerError &&
+      (error.kind === 'network' ||
+        (error.kind === 'http' &&
+          error.status !== undefined &&
+          ([408, 425, 429].includes(error.status) || (error.status >= 500 && error.status < 600))));
+    if (!retryable || signal.aborted) throw error;
+
+    const shouldRetry = await new Promise<boolean>((resolve) => {
+      const abort = () => {
+        clearTimeout(timer);
+        resolve(false);
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', abort);
+        resolve(true);
+      }, RETRY_DELAY_MS);
+      signal.addEventListener('abort', abort, { once: true });
+    });
+    if (!shouldRetry || signal.aborted) throw error;
+    return fetchCentrifugeIndexerOnce(request);
+  }
+}
+
+async function fetchCentrifugeIndexerOnce<TData, TResult, TVariables>({
+  indexerUrl,
+  query,
+  variables,
+  dataSchema,
+  fetchOptions
+}: FetchCentrifugeIndexerOptions<TData, TResult, TVariables>): Promise<TData> {
   const response = await fetch(indexerUrl, {
     ...fetchOptions,
     method: 'POST',

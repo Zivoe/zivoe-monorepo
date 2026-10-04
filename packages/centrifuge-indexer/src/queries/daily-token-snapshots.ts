@@ -6,13 +6,23 @@ import { type ResultOf, graphql } from '../graphql';
 import { getShareClassIdentity } from '../share-classes';
 
 const DAILY_TOKEN_SNAPSHOTS_QUERY = graphql(`
-  query DailyTokenSnapshots($tokenId: String!, $limit: Int!) {
-    tokenSnapshots(where: { id: $tokenId }, orderBy: "timestamp", orderDirection: "desc", limit: $limit) {
+  query DailyTokenSnapshots($tokenId: String!, $limit: Int!, $after: String) {
+    tokenSnapshots(
+      where: { id: $tokenId }
+      orderBy: "timestamp"
+      orderDirection: "desc"
+      limit: $limit
+      after: $after
+    ) {
       items {
         timestamp
         tokenPrice
         totalIssuance
         yield30dComp365
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
@@ -25,6 +35,7 @@ const signedIntegerString = z.string().regex(/^-?\d+$/);
 
 const dataSchema = z.object({
   tokenSnapshots: z.object({
+    pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
     items: z.array(
       z.object({
         timestamp: integerString,
@@ -67,34 +78,51 @@ export function getUtcDayStartSeconds(timestampMs: number): number {
  * Each closed day therefore carries its closing state, and the current day has
  * no row until it closes (intraday price-publication events do add same-day
  * rows). Fetched newest-first so hitting the indexer's page cap drops the
- * oldest history instead of silently freezing the newest; `truncated` flags
- * that case so callers can alert and move to cursor pagination (`after` /
- * `pageInfo` exist on the endpoint) before history is actually lost.
+ * oldest history instead of silently freezing the newest. Wallet history opts
+ * into cursor pagination; `truncated` also flags missing or repeated cursors
+ * and the safety bound, never presenting a partial walk as complete.
  */
 export async function fetchDailyTokenSnapshots({
   environment,
   shareClassKey,
-  fetchOptions
+  fetchOptions,
+  paginate = false
 }: {
   environment: CentrifugeEnvironment;
   shareClassKey: string;
   fetchOptions?: RequestInit;
+  /** Walk all pages for wallet history; existing chart consumers retain their bounded read. */
+  paginate?: boolean;
 }): Promise<{ snapshots: Array<DailyTokenSnapshot>; truncated: boolean }> {
   const shareClass = getShareClassIdentity({ environment, key: shareClassKey });
 
-  const data = await fetchCentrifugeIndexer({
-    indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
-    query: DAILY_TOKEN_SNAPSHOTS_QUERY,
-    variables: { tokenId: shareClass.scId, limit: MAX_PAGE_LIMIT },
-    dataSchema,
-    fetchOptions
-  });
+  const items: z.infer<typeof dataSchema>['tokenSnapshots']['items'] = [];
+  let after: string | null = null;
+  let truncated = false;
+  const cursors = new Set<string>();
+  for (let page = 0; page < 100; page++) {
+    const data: z.infer<typeof dataSchema> = await fetchCentrifugeIndexer({
+      indexerUrl: CENTRIFUGE_ENVIRONMENT_FACTS[environment].indexerUrl,
+      query: DAILY_TOKEN_SNAPSHOTS_QUERY,
+      variables: { tokenId: shareClass.scId, limit: MAX_PAGE_LIMIT, after },
+      dataSchema,
+      fetchOptions
+    });
+
+    items.push(...data.tokenSnapshots.items);
+    const info = data.tokenSnapshots.pageInfo;
+    truncated = info.hasNextPage;
+    if (!truncated || !paginate) break;
+    if (!info.endCursor || cursors.has(info.endCursor)) break;
+    cursors.add(info.endCursor);
+    after = info.endCursor;
+  }
 
   const byDay = new Map<number, DailyTokenSnapshot>();
 
   // Rows arrive newest first, so the first priced write per day wins — that is
   // the day's last priced row.
-  for (const item of data.tokenSnapshots.items) {
+  for (const item of items) {
     if (item.tokenPrice === null) continue;
 
     // The instant just before the snapshot: a midnight-stamped NewPeriod row
@@ -112,6 +140,6 @@ export async function fetchDailyTokenSnapshots({
 
   return {
     snapshots: [...byDay.values()].sort((a, b) => a.dayStartSeconds - b.dayStartSeconds),
-    truncated: data.tokenSnapshots.items.length === MAX_PAGE_LIMIT
+    truncated
   };
 }

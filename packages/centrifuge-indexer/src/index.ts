@@ -57,3 +57,11 @@ export {
 } from './queries/investor-transaction-events';
 export { fetchShareClassNavs, sumShareClassNavs } from './queries/share-class-navs';
 export { navD18, rayToPercent } from './units';
+
+export {
+  fetchWalletCheckpoints,
+  fetchWalletActivityPage,
+  compareCheckpoints,
+  type WalletCheckpoint,
+  type WalletActivity
+} from './queries/wallet-portfolio';
