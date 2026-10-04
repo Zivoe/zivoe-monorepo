@@ -26,7 +26,12 @@ import {
   createKycVerification
 } from '@/server/kyc/kyc-verification';
 import { createPersonaDriftCheck } from '@/server/kyc/kyc-webhook-drift';
-import { PERSONA_API_BASE_URL, PERSONA_API_VERSION, createPersonaApi } from '@/server/kyc/persona-api';
+import {
+  PERSONA_API_BASE_URL,
+  PERSONA_API_VERSION,
+  createPersonaApi,
+  isPersonaSandboxKey
+} from '@/server/kyc/persona-api';
 
 import { type Result } from '@/lib/result';
 
@@ -49,7 +54,7 @@ const qstashToken = required('QSTASH_TOKEN');
 export const appUrl = required('APP_URL').replace(/\/+$/, '');
 
 // Sandbox only: a production key would create real, billable inquiries with fake identities.
-if (!apiKey.startsWith('persona_sandbox_')) {
+if (!isPersonaSandboxKey(apiKey)) {
   throw new Error('PERSONA_API_KEY is not a sandbox key (persona_sandbox_…); refusing to run.');
 }
 // The database is named on the command line, not inherited: the run inserts and deletes users in it.

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 
 import { personaDriftCheck } from '@/server/kyc';
+import { isPersonaSandboxKey } from '@/server/kyc/persona-api';
 
 import { KYC_WEBHOOK_DRIFT_CRON, KYC_WEBHOOK_DRIFT_SLUG, withQstashSignature } from '@/lib/qstash';
 import { withErrorHandler } from '@/lib/utils';
@@ -55,13 +56,15 @@ const handler = async (
       return NextResponse.json({ success: true, data: { checked: false, templateChecked: false, findings: [] } });
     }
 
-    // In production the template half of the check is not optional: the pin
-    // is what guards against a version published unnoticed, so a run that did
-    // not compare it — a read that failed (a key without
+    // With a production key the template half of the check is not optional:
+    // the pin is what guards against a version published unnoticed, so a run
+    // that did not compare it — a read that failed (a key without
     // inquiry_template.read, say) — must not stay a silent
-    // `templateChecked: false` in a response nobody reads. Elsewhere it is the
-    // expected answer: Persona does not expose templates to sandbox keys.
-    if (!report.templateChecked && env.VERCEL_ENV === 'production') {
+    // `templateChecked: false` in a response nobody reads. With a sandbox key
+    // it is the expected answer: Persona does not expose templates to sandbox
+    // keys. Production runs on one until the KYC launch, so the key decides,
+    // not the environment, and the check turns strict when the key is swapped.
+    if (!report.templateChecked && env.VERCEL_ENV === 'production' && !isPersonaSandboxKey(env.PERSONA_API_KEY)) {
       Sentry.captureException(new Error('KYC drift check did not verify the inquiry template version'), {
         tags: {
           source: 'API',

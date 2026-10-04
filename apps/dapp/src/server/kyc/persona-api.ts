@@ -24,6 +24,15 @@ export const PERSONA_API_BASE_URL = 'https://api.withpersona.com/api/v1';
 export const PERSONA_API_VERSION = '2025-12-08';
 const PERSONA_TIMEOUT_MS = 15_000;
 
+/**
+ * A sandbox key (`persona_sandbox_…`) as opposed to a production one
+ * (`persona_production_…`). Persona hides templates from sandbox keys, so the
+ * drift check cannot compare the template version with one.
+ */
+export function isPersonaSandboxKey(apiKey: string): boolean {
+  return apiKey.startsWith('persona_sandbox_');
+}
+
 const sessionResponseSchema = z.object({
   data: personaInquiryResourceSchema,
   meta: z.object({ 'session-token': z.string().min(1) })
@@ -302,7 +311,7 @@ export function createPersonaApi({
       );
     },
 
-    // Persona does not expose templates to sandbox keys, so a 4xx here is expected outside production.
+    // Persona does not expose templates to sandbox keys, so a 4xx here is expected with one.
     async latestPublishedVersion({ templateId }) {
       const result = await request({
         method: 'GET',
