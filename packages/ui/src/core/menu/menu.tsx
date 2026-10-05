@@ -5,11 +5,11 @@ import React from 'react';
 import * as Aria from 'react-aria-components';
 import { composeRenderProps } from 'react-aria-components';
 
-import { usePrefetch } from '../../hooks/usePrefetch';
 import { CaretRightIcon } from '../../icons';
 import { fixedForwardRef } from '../../lib';
 import { type VariantProps, cn, tv } from '../../lib/tw-utils';
 import { Button, type ButtonProps } from '../button';
+import { renderRouterLink } from '../link';
 import { BasePopover } from '../popover';
 import { ScrollArea, ScrollBar } from '../scroll-area';
 
@@ -65,18 +65,9 @@ const menuItemVariants = tv({
   }
 });
 
-type MenuItemProps = Aria.MenuItemProps &
-  Omit<VariantProps<typeof menuItemVariants>, 'isSelected'> & { prefetch?: boolean };
+type MenuItemProps = Omit<Aria.MenuItemProps, 'render'> & Omit<VariantProps<typeof menuItemVariants>, 'isSelected'>;
 
-const MenuItem = ({
-  children,
-  className,
-  target = '_self',
-  rel: providedRel,
-  prefetch = true,
-  ...props
-}: MenuItemProps) => {
-  usePrefetch({ href: props.href, target, enabled: prefetch });
+const MenuItem = ({ children, className, target = '_self', rel: providedRel, ...props }: MenuItemProps) => {
   const rel = target === '_blank' ? (providedRel ?? 'noopener noreferrer') : providedRel;
   const textValue = props.textValue ?? (typeof children === 'string' ? children : undefined);
 
@@ -86,6 +77,7 @@ const MenuItem = ({
       target={target}
       rel={rel}
       textValue={textValue}
+      render={(domProps) => renderRouterLink({ domProps, fallback: 'div' })}
       className={composeRenderProps(className, (className, { isSelected }) =>
         menuItemVariants({ className, isSelected })
       )}

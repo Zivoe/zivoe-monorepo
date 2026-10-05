@@ -52,7 +52,7 @@
     "posthog-js": "^1.257.0",
     "posthog-node": "^5.17.2",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "react-aria-components": "^1.6.0",
+    "react-aria-components": "^1.17.0",
     "react-hook-form": "^7.53.0",
     "react-responsive": "^10.0.1",
     "recharts": "^2.15.1",

@@ -29,7 +29,7 @@
     "next": "15.6.0-canary.60",
     "posthog-js": "^1.257.0",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "react-aria-components": "^1.6.0",
+    "react-aria-components": "^1.17.0",
     "react-hook-form": "^7.70.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.3",

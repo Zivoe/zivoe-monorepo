@@ -8,7 +8,6 @@
     "./core/field/*": "./src/core/field/*.tsx",
     "./core/*": "./src/core/*/index.tsx",
     "./globals.css": "./src/globals.css",
-    "./hooks/*": "./src/hooks/*.ts",
     "./icons": "./src/icons/index.ts",
     "./icons/*": "./src/icons/*.tsx",
     "./lib/*": "./src/lib/*.ts"
@@ -46,7 +45,7 @@
     "eslint": "^9.21.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.2",
-    "react-aria-components": "^1.6.0",
+    "react-aria-components": "^1.17.0",
     "tailwindcss": "^4.3.1",
     "tailwindcss-react-aria-components": "^2.2.0",
     "typescript": "5.7.3",
