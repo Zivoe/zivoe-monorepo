@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
-import { getUser } from '@/server/data/auth';
+import { getUser, verifyOnboarded } from '@/server/data/auth';
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
@@ -15,7 +15,6 @@ import Page from '@/components/page';
 
 import { getZivoeVault, resolveZivoeVaultIdentities } from '@/zivoe-vaults';
 
-import { OnboardingGuard } from '../../_components/onboarding-guard';
 import Deposit from './deposit';
 import DepositInfo from './deposit-info';
 import { depositPageViewSchema } from './deposit/_utils';
@@ -71,31 +70,29 @@ export default async function ZivoeVaultPage({
         if (!payload) throw new Error('Centrifuge current share metrics are unavailable');
         return payload;
       }
-    })
+    }),
+    // Redirects to onboarding before anything renders; shares the session read above.
+    verifyOnboarded()
   ]);
 
   return (
-    <>
-      <OnboardingGuard />
+    <div className="bg-surface-base">
+      <Container>
+        <ZivoeVaultHeader zivoeVault={zivoeVault} />
+      </Container>
 
-      <div className="bg-surface-base">
-        <Container>
-          <ZivoeVaultHeader zivoeVault={zivoeVault} />
-        </Container>
-
-        <HydrationBoundary state={dehydrate(queryClient)}>
-          {/* Keyed by slug so no component state can leak across Zivoe Vaults. */}
-          <Page key={zivoeVault.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
-            <ZivoeVaultIdentityProvider identities={identities} status={zivoeVault.status}>
-              <DepositInfo zivoeVault={zivoeVault} />
-              <KycFlagProvider isEnabled={isKycFlagOn}>
-                <Deposit initialView={validatedView.success ? validatedView.data : null} />
-              </KycFlagProvider>
-            </ZivoeVaultIdentityProvider>
-          </Page>
-        </HydrationBoundary>
-      </div>
-    </>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        {/* Keyed by slug so no component state can leak across Zivoe Vaults. */}
+        <Page key={zivoeVault.slug} className="mt-10 flex gap-10 lg:mt-12 lg:flex-row">
+          <ZivoeVaultIdentityProvider identities={identities} status={zivoeVault.status}>
+            <DepositInfo zivoeVault={zivoeVault} />
+            <KycFlagProvider isEnabled={isKycFlagOn}>
+              <Deposit initialView={validatedView.success ? validatedView.data : null} />
+            </KycFlagProvider>
+          </ZivoeVaultIdentityProvider>
+        </Page>
+      </HydrationBoundary>
+    </div>
   );
 }
 

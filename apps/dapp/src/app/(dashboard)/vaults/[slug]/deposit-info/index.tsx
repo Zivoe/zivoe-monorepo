@@ -1,18 +1,22 @@
 import { type ShareClassKey } from '@zivoe/centrifuge-indexer';
 import { Separator } from '@zivoe/ui/core/separator';
-import { DiamondIcon } from '@zivoe/ui/icons';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { DiamondIcon, InfoIcon } from '@zivoe/ui/icons';
 
 import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
+
+import InfoSection from '@/components/info-section';
+import TextSkeleton from '@/components/text-skeleton';
 
 import { type ZivoeVault } from '@/zivoe-vaults';
 
 import DepositAbout from './deposit-about';
 import DepositCharts from './deposit-charts';
 import DepositContact from './deposit-contact';
-import DepositDetails from './deposit-details';
-import Documents from './deposit-documents';
+import DepositDetails, { DepositDetailsSkeleton } from './deposit-details';
+import Documents, { DocumentsSkeleton } from './deposit-documents';
 import DepositHighlights from './deposit-highlights';
-import DepositStats from './deposit-stats';
+import DepositStats, { DepositStatsSkeleton } from './deposit-stats';
 
 export default function DepositInfo({ zivoeVault }: { zivoeVault: ZivoeVault }) {
   return (
@@ -37,6 +41,59 @@ export default function DepositInfo({ zivoeVault }: { zivoeVault: ZivoeVault }) 
       <DiamondSeparator />
 
       <Documents documents={zivoeVault.documents} />
+      <DiamondSeparator />
+
+      <DepositContact />
+    </div>
+  );
+}
+
+/**
+ * `DepositInfo` while the page's data is on its way. The loading state knows
+ * no Zivoe Vault, so what is the same for every one renders for real (the
+ * highlights, the section titles, the detail labels, the contact line) and
+ * only the vault's own figures and copy pulse.
+ */
+export function DepositInfoSkeleton() {
+  return (
+    <div className="flex w-full flex-col gap-8 lg:gap-10">
+      {/* DepositCharts: headline, view select, chart. */}
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex justify-between gap-2">
+          <p className="text-h4">
+            <TextSkeleton className="w-28" />
+          </p>
+          <Skeleton className="h-9 w-36 rounded-full" />
+        </div>
+
+        <Skeleton className="aspect-video w-full rounded-sm" />
+      </div>
+      <DiamondSeparator />
+
+      <div className="flex flex-col gap-8">
+        <DepositStatsSkeleton />
+        <DepositHighlights />
+      </div>
+      <DiamondSeparator />
+
+      {/* DepositAbout: two clamped lines and Show More. */}
+      <InfoSection title="About" icon={<InfoIcon />}>
+        <div className="flex flex-col gap-2">
+          <p className="text-leading">
+            <TextSkeleton className="w-full" />
+            <TextSkeleton className="w-4/5" />
+          </p>
+          <p className="text-regular">
+            <TextSkeleton className="w-20" />
+          </p>
+        </div>
+      </InfoSection>
+      <DiamondSeparator />
+
+      <DepositDetailsSkeleton />
+      <DiamondSeparator />
+
+      <DocumentsSkeleton />
       <DiamondSeparator />
 
       <DepositContact />

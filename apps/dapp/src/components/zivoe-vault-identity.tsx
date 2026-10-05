@@ -2,9 +2,14 @@ import { type ReactNode } from 'react';
 
 import { SHARE_CLASSES } from '@zivoe/centrifuge-indexer';
 import { Badge } from '@zivoe/ui/core/badge';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { type ZivoeVault, type ZivoeVaultStatus } from '@/zivoe-vaults';
+
+import TextSkeleton from './text-skeleton';
+
+const NAME_SIZES = { sm: 'font-heading! text-h6', lg: 'font-heading! text-h6 lg:text-h5' };
 
 /**
  * Logo, ticker and name — the identity row the listing card and the Zivoe Vault
@@ -41,9 +46,29 @@ export default function ZivoeVaultIdentity({
           {trailing}
         </div>
 
-        <Name className={cn('font-heading! text-h6 text-primary', size === 'lg' && 'lg:text-h5')}>
-          {zivoeVault.name}
-        </Name>
+        <Name className={cn(NAME_SIZES[size], 'text-primary')}>{zivoeVault.name}</Name>
+      </div>
+    </div>
+  );
+}
+
+/** The identity row with its status chip while the Zivoe Vault is on its way: same boxes, pulsing. */
+export function ZivoeVaultIdentitySkeleton({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
+  return (
+    <div className="flex items-center gap-3.5">
+      <Skeleton className="size-11 shrink-0 rounded-full" />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-small">
+            <TextSkeleton className="w-10" />
+          </span>
+          <Skeleton className="h-7 w-12 rounded-sm" />
+        </div>
+
+        <p className={NAME_SIZES[size]}>
+          <TextSkeleton className="w-52" />
+        </p>
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ const handler = async (req: NextRequest): ApiResponse<ChainalysisAssessment> => 
   Sentry.setTag('source', 'API');
   Sentry.setTag('flow', FLOW);
 
-  // Every legitimate caller is behind OnboardingGuard, so an anonymous request
+  // Every legitimate caller is behind a page's `verifyOnboarded()` check, so an anonymous request
   // is never the dapp — reject it before spending Redis or Chainalysis calls.
   const sessionRes = await handlePromise(auth.api.getSession({ headers: req.headers }));
 
