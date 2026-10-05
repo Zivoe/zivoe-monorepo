@@ -5,6 +5,7 @@ import { BankIcon, MoneyIcon, TrendingIcon } from '@zivoe/ui/icons';
 import { formatNav, formatTokenPrice } from '@/lib/utils';
 
 import TargetApyDisclosure from '@/components/target-apy-disclosure';
+import TextSkeleton from '@/components/text-skeleton';
 
 export default function DepositStats({
   nav,
@@ -33,7 +34,23 @@ export default function DepositStats({
   );
 }
 
-function Box({ title, icon, value, help }: { title: string; icon: ReactNode; value: string; help?: ReactNode }) {
+/** The three figures while the page's data is on its way: same boxes and disclosure, pulsing values. */
+export function DepositStatsSkeleton() {
+  return (
+    <div className="flex flex-wrap justify-between gap-6">
+      <Box title="NAV" icon={<BankIcon />} value={<TextSkeleton className="w-24" />} />
+      <Box
+        title="Target APY"
+        icon={<TrendingIcon />}
+        value={<TextSkeleton className="w-14" />}
+        help={<TargetApyDisclosure triggerClassName="-ml-1" />}
+      />
+      <Box title="Token Price" icon={<MoneyIcon />} value={<TextSkeleton className="w-16" />} />
+    </div>
+  );
+}
+
+function Box({ title, icon, value, help }: { title: string; icon: ReactNode; value: ReactNode; help?: ReactNode }) {
   return (
     <div className="flex shrink-0 flex-col gap-3">
       <div className="flex items-center gap-2">

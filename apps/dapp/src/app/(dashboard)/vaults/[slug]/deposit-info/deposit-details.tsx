@@ -6,6 +6,7 @@ import { DocumentIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import InfoSection from '@/components/info-section';
+import TextSkeleton from '@/components/text-skeleton';
 import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/zivoe-vault-icons';
 
 import {
@@ -43,6 +44,37 @@ export default function DepositDetails({ zivoeVault }: { zivoeVault: ZivoeVault 
             title={label}
             note={DETAIL_NOTES[label]}
             value={values[label]}
+            className="border-b border-default last:border-b-0"
+          />
+        ))}
+      </div>
+    </InfoSection>
+  );
+}
+
+/** The rows while the page's data is on its way: the real labels and notes, pulsing values. */
+export function DepositDetailsSkeleton() {
+  return (
+    <InfoSection title="Details" icon={<DocumentIcon />}>
+      <div>
+        {ZIVOE_VAULT_DETAIL_LABELS.map((label, index) => (
+          <Element
+            key={label}
+            title={label}
+            note={DETAIL_NOTES[label]}
+            value={
+              <p className="text-right text-small sm:text-regular md:text-leading">
+                {label === 'Eligibility' ? (
+                  // The longest value: two runs that wrap on a phone, as the text does.
+                  <>
+                    <TextSkeleton className="w-44" />
+                    <TextSkeleton className="w-40" />
+                  </>
+                ) : (
+                  <TextSkeleton className={index % 2 === 0 ? 'w-16' : 'w-28'} />
+                )}
+              </p>
+            }
             className="border-b border-default last:border-b-0"
           />
         ))}

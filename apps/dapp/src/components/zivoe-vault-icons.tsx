@@ -1,8 +1,6 @@
-import { Tooltip, TooltipFocusable, TooltipTrigger } from '@zivoe/ui/core/tooltip';
-import { cn } from '@zivoe/ui/lib/tw-utils';
-
 import { type ZivoeVault, zivoeVaultChainDisplays, zivoeVaultDepositAssets } from '@/zivoe-vaults';
 
+import StackedLogo from './stacked-logo';
 import { getTokenInfo } from './token-info';
 
 /**
@@ -18,9 +16,9 @@ export function AcceptedStablecoinIcons({ zivoeVault, surface = 'base' }: Stacke
       {zivoeVaultDepositAssets(zivoeVault).map(({ symbol }) => {
         const info = getTokenInfo(symbol);
         return (
-          <Logo key={symbol} label={info?.label ?? symbol} className={STACK_RING[surface]}>
+          <StackedLogo key={symbol} label={info?.label ?? symbol} className={STACK_RING[surface]}>
             {info?.icon ?? symbol}
-          </Logo>
+          </StackedLogo>
         );
       })}
     </IconRow>
@@ -31,9 +29,9 @@ export function AcceptedChainIcons({ zivoeVault, surface = 'base' }: StackedRowP
   return (
     <IconRow>
       {zivoeVaultChainDisplays(zivoeVault).map(({ label, Icon }) => (
-        <Logo key={label} label={label} className={STACK_RING[surface]}>
+        <StackedLogo key={label} label={label} className={STACK_RING[surface]}>
           <Icon />
-        </Logo>
+        </StackedLogo>
       ))}
     </IconRow>
   );
@@ -52,25 +50,5 @@ type StackedRowProps = { zivoeVault: ZivoeVault; surface?: keyof typeof STACK_RI
 function IconRow({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative z-20 flex min-w-0 flex-wrap items-center justify-end -space-x-1 gap-y-1">{children}</div>
-  );
-}
-
-function Logo({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
-  return (
-    <TooltipTrigger>
-      <TooltipFocusable>
-        <span
-          role="img"
-          aria-label={label}
-          className={cn(
-            'relative rounded-full outline-hidden hover:z-10 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-default [&_svg]:size-5',
-            className
-          )}
-        >
-          {children}
-        </span>
-      </TooltipFocusable>
-      <Tooltip>{label}</Tooltip>
-    </TooltipTrigger>
   );
 }

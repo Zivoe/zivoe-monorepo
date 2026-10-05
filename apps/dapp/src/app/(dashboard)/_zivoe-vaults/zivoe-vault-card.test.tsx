@@ -8,7 +8,6 @@ import { ZSMB_ZIVOE_VAULT } from '@/zivoe-vaults/zsmb';
 
 import ZivoeVaultCard from './zivoe-vault-card';
 
-vi.mock('next/image', () => ({ default: () => null }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@zivoe/ui/core/link', () => ({

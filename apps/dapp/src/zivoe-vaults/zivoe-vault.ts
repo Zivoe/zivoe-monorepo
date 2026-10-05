@@ -68,7 +68,7 @@ export type ZivoeVaultPresentation = {
   /** Asset class — the "Asset Type" row on the listing card and in Details. */
   category: string;
   /** Decorative artwork shown in the listing card's banner. */
-  cardArtworkSrc: string;
+  CardArtwork: ComponentType<{ className?: string }>;
   issuer: string;
   /** Share-token subtitle for token display maps and pickers. */
   shareTokenDescription: string;

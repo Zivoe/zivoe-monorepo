@@ -1,12 +1,11 @@
 import type { NextConfig } from 'next';
 
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 
 import './src/env';
 
 const nextConfig: NextConfig = {
   experimental: {
-    ppr: true,
     staleTimes: {
       dynamic: 30,
       static: 300

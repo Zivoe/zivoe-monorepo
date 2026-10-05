@@ -1,9 +1,6 @@
-import type { ReactNode } from 'react';
-
 import { redirect } from 'next/navigation';
 
-import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
-import { Link, NextLink } from '@zivoe/ui/core/link';
+import { Link } from '@zivoe/ui/core/link';
 
 import {
   type EmailPreferences,
@@ -15,9 +12,8 @@ import { getBeehiivNewsletterPreference } from '@/server/utils/beehiiv';
 import { handlePromise } from '@/lib/utils';
 import { EMAILS } from '@/lib/utils';
 
-import Footer from '@/app/(dashboard)/_components/footer';
 import EmailPreferencesForm from '@/app/unsubscribe/_components/email-preferences-form';
-import UnsubscribeHeaderPattern from '@/app/unsubscribe/_components/unsubscribe-header-pattern';
+import ManageNotificationsLayout from '@/app/unsubscribe/_components/manage-notifications-layout';
 
 export default async function UnsubscribePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const params = await searchParams;
@@ -72,30 +68,5 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
     <ManageNotificationsLayout description="Choose the emails you'd like to receive from Zivoe. You can update your preferences anytime you'd like.">
       <EmailPreferencesForm initialPreferences={preferences} token={token} />
     </ManageNotificationsLayout>
-  );
-}
-
-function ManageNotificationsLayout({ description, children }: { description: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex min-h-screen flex-col bg-surface-base">
-      <header className="relative overflow-hidden border-b border-subtle bg-element-tertiary px-6 pt-8 pb-14 md:min-h-100 md:px-10 md:pt-12 md:pb-38.25">
-        <UnsubscribeHeaderPattern />
-
-        <div className="relative z-10">
-          <NextLink href="/" aria-label="Zivoe home">
-            <ZivoeLogo aria-hidden="true" className="h-8 text-base md:h-10" />
-          </NextLink>
-
-          <div className="mt-10 flex flex-col items-center text-center md:mt-12">
-            <h1 className="text-h3 text-brand">Manage Notifications</h1>
-            <p className="mt-3 max-w-125 text-leading text-brand">{description}</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="relative z-10 -mt-6 flex-1 px-4 sm:-mt-8 md:-mt-18 md:px-10">{children}</main>
-
-      <Footer />
-    </div>
   );
 }
