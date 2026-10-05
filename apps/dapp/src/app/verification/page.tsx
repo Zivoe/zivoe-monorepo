@@ -1,7 +1,7 @@
 import { type Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-import { getUser } from '@/server/data/auth';
+import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { kycVerification } from '@/server/kyc';
 import { isKycEnabled } from '@/server/kyc/kyc-flag';
@@ -15,8 +15,8 @@ export const metadata: Metadata = { title: 'Identity verification | Zivoe' };
 /**
  * The verification destination, in a shell of its own (no dashboard
  * navigation): the Investor Profile step, then the Persona flow. Requires a
- * session and a completed onboarding profile — the existing onboarding
- * redirect, not a KYC guard: nothing here ever redirects for KYC reasons,
+ * session, a completed onboarding profile and the current terms accepted —
+ * the existing redirects, not a KYC guard: nothing here ever redirects for KYC reasons,
  * and no wallet is needed. The profile read doubles as the onboarding check
  * (a profile row is what "onboarded" means), so the page waits on one round
  * of parallel reads after the session instead of two. Behind the `kyc` flag:
@@ -29,12 +29,15 @@ export default async function KycPage() {
 
   if (!(await isKycEnabled({ user }))) notFound();
 
-  const [view, profile] = await Promise.all([
+  const [view, profile, termsStatus] = await Promise.all([
     kycVerification.getKycStatus({ userId: user.id }),
-    getInvestorProfile({ userId: user.id })
+    getInvestorProfile({ userId: user.id }),
+    getTermsStatus(user.id)
   ]);
   // No profile row means onboarding isn't finished; it hands the user back here.
   if (!profile) redirect(withNext('/onboarding', '/verification'));
+  // Behind on the terms: accept them first; the terms page hands the user back here.
+  if (termsStatus !== 'accepted') redirect(withNext('/terms', '/verification'));
 
   return <VerificationFlow view={view} profile={profile} />;
 }

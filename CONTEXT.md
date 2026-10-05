@@ -159,8 +159,14 @@ _Avoid_: hidden claim, stuck redemption
 ### Lighthouse access
 
 **Lighthouse Pass**:
-The signed `lighthouse-pass` cookie that lets its holder view Lighthouse (`lighthouse.zivoe.com`), which has no sign-in of its own. `/api/lighthouse/pass` issues it to a signed-in, onboarded user for one hour on `Domain=zivoe.com`, and sign-out clears it — `apps/dapp/src/server/utils/lighthouse-pass.ts`. Lighthouse verifies it alone with the shared `LIGHTHOUSE_PASS_SECRET`. It names nobody and grants nothing in the dApp, which is why the better-auth session cookies stay host-only. Unrelated to a Monitor Pass.
+The signed `lighthouse-pass` cookie that lets its holder view Lighthouse (`lighthouse.zivoe.com`), which has no sign-in of its own. `/api/lighthouse/pass` issues it to a signed-in, onboarded user who accepted the current terms, for one hour on `Domain=zivoe.com`, and sign-out clears it — `apps/dapp/src/server/utils/lighthouse-pass.ts`. Lighthouse verifies it alone with the shared `LIGHTHOUSE_PASS_SECRET`. It names nobody and grants nothing in the dApp, which is why the better-auth session cookies stay host-only. Unrelated to a Monitor Pass.
 _Avoid_: Lighthouse session, Lighthouse token
+
+### Terms acceptance
+
+**Terms Acceptance**:
+A user's recorded agreement to the Terms of Use & Privacy Policy and the Reg S Compliance Policy, given with the checkbox on `/terms`: one append-only row per acceptance in `terms_acceptance`, stamped by the database clock. It is current while the user's newest row is at least as recent as `app_config.terms_updated_at`, the single app-wide row an operator moves forward by hand when the terms change. A signed-in user without a current one is sent to `/terms` right after onboarding and before any dapp page, `/verification` or a Lighthouse Pass (`getRequiredStep` in `apps/dapp/src/server/data/auth.ts`).
+_Avoid_: terms flag, consent checkbox (the row is the record, not the checkbox)
 
 ## Example dialogue
 

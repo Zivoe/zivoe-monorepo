@@ -31,7 +31,7 @@ example:
 docker run -d --name zivoe-pg -p 5433:5432 -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=zivoe postgres:17
 ```
 
-1. Apply the migrations and seed the agent, already onboarded:
+1. Apply the migrations and seed the agent, terms accepted and already onboarded:
 
    ```bash
    DATABASE_URL=postgresql://postgres@127.0.0.1:5433/zivoe pnpm --filter @zivoe/database db:migrate
@@ -39,11 +39,13 @@ docker run -d --name zivoe-pg -p 5433:5432 -e POSTGRES_HOST_AUTH_METHOD=trust -e
    ```
 
    Without an explicit `DATABASE_URL` both commands read `packages/database/.env`. To test
-   onboarding itself, `db:seed -- --fresh` deletes the agent and the next sign-in recreates it.
+   onboarding and the terms page themselves, `db:seed -- --fresh` deletes the agent and the next
+   sign-in recreates it. To see the terms page alone as a returning user, move the terms forward:
+   `UPDATE app_config SET terms_updated_at = now()`; running `db:seed` again accepts them.
 
 2. Start the dapp with the same `DATABASE_URL` and type `http://localhost:3000/api/agent-sign-in`
    into the address bar (or `curl -c cookies.txt` it). The browser is signed in and redirected to
-   `/`. No parameters, no secret. A link clicked from another page (a chat, another localhost
+   `/` (or to `/terms` when the agent has no current acceptance). No parameters, no secret. A link clicked from another page (a chat, another localhost
    port) is refused with 404 by the `Sec-Fetch-Site` check.
 
 The route exists only under `next dev`; every deployed build compiles it to dead code. Anyone on

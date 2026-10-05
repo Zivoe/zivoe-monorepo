@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 
-import { getOnboardedStatus } from '@/server/data/auth';
+import { getAccessStatus } from '@/server/data/auth';
 import { captureServerEvent } from '@/server/utils/analytics';
 
-import { onboardedDestination, signInReturnUrl } from '@/lib/lighthouse';
+import { onboardedDestination, signInReturnUrl, withNext } from '@/lib/lighthouse';
 
 import OnboardingForm from './_components/onboarding-form';
 
@@ -15,10 +15,11 @@ export default async function OnboardingPage({
   searchParams: Promise<{ next?: string | Array<string> }>;
 }) {
   const next = signInReturnUrl((await searchParams).next);
-  const { isOnboarded, user } = await getOnboardedStatus();
+  const { requiredStep, user } = await getAccessStatus();
 
   if (!user) redirect('/sign-in');
-  if (isOnboarded) redirect(onboardedDestination(next));
+  if (requiredStep !== '/onboarding')
+    redirect(requiredStep ? withNext(requiredStep, next) : onboardedDestination(next));
 
   after(() =>
     captureServerEvent({
