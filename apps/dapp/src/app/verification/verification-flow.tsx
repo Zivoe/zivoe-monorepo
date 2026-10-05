@@ -2,28 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
-import { Link } from '@zivoe/ui/core/link';
-import { Separator } from '@zivoe/ui/core/separator';
-import { CloseIcon } from '@zivoe/ui/icons';
-
 import { type InvestorProfile } from '@/server/data/investor-profile';
 import { type KycStatusView } from '@/server/kyc/kyc-status';
 
-import { EMAILS } from '@/lib/emails';
-
-import { Auth } from '@/app/(auth)/_components/common';
-
 import { InvestorProfileStep } from './investor-profile-step';
 import KycFlow from './kyc-flow';
+import VerificationShell from './verification-shell';
 import { type VerificationStepId, VerificationSteps } from './verification-steps';
 
 /**
- * The `/verification` shell — the step rail and Exit — and the two steps it
- * moves between: the Investor Profile (the onboarding answers, confirmed and
- * saved) and then the Persona flow (`KycFlow`). A layout of its own,
- * deliberately without the dashboard's navigation: the ways out are Exit and
- * finishing.
+ * The `/verification` flow inside `VerificationShell`: the step rail and the
+ * two steps it moves between — the Investor Profile (the onboarding answers,
+ * confirmed and saved) and then the Persona flow (`KycFlow`). A layout of its
+ * own, deliberately without the dashboard's navigation: the ways out are Exit
+ * and finishing.
  *
  * Which step shows is the record's call. The profile step exists for one
  * moment: before any inquiry, since what is saved there prefills the inquiry
@@ -65,75 +57,44 @@ export default function VerificationFlow({ view, profile }: { view: KycStatusVie
   }
 
   return (
-    <div className="flex min-h-dvh shrink-0 flex-col bg-surface-base lg:flex-row lg:gap-3 lg:p-4">
-      {/* The shell grows with its content; the rail stretches to the full page height. */}
-      <aside className="hidden shrink-0 flex-col rounded-xl bg-element-tertiary p-8 lg:flex lg:w-80 xl:w-96 xl:p-10">
-        <ZivoeLogo aria-hidden="true" className="h-8 w-auto self-start" />
-
-        <nav className="mt-14">
+    <VerificationShell
+      rail={
+        <nav>
           <VerificationSteps current={step} done={done} orientation="vertical" />
         </nav>
+      }
+      mobileRail={
+        <nav>
+          <VerificationSteps current={step} done={done} orientation="horizontal" />
+        </nav>
+      }
+    >
+      <div
+        key={nav.count}
+        ref={contentRef}
+        tabIndex={-1}
+        className="flex w-full max-w-2xl flex-1 flex-col outline-none"
+      >
+        {/* Spacers, as in the auth container: centred in a tall viewport, scrolling in a short one. */}
+        <div className="min-h-11 flex-1" />
 
-        <p className="mt-auto text-small text-secondary">
-          For questions, email{' '}
-          <Link href={`mailto:${EMAILS.INQUIRE}`} variant="link-neutral-dark" size="s">
-            {EMAILS.INQUIRE}
-          </Link>
-        </p>
-      </aside>
-
-      <div className="flex flex-1 flex-col">
-        <header className="flex min-h-25 items-center justify-between px-6 lg:min-h-20 lg:px-10">
-          <ZivoeLogo aria-hidden="true" className="w-[5.3rem] lg:hidden" />
-
-          <div className="ml-auto flex items-center gap-1">
-            <Link variant="ghost-light" size="m" href="/">
-              Exit
-              <CloseIcon aria-hidden="true" />
-            </Link>
-          </div>
-        </header>
-
-        <div className="lg:hidden">
-          <Separator />
-          <nav className="px-6 pt-6">
-            <VerificationSteps current={step} done={done} orientation="horizontal" />
-          </nav>
+        <div className="flex w-full animate-in flex-col gap-11 duration-300 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
+          {step === 'profile' ? (
+            <InvestorProfileStep
+              profile={savedProfile}
+              view={view}
+              onSaved={(saved) => {
+                setSavedProfile(saved);
+                go('identity');
+              }}
+            />
+          ) : (
+            <KycFlow view={view} onBack={canEditProfile ? () => go('profile') : undefined} />
+          )}
         </div>
 
-        <main className="flex flex-1 flex-col items-center px-6">
-          <div
-            key={nav.count}
-            ref={contentRef}
-            tabIndex={-1}
-            className="flex w-full max-w-2xl flex-1 flex-col outline-none"
-          >
-            {/* Spacers, as in the auth container: centred in a tall viewport, scrolling in a short one. */}
-            <div className="min-h-11 flex-1" />
-
-            <div className="flex w-full animate-in flex-col gap-11 duration-300 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
-              {step === 'profile' ? (
-                <InvestorProfileStep
-                  profile={savedProfile}
-                  view={view}
-                  onSaved={(saved) => {
-                    setSavedProfile(saved);
-                    go('identity');
-                  }}
-                />
-              ) : (
-                <KycFlow view={view} onBack={canEditProfile ? () => go('profile') : undefined} />
-              )}
-            </div>
-
-            <div className="min-h-6 flex-1" />
-          </div>
-
-          <div className="lg:hidden">
-            <Auth.HelpFooter />
-          </div>
-        </main>
+        <div className="min-h-6 flex-1" />
       </div>
-    </div>
+    </VerificationShell>
   );
 }
