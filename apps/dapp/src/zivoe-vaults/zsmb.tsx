@@ -9,7 +9,7 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVaultFor<'zsmb'> = {
   Logo: ZSmbLogo,
   category: 'Small Business Financing',
   status: 'Open',
-  cardArtworkSrc: '/zivoe-vault-zsmb-card.svg',
+  CardArtwork: ZSmbCardArtwork,
   issuer: 'Zivoe',
   shareClass: { key: 'zsmb' },
   shareTokenDescription: 'Zivoe SMB Credit',
@@ -29,3 +29,20 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVaultFor<'zsmb'> = {
 
   documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
 };
+
+/**
+ * Inline rather than a `/public` file so the banner paints with the HTML — a
+ * fetched image left the card blank on slow networks until it arrived.
+ * `slice` crops to fill the banner, like `object-cover`.
+ */
+function ZSmbCardArtwork({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 90" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden className={className}>
+      <rect width="200" height="90" fill="#D4EAFF" />
+      <path d="M141 16L152.258 22.5V35.5L141 42L129.742 35.5V22.5L141 16Z" fill="#FCC62D" />
+      <ellipse cx="55" cy="107" rx="115" ry="55" fill="#FFB887" />
+      <ellipse cx="210" cy="118" rx="130" ry="60" fill="#F9A568" />
+      <ellipse cx="100" cy="118" rx="120" ry="50" fill="#F08F48" />
+    </svg>
+  );
+}

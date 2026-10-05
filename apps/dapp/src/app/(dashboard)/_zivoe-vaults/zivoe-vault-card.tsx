@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
@@ -30,15 +28,7 @@ export default function ZivoeVaultCard({
         className="absolute inset-0 z-10 rounded-2xl focus-visible:ring-2 focus-visible:ring-default focus-visible:outline-hidden focus-visible:ring-inset"
       />
 
-      <div className="relative h-38">
-        <Image
-          fill
-          alt=""
-          src={zivoeVault.cardArtworkSrc}
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="object-cover"
-        />
-      </div>
+      <zivoeVault.CardArtwork className="h-38 w-full shrink-0" />
 
       <div className="flex flex-1 flex-col gap-6 p-6">
         <ZivoeVaultIdentity zivoeVault={zivoeVault} trailing={<ZivoeVaultStatusBadge status={zivoeVault.status} />} />
