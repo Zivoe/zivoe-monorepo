@@ -8,10 +8,10 @@ import { GET } from './route';
 
 const mocks = vi.hoisted(() => {
   const env: { LIGHTHOUSE_PASS_SECRET?: string } = {};
-  return { env, getUser: vi.fn(), isUserOnboarded: vi.fn() };
+  return { env, getUser: vi.fn(), getRequiredStep: vi.fn() };
 });
 vi.mock('@/env', () => ({ env: mocks.env }));
-vi.mock('@/server/data/auth', () => ({ getUser: mocks.getUser, isUserOnboarded: mocks.isUserOnboarded }));
+vi.mock('@/server/data/auth', () => ({ getUser: mocks.getUser, getRequiredStep: mocks.getRequiredStep }));
 
 const DAPP = 'http://localhost:3000';
 const PAGE = `${LIGHTHOUSE_URL}/liquidity`;
@@ -27,7 +27,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.env.LIGHTHOUSE_PASS_SECRET = 'lighthouse-pass-route-test-secret-32ch';
   mocks.getUser.mockResolvedValue({ user: { id: 'user-1' } });
-  mocks.isUserOnboarded.mockResolvedValue(true);
+  mocks.getRequiredStep.mockResolvedValue(null);
 });
 
 describe('GET /api/lighthouse/pass', () => {
@@ -48,17 +48,21 @@ describe('GET /api/lighthouse/pass', () => {
     expect((await visit('https://evil.example/liquidity')).headers.get('location')).toBe(`${LIGHTHOUSE_URL}/?pass=1`);
   });
 
-  it('sends a signed-out visitor to sign-in and a not-onboarded one to onboarding, both with `next` and no pass', async () => {
-    mocks.isUserOnboarded.mockResolvedValue(false);
+  it('sends a signed-out visitor to sign-in and one behind on the terms or onboarding to that step, all with `next` and no pass', async () => {
+    mocks.getRequiredStep.mockResolvedValue('/terms');
+    const behindOnTerms = await visit(PAGE);
+
+    mocks.getRequiredStep.mockResolvedValue('/onboarding');
     const notOnboarded = await visit(PAGE);
 
     mocks.getUser.mockResolvedValue({ user: undefined });
     const signedOut = await visit(PAGE);
 
+    expect(behindOnTerms.headers.get('location')).toBe(`${DAPP}/terms?next=${encodeURIComponent(PAGE)}`);
     expect(notOnboarded.headers.get('location')).toBe(`${DAPP}/onboarding?next=${encodeURIComponent(PAGE)}`);
     expect(signedOut.headers.get('location')).toBe(`${DAPP}/sign-in?next=${encodeURIComponent(PAGE)}`);
 
-    for (const response of [notOnboarded, signedOut]) {
+    for (const response of [behindOnTerms, notOnboarded, signedOut]) {
       expect(response.headers.get('set-cookie')).toBeNull();
       expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     }

@@ -6,7 +6,7 @@ import { LIGHTHOUSE_URL } from '@/lib/lighthouse';
 
 import { GET } from './route';
 
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), isUserOnboarded: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), getRequiredStep: vi.fn() }));
 vi.mock('@/server/data/auth', () => mocks);
 
 const DAPP = 'http://localhost:3000';
@@ -22,7 +22,7 @@ const destination = async (next?: string) => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getUser.mockResolvedValue({ user: { id: 'user-1' } });
-  mocks.isUserOnboarded.mockResolvedValue(true);
+  mocks.getRequiredStep.mockResolvedValue(null);
 });
 
 describe('GET /api/auth/post-signin', () => {
@@ -36,11 +36,17 @@ describe('GET /api/auth/post-signin', () => {
   });
 
   it('keeps the Lighthouse page through onboarding for a user who has not onboarded, and through sign-in', async () => {
-    mocks.isUserOnboarded.mockResolvedValue(false);
+    mocks.getRequiredStep.mockResolvedValue('/onboarding');
     expect(await destination()).toBe(`${DAPP}/onboarding`);
     expect(await destination(PAGE)).toBe(`${DAPP}/onboarding?next=${encodeURIComponent(PAGE)}`);
 
     mocks.getUser.mockResolvedValue({ user: undefined });
     expect(await destination(PAGE)).toBe(`${DAPP}/sign-in?next=${encodeURIComponent(PAGE)}`);
+  });
+
+  it('sends a user behind on the terms to the terms, keeping the Lighthouse page', async () => {
+    mocks.getRequiredStep.mockResolvedValue('/terms');
+    expect(await destination()).toBe(`${DAPP}/terms`);
+    expect(await destination(PAGE)).toBe(`${DAPP}/terms?next=${encodeURIComponent(PAGE)}`);
   });
 });

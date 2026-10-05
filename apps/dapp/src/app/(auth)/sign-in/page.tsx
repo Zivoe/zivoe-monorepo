@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { getOnboardedStatus, getUser } from '@/server/data/auth';
+import { getAccessStatus, getUser } from '@/server/data/auth';
 
 import { onboardedDestination, signInReturnUrl, withNext } from '@/lib/lighthouse';
 
@@ -15,8 +15,8 @@ export default async function SignInPage({
   const { user } = await getUser();
 
   if (user) {
-    const { isOnboarded } = await getOnboardedStatus();
-    redirect(isOnboarded ? onboardedDestination(next) : withNext('/onboarding', next));
+    const { requiredStep } = await getAccessStatus();
+    redirect(requiredStep ? withNext(requiredStep, next) : onboardedDestination(next));
   }
 
   return (

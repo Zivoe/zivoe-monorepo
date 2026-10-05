@@ -34,12 +34,23 @@ Set `DATABASE_URL` in `packages/database/.env` first (see `.env.example`).
 pnpm --filter @zivoe/database db:generate  # Generate a migration from schema changes
 pnpm --filter @zivoe/database db:migrate   # Apply pending migrations
 pnpm --filter @zivoe/database db:push      # Push schema directly (dev only; see note below)
-pnpm --filter @zivoe/database db:seed      # Create the onboarded agent account (--fresh deletes it)
+pnpm --filter @zivoe/database db:seed      # Create the agent account, terms accepted and onboarded (--fresh deletes it)
 pnpm --filter @zivoe/database db:studio    # Open Drizzle Studio
 
 pnpm --filter @zivoe/database db:up        # Start the local Docker Postgres
 pnpm --filter @zivoe/database db:down      # Stop it (data is kept)
 pnpm --filter @zivoe/database db:reset     # Drop the volume, recreate, re-migrate
+```
+
+## Terms of use
+
+`app_config` holds one row for the whole app; its `terms_updated_at` is the version of the terms
+users must have accepted. Each acceptance on the dapp's `/terms` page is a row in
+`terms_acceptance`. Publish the new terms first, then move the timestamp forward: every user is
+sent back to `/terms` on their next page load, and an acceptance made after it counts as current.
+
+```sql
+UPDATE app_config SET terms_updated_at = now(), updated_at = now();
 ```
 
 `db:push` creates types and tables without recording a migration, so a later `db:migrate` on the
