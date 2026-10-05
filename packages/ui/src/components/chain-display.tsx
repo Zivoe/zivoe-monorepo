@@ -2,6 +2,7 @@ import { type ComponentType } from 'react';
 
 import {
   ArbitrumIcon,
+  ArcIcon,
   AvalancheIcon,
   BaseIcon,
   BnbIcon,
@@ -36,5 +37,6 @@ export const CHAIN_DISPLAY = {
   xlayer: { label: 'X Layer', Icon: XLayerIcon },
   bnb: { label: 'BNB Chain', Icon: BnbIcon },
   monad: { label: 'Monad', Icon: MonadIcon },
+  arc: { label: 'Arc', Icon: ArcIcon },
   'base-sepolia': { label: 'Base', Icon: BaseIcon }
 } satisfies Record<string, ChainDisplay>;

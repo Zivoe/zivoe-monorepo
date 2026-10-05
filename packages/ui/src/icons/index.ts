@@ -42,6 +42,7 @@ export * from './hyperliquid';
 export * from './xlayer';
 export * from './bnb';
 export * from './monad';
+export * from './arc';
 export * from './check-circle';
 export * from './close-circle';
 export * from './warning';
