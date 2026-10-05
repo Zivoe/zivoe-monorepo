@@ -1,21 +1,21 @@
 import { NextLink } from '@zivoe/ui/core/link';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
-import { formatNav } from '@/lib/utils';
-
 import TargetApyDisclosure from '@/components/target-apy-disclosure';
 import { AcceptedChainIcons, AcceptedStablecoinIcons } from '@/components/zivoe-vault-icons';
 import ZivoeVaultIdentity, { ZivoeVaultStatusBadge } from '@/components/zivoe-vault-identity';
 
 import { type ZivoeVault, zivoeVaultPath } from '@/zivoe-vaults';
 
+import NavValue from './nav-value';
+
 export default function ZivoeVaultCard({
   zivoeVault,
   nav
 }: {
   zivoeVault: ZivoeVault;
-  /** Share-class NAV in USD; null when the indexer read failed. */
-  nav: number | null;
+  /** Share-class NAV in USD; null when the indexer read failed, 'loading' while the page's data is on its way. */
+  nav: number | null | 'loading';
 }) {
   // Both shadows are ones the rest of the app already uses, and the card rests
   // on the lighter of the two — hover lifts it a step rather than conjuring a
@@ -40,7 +40,14 @@ export default function ZivoeVaultCard({
             value={`${zivoeVault.targetApyPercent}%`}
             help={<TargetApyDisclosure triggerClassName="relative z-20" />}
           />
-          <Term label="NAV" value={nav !== null ? `$${formatNav(nav)}` : '—'} />
+          <Term
+            label="NAV"
+            value={
+              <p className="text-regular text-primary">
+                <NavValue nav={nav} skeletonClassName="w-16" />
+              </p>
+            }
+          />
           <Term
             label="Accepted stablecoins"
             value={<AcceptedStablecoinIcons zivoeVault={zivoeVault} surface="elevated" />}
