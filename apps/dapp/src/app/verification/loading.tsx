@@ -8,11 +8,14 @@ import { VERIFICATION_STEPS } from './verification-steps';
 
 /**
  * `VerificationFlow` while the page's data is on its way, in the same shell.
- * Which step is current or done is the record's call, so the rail pulses.
+ * Which step the investor is on is the record's call, so the rail pulses
+ * without naming a step and the content is only what both steps open with:
+ * the step indicator, the title and the description.
  *
- * The content stands in for the identity step, the one every investor with an
- * inquiry lands on: its description's line count, a status card, and below
- * `lg` the row with the label on the second step.
+ * The content is centred, so where that header lands depends on what follows
+ * it, and no placement suits both steps. It sits where the identity step
+ * puts it, the step every investor with an inquiry returns to; on the profile
+ * step the header moves up as the form arrives.
  */
 export default function VerificationLoading() {
   return (
@@ -38,9 +41,6 @@ export default function VerificationLoading() {
           <Skeleton className="size-7 shrink-0 rounded-md" />
           <span className="h-px w-4 bg-tertiary-600" />
           <Skeleton className="size-7 shrink-0 rounded-md" />
-          <span className="text-small">
-            <TextSkeleton className="w-28" />
-          </span>
         </div>
       }
     >
@@ -69,7 +69,8 @@ export default function VerificationLoading() {
             </div>
           </div>
 
-          <Skeleton className="h-14 w-full rounded-xl" />
+          {/* The room the identity step's status card takes, left empty. */}
+          <div className="h-14" />
         </div>
 
         <div className="min-h-6 flex-1" />
