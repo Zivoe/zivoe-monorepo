@@ -6,8 +6,9 @@ import * as Sentry from '@sentry/nextjs';
 import { Ratelimit } from '@upstash/ratelimit';
 import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
-import { captcha, emailOTP } from 'better-auth/plugins';
+import { captcha, emailOTP, oAuthProxy } from 'better-auth/plugins';
 
 import { AGENT_ACCOUNT } from '@zivoe/database/agent';
 import * as schema from '@zivoe/database/schema';
@@ -15,7 +16,7 @@ import * as schema from '@zivoe/database/schema';
 import { WITH_TURNSTILE } from '@/types/constants';
 
 import { captureServerEvent } from '@/server/utils/analytics';
-import { BASE_URL } from '@/server/utils/base-url';
+import { BASE_URL, ORIGINS, PRODUCTION_ORIGIN } from '@/server/utils/base-url';
 import { subscribeToBeehiiv } from '@/server/utils/beehiiv';
 import { sendOTPEmail } from '@/server/utils/send-email';
 
@@ -43,6 +44,14 @@ type DappAuth = {
   };
 };
 
+/**
+ * The endpoints that turn a profile production sealed into a session. Only a preview may answer
+ * them: anywhere else the secret every preview holds would sign anyone in. The deprecated one is
+ * never answered; 1.7 hands sign-ins to the first, and a stray call to the second has no good reason.
+ */
+const PROXY_COMPLETION_PATH = '/callback/:id/oauth-proxy';
+const DEPRECATED_PROXY_COMPLETION_PATH = '/oauth-proxy-callback';
+
 /** One Upstash limiter per rule, made on first use: better-auth names the rule with every call. */
 const limiters = new Map<string, Ratelimit>();
 const limiterFor = ({ window, max }: { window: number; max: number }) => {
@@ -65,9 +74,16 @@ export const authOptions = {
   baseURL: BASE_URL,
   basePath: '/api/auth',
 
+  // The OAuth state lives in an encrypted cookie on the host that started the sign-in, so only that
+  // browser can finish it. With the database-backed default the proxy's completion skips the state
+  // cookie, and anyone handed a preview's completion URL would be signed in as whoever started it.
+  account: { storeStateStrategy: 'cookie' },
+
   onAPIError: {
     errorURL: '/sign-in'
   },
+
+  disabledPaths: [DEPRECATED_PROXY_COMPLETION_PATH],
 
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -135,6 +151,14 @@ export const authOptions = {
       }
     }),
 
+    // Google and X accept exact redirect URIs only, and a Vercel preview has a new host every time:
+    // a preview asks them to call production back, and production hands the sealed profile to the
+    // preview, which makes the user and session in its own database. Shared by every deployment on
+    // Vercel; local dev registers its own redirect URI and runs without it.
+    ...(env.VERCEL_ENV !== 'development' && env.OAUTH_PROXY_SECRET
+      ? [oAuthProxy({ productionURL: PRODUCTION_ORIGIN, secret: env.OAUTH_PROXY_SECRET })]
+      : []),
+
     nextCookies()
   ],
 
@@ -150,31 +174,7 @@ export const authOptions = {
     }
   },
 
-  trustedOrigins: () => {
-    const origins: Array<string> = [];
-
-    if (env.APP_URL) {
-      origins.push(env.APP_URL);
-    }
-
-    if (env.VERCEL_URL) {
-      origins.push(`https://${env.VERCEL_URL}`);
-    }
-
-    if (env.VERCEL_BRANCH_URL) {
-      origins.push(`https://${env.VERCEL_BRANCH_URL}`);
-    }
-
-    if (env.VERCEL_PROJECT_PRODUCTION_URL) {
-      origins.push(`https://${env.VERCEL_PROJECT_PRODUCTION_URL}`);
-    }
-
-    if (env.VERCEL_ENV === 'development') {
-      origins.push('http://localhost:3000');
-    }
-
-    return origins;
-  },
+  trustedOrigins: ORIGINS,
 
   advanced: {
     ipAddress: {
@@ -184,6 +184,21 @@ export const authOptions = {
     database: {
       generateId: false // Use PostgreSQL's gen_random_uuid()
     }
+  },
+
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === PROXY_COMPLETION_PATH && env.VERCEL_ENV !== 'preview') throw new APIError('NOT_FOUND');
+
+      // X caps `state` at 500 characters and the sealed package the proxy sends through it is about
+      // four times that, so X stays production-and-local; the page shows the message as a toast.
+      if (ctx.path === '/sign-in/social' && ctx.body?.provider === 'twitter' && env.VERCEL_ENV === 'preview') {
+        throw new APIError('BAD_REQUEST', {
+          code: 'x_unavailable_on_previews',
+          message: 'X sign-in is not available on preview deployments. Sign in with a code sent to your email.'
+        });
+      }
+    })
   },
 
   databaseHooks: {

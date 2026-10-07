@@ -39,7 +39,12 @@ export const env = createEnv({
     AGENT_SIGN_IN_SECRET: z.string().min(32).optional(),
     // Signs the Lighthouse pass cookie; the same value is set in the Lighthouse project (see lib/lighthouse.ts)
     LIGHTHOUSE_PASS_SECRET: z.string().min(32).optional(),
+    // Production only: pins the origin links and jobs name (server/utils/base-url.ts). Ignored elsewhere.
     APP_URL: z.string().url().optional(),
+    // Production and Preview, the same value in both: seals the Google/X profile production hands a
+    // preview (server/auth.ts). Whoever holds it can sign in to a preview as anyone, so it is as
+    // sensitive as BETTER_AUTH_SECRET. Never set locally.
+    OAUTH_PROXY_SECRET: z.string().min(32).optional(),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
     TWITTER_CLIENT_ID: z.string(),
@@ -60,8 +65,7 @@ export const env = createEnv({
     VERCEL: z.enum(['1', '0']).default('0'),
     VERCEL_ENV: z.enum(['production', 'preview', 'development']).default('development'),
     VERCEL_URL: z.string().optional(),
-    VERCEL_BRANCH_URL: z.string().optional(),
-    VERCEL_PROJECT_PRODUCTION_URL: z.string().optional()
+    VERCEL_BRANCH_URL: z.string().optional()
   },
 
   client: {
@@ -116,6 +120,7 @@ export const env = createEnv({
     AGENT_SIGN_IN_SECRET: process.env.AGENT_SIGN_IN_SECRET,
     LIGHTHOUSE_PASS_SECRET: process.env.LIGHTHOUSE_PASS_SECRET,
     APP_URL: process.env.APP_URL,
+    OAUTH_PROXY_SECRET: process.env.OAUTH_PROXY_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
@@ -137,8 +142,7 @@ export const env = createEnv({
     VERCEL: process.env.VERCEL ?? '0',
     VERCEL_ENV: process.env.VERCEL_ENV ?? 'development',
     VERCEL_URL: process.env.VERCEL_URL,
-    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
-    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL
+    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL
   },
 
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
