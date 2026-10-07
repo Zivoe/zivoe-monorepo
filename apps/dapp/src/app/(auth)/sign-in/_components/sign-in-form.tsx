@@ -32,6 +32,7 @@ import { env } from '@/env';
 import { Auth } from '../../_components/common';
 import { useOtpResendRateLimit } from '../_hooks/useOtpResendRateLimit';
 import { useTurnstile } from '../_hooks/useTurnstile';
+import { signInRefusal } from './sign-in-refusal';
 
 type Step = 'EMAIL' | 'OTP';
 
@@ -54,10 +55,7 @@ export default function SignInForm({ next }: { next?: string }) {
     if (error) {
       // Small delay to ensure toast provider is mounted after hydration
       setTimeout(() => {
-        toast({
-          title: 'Sign In Failed',
-          type: 'error'
-        });
+        toast({ ...signInRefusal(error), type: 'error' });
 
         window.history.replaceState({}, '', withNext('/sign-in', next));
       }, 0);
@@ -140,24 +138,20 @@ function EmailStepForm({
     if (provider === 'google') setIsGoogleLoading(true);
     else setIsTwitterLoading(true);
 
-    const { err } = await handlePromise(
-      // A new user can only need onboarding, so they skip the post-signin hop that decides it for returning users.
-      authClient.signIn.social({
-        provider,
-        callbackURL: withNext('/api/auth/post-signin', next),
-        newUserCallbackURL: withNext('/onboarding', next),
-        errorCallbackURL: withNext('/sign-in', next)
-      })
-    );
+    // A new user can only need onboarding, so they skip the post-signin hop that decides it for returning users.
+    // The error URL is absolute: on a preview the provider calls production back, and a refusal there
+    // (cancelled consent, a bad code) must come back to this host, not production's sign-in page.
+    const { error } = await authClient.signIn.social({
+      provider,
+      callbackURL: withNext('/api/auth/post-signin', next),
+      newUserCallbackURL: withNext('/onboarding', next),
+      errorCallbackURL: `${window.location.origin}${withNext('/sign-in', next)}`
+    });
 
-    if (err) {
-      toast({
-        title: 'Sign In Failed',
-        description: err instanceof Error ? err.message : undefined,
-        type: 'error'
-      });
-
-      Sentry.captureException(err, { tags: { source: 'SERVER', flow: `${provider}-signin` } });
+    // Refused before the provider was asked (X on a preview, an untrusted origin): the message is the copy.
+    if (error) {
+      toast({ title: 'Sign In Failed', description: error.message, type: 'error' });
+      Sentry.captureException(error, { tags: { source: 'SERVER', flow: `${provider}-signin` } });
     }
 
     if (provider === 'google') setIsGoogleLoading(false);

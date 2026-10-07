@@ -23,7 +23,7 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
   },
   "dependencies": {
-    "drizzle-orm": "^0.41.0",
+    "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
@@ -33,7 +33,7 @@
     "@zivoe/eslint-config": "workspace:*",
     "@zivoe/prettier-config": "workspace:*",
     "@zivoe/ts-config": "workspace:*",
-    "drizzle-kit": "^0.30.6",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.21.0",
     "prettier": "^3.5.2",
     "tsx": "^4.19.0",

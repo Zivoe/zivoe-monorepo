@@ -105,10 +105,10 @@ export function isAgentTokenShaped(token: string) {
 
 /**
  * A redirect target with its origin dropped. better-auth resolves redirects against
- * BASE_URL, which may name a different origin than the one the agent called (a pulled
- * APP_URL locally, VERCEL_URL when the agent used the branch alias); the session cookie is
- * host-only for the serving host, so following an absolute redirect off-origin would
- * strand the agent signed out. Path and query survive, so `?error=` reaches the sign-in page.
+ * BASE_URL, which may name a different origin than the one the agent called (VERCEL_URL
+ * when the agent used the branch alias); the session cookie is host-only for the serving
+ * host, so following an absolute redirect off-origin would strand the agent signed out.
+ * Path and query survive, so `?error=` reaches the sign-in page.
  */
 export function toOriginRelative(location: string, requestUrl: string) {
   const target = new URL(location, requestUrl);

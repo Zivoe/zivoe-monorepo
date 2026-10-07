@@ -1,6 +1,10 @@
 {
   "extends": "@zivoe/ts-config/nextjs.json",
   "compilerOptions": {
+    // The app never emits: the base config's declaration emit only makes tsc demand that
+    // better-auth's inferred types be nameable from here (they reach into its private zod 4).
+    "declaration": false,
+    "declarationMap": false,
     "plugins": [
       { "name": "next" },
       {

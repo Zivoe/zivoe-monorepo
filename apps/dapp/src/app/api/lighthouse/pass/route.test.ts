@@ -7,7 +7,8 @@ import { LIGHTHOUSE_URL } from '@/lib/lighthouse';
 import { GET } from './route';
 
 const mocks = vi.hoisted(() => {
-  const env: { LIGHTHOUSE_PASS_SECRET?: string } = {};
+  // base-url.ts picks the dapp's origins by Vercel environment, so the mock names one.
+  const env: { LIGHTHOUSE_PASS_SECRET?: string; VERCEL_ENV: 'development' } = { VERCEL_ENV: 'development' };
   return { env, getUser: vi.fn(), isUserOnboarded: vi.fn() };
 });
 vi.mock('@/env', () => ({ env: mocks.env }));
