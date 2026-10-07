@@ -18,6 +18,7 @@ import { WITH_TURNSTILE } from '@/types/constants';
 import { captureServerEvent } from '@/server/utils/analytics';
 import { BASE_URL, ORIGINS, PRODUCTION_ORIGIN } from '@/server/utils/base-url';
 import { subscribeToBeehiiv } from '@/server/utils/beehiiv';
+import { googleVouchesFor } from '@/server/utils/google-email';
 import { sendOTPEmail } from '@/server/utils/send-email';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
@@ -44,6 +45,10 @@ type DappAuth = {
   };
 };
 
+/** The social sign-in behind a better-auth endpoint path, or undefined for the rest. */
+const socialProviderOf = (ctx: { path?: string; params?: Record<string, string | undefined> } | null | undefined) =>
+  ctx?.path?.startsWith('/callback/') ? ctx.params?.id : undefined;
+
 /**
  * The endpoints that turn a profile production sealed into a session. Only a preview may answer
  * them: anywhere else the secret every preview holds would sign anyone in. The deprecated one is
@@ -62,6 +67,18 @@ const limiterFor = ({ window, max }: { window: number; max: number }) => {
   limiters.set(id, limiter);
   return limiter;
 };
+
+/** Google's tokens are not kept: nothing reads them, and a leaked row would otherwise carry them. */
+const withoutProviderTokens = async <Account extends object>(account: Account) => ({
+  data: {
+    ...account,
+    accessToken: null,
+    refreshToken: null,
+    idToken: null,
+    accessTokenExpiresAt: null,
+    refreshTokenExpiresAt: null
+  }
+});
 
 /**
  * The dapp's better-auth configuration, exported apart from the instance so the agent
@@ -83,7 +100,9 @@ export const authOptions = {
     errorURL: '/sign-in'
   },
 
-  disabledPaths: [DEPRECATED_PROXY_COMPLETION_PATH],
+  // Nothing of ours calls these; a live endpoint that takes a user-supplied name or links a second
+  // provider is only a surface to attack. The proxy's deprecated completion endpoint goes with them.
+  disabledPaths: ['/update-user', '/link-social', '/unlink-account', DEPRECATED_PROXY_COMPLETION_PATH],
 
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -166,11 +185,23 @@ export const authOptions = {
     google: {
       prompt: 'select_account',
       clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      // A token handed over by a client is not a way in; sign-in starts with a redirect or not at all.
+      disableIdTokenSignIn: true,
+      // Google's word on an address is good only where Google is its mailbox (`googleVouchesFor`).
+      // Without it a sign-in neither joins an existing user (`account_not_linked`) nor creates one
+      // (`user.create.before`). A Google identity linked before this rule keeps signing in: the
+      // link, not the address, is what identifies it then.
+      mapProfileToUser: (profile) => ({ emailVerified: googleVouchesFor(profile) })
     },
     twitter: {
       clientId: env.TWITTER_CLIENT_ID,
-      clientSecret: env.TWITTER_CLIENT_SECRET
+      clientSecret: env.TWITTER_CLIENT_SECRET,
+      disableIdTokenSignIn: true,
+      // X confirmed its users' addresses once, at sign-up, which is the same stale word as Google's
+      // on a non-Gmail address: never enough to join an existing user, whose code proved the
+      // mailbox now. X users sign up as their own, unverified user instead, as they always did.
+      mapProfileToUser: () => ({ emailVerified: false })
     }
   },
 
@@ -198,10 +229,25 @@ export const authOptions = {
           message: 'X sign-in is not available on preview deployments. Sign in with a code sent to your email.'
         });
       }
+    }),
+
+    // The one place a sign-in is known to have succeeded: a session was just created. A first
+    // sign-in counts here too, next to the `auth:sign-up` from `user.create.after`.
+    after: createAuthMiddleware(async (ctx) => {
+      const user = ctx.context.newSession?.user;
+      if (!user) return;
+
+      const method = ctx.path === '/sign-in/email-otp' ? 'email_otp' : socialProviderOf(ctx);
+      if (!method) return;
+
+      after(() => captureServerEvent({ distinctId: user.id, event: 'auth:sign-in', properties: { method } }));
     })
   },
 
   databaseHooks: {
+    // Google's and X's tokens are not kept.
+    account: { create: { before: withoutProviderTokens }, update: { before: withoutProviderTokens } },
+
     session: {
       update: {
         // Agent sessions are minted with a one-hour expiry (app/api/agent-sign-in/mint.ts).
@@ -220,6 +266,29 @@ export const authOptions = {
 
     user: {
       create: {
+        // Thrown rather than refused with `false`, which better-auth only turns into an error by
+        // accident (a null user dereferenced and caught); the code lands on the sign-in page as copy.
+        before: async (user, ctx) => {
+          const provider = socialProviderOf(ctx);
+
+          // A Google sign-in whose address Google cannot vouch for (`mapProfileToUser`) creates no
+          // user: the row would wait, Google identity attached, for the address's owner to claim it
+          // by code. X signs its users up unverified by design, so only Google is refused here.
+          if (provider === 'google' && !user.emailVerified) {
+            throw new APIError('FORBIDDEN', {
+              code: 'email_not_verified',
+              message: 'Google cannot vouch for this email'
+            });
+          }
+
+          // 1.7 gives an X user who shares no email a placeholder address (`<id>@twitter.placeholder.invalid`)
+          // where 1.4 refused the sign-in. The dapp needs a real mailbox (codes, notices, KYC), so the
+          // refusal stays.
+          if (provider === 'twitter' && user.email.endsWith('.placeholder.invalid')) {
+            throw new APIError('FORBIDDEN', { code: 'email_not_found', message: 'X shared no email address' });
+          }
+        },
+
         after: async (user) => {
           after(async () => {
             const flows = ['sign-up-subscribe-newsletter', 'sign-up-schedule-reminder', 'sign-up-posthog-capture'];

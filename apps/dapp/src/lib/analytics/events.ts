@@ -3,6 +3,7 @@ import { AppError } from '@/lib/utils';
 
 export type AnalyticsEvent =
   | 'auth:sign-up'
+  | 'auth:sign-in'
   | 'auth:otp_requested'
   | 'auth:otp_resent'
   | 'onboarding:completed'
