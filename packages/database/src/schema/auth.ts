@@ -52,6 +52,9 @@ export const account = pgTable(
     accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
     refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
     scope: text('scope'),
+    // Never written: the dapp has no password sign-in. better-auth 1.7 refuses to run on a schema
+    // that lacks a column of its core model, so it exists, nullable.
+    password: text('password'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull()
   },
@@ -61,8 +64,10 @@ export const account = pgTable(
 export const verification = pgTable(
   'verification',
   {
-    id: uuid('id')
-      .default(sql`gen_random_uuid()`)
+    // Text, not uuid: better-auth 1.7 writes its own deterministic id for the row that locks a user
+    // while an email-code sign-in clears an unverified account's links.
+    id: text('id')
+      .default(sql`gen_random_uuid()::text`)
       .primaryKey()
       .notNull(),
     identifier: text('identifier').notNull(),

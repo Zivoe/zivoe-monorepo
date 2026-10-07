@@ -3,6 +3,7 @@ import 'server-only';
 import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
+import { Ratelimit } from '@upstash/ratelimit';
 import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
@@ -42,6 +43,17 @@ type DappAuth = {
   };
 };
 
+/** One Upstash limiter per rule, made on first use: better-auth names the rule with every call. */
+const limiters = new Map<string, Ratelimit>();
+const limiterFor = ({ window, max }: { window: number; max: number }) => {
+  const id = `${window}:${max}`;
+  const limiter =
+    limiters.get(id) ??
+    new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(max, `${window} s`), prefix: 'better-auth' });
+  limiters.set(id, limiter);
+  return limiter;
+};
+
 /**
  * The dapp's better-auth configuration, exported apart from the instance so the agent
  * sign-in (app/api/agent-sign-in/mint.ts) can build a second instance
@@ -79,13 +91,13 @@ export const authOptions = {
       '/sign-in/social': { window: 60, max: 10 }
     },
     customStorage: {
-      get: async (key: string) => {
-        const data = await redis.get<{ key: string; count: number; lastRequest: number }>(key);
-        return data ?? undefined;
-      },
-      set: async (key: string, value: { key: string; count: number; lastRequest: number }) => {
-        // Store with 5 minute TTL (matching the longest rate limit window)
-        await redis.set(key, value, { ex: 300 });
+      consume: async (key, rule) => {
+        const { success, reason, reset } = await limiterFor(rule).limit(key);
+        // Upstash answers a check it could not finish in time as a success; a limit nobody counted
+        // is no limit, so it is refused like any other Redis failure (a 500, not a 429).
+        if (reason === 'timeout') throw new Error('Rate limit check timed out');
+
+        return { allowed: success, retryAfter: success ? null : Math.max(1, Math.ceil((reset - Date.now()) / 1000)) };
       }
     }
   },
