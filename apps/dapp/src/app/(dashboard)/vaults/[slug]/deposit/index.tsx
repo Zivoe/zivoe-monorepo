@@ -21,8 +21,8 @@ import { useRedemptionRequests } from './_hooks/use-redemption-requests';
 import { useTabNavigation } from './_hooks/useTabNavigation';
 import { type DepositPageTab, type DepositPageView, depositPageTabSchema, depositPageViewSchema } from './_utils';
 import { DepositFlow } from './deposit-flow';
-import RedeemFlow from './redeem-flow';
 import PendingFlow from './pending-flow';
+import RedeemFlow from './redeem-flow';
 
 export default function Deposit({ initialView }: { initialView: DepositPageView }) {
   return (
@@ -174,8 +174,9 @@ function EarnBox({
  * bar's Redeem button. Nothing while there are none.
  */
 function PendingCountBadge() {
-  const { count } = useRedemptionRequests();
-  if (count === 0) return null;
+  const { count, isPending } = useRedemptionRequests();
+  // Nothing while the list itself still holds its skeleton: a count over a silhouette reads as a glitch.
+  if (count === 0 || isPending) return null;
 
   // The digit is visual; assistive tech reads the sentence, joined onto the
   // host's own label ("Pending (3 requests pending)"). Below 360px the pill
