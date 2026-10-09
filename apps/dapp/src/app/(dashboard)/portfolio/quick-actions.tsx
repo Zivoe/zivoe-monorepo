@@ -34,7 +34,7 @@ export function QuickActions({ zivoeVault }: { zivoeVault: PortfolioVaultLink })
               <NextLink
                 href={href}
                 target={external ? '_blank' : undefined}
-                className="group flex h-full items-center gap-3 rounded-lg border border-default bg-surface-base p-3 transition-colors hover:bg-surface-elevated focus-visible:ring-2 focus-visible:ring-default focus-visible:outline-hidden"
+                className="group flex h-full items-center gap-3 rounded-lg border border-subtle bg-surface-base p-3 transition-colors hover:bg-surface-elevated focus-visible:ring-2 focus-visible:ring-default focus-visible:outline-hidden"
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-element-primary-gentle text-brand [&_svg]:size-4">
                   {icon}

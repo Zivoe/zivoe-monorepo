@@ -85,7 +85,8 @@ export function BalanceChart({
           <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
           {shareSymbol} balance
         </CardTitle>
-        <div role="group" aria-label="History range" className="flex gap-1">
+        {/* A segmented control: the chips sit in a neutral track, the chosen one lifted white. */}
+        <div role="group" aria-label="History range" className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
           {HISTORY_RANGES.map((candidate) => (
             <Button
               key={candidate}
@@ -95,7 +96,7 @@ export function BalanceChart({
               isDisabled={!available.includes(candidate)}
               onPress={() => setChosen(candidate)}
               className={cn(
-                'px-2.5 hover:bg-element-primary-gentle hover:text-primary',
+                'h-7 px-2.5 hover:bg-element-neutral-subtle hover:text-primary',
                 candidate === range && 'bg-surface-base text-primary shadow-xs hover:bg-surface-base'
               )}
             >
@@ -220,9 +221,9 @@ export function BalanceChartSkeleton({ shareSymbol }: { shareSymbol: string }) {
           <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
           {shareSymbol} balance
         </CardTitle>
-        <div className="flex gap-1">
+        <div className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
           {HISTORY_RANGES.map((range) => (
-            <Skeleton key={range} className="h-8 w-10 rounded-xs" />
+            <Skeleton key={range} className="h-7 w-10 rounded-xs" />
           ))}
         </div>
       </CardHeader>

@@ -52,7 +52,8 @@ export default function PortfolioView({
   }, [account.isPending]);
 
   return (
-    <div className="bg-surface-base">
+    // The soft canvas the cards lift off; the hero and the preview bar paint their own.
+    <div className="bg-surface-elevated">
       {previewWallets.length > 0 && (
         <PreviewWallets wallets={previewWallets} selected={previewAddress} onSelect={setPreviewAddress} />
       )}
