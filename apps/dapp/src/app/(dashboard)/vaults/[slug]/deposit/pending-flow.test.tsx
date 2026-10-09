@@ -5,6 +5,8 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { Provider as JotaiProvider } from 'jotai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SETTLE_WINDOW_MS } from '@/hooks/useSettleWindow';
+
 import { type RedemptionPosition, type TransactionIdentity } from '@/centrifuge';
 import type * as RedemptionStates from '@/centrifuge/redemption-states';
 import { identityOnChain } from '@/test/fixtures';
@@ -328,7 +330,7 @@ describe('PendingFlow', () => {
     expect(screen.getByText(/ready to claim/)).toBeTruthy();
   });
 
-  it('shows a skeleton until the first vault answers, then says so when nothing is in flight', () => {
+  it('shows a skeleton while every vault is still reading, then says so when nothing is in flight', () => {
     mocks.isPending = true;
     const loading = renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
@@ -340,12 +342,21 @@ describe('PendingFlow', () => {
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
   });
 
-  // One dead RPC must not hide the other chains' answers behind the skeleton
-  // for a minute of retries — nor pass an empty tab off as a settled answer.
-  it('renders what has landed while a chain is still on its first read, and names that chain', () => {
+  // A slow chain keeps the skeleton up for the settle window — one answer, not a
+  // list that grows chain by chain — then the tab shows what has landed and
+  // names the straggler, so an empty tab is never passed off as settled. (A
+  // dead RPC fails, which ends the hold at once.)
+  it('holds the skeleton for the settle window while a chain is still on its first read, then names that chain', () => {
+    vi.useFakeTimers();
     setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 1_000000n });
     mocks.pending = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
     const withPosition = renderRequests([SEPOLIA_USDC, BASE_USDC]);
+    expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/ready to claim/)).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_WINDOW_MS);
+    });
     expect(screen.getByText(/ready to claim/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
     expect(screen.queryByText('Loading')).toBeNull();
@@ -353,8 +364,12 @@ describe('PendingFlow', () => {
 
     mocks.positions = {};
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_WINDOW_MS);
+    });
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
+    vi.useRealTimers();
   });
 
   // Every vault resolves through the indexer, so an outage there fails all of

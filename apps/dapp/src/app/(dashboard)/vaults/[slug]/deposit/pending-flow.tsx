@@ -15,7 +15,7 @@ import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 import ConnectedAccount from '@/components/connected-account';
 
 import { useInvestorAccess } from '@/centrifuge';
-import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
+import { CHAIN_DISPLAY, chainNames } from '@/zivoe-vaults/chain-display';
 
 import { useChainSwitch, useSelectedChain } from './_components/chain-switch';
 import { RedemptionPositionStrips, deriveRedeemAccessGates } from './_components/redemption-position-strips';
@@ -41,8 +41,9 @@ export default function PendingFlow() {
       </div>
     );
 
-  // A skeleton until the wallet SDK has settled and the first vault has
-  // answered; the chains still reading are named below whatever has landed.
+  // A skeleton until the wallet SDK has settled and every vault has answered,
+  // or the settle window has run out; past it, whatever has landed shows with
+  // the chains still reading named below.
   if (!account.address || isPending) return <RequestsSkeleton />;
 
   // Every read failing at once is one outage (the indexer, which every vault
@@ -94,7 +95,7 @@ function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; 
   if (chains.length === 0) return null;
   return (
     <p aria-live="polite" className={cn('text-secondary', className)}>
-      Still checking {chains.map((chain) => CHAIN_DISPLAY[chain].label).join(', ')}…
+      Still checking {chainNames(chains)}…
     </p>
   );
 }
