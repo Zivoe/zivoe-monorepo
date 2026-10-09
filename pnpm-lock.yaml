@@ -9,6 +9,11 @@ overrides:
   import-in-the-middle: ^3.0.1
   require-in-the-middle: ^8.0.1
 
+patchedDependencies:
+  '@centrifuge/sdk@2.6.0':
+    hash: a9a9decb1d3b2490fdcb2b50bbbe35c3fea67fd708ec043868652156b20cfd2f
+    path: patches/@centrifuge__sdk@2.6.0.patch
+
 importers:
 
   .:
@@ -133,7 +138,7 @@ importers:
     dependencies:
       '@centrifuge/sdk':
         specifier: 2.6.0
-        version: 2.6.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        version: 2.6.0(patch_hash=a9a9decb1d3b2490fdcb2b50bbbe35c3fea67fd708ec043868652156b20cfd2f)(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@dynamic-labs/ethereum':
         specifier: 5.9.3
         version: 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(@types/react@19.3.0)(@upstash/redis@1.37.0)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.34))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)
@@ -581,7 +586,7 @@ importers:
     devDependencies:
       '@centrifuge/sdk':
         specifier: 2.6.0
-        version: 2.6.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        version: 2.6.0(patch_hash=a9a9decb1d3b2490fdcb2b50bbbe35c3fea67fd708ec043868652156b20cfd2f)(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
         version: 5.2.2(prettier@3.8.3)
@@ -12058,7 +12063,7 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@centrifuge/sdk@2.6.0(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@centrifuge/sdk@2.6.0(patch_hash=a9a9decb1d3b2490fdcb2b50bbbe35c3fea67fd708ec043868652156b20cfd2f)(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     dependencies:
       '@openzeppelin/merkle-tree': 1.0.8
       decimal.js-light: 2.5.1
@@ -16534,7 +16539,7 @@ snapshots:
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 9.6.1
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
 
   '@types/eslint@9.6.1':
     dependencies:
@@ -22337,7 +22342,7 @@ snapshots:
   webpack@5.106.2:
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       '@types/json-schema': 7.0.15
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
