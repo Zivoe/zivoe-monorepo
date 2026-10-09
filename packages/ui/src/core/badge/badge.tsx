@@ -12,6 +12,7 @@ export const badgeVariants = tv({
       primary: 'bg-element-primary-gentle text-brand',
       secondary: 'bg-element-secondary-light text-brand-secondary',
       neutral: 'bg-element-neutral text-primary',
+      success: 'bg-element-success-light text-success',
       warning: 'bg-element-warning-light text-warning',
       alert: 'bg-element-secondary-light text-brand-secondary'
     }
