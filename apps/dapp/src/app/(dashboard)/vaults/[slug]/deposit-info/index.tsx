@@ -5,6 +5,7 @@ import { DiamondIcon, InfoIcon } from '@zivoe/ui/icons';
 
 import { getCentrifugeDailySnapshots, getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
 
+import { ChartPlotSkeleton } from '@/components/chart/plot-skeleton';
 import InfoSection from '@/components/info-section';
 import TextSkeleton from '@/components/text-skeleton';
 
@@ -66,7 +67,7 @@ export function DepositInfoSkeleton() {
           <Skeleton className="h-9 w-36 rounded-full" />
         </div>
 
-        <Skeleton className="aspect-video w-full rounded-sm" />
+        <ChartPlotSkeleton />
       </div>
       <DiamondSeparator />
 
