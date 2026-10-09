@@ -47,7 +47,8 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-extraSmall [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+          // A visible ring when the plot itself holds keyboard focus (recharts' accessibility layer makes it a tab stop).
+          "flex aspect-video justify-center rounded-sm text-extraSmall [&_.recharts-cartesian-axis-tick_text]:fill-neutral-500 [&_.recharts-cartesian-axis-tick_text]:text-extraSmall [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-neutral-200 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-primary-950 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-radial-bar-background-sector]:fill-primary-950 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-primary-950 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-primary-950 [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden [&:has(.recharts-surface:focus-visible)]:ring-2 [&:has(.recharts-surface:focus-visible)]:ring-default",
           className
         )}
         {...props}
