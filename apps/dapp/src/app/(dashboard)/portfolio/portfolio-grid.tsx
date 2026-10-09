@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react';
 
 /**
- * The page's two columns: the chart and tokens on the left, the requests,
- * activity and the links out on the right; one column on phones in that
+ * The page's two columns: the chart and tokens on the left, the links out,
+ * the requests and the activity on the right; one column on phones in that
  * order. Shared by the loaded page and its skeleton so they cannot drift apart.
  */
 export function PortfolioGrid({ main, aside }: { main: ReactNode; aside: ReactNode }) {

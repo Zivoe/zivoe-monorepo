@@ -12,13 +12,13 @@ import Page from '@/components/page';
 import { type TransactionIdentity } from '@/centrifuge';
 import { usePortfolio } from '@/portfolio';
 
+import { Actions } from './actions';
 import { Activity } from './activity';
 import { BalanceChart } from './balance-chart';
 import { PortfolioHero } from './hero';
 import { PortfolioGrid } from './portfolio-grid';
 import { PortfolioSkeleton } from './portfolio-skeleton';
 import { PreviewWallets } from './preview-wallets';
-import { QuickActions } from './quick-actions';
 import { Redemptions } from './redemptions';
 import { Tokens } from './tokens';
 
@@ -137,6 +137,7 @@ function WalletPortfolio({
           }
           aside={
             <>
+              <Actions zivoeVault={zivoeVault} />
               <Redemptions
                 identities={identities}
                 portfolio={portfolio}
@@ -146,7 +147,6 @@ function WalletPortfolio({
                 refetch={refetch}
               />
               <Activity identities={identities} accountAddress={address} />
-              <QuickActions zivoeVault={zivoeVault} />
             </>
           }
         />

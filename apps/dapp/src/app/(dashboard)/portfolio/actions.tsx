@@ -12,9 +12,9 @@ import { type PortfolioVaultLink } from './portfolio-view';
 
 /**
  * The four places an investor goes next, as a compact 2×2 of links at the
- * end of the page's right column; every on-chain action lives on the vault page.
+ * top of the page's right column; every on-chain action lives on the vault page.
  */
-export function QuickActions({ zivoeVault }: { zivoeVault: PortfolioVaultLink }) {
+export function Actions({ zivoeVault }: { zivoeVault: PortfolioVaultLink }) {
   const actions: Array<{ title: string; href: string; icon: ReactNode; external?: true }> = [
     { title: 'Deposit', href: zivoeVault.path, icon: <ZSmbLogo /> },
     { title: 'Redeem', href: `${zivoeVault.path}?view=redeem`, icon: <MoneyHandIcon /> },
@@ -25,7 +25,7 @@ export function QuickActions({ zivoeVault }: { zivoeVault: PortfolioVaultLink })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick actions</CardTitle>
+        <CardTitle>Actions</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
