@@ -4,15 +4,17 @@ import { cn } from '../../lib/tw-utils';
 
 /**
  * A titled surface for a page built as a grid of sections (the portfolio).
- * The header strip is tinted so the sections read apart on the base surface;
- * the body is the plain card. Compose: Card > CardHeader > CardTitle (+ an
- * optional trailing control), then CardContent.
+ * Meant to sit on the soft canvas (`bg-surface-elevated`): a white card with
+ * a hairline edge and a low, layered shadow lifts off it, so the header
+ * needs no tint of its own and stays a plain title row over a hairline.
+ * Compose: Card > CardHeader > CardTitle (+ an optional trailing control),
+ * then CardContent.
  */
 export function Card({ className, ...props }: ComponentProps<'section'>) {
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col rounded-2xl border border-default bg-surface-base shadow-[0px_1px_6px_-2px_rgba(18,19,26,0.08)]',
+        'flex min-w-0 flex-col rounded-2xl border border-subtle bg-surface-base shadow-[0px_1px_2px_rgba(16,24,40,0.04),0px_4px_12px_-4px_rgba(16,24,40,0.06)]',
         className
       )}
       {...props}
@@ -24,7 +26,7 @@ export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-default bg-element-primary-light px-5 py-3 sm:px-6',
+        'flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-5 py-4 sm:px-6',
         className
       )}
       {...props}
