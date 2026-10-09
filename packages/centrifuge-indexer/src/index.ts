@@ -50,6 +50,14 @@ export {
 } from './queries/daily-token-snapshots';
 export { fetchIndexerChainStatuses, type IndexerChainStatus } from './queries/indexer-status';
 export {
+  INVESTOR_ACTIVITY_TYPES,
+  fetchInvestorActivityPage,
+  fetchManualShareIssuances,
+  type InvestorActivityRow,
+  type InvestorActivityType,
+  type ManualShareIssuance
+} from './queries/investor-activity';
+export {
   compareCheckpoints,
   fetchInvestorPositionCheckpoints,
   type InvestorPositionCheckpoint
