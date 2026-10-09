@@ -89,7 +89,7 @@ export function BalanceChart({
       <CardHeader>
         <CardTitle>
           <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
-          {shareSymbol} balance
+          {shareSymbol}
         </CardTitle>
         {/* A segmented control: the chips sit in a neutral track, the chosen one lifted white. */}
         <div role="group" aria-label="History range" className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
@@ -242,7 +242,7 @@ export function BalanceChartSkeleton({ shareSymbol }: { shareSymbol: string }) {
       <CardHeader>
         <CardTitle>
           <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
-          {shareSymbol} balance
+          {shareSymbol}
         </CardTitle>
         <div className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
           {HISTORY_RANGES.map((range) => (
