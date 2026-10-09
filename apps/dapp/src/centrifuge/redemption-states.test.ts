@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { FIXTURE_IDENTITY } from '@/test/fixtures';
 
-import { countRedemptionRequests, describeRedemptionState, redemptionStates } from './redemption-states';
+import {
+  countRedemptionRequests,
+  describeRedemptionState,
+  redemptionStates,
+  summarizeRedemptionState
+} from './redemption-states';
 import { type RedemptionPosition } from './types';
 
 const EMPTY: RedemptionPosition = {
@@ -61,6 +66,56 @@ describe('describeRedemptionState', () => {
     // 1 share at a 1.14 price: the indicative payout in the 6-decimal asset.
     expect(describe({ kind: 'processing', shares: 100_000_000n }, 1_140_000_000_000_000_000n)).toBe(
       '1.00 zFIX processing · ≈ 1.14 USDC'
+    );
+  });
+});
+
+describe('summarizeRedemptionState', () => {
+  it('reads each state as a ledger row: amount, status, detail, and whether it is still moving', () => {
+    const summarize = (state: Parameters<typeof summarizeRedemptionState>[0]['state'], sharePrice?: bigint) =>
+      summarizeRedemptionState({ state, centrifugeVault: vault, sharePrice });
+
+    expect(summarize({ kind: 'returned', shares: 150_000_000n })).toEqual({
+      amount: '1.50 zFIX',
+      status: 'Returned',
+      detail: 'From a cancelled request',
+      inMotion: false
+    });
+    expect(summarize({ kind: 'claimable', assets: 1_250_500_000n })).toEqual({
+      amount: '1,250.50 USDC',
+      status: 'Ready to claim',
+      detail: undefined,
+      inMotion: false
+    });
+    // A blocked wallet's proceeds are approved, never ready: the pill may not contradict a disabled claim.
+    expect(
+      summarizeRedemptionState({
+        state: { kind: 'claimable', assets: 1n },
+        centrifugeVault: vault,
+        isClaimBlocked: true
+      }).status
+    ).toBe('Approved');
+    expect(summarize({ kind: 'unfunded', assets: 568_775n })).toMatchObject({
+      amount: '0.56 USDC',
+      status: 'Awaiting liquidity',
+      inMotion: true
+    });
+    // A cancellation with nothing left pending still has a row; it just cannot name an amount.
+    expect(summarize({ kind: 'cancelling', shares: 0n })).toMatchObject({
+      amount: 'Redemption request',
+      status: 'Cancelling'
+    });
+    expect(summarize({ kind: 'cancelling', shares: 24_000_000n })).toMatchObject({
+      amount: '0.24 zFIX',
+      inMotion: true
+    });
+    expect(summarize({ kind: 'processing', shares: 100_000_000n })).toMatchObject({
+      amount: '1.00 zFIX',
+      status: 'Processing',
+      detail: 'Awaiting approval'
+    });
+    expect(summarize({ kind: 'processing', shares: 100_000_000n }, 1_140_000_000_000_000_000n).detail).toBe(
+      '≈ 1.14 USDC on approval'
     );
   });
 });

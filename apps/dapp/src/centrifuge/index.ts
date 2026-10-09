@@ -13,7 +13,9 @@ export {
   countRedemptionRequests,
   describeRedemptionState,
   redemptionStates,
-  type RedemptionState
+  summarizeRedemptionState,
+  type RedemptionState,
+  type RedemptionSummary
 } from './redemption-states';
 export { useCancelRedeem } from './use-cancel-redeem';
 export { useClaimRedeem } from './use-claim-redeem';
