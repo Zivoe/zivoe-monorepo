@@ -2,28 +2,31 @@ import { type ReactNode } from 'react';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Badge } from '@zivoe/ui/core/badge';
+import { Callout } from '@zivoe/ui/core/callout';
 import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { type RedemptionState, type TransactedCentrifugeVault, summarizeRedemptionState } from '@/centrifuge';
-import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
+import { CHAIN_DISPLAY, chainNames } from '@/zivoe-vaults/chain-display';
 
 /**
  * One network's in-flight items, the same on the Pending tab and the
  * portfolio: a collapsible header (icon, name, how many items sit under it)
- * over one bounded box of items divided by hairlines. `notice` sits between
- * the two for a partial-read warning; nothing is boxed while there are no
- * items, so a failed read never draws an empty frame.
+ * over one bounded box of items divided by hairlines. A chain with a failed
+ * position read says so between the two; nothing is boxed while there are
+ * no items, so a failed read never draws an empty frame.
  */
 export function RedemptionChainGroup({
   chain,
   count,
-  notice,
+  hasFailedRead = false,
   children
 }: {
   chain: CentrifugeChain;
   count: number;
-  notice?: ReactNode;
+  /** One of the chain's position reads failed: the items that did load stay, under a notice. */
+  hasFailedRead?: boolean;
   children: ReactNode;
 }) {
   const { label, Icon } = CHAIN_DISPLAY[chain];
@@ -41,13 +44,16 @@ export function RedemptionChainGroup({
 
       <DisclosurePanel>
         <div className="flex flex-col gap-2 pb-2">
-          {notice}
+          {hasFailedRead && <Callout variant="warning">Could not load every position on {label}.</Callout>}
           {count > 0 && <div className="rounded-lg border border-subtle">{children}</div>}
         </div>
       </DisclosurePanel>
     </Disclosure>
   );
 }
+
+/** Items stack inside the group's box, divided by hairlines. */
+export const REDEMPTION_ITEM_CLASSES = 'border-b border-subtle last:border-b-0';
 
 /** How each status reads: the dot before the amount and the pill after it, in the system's semantic tones. */
 const STATUS_TONES: Record<
@@ -132,6 +138,36 @@ export function RedemptionItem({
           {action}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Names the chains whose first position read is still in flight; nothing once all have answered. */
+export function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; className?: string }) {
+  if (chains.length === 0) return null;
+  return (
+    <p aria-live="polite" className={cn('text-secondary', className)}>
+      Still checking {chainNames(chains)}…
+    </p>
+  );
+}
+
+/** A network group's silhouette, so loading and loaded share a layout: one header and one boxed item at an item's real height. */
+export function RedemptionGroupSkeleton() {
+  return (
+    <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 px-1 py-2">
+        <Skeleton className="size-5 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-sm" />
+      </div>
+      <div className="flex items-start gap-3 rounded-lg border border-subtle px-4 py-3">
+        <Skeleton className="mt-2 size-2 rounded-full" />
+        <div className="flex flex-1 flex-col gap-1">
+          <Skeleton className="h-5 w-28 rounded-sm" />
+          <Skeleton className="h-4 w-44 rounded-sm" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-sm" />
+      </div>
     </div>
   );
 }

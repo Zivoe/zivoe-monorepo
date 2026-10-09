@@ -45,7 +45,6 @@ describe('Redemptions', () => {
         sharePrice={1_140_000_000_000_000_000n}
         zivoeVault={VAULT}
         refetch={vi.fn()}
-        isRefetching={false}
       />
     );
 
@@ -79,7 +78,6 @@ describe('Redemptions', () => {
         sharePrice={undefined}
         zivoeVault={VAULT}
         refetch={vi.fn()}
-        isRefetching={false}
       />
     );
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
@@ -93,7 +91,6 @@ describe('Redemptions', () => {
         sharePrice={undefined}
         zivoeVault={VAULT}
         refetch={vi.fn()}
-        isRefetching={false}
       />
     );
     // Past the window with one chain still reading: the empty copy, with that chain named under it.
@@ -113,7 +110,6 @@ describe('Redemptions', () => {
         sharePrice={undefined}
         zivoeVault={VAULT}
         refetch={vi.fn()}
-        isRefetching={false}
       />
     );
     expect(screen.getByLabelText('Loading redemption requests')).toBeTruthy();
@@ -122,8 +118,7 @@ describe('Redemptions', () => {
     expect(screen.queryByText(/Still checking/)).toBeNull();
   });
 
-  it('offers a retry for a chain whose positions failed to load', () => {
-    const refetch = vi.fn();
+  it('keeps a chain listed, with a notice, when its position reads fail', () => {
     render(
       <Redemptions
         identities={IDENTITIES}
@@ -131,20 +126,23 @@ describe('Redemptions', () => {
         isHolding={false}
         sharePrice={undefined}
         zivoeVault={VAULT}
-        refetch={refetch}
-        isRefetching={false}
+        refetch={vi.fn()}
       />
     );
 
+    // The Pending tab's own reading: the chain stays listed, the notice sits inside its group, and the
+    // error backoff re-reads it — no Retry of its own.
+    expect(screen.getByRole('button', { name: /^Ethereum\s*0$/ })).toBeTruthy();
     expect(screen.getByText(/Could not load every position on Ethereum/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByText(/No redemption requests/)).toBeNull();
   });
 
   // Every vault resolves through the indexer, so an outage there fails all of
   // them at once: one notice, in the Pending tab's words, not a list of chains.
-  it('collapses every chain failing into the Pending tab sentence', () => {
+  it('collapses every chain failing into the Pending tab sentence, whose Retry re-reads everything', () => {
     const chains = ['sepolia', 'base-sepolia'] as const;
+    const refetch = vi.fn();
     render(
       <Redemptions
         identities={IDENTITIES}
@@ -152,12 +150,13 @@ describe('Redemptions', () => {
         isHolding={false}
         sharePrice={undefined}
         zivoeVault={VAULT}
-        refetch={vi.fn()}
-        isRefetching={false}
+        refetch={refetch}
       />
     );
     expect(screen.getByText(/Could not load your redemption requests\./)).toBeTruthy();
     expect(screen.queryByText(/every position/)).toBeNull();
     expect(screen.queryByText(/No redemption requests/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

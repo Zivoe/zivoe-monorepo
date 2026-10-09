@@ -6,7 +6,7 @@ import { NextLink } from '@zivoe/ui/core/link';
 import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
-import { RedemptionItem } from '@/components/redemption-item';
+import { REDEMPTION_ITEM_CLASSES, RedemptionItem } from '@/components/redemption-item';
 
 import {
   type InvestorAccess,
@@ -154,7 +154,7 @@ export function RedemptionPositionStrips({
     claimReturnedShares.mutate({ returnedShares });
   };
 
-  const item = { centrifugeVault, labelAsset, className: ITEM_CLASSES };
+  const item = { centrifugeVault, labelAsset, className: REDEMPTION_ITEM_CLASSES };
 
   return (
     <>
@@ -308,9 +308,6 @@ export function RedemptionPositionStrips({
     </>
   );
 }
-
-/** Items stack inside the chain group's box, divided by hairlines (see pending-flow). */
-const ITEM_CLASSES = 'border-b border-subtle last:border-b-0';
 
 /** The one step an out-of-place wallet sees in place of a strip's action. */
 function SwitchButton({ label, onPress }: { label: string; onPress: () => void }) {

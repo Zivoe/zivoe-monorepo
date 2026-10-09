@@ -1,21 +1,18 @@
 'use client';
 
-import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
-import { RedemptionChainGroup } from '@/components/redemption-item';
+import { RedemptionChainGroup, RedemptionGroupSkeleton, StillChecking } from '@/components/redemption-item';
 
 import { useInvestorAccess } from '@/centrifuge';
-import { CHAIN_DISPLAY, chainNames } from '@/zivoe-vaults/chain-display';
+import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { useChainSwitch, useSelectedChain } from './_components/chain-switch';
 import { RedemptionPositionStrips, deriveRedeemAccessGates } from './_components/redemption-position-strips';
@@ -44,7 +41,7 @@ export default function PendingFlow() {
   // A skeleton until the wallet SDK has settled and every vault has answered,
   // or the settle window has run out; past it, whatever has landed shows with
   // the chains still reading named below.
-  if (!account.address || isPending) return <RequestsSkeleton />;
+  if (!account.address || isPending) return <RedemptionGroupSkeleton />;
 
   // Every read failing at once is one outage (the indexer, which every vault
   // resolves through), not a position problem on each of ten chains.
@@ -90,29 +87,6 @@ export default function PendingFlow() {
   );
 }
 
-/** Names the chains whose first position read is still in flight; nothing once all have answered. */
-function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; className?: string }) {
-  if (chains.length === 0) return null;
-  return (
-    <p aria-live="polite" className={cn('text-secondary', className)}>
-      Still checking {chainNames(chains)}…
-    </p>
-  );
-}
-
-/** A chain group's silhouette, so loading and loaded share a layout: one header and one strip at a strip's real height. */
-function RequestsSkeleton() {
-  return (
-    <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 px-1 py-2">
-        <Skeleton className="size-5 rounded-full" />
-        <Skeleton className="h-5 w-24 rounded-sm" />
-      </div>
-      <Skeleton className="h-16.5 w-full rounded-sm" />
-    </div>
-  );
-}
-
 /**
  * One chain's positions. Access verdicts are a share-token fact, so they are
  * read once here and handed to every vault's strips; taking the chain switch
@@ -141,15 +115,7 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
     : undefined;
 
   return (
-    <RedemptionChainGroup
-      chain={chain}
-      count={count}
-      notice={
-        entries.some((entry) => entry.isError) && (
-          <Callout variant="warning">Could not load every position on {label}.</Callout>
-        )
-      }
-    >
+    <RedemptionChainGroup chain={chain} count={count} hasFailedRead={entries.some((entry) => entry.isError)}>
       {entries.map(({ identity }) => (
         <RedemptionPositionStrips
           key={identity.centrifugeVault.address}

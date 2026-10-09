@@ -145,7 +145,6 @@ function WalletPortfolio({
                 sharePrice={sharePrice}
                 zivoeVault={zivoeVault}
                 refetch={refetch}
-                isRefetching={isRefetching}
               />
               <Activity identities={identities} accountAddress={address} />
               <QuickActions zivoeVault={zivoeVault} />
