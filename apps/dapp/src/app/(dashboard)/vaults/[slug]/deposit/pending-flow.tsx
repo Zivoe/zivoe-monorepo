@@ -57,12 +57,12 @@ export default function PendingFlow() {
 
   if (chains.length === 0)
     return (
-      <div className="flex flex-col gap-2 py-6 text-center text-small text-secondary">
-        <p>
+      <div className="flex flex-col gap-2 py-6 text-center text-secondary">
+        <p className="text-small">
           No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in
           progress will appear here.
         </p>
-        <StillChecking chains={pendingChains} />
+        <StillChecking chains={pendingChains} className="text-small" />
       </div>
     );
 

@@ -87,12 +87,12 @@ export function Redemptions({
             </Button>
           </Callout>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col gap-2 py-6 text-center text-small text-secondary">
-            <p>
+          <div className="flex flex-col gap-2 py-6 text-center text-secondary">
+            <p className="text-small">
               No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in
               progress will appear here.
             </p>
-            <StillChecking chains={pendingChains} />
+            <StillChecking chains={pendingChains} className="text-small" />
           </div>
         ) : (
           // Capped like the Pending tab's list from lg, scrolling inside the card; below lg the page scrolls.
