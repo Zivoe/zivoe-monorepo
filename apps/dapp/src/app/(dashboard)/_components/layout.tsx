@@ -17,7 +17,8 @@ import { Button } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Popover, PopoverTrigger } from '@zivoe/ui/core/popover';
 import { Separator } from '@zivoe/ui/core/separator';
-import { LogoutIcon, ZSmbLogo } from '@zivoe/ui/icons';
+// Aliased: Dynamic's WalletIcon above draws the connected wallet's logo.
+import { LogoutIcon, WalletIcon as PortfolioIcon, ZSmbLogo } from '@zivoe/ui/icons';
 import { tv } from '@zivoe/ui/lib/tw-utils';
 
 import { signOutAction } from '@/server/actions/auth';
@@ -81,6 +82,7 @@ const NAVIGATION_ITEMS: Array<{
   target?: '_blank';
 }> = [
   { title: 'Vaults', href: '/', description: 'View Zivoe SMB Credit (zSMB)', Icon: ZSmbLogo },
+  { title: 'Portfolio', href: '/portfolio', description: 'View your holdings and requests', Icon: PortfolioIcon },
   {
     title: 'Lighthouse',
     href: `${LIGHTHOUSE_URL}/`,

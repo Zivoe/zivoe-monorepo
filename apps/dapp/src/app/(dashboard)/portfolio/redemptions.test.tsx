@@ -1,0 +1,156 @@
+// @vitest-environment jsdom
+import { type ReactNode } from 'react';
+
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { identityOnChain } from '@/test/fixtures';
+import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
+
+import { Redemptions } from './redemptions';
+import { portfolioOf } from './test-helpers';
+
+vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
+vi.mock('@zivoe/ui/core/link', () => ({
+  NextLink: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>
+}));
+
+const SEPOLIA_USDC = resolveTransactionIdentity(ZSMB_ZIVOE_VAULT, 'sepolia');
+const SEPOLIA_USDT = identityOnChain(SEPOLIA_USDC, 'sepolia', {
+  address: '0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3',
+  asset: { address: '0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0', symbol: 'USDT', decimals: 6 }
+});
+const BASE_USDC = identityOnChain(SEPOLIA_USDC, 'base-sepolia', {
+  address: '0xb3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3'
+});
+const VAULT = { name: 'Zivoe SMB Credit', path: '/vaults/zivoe-smb-credit' };
+// Ethereum has two catalogued vaults here, Base one: captions follow the catalog, like the Pending tab.
+const IDENTITIES = [SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC];
+
+afterEach(cleanup);
+
+describe('Redemptions', () => {
+  it('prints every state in the Pending tab words, grouped by network, with one link to the tab', () => {
+    render(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf({
+          redemptions: [
+            { identity: SEPOLIA_USDC, state: { kind: 'unfunded', assets: 568_775n } },
+            { identity: SEPOLIA_USDT, state: { kind: 'processing', shares: 500_000_000_000_000_000n } },
+            { identity: BASE_USDC, state: { kind: 'returned', shares: 1_000_000_000_000_000_000n } }
+          ]
+        })}
+        isHolding={false}
+        sharePrice={1_140_000_000_000_000_000n}
+        zivoeVault={VAULT}
+        refetch={vi.fn()}
+        isRefetching={false}
+      />
+    );
+
+    expect(screen.getByText('3 open')).toBeTruthy();
+    expect(screen.getByText('0.56 USDC approved, awaiting liquidity on Ethereum')).toBeTruthy();
+    expect(screen.getByText('0.50 zSMB processing · ≈ 0.57 USDT')).toBeTruthy();
+    expect(screen.getByText('1.00 zSMB returned from cancellation')).toBeTruthy();
+    // Two catalogued vaults on Ethereum: each strip names its coin, like the Pending tab; Base's single vault does not.
+    expect(screen.getByText('USDC redemption')).toBeTruthy();
+    expect(screen.getByText('USDT redemption')).toBeTruthy();
+    expect(screen.getAllByText(/redemption$/)).toHaveLength(2);
+    expect(screen.queryByText('Base', { exact: true })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Manage in Zivoe SMB Credit/ }).getAttribute('href')).toBe(
+      '/vaults/zivoe-smb-credit?view=pending'
+    );
+  });
+
+  it('says so when there is nothing in flight, and names chains still being read once the window has run out', () => {
+    const { rerender } = render(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf()}
+        isHolding={false}
+        sharePrice={undefined}
+        zivoeVault={VAULT}
+        refetch={vi.fn()}
+        isRefetching={false}
+      />
+    );
+    expect(screen.getByText(/No redemption requests/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Manage in Zivoe SMB Credit/ })).toBeTruthy();
+
+    rerender(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf({ pendingChains: ['base-sepolia'] })}
+        isHolding={false}
+        sharePrice={undefined}
+        zivoeVault={VAULT}
+        refetch={vi.fn()}
+        isRefetching={false}
+      />
+    );
+    // Past the window with one chain still reading: the empty copy, with that chain named under it.
+    expect(screen.getByText(/No redemption requests/)).toBeTruthy();
+    expect(screen.getByText('Still checking Base…')).toBeTruthy();
+  });
+
+  it('shows the skeleton strip inside the settle window, whatever has already landed', () => {
+    render(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf({
+          pendingChains: ['base-sepolia'],
+          redemptions: [{ identity: SEPOLIA_USDC, state: { kind: 'unfunded', assets: 568_775n } }]
+        })}
+        isHolding
+        sharePrice={undefined}
+        zivoeVault={VAULT}
+        refetch={vi.fn()}
+        isRefetching={false}
+      />
+    );
+    expect(screen.getByLabelText('Loading redemption requests')).toBeTruthy();
+    expect(screen.queryByText(/awaiting liquidity/)).toBeNull();
+    expect(screen.queryByText(/open$/)).toBeNull();
+    expect(screen.queryByText(/Still checking/)).toBeNull();
+  });
+
+  it('offers a retry for a chain whose positions failed to load', () => {
+    const refetch = vi.fn();
+    render(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf({ failedChains: ['sepolia'], failedPositionChains: ['sepolia'] })}
+        isHolding={false}
+        sharePrice={undefined}
+        zivoeVault={VAULT}
+        refetch={refetch}
+        isRefetching={false}
+      />
+    );
+
+    expect(screen.getByText(/Could not load every position on Ethereum/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  // Every vault resolves through the indexer, so an outage there fails all of
+  // them at once: one notice, in the Pending tab's words, not a list of chains.
+  it('collapses every chain failing into the Pending tab sentence', () => {
+    const chains = ['sepolia', 'base-sepolia'] as const;
+    render(
+      <Redemptions
+        identities={IDENTITIES}
+        portfolio={portfolioOf({ chains: [...chains], failedChains: [...chains], failedPositionChains: [...chains] })}
+        isHolding={false}
+        sharePrice={undefined}
+        zivoeVault={VAULT}
+        refetch={vi.fn()}
+        isRefetching={false}
+      />
+    );
+    expect(screen.getByText(/Could not load your redemption requests\./)).toBeTruthy();
+    expect(screen.queryByText(/every position/)).toBeNull();
+    expect(screen.queryByText(/No redemption requests/)).toBeNull();
+  });
+});
