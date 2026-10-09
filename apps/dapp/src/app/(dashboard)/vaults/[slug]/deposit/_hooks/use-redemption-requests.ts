@@ -3,7 +3,7 @@
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
 import { useAccount } from '@/hooks/useAccount';
-import { useSettleWindow } from '@/hooks/useSettleWindow';
+import { readState, useSettleWindow } from '@/hooks/useSettleWindow';
 
 import {
   type RedemptionPosition,
@@ -56,7 +56,10 @@ export function useRedemptionRequests(): {
   const positions = useRedemptionPositions({
     centrifugeVaults: identities.map((identity) => identity.centrifugeVault)
   });
-  const resultOf = (identity: TransactionIdentity) => positions[identities.indexOf(identity)];
+  const resultOf = (identity: TransactionIdentity) => {
+    const result = positions[identities.indexOf(identity)];
+    return result && readState(result);
+  };
 
   const groups = groupIdentitiesByChain(identities);
   const chains = groups.flatMap(({ chain, identities: [firstIdentity, ...restIdentities] }) => {
@@ -79,7 +82,7 @@ export function useRedemptionRequests(): {
     count: chains.reduce((sum, group) => sum + group.count, 0),
     isPending: isHolding,
     pendingChains,
-    isEveryReadFailed: positions.length > 0 && positions.every((result) => result.isError),
+    isEveryReadFailed: positions.length > 0 && positions.every((result) => readState(result).isError),
     refetch: () => positions.forEach((result) => void result.refetch())
   };
 }

@@ -52,6 +52,8 @@ type RequestMocks = {
   isPending: boolean;
   /** Vault addresses (lowercase) whose first read is still in flight. */
   pending: Set<string>;
+  /** Vault addresses whose failed read is retrying: pending again with nothing cached. */
+  retrying: Set<string>;
   /** Set to model the wallet SDK not having settled yet. */
   isAccountPending: boolean;
 };
@@ -69,6 +71,7 @@ const mocks = vi.hoisted(
     failing: new Set<string>(),
     isPending: false,
     pending: new Set<string>(),
+    retrying: new Set<string>(),
     isAccountPending: false
   })
 );
@@ -133,11 +136,15 @@ vi.mock('@/centrifuge', async () => {
     useRedemptionPositions: ({ centrifugeVaults }: { centrifugeVaults: Array<{ address: string }> }) =>
       centrifugeVaults.map((centrifugeVault) => {
         const isPending = mocks.isPending || mocks.pending.has(centrifugeVault.address.toLowerCase());
+        const isError = mocks.failing.has(centrifugeVault.address.toLowerCase());
+        const isRetrying = mocks.retrying.has(centrifugeVault.address.toLowerCase());
+        // A failed read retrying reads as TanStack reports it: pending again, nothing cached, one error behind it.
         return {
-          isError: mocks.failing.has(centrifugeVault.address.toLowerCase()),
-          isPending,
+          isError: isError && !isRetrying,
+          isPending: isPending || isRetrying,
+          errorUpdateCount: isError ? 1 : 0,
           refetch: mocks.refetchPositions,
-          data: isPending ? undefined : positionOf(centrifugeVault.address)
+          data: isPending || isError ? undefined : positionOf(centrifugeVault.address)
         };
       }),
     // Each write records the vault it was built for: a strip acting on the
@@ -228,6 +235,7 @@ beforeEach(() => {
   mocks.positions = {};
   mocks.failing = new Set();
   mocks.pending = new Set();
+  mocks.retrying = new Set();
   mocks.isPending = false;
   mocks.isAccountPending = false;
 });
@@ -414,5 +422,20 @@ describe('PendingFlow', () => {
     expect(base).toBeTruthy();
     expect(within(base!).getByText(/Could not load every position on Base/)).toBeTruthy();
     expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
+  });
+
+  // The strips mounting re-reads a failed vault, and a query with nothing
+  // cached reads as pending again while it retries: counted as a first read,
+  // that would re-arm the settle window, unmount the strips, and so on for good.
+  it('keeps the rows and the notice up while a failed read retries, instead of holding the skeleton again', () => {
+    setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 2_000000n });
+    mocks.failing = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
+    mocks.retrying = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
+    renderRequests([SEPOLIA_USDC, BASE_USDC]);
+
+    expect(screen.queryByText('Loading')).toBeNull();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
+    expect(screen.getByText(/Could not load every position on Base/)).toBeTruthy();
+    expect(screen.queryByText(/Still checking/)).toBeNull();
   });
 });

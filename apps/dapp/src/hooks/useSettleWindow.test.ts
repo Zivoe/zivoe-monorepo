@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SETTLE_WINDOW_MS, useSettleWindow } from './useSettleWindow';
+import { SETTLE_WINDOW_MS, readState, useSettleWindow } from './useSettleWindow';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -45,5 +45,26 @@ describe('useSettleWindow', () => {
     rerender({ isPending: false });
     rerender({ isPending: true });
     expect(result.current).toBe(true);
+  });
+});
+
+describe('readState', () => {
+  const read = (result: { data?: number; isError?: boolean; errorUpdateCount?: number }) =>
+    readState({ data: result.data, isError: result.isError ?? false, errorUpdateCount: result.errorUpdateCount ?? 0 });
+
+  it('counts only a read with no answer of any kind as pending', () => {
+    expect(read({})).toEqual({ data: undefined, isError: false, isPending: true });
+    expect(read({ data: 1 })).toEqual({ data: 1, isError: false, isPending: false });
+    expect(read({ isError: true, errorUpdateCount: 1 })).toEqual({ data: undefined, isError: true, isPending: false });
+  });
+
+  // TanStack reports a data-less query as pending again, not errored, for the
+  // length of each retry; the window must not take that for a first read.
+  it('keeps a failed read with nothing cached a failure while it retries', () => {
+    expect(read({ errorUpdateCount: 1 })).toEqual({ data: undefined, isError: true, isPending: false });
+  });
+
+  it('keeps an earlier answer in use when a later read fails', () => {
+    expect(read({ data: 1, isError: true, errorUpdateCount: 1 })).toEqual({ data: 1, isError: true, isPending: false });
   });
 });

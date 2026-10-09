@@ -6,7 +6,7 @@ import { type Address } from 'viem';
 
 import { useTokenBalanceQueries } from '@/hooks/useBalance';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
-import { useSettleWindow } from '@/hooks/useSettleWindow';
+import { readState, useSettleWindow } from '@/hooks/useSettleWindow';
 
 import { type TransactionIdentity, useRedemptionPositions } from '@/centrifuge';
 
@@ -50,18 +50,8 @@ export function usePortfolio({
 
   const portfolio = buildPortfolio({
     identities: identities,
-    balances: new Map(
-      tokens.map((token, index) => [
-        tokenKey(token),
-        { data: balances[index]?.data, isError: balances[index]?.isError ?? false }
-      ])
-    ),
-    positions: new Map(
-      identities.map((identity, index) => [
-        vaultKey(identity),
-        { data: positions[index]?.data, isError: positions[index]?.isError ?? false }
-      ])
-    ),
+    balances: new Map(tokens.map((token, index) => [tokenKey(token), readState(balances[index]!)])),
+    positions: new Map(identities.map((identity, index) => [vaultKey(identity), readState(positions[index]!)])),
     sharePrice,
     isPriceFailed: metrics.isError && !metrics.data
   });

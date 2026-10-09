@@ -40,3 +40,21 @@ export function useSettleWindow({
 
   return isPending && !hasExpired;
 }
+
+/**
+ * A read as the window should count it. TanStack puts a query that has
+ * nothing cached back to `pending` for the length of every retry of a failed
+ * read (its error backoff, or a new observer mounting), which would re-arm
+ * the window and hide every answered chain behind the skeleton on each
+ * retry — on the Pending tab for good, since the strips mounting is what
+ * triggers the retry. So a read that has failed and still has nothing stays
+ * a failure here, and only a read with no answer of any kind is pending.
+ */
+export function readState<T>(result: { data: T | undefined; isError: boolean; errorUpdateCount: number }): {
+  data: T | undefined;
+  isError: boolean;
+  isPending: boolean;
+} {
+  const isError = result.isError || (result.data === undefined && result.errorUpdateCount > 0);
+  return { data: result.data, isError, isPending: result.data === undefined && !isError };
+}
