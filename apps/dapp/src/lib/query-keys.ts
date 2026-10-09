@@ -62,6 +62,22 @@ const account = {
   ],
   chainalysis: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'CHAINALYSIS'],
   portfolio: ({ accountAddress }: AccountProps) => [...account.by({ accountAddress }), 'PORTFOLIO'],
+  // Under the portfolio prefix so every Centrifuge transaction's invalidation refreshes them too.
+  portfolioHistory: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+    ...account.portfolio({ accountAddress }),
+    'HISTORY',
+    shareClassKey
+  ],
+  portfolioActivity: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+    ...account.portfolio({ accountAddress }),
+    'ACTIVITY',
+    shareClassKey
+  ],
+  portfolioIssuances: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
+    ...account.portfolio({ accountAddress }),
+    'ISSUANCES',
+    shareClassKey
+  ],
   redemptionPositions: ({ accountAddress, shareClassKey }: AccountProps & ShareClassProps) => [
     ...account.by({ accountAddress }),
     'REDEMPTION_POSITION',
@@ -113,7 +129,15 @@ const app = {
   ],
   // Hub-level on purpose: Share Price / NAV / APY are identical across the
   // environment's chains, so a chain dimension would only split the cache.
-  shareMetrics: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'SHARE_METRICS']
+  shareMetrics: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'SHARE_METRICS'],
+  dailyTokenSnapshots: ({ shareClassKey }: ShareClassProps) => ['CENTRIFUGE', shareClassKey, 'DAILY_SNAPSHOTS'],
+  // A receipt never changes; keyed by chain and hash, not by wallet.
+  cancelReturnReceipt: ({ chain, txHash }: ChainProps & { txHash: string }) => [
+    'CENTRIFUGE',
+    'CANCEL_RETURN_RECEIPT',
+    chain,
+    txHash.toLowerCase()
+  ]
 };
 
 export const queryKeys = {
