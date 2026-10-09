@@ -66,8 +66,10 @@ const STATUS_TONES: Record<
  * One in-flight amount, the same on the vault page's Pending tab and the
  * portfolio's Redemptions card: a status dot, the amount with its status
  * pill beside it, and one line of detail under them. The Pending tab adds
- * its control on the right (`action`) and its hints below (`children`);
- * the portfolio adds neither. A status still moving on its own pulses.
+ * its control (`action`) and its hints below (`children`); the portfolio
+ * adds neither. From `sm` the control sits to the right of the amount; on
+ * phones it takes its own line under the hints, where even the longest
+ * pending label has room. A status still moving on its own pulses.
  */
 export function RedemptionItem({
   state,
@@ -86,7 +88,7 @@ export function RedemptionItem({
   labelAsset: boolean;
   /** This wallet may not claim: the pill says approved, not ready, so it cannot contradict a disabled claim. */
   isClaimBlocked?: boolean;
-  /** The control on the right: claim, cancel, or the network switch. */
+  /** The control: claim, cancel, or the network switch. */
   action?: ReactNode;
   /** Hint lines under the detail. */
   children?: ReactNode;
@@ -104,23 +106,32 @@ export function RedemptionItem({
     .join(' · ');
 
   return (
-    <div className={cn('flex flex-col gap-1 px-4 py-3', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className={cn('size-2 shrink-0 rounded-full', tone.dot, inMotion && 'motion-safe:animate-pulse')}
-          />
-          <p className="text-regular font-medium text-primary tabular-nums">{amount}</p>
-          <Badge variant={tone.badge} className="shrink-0 py-0.5 text-extraSmall">
-            {status}
-          </Badge>
-        </div>
-        {action}
+    <div className={cn('grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3', className)}>
+      {/* The pill drops under the amount before the amount ever breaks. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span
+          aria-hidden="true"
+          className={cn('size-2 shrink-0 rounded-full', tone.dot, inMotion && 'motion-safe:animate-pulse')}
+        />
+        <p className="text-regular font-medium whitespace-nowrap text-primary tabular-nums">{amount}</p>
+        <Badge variant={tone.badge} className="py-0.5 text-extraSmall">
+          {status}
+        </Badge>
       </div>
       {/* The lines below hang from the amount, past the dot. */}
-      {detailLine && <p className="pl-5 text-small text-secondary">{detailLine}</p>}
-      {children && <div className="flex flex-col gap-1 pl-5 text-extraSmall text-secondary">{children}</div>}
+      {detailLine && <p className="col-span-2 pl-5 text-small text-secondary">{detailLine}</p>}
+      {/* Hints are paragraphs, which the base stylesheet sizes as body text; the size is set on each. */}
+      {children && (
+        <div className="col-span-2 flex flex-col gap-1 pl-5 text-extraSmall text-secondary *:text-extraSmall">
+          {children}
+        </div>
+      )}
+      {/* On phones a control's pending label may outgrow the row, so it is allowed to wrap there. */}
+      {action && (
+        <div className="col-span-2 pl-5 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:self-center sm:pl-0 max-sm:[&_button]:h-auto max-sm:[&_button]:min-h-8 max-sm:[&_button]:text-left max-sm:[&_button]:whitespace-normal">
+          {action}
+        </div>
+      )}
     </div>
   );
 }
