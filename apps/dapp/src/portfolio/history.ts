@@ -115,6 +115,25 @@ export function selectRange({
 }
 
 /**
+ * How the drawn balance moved over a range: its last point against its
+ * first, in dollars and as a share of the first. A balance change, not a
+ * return — a deposit or a redemption request moves it as much as the share
+ * price does. Absent until two points are drawn; the percent is absent when
+ * the first point is zero.
+ */
+export type BalanceChange = { deltaD18: bigint; percent?: number };
+export function rangeChange(points: ReadonlyArray<HistoryPoint>): BalanceChange | undefined {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last || first === last) return undefined;
+  const deltaD18 = last.valueD18 - first.valueD18;
+  // Two decimals of percent from exact bigint arithmetic, like the figures themselves.
+  return first.valueD18 > 0n
+    ? { deltaD18, percent: Number((deltaD18 * 10_000n) / first.valueD18) / 100 }
+    : { deltaD18 };
+}
+
+/**
  * Which ranges the history can honestly fill: a range is offered only when
  * the wallet's history reaches back to its start, so "over the past year"
  * never labels two months of data. 'All' is always offered.

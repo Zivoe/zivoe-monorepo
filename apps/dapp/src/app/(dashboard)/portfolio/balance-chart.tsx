@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 import { type Address } from 'viem';
 
+import { Badge } from '@zivoe/ui/core/badge';
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
 import { Card, CardContent, CardHeader, CardTitle } from '@zivoe/ui/core/card';
@@ -28,18 +29,19 @@ import {
   HISTORY_RANGES,
   type HistoryRange,
   availableRanges,
+  rangeChange,
   selectRange,
   usePortfolioHistory
 } from '@/portfolio';
 
-import { balanceChartSubtitle, formatAmount } from './format';
+import { balanceChangeLine, balanceChartSubtitle, formatAmount } from './format';
 
 /**
  * The value of the share tokens in the wallet over time. What the wallet
  * holds and nothing else: shares in a redemption queue leave the wallet on
- * request and are shown as such in the hero and the Tokens card. No change
- * line on purpose — deposits and redemptions move this figure far more than
- * the share price does, and a performance figure needs its own model.
+ * request and are shown as such in the hero and the Tokens card. The change
+ * line is this figure's move over the chosen range, deposits and redemptions
+ * included: a balance change, not a return — earnings need their own model.
  */
 export function BalanceChart({
   identities,
@@ -64,7 +66,10 @@ export function BalanceChart({
   // so "the past 90 days" never labels six weeks of data.
   const available = availableRanges({ history, nowMs });
   const range = available.includes(chosen) ? chosen : 'All';
-  const data = selectRange({ history, range, nowMs }).map((point) => ({
+  const points = selectRange({ history, range, nowMs });
+  const change = rangeChange(points);
+  const changeLine = change && balanceChangeLine({ change, range });
+  const data = points.map((point) => ({
     ts: point.timestampMs,
     value: Number(point.valueD18) / 1e18,
     valueD18: point.valueD18,
@@ -108,26 +113,44 @@ export function BalanceChart({
 
       <CardContent className="gap-4">
         <div className="flex flex-col gap-1">
-          <p className="font-heading! text-h4 text-primary">
-            {history.livePoint ? (
-              formatUsdD18(history.livePoint.valueD18)
-            ) : liveStatus === 'error' ? (
-              '—'
+          {/* The headline with its move over the range beside it; the chips above say which range. */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="font-heading! text-h4 text-primary">
+              {history.livePoint ? (
+                formatUsdD18(history.livePoint.valueD18)
+              ) : liveStatus === 'error' ? (
+                '—'
+              ) : (
+                <TextSkeleton className="w-28" />
+              )}
+            </p>
+            {status === 'pending' ? (
+              <Skeleton className="h-7 w-28 rounded-sm" />
             ) : (
-              <TextSkeleton className="w-28" />
+              changeLine && (
+                <Badge
+                  variant={change.deltaD18 > 0n ? 'success' : change.deltaD18 < 0n ? 'alert' : 'neutral'}
+                  className="tabular-nums"
+                >
+                  {changeLine.figure}
+                  <span className="sr-only">balance change, {changeLine.caption}</span>
+                </Badge>
+              )
             )}
+          </div>
+          {/* The same share figure as the Tokens row, so the two cards read as one number, and what it leaves out. */}
+          <p className="text-small text-secondary">
+            <span className="font-medium text-primary tabular-nums">
+              {shareAmounts ? (
+                formatAmount(shareAmounts.wallet, shareSymbol)
+              ) : liveStatus === 'error' ? (
+                '—'
+              ) : (
+                <TextSkeleton className="w-20" />
+              )}
+            </span>{' '}
+            {balanceChartSubtitle({ shareSymbol, shareAmounts })}
           </p>
-          {/* The same share figure as the Tokens row, so the two cards read as one number. */}
-          <p className="text-regular font-medium text-primary tabular-nums">
-            {shareAmounts ? (
-              formatAmount(shareAmounts.wallet, shareSymbol)
-            ) : liveStatus === 'error' ? (
-              '—'
-            ) : (
-              <TextSkeleton className="w-20" />
-            )}
-          </p>
-          <p className="text-small text-secondary">{balanceChartSubtitle({ shareSymbol, shareAmounts })}</p>
         </div>
 
         {status === 'pending' ? (
@@ -229,14 +252,14 @@ export function BalanceChartSkeleton({ shareSymbol }: { shareSymbol: string }) {
       </CardHeader>
       <CardContent className="gap-4">
         <div className="flex flex-col gap-1">
-          <p className="font-heading! text-h4 text-primary">
-            <TextSkeleton className="w-28" />
-          </p>
-          <p className="text-regular font-medium text-primary">
-            <TextSkeleton className="w-20" />
-          </p>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="font-heading! text-h4 text-primary">
+              <TextSkeleton className="w-28" />
+            </p>
+            <Skeleton className="h-7 w-28 rounded-sm" />
+          </div>
           <p className="text-small text-secondary">
-            <TextSkeleton className="w-56" />
+            <TextSkeleton className="w-64" />
           </p>
         </div>
         <ChartPlotSkeleton />

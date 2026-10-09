@@ -4,7 +4,7 @@ import { type DailyTokenSnapshot, type InvestorPositionCheckpoint } from '@zivoe
 
 import { DAY_MS } from '@/components/chart/axis';
 
-import { availableRanges, buildBalanceHistory, selectRange } from './history';
+import { availableRanges, buildBalanceHistory, rangeChange, selectRange } from './history';
 
 const D18 = 10n ** 18n;
 // 2026-07-01T00:00:00Z
@@ -121,5 +121,24 @@ describe('ranges', () => {
     expect(points).toHaveLength(7); // 6 closes + today
     expect(points[0]?.timestampMs).toBe(day(35) - 1);
     expect(points.at(-1)).toBe(history.livePoint);
+  });
+});
+
+describe('rangeChange', () => {
+  it('reads the last drawn point against the first, with a percent only off a non-zero base', () => {
+    const point = (index: number, valueD18: bigint) => ({ timestampMs: day(index), valueD18 });
+    expect(rangeChange([point(0, 100n * D18), point(1, 90n * D18), point(2, (10125n * D18) / 100n)])).toEqual({
+      deltaD18: (125n * D18) / 100n,
+      percent: 1.25
+    });
+    expect(rangeChange([point(0, 100n * D18), point(1, 95n * D18)])).toEqual({ deltaD18: -5n * D18, percent: -5 });
+    // Two decimals of percent, truncated like every other figure: 1/3 is 0.33.
+    expect(rangeChange([point(0, 3n * D18), point(1, 4n * D18)])).toEqual({ deltaD18: D18, percent: 33.33 });
+    expect(rangeChange([point(0, 0n), point(1, 4n * D18)])).toEqual({ deltaD18: 4n * D18 });
+  });
+
+  it('needs two points', () => {
+    expect(rangeChange([])).toBeUndefined();
+    expect(rangeChange([{ timestampMs: day(0), valueD18: D18 }])).toBeUndefined();
   });
 });

@@ -1,6 +1,6 @@
-import { formatBigIntWithCommas } from '@/lib/utils';
+import { formatBigIntWithCommas, formatUsdD18 } from '@/lib/utils';
 
-import { type Amounts, type Portfolio } from '@/portfolio';
+import { type Amounts, type BalanceChange, type HistoryRange, type Portfolio } from '@/portfolio';
 
 /** A token amount from the model's 18-decimal units, two decimals, "<0.01" for dust. */
 export const formatAmount = (valueD18: bigint, symbol: string) =>
@@ -25,10 +25,10 @@ export function amountNotes(amounts: Amounts, symbol: string): Array<string> {
 }
 
 /**
- * The line under the chart's share figure. The chart plots what the wallet
- * holds while the hero's share figure also counts what sits in the vault, so
- * the line names that difference whenever there is one; `shareAmounts` is
- * undefined until every chain has answered.
+ * What follows the chart's share figure: "in your wallet, excluding …". The
+ * chart plots what the wallet holds while the hero's share figure also counts
+ * what sits in the vault, so the line names that difference whenever there
+ * is one; `shareAmounts` is undefined until every chain has answered.
  */
 export function balanceChartSubtitle({
   shareSymbol,
@@ -38,5 +38,29 @@ export function balanceChartSubtitle({
   shareAmounts: Amounts | undefined;
 }): string {
   const outside = shareAmounts ? amountNotes(shareAmounts, shareSymbol) : [];
-  return `In your wallet${outside.length > 0 ? `, excluding ${outside.join(' and ')}` : ''}`;
+  return `in your wallet${outside.length > 0 ? `, excluding ${outside.join(' and ')}` : ''}`;
+}
+
+const RANGE_CAPTIONS: Record<HistoryRange, string> = {
+  '7D': 'past 7 days',
+  '30D': 'past 30 days',
+  '90D': 'past 90 days',
+  '1Y': 'past year',
+  All: 'all time'
+};
+
+/**
+ * The change pill beside the chart's headline: "+$12.40 (+1.03%)" and, for
+ * screen readers, the range it covers, "past 30 days". Signed like a ticker,
+ * so the sign is never lost in the formatting; a percent only when the model
+ * gave one.
+ */
+export function balanceChangeLine({ change, range }: { change: BalanceChange; range: HistoryRange }): {
+  figure: string;
+  caption: string;
+} {
+  const sign = change.deltaD18 > 0n ? '+' : '';
+  const percent =
+    change.percent === undefined ? '' : ` (${change.percent > 0 ? '+' : ''}${change.percent.toFixed(2)}%)`;
+  return { figure: `${sign}${formatUsdD18(change.deltaD18)}${percent}`, caption: RANGE_CAPTIONS[range] };
 }
