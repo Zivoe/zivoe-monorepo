@@ -13,11 +13,11 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/cor
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-import { customNumber, formatUsdD18 } from '@/lib/utils';
+import { formatUsdD18 } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-import { dayTicks, formatDayLabel, formatLocalDayLabel, stepDecimals, valueAxis } from '@/components/chart/axis';
+import { dayTicks, formatDayLabel, formatLocalDayLabel, valueAxis } from '@/components/chart/axis';
 import { DayTick } from '@/components/chart/day-tick';
 import { ChartPlotSkeleton } from '@/components/chart/plot-skeleton';
 import TextSkeleton from '@/components/text-skeleton';
@@ -34,7 +34,7 @@ import {
   usePortfolioHistory
 } from '@/portfolio';
 
-import { balanceChangeLine, balanceChartSubtitle, formatAmount } from './format';
+import { axisTickLabel, balanceChangeLine, balanceChartSubtitle, formatAmount } from './format';
 
 /**
  * The value of the share tokens in the wallet over time. What the wallet
@@ -77,10 +77,11 @@ export function BalanceChart({
     label: point === history.livePoint ? formatLocalDayLabel(point.timestampMs) : formatDayLabel(point.timestampMs)
   }));
 
-  // A 5% floor on the window keeps a sub-cent week from filling the plot.
+  // The window's floor is the vault chart's: a tenth of a percent of the
+  // balance, so a week of yield (about that much) fills the plot the way the
+  // Token Price line does, whatever the wallet's size.
   const values = data.map((point) => point.value);
-  const axis = valueAxis({ values, minSpan: Math.max(Math.max(0, ...values) * 0.05, 0.05) });
-  const tickDecimals = stepDecimals(axis.step);
+  const axis = valueAxis({ values, minSpan: Math.max(0, ...values) * 0.001 });
   const xTicks = dayTicks({ firstTs: data[0]?.ts, lastTs: data.at(-1)?.ts, maxLabels: isMobile ? 4 : 7 });
 
   return (
@@ -188,12 +189,11 @@ export function BalanceChart({
                 hide={isMobile}
                 axisLine={false}
                 minTickGap={20}
-                width={60}
+                width={72}
                 scale="linear"
                 domain={axis.domain}
                 ticks={axis.ticks}
-                // The vault chart's compact axis: k/M above a thousand, step-matched decimals below, no currency sign.
-                tickFormatter={(value: number) => (value >= 1000 ? customNumber(value) : value.toFixed(tickDecimals))}
+                tickFormatter={(value: number) => axisTickLabel({ value, step: axis.step })}
               />
               <ChartTooltip
                 cursor={false}

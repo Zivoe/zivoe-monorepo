@@ -7,7 +7,7 @@ import {
 
 import { DAY_MS } from '@/components/chart/axis';
 
-import { toD18, truncateToCents } from './positions';
+import { toD18 } from './positions';
 
 export const HISTORY_RANGES = ['7D', '30D', '90D', '1Y', 'All'] as const;
 export type HistoryRange = (typeof HISTORY_RANGES)[number];
@@ -69,11 +69,11 @@ export function buildBalanceHistory({
       // published daily and a gap is a publication hiccup, not a price change.
       price = priceByDay.get(day) ?? price;
       if (price === undefined) continue;
-      // Cut to the cent per chain, like the live point and the hero's cells.
+      // Full precision, unlike the Tokens rows' cells: a small wallet's week
+      // of yield is under a cent, and the chart is for seeing it accrue.
       const closePrice = price;
       const valueD18 = [...balances].reduce(
-        (acc, [chainId, balance]) =>
-          acc + truncateToCents((toD18(balance, decimalsOf.get(chainId)!) * closePrice) / 10n ** 18n),
+        (acc, [chainId, balance]) => acc + (toD18(balance, decimalsOf.get(chainId)!) * closePrice) / 10n ** 18n,
         0n
       );
       points.push({ timestampMs: day + DAY_MS - 1, valueD18 });
@@ -81,13 +81,11 @@ export function buildBalanceHistory({
   }
 
   const liveKnown = livePrice !== undefined && chains.every((chain) => liveBalances.get(chain.chainId) !== undefined);
-  // Cut to the cent per chain, exactly like the hero's per-network cells, so the two figures agree as printed.
   const livePoint = liveKnown
     ? {
         timestampMs: nowMs,
         valueD18: chains.reduce(
-          (acc, chain) =>
-            acc + truncateToCents((toD18(liveBalances.get(chain.chainId)!, chain.decimals) * livePrice) / 10n ** 18n),
+          (acc, chain) => acc + (toD18(liveBalances.get(chain.chainId)!, chain.decimals) * livePrice) / 10n ** 18n,
           0n
         )
       }

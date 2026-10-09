@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { balanceChangeLine, balanceChartSubtitle, failedReadsLabel } from './format';
+import { axisTickLabel, balanceChangeLine, balanceChartSubtitle, failedReadsLabel } from './format';
 
 const D18 = 10n ** 18n;
 
@@ -57,5 +57,19 @@ describe('balanceChangeLine', () => {
       figure: '+$4.00',
       caption: 'all time'
     });
+    // A small wallet's week of yield is under a cent: said so, never "$0.00" beside a live percent.
+    expect(balanceChangeLine({ change: { deltaD18: D18 / 250n, percent: 0.12 }, range: '7D' })).toEqual({
+      figure: '<$0.01 (+0.12%)',
+      caption: 'past 7 days'
+    });
+  });
+});
+
+describe('axisTickLabel', () => {
+  it('prints the whole figure so neighbouring gridlines never share a label', () => {
+    expect(axisTickLabel({ value: 1_140_500, step: 500 })).toBe('1,140,500');
+    expect(axisTickLabel({ value: 45_125, step: 25 })).toBe('45,125');
+    expect(axisTickLabel({ value: 3.2, step: 0.1 })).toBe('3.20');
+    expect(axisTickLabel({ value: 0.125, step: 0.025 })).toBe('0.125');
   });
 });

@@ -1,5 +1,7 @@
 import { formatBigIntWithCommas, formatUsdD18 } from '@/lib/utils';
 
+import { stepDecimals } from '@/components/chart/axis';
+
 import { type Amounts, type BalanceChange, type HistoryRange, type Portfolio } from '@/portfolio';
 
 /** A token amount from the model's 18-decimal units, two decimals, "<0.01" for dust. */
@@ -41,6 +43,8 @@ export function balanceChartSubtitle({
   return `in your wallet${outside.length > 0 ? `, excluding ${outside.join(' and ')}` : ''}`;
 }
 
+const CENT = 10n ** 16n;
+
 const RANGE_CAPTIONS: Record<HistoryRange, string> = {
   '7D': 'past 7 days',
   '30D': 'past 30 days',
@@ -53,14 +57,29 @@ const RANGE_CAPTIONS: Record<HistoryRange, string> = {
  * The change pill beside the chart's headline: "+$12.40 (+1.03%)" and, for
  * screen readers, the range it covers, "past 30 days". Signed like a ticker,
  * so the sign is never lost in the formatting; a percent only when the model
- * gave one.
+ * gave one. A move under a cent (a small wallet's week of yield) says so
+ * rather than printing "$0.00" beside a non-zero percent.
  */
 export function balanceChangeLine({ change, range }: { change: BalanceChange; range: HistoryRange }): {
   figure: string;
   caption: string;
 } {
-  const sign = change.deltaD18 > 0n ? '+' : '';
+  const magnitude = change.deltaD18 < 0n ? -change.deltaD18 : change.deltaD18;
+  const underCent = magnitude > 0n && magnitude < CENT;
+  const sign = change.deltaD18 < 0n ? '-' : change.deltaD18 > 0n && !underCent ? '+' : '';
+  const amount = underCent ? '<$0.01' : formatUsdD18(magnitude);
   const percent =
     change.percent === undefined ? '' : ` (${change.percent > 0 ? '+' : ''}${change.percent.toFixed(2)}%)`;
-  return { figure: `${sign}${formatUsdD18(change.deltaD18)}${percent}`, caption: RANGE_CAPTIONS[range] };
+  return { figure: `${sign}${amount}${percent}`, caption: RANGE_CAPTIONS[range] };
+}
+
+/**
+ * A gridline's label: the full figure with thousands separators and the
+ * step's decimals, no currency sign. Not the vault chart's compact "1.14M":
+ * a tight window on a large balance steps by hundreds, and the compact form
+ * would print the same label on every line.
+ */
+export function axisTickLabel({ value, step }: { value: number; step: number }): string {
+  const decimals = step >= 1 ? 0 : stepDecimals(step);
+  return value.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
