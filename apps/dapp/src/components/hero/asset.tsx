@@ -14,9 +14,6 @@ export const HeroAsset = React.forwardRef<SVGSVGElement, IconProps>(
         {...props}
         ref={forwardedRef}
       >
-        <g opacity="0.2" filter="url(#filter0_f_11179_3714)">
-          <ellipse cx="372.755" cy="169.386" rx="132.051" ry="89.6386" fill="#F9D2B6" />
-        </g>
         <path
           d="M499.16 120.503L424.381 108.999L402.52 65.4256L325.489 54L270.941 85.3282L194.647 73.534L139.362 106.705V161.763L103 181.923V787.427L124.872 833.413L199.12 845.039L220.578 889.619L296.543 902.24L352.336 868.764L428.73 880.44L484.523 846.848V792.45L519.867 769.419V165.37L499.16 120.503Z"
           fill="url(#paint0_linear_11179_3714)"
@@ -74,19 +71,6 @@ export const HeroAsset = React.forwardRef<SVGSVGElement, IconProps>(
           />
         </g>
         <defs>
-          <filter
-            id="filter0_f_11179_3714"
-            x="0.704086"
-            y="-160.253"
-            width="744.102"
-            height="659.277"
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feFlood floodOpacity="0" result="BackgroundImageFix" />
-            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-            <feGaussianBlur stdDeviation="120" result="effect1_foregroundBlur_11179_3714" />
-          </filter>
           <linearGradient
             id="paint0_linear_11179_3714"
             x1="311.434"
