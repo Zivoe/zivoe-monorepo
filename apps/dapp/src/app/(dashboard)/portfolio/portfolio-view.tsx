@@ -100,8 +100,15 @@ function WalletPortfolio({
   });
   const shareClass = identities[0].centrifugeVault.shareClass;
   // The share token's whereabouts once every chain has answered: the chart names what sits outside the wallet.
+  // `tokens` lists only what the wallet holds, so no share row means zero, not "still loading".
   const shareAmounts =
-    portfolio.totalD18 === null ? undefined : portfolio.tokens.find((token) => token.kind === 'share');
+    portfolio.totalD18 === null
+      ? undefined
+      : (portfolio.tokens.find((token) => token.kind === 'share') ?? {
+          wallet: 0n,
+          inRedemption: 0n,
+          readyToClaim: 0n
+        });
 
   return (
     <>
