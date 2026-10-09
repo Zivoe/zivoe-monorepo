@@ -20,9 +20,9 @@ import { failedReadsLabel } from './format';
 
 /** The three places money can be, in the order the hero and its skeleton print them. */
 const BUCKETS = [
-  { key: 'wallet', label: 'In your wallet', note: 'Available right now' },
-  { key: 'inRedemption', label: 'In redemption', note: 'Requests and approvals in progress' },
-  { key: 'readyToClaim', label: 'Ready to claim', note: 'Claimable in the vault' }
+  { key: 'wallet', label: 'In your wallet' },
+  { key: 'inRedemption', label: 'In redemption' },
+  { key: 'readyToClaim', label: 'Ready to claim' }
 ] as const;
 
 const HERO_CLASSES = {
@@ -37,7 +37,6 @@ const HERO_CLASSES = {
   bucket: 'bg-element-primary/70 px-4 py-3',
   bucketLabel: 'text-small opacity-80',
   bucketValue: 'mt-1 font-heading! text-h6',
-  bucketNote: 'mt-0.5 text-extraSmall opacity-70',
   status: 'min-h-5'
 };
 
@@ -116,13 +115,12 @@ export function PortfolioHero({
         </dl>
 
         <dl className={HERO_CLASSES.buckets}>
-          {bucketRows.map(({ label, value, note }) => (
+          {bucketRows.map(({ label, value }) => (
             <div key={label} className={HERO_CLASSES.bucket}>
               <dt className={HERO_CLASSES.bucketLabel}>{label}</dt>
               <dd className={HERO_CLASSES.bucketValue}>
                 <Figure value={value ?? null} failed={unavailable} skeletonClassName="w-24" />
               </dd>
-              <dd className={HERO_CLASSES.bucketNote}>{note}</dd>
             </div>
           ))}
         </dl>
@@ -195,13 +193,12 @@ export function PortfolioHeroSkeleton() {
         </dl>
 
         <dl className={HERO_CLASSES.buckets}>
-          {BUCKETS.map(({ key, label, note }) => (
+          {BUCKETS.map(({ key, label }) => (
             <div key={key} className={HERO_CLASSES.bucket}>
               <dt className={HERO_CLASSES.bucketLabel}>{label}</dt>
               <dd className={HERO_CLASSES.bucketValue}>
                 <TextSkeleton className={cn('w-24', pulse)} />
               </dd>
-              <dd className={HERO_CLASSES.bucketNote}>{note}</dd>
             </div>
           ))}
         </dl>

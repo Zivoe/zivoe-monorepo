@@ -57,7 +57,7 @@ describe('PortfolioHero', () => {
     expect(screen.getByText('$55.00')).toBeTruthy();
     expect(screen.getByText('$2.00')).toBeTruthy();
     expect(screen.getByText('$0.00')).toBeTruthy();
-    expect(screen.getByText('Claimable in the vault')).toBeTruthy();
+    expect(screen.getByText('Ready to claim')).toBeTruthy();
   });
 
   it('pulses while chains are still answering, and names them only once the settle window has run out', () => {
