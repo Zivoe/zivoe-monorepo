@@ -118,7 +118,6 @@ function WalletPortfolio({
         isPreview={isPreview}
         portfolio={portfolio}
         isHolding={isHolding}
-        shareSymbol={shareClass.symbol}
         refetch={refetch}
         isRefetching={isRefetching}
       />

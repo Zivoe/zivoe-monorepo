@@ -47,7 +47,7 @@ function positionsOf(reads: { sepolia?: ReadState<RedemptionPosition>; base?: Re
 }
 
 describe('buildPortfolio', () => {
-  it('buckets wallet, in-redemption and ready-to-claim amounts and prices them once', () => {
+  it('splits wallet, in-redemption and ready-to-claim amounts and prices them once', () => {
     const portfolio = buildPortfolio({
       identities: [SEPOLIA, BASE],
       balances: balancesOf({
@@ -77,14 +77,9 @@ describe('buildPortfolio', () => {
     expect(usdc).toMatchObject({ wallet: 8n * D18, inRedemption: D18 / 2n, readyToClaim: 4n * D18 });
     expect(usdc?.valueD18).toBe((125n * D18) / 10n); // 12.5 USDC at face
 
-    expect(portfolio.buckets).toEqual({
-      wallet: 2n * PRICE + 8n * D18, // 2 zFIX × 1.10 + 8 USDC
-      inRedemption: PRICE + D18 / 2n, // 1 zFIX × 1.10 + 0.5 USDC
-      readyToClaim: (27n * D18) / 100n + 4n * D18 // 0.25 zFIX × 1.10 = 0.275, cut to 0.27, + 4 USDC
-    });
-    expect(portfolio.totalD18).toBe(
-      portfolio.buckets!.wallet + portfolio.buckets!.inRedemption + portfolio.buckets!.readyToClaim
-    );
+    // The token rows' values, which are the per-network cells summed, add up to the total exactly.
+    expect(portfolio.totalD18).toBe(share!.valueD18! + usdc!.valueD18!);
+    expect(portfolio.totalD18).toBe((1607n * D18) / 100n); // 3.57 + 12.50
     expect(portfolio.redemptions.map((entry) => [entry.identity.centrifugeVault.chain, entry.state.kind])).toEqual([
       ['sepolia', 'unfunded'],
       ['sepolia', 'processing'],
@@ -114,7 +109,6 @@ describe('buildPortfolio', () => {
       sharePrice: PRICE
     });
     expect(pendingRead.totalD18).toBeNull();
-    expect(pendingRead.buckets).toBeNull();
     expect(pendingRead.pendingChains).toEqual(['base-sepolia']);
 
     const failedRead = buildPortfolio({
@@ -136,7 +130,6 @@ describe('buildPortfolio', () => {
       sharePrice: PRICE
     });
     expect(everyChainFailed.totalD18).toBeNull();
-    expect(everyChainFailed.buckets).toBeNull();
     expect(everyChainFailed.failedChains).toEqual(['sepolia', 'base-sepolia']);
   });
 

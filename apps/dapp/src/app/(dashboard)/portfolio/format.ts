@@ -18,7 +18,7 @@ export function failedReadsLabel({
     .join(' and ');
 }
 
-/** The lines under a balance: what of this coin is in flight, in the hero's own words. */
+/** The lines under a balance: what of this coin is in flight. */
 export function amountNotes(amounts: Amounts, symbol: string): Array<string> {
   const notes: Array<string> = [];
   if (amounts.inRedemption > 0n) notes.push(`${formatAmount(amounts.inRedemption, symbol)} in redemption`);
@@ -28,9 +28,9 @@ export function amountNotes(amounts: Amounts, symbol: string): Array<string> {
 
 /**
  * What follows the chart's share figure: "in your wallet, excluding …". The
- * chart plots what the wallet holds while the hero's share figure also counts
- * what sits in the vault, so the line names that difference whenever there
- * is one; `shareAmounts` is undefined until every chain has answered.
+ * chart plots what the wallet holds while the hero's total and the Tokens
+ * row also count what sits in the vault, so the line names that difference
+ * whenever there is one; `shareAmounts` is undefined until every chain has answered.
  */
 export function balanceChartSubtitle({
   shareSymbol,

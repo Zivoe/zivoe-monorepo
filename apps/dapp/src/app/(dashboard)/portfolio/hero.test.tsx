@@ -13,37 +13,13 @@ const ADDRESS = '0xb8DA328A4edB64af841C6bb72b55988e9abeB172';
 afterEach(cleanup);
 
 describe('PortfolioHero', () => {
-  it('prints the total, the families and the buckets from the one model', () => {
+  it('prints the title, the address and the total', () => {
     render(
       <PortfolioHero
         address={ADDRESS}
         isPreview={false}
         isHolding={false}
-        shareSymbol="zSMB"
-        portfolio={portfolioOf({
-          tokens: [
-            {
-              symbol: 'zSMB',
-              kind: 'share',
-              wallet: 0n,
-              inRedemption: 0n,
-              readyToClaim: 0n,
-              valueD18: 4n * D18,
-              networks: []
-            },
-            {
-              symbol: 'USDC',
-              kind: 'asset',
-              wallet: 0n,
-              inRedemption: 0n,
-              readyToClaim: 0n,
-              valueD18: 53n * D18,
-              networks: []
-            }
-          ],
-          totalD18: 57n * D18,
-          buckets: { wallet: 55n * D18, inRedemption: 2n * D18, readyToClaim: 0n }
-        })}
+        portfolio={portfolioOf({ totalD18: 57n * D18 })}
         refetch={vi.fn()}
         isRefetching={false}
       />
@@ -52,22 +28,15 @@ describe('PortfolioHero', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('My Portfolio');
     expect(screen.getByText('0xb8DA...B172')).toBeTruthy();
     expect(screen.getByText('$57.00')).toBeTruthy();
-    expect(screen.getByText('$4.00')).toBeTruthy();
-    expect(screen.getByText('$53.00')).toBeTruthy();
-    expect(screen.getByText('$55.00')).toBeTruthy();
-    expect(screen.getByText('$2.00')).toBeTruthy();
-    expect(screen.getByText('$0.00')).toBeTruthy();
-    expect(screen.getByText('Ready to claim')).toBeTruthy();
   });
 
   it('pulses while chains are still answering, and names them only once the settle window has run out', () => {
-    const pending = portfolioOf({ totalD18: null, buckets: null, pendingChains: ['base-sepolia'] });
+    const pending = portfolioOf({ totalD18: null, pendingChains: ['base-sepolia'] });
     const { rerender } = render(
       <PortfolioHero
         address={ADDRESS}
         isPreview
         isHolding
-        shareSymbol="zSMB"
         portfolio={pending}
         refetch={vi.fn()}
         isRefetching={false}
@@ -83,7 +52,6 @@ describe('PortfolioHero', () => {
         address={ADDRESS}
         isPreview
         isHolding={false}
-        shareSymbol="zSMB"
         portfolio={pending}
         refetch={vi.fn()}
         isRefetching={false}
@@ -92,35 +60,32 @@ describe('PortfolioHero', () => {
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
   });
 
-  it('settles every figure on a dash when the share price is missing', () => {
+  it('settles the figure on a dash when the share price is missing', () => {
     render(
       <PortfolioHero
         address={ADDRESS}
         isPreview={false}
         isHolding={false}
-        shareSymbol="zSMB"
-        portfolio={portfolioOf({ totalD18: null, buckets: null, isPriceFailed: true })}
+        portfolio={portfolioOf({ totalD18: null, isPriceFailed: true })}
         refetch={vi.fn()}
         isRefetching={false}
       />
     );
 
-    expect(screen.getAllByText('—')).toHaveLength(6); // total, two families, three buckets
+    expect(screen.getByText('—')).toBeTruthy();
     expect(screen.getByText(/Share price unavailable/)).toBeTruthy();
   });
 
-  it('leaves a failed chain out of the figures, says so, and offers a retry', () => {
+  it('leaves a failed chain out of the figure, says so, and offers a retry', () => {
     const refetch = vi.fn();
     render(
       <PortfolioHero
         address={ADDRESS}
         isPreview={false}
         isHolding={false}
-        shareSymbol="zSMB"
         portfolio={portfolioOf({
           chains: ['sepolia', 'base-sepolia'],
           totalD18: 57n * D18,
-          buckets: { wallet: 55n * D18, inRedemption: 2n * D18, readyToClaim: 0n },
           failedChains: ['sepolia'],
           failedBalanceChains: ['sepolia']
         })}
@@ -130,9 +95,8 @@ describe('PortfolioHero', () => {
     );
 
     expect(screen.getByText('$57.00')).toBeTruthy();
-    expect(screen.getByText('$55.00')).toBeTruthy();
     expect(screen.queryByText('—')).toBeNull();
-    expect(screen.getByText(/Could not load Ethereum; these figures leave it out\./)).toBeTruthy();
+    expect(screen.getByText(/Could not load Ethereum; this figure leaves it out\./)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
@@ -144,11 +108,9 @@ describe('PortfolioHero', () => {
         address={ADDRESS}
         isPreview={false}
         isHolding={false}
-        shareSymbol="zSMB"
         portfolio={portfolioOf({
           chains: [...chains],
           totalD18: null,
-          buckets: null,
           failedChains: [...chains],
           failedPositionChains: [...chains]
         })}
@@ -158,18 +120,16 @@ describe('PortfolioHero', () => {
     );
     expect(screen.getByText(/Could not load your positions\./)).toBeTruthy();
     expect(screen.queryByText(/Ethereum/)).toBeNull();
-    expect(screen.getAllByText('—')).toHaveLength(6); // nothing honest to print: total, two families, three buckets
+    expect(screen.getByText('—')).toBeTruthy(); // nothing honest to print
 
     rerender(
       <PortfolioHero
         address={ADDRESS}
         isPreview={false}
         isHolding={false}
-        shareSymbol="zSMB"
         portfolio={portfolioOf({
           chains: [...chains],
           totalD18: null,
-          buckets: null,
           failedChains: [...chains],
           failedBalanceChains: [...chains],
           failedPositionChains: [...chains]

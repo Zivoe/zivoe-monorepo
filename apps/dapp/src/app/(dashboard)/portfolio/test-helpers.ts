@@ -7,7 +7,6 @@ export function portfolioOf(overrides: Partial<Portfolio> = {}): Portfolio {
     tokens: [],
     redemptions: [],
     totalD18: 0n,
-    buckets: { wallet: 0n, inRedemption: 0n, readyToClaim: 0n },
     pendingChains: [],
     failedChains: [],
     failedBalanceChains: [],

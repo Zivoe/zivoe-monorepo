@@ -100,13 +100,12 @@ export type Portfolio = {
   /** Every redemption state across every vault, in deployment order — the Pending tab's strips, as data. */
   redemptions: Array<RedemptionEntry>;
   /**
-   * USD, 18 decimals; null until every read has answered or failed and the
-   * share price is known. A failed chain's reads count as nothing (the hero
-   * says so); only every chain failing withholds the figure.
+   * USD, 18 decimals, of every coin wherever it sits — wallet, redemption
+   * queue, ready to claim; null until every read has answered or failed and
+   * the share price is known. A failed chain's reads count as nothing (the
+   * hero says so); only every chain failing withholds the figure.
    */
   totalD18: bigint | null;
-  /** The total split by where the money is; null with the total. */
-  buckets: { wallet: bigint; inRedemption: bigint; readyToClaim: bigint } | null;
   /** Chains with a balance or position read still on its first answer. */
   pendingChains: Array<CentrifugeChain>;
   /** Chains with a failed read and no earlier answer to fall back on. */
@@ -211,13 +210,13 @@ export function buildPortfolio({
   // one-unit-one-dollar reading the deposit and redeem flows use.
   const priceOf = (kind: 'share' | 'asset') => (kind === 'share' ? sharePrice : D18);
   // Every USD figure on the page is a sum of these cells, each cut to the cent
-  // first, so the buckets add up to the total and the token rows to the
-  // families exactly as printed — never a cent apart. Truncated like the
-  // amounts beside them, so a coin's dollar figure never reads above its amount.
+  // first, so the token rows add up to the hero's total exactly as printed —
+  // never a cent apart. Truncated like the amounts beside them, so a coin's
+  // dollar figure never reads above its amount.
   const cents = (amount: bigint, price: bigint) => truncateToCents((amount * price) / D18);
 
   const holdings: Array<TokenHolding> = [];
-  const buckets = { wallet: 0n, inRedemption: 0n, readyToClaim: 0n };
+  let totalD18 = 0n;
   for (const [symbol, row] of rows) {
     const networks: Array<NetworkHolding> = [];
     const total = zero();
@@ -227,15 +226,9 @@ export function buildPortfolio({
       if (sum(amounts) === 0n) continue;
       let networkValue: bigint | null = null;
       if (price !== undefined) {
-        const cell = {
-          wallet: cents(amounts.wallet, price),
-          inRedemption: cents(amounts.inRedemption, price),
-          readyToClaim: cents(amounts.readyToClaim, price)
-        };
-        buckets.wallet += cell.wallet;
-        buckets.inRedemption += cell.inRedemption;
-        buckets.readyToClaim += cell.readyToClaim;
-        networkValue = sum(cell);
+        networkValue =
+          cents(amounts.wallet, price) + cents(amounts.inRedemption, price) + cents(amounts.readyToClaim, price);
+        totalD18 += networkValue;
         valueD18! += networkValue;
       }
       networks.push({ chain, ...amounts, valueD18: networkValue });
@@ -260,8 +253,7 @@ export function buildPortfolio({
     chains,
     tokens: holdings,
     redemptions,
-    totalD18: settled ? sum(buckets) : null,
-    buckets: settled ? buckets : null,
+    totalD18: settled ? totalD18 : null,
     pendingChains: ordered(pendingChains),
     failedChains: ordered(failedChains),
     failedBalanceChains: ordered(failedBalanceChains),

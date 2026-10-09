@@ -18,8 +18,8 @@ import { TokenNetworksDialog } from './token-networks-dialog';
 /**
  * Every coin the wallet holds or has in flight, across all networks. The
  * balance is what the wallet holds; the lines under it say what of that
- * coin is in redemption or ready to claim, so the row and the hero's
- * buckets describe the same money. Rows appear once every chain has
+ * coin is in redemption or ready to claim, and the rows' values add up to
+ * the hero's total to the cent. Rows appear once every chain has
  * answered (or the settle window has run out) — never a figure that grows
  * as chains land.
  */
