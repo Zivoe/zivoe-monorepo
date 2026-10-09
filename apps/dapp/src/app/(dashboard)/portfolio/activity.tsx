@@ -17,6 +17,7 @@ import { formatBigIntWithCommas } from '@/lib/utils';
 
 import { formatDayLabel } from '@/components/chart/axis';
 import TextSkeleton from '@/components/text-skeleton';
+import { getTokenInfo } from '@/components/token-info';
 
 import { type TransactionIdentity } from '@/centrifuge';
 import { type ActivityEntry, type ActivityKind, usePortfolioActivity } from '@/portfolio';
@@ -34,6 +35,16 @@ const LABELS: Record<ActivityKind, string> = {
 };
 
 const RECENT_COUNT = 5;
+
+/**
+ * A row lays out by the list's own width, not the viewport's: under 24rem
+ * (a phone, or the card beside a wide figure) the amount takes its own line
+ * under the label, so a six-figure conversion never runs into the date;
+ * from 24rem the two sit side by side, the label block keeping its width
+ * and the figure breaking at its arrow when it must.
+ */
+const ROW_CLASSES =
+  'flex flex-col gap-1 border-b border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0 @sm:flex-row @sm:items-center @sm:justify-between @sm:gap-4';
 
 /** What happened to the wallet's shares, newest first; the dialog walks the whole history. */
 export function Activity({
@@ -83,7 +94,7 @@ export function Activity({
             No activity yet. Deposits, redemption requests and claims will appear here.
           </p>
         ) : (
-          <ul className="flex flex-col">
+          <ul className="@container flex flex-col">
             {recent.map((entry) => (
               <ActivityRow key={entry.id} entry={entry} share={share} />
             ))}
@@ -125,7 +136,7 @@ function AllActivityList({
     >
       {/* Room between the figures and the scrollbar, and the same inset the networks dialog gives its rows. */}
       <div className="flex flex-col py-3 pr-5">
-        <ul className="flex flex-col">
+        <ul className="@container flex flex-col">
           {feed.entries.map((entry) => (
             <ActivityRow key={entry.id} entry={entry} share={share} />
           ))}
@@ -144,14 +155,11 @@ function AllActivityList({
 /** Rows shaped like ActivityRow: a label over the chain and date, the amount on the right. */
 export function ActivitySkeletonRows({ count = RECENT_COUNT }: { count?: number }) {
   return (
-    <ul aria-busy="true" aria-label="Loading activity" className="flex flex-col">
+    <ul aria-busy="true" aria-label="Loading activity" className="@container flex flex-col">
       {Array.from({ length: count }, (_, index) => (
-        <li
-          key={index}
-          className="flex items-center justify-between gap-4 border-b border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0"
-        >
+        <li key={index} className={ROW_CLASSES}>
           {/* Each pulse sits inside the text line it stands in for, so the rows keep the loaded rows' height and spacing. */}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex shrink-0 flex-col gap-0.5">
             <p className="text-small">
               <TextSkeleton className="w-36" />
             </p>
@@ -194,13 +202,20 @@ function ActivityRow({
   const shares =
     entry.shares === null
       ? null
-      : `${formatBigIntWithCommas({ value: entry.shares, tokenDecimals: share.decimals, displayDecimals: 2, showUnderZero: true })} ${share.symbol}`;
+      : {
+          symbol: share.symbol,
+          text: `${formatBigIntWithCommas({ value: entry.shares, tokenDecimals: share.decimals, displayDecimals: 2, showUnderZero: true })} ${share.symbol}`
+        };
   const assets =
     entry.assets === null
       ? null
-      : `${formatBigIntWithCommas({ value: entry.assets.amount, tokenDecimals: entry.assets.decimals, displayDecimals: 2, showUnderZero: true })} ${entry.assets.symbol}`;
+      : {
+          symbol: entry.assets.symbol,
+          text: `${formatBigIntWithCommas({ value: entry.assets.amount, tokenDecimals: entry.assets.decimals, displayDecimals: 2, showUnderZero: true })} ${entry.assets.symbol}`
+        };
   // Conversions read left to right in the direction the money moved. Each
-  // side stays whole, so on a narrow phone the figure breaks at the arrow.
+  // side stays whole, with its coin's icon, so on a narrow phone the figure
+  // breaks at the arrow.
   const amountParts = (
     entry.kind === 'deposit'
       ? [assets, shares]
@@ -209,11 +224,11 @@ function ActivityRow({
         : entry.kind === 'proceeds-claimed'
           ? [assets]
           : [shares]
-  ).filter((part): part is string => part !== null);
+  ).filter((part) => part !== null);
 
   return (
-    <li className="flex items-start justify-between gap-4 border-b border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
-      <div className="flex min-w-0 flex-col gap-0.5">
+    <li className={ROW_CLASSES}>
+      <div className="flex shrink-0 flex-col gap-0.5">
         <p className="text-small font-medium text-primary">
           {entry.unresolved ? (
             <TextSkeleton className="w-24" />
@@ -233,17 +248,20 @@ function ActivityRow({
         </p>
         {/* The chain and date never wrap; on a narrow phone a two-amount figure breaks at its arrow instead. */}
         <p className="flex items-center gap-1.5 text-extraSmall whitespace-nowrap text-secondary">
-          <Icon className="size-4 rounded-full" />
+          <Icon className="size-4 shrink-0 rounded-full" />
           {chainLabel}
           <span aria-hidden="true">·</span>
           <time dateTime={new Date(entry.timestampMs).toISOString()}>{formatDayLabel(entry.timestampMs)}</time>
         </p>
       </div>
-      <p className="text-right text-small text-primary tabular-nums">
+      <p className="text-small text-primary tabular-nums @sm:text-right">
         {amountParts.map((part, index) => (
           <Fragment key={index}>
             {index > 0 && ' → '}
-            <span className="whitespace-nowrap">{part}</span>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap align-bottom">
+              <span className="[&_svg]:size-4">{getTokenInfo(part.symbol)?.icon}</span>
+              {part.text}
+            </span>
           </Fragment>
         ))}
       </p>
