@@ -36,6 +36,7 @@ export const Variants: Story = {
       <Badge variant="primary" {...props} />
       <Badge variant="secondary" {...props} />
       <Badge variant="neutral" {...props} />
+      <Badge variant="success" {...props} />
       <Badge variant="warning" {...props} />
       <Badge variant="alert" {...props} />
     </div>

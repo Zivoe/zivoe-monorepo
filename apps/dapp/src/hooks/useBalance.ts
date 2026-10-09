@@ -65,16 +65,22 @@ export const useBalance = ({
 export type TokenOnChain = { chain: CentrifugeChain; tokenAddress: Address };
 
 /**
- * The connected wallet's balances of several tokens across chains at once,
- * for ordering selector rows; the same query per token as useBalance. Returns
- * a lookup that is undefined while a balance is unknown (no wallet, loading,
- * failed), so callers treat "unknown" as nothing to sort by, not as zero.
+ * One balance query per token across chains, in the given order, for a
+ * surface that needs each read's own state (loading, failed, refetch) — the
+ * portfolio. The connected wallet unless `accountAddress` names another.
  */
-export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: TokenOnChain) => bigint | undefined {
-  const { address: holder } = useAccount();
+export function useTokenBalanceQueries({
+  tokens,
+  accountAddress
+}: {
+  tokens: ReadonlyArray<TokenOnChain>;
+  accountAddress?: Address;
+}) {
+  const { address: connectedAddress } = useAccount();
   const config = useConfig();
+  const holder = accountAddress ?? connectedAddress;
 
-  const results = useQueries({
+  return useQueries({
     queries: tokens.map(({ chain, tokenAddress }) =>
       balanceQueryOptions({
         chain,
@@ -85,6 +91,16 @@ export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: T
       })
     )
   });
+}
+
+/**
+ * The connected wallet's balances of several tokens across chains at once,
+ * for ordering selector rows; the same query per token as useBalance. Returns
+ * a lookup that is undefined while a balance is unknown (no wallet, loading,
+ * failed), so callers treat "unknown" as nothing to sort by, not as zero.
+ */
+export function useTokenBalances(tokens: ReadonlyArray<TokenOnChain>): (token: TokenOnChain) => bigint | undefined {
+  const results = useTokenBalanceQueries({ tokens });
 
   const balances = new Map(
     tokens.map(({ chain, tokenAddress }, index) => [balanceKey({ chain, tokenAddress }), results[index]?.data])

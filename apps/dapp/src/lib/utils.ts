@@ -67,6 +67,10 @@ export const formatBigIntWithCommas = ({
   return showUnderZero && value !== 0n && displayDecimals === 2 && formatted === '0.00' ? '<0.01' : formatted;
 };
 
+/** A USD figure from an 18-decimal value, cents truncated like every amount in the app. */
+export const formatUsdD18 = (value: bigint) =>
+  `${value < 0n ? '-' : ''}$${formatBigIntWithCommas({ value: value < 0n ? -value : value, tokenDecimals: 18, displayDecimals: 2 })}`;
+
 export const roundTo4 = (n: number) => Math.round(n * 10000) / 10000;
 
 const HTML_ENTITIES: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;' };

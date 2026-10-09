@@ -1,18 +1,15 @@
 'use client';
 
-import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
-import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
-import { Skeleton } from '@zivoe/ui/core/skeleton';
-import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { useAccount } from '@/hooks/useAccount';
 import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
+import { RedemptionChainGroup, RedemptionGroupSkeleton, StillChecking } from '@/components/redemption-item';
 
 import { useInvestorAccess } from '@/centrifuge';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
@@ -41,9 +38,10 @@ export default function PendingFlow() {
       </div>
     );
 
-  // A skeleton until the wallet SDK has settled and the first vault has
-  // answered; the chains still reading are named below whatever has landed.
-  if (!account.address || isPending) return <RequestsSkeleton />;
+  // A skeleton until the wallet SDK has settled and every vault has answered,
+  // or the settle window has run out; past it, whatever has landed shows with
+  // the chains still reading named below.
+  if (!account.address || isPending) return <RedemptionGroupSkeleton />;
 
   // Every read failing at once is one outage (the indexer, which every vault
   // resolves through), not a position problem on each of ten chains.
@@ -59,12 +57,12 @@ export default function PendingFlow() {
 
   if (chains.length === 0)
     return (
-      <div className="flex flex-col gap-2 py-6 text-center text-small text-secondary">
-        <p>
+      <div className="flex flex-col gap-2 py-6 text-center text-secondary">
+        <p className="text-small">
           No redemption requests. Requests you make on the Redeem tab, funds ready to claim, and cancellations in
           progress will appear here.
         </p>
-        <StillChecking chains={pendingChains} />
+        <StillChecking chains={pendingChains} className="text-small" />
       </div>
     );
 
@@ -89,29 +87,6 @@ export default function PendingFlow() {
   );
 }
 
-/** Names the chains whose first position read is still in flight; nothing once all have answered. */
-function StillChecking({ chains, className }: { chains: Array<CentrifugeChain>; className?: string }) {
-  if (chains.length === 0) return null;
-  return (
-    <p aria-live="polite" className={cn('text-secondary', className)}>
-      Still checking {chains.map((chain) => CHAIN_DISPLAY[chain].label).join(', ')}…
-    </p>
-  );
-}
-
-/** A chain group's silhouette, so loading and loaded share a layout: one header and one strip at a strip's real height. */
-function RequestsSkeleton() {
-  return (
-    <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 px-1 py-2">
-        <Skeleton className="size-5 rounded-full" />
-        <Skeleton className="h-5 w-24 rounded-sm" />
-      </div>
-      <Skeleton className="h-16.5 w-full rounded-sm" />
-    </div>
-  );
-}
-
 /**
  * One chain's positions. Access verdicts are a share-token fact, so they are
  * read once here and handed to every vault's strips; taking the chain switch
@@ -120,7 +95,7 @@ function RequestsSkeleton() {
 function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
   const { chain, entries, count } = group;
   const [first] = entries;
-  const { label, Icon } = CHAIN_DISPLAY[chain];
+  const { label } = CHAIN_DISPLAY[chain];
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -140,37 +115,19 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
     : undefined;
 
   return (
-    <Disclosure defaultExpanded className="py-0">
-      <DisclosureHeader className="px-1 py-2 text-regular! font-medium hover:no-underline">
-        <span className="flex items-center gap-2">
-          <Icon className="size-5 rounded-full" />
-          {label}
-          <span className="rounded-full bg-surface-elevated px-2 py-0.5 text-extraSmall font-medium text-secondary tabular-nums">
-            {count}
-          </span>
-        </span>
-      </DisclosureHeader>
-
-      <DisclosurePanel>
-        <div className="flex flex-col gap-2 pb-2">
-          {entries.some((entry) => entry.isError) && (
-            <Callout variant="warning">Could not load every position on {label}.</Callout>
-          )}
-
-          {entries.map(({ identity }) => (
-            <RedemptionPositionStrips
-              key={identity.centrifugeVault.address}
-              identity={identity}
-              labelAsset={entries.length > 1}
-              gates={gates}
-              sharePrice={sharePrice}
-              isWriteBlocked={isWriteBlocked}
-              switchChain={switchChain}
-              onSuccessClose={() => setIsEarnDialogOpen(false)}
-            />
-          ))}
-        </div>
-      </DisclosurePanel>
-    </Disclosure>
+    <RedemptionChainGroup chain={chain} count={count} hasFailedRead={entries.some((entry) => entry.isError)}>
+      {entries.map(({ identity }) => (
+        <RedemptionPositionStrips
+          key={identity.centrifugeVault.address}
+          identity={identity}
+          labelAsset={entries.length > 1}
+          gates={gates}
+          sharePrice={sharePrice}
+          isWriteBlocked={isWriteBlocked}
+          switchChain={switchChain}
+          onSuccessClose={() => setIsEarnDialogOpen(false)}
+        />
+      ))}
+    </RedemptionChainGroup>
   );
 }

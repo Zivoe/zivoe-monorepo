@@ -37,6 +37,9 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     // Vercel Preview only: enables POST /api/agent-sign-in (see docs/runbooks/agent-sign-in.md)
     AGENT_SIGN_IN_SECRET: z.string().min(32).optional(),
+    // Local and Preview only: shows the portfolio page's read-only switcher over a fixed set of
+    // investor wallets (see server/data/portfolio-preview-wallets.ts). Never on Production.
+    PORTFOLIO_PREVIEW_WALLETS_ENABLED: z.enum(['true', 'false']).optional(),
     // Signs the Lighthouse pass cookie; the same value is set in the Lighthouse project (see lib/lighthouse.ts)
     LIGHTHOUSE_PASS_SECRET: z.string().min(32).optional(),
     // Production only: pins the origin links and jobs name (server/utils/base-url.ts). Ignored elsewhere.
@@ -118,6 +121,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     AGENT_SIGN_IN_SECRET: process.env.AGENT_SIGN_IN_SECRET,
+    PORTFOLIO_PREVIEW_WALLETS_ENABLED: process.env.PORTFOLIO_PREVIEW_WALLETS_ENABLED,
     LIGHTHOUSE_PASS_SECRET: process.env.LIGHTHOUSE_PASS_SECRET,
     APP_URL: process.env.APP_URL,
     OAUTH_PROXY_SECRET: process.env.OAUTH_PROXY_SECRET,

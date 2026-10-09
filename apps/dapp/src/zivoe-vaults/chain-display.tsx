@@ -10,6 +10,16 @@ import { type ZivoeVault } from './zivoe-vault';
 export const CHAIN_DISPLAY: Record<CentrifugeChain, ChainDisplay> = UI_CHAIN_DISPLAY;
 
 /**
+ * "Ethereum, Base" — the chains a status line names. Past two, the rest are
+ * counted ("Ethereum, Base and 9 more") so the line stays one line on a phone
+ * instead of listing every network the deployment serves.
+ */
+export function chainNames(chains: ReadonlyArray<CentrifugeChain>): string {
+  const labels = chains.map((chain) => CHAIN_DISPLAY[chain].label);
+  return labels.length <= 2 ? labels.join(', ') : `${labels[0]}, ${labels[1]} and ${labels.length - 2} more`;
+}
+
+/**
  * Chains the Zivoe Vault is live on IN THIS DEPLOYMENT (the catalog's live
  * chains on the active environment), deduped by display
  * family — the one derivation behind every "available networks" surface

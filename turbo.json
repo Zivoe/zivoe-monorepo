@@ -27,6 +27,7 @@
         "QSTASH_TOKEN",
         "BETTER_AUTH_SECRET",
         "AGENT_SIGN_IN_SECRET",
+        "PORTFOLIO_PREVIEW_WALLETS_ENABLED",
         "LIGHTHOUSE_PASS_SECRET",
         "VERCEL",
         "VERCEL_ENV",

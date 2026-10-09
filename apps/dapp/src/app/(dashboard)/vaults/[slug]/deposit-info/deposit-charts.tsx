@@ -1,9 +1,9 @@
 'use client';
 
-import { type ComponentProps, useState } from 'react';
+import { useState } from 'react';
 
 import { type Key } from 'react-aria-components';
-import { AreaChart, CartesianGrid, Area as ReArea, Text, XAxis, YAxis } from 'recharts';
+import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
 
 import { type ShareStatsPayload, getUtcDayStartSeconds } from '@zivoe/centrifuge-indexer';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
@@ -16,33 +16,11 @@ import { customNumber } from '@/lib/utils';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-import { CHART_TYPES, formatChartValue, formatDayTick, parseChartData } from './deposit-charts-data';
+import { DayTick } from '@/components/chart/day-tick';
+
+import { CHART_TYPES, formatChartValue, parseChartData } from './deposit-charts-data';
 
 const CHART_SELECT_ITEMS = CHART_TYPES.map((type, index) => ({ id: index, label: type }));
-
-// Recharts centers each label under its tick, which clips the edge labels
-// against the plot bounds — align the last one right (and a flush-left first
-// one left) instead. Passing through recharts' own Text keeps the default
-// tick styling.
-function DayTick({
-  index,
-  visibleTicksCount,
-  payload,
-  ...textProps
-}: {
-  index?: number;
-  visibleTicksCount?: number;
-  payload?: { value: number };
-} & Omit<ComponentProps<typeof Text>, 'children'>) {
-  const isLast = index === (visibleTicksCount ?? 0) - 1;
-  const isFlushLeft = index === 0 && Number(textProps.x ?? 0) <= 20;
-
-  return (
-    <Text {...textProps} textAnchor={isLast ? 'end' : isFlushLeft ? 'start' : 'middle'}>
-      {payload === undefined ? '' : formatDayTick(payload.value)}
-    </Text>
-  );
-}
 
 export default function DepositCharts({
   snapshots,

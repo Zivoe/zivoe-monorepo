@@ -5,13 +5,14 @@ import { type VariantProps } from 'tailwind-variants';
 import { tv } from '../../lib/tw-utils';
 
 export const badgeVariants = tv({
-  base: 'inline-flex items-center gap-2 rounded-sm px-1.5 py-1 text-small font-medium [&_svg]:size-4',
+  base: 'inline-flex items-center gap-2 rounded-sm px-1.5 py-1 text-small font-medium whitespace-nowrap [&_svg]:size-4',
 
   variants: {
     variant: {
       primary: 'bg-element-primary-gentle text-brand',
       secondary: 'bg-element-secondary-light text-brand-secondary',
       neutral: 'bg-element-neutral text-primary',
+      success: 'bg-element-success-light text-success',
       warning: 'bg-element-warning-light text-warning',
       alert: 'bg-element-secondary-light text-brand-secondary'
     }

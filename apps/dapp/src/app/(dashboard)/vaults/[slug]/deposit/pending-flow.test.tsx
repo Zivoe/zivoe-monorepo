@@ -5,7 +5,10 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { Provider as JotaiProvider } from 'jotai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SETTLE_WINDOW_MS } from '@/hooks/useSettleWindow';
+
 import { type RedemptionPosition, type TransactionIdentity } from '@/centrifuge';
+import type * as RedemptionStates from '@/centrifuge/redemption-states';
 import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
@@ -49,6 +52,8 @@ type RequestMocks = {
   isPending: boolean;
   /** Vault addresses (lowercase) whose first read is still in flight. */
   pending: Set<string>;
+  /** Vault addresses whose failed read is retrying: pending again with nothing cached. */
+  retrying: Set<string>;
   /** Set to model the wallet SDK not having settled yet. */
   isAccountPending: boolean;
 };
@@ -66,6 +71,7 @@ const mocks = vi.hoisted(
     failing: new Set<string>(),
     isPending: false,
     pending: new Set<string>(),
+    retrying: new Set<string>(),
     isAccountPending: false
   })
 );
@@ -90,7 +96,8 @@ vi.mock('@/hooks/useCurrentShareMetrics', () => ({
 vi.mock('@/components/connected-account', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children ?? 'Connect Wallet'}</div>
 }));
-vi.mock('@/centrifuge', () => {
+vi.mock('@/centrifuge', async () => {
+  const states = await vi.importActual<typeof RedemptionStates>('@/centrifuge/redemption-states');
   const positionOf = (address: string) => {
     const key = address.toLowerCase();
     return mocks.failing.has(key) ? undefined : { ...EMPTY_POSITION, ...mocks.positions[key] };
@@ -104,6 +111,7 @@ vi.mock('@/centrifuge', () => {
     hasPendingCancelRedeemRequest: false
   };
   return {
+    ...states,
     sharesToDepositAsset: ({
       shares,
       sharePrice,
@@ -128,11 +136,15 @@ vi.mock('@/centrifuge', () => {
     useRedemptionPositions: ({ centrifugeVaults }: { centrifugeVaults: Array<{ address: string }> }) =>
       centrifugeVaults.map((centrifugeVault) => {
         const isPending = mocks.isPending || mocks.pending.has(centrifugeVault.address.toLowerCase());
+        const isError = mocks.failing.has(centrifugeVault.address.toLowerCase());
+        const isRetrying = mocks.retrying.has(centrifugeVault.address.toLowerCase());
+        // A failed read retrying reads as TanStack reports it: pending again, nothing cached, one error behind it.
         return {
-          isError: mocks.failing.has(centrifugeVault.address.toLowerCase()),
-          isPending,
+          isError: isError && !isRetrying,
+          isPending: isPending || isRetrying,
+          errorUpdateCount: isError ? 1 : 0,
           refetch: mocks.refetchPositions,
-          data: isPending ? undefined : positionOf(centrifugeVault.address)
+          data: isPending || isError ? undefined : positionOf(centrifugeVault.address)
         };
       }),
     // Each write records the vault it was built for: a strip acting on the
@@ -223,6 +235,7 @@ beforeEach(() => {
   mocks.positions = {};
   mocks.failing = new Set();
   mocks.pending = new Set();
+  mocks.retrying = new Set();
   mocks.isPending = false;
   mocks.isAccountPending = false;
 });
@@ -256,8 +269,10 @@ describe('PendingFlow', () => {
     // Group headers name the chain and how many rows sit under it.
     expect(getButton(/^Ethereum\s*1$/)).toBeTruthy();
     expect(getButton(/^Base\s*1$/)).toBeTruthy();
-    expect(screen.getByText(/1,200\.00 USDC\s+ready to claim/)).toBeTruthy();
-    expect(screen.getByText(/500\.00 zSMB\s+processing/)).toBeTruthy();
+    expect(screen.getByText('1,200.00 USDC')).toBeTruthy();
+    expect(screen.getByText('Ready to claim')).toBeTruthy();
+    expect(screen.getByText('500.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Processing')).toBeTruthy();
   });
 
   it("acts on the wallet's own chain and offers the switch on every other chain's rows", async () => {
@@ -300,10 +315,10 @@ describe('PendingFlow', () => {
     renderRequests([SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC]);
 
     expect(getButton(/^Ethereum\s*2$/)).toBeTruthy();
-    expect(screen.getByText('USDC redemption')).toBeTruthy();
-    expect(screen.getByText('USDT redemption')).toBeTruthy();
+    expect(screen.getByText(/^USDC redemption/)).toBeTruthy();
+    expect(screen.getByText(/^USDT redemption/)).toBeTruthy();
     // Base holds one vault: no coin label needed there.
-    expect(screen.getAllByText(/redemption$/)).toHaveLength(2);
+    expect(screen.getAllByText(/^(USDC|USDT) redemption/)).toHaveLength(2);
 
     // The second coin's strip cancels in the second coin's vault, not the
     // chain's default.
@@ -318,14 +333,14 @@ describe('PendingFlow', () => {
     setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 2_000000n });
     renderRequests([SEPOLIA_USDC]);
 
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
     fireEvent.click(getButton(/^Ethereum\s*1$/));
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByText(/^Ready to claim$/)).toBeNull();
     fireEvent.click(getButton(/^Ethereum\s*1$/));
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
   });
 
-  it('shows a skeleton until the first vault answers, then says so when nothing is in flight', () => {
+  it('shows a skeleton while every vault is still reading, then says so when nothing is in flight', () => {
     mocks.isPending = true;
     const loading = renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
@@ -337,21 +352,34 @@ describe('PendingFlow', () => {
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
   });
 
-  // One dead RPC must not hide the other chains' answers behind the skeleton
-  // for a minute of retries — nor pass an empty tab off as a settled answer.
-  it('renders what has landed while a chain is still on its first read, and names that chain', () => {
+  // A slow chain keeps the skeleton up for the settle window — one answer, not a
+  // list that grows chain by chain — then the tab shows what has landed and
+  // names the straggler, so an empty tab is never passed off as settled. (A
+  // dead RPC fails, which ends the hold at once.)
+  it('holds the skeleton for the settle window while a chain is still on its first read, then names that chain', () => {
+    vi.useFakeTimers();
     setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 1_000000n });
     mocks.pending = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
     const withPosition = renderRequests([SEPOLIA_USDC, BASE_USDC]);
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Ready to claim$/)).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_WINDOW_MS);
+    });
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
     expect(screen.queryByText('Loading')).toBeNull();
     withPosition.unmount();
 
     mocks.positions = {};
     renderRequests([SEPOLIA_USDC, BASE_USDC]);
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_WINDOW_MS);
+    });
     expect(screen.getByText(/No redemption requests/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
+    vi.useRealTimers();
   });
 
   // Every vault resolves through the indexer, so an outage there fails all of
@@ -393,6 +421,21 @@ describe('PendingFlow', () => {
     const base = getButton(/^Base\s*0$/).closest('section');
     expect(base).toBeTruthy();
     expect(within(base!).getByText(/Could not load every position on Base/)).toBeTruthy();
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
+  });
+
+  // The strips mounting re-reads a failed vault, and a query with nothing
+  // cached reads as pending again while it retries: counted as a first read,
+  // that would re-arm the settle window, unmount the strips, and so on for good.
+  it('keeps the rows and the notice up while a failed read retries, instead of holding the skeleton again', () => {
+    setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 2_000000n });
+    mocks.failing = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
+    mocks.retrying = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
+    renderRequests([SEPOLIA_USDC, BASE_USDC]);
+
+    expect(screen.queryByText('Loading')).toBeNull();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
+    expect(screen.getByText(/Could not load every position on Base/)).toBeTruthy();
+    expect(screen.queryByText(/Still checking/)).toBeNull();
   });
 });

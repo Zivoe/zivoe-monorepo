@@ -1,0 +1,269 @@
+'use client';
+
+import { useState } from 'react';
+
+import { AreaChart, CartesianGrid, Area as ReArea, XAxis, YAxis } from 'recharts';
+import { type Address } from 'viem';
+
+import { Badge } from '@zivoe/ui/core/badge';
+import { Button } from '@zivoe/ui/core/button';
+import { Callout } from '@zivoe/ui/core/callout';
+import { Card, CardContent, CardHeader, CardTitle } from '@zivoe/ui/core/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zivoe/ui/core/chart';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
+import { cn } from '@zivoe/ui/lib/tw-utils';
+
+import { formatUsdD18 } from '@/lib/utils';
+
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+import { dayTicks, formatDayLabel, formatLocalDayLabel, valueAxis } from '@/components/chart/axis';
+import { DayTick } from '@/components/chart/day-tick';
+import { ChartPlotSkeleton } from '@/components/chart/plot-skeleton';
+import TextSkeleton from '@/components/text-skeleton';
+import { getTokenInfo } from '@/components/token-info';
+
+import { type TransactionIdentity } from '@/centrifuge';
+import {
+  type Amounts,
+  HISTORY_RANGES,
+  type HistoryRange,
+  availableRanges,
+  rangeChange,
+  selectRange,
+  usePortfolioHistory
+} from '@/portfolio';
+
+import { axisTickLabel, balanceChangeLine, balanceChartSubtitle, formatAmount } from './format';
+
+/**
+ * The value of the share tokens in the wallet over time. What the wallet
+ * holds and nothing else: shares in a redemption queue leave the wallet on
+ * request and are shown as such in the hero and the Tokens card. The change
+ * line is this figure's move over the chosen range, deposits and redemptions
+ * included: a balance change, not a return — earnings need their own model.
+ */
+export function BalanceChart({
+  identities,
+  accountAddress,
+  shareSymbol,
+  shareAmounts
+}: {
+  identities: ReadonlyArray<TransactionIdentity>;
+  accountAddress: Address;
+  shareSymbol: string;
+  /** The share token across every chain once all have answered; what of it sits outside the wallet is named under the headline. */
+  shareAmounts: Amounts | undefined;
+}) {
+  const { history, status, liveStatus, isTruncated, nowMs, refetch } = usePortfolioHistory({
+    identities,
+    accountAddress
+  });
+  const isMobile = useIsMobile();
+  const [chosen, setChosen] = useState<HistoryRange>('30D');
+
+  // A range the history cannot fill is offered greyed out and never selected,
+  // so "the past 90 days" never labels six weeks of data.
+  const available = availableRanges({ history, nowMs });
+  const range = available.includes(chosen) ? chosen : 'All';
+  const points = selectRange({ history, range, nowMs });
+  const change = rangeChange(points);
+  const changeLine = change && balanceChangeLine({ change, range });
+  const data = points.map((point) => ({
+    ts: point.timestampMs,
+    value: Number(point.valueD18) / 1e18,
+    valueD18: point.valueD18,
+    // Day closes are UTC days; today's point is a moment, dated in the reader's own time zone.
+    label: point === history.livePoint ? formatLocalDayLabel(point.timestampMs) : formatDayLabel(point.timestampMs)
+  }));
+
+  // The window's floor is the vault chart's: a tenth of a percent of the
+  // balance, so a week of yield (about that much) fills the plot the way the
+  // Token Price line does, whatever the wallet's size.
+  const values = data.map((point) => point.value);
+  const axis = valueAxis({ values, minSpan: Math.max(0, ...values) * 0.001 });
+  const xTicks = dayTicks({ firstTs: data[0]?.ts, lastTs: data.at(-1)?.ts, maxLabels: isMobile ? 4 : 7 });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
+          {shareSymbol}
+        </CardTitle>
+        {/* A segmented control: the chips sit in a neutral track, the chosen one lifted white. */}
+        <div role="group" aria-label="History range" className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
+          {HISTORY_RANGES.map((candidate) => (
+            <Button
+              key={candidate}
+              size="s"
+              variant="ghost-light"
+              aria-pressed={candidate === range}
+              isDisabled={!available.includes(candidate)}
+              onPress={() => setChosen(candidate)}
+              className={cn(
+                'h-7 px-2.5 hover:bg-element-neutral-subtle hover:text-primary',
+                candidate === range && 'bg-surface-base text-primary shadow-xs hover:bg-surface-base'
+              )}
+            >
+              {candidate}
+            </Button>
+          ))}
+        </div>
+      </CardHeader>
+
+      <CardContent className="gap-4">
+        <div className="flex flex-col gap-1">
+          {/* The headline with its move over the range beside it; the chips above say which range. */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="font-heading! text-h4 text-primary">
+              {history.livePoint ? (
+                formatUsdD18(history.livePoint.valueD18)
+              ) : liveStatus === 'error' ? (
+                '—'
+              ) : (
+                <TextSkeleton className="w-28" />
+              )}
+            </p>
+            {status === 'pending' ? (
+              <Skeleton className="h-7 w-28 rounded-sm" />
+            ) : (
+              changeLine && (
+                <Badge
+                  variant={change.deltaD18 > 0n ? 'success' : change.deltaD18 < 0n ? 'alert' : 'neutral'}
+                  className="tabular-nums"
+                >
+                  {changeLine.figure}
+                  <span className="sr-only">balance change, {changeLine.caption}</span>
+                </Badge>
+              )
+            )}
+          </div>
+          {/* The same share figure as the Tokens row, so the two cards read as one number, and what it leaves out. */}
+          <p className="text-small text-secondary">
+            <span className="font-medium text-primary tabular-nums">
+              {shareAmounts ? (
+                formatAmount(shareAmounts.wallet, shareSymbol)
+              ) : liveStatus === 'error' ? (
+                '—'
+              ) : (
+                <TextSkeleton className="w-20" />
+              )}
+            </span>{' '}
+            {balanceChartSubtitle({ shareSymbol, shareAmounts })}
+          </p>
+        </div>
+
+        {status === 'pending' ? (
+          <ChartPlotSkeleton />
+        ) : status === 'error' ? (
+          <Callout variant="warning">
+            Could not load your balance history.{' '}
+            <Button variant="link-primary" size="s" onPress={refetch}>
+              Retry
+            </Button>
+          </Callout>
+        ) : data.length < 2 ? (
+          <p className="py-10 text-center text-small text-secondary">
+            {history.livePoint && history.livePoint.valueD18 > 0n
+              ? 'Your balance history starts once the first day closes.'
+              : `No ${shareSymbol} in this wallet yet.`}
+          </p>
+        ) : (
+          <ChartContainer config={{}}>
+            <AreaChart accessibilityLayer data={data} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="ts"
+                type="number"
+                scale="linear"
+                domain={['dataMin', 'dataMax']}
+                ticks={xTicks}
+                interval={0}
+                tickLine={false}
+                axisLine={false}
+                tick={DayTick}
+              />
+              <YAxis
+                tickLine={false}
+                hide={isMobile}
+                axisLine={false}
+                minTickGap={20}
+                width={72}
+                scale="linear"
+                domain={axis.domain}
+                ticks={axis.ticks}
+                tickFormatter={(value: number) => axisTickLabel({ value, step: axis.step })}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    indicator="dot"
+                    hideLabel
+                    formatter={(_value, _name, item) => {
+                      const point = item.payload as (typeof data)[number];
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-heading! text-regular text-primary tabular-nums">
+                            {formatUsdD18(point.valueD18)}
+                          </span>
+                          <span className="text-small text-secondary">{point.label}</span>
+                        </div>
+                      );
+                    }}
+                  />
+                }
+              />
+              <defs>
+                <linearGradient id="fillBalance" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="39.55%" stopColor="hsl(var(--primary-600))" stopOpacity={0.1} />
+                  <stop offset="100.17%" stopColor="hsl(var(--primary-600))" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              {/* Drawn like the vault's Token Price chart: one close per day, joined by straight segments. */}
+              <ReArea dataKey="value" type="linear" fill="url(#fillBalance)" stroke="hsl(var(--primary-600))" />
+            </AreaChart>
+          </ChartContainer>
+        )}
+
+        {isTruncated && status === 'success' && (
+          <p className="text-extraSmall text-secondary">The oldest part of this history could not be loaded.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The whole card while the page's data is on its way: the real title, pulsing range chips, headline and plot. */
+export function BalanceChartSkeleton({ shareSymbol }: { shareSymbol: string }) {
+  return (
+    <Card aria-hidden="true">
+      <CardHeader>
+        <CardTitle>
+          <span className="[&_svg]:size-5">{getTokenInfo(shareSymbol)?.icon}</span>
+          {shareSymbol}
+        </CardTitle>
+        <div className="flex gap-0.5 rounded-md bg-element-neutral p-0.5">
+          {HISTORY_RANGES.map((range) => (
+            <Skeleton key={range} className="h-7 w-10 rounded-xs" />
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent className="gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="font-heading! text-h4 text-primary">
+              <TextSkeleton className="w-28" />
+            </p>
+            <Skeleton className="h-7 w-28 rounded-sm" />
+          </div>
+          <p className="text-small text-secondary">
+            <TextSkeleton className="w-64" />
+          </p>
+        </div>
+        <ChartPlotSkeleton />
+      </CardContent>
+    </Card>
+  );
+}

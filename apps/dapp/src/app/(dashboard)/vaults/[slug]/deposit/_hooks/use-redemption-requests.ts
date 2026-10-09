@@ -2,21 +2,21 @@
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { type RedemptionPosition, type TransactionIdentity, useRedemptionPositions } from '@/centrifuge';
+import { useAccount } from '@/hooks/useAccount';
+import { readState, useSettleWindow } from '@/hooks/useSettleWindow';
+
+import {
+  type RedemptionPosition,
+  type TransactionIdentity,
+  countRedemptionRequests,
+  useRedemptionPositions
+} from '@/centrifuge';
 
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 import { groupIdentitiesByChain } from '../_components/chain-switch';
 
-/** How many strips a position renders — the Pending tab's badge counts these. */
-export function countRedemptionRequests(position: RedemptionPosition | undefined): number {
-  if (!position) return 0;
-  return (
-    (position.claimableCancelRedeemShares > 0n ? 1 : 0) +
-    (position.claimableRedeemAssets > 0n ? 1 : 0) +
-    (position.unfundedClaimableAssets > 0n ? 1 : 0) +
-    (position.pendingRedeemShares > 0n || position.hasPendingCancelRedeemRequest ? 1 : 0)
-  );
-}
+// The Pending tab's badge counts the same strips the Centrifuge module derives.
+export { countRedemptionRequests };
 
 export type RedemptionRequestEntry = {
   identity: TransactionIdentity;
@@ -35,10 +35,12 @@ export type RedemptionRequestsByChain = {
 /**
  * The wallet's Redemption Positions across every Centrifuge vault of the page,
  * grouped by chain in deployment order. Chains holding nothing for the wallet
- * are left out. `isPending` holds only until the first vault answers: one
- * dead RPC would otherwise hide every other chain's answer (and the empty
- * state) for a minute of retries. `pendingChains` names the chains still on
- * their first read, so a surface can say what it has not counted yet.
+ * are left out. `isPending` holds until every vault has answered or the settle
+ * window has run out (see useSettleWindow): the tab shows one answer rather
+ * than a list that grows chain by chain, while a dead RPC — which fails, and
+ * so stops being pending — still cannot hide the other chains for a minute of
+ * retries. `pendingChains` names the chains still on their first read, so a
+ * surface can say what it has not counted yet.
  */
 export function useRedemptionRequests(): {
   chains: Array<RedemptionRequestsByChain>;
@@ -50,10 +52,14 @@ export function useRedemptionRequests(): {
   refetch: () => void;
 } {
   const identities = useZivoeVaultIdentities();
+  const { address } = useAccount();
   const positions = useRedemptionPositions({
     centrifugeVaults: identities.map((identity) => identity.centrifugeVault)
   });
-  const resultOf = (identity: TransactionIdentity) => positions[identities.indexOf(identity)];
+  const resultOf = (identity: TransactionIdentity) => {
+    const result = positions[identities.indexOf(identity)];
+    return result && readState(result);
+  };
 
   const groups = groupIdentitiesByChain(identities);
   const chains = groups.flatMap(({ chain, identities: [firstIdentity, ...restIdentities] }) => {
@@ -68,13 +74,15 @@ export function useRedemptionRequests(): {
   const pendingChains = groups
     .filter(({ identities: chainIdentities }) => chainIdentities.some((identity) => resultOf(identity)?.isPending))
     .map(({ chain }) => chain);
+  // Reads only start once the wallet is known, so the window does too.
+  const isHolding = useSettleWindow({ isPending: address !== undefined && pendingChains.length > 0 });
 
   return {
     chains,
     count: chains.reduce((sum, group) => sum + group.count, 0),
-    isPending: positions.every((result) => result.isPending),
+    isPending: isHolding,
     pendingChains,
-    isEveryReadFailed: positions.length > 0 && positions.every((result) => result.isError),
+    isEveryReadFailed: positions.length > 0 && positions.every((result) => readState(result).isError),
     refetch: () => positions.forEach((result) => void result.refetch())
   };
 }
