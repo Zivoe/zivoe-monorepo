@@ -9,6 +9,12 @@ export {
   useRedemptionPositions,
   useCentrifugeVaultCapacity
 } from './hooks';
+export {
+  countRedemptionRequests,
+  describeRedemptionState,
+  redemptionStates,
+  type RedemptionState
+} from './redemption-states';
 export { useCancelRedeem } from './use-cancel-redeem';
 export { useClaimRedeem } from './use-claim-redeem';
 export { useClaimReturnedShares } from './use-claim-returned-shares';

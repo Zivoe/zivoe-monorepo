@@ -6,6 +6,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type RedemptionPosition, type TransactionIdentity } from '@/centrifuge';
+import type * as RedemptionStates from '@/centrifuge/redemption-states';
 import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
@@ -90,7 +91,8 @@ vi.mock('@/hooks/useCurrentShareMetrics', () => ({
 vi.mock('@/components/connected-account', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children ?? 'Connect Wallet'}</div>
 }));
-vi.mock('@/centrifuge', () => {
+vi.mock('@/centrifuge', async () => {
+  const states = await vi.importActual<typeof RedemptionStates>('@/centrifuge/redemption-states');
   const positionOf = (address: string) => {
     const key = address.toLowerCase();
     return mocks.failing.has(key) ? undefined : { ...EMPTY_POSITION, ...mocks.positions[key] };
@@ -104,6 +106,7 @@ vi.mock('@/centrifuge', () => {
     hasPendingCancelRedeemRequest: false
   };
   return {
+    ...states,
     sharesToDepositAsset: ({
       shares,
       sharePrice,

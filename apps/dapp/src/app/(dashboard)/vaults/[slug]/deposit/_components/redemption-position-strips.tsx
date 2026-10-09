@@ -13,13 +13,12 @@ import {
   type InvestorAccess,
   type TransactedCentrifugeVault,
   type TransactionIdentity,
-  sharesToDepositAsset,
+  describeRedemptionState,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
   useRedemptionPosition
 } from '@/centrifuge';
-import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { useIsKycEnabled } from '../../kyc-flag-provider';
 
@@ -94,7 +93,7 @@ export function RedemptionPositionStrips({
   onSuccessClose: () => void;
 }) {
   const { centrifugeVault } = identity;
-  const { asset, shareClass: share, chain } = centrifugeVault;
+  const { asset, shareClass: share } = centrifugeVault;
   // Chains without the hub-side unwind get no cancel control at all — the
   // claims and the Cancellation Processing strip stay data-driven.
   const supportsCancel = centrifugeVault.supportsRedeemCancellation;
@@ -167,8 +166,7 @@ export function RedemptionPositionStrips({
           {assetLabel}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: returnedShares, tokenDecimals: share.decimals, displayDecimals: 2 })}{' '}
-              {share.symbol} returned from cancellation
+              {describeRedemptionState({ state: { kind: 'returned', shares: returnedShares }, centrifugeVault })}
             </p>
 
             <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
@@ -209,8 +207,9 @@ export function RedemptionPositionStrips({
             {/* A blocked wallet's headline cannot say ready: the amount is
                 approved, the claim is not — the hint below says why. */}
             <p className="text-regular text-primary">
-              {formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
-              {asset.symbol} {isProceedsClaimBlocked ? 'approved' : 'ready to claim'}
+              {isProceedsClaimBlocked
+                ? `${formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })} ${asset.symbol} approved`
+                : describeRedemptionState({ state: { kind: 'claimable', assets: claimableAssets }, centrifugeVault })}
             </p>
 
             <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
@@ -266,8 +265,7 @@ export function RedemptionPositionStrips({
         <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
           {assetLabel}
           <p className="text-regular text-primary">
-            {formatBigIntWithCommas({ value: unfundedAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })}{' '}
-            {asset.symbol} approved, awaiting liquidity on {CHAIN_DISPLAY[chain].label}
+            {describeRedemptionState({ state: { kind: 'unfunded', assets: unfundedAssets }, centrifugeVault })}
           </p>
 
           {/* Two things stand between a frozen wallet and its proceeds; name
@@ -345,21 +343,16 @@ function RedemptionProcessingStrip({
     switchChain?: { label: string; onPress: () => void };
   };
 }) {
-  const { asset, shareClass } = centrifugeVault;
-  const pendingAssets = sharePrice
-    ? sharesToDepositAsset({ shares: pendingShares, sharePrice, shareClass, asset })
-    : undefined;
-
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       {assetLabel}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-regular text-primary">
-          {formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })}{' '}
-          {shareClass.symbol} processing
-          {pendingAssets !== undefined
-            ? ` · ≈ ${formatBigIntWithCommas({ value: pendingAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })} ${asset.symbol}`
-            : ''}
+          {describeRedemptionState({
+            state: { kind: 'processing', shares: pendingShares },
+            centrifugeVault,
+            sharePrice
+          })}
         </p>
 
         {cancel && (
@@ -409,10 +402,7 @@ function CancellationProcessingStrip({
     <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
       {assetLabel}
       <p className="text-regular text-primary">
-        Cancelling redemption request
-        {pendingShares > 0n
-          ? ` for ${formatBigIntWithCommas({ value: pendingShares, tokenDecimals: shareClass.decimals, displayDecimals: 2 })} ${shareClass.symbol}`
-          : ''}
+        {describeRedemptionState({ state: { kind: 'cancelling', shares: pendingShares }, centrifugeVault })}
       </p>
 
       <p className="text-extraSmall text-secondary">

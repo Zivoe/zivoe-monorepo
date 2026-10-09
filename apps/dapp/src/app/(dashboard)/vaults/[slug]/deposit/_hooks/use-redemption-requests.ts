@@ -2,21 +2,18 @@
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { type RedemptionPosition, type TransactionIdentity, useRedemptionPositions } from '@/centrifuge';
+import {
+  type RedemptionPosition,
+  type TransactionIdentity,
+  countRedemptionRequests,
+  useRedemptionPositions
+} from '@/centrifuge';
 
 import { useZivoeVaultIdentities } from '../../zivoe-vault-provider';
 import { groupIdentitiesByChain } from '../_components/chain-switch';
 
-/** How many strips a position renders — the Pending tab's badge counts these. */
-export function countRedemptionRequests(position: RedemptionPosition | undefined): number {
-  if (!position) return 0;
-  return (
-    (position.claimableCancelRedeemShares > 0n ? 1 : 0) +
-    (position.claimableRedeemAssets > 0n ? 1 : 0) +
-    (position.unfundedClaimableAssets > 0n ? 1 : 0) +
-    (position.pendingRedeemShares > 0n || position.hasPendingCancelRedeemRequest ? 1 : 0)
-  );
-}
+// The Pending tab's badge counts the same strips the Centrifuge module derives.
+export { countRedemptionRequests };
 
 export type RedemptionRequestEntry = {
   identity: TransactionIdentity;

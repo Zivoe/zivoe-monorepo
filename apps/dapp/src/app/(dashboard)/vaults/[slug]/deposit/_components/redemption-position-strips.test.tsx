@@ -10,6 +10,7 @@ import { pendingTxCountAtom } from '@/lib/store';
 import { OTHER_WRITE_PENDING_LABEL } from '@/hooks/useIsAnyTxPending';
 
 import { type InvestorAccess } from '@/centrifuge';
+import type * as RedemptionStates from '@/centrifuge/redemption-states';
 import { identityOnChain } from '@/test/fixtures';
 import { ZSMB_ZIVOE_VAULT, resolveTransactionIdentity } from '@/zivoe-vaults';
 
@@ -49,7 +50,9 @@ vi.mock('@zivoe/ui/core/link', () => ({
   NextLink: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>
 }));
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
-vi.mock('@/centrifuge', () => ({
+vi.mock('@/centrifuge', async () => ({
+  // The real state derivation and copy: the strips print what the module says.
+  ...(await vi.importActual<typeof RedemptionStates>('@/centrifuge/redemption-states')),
   sharesToDepositAsset: ({
     shares,
     sharePrice,

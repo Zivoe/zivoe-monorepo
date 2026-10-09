@@ -183,16 +183,21 @@ export function useRedemptionPosition({ centrifugeVault }: { centrifugeVault: Tr
 }
 
 /**
- * The wallet's Redemption Position in every given Centrifuge vault, one result
+ * A wallet's Redemption Position in every given Centrifuge vault, one result
  * per vault in the given order; the same query as useRedemptionPosition.
+ * The connected wallet unless `accountAddress` names another (the
+ * portfolio's read-only preview of a wallet).
  */
 export function useRedemptionPositions({
-  centrifugeVaults
+  centrifugeVaults,
+  accountAddress
 }: {
   centrifugeVaults: ReadonlyArray<TransactedCentrifugeVault>;
+  accountAddress?: `0x${string}`;
 }) {
-  const { address } = useAccount();
+  const { address: connectedAddress } = useAccount();
   const config = useConfig();
+  const address = accountAddress ?? connectedAddress;
 
   return useQueries({
     queries: centrifugeVaults.map((centrifugeVault) =>
