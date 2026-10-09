@@ -10,17 +10,20 @@ import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { ArrowRightIcon } from '@zivoe/ui/icons';
 
-import { type TransactionIdentity, describeRedemptionState } from '@/centrifuge';
+import { RedemptionChainGroup, RedemptionItem } from '@/components/redemption-item';
+
+import { type TransactionIdentity } from '@/centrifuge';
 import { type Portfolio, type RedemptionEntry } from '@/portfolio';
-import { CHAIN_DISPLAY, chainNames } from '@/zivoe-vaults/chain-display';
+import { chainNames } from '@/zivoe-vaults/chain-display';
 
 import { type PortfolioVaultLink } from './portfolio-view';
 
 /**
- * Everything the wallet has in flight, read-only: the same states and the
- * same sentences as the vault page's Pending tab, grouped by network the
- * same way. Every action (claim, cancel) lives on that tab, one link away,
- * so the two surfaces can never disagree on what a wallet may do.
+ * The wallet's in-flight money as a ledger, grouped by network: the same
+ * items as the vault page's Pending tab (one `RedemptionState`, one
+ * `RedemptionItem`), without their controls. Every action (claim, cancel)
+ * lives on that tab, one link away, so the two surfaces can never disagree
+ * on what a wallet may do.
  */
 export function Redemptions({
   identities,
@@ -87,35 +90,23 @@ export function Redemptions({
             className="-mr-3 lg:max-h-[min(30rem,calc(100dvh-16rem))]"
             viewportClassName="lg:max-h-[min(30rem,calc(100dvh-16rem))]"
           >
-            <div className="flex flex-col gap-4 pr-3">
+            <div className="flex flex-col gap-2 pr-3">
               {groups.map(({ chain, entries }) => {
-                const { label, Icon } = CHAIN_DISPLAY[chain];
                 // Name the vault's coin where the chain has several vaults, exactly like the Pending tab.
                 const labelAsset = identities.filter((identity) => identity.centrifugeVault.chain === chain).length > 1;
                 return (
-                  <div key={chain} className="flex flex-col gap-2">
-                    <p className="flex items-center gap-2 px-1 text-regular font-medium text-primary">
-                      <Icon className="size-5 rounded-full" />
-                      {label}
-                    </p>
-                    <ul className="flex flex-col gap-2">
-                      {entries.map(({ identity, state }) => (
-                        <li
-                          key={`${identity.centrifugeVault.address}:${state.kind}`}
-                          className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4"
-                        >
-                          {labelAsset && (
-                            <p className="text-extraSmall font-medium tracking-wide text-secondary uppercase">
-                              {identity.centrifugeVault.asset.symbol} redemption
-                            </p>
-                          )}
-                          <p className="text-regular text-primary">
-                            {describeRedemptionState({ state, centrifugeVault: identity.centrifugeVault, sharePrice })}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <RedemptionChainGroup key={chain} chain={chain} count={entries.length}>
+                    {entries.map(({ identity, state }) => (
+                      <RedemptionItem
+                        key={`${identity.centrifugeVault.address}:${state.kind}`}
+                        state={state}
+                        centrifugeVault={identity.centrifugeVault}
+                        sharePrice={sharePrice}
+                        labelAsset={labelAsset}
+                        className="border-b border-subtle last:border-b-0"
+                      />
+                    ))}
+                  </RedemptionChainGroup>
                 );
               })}
             </div>
@@ -133,15 +124,22 @@ export function Redemptions({
   );
 }
 
-/** A chain group's silhouette, the Pending tab's own: one header and one strip at a strip's real height. */
+/** A network group's silhouette, the Pending tab's own: one header and one boxed item at an item's real height. */
 export function RedemptionsSkeletonStrip() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading redemption requests" className="flex flex-col gap-2">
       <div className="flex items-center gap-2 px-1 py-2">
         <Skeleton className="size-5 rounded-full" />
-        <Skeleton className="h-5 w-24 rounded-sm" />
+        <Skeleton className="h-5 w-20 rounded-sm" />
       </div>
-      <Skeleton className="h-16.5 w-full rounded-sm" />
+      <div className="flex items-start gap-3 rounded-lg border border-subtle px-4 py-3">
+        <Skeleton className="mt-2 size-2 rounded-full" />
+        <div className="flex flex-1 flex-col gap-1">
+          <Skeleton className="h-5 w-28 rounded-sm" />
+          <Skeleton className="h-4 w-44 rounded-sm" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-sm" />
+      </div>
     </div>
   );
 }

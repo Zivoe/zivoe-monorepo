@@ -3,17 +3,14 @@
 import { Button } from '@zivoe/ui/core/button';
 import { NextLink } from '@zivoe/ui/core/link';
 
-import { formatBigIntWithCommas } from '@/lib/utils';
-
 import { OTHER_WRITE_PENDING_LABEL, useIsAnyTxPending } from '@/hooks/useIsAnyTxPending';
 
 import ConnectedAccount from '@/components/connected-account';
+import { RedemptionItem } from '@/components/redemption-item';
 
 import {
   type InvestorAccess,
-  type TransactedCentrifugeVault,
   type TransactionIdentity,
-  describeRedemptionState,
   useCancelRedeem,
   useClaimRedeem,
   useClaimReturnedShares,
@@ -71,6 +68,8 @@ export function deriveRedeemAccessGates(access: {
  * request (or its Cancellation Processing). Rendered once per vault, not per
  * chain: Centrifuge keys positions per vault, and the SDK's cancel and claim
  * act on one. Data-driven, so a request made outside this dApp resolves here.
+ * Each strip is the shared `RedemptionItem` (the portfolio prints the same
+ * ones) with this tab's control on the right and its hints underneath.
  */
 export function RedemptionPositionStrips({
   identity,
@@ -155,20 +154,15 @@ export function RedemptionPositionStrips({
     claimReturnedShares.mutate({ returnedShares });
   };
 
-  const assetLabel = labelAsset ? (
-    <p className="text-extraSmall font-medium tracking-wide text-secondary uppercase">{asset.symbol} redemption</p>
-  ) : null;
+  const item = { centrifugeVault, labelAsset, className: ITEM_CLASSES };
 
   return (
     <>
       {returnedShares > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          {assetLabel}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-regular text-primary">
-              {describeRedemptionState({ state: { kind: 'returned', shares: returnedShares }, centrifugeVault })}
-            </p>
-
+        <RedemptionItem
+          {...item}
+          state={{ kind: 'returned', shares: returnedShares }}
+          action={
             <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
               {switchChain ? (
                 <SwitchButton {...switchChain} />
@@ -194,24 +188,19 @@ export function RedemptionPositionStrips({
                 </Button>
               )}
             </ConnectedAccount>
-          </div>
-
-          {isShareReturnBlocked && <p className="text-extraSmall text-secondary">{shareReturnBlockedHint}</p>}
-        </div>
+          }
+        >
+          {isShareReturnBlocked && <p>{shareReturnBlockedHint}</p>}
+        </RedemptionItem>
       )}
 
       {claimableAssets > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          {assetLabel}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* A blocked wallet's headline cannot say ready: the amount is
-                approved, the claim is not — the hint below says why. */}
-            <p className="text-regular text-primary">
-              {isProceedsClaimBlocked
-                ? `${formatBigIntWithCommas({ value: claimableAssets, tokenDecimals: asset.decimals, displayDecimals: 2 })} ${asset.symbol} approved`
-                : describeRedemptionState({ state: { kind: 'claimable', assets: claimableAssets }, centrifugeVault })}
-            </p>
-
+        // A blocked wallet's pill cannot say ready: the amount is approved, the claim is not; the hint below says why.
+        <RedemptionItem
+          {...item}
+          state={{ kind: 'claimable', assets: claimableAssets }}
+          isClaimBlocked={isProceedsClaimBlocked}
+          action={
             <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-8 w-28">
               {switchChain ? (
                 <SwitchButton {...switchChain} />
@@ -247,68 +236,81 @@ export function RedemptionPositionStrips({
                 </Button>
               )}
             </ConnectedAccount>
-          </div>
-
+          }
+        >
           {/* The block wins over the turn-taking hint: "claim your returned
               shares first" is no help to a wallet that cannot claim them. */}
           {isProceedsClaimBlocked ? (
-            <p className="text-extraSmall text-secondary">{proceedsClaimHint}</p>
+            <p>{proceedsClaimHint}</p>
           ) : returnedShares > 0n ? (
-            <p className="text-extraSmall text-secondary">
-              {isShareReturnBlocked ? shareReturnBlockedHint : `Claim your returned ${share.symbol} first.`}
-            </p>
+            <p>{isShareReturnBlocked ? shareReturnBlockedHint : `Claim your returned ${share.symbol} first.`}</p>
           ) : null}
-        </div>
+        </RedemptionItem>
       )}
 
       {unfundedAssets > 0n && (
-        <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-          {assetLabel}
-          <p className="text-regular text-primary">
-            {describeRedemptionState({ state: { kind: 'unfunded', assets: unfundedAssets }, centrifugeVault })}
-          </p>
-
+        <RedemptionItem {...item} state={{ kind: 'unfunded', assets: unfundedAssets }}>
           {/* Two things stand between a frozen wallet and its proceeds; name
               both. An unexplained refusal adds nothing to a strip that already
               says nobody can claim yet. */}
-          {isProceedsClaimBlocked && restriction === 'frozen' && (
-            <p className="text-extraSmall text-secondary">{proceedsClaimHint}</p>
-          )}
-        </div>
+          {isProceedsClaimBlocked && restriction === 'frozen' && <p>{proceedsClaimHint}</p>}
+        </RedemptionItem>
       )}
 
       {isCancellationProcessing ? (
-        <CancellationProcessingStrip
-          pendingShares={pendingShares}
-          centrifugeVault={centrifugeVault}
-          assetLabel={assetLabel}
-        />
+        <RedemptionItem {...item} state={{ kind: 'cancelling', shares: pendingShares }}>
+          <p>
+            Your {share.symbol} will be available to claim once the cancellation is processed. Any portion already
+            approved still executes as {asset.symbol}.
+          </p>
+        </RedemptionItem>
       ) : (
         pendingShares > 0n && (
-          <RedemptionProcessingStrip
-            pendingShares={pendingShares}
+          <RedemptionItem
+            {...item}
+            state={{ kind: 'processing', shares: pendingShares }}
             sharePrice={sharePrice}
-            centrifugeVault={centrifugeVault}
-            assetLabel={assetLabel}
-            cancel={
-              supportsCancel
-                ? {
-                    onPress: handleCancelRedeem,
-                    isDisabled: isBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending),
-                    blockedHint: isShareReturnBlocked ? shareReturnBlockedHint : undefined,
-                    isPending: cancelRedeem.isPending,
-                    isTxPending: cancelRedeem.isTxPending,
-                    isOtherWritePending: isOtherMutationPending(cancelRedeem.isPending),
-                    switchChain
-                  }
-                : undefined
+            action={
+              // Chains without the hub-side unwind get no cancel control at all.
+              supportsCancel && (
+                <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-5 w-24">
+                  {switchChain ? (
+                    <SwitchButton {...switchChain} />
+                  ) : (
+                    <Button
+                      variant="link-neutral-light"
+                      size="s"
+                      onPress={handleCancelRedeem}
+                      isDisabled={isBlocked || isShareReturnBlocked || isOtherMutationPending(cancelRedeem.isPending)}
+                      isPending={cancelRedeem.isPending || isOtherMutationPending(cancelRedeem.isPending)}
+                      pendingContent={
+                        cancelRedeem.isTxPending
+                          ? 'Cancelling...'
+                          : cancelRedeem.isPending
+                            ? 'Signing Transaction...'
+                            : isOtherMutationPending(cancelRedeem.isPending)
+                              ? OTHER_WRITE_PENDING_LABEL
+                              : undefined
+                      }
+                    >
+                      Cancel request
+                    </Button>
+                  )}
+                </ConnectedAccount>
+              )
             }
-          />
+          >
+            {/* Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */}
+            {supportsCancel && isShareReturnBlocked && <p>{shareReturnBlockedHint}</p>}
+          </RedemptionItem>
         )
       )}
     </>
   );
 }
+
+/** Items stack inside the chain group's box, divided by hairlines (see pending-flow). */
+const ITEM_CLASSES = 'border-b border-subtle last:border-b-0';
 
 /** The one step an out-of-place wallet sees in place of a strip's action. */
 function SwitchButton({ label, onPress }: { label: string; onPress: () => void }) {
@@ -316,99 +318,5 @@ function SwitchButton({ label, onPress }: { label: string; onPress: () => void }
     <Button variant="border-light" size="s" onPress={onPress}>
       {label}
     </Button>
-  );
-}
-
-function RedemptionProcessingStrip({
-  pendingShares,
-  sharePrice,
-  centrifugeVault,
-  assetLabel,
-  cancel
-}: {
-  pendingShares: bigint;
-  sharePrice: bigint | undefined;
-  centrifugeVault: TransactedCentrifugeVault;
-  assetLabel: React.ReactNode;
-  /** Absent on chains without redeem cancellation — the strip is then read-only. */
-  cancel?: {
-    onPress: () => void;
-    isDisabled: boolean;
-    /** Present when the wallet is what blocks the control — narrows the generic disabled state to the one cause worth naming. */
-    blockedHint?: React.ReactNode;
-    isPending: boolean;
-    isTxPending: boolean;
-    /** A write started elsewhere is in flight. */
-    isOtherWritePending: boolean;
-    switchChain?: { label: string; onPress: () => void };
-  };
-}) {
-  return (
-    <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-      {assetLabel}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-regular text-primary">
-          {describeRedemptionState({
-            state: { kind: 'processing', shares: pendingShares },
-            centrifugeVault,
-            sharePrice
-          })}
-        </p>
-
-        {cancel && (
-          <ConnectedAccount fullWidth={false} type="skeleton" connectSkeletonClassName="h-5 w-24">
-            {cancel.switchChain ? (
-              <SwitchButton {...cancel.switchChain} />
-            ) : (
-              <Button
-                variant="link-neutral-light"
-                size="s"
-                onPress={cancel.onPress}
-                isDisabled={cancel.isDisabled}
-                isPending={cancel.isPending || cancel.isOtherWritePending}
-                pendingContent={
-                  cancel.isTxPending
-                    ? 'Cancelling...'
-                    : cancel.isPending
-                      ? 'Signing Transaction...'
-                      : cancel.isOtherWritePending
-                        ? OTHER_WRITE_PENDING_LABEL
-                        : undefined
-                }
-              >
-                Cancel request
-              </Button>
-            )}
-          </ConnectedAccount>
-        )}
-      </div>
-
-      {cancel?.blockedHint && <p className="text-extraSmall text-secondary">{cancel.blockedHint}</p>}
-    </div>
-  );
-}
-
-function CancellationProcessingStrip({
-  pendingShares,
-  centrifugeVault,
-  assetLabel
-}: {
-  pendingShares: bigint;
-  centrifugeVault: TransactedCentrifugeVault;
-  assetLabel: React.ReactNode;
-}) {
-  const { asset, shareClass } = centrifugeVault;
-  return (
-    <div className="flex flex-col gap-1 rounded-sm border border-default bg-surface-elevated p-4">
-      {assetLabel}
-      <p className="text-regular text-primary">
-        {describeRedemptionState({ state: { kind: 'cancelling', shares: pendingShares }, centrifugeVault })}
-      </p>
-
-      <p className="text-extraSmall text-secondary">
-        Your {shareClass.symbol} will be available to claim once the cancellation is processed. Any portion already
-        approved still executes as {asset.symbol}.
-      </p>
-    </div>
   );
 }

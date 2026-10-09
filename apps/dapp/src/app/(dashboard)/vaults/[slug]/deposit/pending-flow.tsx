@@ -3,7 +3,6 @@
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
-import { Disclosure, DisclosureHeader, DisclosurePanel } from '@zivoe/ui/core/disclosure';
 import { ScrollArea, ScrollBar } from '@zivoe/ui/core/scroll-area';
 import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { cn } from '@zivoe/ui/lib/tw-utils';
@@ -13,6 +12,7 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { useCurrentShareMetrics } from '@/hooks/useCurrentShareMetrics';
 
 import ConnectedAccount from '@/components/connected-account';
+import { RedemptionChainGroup } from '@/components/redemption-item';
 
 import { useInvestorAccess } from '@/centrifuge';
 import { CHAIN_DISPLAY, chainNames } from '@/zivoe-vaults/chain-display';
@@ -121,7 +121,7 @@ function RequestsSkeleton() {
 function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
   const { chain, entries, count } = group;
   const [first] = entries;
-  const { label, Icon } = CHAIN_DISPLAY[chain];
+  const { label } = CHAIN_DISPLAY[chain];
 
   const account = useAccount();
   const chainalysis = useChainalysis();
@@ -141,37 +141,27 @@ function RequestsChainGroup({ group }: { group: RedemptionRequestsByChain }) {
     : undefined;
 
   return (
-    <Disclosure defaultExpanded className="py-0">
-      <DisclosureHeader className="px-1 py-2 text-regular! font-medium hover:no-underline">
-        <span className="flex items-center gap-2">
-          <Icon className="size-5 rounded-full" />
-          {label}
-          <span className="rounded-full bg-surface-elevated px-2 py-0.5 text-extraSmall font-medium text-secondary tabular-nums">
-            {count}
-          </span>
-        </span>
-      </DisclosureHeader>
-
-      <DisclosurePanel>
-        <div className="flex flex-col gap-2 pb-2">
-          {entries.some((entry) => entry.isError) && (
-            <Callout variant="warning">Could not load every position on {label}.</Callout>
-          )}
-
-          {entries.map(({ identity }) => (
-            <RedemptionPositionStrips
-              key={identity.centrifugeVault.address}
-              identity={identity}
-              labelAsset={entries.length > 1}
-              gates={gates}
-              sharePrice={sharePrice}
-              isWriteBlocked={isWriteBlocked}
-              switchChain={switchChain}
-              onSuccessClose={() => setIsEarnDialogOpen(false)}
-            />
-          ))}
-        </div>
-      </DisclosurePanel>
-    </Disclosure>
+    <RedemptionChainGroup
+      chain={chain}
+      count={count}
+      notice={
+        entries.some((entry) => entry.isError) && (
+          <Callout variant="warning">Could not load every position on {label}.</Callout>
+        )
+      }
+    >
+      {entries.map(({ identity }) => (
+        <RedemptionPositionStrips
+          key={identity.centrifugeVault.address}
+          identity={identity}
+          labelAsset={entries.length > 1}
+          gates={gates}
+          sharePrice={sharePrice}
+          isWriteBlocked={isWriteBlocked}
+          switchChain={switchChain}
+          onSuccessClose={() => setIsEarnDialogOpen(false)}
+        />
+      ))}
+    </RedemptionChainGroup>
   );
 }

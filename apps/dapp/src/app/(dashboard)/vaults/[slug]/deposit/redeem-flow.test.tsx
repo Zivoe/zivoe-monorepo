@@ -629,7 +629,7 @@ describe('RedeemFlow', () => {
     expect(
       screen.getByText(/New redemption requests into USDC on Ethereum are paused while a cancellation is processed/)
     ).toBeTruthy();
-    expect(screen.queryByText(/Cancelling redemption request/)).toBeNull();
+    expect(screen.queryByText(/^Cancelling$/)).toBeNull();
 
     fireEvent.click(getButton('View pending'));
     expect(mocks.updateTab).toHaveBeenCalledWith('pending');
@@ -642,8 +642,8 @@ describe('RedeemFlow', () => {
 
     renderFlow();
 
-    expect(screen.queryByText(/processing/)).toBeNull();
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByText(/^Processing$/)).toBeNull();
+    expect(screen.queryByText(/^Ready to claim$/)).toBeNull();
     expect(screen.queryByRole('button', { name: /Claim/ })).toBeNull();
     // A position in the payout vault still turns the request into an addition.
     expect(getButton('Add to redemption')).toBeTruthy();

@@ -261,8 +261,10 @@ describe('PendingFlow', () => {
     // Group headers name the chain and how many rows sit under it.
     expect(getButton(/^Ethereum\s*1$/)).toBeTruthy();
     expect(getButton(/^Base\s*1$/)).toBeTruthy();
-    expect(screen.getByText(/1,200\.00 USDC\s+ready to claim/)).toBeTruthy();
-    expect(screen.getByText(/500\.00 zSMB\s+processing/)).toBeTruthy();
+    expect(screen.getByText('1,200.00 USDC')).toBeTruthy();
+    expect(screen.getByText('Ready to claim')).toBeTruthy();
+    expect(screen.getByText('500.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Processing')).toBeTruthy();
   });
 
   it("acts on the wallet's own chain and offers the switch on every other chain's rows", async () => {
@@ -305,10 +307,10 @@ describe('PendingFlow', () => {
     renderRequests([SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC]);
 
     expect(getButton(/^Ethereum\s*2$/)).toBeTruthy();
-    expect(screen.getByText('USDC redemption')).toBeTruthy();
-    expect(screen.getByText('USDT redemption')).toBeTruthy();
+    expect(screen.getByText(/^USDC redemption/)).toBeTruthy();
+    expect(screen.getByText(/^USDT redemption/)).toBeTruthy();
     // Base holds one vault: no coin label needed there.
-    expect(screen.getAllByText(/redemption$/)).toHaveLength(2);
+    expect(screen.getAllByText(/^(USDC|USDT) redemption/)).toHaveLength(2);
 
     // The second coin's strip cancels in the second coin's vault, not the
     // chain's default.
@@ -323,11 +325,11 @@ describe('PendingFlow', () => {
     setPosition(SEPOLIA_USDC, { claimableRedeemAssets: 2_000000n });
     renderRequests([SEPOLIA_USDC]);
 
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
     fireEvent.click(getButton(/^Ethereum\s*1$/));
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByText(/^Ready to claim$/)).toBeNull();
     fireEvent.click(getButton(/^Ethereum\s*1$/));
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
   });
 
   it('shows a skeleton while every vault is still reading, then says so when nothing is in flight', () => {
@@ -352,12 +354,12 @@ describe('PendingFlow', () => {
     mocks.pending = new Set([BASE_USDC.centrifugeVault.address.toLowerCase()]);
     const withPosition = renderRequests([SEPOLIA_USDC, BASE_USDC]);
     expect(screen.getAllByText('Loading').length).toBeGreaterThan(0);
-    expect(screen.queryByText(/ready to claim/)).toBeNull();
+    expect(screen.queryByText(/^Ready to claim$/)).toBeNull();
 
     act(() => {
       vi.advanceTimersByTime(SETTLE_WINDOW_MS);
     });
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
     expect(screen.getByText('Still checking Base…')).toBeTruthy();
     expect(screen.queryByText('Loading')).toBeNull();
     withPosition.unmount();
@@ -411,6 +413,6 @@ describe('PendingFlow', () => {
     const base = getButton(/^Base\s*0$/).closest('section');
     expect(base).toBeTruthy();
     expect(within(base!).getByText(/Could not load every position on Base/)).toBeTruthy();
-    expect(screen.getByText(/ready to claim/)).toBeTruthy();
+    expect(screen.getByText(/^Ready to claim$/)).toBeTruthy();
   });
 });

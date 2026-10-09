@@ -165,7 +165,9 @@ describe('RedemptionPositionStrips', () => {
     mocks.pendingShares = 3n * D18;
     renderStrips();
 
-    expect(screen.getByText(/3\.00 zSMB\s+processing\s+· ≈ 3\.21 USDC/)).toBeTruthy();
+    expect(screen.getByText('3.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Processing')).toBeTruthy();
+    expect(screen.getByText('≈ 3.21 USDC on approval')).toBeTruthy();
     fireEvent.click(getButton('Cancel request'));
     expect(mocks.cancelRedeem).toHaveBeenCalledWith({ pendingShares: 3n * D18 });
   });
@@ -175,7 +177,8 @@ describe('RedemptionPositionStrips', () => {
     mocks.claimableAssets = 2_000000n;
     renderStrips();
 
-    expect(screen.getByText(/2\.00 USDC\s+ready to claim/)).toBeTruthy();
+    expect(screen.getByText('2.00 USDC')).toBeTruthy();
+    expect(screen.getByText('Ready to claim')).toBeTruthy();
     fireEvent.click(getButton('Claim USDC'));
     expect(mocks.claimRedeem).toHaveBeenCalledWith({ claimableAssets: 2_000000n });
   });
@@ -185,14 +188,16 @@ describe('RedemptionPositionStrips', () => {
     renderStrips();
 
     // The row and the post-claim receipt must agree on the same amount.
-    expect(screen.getByText(/0\.57 USDC\s+ready to claim/)).toBeTruthy();
+    expect(screen.getByText('0.57 USDC')).toBeTruthy();
+    expect(screen.getByText('Ready to claim')).toBeTruthy();
   });
 
   it('names an Unfunded Claim with its chain and offers no claim', () => {
     mocks.unfundedAssets = 310_071n;
     renderStrips();
 
-    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.getByText('0.31 USDC')).toBeTruthy();
+    expect(screen.getByText('Awaiting liquidity')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Claim USDC' })).toBeNull();
   });
 
@@ -201,7 +206,8 @@ describe('RedemptionPositionStrips', () => {
     mocks.hasPendingCancel = true;
     renderStrips();
 
-    expect(screen.getByText(/Cancelling redemption request for 3\.00 zSMB/)).toBeTruthy();
+    expect(screen.getByText('3.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Cancelling')).toBeTruthy();
     expect(screen.getByText(/available to claim once the cancellation is processed/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
   });
@@ -210,7 +216,8 @@ describe('RedemptionPositionStrips', () => {
     mocks.returnedShares = 3n * D18;
     renderStrips();
 
-    expect(screen.getByText(/3\.00 zSMB\s+returned from cancellation/)).toBeTruthy();
+    expect(screen.getByText('3.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Returned')).toBeTruthy();
     fireEvent.click(getButton('Claim zSMB'));
     expect(mocks.claimReturnedShares).toHaveBeenCalledWith({ returnedShares: 3n * D18 });
   });
@@ -292,8 +299,10 @@ describe('RedemptionPositionStrips', () => {
       })
     });
 
-    // The headline must not contradict the disabled button: approved, not ready.
-    expect(screen.getByText(/150\.00 USDC\s+approved/)).toBeTruthy();
+    // The pill must not contradict the disabled button: approved, not ready.
+    expect(screen.getByText('150.00 USDC')).toBeTruthy();
+    expect(screen.getByText('Approved')).toBeTruthy();
+    expect(screen.queryByText('Ready to claim')).toBeNull();
     expect(getButton('Claim USDC').disabled).toBe(true);
     expect(screen.getAllByText('This wallet is frozen.')).toHaveLength(3);
     expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
@@ -327,7 +336,8 @@ describe('RedemptionPositionStrips', () => {
       })
     });
 
-    expect(screen.getByText(/0\.31 USDC\s+approved, awaiting liquidity on Ethereum/)).toBeTruthy();
+    expect(screen.getByText('0.31 USDC')).toBeTruthy();
+    expect(screen.getByText('Awaiting liquidity')).toBeTruthy();
     expect(screen.getByText('This wallet is frozen.')).toBeTruthy();
   });
 
@@ -346,7 +356,8 @@ describe('RedemptionPositionStrips', () => {
     mocks.pendingShares = 3n * D18;
     renderStrips({ identity: BASE_IDENTITY, gates: gatesFor({ canReceiveShares: false }) });
 
-    expect(screen.getByText(/3\.00 zSMB\s+processing/)).toBeTruthy();
+    expect(screen.getByText('3.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Processing')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel request' })).toBeNull();
     expect(screen.queryByText('Requires a whitelisted wallet.')).toBeNull();
   });
@@ -411,10 +422,10 @@ describe('RedemptionPositionStrips', () => {
     mocks.pendingShares = 3n * D18;
     mocks.returnedShares = 1n * D18;
     renderStrips({ labelAsset: true });
-    expect(screen.getAllByText('USDC redemption')).toHaveLength(2);
+    expect(screen.getAllByText(/^USDC redemption/)).toHaveLength(2);
 
     cleanup();
     renderStrips({ labelAsset: false });
-    expect(screen.queryByText('USDC redemption')).toBeNull();
+    expect(screen.queryByText(/USDC redemption/)).toBeNull();
   });
 });

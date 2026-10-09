@@ -30,7 +30,7 @@ const IDENTITIES = [SEPOLIA_USDC, SEPOLIA_USDT, BASE_USDC];
 afterEach(cleanup);
 
 describe('Redemptions', () => {
-  it('prints every state in the Pending tab words, grouped by network, with one link to the tab', () => {
+  it('prints every state as a ledger row, grouped by network, with one link to the tab', () => {
     render(
       <Redemptions
         identities={IDENTITIES}
@@ -50,14 +50,21 @@ describe('Redemptions', () => {
     );
 
     expect(screen.getByText('3 open')).toBeTruthy();
-    expect(screen.getByText('0.56 USDC approved, awaiting liquidity on Ethereum')).toBeTruthy();
-    expect(screen.getByText('0.50 zSMB processing · ≈ 0.57 USDT')).toBeTruthy();
-    expect(screen.getByText('1.00 zSMB returned from cancellation')).toBeTruthy();
-    // Two catalogued vaults on Ethereum: each strip names its coin, like the Pending tab; Base's single vault does not.
-    expect(screen.getByText('USDC redemption')).toBeTruthy();
-    expect(screen.getByText('USDT redemption')).toBeTruthy();
-    expect(screen.getAllByText(/redemption$/)).toHaveLength(2);
-    expect(screen.queryByText('Base', { exact: true })).toBeTruthy();
+    // Each row: the amount, its status pill, and the one line that says what happens next.
+    expect(screen.getByText('0.56 USDC')).toBeTruthy();
+    expect(screen.getByText('Awaiting liquidity')).toBeTruthy();
+    expect(screen.getByText('0.50 zSMB')).toBeTruthy();
+    expect(screen.getByText('Processing')).toBeTruthy();
+    expect(screen.getByText('1.00 zSMB')).toBeTruthy();
+    expect(screen.getByText('Returned')).toBeTruthy();
+    // Two catalogued vaults on Ethereum: each item's detail line opens with its coin, like the Pending tab; Base's single vault does not.
+    expect(screen.getByText('USDC redemption · Approved, not yet funded on this network')).toBeTruthy();
+    expect(screen.getByText('USDT redemption · ≈ 0.57 USDT on approval')).toBeTruthy();
+    expect(screen.getAllByText(/^(USDC|USDT) redemption/)).toHaveLength(2);
+    expect(screen.getByText('From a cancelled request')).toBeTruthy();
+    // Group headers name the chain and how many items sit under it, like the Pending tab.
+    expect(screen.getByRole('button', { name: /^Ethereum\s*2$/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Base\s*1$/ })).toBeTruthy();
     expect(screen.getByRole('link', { name: /Manage in Zivoe SMB Credit/ }).getAttribute('href')).toBe(
       '/vaults/zivoe-smb-credit?view=pending'
     );
@@ -110,7 +117,7 @@ describe('Redemptions', () => {
       />
     );
     expect(screen.getByLabelText('Loading redemption requests')).toBeTruthy();
-    expect(screen.queryByText(/awaiting liquidity/)).toBeNull();
+    expect(screen.queryByText(/Awaiting liquidity/)).toBeNull();
     expect(screen.queryByText(/open$/)).toBeNull();
     expect(screen.queryByText(/Still checking/)).toBeNull();
   });
