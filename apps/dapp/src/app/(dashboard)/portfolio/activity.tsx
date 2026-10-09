@@ -24,11 +24,11 @@ import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 const LABELS: Record<ActivityKind, string> = {
   deposit: 'Deposited',
-  'redemption-requested': 'Redemption requested',
-  'redemption-processed': 'Redemption processed',
-  'proceeds-claimed': 'Proceeds claimed',
-  issued: 'Issued by Zivoe',
-  returned: 'Returned from cancellation',
+  'redemption-requested': 'Redemption Requested',
+  'redemption-processed': 'Redemption Processed',
+  'proceeds-claimed': 'Redemption Claimed',
+  issued: 'zVLT Migration',
+  returned: 'Redemption Cancelled',
   received: 'Received',
   sent: 'Sent'
 };

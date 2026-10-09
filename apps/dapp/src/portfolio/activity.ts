@@ -17,10 +17,11 @@ import { type TransactionIdentity } from '@/centrifuge';
  * - a sync deposit writes SYNC_DEPOSIT plus the mint's TRANSFER_IN;
  * - a redemption request writes REDEEM_REQUEST_UPDATED plus the escrow leg's TRANSFER_OUT;
  * - the manager's fulfilment writes REDEEM_CLAIMABLE, the investor's claim REDEEM_CLAIMED;
- * - a manual issue by the manager (the migrated positions) and the shares
- *   coming back from a cancellation both land as a bare TRANSFER_IN, told
- *   apart by the issuance record and by the receipt's CancelRedeemClaim event;
- * - what is left is a plain transfer in or out.
+ * - a manual issue by the manager (the zVLT migration) and the shares
+ *   coming back from a cancelled redemption both land as a bare TRANSFER_IN,
+ *   told apart by the issuance record and by the receipt's CancelRedeemClaim event;
+ * - what is left is a plain transfer in or out: shares moved between wallets,
+ *   such as a holding sent in from a custodian's multisig.
  * The indexer never writes a cancel row and never records an approval, so
  * neither is an entry here; the Redemptions card shows those live from chain.
  */

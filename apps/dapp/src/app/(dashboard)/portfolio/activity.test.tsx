@@ -73,8 +73,8 @@ describe('Activity', () => {
     expect(amountCell('1.00 USDC → 0.50 zSMB')).toBeTruthy();
     expect(amountCell('0.50 zSMB → 0.56 USDC')).toBeTruthy();
     expect(amountCell('0.56 USDC')).toBeTruthy();
-    expect(screen.getByText('Returned from cancellation')).toBeTruthy();
-    expect(screen.getByText('Issued by Zivoe')).toBeTruthy();
+    expect(screen.getByText('Redemption Cancelled')).toBeTruthy();
+    expect(screen.getByText('zVLT Migration')).toBeTruthy();
     expect(screen.getAllByText('16 Sep 2026')).toHaveLength(5);
     expect(screen.getByRole('link', { name: /Deposited/ }).getAttribute('href')).toContain('/tx/0xa');
     // Five entries and no further page: nothing to open.
