@@ -6,7 +6,8 @@ const mocks = vi.hoisted(() => ({
   env: { NEXT_PUBLIC_ENV: 'production' },
   waitForLocalEvaluationReady: vi.fn(),
   isLocalEvaluationReady: vi.fn(),
-  isFeatureEnabled: vi.fn(),
+  evaluateFlags: vi.fn(),
+  isEnabled: vi.fn(),
   captureException: vi.fn()
 }));
 
@@ -16,7 +17,7 @@ vi.mock('@/server/clients/posthog', () => ({
   posthog: {
     waitForLocalEvaluationReady: mocks.waitForLocalEvaluationReady,
     isLocalEvaluationReady: mocks.isLocalEvaluationReady,
-    isFeatureEnabled: mocks.isFeatureEnabled
+    evaluateFlags: mocks.evaluateFlags
   }
 }));
 
@@ -30,7 +31,8 @@ beforeEach(async () => {
   mocks.env.NEXT_PUBLIC_ENV = 'production';
   mocks.waitForLocalEvaluationReady.mockResolvedValue(true);
   mocks.isLocalEvaluationReady.mockReturnValue(true);
-  mocks.isFeatureEnabled.mockResolvedValue(true);
+  mocks.isEnabled.mockReturnValue(true);
+  mocks.evaluateFlags.mockResolvedValue({ isEnabled: mocks.isEnabled });
   vi.resetModules();
   ({ isKycEnabled } = await import('./kyc-flag'));
 });
@@ -40,20 +42,21 @@ describe('isKycEnabled', () => {
     mocks.env.NEXT_PUBLIC_ENV = 'development';
 
     expect(await isKycEnabled({ user: USER })).toBe(true);
-    expect(mocks.isFeatureEnabled).not.toHaveBeenCalled();
+    expect(mocks.evaluateFlags).not.toHaveBeenCalled();
   });
 
   it('evaluates the flag locally, matching on the email', async () => {
     expect(await isKycEnabled({ user: USER })).toBe(true);
-    expect(mocks.isFeatureEnabled).toHaveBeenCalledWith('kyc', 'user_1', {
+    expect(mocks.evaluateFlags).toHaveBeenCalledWith('user_1', {
+      flagKeys: ['kyc'],
       personProperties: { email: 'alex@zivoe.com' },
-      onlyEvaluateLocally: true,
-      sendFeatureFlagEvents: false
+      onlyEvaluateLocally: true
     });
+    expect(mocks.isEnabled).toHaveBeenCalledWith('kyc');
   });
 
-  it.each([false, undefined])('is off when the flag answers %s', async (answer) => {
-    mocks.isFeatureEnabled.mockResolvedValue(answer);
+  it('is off when the flag is off', async () => {
+    mocks.isEnabled.mockReturnValue(false);
 
     expect(await isKycEnabled({ user: USER })).toBe(false);
   });
@@ -65,11 +68,11 @@ describe('isKycEnabled', () => {
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(mocks.waitForLocalEvaluationReady).toHaveBeenCalledTimes(1);
-    expect(mocks.isFeatureEnabled).not.toHaveBeenCalled();
+    expect(mocks.evaluateFlags).not.toHaveBeenCalled();
   });
 
   it('is off, and reported, when PostHog throws', async () => {
-    mocks.isFeatureEnabled.mockRejectedValue(new Error('boom'));
+    mocks.evaluateFlags.mockRejectedValue(new Error('boom'));
 
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(mocks.captureException).toHaveBeenCalled();

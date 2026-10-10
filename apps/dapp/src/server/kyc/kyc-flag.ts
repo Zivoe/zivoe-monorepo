@@ -36,14 +36,14 @@ export async function isKycEnabled({ user }: { user: { id: string; email: string
     await (firstLoad ??= posthog.waitForLocalEvaluationReady(DEFINITIONS_WAIT_MS));
     if (!posthog.isLocalEvaluationReady()) return false;
 
-    const enabled = await posthog.isFeatureEnabled(KYC_FLAG, user.id, {
+    const flags = await posthog.evaluateFlags(user.id, {
+      flagKeys: [KYC_FLAG],
       // Local evaluation has no PostHog person data; the release condition matches on this.
       personProperties: { email: user.email },
-      onlyEvaluateLocally: true,
-      sendFeatureFlagEvents: false
+      onlyEvaluateLocally: true
     });
 
-    return enabled === true;
+    return flags.isEnabled(KYC_FLAG);
   } catch (err) {
     Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'kyc-flag' } });
     return false;
