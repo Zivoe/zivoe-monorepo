@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 
+import { scrubSecretParams } from '@/lib/analytics/scrub';
 import { useSession } from '@/lib/auth-client';
 
 import { env } from '@/env';
@@ -18,6 +19,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       ui_host: 'https://us.posthog.com',
       capture_pageview: false,
       capture_pageleave: true,
+      before_send: scrubSecretParams,
       loaded: function (ph) {
         if (env.NEXT_PUBLIC_ENV !== 'production') {
           ph.opt_out_capturing();
