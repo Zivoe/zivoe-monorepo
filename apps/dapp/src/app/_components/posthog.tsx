@@ -47,7 +47,7 @@ function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
 
   useEffect(() => {
     if (!pathname || !posthog) return;
@@ -59,10 +59,14 @@ function PostHogPageView() {
     posthog.capture('$pageview', { $current_url: url });
   }, [pathname, searchParams, posthog]);
 
+  // The session is null while it loads, so waiting matters: a reset then would start a new
+  // session and drop the anonymous id on every page load. Only a browser still identified
+  // as someone is reset, so a visitor arriving from the landing site keeps their history.
   useEffect(() => {
+    if (isPending) return;
     if (session?.user) posthog.identify(session.user.id, { email: session.user.email });
-    else posthog.reset();
-  }, [session, posthog]);
+    else if (posthog.get_property('$user_state') === 'identified') posthog.reset();
+  }, [session, isPending, posthog]);
 
   return null;
 }
