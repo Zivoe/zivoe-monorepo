@@ -37,7 +37,7 @@ import { env } from '@/env';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { DynamicNetworkCacheRepair } from './dynamic-network-cache-repair';
-import { PostHogProvider } from './posthog';
+import { PostHogIdentify } from './posthog';
 
 /**
  * Chains Dynamic has no native support for, so its dashboard can never list
@@ -137,20 +137,19 @@ export default function Providers({
   return (
     <>
       <RouterProvider navigate={(path) => router.push(path)}>
-        <PostHogProvider>
-          <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
-            <WagmiProvider config={wagmiConfig} initialState={initialState}>
-              <QueryClientProvider client={queryClient}>
-                <DynamicWagmiConnector>
-                  <DynamicNetworkCacheRepair />
-                  <WalletTracker />
-                  <SentryContext>{children}</SentryContext>
-                </DynamicWagmiConnector>
-                <ReactQueryDevtools initialIsOpen={false} />
-              </QueryClientProvider>
-            </WagmiProvider>
-          </DynamicContextProvider>
-        </PostHogProvider>
+        <PostHogIdentify />
+        <DynamicContextProvider settings={DYNAMIC_SETTINGS}>
+          <WagmiProvider config={wagmiConfig} initialState={initialState}>
+            <QueryClientProvider client={queryClient}>
+              <DynamicWagmiConnector>
+                <DynamicNetworkCacheRepair />
+                <WalletTracker />
+                <SentryContext>{children}</SentryContext>
+              </DynamicWagmiConnector>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
+          </WagmiProvider>
+        </DynamicContextProvider>
       </RouterProvider>
 
       <Toaster />

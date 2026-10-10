@@ -12,8 +12,6 @@ import { Toaster } from '@zivoe/ui/core/sonner';
 
 import { env } from '@/env';
 
-import { PostHogProvider } from './posthog';
-
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -49,9 +47,7 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PostHogProvider>
-        <RouterProvider navigate={(path) => router.push(path)}>{children}</RouterProvider>
-      </PostHogProvider>
+      <RouterProvider navigate={(path) => router.push(path)}>{children}</RouterProvider>
       <Toaster />
     </QueryClientProvider>
   );

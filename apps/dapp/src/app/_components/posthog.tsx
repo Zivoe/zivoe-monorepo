@@ -1,65 +1,17 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
-
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 import posthog from 'posthog-js';
-import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 
-import { scrubSecretParams } from '@/lib/analytics/scrub';
 import { useSession } from '@/lib/auth-client';
 
-import { env } from '@/env';
-
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
-      api_host: '/vd3asd',
-      ui_host: 'https://us.posthog.com',
-      capture_pageview: false,
-      capture_pageleave: true,
-      before_send: scrubSecretParams,
-      loaded: function (ph) {
-        if (env.NEXT_PUBLIC_ENV !== 'production') {
-          ph.opt_out_capturing();
-          ph.stopSessionRecording();
-        }
-      }
-    });
-  }, []);
-
-  return (
-    <PHProvider client={posthog}>
-      <SuspendedPostHogPageView />
-      {children}
-    </PHProvider>
-  );
-}
-
-function SuspendedPostHogPageView() {
-  return (
-    <Suspense fallback={null}>
-      <PostHogPageView />
-    </Suspense>
-  );
-}
-
-function PostHogPageView() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const posthog = usePostHog();
+/**
+ * Ties PostHog's browser identity to the signed-in user. PostHog itself is initialised in
+ * instrumentation-client.ts, which also captures pageviews on every route change.
+ */
+export function PostHogIdentify() {
   const { data: session, isPending } = useSession();
-
-  useEffect(() => {
-    if (!pathname || !posthog) return;
-
-    const strSearchParams = searchParams.toString();
-    let url = window.origin + pathname;
-    if (strSearchParams) url = url + `?${strSearchParams}`;
-
-    posthog.capture('$pageview', { $current_url: url });
-  }, [pathname, searchParams, posthog]);
 
   // The session is null while it loads, so waiting matters: a reset then would start a new
   // session and drop the anonymous id on every page load. Only a browser still identified
@@ -68,7 +20,7 @@ function PostHogPageView() {
     if (isPending) return;
     if (session?.user) posthog.identify(session.user.id, { email: session.user.email });
     else if (posthog.get_property('$user_state') === 'identified') posthog.reset();
-  }, [session, isPending, posthog]);
+  }, [session, isPending]);
 
   return null;
 }
