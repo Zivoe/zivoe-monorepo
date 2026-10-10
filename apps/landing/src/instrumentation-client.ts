@@ -25,6 +25,8 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   // that carries project settings. It also hides any PostHog survey, since surveys target
   // through flags.
   advanced_disable_feature_flags: true,
+  // Sentry owns errors. Set here, this overrides the project's exception autocapture setting.
+  capture_exceptions: false,
   loaded(ph) {
     if (env.NEXT_PUBLIC_ENV !== 'production') {
       ph.opt_out_capturing();
