@@ -18,12 +18,14 @@ Sentry.init({
 });
 
 // Runs before hydration, so the first pageview is never lost. The `defaults` snapshot
-// captures a pageview on every route change and a pageleave on exit.
+// captures a pageview on every route change and a pageleave on exit, drops URL fragments,
+// and lets the identity cookie shared across zivoe.com win over this origin's localStorage.
+// Keep it the same in the dapp and the landing: they share that cookie.
 // Identity is tied to the session by PostHogIdentify (app/_components/posthog.tsx).
 posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
   api_host: '/vd3asd',
   ui_host: 'https://us.posthog.com',
-  defaults: '2026-01-30',
+  defaults: '2026-08-30',
   // Flags are evaluated on the server (server/kyc/kyc-flag.ts); the browser reads none, and every
   // /flags call is billed. Keeps the remote config call that carries project settings.
   // It also hides any PostHog survey, since surveys target through flags.
