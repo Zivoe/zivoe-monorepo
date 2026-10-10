@@ -16,8 +16,8 @@ export const env = createEnv({
     CHAINALYSIS_API_KEY: z.string(),
     // PostHog project secret API key with the `feature_flag:read` scope (the "Local feature flag
     // evaluation" preset; never the public `phc_` key): lets the server evaluate flags locally.
-    // Production only; without it every flag reads as off.
-    POSTHOG_FEATURE_FLAGS_KEY: z.string().optional(),
+    // Required in production, where a missing key would read every flag as off; unused elsewhere.
+    POSTHOG_FEATURE_FLAGS_KEY: process.env.NEXT_PUBLIC_ENV === 'production' ? z.string().min(1) : z.string().optional(),
 
     // Persona (KYC) — sandbox values on previews, production values in production;
     // the webhook secret differs per registered endpoint.
