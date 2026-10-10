@@ -29,6 +29,8 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   // It also hides any PostHog survey, since surveys target through flags.
   advanced_disable_feature_flags: true,
   before_send: scrubSecretParams,
+  // Sends the session id on same-origin requests, so server events join the browser's session.
+  addTracingHeaders: [window.location.hostname],
   loaded(ph) {
     if (env.NEXT_PUBLIC_ENV !== 'production') {
       ph.opt_out_capturing();

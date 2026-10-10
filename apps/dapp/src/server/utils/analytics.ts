@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { headers } from 'next/headers';
+
 import * as Sentry from '@sentry/nextjs';
 
 import { type AnalyticsEvent, type AnalyticsProperties, compactAnalyticsProperties } from '@/lib/analytics/events';
@@ -25,7 +27,7 @@ export async function captureServerEvent({
     await posthog.captureImmediate({
       distinctId,
       event,
-      properties: compactAnalyticsProperties(properties),
+      properties: compactAnalyticsProperties({ ...properties, $session_id: await getBrowserSessionId() }),
       timestamp
     });
   } catch (error) {
@@ -33,5 +35,19 @@ export async function captureServerEvent({
       tags: { source: 'SERVER', flow: 'posthog-capture' },
       extra: { distinctId, event }
     });
+  }
+}
+
+/**
+ * The PostHog session of the browser that made this request, which posthog-js sends on
+ * same-origin requests (`addTracingHeaders` in instrumentation-client.ts). With it a server
+ * event lands in the session that caused it. Full page loads carry none, and headers() throws
+ * inside a Server Component's after(): those events go without a session.
+ */
+async function getBrowserSessionId() {
+  try {
+    return (await headers()).get('x-posthog-session-id') ?? undefined;
+  } catch {
+    return undefined;
   }
 }
