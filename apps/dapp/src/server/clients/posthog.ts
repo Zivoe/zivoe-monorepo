@@ -7,7 +7,8 @@ import { env } from '@/env';
 const isProduction = env.NEXT_PUBLIC_ENV === 'production';
 
 export const posthog = new PostHog(isProduction ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
-  host: 'https://us.posthog.com',
+  // The ingestion host; us.posthog.com is the app and its private API.
+  host: 'https://us.i.posthog.com',
   flushAt: 1,
   flushInterval: 0,
   // Local evaluation: flag definitions are fetched once per instance and
