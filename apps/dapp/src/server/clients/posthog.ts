@@ -15,6 +15,6 @@ export const posthog = new PostHog(isProduction ? env.NEXT_PUBLIC_POSTHOG_KEY : 
   // re-polled in the background, so a flag check never waits on PostHog.
   // Every poll is billed and release lists change rarely: a flag edit takes
   // up to five minutes to land.
-  personalApiKey: isProduction ? env.POSTHOG_FEATURE_FLAGS_KEY : undefined,
+  secretKey: isProduction ? env.POSTHOG_FEATURE_FLAGS_KEY : undefined,
   featureFlagsPollingInterval: 5 * 60 * 1000
 });
