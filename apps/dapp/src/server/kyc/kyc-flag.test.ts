@@ -8,11 +8,12 @@ const mocks = vi.hoisted(() => ({
   isLocalEvaluationReady: vi.fn(),
   evaluateFlags: vi.fn(),
   isEnabled: vi.fn(),
-  captureException: vi.fn()
+  captureException: vi.fn(),
+  captureMessage: vi.fn()
 }));
 
 vi.mock('@/env', () => ({ env: mocks.env }));
-vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException }));
+vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException, captureMessage: mocks.captureMessage }));
 vi.mock('@/server/clients/posthog', () => ({
   posthog: {
     waitForLocalEvaluationReady: mocks.waitForLocalEvaluationReady,
@@ -61,14 +62,23 @@ describe('isKycEnabled', () => {
     expect(await isKycEnabled({ user: USER })).toBe(false);
   });
 
-  it('is off while the definitions are not loaded, waiting for them only once', async () => {
+  it('is off while the definitions are not loaded, waiting and reporting only once', async () => {
     mocks.waitForLocalEvaluationReady.mockResolvedValue(false);
     mocks.isLocalEvaluationReady.mockReturnValue(false);
 
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(mocks.waitForLocalEvaluationReady).toHaveBeenCalledTimes(1);
+    expect(mocks.captureMessage).toHaveBeenCalledTimes(1);
     expect(mocks.evaluateFlags).not.toHaveBeenCalled();
+  });
+
+  it('reads the flag once the definitions arrive after the first wait', async () => {
+    mocks.waitForLocalEvaluationReady.mockResolvedValue(false);
+    mocks.isLocalEvaluationReady.mockReturnValueOnce(false).mockReturnValue(true);
+
+    expect(await isKycEnabled({ user: USER })).toBe(false);
+    expect(await isKycEnabled({ user: USER })).toBe(true);
   });
 
   it('is off, and reported, when PostHog throws', async () => {

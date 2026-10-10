@@ -10,13 +10,27 @@ import { env } from '@/env';
 export const KYC_FLAG = 'kyc';
 
 /**
- * How long the first check on an instance may wait for the first download of
- * the flag definitions. Waited once: later checks read readiness without
- * waiting, so an unreachable PostHog (or a bad key) costs one request this
- * much, never every request.
+ * How long the first check on a fresh server instance may wait for the first
+ * download of the flag definitions. A download with a cold connection can take
+ * longer than 300 ms, which read the flag off for invited users on a new
+ * instance, so the wait covers it with room. Waited once: later checks read
+ * readiness without waiting, so an unreachable PostHog (or a bad key) costs one
+ * request this much, never every request.
  */
-const DEFINITIONS_WAIT_MS = 300;
+const DEFINITIONS_WAIT_MS = 1500;
 let firstLoad: Promise<boolean> | undefined;
+
+/** Waits for the definitions once per instance, and reports an instance that never got them. */
+function definitionsLoaded() {
+  return (firstLoad ??= posthog.waitForLocalEvaluationReady(DEFINITIONS_WAIT_MS).then((ready) => {
+    if (!ready)
+      Sentry.captureMessage('PostHog flag definitions did not load; the kyc flag reads as off', {
+        level: 'warning',
+        tags: { source: 'SERVER', flow: 'kyc-flag' }
+      });
+    return ready;
+  }));
+}
 
 /**
  * Whether a user sees the KYC surfaces (`/verification`, its menu link, the
@@ -33,7 +47,7 @@ export async function isKycEnabled({ user }: { user: { id: string; email: string
   if (env.NEXT_PUBLIC_ENV !== 'production') return true;
 
   try {
-    await (firstLoad ??= posthog.waitForLocalEvaluationReady(DEFINITIONS_WAIT_MS));
+    await definitionsLoaded();
     if (!posthog.isLocalEvaluationReady()) return false;
 
     const flags = await posthog.evaluateFlags(user.id, {
