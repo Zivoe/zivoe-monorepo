@@ -21,6 +21,10 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   api_host: '/asbr3d',
   ui_host: 'https://us.posthog.com',
   defaults: '2026-01-30',
+  // The landing reads no flags, and every /flags call is billed. Keeps the remote config call
+  // that carries project settings. It also hides any PostHog survey, since surveys target
+  // through flags.
+  advanced_disable_feature_flags: true,
   loaded(ph) {
     if (env.NEXT_PUBLIC_ENV !== 'production') {
       ph.opt_out_capturing();

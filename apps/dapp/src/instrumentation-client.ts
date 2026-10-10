@@ -24,6 +24,10 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   api_host: '/vd3asd',
   ui_host: 'https://us.posthog.com',
   defaults: '2026-01-30',
+  // Flags are evaluated on the server (server/kyc/kyc-flag.ts); the browser reads none, and every
+  // /flags call is billed. Keeps the remote config call that carries project settings.
+  // It also hides any PostHog survey, since surveys target through flags.
+  advanced_disable_feature_flags: true,
   before_send: scrubSecretParams,
   loaded(ph) {
     if (env.NEXT_PUBLIC_ENV !== 'production') {
