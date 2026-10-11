@@ -73,6 +73,12 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
+    // Set by Vercel on its deployments; a local run has none. Decides where PostHog reports
+    // (lib/analytics/posthog-enabled.ts), so a production build refuses to go without it.
+    NEXT_PUBLIC_VERCEL_ENV:
+      process.env.NEXT_PUBLIC_ENV === 'production'
+        ? z.literal('production')
+        : z.enum(['production', 'preview', 'development']).default('development'),
     NEXT_PUBLIC_CHAIN_ENV: z.enum(['mainnet', 'testnet']),
     NEXT_PUBLIC_DYNAMIC_ENV_ID: z.string(),
     NEXT_PUBLIC_MAINNET_ALCHEMY_KEY: z.string(),
@@ -97,6 +103,7 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
+    NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,

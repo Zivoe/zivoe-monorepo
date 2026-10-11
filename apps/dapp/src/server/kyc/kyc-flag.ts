@@ -38,8 +38,8 @@ function definitionsLoaded() {
  * doubt — PostHog not ready, an error, a missing key — reads as off.
  *
  * Evaluated locally against definitions polled in the background: no network
- * call per check. Outside production it is always on, since PostHog runs on a
- * fake key there and previews need the feature.
+ * call per check. Outside production it is always on: previews carry no
+ * POSTHOG_FEATURE_FLAGS_KEY, read no flag, and need the feature.
  *
  * Remove with the flag at launch, along with its call sites.
  */

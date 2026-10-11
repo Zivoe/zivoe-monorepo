@@ -5,8 +5,7 @@ import { headers } from 'next/headers';
 import * as Sentry from '@sentry/nextjs';
 
 import { type AnalyticsEvent, type AnalyticsProperties, compactAnalyticsProperties } from '@/lib/analytics/events';
-
-import { env } from '@/env';
+import { POSTHOG_ENABLED } from '@/lib/analytics/posthog-enabled';
 
 import { posthog } from '../clients/posthog';
 
@@ -24,7 +23,7 @@ export async function captureServerEvent({
   sessionId?: string;
   timestamp?: Date;
 }) {
-  if (env.NEXT_PUBLIC_ENV !== 'production') return;
+  if (!POSTHOG_ENABLED) return;
 
   try {
     await posthog.captureImmediate({

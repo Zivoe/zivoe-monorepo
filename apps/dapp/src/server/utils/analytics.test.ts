@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/headers', () => ({ headers: mocks.headers }));
-vi.mock('@/env', () => ({ env: { NEXT_PUBLIC_ENV: 'production', NEXT_PUBLIC_CHAIN_ENV: 'testnet' } }));
+vi.mock('@/env', () => ({ env: { NEXT_PUBLIC_VERCEL_ENV: 'production', NEXT_PUBLIC_CHAIN_ENV: 'testnet' } }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('../clients/posthog', () => ({ posthog: { captureImmediate: mocks.captureImmediate } }));
 

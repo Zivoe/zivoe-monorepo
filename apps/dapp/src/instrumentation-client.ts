@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import posthog from 'posthog-js';
 
+import { POSTHOG_ENABLED } from '@/lib/analytics/posthog-enabled';
 import { scrubSecretParams, scrubSecretUrl } from '@/lib/analytics/scrub';
 
 import { env } from '@/env';
@@ -22,7 +23,7 @@ Sentry.init({
 // and lets the identity cookie shared across zivoe.com win over this origin's localStorage.
 // Keep it the same in the dapp and the landing: they share that cookie.
 // Identity is tied to the session by PostHogIdentify (app/_components/posthog.tsx).
-posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
+posthog.init(POSTHOG_ENABLED ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
   api_host: '/vd3asd',
   ui_host: 'https://us.posthog.com',
   defaults: '2026-08-30',
@@ -38,14 +39,16 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   session_recording: {
     maskCapturedNetworkRequestFn: (request) => ({ ...request, name: scrubSecretUrl(request.name) })
   },
-  // Sends the session id on same-origin requests, so server events join the browser's session.
-  addTracingHeaders: [window.location.hostname],
-  loaded(ph) {
-    if (env.NEXT_PUBLIC_ENV !== 'production') {
-      ph.opt_out_capturing();
-      ph.stopSessionRecording();
-    }
-  }
+  ...(POSTHOG_ENABLED
+    ? // Sends the session id on same-origin requests, so server events join the browser's session.
+      { tracing_headers: [window.location.hostname] }
+    : // A local run sends, records, fetches and loads nothing.
+      {
+        opt_out_capturing_by_default: true,
+        disable_session_recording: true,
+        advanced_disable_flags: true,
+        disable_external_dependency_loading: true
+      })
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
