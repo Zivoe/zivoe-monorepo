@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import posthog from 'posthog-js';
 
-import { scrubSecretParams } from '@/lib/analytics/scrub';
+import { scrubSecretParams, scrubSecretUrl } from '@/lib/analytics/scrub';
 
 import { env } from '@/env';
 
@@ -33,6 +33,11 @@ posthog.init(env.NEXT_PUBLIC_ENV === 'production' ? env.NEXT_PUBLIC_POSTHOG_KEY 
   // Sentry owns errors. Set here, this overrides the project's exception autocapture setting.
   capture_exceptions: false,
   before_send: scrubSecretParams,
+  // Replay keeps the page URL and every request URL inside its snapshots, where before_send
+  // does not look; the recorder passes each of them through this before storing it.
+  session_recording: {
+    maskCapturedNetworkRequestFn: (request) => ({ ...request, name: scrubSecretUrl(request.name) })
+  },
   // Sends the session id on same-origin requests, so server events join the browser's session.
   addTracingHeaders: [window.location.hostname],
   loaded(ph) {
