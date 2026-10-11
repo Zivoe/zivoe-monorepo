@@ -29,6 +29,17 @@ describe('captureServerEvent', () => {
     );
   });
 
+  it('takes a session id the caller read before the request was gone', async () => {
+    mocks.headers.mockRejectedValue(new Error('headers() inside after()'));
+
+    await captureServerEvent({ distinctId: 'user_1', event: 'onboarding:started', sessionId: 'session_2' });
+
+    expect(mocks.captureImmediate).toHaveBeenCalledWith(
+      expect.objectContaining({ properties: { $session_id: 'session_2' } })
+    );
+    expect(mocks.headers).not.toHaveBeenCalled();
+  });
+
   it('sends the event without a session where there is no request to read', async () => {
     mocks.headers.mockRejectedValue(new Error('headers() inside after()'));
 

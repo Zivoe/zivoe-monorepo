@@ -14,11 +14,14 @@ export async function captureServerEvent({
   distinctId,
   event,
   properties = {},
+  sessionId,
   timestamp
 }: {
   distinctId: string;
   event: AnalyticsEvent;
   properties?: AnalyticsProperties;
+  /** Read with getBrowserSessionId() by a caller whose request is gone by the time this runs. */
+  sessionId?: string;
   timestamp?: Date;
 }) {
   if (env.NEXT_PUBLIC_ENV !== 'production') return;
@@ -27,7 +30,10 @@ export async function captureServerEvent({
     await posthog.captureImmediate({
       distinctId,
       event,
-      properties: compactAnalyticsProperties({ ...properties, $session_id: await getBrowserSessionId() }),
+      properties: compactAnalyticsProperties({
+        ...properties,
+        $session_id: sessionId ?? (await getBrowserSessionId())
+      }),
       timestamp
     });
   } catch (error) {
@@ -40,11 +46,12 @@ export async function captureServerEvent({
 
 /**
  * The PostHog session of the browser that made this request, which posthog-js sends on
- * same-origin requests (`addTracingHeaders` in instrumentation-client.ts). With it a server
- * event lands in the session that caused it. Full page loads carry none, and headers() throws
- * inside a Server Component's after(): those events go without a session.
+ * same-origin requests (`tracing_headers` in instrumentation-client.ts). With it a server
+ * event lands in the session that caused it. Full page loads carry none. A Server Action's
+ * or Route Handler's after() can still read it; a Server Component's after() cannot, so a
+ * page reads it before scheduling the event and passes it to captureServerEvent.
  */
-async function getBrowserSessionId() {
+export async function getBrowserSessionId() {
   try {
     return (await headers()).get('x-posthog-session-id') ?? undefined;
   } catch {
