@@ -10,7 +10,8 @@ the human setting that up. Code: `apps/dapp/src/app/api/agent-sign-in/`, identit
 - An ordinary user: no wallet, no KYC, no admin role. Nothing is skipped for it. The welcome
   email, the onboarding reminder and Telegram notifications fire exactly as for a customer, so a
   run through a flow can be verified from the mailbox and the notification chat. The newsletter
-  subscription and PostHog only run in production, for every user.
+  subscription only runs in production, for every user. PostHog runs on every Vercel deployment:
+  previews report to the "Zivoe - staging" project, production to "Zivoe", local runs to none.
 - Sessions minted by the agent route last one hour and are never extended. Normal sessions last
   seven days and slide back to seven on use once a day old; the hook exempts only the agent.
 
@@ -98,7 +99,10 @@ There is no agent route in production, by decision. The agent signs in like anyo
   get 401 and never arrive.
 - Telegram notifications go to the preview group on previews and to the team channel in
   production.
-- PostHog and the newsletter subscription are disabled outside production.
+- PostHog events from a preview land in the "Zivoe - staging" project, under the agent's user id.
+  Headless Chromium counts as a bot to posthog-js, which drops its events: a script must replace
+  "HeadlessChrome" in the user agent and the brand list, and mask `navigator.webdriver`, to see
+  client events. Server events land either way. The newsletter subscription is disabled outside production.
 
 ## Responses and what they mean
 
