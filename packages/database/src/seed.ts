@@ -52,8 +52,11 @@ async function main() {
       .returning({ id: user.id });
     if (!agent) throw new Error('Upserting the agent user returned no row.');
 
-    // An acceptance of the version in force each run, so the agent is past `/terms` even after it moved.
-    await db.insert(termsAcceptance).values({ userId: agent.id, termsVersion: LATEST_LEGAL_DOCS_VERSION });
+    // An acceptance of the version in force, so the agent is past `/terms` even after it moved; kept when it exists.
+    await db
+      .insert(termsAcceptance)
+      .values({ userId: agent.id, termsVersion: LATEST_LEGAL_DOCS_VERSION })
+      .onConflictDoNothing();
 
     // The dapp treats a profile row as "onboarded" (server/data/auth.ts isUserOnboarded).
     const onboarded = await db
