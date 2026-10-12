@@ -29,9 +29,10 @@ posthog.init(POSTHOG_ENABLED ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
   ui_host: 'https://us.posthog.com',
   defaults: '2026-08-30',
   // The landing reads no flags, and every /flags call is billed. Keeps the remote config call
-  // that carries project settings. It also hides any PostHog survey, since surveys target
-  // through flags.
+  // that carries project settings.
   advanced_disable_feature_flags: true,
+  // No surveys run here; without this the SDK still downloads the surveys script on every load.
+  disable_surveys: true,
   // Sentry owns errors. Set here, this overrides the project's exception autocapture setting.
   capture_exceptions: false,
   // A local run sends, records, fetches and loads nothing.
