@@ -3,25 +3,29 @@ import type { BeforeSendFn, Properties } from 'posthog-js';
 /**
  * The `token` an unsubscribe link carries changes the holder's email preferences, so it
  * never reaches PostHog. `scrubSecretParams` is the `before_send` hook: it strips the token
- * from every URL-valued event property (`$current_url`, `$referrer`, `$session_entry_url`,
- * the `$initial_*` person properties). Session replay keeps the page URL and every request
- * URL inside its own snapshots, where that hook does not look, so the recorder runs
- * `scrubSecretUrl` over them too (instrumentation-client.ts).
+ * from every URL in an event's properties, at any depth and in object keys too, since
+ * `$web_vitals` nests a copy of the page URL and `$$heatmap` keys its data by URL.
+ * Session replay keeps the page URL and every request URL inside its own snapshots; the
+ * recorder runs `scrubSecretUrl` over those (instrumentation-client.ts), so the hook skips
+ * the large `$snapshot` events.
  */
 export const scrubSecretParams: BeforeSendFn = (event) => {
-  if (!event) return event;
+  if (!event || event.event === '$snapshot') return event;
 
-  for (const properties of [event.properties, event.$set, event.$set_once]) {
-    if (properties) scrubProperties(properties);
+  for (const key of ['properties', '$set', '$set_once'] as const) {
+    if (event[key]) event[key] = scrubDeep(event[key]) as Properties;
   }
 
   return event;
 };
 
-function scrubProperties(properties: Properties) {
-  for (const [key, value] of Object.entries(properties)) {
-    if (typeof value === 'string') properties[key] = scrubSecretUrl(value);
+function scrubDeep(value: unknown): unknown {
+  if (typeof value === 'string') return scrubSecretUrl(value);
+  if (Array.isArray(value)) return value.map(scrubDeep);
+  if (value && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [scrubSecretUrl(key), scrubDeep(item)]));
   }
+  return value;
 }
 
 /** The URL without its `token` parameter; anything that is not a URL comes back as it is. */

@@ -39,6 +39,33 @@ describe('scrubSecretParams', () => {
     expect(scrubbed?.properties).toEqual({ $current_url: 'https://app.zivoe.com/unsubscribe' });
   });
 
+  it('strips the token from URLs nested in objects, arrays and object keys', () => {
+    const url = 'https://app.zivoe.com/unsubscribe?token=abc.def';
+    const clean = 'https://app.zivoe.com/unsubscribe';
+
+    const vitals = scrubSecretParams(
+      event({
+        event: '$web_vitals',
+        properties: { $web_vitals_LCP_event: { $current_url: url, navigationURL: url, attribution: [url] } }
+      })
+    );
+    const heatmap = scrubSecretParams(
+      event({ event: '$$heatmap', properties: { $heatmap_data: { [url]: [{ x: 1, y: 2 }] } } })
+    );
+
+    expect(vitals?.properties).toEqual({
+      $web_vitals_LCP_event: { $current_url: clean, navigationURL: clean, attribution: [clean] }
+    });
+    expect(heatmap?.properties).toEqual({ $heatmap_data: { [clean]: [{ x: 1, y: 2 }] } });
+  });
+
+  it('passes replay snapshots through untouched, since the recorder masks their URLs', () => {
+    const snapshot = event({ event: '$snapshot', properties: { $snapshot_data: [{ type: 4, data: { href: 'x' } }] } });
+    const { properties } = snapshot;
+
+    expect(scrubSecretParams(snapshot)?.properties).toBe(properties);
+  });
+
   it('leaves values that are not URLs alone', () => {
     const scrubbed = scrubSecretParams(event({ properties: { note: 'token=abc' } }));
 
