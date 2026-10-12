@@ -5,6 +5,8 @@ import { ArrowLeftIcon } from '@zivoe/ui/icons';
 import { copyrightLine } from '@zivoe/ui/lib/copyright';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { LINKS } from '@/types/constants';
+
 import { EMAILS } from '@/lib/utils';
 
 function Container({ children }: { children: React.ReactNode }) {
@@ -86,6 +88,19 @@ function AuthSelectTrigger({
 
 AuthSelectTrigger.displayName = 'Auth.SelectTrigger';
 
+function TermsFooter() {
+  return (
+    <Footer>
+      By clicking continue, you agree to our{' '}
+      <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use & Privacy Policy</FooterLink>, comply with our{' '}
+      <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>, and consent to receive
+      communications from Zivoe.
+    </Footer>
+  );
+}
+
+TermsFooter.displayName = 'Auth.TermsFooter';
+
 function CopyrightFooter() {
   return <Footer>{copyrightLine()}</Footer>;
 }
@@ -143,6 +158,7 @@ export const Auth = {
   Header,
   StepIndicator,
   SelectTrigger: AuthSelectTrigger,
+  TermsFooter,
   CopyrightFooter,
   HelpFooter
 };

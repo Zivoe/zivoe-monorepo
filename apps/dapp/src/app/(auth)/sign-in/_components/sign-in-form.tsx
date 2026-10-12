@@ -110,7 +110,7 @@ export default function SignInForm({ next }: { next?: string }) {
         )}
       </Auth.Container>
 
-      <Auth.HelpFooter />
+      {step === 'EMAIL' ? <Auth.TermsFooter /> : <Auth.HelpFooter />}
     </>
   );
 }
