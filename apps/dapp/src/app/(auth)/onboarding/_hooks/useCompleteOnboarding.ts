@@ -8,11 +8,11 @@ import { toast } from '@zivoe/ui/core/sonner';
 
 import { completeOnboarding } from '@/server/actions/onboarding';
 
-import { onboardedDestination } from '@/lib/lighthouse';
+import { withNext } from '@/lib/lighthouse';
 import { type OnboardingFormData } from '@/lib/schemas/onboarding';
 import { AppError, onTxError } from '@/lib/utils';
 
-/** `next` is the validated page to return to once onboarded (lib/lighthouse.ts); without it the dashboard is next. */
+/** The terms follow onboarding; `next`, the validated page to return to after them (lib/lighthouse.ts), rides along. */
 export function useCompleteOnboarding({ next }: { next?: string } = {}) {
   const router = useRouter();
 
@@ -29,9 +29,7 @@ export function useCompleteOnboarding({ next }: { next?: string } = {}) {
         description: 'Your account has been set up successfully.'
       });
 
-      // A full load: returning to Lighthouse ends in a cross-origin redirect from the pass route, which the client router cannot follow.
-      if (next) window.location.assign(onboardedDestination(next));
-      else router.push('/');
+      router.push(withNext('/terms', next));
     },
 
     onError: (err) => {
