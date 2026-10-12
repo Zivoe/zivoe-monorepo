@@ -13,13 +13,15 @@ import { ApiError, roundTo4, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../../utils';
 
+export const maxDuration = 60;
+
 type RefreshResult = {
   staleOrMissing: number;
   staleHoldings: number;
   holdingsUpdated: number;
 };
 
-const DURATION_WARNING_MS = 45_000; // 45 seconds of Vercel's 60s limit
+const DURATION_WARNING_MS = 45_000; // 45 seconds of the 60s maxDuration above
 const FANOUT_THRESHOLD = 300;
 const MONITOR_SLUG = 'wallet-holdings-cron';
 const STALE_DAYS = 7;

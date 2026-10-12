@@ -4,14 +4,12 @@ import { type Metadata } from 'next';
 import { Instrument_Sans, Libre_Baskerville } from 'next/font/google';
 import { headers } from 'next/headers';
 
-import { Analytics } from '@vercel/analytics/next';
 import { cookieToInitialState } from 'wagmi';
 
 import './globals.css';
 
-import { env } from '@/env';
-
 import Providers, { wagmiConfig } from './_components/providers';
+import { VercelAnalytics } from './_components/vercel-analytics';
 
 // Mirrors the marketing site's title and description on purpose: this is also
 // the fallback link preview for every Zivoe Vault page, so the two surfaces must not
@@ -58,7 +56,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en" className={`${libreBaskerville.variable} ${instrumentSans.variable} h-full antialiased`}>
       <body className="flex h-full flex-col">
         <Providers initialState={initialState}>{children}</Providers>
-        <Analytics mode={env.NEXT_PUBLIC_ENV} />
+        <VercelAnalytics />
       </body>
     </html>
   );

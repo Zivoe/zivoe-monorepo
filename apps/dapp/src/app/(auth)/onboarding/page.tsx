@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 
 import { getOnboardedStatus } from '@/server/data/auth';
-import { captureServerEvent } from '@/server/utils/analytics';
+import { captureServerEvent, getBrowserSessionId } from '@/server/utils/analytics';
 
 import { onboardedDestination, signInReturnUrl } from '@/lib/lighthouse';
 
@@ -20,12 +20,9 @@ export default async function OnboardingPage({
   if (!user) redirect('/sign-in');
   if (isOnboarded) redirect(onboardedDestination(next));
 
-  after(() =>
-    captureServerEvent({
-      distinctId: user.id,
-      event: 'onboarding:started'
-    })
-  );
+  // Read before after(), which cannot read headers here: see getBrowserSessionId.
+  const sessionId = await getBrowserSessionId();
+  after(() => captureServerEvent({ distinctId: user.id, event: 'onboarding:started', sessionId }));
 
   return (
     <div className="flex h-full flex-col items-center">

@@ -14,6 +14,12 @@ export const env = createEnv({
 
   client: {
     NEXT_PUBLIC_ENV: z.enum(['production', 'development']),
+    // Set by Vercel on its deployments; a local run has none. Decides where PostHog reports
+    // (instrumentation-client.ts), so a production build refuses to go without it.
+    NEXT_PUBLIC_VERCEL_ENV:
+      process.env.NEXT_PUBLIC_ENV === 'production'
+        ? z.literal('production')
+        : z.enum(['production', 'preview', 'development']).default('development'),
     NEXT_PUBLIC_CHAIN_ENV: z.enum(['mainnet', 'testnet']),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string(),
@@ -32,6 +38,7 @@ export const env = createEnv({
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
+    NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
     REVALIDATE_API_KEY: process.env.REVALIDATE_API_KEY,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     INSIGHTS_PREVIEW_SECRET: process.env.INSIGHTS_PREVIEW_SECRET,

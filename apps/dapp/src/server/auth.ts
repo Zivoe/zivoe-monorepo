@@ -295,7 +295,7 @@ export const authOptions = {
 
             const results = await Promise.allSettled([
               // One Beehiiv publication serves every environment, so only production
-              // sign-ups reach the real newsletter list (same gate as analytics).
+              // sign-ups reach the real newsletter list.
               env.NEXT_PUBLIC_ENV === 'production'
                 ? subscribeToBeehiiv({
                     email: user.email,

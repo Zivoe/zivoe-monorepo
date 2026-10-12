@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
 import * as Sentry from '@sentry/nextjs';
-import { usePostHog } from 'posthog-js/react';
+import posthog from 'posthog-js';
 import * as Aria from 'react-aria-components';
 import { toast } from 'sonner';
 
@@ -141,8 +141,6 @@ const avatarButtonStyles = tv({
 });
 
 export function UserMenu({ user, showVerification }: { user: User; showVerification: boolean }) {
-  const posthog = usePostHog();
-
   const [isPending, setIsPending] = React.useState(false);
 
   const hasImage = !!user.image;

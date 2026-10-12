@@ -2,22 +2,16 @@
 
 import { useCallback } from 'react';
 
-import { usePostHog } from 'posthog-js/react';
-
-import { env } from '@/env';
+import posthog from 'posthog-js';
 
 import { type AnalyticsEvent, type AnalyticsProperties, compactAnalyticsProperties } from './events';
+import { POSTHOG_ENABLED } from './posthog-enabled';
 
 export function useAnalytics() {
-  const posthog = usePostHog();
-
-  const capture = useCallback(
-    (event: AnalyticsEvent, properties: AnalyticsProperties = {}) => {
-      if (env.NEXT_PUBLIC_ENV !== 'production') return;
-      posthog.capture(event, compactAnalyticsProperties(properties));
-    },
-    [posthog]
-  );
+  const capture = useCallback((event: AnalyticsEvent, properties: AnalyticsProperties = {}) => {
+    if (!POSTHOG_ENABLED) return;
+    posthog.capture(event, compactAnalyticsProperties(properties));
+  }, []);
 
   return { capture };
 }
