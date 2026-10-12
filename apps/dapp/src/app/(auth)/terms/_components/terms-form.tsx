@@ -90,6 +90,7 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
                   onChange={onChange}
                   onBlur={onBlur}
                   isInvalid={invalid}
+                  isDisabled={acceptance.isPending || acceptance.isSuccess}
                   aria-describedby={error ? TERMS_ERROR_ID : undefined}
                   className="items-start break-normal"
                 >
