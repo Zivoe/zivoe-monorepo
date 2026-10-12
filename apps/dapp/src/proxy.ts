@@ -12,6 +12,10 @@ export function proxy(request: NextRequest) {
     // A page an email links to is where the visitor lands once signed in.
     const { pathname } = request.nextUrl;
     if (isDappReturnPath(pathname)) signIn.searchParams.set('next', pathname);
+    // Campaign parameters ride along, so the sign-in pageview still credits the link followed.
+    for (const [key, value] of request.nextUrl.searchParams) {
+      if (key.startsWith('utm_')) signIn.searchParams.append(key, value);
+    }
     return NextResponse.redirect(signIn);
   }
 
