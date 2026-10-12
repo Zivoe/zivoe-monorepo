@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Sentry from '@sentry/nextjs';
 import { useMutation } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,10 +13,11 @@ import { Checkbox } from '@zivoe/ui/core/checkbox';
 import { Link } from '@zivoe/ui/core/link';
 import { LATEST_LEGAL_DOCS_VERSION, legalDocUrl } from '@zivoe/ui/lib/legal-docs';
 
+import { continueAfterSignInAction } from '@/server/actions/auth';
 import { acceptTerms } from '@/server/actions/terms';
 
 import { withNext } from '@/lib/lighthouse';
-import { AppError, onTxError } from '@/lib/utils';
+import { AppError, handlePromise, onTxError } from '@/lib/utils';
 
 import { Auth } from '../../_components/common';
 
@@ -46,8 +48,18 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
       if (error) throw new AppError({ message: 'Failed to Accept Terms', exception: error, capture: false });
     },
 
-    // A full load: post-signin picks the dapp or the way back to Lighthouse, which can end cross-origin.
-    onSuccess: () => window.location.assign(withNext('/api/auth/post-signin', next)),
+    onSuccess: async () => {
+      // A full load: post-signin picks the page in `next` or the way back to Lighthouse, which can end cross-origin.
+      if (next) return window.location.assign(withNext('/api/auth/post-signin', next));
+
+      // Otherwise the action's redirect brings the dashboard in one request, with no full load: its promise rejects
+      // with NEXT_REDIRECT while the router navigates. Any other failure falls back to the full load.
+      const { err } = await handlePromise(continueAfterSignInAction());
+      if (err && !(err instanceof Error && err.message.includes('NEXT_REDIRECT'))) {
+        Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'accept-terms' } });
+        window.location.assign('/api/auth/post-signin');
+      }
+    },
 
     onError: (err) => {
       onTxError({
