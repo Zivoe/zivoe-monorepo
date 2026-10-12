@@ -101,8 +101,9 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
                   </span>
                 </Checkbox>
 
+                {/* An alert: focus reaches the checkbox before this renders, so its description alone goes unread. */}
                 {error && (
-                  <p id={TERMS_ERROR_ID} className="text-small text-alert">
+                  <p id={TERMS_ERROR_ID} role="alert" className="text-small text-alert">
                     {error.message}
                   </p>
                 )}
