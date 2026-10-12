@@ -60,8 +60,9 @@ type TermsStatus = 'accepted' | 'outdated' | 'never';
 /**
  * Where the user stands against `LATEST_LEGAL_DOCS_VERSION`, the terms version in force: `accepted` with a row for
  * it, `outdated` with rows for earlier versions only, `never` without any. Never redirects, so route handlers can call it.
+ * Cached per server render, so `/terms` reads it again after the access check without a second query.
  */
-export const getTermsStatus = async (userId: string): Promise<TermsStatus> => {
+export const getTermsStatus = cache(async (userId: string): Promise<TermsStatus> => {
   // An aggregate without GROUP BY: always one row, all false for a user with no acceptance.
   const { err, res } = await handlePromise(
     db
@@ -84,7 +85,7 @@ export const getTermsStatus = async (userId: string): Promise<TermsStatus> => {
   }
 
   return row.hasAcceptedLatest ? 'accepted' : row.hasAcceptedAny ? 'outdated' : 'never';
-};
+});
 
 /**
  * The page a signed-in user has to finish before the dapp opens to them: onboarding first, then the terms.
