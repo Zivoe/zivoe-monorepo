@@ -4,8 +4,8 @@
  * never edited once published, since earlier acceptances point to it.
  *
  * `LATEST_LEGAL_DOCS_VERSION` is the version in force: the one every link opens and every user must have
- * accepted. To publish new terms, add the new folder and point this at it in the same PR; once deployed,
- * every user is sent back to the dapp's `/terms` on their next page load.
+ * accepted. To publish new terms, add the new folder and point this at it in the same PR, along with the copy in
+ * packages/database/src/seed.ts; once deployed, every user is sent back to the dapp's `/terms` on their next page load.
  */
 export const LATEST_LEGAL_DOCS_VERSION = '2026-10-12';
 

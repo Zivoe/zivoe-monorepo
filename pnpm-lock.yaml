@@ -663,9 +663,6 @@ importers:
       '@zivoe/ts-config':
         specifier: workspace:*
         version: link:../typescript
-      '@zivoe/ui':
-        specifier: workspace:*
-        version: link:../ui
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
