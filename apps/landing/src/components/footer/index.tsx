@@ -96,12 +96,12 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     ]
   },
 
-  // The documents keep their published names; only the footer labels changed.
+  // The same two links, with the same labels, as the dapp footer.
   {
     title: 'Legal',
     links: [
-      { href: legalDocPath({ doc: 'termsOfUse' }), label: 'Privacy Policy', target: '_blank' },
-      { href: legalDocPath({ doc: 'regSCompliance' }), label: 'Disclosures', target: '_blank' }
+      { href: legalDocPath({ doc: 'termsOfUse' }), label: 'Terms of Use', target: '_blank' },
+      { href: legalDocPath({ doc: 'regSCompliance' }), label: 'Reg S Compliance', target: '_blank' }
     ]
   }
 ];
