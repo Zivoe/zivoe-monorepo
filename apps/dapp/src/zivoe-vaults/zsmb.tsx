@@ -1,5 +1,7 @@
 import { ZSmbLogo } from '@zivoe/ui/icons';
 
+import { LINKS } from '@/types/constants';
+
 import { type ZivoeVaultFor } from './zivoe-vault';
 
 /** Zivoe SMB Credit — the zSMB share class. */
@@ -27,7 +29,7 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVaultFor<'zsmb'> = {
     Eligibility: 'U.S. accredited investors & eligible non-U.S. persons'
   },
 
-  documents: [{ title: 'Reg S Compliance', href: 'https://docs.zivoe.com/terms/reg-s-compliance' }]
+  documents: [{ title: 'Reg S Compliance', href: LINKS.REG_S_COMPLIANCE }]
 };
 
 /**

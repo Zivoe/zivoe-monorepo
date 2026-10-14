@@ -6,9 +6,10 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import * as Sentry from '@sentry/nextjs';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import * as schema from '@zivoe/database/schema';
+import { LATEST_LEGAL_DOCS_VERSION } from '@zivoe/ui/lib/legal-docs';
 
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
@@ -54,15 +55,61 @@ export const isUserOnboarded = async (userId: string) => {
   return !!profile && !!profile.id && !!profile.createdAt;
 };
 
-export const getOnboardedStatus = cache(async () => {
-  const { user } = await verifySession();
+type TermsStatus = 'accepted' | 'outdated' | 'never';
 
-  return { isOnboarded: await isUserOnboarded(user.id), user };
+/**
+ * Where the user stands against `LATEST_LEGAL_DOCS_VERSION`, the terms version in force: `accepted` with a row for
+ * it, `outdated` with rows for earlier versions only, `never` without any. Never redirects, so route handlers can call it.
+ * Cached per server render, so `/terms` reads it again after the access check without a second query.
+ */
+export const getTermsStatus = cache(async (userId: string): Promise<TermsStatus> => {
+  // An aggregate without GROUP BY: always one row, all false for a user with no acceptance.
+  const { err, res } = await handlePromise(
+    db
+      .select({
+        hasAcceptedLatest: sql<boolean>`coalesce(bool_or(${schema.termsAcceptance.termsVersion} = ${LATEST_LEGAL_DOCS_VERSION}), false)`,
+        hasAcceptedAny: sql<boolean>`count(*) > 0`
+      })
+      .from(schema.termsAcceptance)
+      .where(eq(schema.termsAcceptance.userId, userId))
+  );
+
+  const row = res?.[0];
+  if (err || !row) {
+    Sentry.captureException(err, {
+      tags: { source: 'SERVER', flow: 'verify-terms' },
+      extra: { userId }
+    });
+
+    throw new AppError({ message: 'Failed to verify terms status', type: 'error', capture: false });
+  }
+
+  return row.hasAcceptedLatest ? 'accepted' : row.hasAcceptedAny ? 'outdated' : 'never';
 });
 
+/**
+ * The page a signed-in user has to finish before the dapp opens to them: onboarding first, then the terms.
+ * Null once both are done. Never redirects, so route handlers can call it.
+ */
+export const getRequiredStep = async (userId: string) => {
+  const [termsStatus, isOnboarded] = await Promise.all([getTermsStatus(userId), isUserOnboarded(userId)]);
+
+  if (!isOnboarded) return '/onboarding';
+  if (termsStatus !== 'accepted') return '/terms';
+
+  return null;
+};
+
+export const getAccessStatus = cache(async () => {
+  const { user } = await verifySession();
+
+  return { requiredStep: await getRequiredStep(user.id), user };
+});
+
+/** The gate for dapp pages: sends the user to onboarding or to the terms while either is unfinished. */
 export const verifyOnboarded = async () => {
-  const { isOnboarded, user } = await getOnboardedStatus();
-  if (!isOnboarded) redirect('/onboarding');
+  const { requiredStep, user } = await getAccessStatus();
+  if (requiredStep) redirect(requiredStep);
 
   return { user };
 };

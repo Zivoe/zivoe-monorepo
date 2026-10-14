@@ -138,7 +138,7 @@ function EmailStepForm({
     if (provider === 'google') setIsGoogleLoading(true);
     else setIsTwitterLoading(true);
 
-    // A new user can only need onboarding, so they skip the post-signin hop that decides it for returning users.
+    // A new user always starts at onboarding, so they skip the post-signin hop that decides it for returning users.
     // The error URL is absolute: on a preview the provider calls production back, and a refusal there
     // (cancelled consent, a bad code) must come back to this host, not production's sign-in page.
     const { error } = await authClient.signIn.social({

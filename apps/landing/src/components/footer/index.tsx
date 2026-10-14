@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { ZivoeLogo } from '@zivoe/ui/assets/zivoe-logo';
 import { Link, NextLink } from '@zivoe/ui/core/link';
 import { copyrightLine } from '@zivoe/ui/lib/copyright';
+import { legalDocPath } from '@zivoe/ui/lib/legal-docs';
 
 import { EMAILS } from '@/lib/utils';
 
@@ -95,12 +96,12 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     ]
   },
 
-  // The documents keep their published names; only the footer labels changed.
+  // The same two links, with the same labels, as the dapp footer.
   {
     title: 'Legal',
     links: [
-      { href: 'https://docs.zivoe.com/terms/terms-of-use-privacy-policy', label: 'Privacy Policy', target: '_blank' },
-      { href: 'https://docs.zivoe.com/terms/reg-s-compliance', label: 'Disclosures', target: '_blank' }
+      { href: legalDocPath({ doc: 'termsOfUse' }), label: 'Terms of Use', target: '_blank' },
+      { href: legalDocPath({ doc: 'regSCompliance' }), label: 'Reg S Compliance', target: '_blank' }
     ]
   }
 ];

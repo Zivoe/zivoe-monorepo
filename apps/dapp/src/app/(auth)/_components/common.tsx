@@ -2,6 +2,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Link, type LinkProps } from '@zivoe/ui/core/link';
 import { SelectTrigger } from '@zivoe/ui/core/select';
 import { ArrowLeftIcon } from '@zivoe/ui/icons';
+import { copyrightLine } from '@zivoe/ui/lib/copyright';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { LINKS } from '@/types/constants';
@@ -100,6 +101,12 @@ function TermsFooter() {
 
 TermsFooter.displayName = 'Auth.TermsFooter';
 
+function CopyrightFooter() {
+  return <Footer>{copyrightLine()}</Footer>;
+}
+
+CopyrightFooter.displayName = 'Auth.CopyrightFooter';
+
 function HelpFooter() {
   return (
     <Footer>
@@ -152,5 +159,6 @@ export const Auth = {
   StepIndicator,
   SelectTrigger: AuthSelectTrigger,
   TermsFooter,
+  CopyrightFooter,
   HelpFooter
 };
