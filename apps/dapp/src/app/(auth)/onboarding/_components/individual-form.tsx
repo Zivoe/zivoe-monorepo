@@ -11,9 +11,8 @@ import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@
 
 import { COUNTRIES } from '@/types/countries';
 
+import { HOW_FOUND_ZIVOE_OPTIONS, INDIVIDUAL_AMOUNT_OPTIONS } from '@/lib/onboarding-options';
 import { type IndividualFormData, accountTypeValues, individualSchema } from '@/lib/schemas/onboarding';
-
-import { HOW_FOUND_ZIVOE_OPTIONS, INDIVIDUAL_AMOUNT_OPTIONS } from '@/app/(auth)/onboarding/_utils/onboarding.types';
 
 import { Auth } from '../../_components/common';
 import { useCompleteOnboarding } from '../_hooks/useCompleteOnboarding';
