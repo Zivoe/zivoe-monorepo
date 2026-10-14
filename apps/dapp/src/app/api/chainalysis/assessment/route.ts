@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse, after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 import { Ratelimit } from '@upstash/ratelimit';
@@ -7,14 +7,12 @@ import { getAddress } from 'viem';
 import { z } from 'zod';
 
 import { auth } from '@/server/auth';
+import { enqueueChainalysisAlert } from '@/server/chainalysis/alert';
 import { type ChainalysisAssessment, getChainalysisAssessment } from '@/server/chainalysis/assessment';
 import { redis } from '@/server/clients/redis';
-import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
 import { addressSchema } from '@/lib/schemas';
-import { ApiError, escapeHtml, handlePromise, withErrorHandler } from '@/lib/utils';
-
-import { env } from '@/env';
+import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { type ApiResponse } from '../../utils';
 
@@ -96,30 +94,20 @@ const handler = async (req: NextRequest): ApiResponse<ChainalysisAssessment> => 
   const assessment = assessmentRes.res;
 
   if (assessment.risk === 'High' || assessment.risk === 'Severe') {
-    const telegramMessage = [
-      '<b>Chainalysis Assessment</b>',
-      '',
-      `${escapeHtml(assessment.risk)} - ${escapeHtml(assessment.riskReason ?? 'No risk reason returned')}`,
-      '',
-      `Address - ${escapeHtml(address)}`
-    ].join('\n');
+    const job = { userId: user.id, address, risk: assessment.risk, riskReason: assessment.riskReason };
 
-    const { err: telegramErr } = await handlePromise(
-      sendTelegramMessage({
-        chatId: env.TELEGRAM_CHAINALYSIS_CHAT_ID,
-        text: telegramMessage
-      })
-    );
-
-    if (telegramErr) {
-      Sentry.captureException(telegramErr, {
-        tags: { source: 'API', flow: FLOW },
-        extra: {
-          address,
-          risk: assessment.risk
-        }
-      });
-    }
+    // Queued after the response, so the user's verdict never waits on the ops alert.
+    after(async () => {
+      const { err: alertErr } = await handlePromise(enqueueChainalysisAlert(job));
+      if (alertErr) {
+        Sentry.captureException(alertErr, {
+          tags: { source: 'API', flow: FLOW },
+          extra: { address, risk: job.risk }
+        });
+        // The request's own flush has already run; send this event before the function ends.
+        await Sentry.flush(2000);
+      }
+    });
   }
 
   return NextResponse.json({ success: true, data: assessment }, { headers });

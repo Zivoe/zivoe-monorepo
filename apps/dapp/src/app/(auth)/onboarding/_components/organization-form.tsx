@@ -13,6 +13,7 @@ import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@
 
 import { COUNTRIES } from '@/types/countries';
 
+import { HOW_FOUND_ZIVOE_OPTIONS, ORG_AMOUNT_OPTIONS } from '@/lib/onboarding-options';
 import {
   type OrgEntityInfoFormData,
   type OrgPersonalInfoFormData,
@@ -20,8 +21,6 @@ import {
   orgEntityInfoSchema,
   orgPersonalInfoSchema
 } from '@/lib/schemas/onboarding';
-
-import { HOW_FOUND_ZIVOE_OPTIONS, ORG_AMOUNT_OPTIONS } from '@/app/(auth)/onboarding/_utils/onboarding.types';
 
 import { Auth } from '../../_components/common';
 import { useCompleteOnboarding } from '../_hooks/useCompleteOnboarding';

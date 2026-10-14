@@ -50,6 +50,7 @@ export const QSTASH_JOB_LABELS = {
   emailKycStatus: 'email.kyc-status',
   telegramOnboarding: 'telegram.onboarding',
   telegramKyc: 'telegram.kyc',
+  telegramChainalysis: 'telegram.chainalysis',
   walletFetchHoldings: 'wallet.fetch-holdings'
 } as const;
 
