@@ -17,16 +17,17 @@ import { handlePromise } from '@/lib/utils';
 /**
  * Records that the signed-in user accepted `version`, the terms version `/terms` showed them. Refused with
  * `isOutdated` when a deploy moved `LATEST_LEGAL_DOCS_VERSION` on while the page was open, so a row never names
- * a version other than the one in force. Accepting a version already accepted (a double click, a second tab)
- * succeeds without a second row or a second analytics event.
+ * a version other than the one in force, and with `isSignedOut` when the session ended while it was open, so the
+ * form can send the user to sign in instead of offering a retry that can never succeed. Accepting a version
+ * already accepted (a double click, a second tab) succeeds without a second row or a second analytics event.
  */
 export async function acceptTerms({
   version
 }: {
   version: string;
-}): Promise<{ success?: true; error?: string; isOutdated?: true }> {
+}): Promise<{ success?: true; error?: string; isOutdated?: true; isSignedOut?: true }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id) return { error: 'Unauthorized' };
+  if (!session?.user?.id) return { error: 'Unauthorized', isSignedOut: true };
 
   const userId = session.user.id;
 

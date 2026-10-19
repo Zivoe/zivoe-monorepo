@@ -38,8 +38,8 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
   });
 
   const acceptance = useMutation({
-    mutationFn: async () => {
-      const { error, isOutdated } = await acceptTerms({ version: LATEST_LEGAL_DOCS_VERSION });
+    mutationFn: async (): Promise<{ isSignedOut?: true }> => {
+      const { error, isOutdated, isSignedOut } = await acceptTerms({ version: LATEST_LEGAL_DOCS_VERSION });
       // Not a failure: reloading shows the new version's PDFs to review and accept.
       if (isOutdated)
         throw new AppError({
@@ -47,10 +47,16 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
           type: 'warning',
           capture: false
         });
+      // Not a failure either: the session ended while the page was open, and no retry can save without one.
+      if (isSignedOut) return { isSignedOut };
       if (error) throw new AppError({ message: 'Failed to Accept Terms', exception: error, capture: false });
+      return {};
     },
 
-    onSuccess: async () => {
+    onSuccess: async ({ isSignedOut }) => {
+      // Sign-in brings the user back to the terms, and on to `next`, once they are signed in again.
+      if (isSignedOut) return window.location.assign(withNext('/sign-in', next));
+
       // A full load: post-signin picks the page in `next` or the way back to Lighthouse, which can end cross-origin.
       if (next) return window.location.assign(withNext('/api/auth/post-signin', next));
 
