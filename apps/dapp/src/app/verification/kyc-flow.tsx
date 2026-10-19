@@ -180,6 +180,10 @@ export default function KycFlow({
       // Signed out mid-visit: the sign-in page is the answer, not a retry loop
       // — and it brings them back here, like the page's own redirect does.
       router.push(withNext('/sign-in', '/verification'));
+    } else if (res?.status === 403) {
+      // Behind the terms (updated mid-visit): the page's own redirect sends them to accept, then back here.
+      setPhase({ kind: 'error', message: START_FAILED_COPY });
+      router.refresh();
     } else if (res?.status === 409) {
       // The start lock: a request from this user is still running (a double
       // click, a second tab) or a release failed and the key has yet to

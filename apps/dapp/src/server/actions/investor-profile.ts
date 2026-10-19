@@ -9,6 +9,7 @@ import { profile } from '@zivoe/database/schema';
 
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
+import { getRequiredStep } from '@/server/data/auth';
 import { kycVerification } from '@/server/kyc';
 import { isKycEnabled } from '@/server/kyc/kyc-flag';
 
@@ -31,6 +32,9 @@ export async function updateInvestorProfile(
   if (!session?.user?.id) return { error: 'Unauthorized' };
   // Behind the `kyc` flag, like the page that calls it.
   if (!(await isKycEnabled({ user: session.user }))) return { error: 'Unauthorized' };
+  // Behind onboarding and the current terms, like the page: a `/verification` left open across a terms update
+  // cannot save until the terms are accepted. The caller's refresh lets the page's own redirect take over.
+  if (await getRequiredStep(session.user.id)) return { error: 'Unauthorized' };
 
   const result = investorProfileSchema.safeParse(data);
   if (!result.success) return { error: 'Invalid form data' };
