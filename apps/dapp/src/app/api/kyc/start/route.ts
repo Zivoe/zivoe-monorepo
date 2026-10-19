@@ -6,6 +6,7 @@ import { ipAddress } from '@vercel/functions';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
+import { getRequiredStep } from '@/server/data/auth';
 import { kycVerification } from '@/server/kyc';
 import { isKycEnabled } from '@/server/kyc/kyc-flag';
 import { type StartKycError } from '@/server/kyc/kyc-verification';
@@ -60,6 +61,9 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartKycResponse>
   if (!user) throw new ApiError({ message: 'Unauthorized', status: 401, capture: false });
   // Behind the `kyc` flag: the route does not exist for anyone it is off for.
   if (!(await isKycEnabled({ user }))) throw new ApiError({ message: 'Not found', status: 404, capture: false });
+  // Behind onboarding and the current terms, like the page: a `/verification` left open across a terms update
+  // cannot start an inquiry until the terms are accepted. The page refreshes on 403 and its own redirect takes over.
+  if (await getRequiredStep(user.id)) throw new ApiError({ message: 'Forbidden', status: 403, capture: false });
 
   const ip = ipAddress(req) ?? '127.0.0.1';
   const [userLimitRes, ipLimitRes] = await Promise.all([

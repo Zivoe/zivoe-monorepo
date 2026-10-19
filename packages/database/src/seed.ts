@@ -3,14 +3,18 @@ import postgres from 'postgres';
 
 import { AGENT_ACCOUNT } from './agent';
 import { createDatabase } from './client';
-import { profile, user } from './schema/index';
+import { profile, termsAcceptance, user } from './schema/index';
 
-// Seed the base state the agent sign-in expects: the agent account, already onboarded.
+// A copy of LATEST_LEGAL_DOCS_VERSION (@zivoe/ui/lib/legal-docs), which this package does not depend on. A stale
+// copy only means the seeded agent accepts the terms on /terms once.
+const LATEST_LEGAL_DOCS_VERSION = '2026-10-19';
+
+// Seed the base state the agent sign-in expects: the agent account, terms accepted and onboarded.
 //
-//   pnpm --filter @zivoe/database db:seed            create or refresh the agent, onboarded
-//   pnpm --filter @zivoe/database db:seed -- --fresh  delete the agent (cascades: profile,
-//                                                     sessions, wallets) so the next sign-in
-//                                                     runs onboarding from the start
+//   pnpm --filter @zivoe/database db:seed            create or refresh the agent, terms accepted and onboarded
+//   pnpm --filter @zivoe/database db:seed -- --fresh  delete the agent (cascades: profile, terms
+//                                                     acceptances, sessions, wallets) so the next
+//                                                     sign-in runs onboarding and the terms from the start
 //
 // Reads DATABASE_URL from the environment, falling back to packages/database/.env like the
 // other db commands; an explicit `DATABASE_URL=… pnpm … db:seed` wins. Only the agent's own
@@ -33,7 +37,7 @@ async function main() {
       const deleted = await db.delete(user).where(eq(user.email, AGENT_ACCOUNT.email)).returning({ id: user.id });
       console.log(
         deleted.length
-          ? 'Agent deleted; the next sign-in creates it again and lands on onboarding.'
+          ? 'Agent deleted; the next sign-in creates it again and lands on onboarding, then the terms.'
           : 'No agent to delete.'
       );
       return;
@@ -50,7 +54,13 @@ async function main() {
       .returning({ id: user.id });
     if (!agent) throw new Error('Upserting the agent user returned no row.');
 
-    // The dapp treats a profile row as "onboarded" (server/data/auth.ts getOnboardedStatus).
+    // An acceptance of the version in force, so the agent is past `/terms` even after it moved; kept when it exists.
+    await db
+      .insert(termsAcceptance)
+      .values({ userId: agent.id, termsVersion: LATEST_LEGAL_DOCS_VERSION })
+      .onConflictDoNothing();
+
+    // The dapp treats a profile row as "onboarded" (server/data/auth.ts isUserOnboarded).
     const onboarded = await db
       .insert(profile)
       .values({

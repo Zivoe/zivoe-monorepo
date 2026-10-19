@@ -2,6 +2,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Link, type LinkProps } from '@zivoe/ui/core/link';
 import { SelectTrigger } from '@zivoe/ui/core/select';
 import { ArrowLeftIcon } from '@zivoe/ui/icons';
+import { copyrightLine } from '@zivoe/ui/lib/copyright';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
 import { LINKS } from '@/types/constants';
@@ -90,15 +91,21 @@ AuthSelectTrigger.displayName = 'Auth.SelectTrigger';
 function TermsFooter() {
   return (
     <Footer>
-      By clicking continue, you agree to our{' '}
-      <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use & Privacy Policy</FooterLink>, comply with our{' '}
-      <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>, and consent to receive
-      communications from Zivoe.
+      By clicking continue, you agree to our <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use</FooterLink> and{' '}
+      <FooterLink href={LINKS.PRIVACY_POLICY}>Privacy Policy</FooterLink>, and give your{' '}
+      <FooterLink href={LINKS.ELECTRONIC_CONSENT}>Electronic Consent</FooterLink> to receive communications and records
+      from Zivoe.
     </Footer>
   );
 }
 
 TermsFooter.displayName = 'Auth.TermsFooter';
+
+function CopyrightFooter() {
+  return <Footer>{copyrightLine()}</Footer>;
+}
+
+CopyrightFooter.displayName = 'Auth.CopyrightFooter';
 
 function HelpFooter() {
   return (
@@ -152,5 +159,6 @@ export const Auth = {
   StepIndicator,
   SelectTrigger: AuthSelectTrigger,
   TermsFooter,
+  CopyrightFooter,
   HelpFooter
 };

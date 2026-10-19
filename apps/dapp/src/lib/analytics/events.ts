@@ -8,6 +8,7 @@ export type AnalyticsEvent =
   | 'auth:otp_resent'
   | 'onboarding:completed'
   | 'onboarding:started'
+  | 'terms:accepted'
   | 'wallet_connected'
   | 'tx:deposit_started'
   | 'tx:deposit_signature_rejected'

@@ -28,9 +28,10 @@ export default function Footer() {
       >
         <p className="order-2 text-regular text-primary md:order-1">{copyrightLine()}</p>
 
-        <div className="order-1 flex gap-4 md:order-2">
+        <div className="order-1 flex flex-wrap gap-x-4 gap-y-2 md:order-2">
           <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use</FooterLink>
-          <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance</FooterLink>
+          <FooterLink href={LINKS.PRIVACY_POLICY}>Privacy Policy</FooterLink>
+          <FooterLink href={LINKS.ELECTRONIC_CONSENT}>Electronic Consent</FooterLink>
         </div>
       </div>
     </div>
