@@ -91,10 +91,10 @@ AuthSelectTrigger.displayName = 'Auth.SelectTrigger';
 function TermsFooter() {
   return (
     <Footer>
-      By clicking continue, you agree to our{' '}
-      <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use & Privacy Policy</FooterLink>, comply with our{' '}
-      <FooterLink href={LINKS.REG_S_COMPLIANCE}>Reg S Compliance Policy</FooterLink>, and consent to receive
-      communications from Zivoe.
+      By clicking continue, you agree to our <FooterLink href={LINKS.TERMS_OF_USE}>Terms of Use</FooterLink> and{' '}
+      <FooterLink href={LINKS.PRIVACY_POLICY}>Privacy Policy</FooterLink>, and give your{' '}
+      <FooterLink href={LINKS.ELECTRONIC_CONSENT}>Electronic Consent</FooterLink> to receive communications and records
+      from Zivoe.
     </Footer>
   );
 }

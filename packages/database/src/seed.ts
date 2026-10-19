@@ -7,7 +7,7 @@ import { profile, termsAcceptance, user } from './schema/index';
 
 // A copy of LATEST_LEGAL_DOCS_VERSION (@zivoe/ui/lib/legal-docs), which this package does not depend on. A stale
 // copy only means the seeded agent accepts the terms on /terms once.
-const LATEST_LEGAL_DOCS_VERSION = '2026-10-12';
+const LATEST_LEGAL_DOCS_VERSION = '2026-10-19';
 
 // Seed the base state the agent sign-in expects: the agent account, terms accepted and onboarded.
 //

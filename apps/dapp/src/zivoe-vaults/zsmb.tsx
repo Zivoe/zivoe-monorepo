@@ -29,7 +29,11 @@ export const ZSMB_ZIVOE_VAULT: ZivoeVaultFor<'zsmb'> = {
     Eligibility: 'U.S. accredited investors & eligible non-U.S. persons'
   },
 
-  documents: [{ title: 'Reg S Compliance', href: LINKS.REG_S_COMPLIANCE }]
+  documents: [
+    { title: 'Terms of Use', href: LINKS.TERMS_OF_USE },
+    { title: 'Privacy Policy', href: LINKS.PRIVACY_POLICY },
+    { title: 'Electronic Consent', href: LINKS.ELECTRONIC_CONSENT }
+  ]
 };
 
 /**

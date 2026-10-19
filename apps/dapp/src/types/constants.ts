@@ -15,7 +15,8 @@ export type Token = DepositToken | ShareToken;
 /** The legal PDFs in force (LATEST_LEGAL_DOCS_VERSION). */
 export const LINKS = {
   TERMS_OF_USE: legalDocUrl({ doc: 'termsOfUse' }),
-  REG_S_COMPLIANCE: legalDocUrl({ doc: 'regSCompliance' })
+  PRIVACY_POLICY: legalDocUrl({ doc: 'privacyPolicy' }),
+  ELECTRONIC_CONSENT: legalDocUrl({ doc: 'electronicConsent' })
 };
 
 export const WITH_TURNSTILE = env.NEXT_PUBLIC_ENV === 'production';

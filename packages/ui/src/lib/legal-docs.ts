@@ -7,11 +7,12 @@
  * accepted. To publish new terms, add the new folder and point this at it in the same PR, along with the copy in
  * packages/database/src/seed.ts; once deployed, every user is sent back to the dapp's `/terms` on their next page load.
  */
-export const LATEST_LEGAL_DOCS_VERSION = '2026-10-12';
+export const LATEST_LEGAL_DOCS_VERSION = '2026-10-19';
 
 const LEGAL_DOC_FILES = {
-  termsOfUse: 'terms-of-use-privacy-policy.pdf',
-  regSCompliance: 'reg-s-compliance.pdf'
+  termsOfUse: 'terms-of-use.pdf',
+  privacyPolicy: 'privacy-policy.pdf',
+  electronicConsent: 'electronic-consent.pdf'
 } as const;
 
 export type LegalDoc = keyof typeof LEGAL_DOC_FILES;

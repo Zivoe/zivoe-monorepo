@@ -11,7 +11,9 @@ import { z } from 'zod';
 import { Button } from '@zivoe/ui/core/button';
 import { Checkbox } from '@zivoe/ui/core/checkbox';
 import { Link } from '@zivoe/ui/core/link';
-import { LATEST_LEGAL_DOCS_VERSION, legalDocUrl } from '@zivoe/ui/lib/legal-docs';
+import { LATEST_LEGAL_DOCS_VERSION } from '@zivoe/ui/lib/legal-docs';
+
+import { LINKS } from '@/types/constants';
 
 import { continueAfterSignInAction } from '@/server/actions/auth';
 import { acceptTerms } from '@/server/actions/terms';
@@ -107,10 +109,10 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
                   className="items-start break-normal"
                 >
                   <span>
-                    I have read and accept the{' '}
-                    <TermsLink href={legalDocUrl({ doc: 'termsOfUse' })}>Terms of Use & Privacy Policy</TermsLink> and
-                    the <TermsLink href={legalDocUrl({ doc: 'regSCompliance' })}>Reg S Compliance Policy</TermsLink>,
-                    and I consent to receive communications from Zivoe.
+                    I have read and accept the <TermsLink href={LINKS.TERMS_OF_USE}>Terms of Use</TermsLink> and the{' '}
+                    <TermsLink href={LINKS.PRIVACY_POLICY}>Privacy Policy</TermsLink>, and I give my{' '}
+                    <TermsLink href={LINKS.ELECTRONIC_CONSENT}>Electronic Consent</TermsLink> to receive communications
+                    and records from Zivoe.
                   </span>
                 </Checkbox>
 

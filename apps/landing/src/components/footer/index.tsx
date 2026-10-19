@@ -96,12 +96,13 @@ const FOOTER_SECTIONS: Array<{ title: string; links: Array<FooterSectionLink> }>
     ]
   },
 
-  // The same two links, with the same labels, as the dapp footer.
+  // The same links, with the same labels, as the dapp footer.
   {
     title: 'Legal',
     links: [
       { href: legalDocPath({ doc: 'termsOfUse' }), label: 'Terms of Use', target: '_blank' },
-      { href: legalDocPath({ doc: 'regSCompliance' }), label: 'Reg S Compliance', target: '_blank' }
+      { href: legalDocPath({ doc: 'privacyPolicy' }), label: 'Privacy Policy', target: '_blank' },
+      { href: legalDocPath({ doc: 'electronicConsent' }), label: 'Electronic Consent', target: '_blank' }
     ]
   }
 ];
