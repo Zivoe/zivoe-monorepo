@@ -291,7 +291,7 @@ export function createWalletLink({
   whitelistedEmails: WhitelistedEmailSender;
   clock: Clock;
 }): WalletLink {
-  /** Only a yes Decision on the individual path can link. */
+  /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
   const mayLink = async (userId: string) => isYesDecision(await kyc.getKycStatus({ userId }));
 
   /** A Whitelist or Revoke request, with what only delivery can read: the email, the kind of account and the Decision. */
@@ -307,12 +307,11 @@ export function createWalletLink({
         ? store.listOtherConnectedAccounts({ address: record.address, exceptUserId: record.userId })
         : []
     ]);
-    // By status, not `isYesDecision`: an organization the team approved is verified too.
     const otherAccounts = await Promise.all(
-      connected.map(async ({ userId, email }) => {
-        const { status } = await kyc.getKycStatus({ userId });
-        return { email, isVerified: status === 'approved' || status === 'manually_approved' };
-      })
+      connected.map(async ({ userId, email }) => ({
+        email,
+        isVerified: isYesDecision(await kyc.getKycStatus({ userId }))
+      }))
     );
     await operatorMessages.send({
       kind,

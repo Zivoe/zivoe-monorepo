@@ -196,8 +196,8 @@ describe('the challenge', () => {
     ['a submitted verification', { status: 'submitted' } as const],
     ['a declined verification', { status: 'declined' } as const],
     ['a revoked verification', { status: 'revoked' } as const],
-    ['an organization, even an approved one', { path: 'organization', status: 'approved' } as const]
-  ])('is refused without a yes Decision on the individual path (%s)', async (_label, view) => {
+    ['an organization the team has not approved', { path: 'organization', status: 'not_started' } as const]
+  ])('is refused without a yes Decision (%s)', async (_label, view) => {
     const { walletLink, kyc, store, screening } = setup();
     kyc.set(ALICE, view);
 
@@ -212,6 +212,21 @@ describe('the challenge', () => {
     expect(issued).toEqual({ ok: false, error: { code: 'not_approved' } });
     expect(store.records.size).toBe(0);
     expect(screening.calls).toHaveLength(0);
+  });
+
+  it('is issued for an organization the team approved: its yes is a Decision like any other', async () => {
+    const { walletLink, kyc } = setup();
+    kyc.set(ALICE, { path: 'organization', status: 'manually_approved' });
+
+    const issued = await walletLink.issueChallenge({
+      userId: ALICE,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: null,
+      walletName: null
+    });
+
+    expect(issued.ok).toBe(true);
   });
 
   it('is refused for a flagged address and leaves no row behind', async () => {

@@ -299,14 +299,26 @@ describe('VerificationFlow', () => {
     expect(screen.getByRole('link', { name: 'Exit' }).getAttribute('href')).toBe('/');
   });
 
-  it("shows an organization's Decision on the profile step without marking the identity step done", () => {
+  it("shows an organization's no on the profile step without marking the identity step done", () => {
     renderFlow({
-      statusView: view({ path: 'organization', status: 'approved', canStart: false }),
+      statusView: view({ path: 'organization', status: 'revoked', canStart: false }),
       investor: profile({ accountType: 'organization', countryOfResidence: null })
     });
 
-    expect(screen.getByText('Your organization is verified.')).toBeTruthy();
+    expect(screen.getByText(/Your organization's verification is no longer active/)).toBeTruthy();
     expect(stepItem('Investor profile').getAttribute('aria-current')).toBe('step');
     expect(within(stepItem('Identity verification')).queryByText(', completed')).toBeNull();
+  });
+
+  it('lands an organization the team approved on Wallets, as it does an individual', () => {
+    renderFlow({
+      statusView: view({ path: 'organization', status: 'manually_approved', canStart: false }),
+      investor: profile({ accountType: 'organization', countryOfResidence: null })
+    });
+
+    expect(screen.getByTestId('wallets-step').textContent).toBe('user_1');
+    expect(stepItem('Wallets').getAttribute('aria-current')).toBe('step');
+    expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
+    expect(within(stepItem('Identity verification')).getByText(', completed')).toBeTruthy();
   });
 });

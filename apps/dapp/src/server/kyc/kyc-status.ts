@@ -74,12 +74,13 @@ export const isDecision = isOneOf(DECISION_STATUSES);
 export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
 
 /**
- * A yes Decision on the individual path — what lands `/verification` on the
- * Wallets step and what its writes gate on. An organization's yes is the
- * team's, outside this flow.
+ * A yes Decision — what lands `/verification` on the Wallets step and what
+ * its writes gate on. Persona's for an individual; the team's
+ * (`manually_approved`) for an organization, which has no flow of its own
+ * yet and is let through to Wallets once the team has said yes.
  */
 export const isYesDecision = (view: KycStatusView) =>
-  view.path === 'individual' && (view.status === 'approved' || view.status === 'manually_approved');
+  view.status === 'approved' || view.status === 'manually_approved';
 
 /**
  * A no Decision — a decline in Persona or an operator's revocation. It ends

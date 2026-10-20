@@ -74,7 +74,7 @@ describe('KycStatusView', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  // An approved individual never reaches this card: a yes Decision lands on the Wallets step.
+  // A yes Decision lands on the Wallets step, so this card only ever shows a yes that is not one yet (a stale render).
   it('renders an approved organization as the compact Verified badge with no link', () => {
     render(<KycStatusView view={view({ path: 'organization', status: 'approved', canStart: false })} />);
 

@@ -27,7 +27,8 @@ import { WalletLinkStep } from './wallet-link-step';
  * shown a moment earlier. A yes Decision ends the identity step for good:
  * the page opens on Wallets with both earlier steps done, and that step is
  * the completed state. An organization's details are the team's, so it
- * opens on a locked profile step that says so. The one way back to the
+ * opens on a locked profile step that says so until the team's yes lands
+ * it on Wallets like anyone else. The one way back to the
  * profile step is Back on the identity step, and `KycFlow` withholds it
  * while a start is in flight or a Persona frame is up: no shell-level
  * control can unmount a live inquiry.
