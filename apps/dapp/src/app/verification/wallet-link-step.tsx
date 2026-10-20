@@ -317,6 +317,24 @@ function ConnectedWalletCard({
     );
   }
 
+  // -- Some chain did not answer: nothing is known, so nothing is claimed
+  // and nothing is offered — not a signature, not "no longer whitelisted".
+  // The hook reads again in a few minutes and on the next return to the tab.
+  if (summary.status === 'unchecked') {
+    return (
+      <Card heading="Connected wallet">
+        {addressLine}
+        <div className="flex flex-col gap-2">
+          <WhitelistBadge summary={summary} isRequested={false} />
+          <Note tone="alert">
+            Couldn&apos;t read the whitelist right now. We will try again shortly, or reload the page to try now.
+          </Note>
+        </div>
+        {disconnectButton}
+      </Card>
+    );
+  }
+
   // -- Requested by this account, whitelisted once and no longer: a revoke
   // or a chain added since. Nothing here can ask again, and no email is
   // coming, so the card must not promise one.

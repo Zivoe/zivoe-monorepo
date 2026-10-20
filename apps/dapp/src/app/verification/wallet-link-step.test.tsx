@@ -153,6 +153,7 @@ function renderStep(links: Array<LinkedAddress> = []) {
 const NOT_MEMBER: MembershipSummary = { status: 'pending', memberOn: 0, total: 2, unknown: 0 };
 const PARTIAL: MembershipSummary = { status: 'partial', memberOn: 1, total: 2, unknown: 0 };
 const WHITELISTED: MembershipSummary = { status: 'whitelisted', memberOn: 2, total: 2, unknown: 0 };
+const UNCHECKED: MembershipSummary = { status: 'unchecked', memberOn: 1, total: 2, unknown: 1 };
 
 /** A clean wallet on a supported chain, a member nowhere unless the test says otherwise. */
 const connect = (address = ADDRESS, summary: MembershipSummary = NOT_MEMBER) => {
@@ -296,6 +297,23 @@ describe('the connected wallet', () => {
     expect(screen.getByText(/was whitelisted and no longer is/)).toBeTruthy();
     expect(screen.queryByText(/within one business day/)).toBeNull();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
+  it.each([
+    ['never requested', []],
+    ['requested', [linked()]],
+    ['whitelisted once', [linked({ wasWhitelisted: true })]]
+  ] as const)('claims nothing and offers nothing while a chain did not answer (%s)', (_label, links) => {
+    connect(ADDRESS, UNCHECKED);
+
+    renderStep([...links]);
+
+    expect(screen.getByRole('img', { name: "Not checked, Couldn't check one chain" })).toBeTruthy();
+    expect(screen.getByText(/Couldn't read the whitelist right now/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+    expect(screen.queryByText(/was whitelisted and no longer is/)).toBeNull();
+    expect(screen.queryByText(/within one business day/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
   });
 
   it('looks at the connected wallet only: a request for another address changes nothing', () => {

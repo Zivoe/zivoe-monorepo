@@ -30,6 +30,7 @@ export function formatRelativeTime(date: Date, now: Date): string {
  * The whitelist badge: green only when the chain says member everywhere.
  * Short of that it is "pending" for an address this account has requested and
  * "not whitelisted" for one it has not; a tooltip explains a partial answer.
+ * A read some chain did not answer claims neither: "not checked".
  */
 export function presentWhitelist({ summary, isRequested }: { summary: MembershipSummary; isRequested: boolean }): {
   label: string;
@@ -37,15 +38,20 @@ export function presentWhitelist({ summary, isRequested }: { summary: Membership
   detail: string | null;
 } {
   if (summary.status === 'whitelisted') return { label: 'Whitelisted', tone: 'success', detail: null };
+  if (summary.status === 'unchecked') {
+    return {
+      label: 'Not checked',
+      tone: 'neutral',
+      detail:
+        summary.total === 0
+          ? 'No chain to check'
+          : summary.unknown === 1
+            ? "Couldn't check one chain"
+            : `Couldn't check ${summary.unknown} of ${summary.total} chains`
+    };
+  }
 
-  const detail =
-    summary.status === 'partial'
-      ? `Whitelisted on ${summary.memberOn} of ${summary.total} chains`
-      : summary.status === 'unchecked'
-        ? summary.unknown === 1
-          ? "Couldn't check one chain"
-          : "Couldn't check the chains"
-        : null;
+  const detail = summary.status === 'partial' ? `Whitelisted on ${summary.memberOn} of ${summary.total} chains` : null;
   return isRequested
     ? { label: 'Whitelist pending', tone: 'pending', detail }
     : { label: 'Not whitelisted', tone: 'neutral', detail };
