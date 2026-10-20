@@ -91,7 +91,7 @@ The EIP-712 message the server issues for one (user, address): the statement, th
 _Avoid_: nonce (one field of it), SIWE message
 
 **Ownership proof**:
-A Wallet link challenge plus the signature over it, verified with viem's contract-aware `verifyTypedData` on the chain the message names — an EOA by recovery, a deployed smart wallet by EIP-1271, a counterfactual one by ERC-6492, in one call. Signature-only by decision (`docs/decisions/wallet-link-ownership-proof.md`): free, moves nothing, and independently checkable from the row alone. Chainalysis screens the address before the challenge and again at completion; High or Severe leaves no row.
+A Wallet link challenge plus the signature over it, verified with viem's contract-aware `verifyTypedData` on the chain the message names — an EOA by recovery, a deployed smart wallet by EIP-1271, a counterfactual one by ERC-6492, in one call. Signature-only: free, moves nothing, and independently checkable from the row alone. Chainalysis screens the address before the challenge and again at completion; High or Severe leaves no row.
 _Avoid_: on-chain proof, verification transaction
 
 **Whitelist request**:
