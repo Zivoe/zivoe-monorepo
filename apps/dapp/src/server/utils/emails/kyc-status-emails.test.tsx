@@ -23,4 +23,11 @@ describe('KYC status emails', () => {
     expect(html).not.toMatch(/unsubscribe/i);
     expect(html).not.toMatch(/token=/);
   });
+
+  it('tells an approved investor the wallet step is what remains', async () => {
+    const html = await render(KycApprovedEmail({ name: 'Ada', kycUrl: KYC_URL }));
+
+    expect(html).toContain('Connect your wallet');
+    expect(html).toContain('request its whitelist');
+  });
 });
