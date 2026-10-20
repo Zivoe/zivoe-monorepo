@@ -65,8 +65,7 @@ describe('the operator message', () => {
       '<b>🟢 Whitelist request</b>',
       '',
       '<b>User:</b> ada&lt;script&gt;@example.com',
-      '<b>Address:</b> 0x8815...e9e6',
-      '<code>0x881500000000000000000000000000000000e9e6</code>',
+      '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
       '<b>Whitelist now:</b> a member on none of 2 chains'
     ]);
@@ -94,8 +93,7 @@ describe('the operator message', () => {
       '',
       '<b>Reason:</b> verification no longer approved',
       '<b>User:</b> unknown (profile gone)',
-      '<b>Address:</b> 0x8815...e9e6',
-      '<code>0x881500000000000000000000000000000000e9e6</code>',
+      '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
       '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Also connected by:</b> no other account',
@@ -175,7 +173,7 @@ describe('the operator message', () => {
       otherAccounts: []
     });
 
-    expect(text.split('\n').slice(5, 7)).toEqual([
+    expect(text.split('\n').slice(4, 6)).toEqual([
       '<b>Wallet:</b> Safe · signed on Base',
       '<b>Smart account:</b> control proven on Base only'
     ]);

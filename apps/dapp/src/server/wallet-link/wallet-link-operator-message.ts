@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { chainOfChainId } from '@/lib/chains';
-import { escapeHtml, truncateAddress } from '@/lib/utils';
+import { escapeHtml } from '@/lib/utils';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
@@ -46,7 +46,7 @@ function membershipLine(membership: AddressMembership | null): string {
 
 /**
  * Everything ops needs to act in Centrifuge and nothing more: who (by
- * email), which address (short for the eye, full to copy) and where it
+ * email), which address (in full, tap to copy) and where it
  * stands on the whitelist now. Neither the chains nor the share class are
  * listed: ops knows the live deployments, and the request is for all of
  * them. Every interpolated value is escaped — the wallet's name and type and
@@ -75,8 +75,7 @@ export function formatWalletLinkOperatorMessage({
     // Only a no Decision ends a link; one that moved on before delivery is not named.
     ...(kind === 'revoke_request' ? [`<b>Reason:</b> verification ${noDecision ?? 'no longer approved'}`] : []),
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
-    `<b>Address:</b> ${escapeHtml(truncateAddress(record.address))}`,
-    `<code>${escapeHtml(record.address)}</code>`,
+    `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
     // A contract is deployed per chain: the same address elsewhere may be nobody's, or someone else's.
     ...(isSmartAccount

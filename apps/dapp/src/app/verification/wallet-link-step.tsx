@@ -120,6 +120,8 @@ const CARD_HEADING_ID = 'connected-wallet-heading';
 const SIGN_HELPER =
   'Your wallet will ask for a free signature. If your wallet needs several approvers, have them ready now.';
 
+const SWITCH_HINT = 'To check another address, disconnect and connect another wallet.';
+
 /** A refusal the server named; the copy module has a sentence for each code. */
 class LinkRefused extends Error {
   constructor(readonly code: WalletLinkActionError['code']) {
@@ -230,10 +232,11 @@ function ConnectedWalletCard({
   });
 
   // The card while its state is not known yet: it commits to nothing and
-  // takes the size of the card it most often becomes (the address, the two
-  // buttons, the helper line), so settling moves nothing below it. Each bar
-  // sits in a box with the text style of the line it stands for, and the
-  // helper is the real sentence, hidden, so it wraps as the real one does.
+  // takes the size of the card it most often becomes (the address, the
+  // badge, Disconnect beside the switch hint), so settling moves nothing
+  // below it. Each bar sits in a box with the text style of the line it
+  // stands for, and the hint is the real sentence, hidden, so it wraps as
+  // the real one does.
   const placeholder = (
     <Card heading={null}>
       <div className="flex items-center gap-3">
@@ -243,13 +246,11 @@ function ConnectedWalletCard({
           <SkeletonLine className="text-small" width="w-20" />
         </div>
       </div>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Skeleton className="h-12 w-full rounded-sm sm:w-32" />
-          <Skeleton className="h-12 w-full rounded-sm sm:w-30" />
-        </div>
+      <Skeleton className="h-7 w-28 rounded-sm" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Skeleton className="h-12 w-full shrink-0 rounded-sm sm:w-30" />
         <Skeleton className="rounded-sm text-small">
-          <span className="invisible">{SIGN_HELPER}</span>
+          <span className="invisible">{SWITCH_HINT}</span>
         </Skeleton>
       </div>
     </Card>
@@ -296,11 +297,7 @@ function ConnectedWalletCard({
   // -- The chains have not answered yet: nothing is claimed about the whitelist.
   if (!summary) return placeholder;
 
-  const switchHint = (
-    <p className="text-small text-secondary">
-      To check another address, switch accounts in your wallet, or disconnect and connect another wallet.
-    </p>
-  );
+  const switchHint = <p className="text-small text-secondary">{SWITCH_HINT}</p>;
 
   // -- Whitelisted, whoever asked for it: nothing to do.
   if (summary.status === 'whitelisted') {
@@ -308,7 +305,7 @@ function ConnectedWalletCard({
       <Card heading="Connected wallet">
         {addressLine}
         <WhitelistBadge summary={summary} isRequested />
-        {/* Beside the button from `sm` up: stacked, the line made this card taller than the placeholder it replaces. */}
+        {/* Beside the button from `sm` up, as in the placeholder this card replaces. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {disconnectButton}
           {switchHint}
