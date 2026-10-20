@@ -45,7 +45,7 @@ The subset of Verification Status that answers "is this person verified": `appro
 _Avoid_: outcome, result
 
 **Vault Access**:
-What decides whether the Deposit, Redeem and Pending tabs let a wallet act: the Centrifuge whitelist (and freeze) for that wallet on that chain, never the Verification Status. Whitelisting follows a yes Decision — today an ops rule, later the wallet-link step on `/verification` — so a wallet that is not whitelisted keeps the form open and gets **Get whitelisted** (a link to `/verification`) as its action; a frozen wallet stays locked. See `docs/decisions/kyc-transaction-gate.md` for why the browser-side Transaction Gate was dropped.
+What decides whether the Deposit, Redeem and Pending tabs let a wallet act: the Centrifuge whitelist (and freeze) for that wallet on that chain, never the Verification Status. Whitelisting follows a yes Decision — the investor links the wallet on the Wallets step of `/verification` (see Linked address) and ops whitelists it — so a wallet that is not whitelisted keeps the form open and gets **Get whitelisted** (a link to `/verification`) as its action; a frozen wallet stays locked. See `docs/decisions/kyc-transaction-gate.md` for why the browser-side Transaction Gate was dropped.
 _Avoid_: Transaction Gate (the dropped browser gate), KYC guard, verified-only mode
 
 **Status Write Path**:
@@ -79,6 +79,28 @@ _Avoid_: admin override, manual status
 **Investor Profile step**:
 The first of the two steps on `/verification`, ahead of the Persona flow: the onboarding answers an individual may still correct — first name, last name, country of residence — prefilled from the profile, with the account type and the email shown locked. Continue validates, saves them to `profile` (`updateInvestorProfile`) and moves on, so the Inquiry `startKyc` creates next is prefilled from what they confirmed; a resume carries no prefill, so a correction made once an Inquiry exists changes the profile only. Offered only while no Inquiry exists (`canStart`): from the first Inquiry on — in progress, expired, submitted or decided — the page holds the identity step with the profile step marked done, so nothing can be edited that Persona would never see; an organization sees the step locked with the team as the way forward. Back on the identity step returns to it, rebuilt from the saved values, and is withheld while a start is in flight or a Persona frame is up, so nothing on the page can unmount a live Inquiry. The page has a shell of its own — the step rail and Exit — and none of the dashboard's navigation.
 _Avoid_: KYC form, profile page (a step, not a destination), account settings
+
+### Wallet link
+
+**Linked address**:
+A wallet address an approved investor has proven they control and asked Zivoe to whitelist — a `wallet_link` row with status `linked`, created by the Wallets step of `/verification` (`apps/dapp/src/server/wallet-link/`) once the Ownership proof verifies. The row is that account's request, not a claim on the address: several accounts may each hold one for the same address (the unique index is per user and address), and an account only ever reads its own. The Wallets step shows the connected wallet alone — whitelisted, requested and pending, or free to request — with the whitelist read from the chain, so an address someone else got whitelisted shows as whitelisted and asks for nothing. An investor cannot remove a Linked address (they write to the team); a Decision that becomes a no (a decline in Persona, an operator's revoke) ends the investor's Linked addresses on the next hourly reconcile and queues a Revoke request for each. The row records when ops was asked and when the reconcile first saw full membership; whether the address is whitelisted is always read from the chain, never from the row. Every Linked address also exists in `wallet_connection` for the same user, guaranteed by the write that links it.
+_Avoid_: verified wallet, whitelisted address (that is the chain's fact), connected wallet (the Dynamic session)
+
+**Wallet link challenge**:
+The EIP-712 message the server issues for one (user, address): the statement, the user's email as the account, the wallet, a random nonce, issue and expiry (24 hours), in a domain whose chain id is the wallet's current chain and no verifying contract. Deterministic for its lifetime — a re-issue inside the window returns the identical payload — so a Safe whose co-signers finished later hands back the stored signature on the next click; a different chain is a different domain and re-issues. Stored verbatim in `typed_data` and rebuilt from the row at completion, never trusted from the client.
+_Avoid_: nonce (one field of it), SIWE message
+
+**Ownership proof**:
+A Wallet link challenge plus the signature over it, verified with viem's contract-aware `verifyTypedData` on the chain the message names — an EOA by recovery, a deployed smart wallet by EIP-1271, a counterfactual one by ERC-6492, in one call. Signature-only by decision (`docs/decisions/wallet-link-ownership-proof.md`): free, moves nothing, and independently checkable from the row alone. Chainalysis screens the address before the challenge and again at completion; High or Severe leaves no row.
+_Avoid_: on-chain proof, verification transaction
+
+**Whitelist request**:
+The one Telegram line the wallet-link channel (`TELEGRAM_WALLET_LINK_CHAT_ID`) gets when an address becomes Linked: user, address, wallet and signing chain, and the share classes to admit it to (on every live chain; the chains are not listed). Sent through the Outbox (`/api/telegram/wallet-link`), enqueued before the link persists and matched on `signed_at` at delivery, so a job the row has moved past is skipped and a failed persist loses nothing. Delivery is at least once: a retry after a send whose answer was lost repeats the line. A request whose investor is no longer a yes at delivery is dropped. Ops whitelists on Centrifuge by hand; the hourly reconcile (`/api/wallet-link/reconcile`) notices, stamps `whitelist_observed_at`, emails the investor once and never reads the address again. A request still not whitelisted everywhere is reported in the daily digest on days 3, 7, 14 and 30 after it was made, then no more; it is never retried.
+_Avoid_: whitelist job, notification (that is the email)
+
+**Revoke request**:
+The Whitelist request's counterpart when the reconcile ends a Linked address because the investor's Decision became a no — the only way one ends: same channel, same Outbox, matched on `removed_at`, carrying the Decision, "linked since" and the email of every other account that connected the address in the dapp (`wallet_connection`), each marked verified or not, since a revoke takes the address from all of them and a verified one among them is a reason not to. Ops revokes on Centrifuge by hand; nothing follows the revoke up.
+_Avoid_: unlink, revocation (the Verification Status word)
 
 ### Client transactions
 
