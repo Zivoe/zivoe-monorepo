@@ -73,6 +73,22 @@ export const isHumanOwned = isOneOf(HUMAN_OWNED_STATUSES);
 export const isDecision = isOneOf(DECISION_STATUSES);
 export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
 
+/**
+ * A yes Decision on the individual path — what lands `/verification` on the
+ * Wallets step and what its writes gate on. An organization's yes is the
+ * team's, outside this flow.
+ */
+export const isYesDecision = (view: KycStatusView) =>
+  view.path === 'individual' && (view.status === 'approved' || view.status === 'manually_approved');
+
+/**
+ * A no Decision — a decline in Persona or an operator's revocation. It ends
+ * the Linked addresses a yes allowed; a status that is only "not yet" (a
+ * review reopened, a resync under way) ends nothing.
+ */
+export const isNoDecision = (view: KycStatusView): view is KycStatusView & { status: 'declined' | 'revoked' } =>
+  view.status === 'declined' || view.status === 'revoked';
+
 /** Statuses the user is emailed about. */
 export const KYC_EMAIL_STATUSES = [
   'approved',
