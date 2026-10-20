@@ -25,7 +25,7 @@ export default function AddressWhitelistedEmail({
       heading="Your address is whitelisted"
       name={name}
       paragraphs={[
-        `The address ${shortAddress} is now whitelisted for Zivoe vaults. You can deposit from it right away.`,
+        `The address ${shortAddress} is now whitelisted for Zivoe vaults.`,
         `If you did not link this address, contact us at ${EMAILS.INQUIRE}.`
       ]}
       cta={{ label: 'Open the vaults', href: vaultsUrl }}
