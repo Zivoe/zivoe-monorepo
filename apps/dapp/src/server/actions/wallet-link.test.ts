@@ -63,7 +63,13 @@ describe('the gate every action shares', () => {
   it.each([
     ['no session', () => mocks.getSession.mockResolvedValue(null), 'unauthorized'],
     ['the kyc flag off', () => mocks.isKycEnabled.mockResolvedValue(false), 'unauthorized'],
-    ['the rate limit spent', () => mocks.limit.mockResolvedValue({ success: false }), 'rate_limited']
+    ['the rate limit spent', () => mocks.limit.mockResolvedValue({ success: false }), 'rate_limited'],
+    // Upstash's timeout answer is a success with a reason; unmetered is not an option.
+    [
+      'the limiter timing out',
+      () => mocks.limit.mockResolvedValue({ success: true, reason: 'timeout' }),
+      'rate_limited'
+    ]
   ] as const)('refuses with %s and never reaches the module', async (_label, arrange, code) => {
     arrange();
 

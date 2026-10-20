@@ -75,9 +75,10 @@ async function guarded<T>(
   if (!userId) return { ok: false, error: { code: 'unauthorized' } };
 
   try {
-    // A limiter that cannot answer refuses too: nothing here is worth running unmetered.
+    // A limiter that cannot answer refuses too: Upstash answers a timeout as
+    // a success with a reason, and nothing here is worth running unmetered.
     const limit = await ratelimit.limit(`wallet-link:${userId}`);
-    if (!limit.success) return { ok: false, error: { code: 'rate_limited' } };
+    if (!limit.success || limit.reason === 'timeout') return { ok: false, error: { code: 'rate_limited' } };
 
     return await run(userId);
   } catch (error) {
