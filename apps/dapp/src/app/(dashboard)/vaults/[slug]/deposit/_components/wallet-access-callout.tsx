@@ -67,8 +67,8 @@ export function WalletAccessCallout({ restriction }: { restriction: InvestorRest
 
   return (
     <Callout variant="warning">
-      You must be whitelisted to interact with this vault. Whitelisting follows identity verification; if you are
-      already verified, contact us at <ContactLink />.
+      You must be whitelisted to interact with this vault. Verify your identity, then request a whitelist for this
+      wallet. For questions, contact us at <ContactLink />.
     </Callout>
   );
 }
