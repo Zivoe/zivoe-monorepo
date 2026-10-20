@@ -51,8 +51,15 @@ export function createViemChainPort(): ChainPort {
       // A chain this deployment no longer serves cannot be asked; the request still goes out, unflagged.
       const chain = chainOfChainId(chainId);
       if (!chain) return false;
-      const code = await clientFor(chain).getCode({ address });
-      return !!code && code !== '0x' && !code.toLowerCase().startsWith(EIP_7702_DELEGATION_PREFIX);
+      // Best effort: the answer is one label on an operator line. A chain that
+      // cannot be read must not fail the delivery that carries it, or an RPC
+      // outage would spend the Outbox's retries and lose the request.
+      try {
+        const code = await clientFor(chain).getCode({ address });
+        return !!code && code !== '0x' && !code.toLowerCase().startsWith(EIP_7702_DELEGATION_PREFIX);
+      } catch {
+        return false;
+      }
     },
 
     readMembership: ({ addresses }) =>
