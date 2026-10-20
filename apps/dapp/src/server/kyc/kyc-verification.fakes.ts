@@ -73,12 +73,13 @@ export function createInMemoryKycStore() {
       }
       return deleted;
     },
-    async list({ statuses, syncedBefore, changedBefore, changedAfter, limit }) {
+    async list({ statuses, userIds, syncedBefore, changedBefore, changedAfter, limit }) {
       failIfArmed('list');
       return [...records.values()]
         .filter(
           (record) =>
             statuses.includes(record.status) &&
+            (!userIds || userIds.includes(record.userId)) &&
             (!syncedBefore || record.lastSyncedAt < syncedBefore) &&
             (!changedBefore || record.statusChangedAt < changedBefore) &&
             (!changedAfter || record.statusChangedAt > changedAfter)

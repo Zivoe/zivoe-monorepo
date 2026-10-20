@@ -1,6 +1,6 @@
 import { type Address, type Hex, verifyTypedData } from 'viem';
 
-import { type KycStatusView } from '@/server/kyc/kyc-status';
+import { type KycStatusView, isNoDecision } from '@/server/kyc/kyc-status';
 
 import {
   type ChainPort,
@@ -262,6 +262,14 @@ export function createFakeKyc() {
           canResume: false,
           inquiryId: null
         }
+      );
+    },
+    async listNoDecisions({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
+      return new Set(
+        userIds.filter((userId) => {
+          const view = views.get(userId);
+          return view !== undefined && isNoDecision(view);
+        })
       );
     }
   };

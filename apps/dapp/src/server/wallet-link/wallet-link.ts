@@ -3,8 +3,8 @@ import { type Address, type Hex } from 'viem';
 
 import { type WalletLinkStatus } from '@zivoe/database/wallet-link';
 
-import { type KycStatusView, isNoDecision, isYesDecision } from '@/server/kyc/kyc-status';
-import { type DeliveryError, type DeliveryOutcome } from '@/server/kyc/kyc-verification';
+import { isNoDecision, isYesDecision } from '@/server/kyc/kyc-status';
+import { type DeliveryError, type DeliveryOutcome, type KycVerification } from '@/server/kyc/kyc-verification';
 
 import { type Result, err, ok } from '@/lib/result';
 
@@ -290,7 +290,7 @@ export function createWalletLink({
   clock
 }: {
   store: WalletLinkStore;
-  kyc: { getKycStatus(input: { userId: string }): Promise<KycStatusView> };
+  kyc: Pick<KycVerification, 'getKycStatus' | 'listNoDecisions'>;
   screening: ScreeningPort;
   chain: ChainPort;
   outbox: WalletLinkOutbox;
@@ -493,15 +493,14 @@ export function createWalletLink({
       // A Decision that became a no since the link ends it: the row is removed
       // and ops is asked to revoke. Read off the
       // record here rather than hooked to an act, so an operator's revoke and
-      // a reviewer's decline in Persona are covered alike.
-      const ended = new Map<string, boolean>();
-      for (const record of [...allAwaiting, ...allObserved]) {
-        if (!ended.has(record.userId)) {
-          ended.set(record.userId, isNoDecision(await kyc.getKycStatus({ userId: record.userId })));
-        }
-        if (ended.get(record.userId) && (await remove({ id: record.id, removedAt: now }))) report.ended += 1;
+      // a reviewer's decline in Persona are covered alike. One read for every
+      // linked investor: the set only grows, whitelisted rows included.
+      const linked = [...allAwaiting, ...allObserved];
+      const ended = await kyc.listNoDecisions({ userIds: [...new Set(linked.map((record) => record.userId))] });
+      for (const record of linked) {
+        if (ended.has(record.userId) && (await remove({ id: record.id, removedAt: now }))) report.ended += 1;
       }
-      const awaiting = allAwaiting.filter((record) => !ended.get(record.userId));
+      const awaiting = allAwaiting.filter((record) => !ended.has(record.userId));
 
       // One pass over the chains for every row at once; the chain port batches
       // per share token. Two accounts may have asked for one address.

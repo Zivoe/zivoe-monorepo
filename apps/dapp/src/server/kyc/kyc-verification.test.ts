@@ -132,6 +132,25 @@ describe('getKycStatus', () => {
   });
 });
 
+describe('listNoDecisions', () => {
+  it('answers which of the given users hold a declined or revoked record, in one read', async () => {
+    const { kyc, seedRecord, store } = setup();
+    seedRecord({ userId: 'declined', status: 'declined' });
+    seedRecord({ userId: 'revoked', status: 'revoked' });
+    seedRecord({ userId: 'approved', status: 'approved' });
+    seedRecord({ userId: 'pending', status: 'pending_review' });
+    seedRecord({ userId: 'unlisted', status: 'revoked' });
+    const list = vi.spyOn(store.store, 'list');
+
+    const noDecisions = await kyc.listNoDecisions({
+      userIds: ['declined', 'revoked', 'approved', 'pending', 'no-record']
+    });
+
+    expect(noDecisions).toEqual(new Set(['declined', 'revoked']));
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Webhook fixtures: the documented event shape, signed with the real scheme
 // (HMAC-SHA256 over "<t>.<raw body>") right here so the fixture tracks it.

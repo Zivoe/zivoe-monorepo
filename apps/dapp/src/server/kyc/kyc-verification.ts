@@ -12,6 +12,7 @@ import {
   type KycEmailStatus,
   type KycOperatorStatus,
   type KycStatusView,
+  NO_DECISION_STATUSES,
   PERSONA_STATUS_TO_KYC_STATUS,
   type PersonaInquiryStatus,
   UNDECIDED_STATUSES,
@@ -27,7 +28,7 @@ import {
 import { parsePersonaWebhookEvent, verifyPersonaSignature } from './persona-webhook';
 
 // ---------------------------------------------------------------------------
-// KYC Verification — one module, one external seam, eight operations.
+// KYC Verification — one module, one external seam, nine operations.
 //
 // Dependencies are accepted, not created: a store, a Persona API, an outbox,
 // the two notification channels and a clock. Production wires Postgres /
@@ -97,12 +98,13 @@ export type KycStore = {
   /** Forgets recorded events received before the cut-off; resolves how many. */
   deleteEventsBefore(input: { receivedBefore: Date }): Promise<number>;
   /**
-   * Records in one of `statuses`, optionally only those last synced before
-   * `syncedBefore` and/or whose status last changed inside
+   * Records in one of `statuses`, optionally only those of `userIds`, last
+   * synced before `syncedBefore` and/or whose status last changed inside
    * (`changedAfter`, `changedBefore`); oldest sync first, at most `limit`.
    */
   list(input: {
     statuses: ReadonlyArray<KycStatus>;
+    userIds?: ReadonlyArray<string>;
     syncedBefore?: Date;
     changedBefore?: Date;
     changedAfter?: Date;
@@ -332,6 +334,8 @@ export type ResyncError = { code: 'profile_missing' } | { code: 'persona_unavail
 export type KycVerification = {
   /** Local read; never calls Persona. */
   getKycStatus(input: { userId: string }): Promise<KycStatusView>;
+  /** Local read, one query for all of them: which of `userIds` hold a no Decision (`isNoDecision`). */
+  listNoDecisions(input: { userIds: ReadonlyArray<string> }): Promise<Set<string>>;
   /** Applies the access policy, then creates or resumes the user's inquiry. */
   startKyc(input: { userId: string }): Promise<Result<{ inquiryId: string; sessionToken: string }, StartKycError>>;
   /** Verifies, applies (through the Status Write Path) and records one Persona event. */
@@ -771,6 +775,14 @@ export function createKycVerification({
         canResume,
         inquiryId: canResume ? (record?.personaInquiryId ?? null) : null
       };
+    },
+
+    // The status alone decides a no, for an individual and an organization
+    // alike, so the profile `getKycStatus` reads is not needed here.
+    async listNoDecisions({ userIds }) {
+      if (userIds.length === 0) return new Set();
+      const records = await store.list({ statuses: NO_DECISION_STATUSES, userIds, limit: userIds.length });
+      return new Set(records.map((record) => record.userId));
     },
 
     async startKyc({ userId }) {

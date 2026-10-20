@@ -79,16 +79,18 @@ export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
  * (`manually_approved`) for an organization, which has no flow of its own
  * yet and is let through to Wallets once the team has said yes.
  */
-export const isYesDecision = (view: KycStatusView) =>
-  view.status === 'approved' || view.status === 'manually_approved';
+export const isYesDecision = (view: KycStatusView) => view.status === 'approved' || view.status === 'manually_approved';
 
 /**
  * A no Decision — a decline in Persona or an operator's revocation. It ends
  * the Linked addresses a yes allowed; a status that is only "not yet" (a
  * review reopened, a resync under way) ends nothing.
  */
-export const isNoDecision = (view: KycStatusView): view is KycStatusView & { status: 'declined' | 'revoked' } =>
-  view.status === 'declined' || view.status === 'revoked';
+export const NO_DECISION_STATUSES = ['declined', 'revoked'] as const satisfies ReadonlyArray<KycStatus>;
+export type NoDecisionStatus = (typeof NO_DECISION_STATUSES)[number];
+
+export const isNoDecision = (view: KycStatusView): view is KycStatusView & { status: NoDecisionStatus } =>
+  isOneOf(NO_DECISION_STATUSES)(view.status);
 
 /** Statuses the user is emailed about. */
 export const KYC_EMAIL_STATUSES = [
