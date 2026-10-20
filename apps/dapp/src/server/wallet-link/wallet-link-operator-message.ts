@@ -93,12 +93,16 @@ export function formatWalletLinkOperatorMessage({
 
   if (kind === 'revoke_request') {
     // The address is not this account's alone: a revoke takes it from everyone
-    // who uses it, and a verified one among them is a reason not to.
-    const others = otherAccounts
+    // who uses it, and a verified one among them is a reason not to — so the
+    // verified are named first, and the count of the rest says how many of
+    // them are verified too, so none can hide behind it.
+    const verifiedFirst = [...otherAccounts].sort((a, b) => Number(b.isVerified) - Number(a.isVerified));
+    const others = verifiedFirst
       .slice(0, OTHER_ACCOUNTS_SHOWN)
       .map(({ email: other, isVerified }) => `${escapeHtml(other)} (${isVerified ? 'verified' : 'not verified'})`);
-    const more = otherAccounts.length - others.length;
-    if (more > 0) others.push(`and ${more} more`);
+    const rest = verifiedFirst.slice(OTHER_ACCOUNTS_SHOWN);
+    const restVerified = rest.filter(({ isVerified }) => isVerified).length;
+    if (rest.length > 0) others.push(`and ${rest.length} more${restVerified > 0 ? ` (${restVerified} verified)` : ''}`);
     lines.push(`<b>Also connected by:</b> ${others.length > 0 ? others.join(', ') : 'no other account'}`);
     lines.push(`<b>Linked since:</b> ${record.signedAt ? record.signedAt.toISOString().slice(0, 10) : 'unknown'}`);
   }

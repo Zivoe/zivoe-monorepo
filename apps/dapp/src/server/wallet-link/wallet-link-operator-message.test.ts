@@ -124,13 +124,8 @@ describe('the operator message', () => {
     );
   });
 
-  it('names the first ten other accounts and counts the rest, so a shared address stays under Telegram’s limit', () => {
-    const otherAccounts = Array.from({ length: 12 }, (_, index) => ({
-      email: `user-${index}@example.com`,
-      isVerified: false
-    }));
-
-    const text = formatWalletLinkOperatorMessage({
+  const alsoConnectedLine = (otherAccounts: Array<{ email: string; isVerified: boolean }>) =>
+    formatWalletLinkOperatorMessage({
       kind: 'revoke_request',
       record: record({ status: 'removed', removedAt: new Date() }),
       email: 'ada@example.com',
@@ -138,11 +133,34 @@ describe('the operator message', () => {
       membership: NOWHERE,
       noDecision: 'declined',
       otherAccounts
-    });
+    })
+      .split('\n')
+      .find((candidate) => candidate.startsWith('<b>Also connected by:</b>'))!;
 
-    const line = text.split('\n').find((candidate) => candidate.startsWith('<b>Also connected by:</b>'))!;
+  it('names ten other accounts and counts the rest, so a shared address stays under Telegram’s limit', () => {
+    const line = alsoConnectedLine(
+      Array.from({ length: 12 }, (_, index) => ({ email: `user-${index}@example.com`, isVerified: false }))
+    );
+
     expect(line).toContain('user-9@example.com (not verified), and 2 more');
     expect(line).not.toContain('user-10@example.com');
+    expect(line).not.toContain('more (');
+  });
+
+  it('names a verified account before the unverified, wherever it sorts, and counts the verified it cannot name', () => {
+    const unverified = Array.from({ length: 11 }, (_, index) => ({
+      email: `a-${index}@example.com`,
+      isVerified: false
+    }));
+
+    // The one verified account sorts last by email; the line must not hide it behind "and 2 more".
+    expect(alsoConnectedLine([...unverified, { email: 'z@example.com', isVerified: true }])).toMatch(
+      /^<b>Also connected by:<\/b> z@example.com \(verified\), a-0@example.com \(not verified\), .*a-8@example.com \(not verified\), and 2 more$/
+    );
+
+    // More verified accounts than the line names: the count says so.
+    const verified = Array.from({ length: 11 }, (_, index) => ({ email: `v-${index}@example.com`, isVerified: true }));
+    expect(alsoConnectedLine([...unverified, ...verified])).toMatch(/, and 12 more \(1 verified\)$/);
   });
 
   it.each([
