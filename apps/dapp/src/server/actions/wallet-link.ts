@@ -35,10 +35,12 @@ export type WalletLinkActionError = {
 
 export type WalletLinkActionResult<T> = { ok: true; value: T } | { ok: false; error: WalletLinkActionError };
 
+// Trimmed, and a blank one is no name: `''` would print as an empty "Wallet:" line.
 const displayString = z
   .string()
   .max(64)
-  .regex(/^[^\p{Cc}\p{Zl}\p{Zp}]*$/u);
+  .regex(/^[^\p{Cc}\p{Zl}\p{Zp}]*$/u)
+  .transform((value) => value.trim() || null);
 
 const issueSchema = z.object({
   address: addressSchema,
@@ -51,13 +53,16 @@ const issueSchema = z.object({
   walletName: displayString.nullable()
 });
 
-// ERC-6492 wraps a counterfactual wallet's signature with its deploy data (a few KB); past this it is not a signature.
+// Whole bytes: half a byte is not a signature, yet it would cost an `eth_call`
+// and a Sentry warning. No floor: a Safe that signed on-chain hands the dapp
+// `0x`, and its contract answers for it. ERC-6492 wraps a counterfactual
+// wallet's signature with its deploy data (a few KB); past 20 000 it is not a signature.
 const completeSchema = z.object({
   address: addressSchema,
   signature: z
     .string()
     .max(20_000)
-    .regex(/^0x[0-9a-fA-F]*$/)
+    .regex(/^0x(?:[0-9a-fA-F]{2})*$/)
 });
 
 /**

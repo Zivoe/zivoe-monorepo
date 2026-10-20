@@ -1,9 +1,9 @@
 import { type Address, createPublicClient, custom } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
+import { mainnet, sepolia } from 'viem/chains';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createChainTransport } from './wallet-link-chain';
+import { createChainTransport, createViemChainPort } from './wallet-link-chain';
 import { buildWalletLinkTypedData, toSignableTypedData } from './wallet-link-typed-data';
 
 // Pins the viem behaviour the chain port relies on with `mode: 'eoa'`: a
@@ -37,6 +37,19 @@ describe('the chain transport', () => {
     expect(transport.config.retryCount).toBe(0);
     expect(transport.value?.transports.map((inner) => inner.config.retryCount)).toEqual([1]);
     expect(transport.value?.transports.map((inner) => inner.config.timeout)).toEqual([10_000]);
+  });
+});
+
+describe('the chain port', () => {
+  it('refuses a chain the registry knows but this deployment does not serve, without asking it', async () => {
+    // Ethereum mainnet is in the registry; the test environment serves testnets.
+    const port = createViemChainPort();
+    const signature = await signer.signTypedData(toSignableTypedData(typedData));
+
+    await expect(
+      port.verifyTypedData({ chainId: mainnet.id, address: signer.address, typedData, signature })
+    ).resolves.toBe(false);
+    await expect(port.isSmartAccount({ chainId: mainnet.id, address: signer.address, signature })).resolves.toBe(false);
   });
 });
 

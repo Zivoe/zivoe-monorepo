@@ -35,6 +35,7 @@ vi.mock('@/server/wallet-link', () => ({
 }));
 
 const ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+const SIGNATURE = `0x${'ab'.repeat(65)}`;
 const SEPOLIA = 11155111;
 const LINK_ID = '77ce3fa7-9c2d-404f-8f90-3c8d562dbcd8';
 const record = {
@@ -114,6 +115,14 @@ describe('issueWalletLinkChallenge', () => {
     });
   });
 
+  it('trims the wallet type and name, and passes a blank one as none', async () => {
+    await issueWalletLinkChallenge({ address: ADDRESS, chainId: SEPOLIA, walletType: ' metamask ', walletName: '  ' });
+
+    expect(mocks.issueChallenge).toHaveBeenCalledWith(
+      expect.objectContaining({ walletType: 'metamask', walletName: null })
+    );
+  });
+
   it.each([
     ['a chain this deployment does not serve', { chainId: 1 }],
     ['a malformed address', { address: '0x1234' }],
@@ -136,7 +145,7 @@ describe('issueWalletLinkChallenge', () => {
 
 describe('completeWalletLink', () => {
   it('maps the linked record to the page row', async () => {
-    const result = await completeWalletLink({ address: ADDRESS, signature: '0xabcd' });
+    const result = await completeWalletLink({ address: ADDRESS, signature: SIGNATURE });
 
     expect(result).toEqual({
       ok: true,
@@ -147,11 +156,18 @@ describe('completeWalletLink', () => {
         wasWhitelisted: false
       }
     });
-    expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: '0xabcd' });
+    expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: SIGNATURE });
+  });
+
+  it("lets a Safe's on-chain signature through to the chain: `0x`, for its contract to answer", async () => {
+    await completeWalletLink({ address: ADDRESS, signature: '0x' });
+
+    expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: '0x' });
   });
 
   it.each([
-    ['a signature that is not hex', '0xzz'],
+    ['a signature that is not hex', `0x${'zz'.repeat(65)}`],
+    ['a signature of half a byte', `0x${'ab'.repeat(65)}a`],
     ['a signature past the ERC-6492 size', `0x${'ab'.repeat(10_001)}`]
   ])('refuses %s before the gate', async (_label, signature) => {
     expect(await completeWalletLink({ address: ADDRESS, signature })).toEqual({
@@ -164,7 +180,7 @@ describe('completeWalletLink', () => {
   it('notes a signature that did not verify, and passes the refusal through', async () => {
     mocks.completeLink.mockResolvedValue({ ok: false, error: { code: 'bad_signature' } });
 
-    expect(await completeWalletLink({ address: ADDRESS, signature: '0xabcd' })).toEqual({
+    expect(await completeWalletLink({ address: ADDRESS, signature: SIGNATURE })).toEqual({
       ok: false,
       error: { code: 'bad_signature' }
     });

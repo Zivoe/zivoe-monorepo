@@ -4,7 +4,7 @@ import { createPublicClient, fallback, http, isErc6492Signature } from 'viem';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
-import { chainOfChainId, getChainRpcUrls, getViemChain } from '@/lib/chains';
+import { chainOfChainId, getChainRpcUrls, getViemChain, isActiveChainId } from '@/lib/chains';
 
 import { type ChainPort } from './wallet-link';
 import { listMembershipTargets, readAddressesMembership } from './wallet-link-membership';
@@ -51,9 +51,11 @@ export function createViemChainPort(): ChainPort {
 
   return {
     async verifyTypedData({ chainId, address, typedData, signature }) {
-      // A chain this deployment does not serve has no client to ask — and no vault to whitelist for.
+      // A chain this deployment does not serve has no vault to whitelist for.
+      // The registry knows the other environment's chains too, so the active
+      // set is checked here, where the proof is judged, not only at the action.
       const chain = chainOfChainId(chainId);
-      if (!chain) return false;
+      if (!chain || !isActiveChainId(chainId)) return false;
       // `mode: 'eoa'`: ECDSA recovery first, offline, so a key's signature
       // never waits on — or trusts — the RPC; only one recovery does not
       // explain goes to the chain (EIP-1271, ERC-6492). There viem fails
@@ -72,7 +74,7 @@ export function createViemChainPort(): ChainPort {
       if (isErc6492Signature(signature)) return true;
       // A chain this deployment no longer serves cannot be asked; the request still goes out, unflagged.
       const chain = chainOfChainId(chainId);
-      if (!chain) return false;
+      if (!chain || !isActiveChainId(chainId)) return false;
       // Best effort: the answer is one label on an operator line. A chain that
       // cannot be read must not fail the delivery that carries it, or an RPC
       // outage would spend the Outbox's retries and lose the request — but it
