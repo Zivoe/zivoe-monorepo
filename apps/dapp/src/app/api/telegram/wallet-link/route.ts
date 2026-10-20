@@ -30,6 +30,14 @@ const handler = async (req: NextRequest) => {
 
   const result = await walletLink.deliverNotification({ job });
   if (result.ok) {
+    // Still a 200 — there is nothing to retry — but someone should look: the
+    // address stays whitelisted under a row the sweep never reads again.
+    if (result.value === 'skipped_untracked') {
+      Sentry.captureMessage('Wallet link: Revoke request skipped, address whitelisted under no Linked row', {
+        level: 'warning',
+        extra: { linkId: job.linkId }
+      });
+    }
     return NextResponse.json({
       success: true,
       data: result.value === 'sent' ? 'Telegram notification sent' : 'Link moved on, skipping notification'

@@ -784,6 +784,23 @@ describe('deliverNotification', () => {
     expect(operator.sent).toEqual([]);
   });
 
+  it('says when the skipped Revoke request leaves the address whitelisted under no Linked row', async () => {
+    const { walletLink, kyc, outbox, operator, clock } = setup();
+    await linkEoa(walletLink);
+    kyc.set(ALICE, { status: 'revoked' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
+
+    // A yes again, but no new link: the Removed row is the only one, and the
+    // sweep reads Linked rows alone, so a later no would never revoke this address.
+    kyc.set(ALICE, { status: 'approved' });
+    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
+      ok: true,
+      value: 'skipped_untracked'
+    });
+    expect(operator.sent).toEqual([]);
+  });
+
   it('has nobody to tell when the row is gone', async () => {
     const { walletLink, outbox, store } = setup();
     await linkEoa(walletLink);

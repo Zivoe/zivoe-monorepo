@@ -202,6 +202,15 @@ export type CompleteLinkError = {
 /** The same answers the KYC receivers map to status codes: retry (early or channel down) or 200 (sent, skipped). */
 export type { DeliveryError, DeliveryOutcome } from '@/server/kyc/kyc-verification';
 
+/**
+ * `skipped_untracked`: a Revoke request skipped because the investor is a yes
+ * again, who has not linked the address again — so it stays whitelisted under
+ * a Removed row the sweep never reads, and a later no would not revoke it.
+ * Rare (a reversal inside the delivery window) and still a 200; the receiver
+ * reports it so someone can look.
+ */
+export type WalletLinkDeliveryOutcome = DeliveryOutcome | 'skipped_untracked';
+
 export type WalletLinkReconcileReport = {
   /** Rows whose membership was read. */
   checked: number;
@@ -257,7 +266,7 @@ export type WalletLink = {
    */
   reconcile(input: { now: Date }): Promise<WalletLinkReconcileReport>;
   /** The receiving half of the Outbox: re-reads the row, then sends through the channel for the job's kind. */
-  deliverNotification(input: { job: WalletLinkJob }): Promise<Result<DeliveryOutcome, DeliveryError>>;
+  deliverNotification(input: { job: WalletLinkJob }): Promise<Result<WalletLinkDeliveryOutcome, DeliveryError>>;
 };
 
 /**
@@ -567,7 +576,12 @@ export function createWalletLink({
             // A yes again inside the queue's delay (a revoke reversed, a
             // decline re-decided): the investor may link again, and a
             // request to revoke would only undo what ops is asked for next.
-            if (await mayLink(record.userId)) return ok('skipped');
+            // Until they do, the address is whitelisted under this Removed
+            // row alone, which no sweep reads again — said, not fixed.
+            if (await mayLink(record.userId)) {
+              const linkedAgain = await store.getLinked({ userId: record.userId, address: record.address });
+              return ok(linkedAgain ? 'skipped' : 'skipped_untracked');
+            }
             await sendOperatorMessage('revoke_request', record);
             return ok('sent');
           }

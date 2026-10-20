@@ -99,7 +99,7 @@ The one Telegram line the wallet-link channel (`TELEGRAM_WALLET_LINK_CHAT_ID`) g
 _Avoid_: whitelist job, notification (that is the email)
 
 **Revoke request**:
-The Whitelist request's counterpart when the reconcile ends a Linked address because the investor's Decision became a no — the only way one ends: same channel, same Outbox, matched on `removed_at`, carrying the Decision, "linked since" and the email of every other account that connected the address in the dapp (`wallet_connection`), each marked verified or not, since a revoke takes the address from all of them and a verified one among them is a reason not to. Ops revokes on Centrifuge by hand; nothing follows the revoke up.
+The Whitelist request's counterpart when the reconcile ends a Linked address because the investor's Decision became a no — the only way one ends: same channel, same Outbox, matched on `removed_at`, carrying the Decision, "linked since" and the email of every other account that connected the address in the dapp (`wallet_connection`), each marked verified or not, since a revoke takes the address from all of them and a verified one among them is a reason not to. Ops revokes on Centrifuge by hand; nothing follows the revoke up. A request whose investor is a yes again at delivery is skipped; if they have not linked the address again by then it stays whitelisted under a Removed row no sweep reads, which the receiver reports to Sentry (a warning, not a retry).
 _Avoid_: unlink, revocation (the Verification Status word)
 
 ### Client transactions
