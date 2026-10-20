@@ -93,6 +93,8 @@ export function presentKycStatus(view: KycStatusView): KycStatusPresentation {
         body: 'A member of our team is reviewing your verification. We will email you when a decision is made.',
         action: { kind: 'none' }
       };
+    // Kept for the exhaustive switch only: a yes Decision lands on the
+    // Wallets step, so nothing renders this card for one any more.
     case 'approved':
     case 'manually_approved':
       return {

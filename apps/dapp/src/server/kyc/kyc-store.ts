@@ -82,7 +82,7 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
       return deleted.length;
     },
 
-    async list({ statuses, syncedBefore, changedBefore, changedAfter, limit }) {
+    async list({ statuses, userIds, syncedBefore, changedBefore, changedAfter, limit }) {
       return db
         .select({
           userId: kycVerification.userId,
@@ -96,6 +96,7 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
         .where(
           and(
             inArray(kycVerification.status, [...statuses]),
+            userIds ? inArray(kycVerification.userId, [...userIds]) : undefined,
             syncedBefore ? lt(kycVerification.lastSyncedAt, syncedBefore) : undefined,
             changedBefore ? lt(kycVerification.statusChangedAt, changedBefore) : undefined,
             changedAfter ? gt(kycVerification.statusChangedAt, changedAfter) : undefined

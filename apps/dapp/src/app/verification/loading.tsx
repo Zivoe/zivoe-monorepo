@@ -38,9 +38,12 @@ export default function VerificationLoading() {
       }
       mobileRail={
         <div className="flex items-center gap-3">
-          <Skeleton className="size-7 shrink-0 rounded-md" />
-          <span className="h-px w-4 bg-tertiary-600" />
-          <Skeleton className="size-7 shrink-0 rounded-md" />
+          {VERIFICATION_STEPS.map((step, index) => (
+            <div key={step.id} className="flex items-center gap-3">
+              <Skeleton className="size-7 shrink-0 rounded-md" />
+              {index < VERIFICATION_STEPS.length - 1 ? <span className="h-px w-4 bg-tertiary-600" /> : null}
+            </div>
+          ))}
         </div>
       }
     >

@@ -52,7 +52,7 @@ export function InvestorProfileStep({
     return (
       <>
         <Auth.Header title="Investor profile" description="Your account is registered as an organization.">
-          <Auth.StepIndicator>Step 1 of 2</Auth.StepIndicator>
+          <Auth.StepIndicator>Step 1 of 3</Auth.StepIndicator>
         </Auth.Header>
 
         <div className="flex flex-col gap-7">
@@ -109,7 +109,7 @@ function IndividualProfileForm({
         title="Investor profile"
         description="Confirm the details we will verify you against. They are filled in from your onboarding answers."
       >
-        <Auth.StepIndicator>Step 1 of 2</Auth.StepIndicator>
+        <Auth.StepIndicator>Step 1 of 3</Auth.StepIndicator>
       </Auth.Header>
 
       <form onSubmit={handleSubmit((data) => save.mutate(data))} className="flex flex-col gap-11">

@@ -28,12 +28,15 @@ export const KYC_RECONCILE_STEP_MINUTES = 15;
 export const KYC_RECONCILE_CRON = `*/${KYC_RECONCILE_STEP_MINUTES} * * * *`;
 /** Daily check that the Persona dashboard's webhook still matches what the code handles. */
 export const KYC_WEBHOOK_DRIFT_CRON = '0 8 * * *';
+/** The Wallet link reconcile's cadence — hourly: it observes and reports stalled whitelists, nothing waits on it. */
+export const WALLET_LINK_RECONCILE_CRON = '0 * * * *';
 
 // One slug per cron for its Sentry monitor AND its route's `flow` tag, so
 // the two views correlate. Kept here rather than exported from the route
 // files: a route module may only export the handler and its config.
 export const KYC_RECONCILE_SLUG = 'kyc-reconcile-cron';
 export const KYC_WEBHOOK_DRIFT_SLUG = 'kyc-webhook-drift-cron';
+export const WALLET_LINK_RECONCILE_SLUG = 'wallet-link-reconcile-cron';
 
 export const QSTASH_JOB_LABELS = {
   monitorCentrifugeTransactions: 'monitor.centrifuge-transactions',
@@ -51,6 +54,9 @@ export const QSTASH_JOB_LABELS = {
   telegramOnboarding: 'telegram.onboarding',
   telegramKyc: 'telegram.kyc',
   telegramChainalysis: 'telegram.chainalysis',
+  telegramWalletLink: 'telegram.wallet-link',
+  emailWalletLink: 'email.wallet-link',
+  walletLinkReconcile: 'wallet-link.reconcile',
   walletFetchHoldings: 'wallet.fetch-holdings'
 } as const;
 

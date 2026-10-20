@@ -74,19 +74,12 @@ describe('KycStatusView', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  it.each([
-    ['approved', view({ status: 'approved', canStart: false }), 'Your identity is verified.'],
-    ['manually_approved', view({ status: 'manually_approved', canStart: false }), 'Your identity is verified.'],
-    [
-      'an approved organization',
-      view({ path: 'organization', status: 'approved', canStart: false }),
-      'Your organization is verified.'
-    ]
-  ] as const)('renders %s as the compact Verified badge with no link', (_label, statusView, body) => {
-    render(<KycStatusView view={statusView} />);
+  // A yes Decision lands on the Wallets step, so this card only ever shows a yes that is not one yet (a stale render).
+  it('renders an approved organization as the compact Verified badge with no link', () => {
+    render(<KycStatusView view={view({ path: 'organization', status: 'approved', canStart: false })} />);
 
     expect(screen.getByText('Verified')).toBeTruthy();
-    expect(screen.getByText(body)).toBeTruthy();
+    expect(screen.getByText('Your organization is verified.')).toBeTruthy();
     expect(screen.queryAllByRole('link')).toHaveLength(0);
   });
 

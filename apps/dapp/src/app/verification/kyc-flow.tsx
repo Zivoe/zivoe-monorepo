@@ -134,7 +134,7 @@ export default function KycFlow({
       title="Identity verification"
       description="Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents."
     >
-      <Auth.StepIndicator onBack={onBack && canLeaveStep ? onBack : undefined}>Step 2 of 2</Auth.StepIndicator>
+      <Auth.StepIndicator onBack={onBack && canLeaveStep ? onBack : undefined}>Step 2 of 3</Auth.StepIndicator>
     </Auth.Header>
   );
 

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
-import { type Address, parseAbi } from 'viem';
+import { type Abi, type Address, parseAbi } from 'viem';
 
 import { type CentrifugeChain } from '@zivoe/centrifuge-indexer';
 
@@ -30,14 +30,18 @@ const TRANSFER_HOOK_ABI = parseAbi([
   'function isMember(address token, address user) view returns (bool isValid, uint64 validUntil)'
 ]);
 
+type ContractCall = {
+  address: Address;
+  abi: Abi;
+  functionName: string;
+  args: ReadonlyArray<unknown>;
+};
+
 /** The narrow slice of a viem client this module reads through — keeps viem's generics out of the signature. */
-type ContractReader = {
-  readContract(args: {
-    address: Address;
-    abi: ReadonlyArray<unknown>;
-    functionName: string;
-    args: ReadonlyArray<unknown>;
-  }): Promise<unknown>;
+export type ContractReader = {
+  readContract(args: ContractCall): Promise<unknown>;
+  /** Several reads in one eth_call through Multicall3; with `allowFailure: false` any revert throws. */
+  multicall(args: { allowFailure: false; contracts: ReadonlyArray<ContractCall> }): Promise<ReadonlyArray<unknown>>;
 };
 
 // The shape the request manager asks the hook about on a USDC claim: from the
@@ -103,6 +107,47 @@ export async function readInvestorAccess({
   return { ...access, canClaimProceeds, restriction };
 }
 
+/** What the share token's transfer hook knows about one investor. */
+export type HookMembership = { isFrozen: boolean; isMember: boolean; validUntil: bigint };
+
+/**
+ * The one low-level read behind both the vault tabs' restriction verdict and
+ * the Wallets step's whitelist badge: the token's `hook()` address, then
+ * every investor's freeze and membership in a single multicall. Answers in
+ * `investors` order and throws when the chain cannot answer; the callers
+ * decide what a failure means.
+ */
+export async function readHookMembership({
+  client,
+  shareTokenAddress,
+  investors
+}: {
+  client: ContractReader;
+  shareTokenAddress: Address;
+  investors: ReadonlyArray<Address>;
+}): Promise<Array<HookMembership>> {
+  const hook = (await client.readContract({
+    address: shareTokenAddress,
+    abi: SHARE_TOKEN_HOOK_ABI,
+    functionName: 'hook',
+    args: []
+  })) as Address;
+
+  const answers = await client.multicall({
+    allowFailure: false,
+    contracts: investors.flatMap((investor) => [
+      { address: hook, abi: TRANSFER_HOOK_ABI, functionName: 'isFrozen', args: [shareTokenAddress, investor] },
+      { address: hook, abi: TRANSFER_HOOK_ABI, functionName: 'isMember', args: [shareTokenAddress, investor] }
+    ])
+  });
+
+  return investors.map((_, index) => {
+    const isFrozen = answers[index * 2] as boolean;
+    const [isMember, validUntil] = answers[index * 2 + 1] as [boolean, bigint];
+    return { isFrozen, isMember, validUntil };
+  });
+}
+
 /**
  * Why the hook refused, read straight off the hook contract — the SDK exposes
  * no freeze query, and its own `isMember` swallows read failures into a plain
@@ -121,32 +166,19 @@ async function readRestriction({
   let restriction: InvestorRestriction = 'unknown';
 
   try {
-    const hook = (await client.readContract({
-      address: shareTokenAddress,
-      abi: SHARE_TOKEN_HOOK_ABI,
-      functionName: 'hook',
-      args: []
-    })) as Address;
-
-    const [isFrozen, [isMember, validUntil]] = (await Promise.all([
-      client.readContract({
-        address: hook,
-        abi: TRANSFER_HOOK_ABI,
-        functionName: 'isFrozen',
-        args: [shareTokenAddress, investor]
-      }),
-      client.readContract({
-        address: hook,
-        abi: TRANSFER_HOOK_ABI,
-        functionName: 'isMember',
-        args: [shareTokenAddress, investor]
-      })
-    ])) as [boolean, [boolean, bigint]];
-
+    const [facts] = await readHookMembership({ client, shareTokenAddress, investors: [investor] });
     // `validUntil` can only ever be zero for a wallet the hook has never been
     // told about: updateMember refuses a timestamp already in the past, and
     // block.timestamp is never zero, so no admission can write one.
-    restriction = isFrozen ? 'frozen' : isMember ? 'unknown' : validUntil === 0n ? 'not-member' : 'membership-expired';
+    if (facts) {
+      restriction = facts.isFrozen
+        ? 'frozen'
+        : facts.isMember
+          ? 'unknown'
+          : facts.validUntil === 0n
+            ? 'not-member'
+            : 'membership-expired';
+    }
   } catch {
     // Falls through to the report below — 'unknown' already.
   }
