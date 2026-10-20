@@ -103,6 +103,10 @@ vi.mock('@/env', () => ({ env: { NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: 'env_test' 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh, push: vi.fn() }) }));
 vi.mock('next/dynamic', () => ({ default: () => () => <div data-testid="persona-frame" /> }));
 vi.mock('@/server/actions/investor-profile', () => ({ updateInvestorProfile: mocks.updateInvestorProfile }));
+// The Wallets step has its own suite; here it only has to be the step the flow lands on.
+vi.mock('./wallet-link-step', () => ({
+  WalletLinkStep: ({ userId }: { userId: string }) => <div data-testid="wallets-step">{userId}</div>
+}));
 
 const view = (overrides: Partial<KycStatusView> = {}): KycStatusView => ({
   status: 'not_started',
@@ -126,7 +130,7 @@ function renderFlow({ statusView = view(), investor = profile() } = {}) {
   const client = new QueryClient();
   const tree = (statusView: KycStatusView) => (
     <QueryClientProvider client={client}>
-      <VerificationFlow view={statusView} profile={investor} />
+      <VerificationFlow view={statusView} profile={investor} userId="user_1" />
     </QueryClientProvider>
   );
   const result = render(tree(statusView));
@@ -230,7 +234,7 @@ describe('VerificationFlow', () => {
 
   it.each([
     ['in progress', inProgress(), 'Continue verification'],
-    ['approved', view({ status: 'approved', canStart: false }), null]
+    ['under review', view({ status: 'pending_review', canStart: false }), null]
   ] as const)(
     'opens on the identity step, without Back, once an inquiry exists (%s)',
     (_label, statusView, resumeButton) => {
@@ -241,22 +245,30 @@ describe('VerificationFlow', () => {
       if (resumeButton) expect(screen.getByRole('button', { name: resumeButton })).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
       expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
+      expect(within(stepItem('Identity verification')).queryByText(', completed')).toBeNull();
     }
   );
 
-  it('marks the identity step done as well once verified', () => {
-    renderFlow({ statusView: view({ status: 'approved', canStart: false }) });
+  it.each([
+    ['approved', view({ status: 'approved', canStart: false })],
+    ['manually approved', view({ status: 'manually_approved', canStart: false })]
+  ] as const)('lands on Wallets with both earlier steps done once verified (%s)', (_label, statusView) => {
+    renderFlow({ statusView });
 
-    expect(screen.getByText('Your identity is verified.')).toBeTruthy();
+    expect(screen.getByTestId('wallets-step').textContent).toBe('user_1');
+    expect(screen.queryByRole('heading', { name: 'Identity verification' })).toBeNull();
+    expect(stepItem('Wallets').getAttribute('aria-current')).toBe('step');
+    expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
     expect(within(stepItem('Identity verification')).getByText(', completed')).toBeTruthy();
   });
 
-  it('keeps the last step named in the phone row once every step is done', () => {
+  it('names only the current step in the phone row', () => {
     renderFlow({ statusView: view({ status: 'approved', canStart: false }) });
 
-    // Below `sm` only one label is visible; with no step current it is the last one, not none.
+    // Below `sm` only one label is visible: the current step's.
     const phoneRow = screen.getAllByRole('list', { name: 'Verification steps' })[1]!;
-    expect(within(phoneRow).getByText('Identity verification').className).not.toMatch(/(^|\s)sr-only/);
+    expect(within(phoneRow).getByText('Wallets').className).not.toMatch(/(^|\s)sr-only/);
+    expect(within(phoneRow).getByText('Identity verification').className).toMatch(/(^|\s)sr-only/);
     expect(within(phoneRow).getByText('Investor profile').className).toMatch(/(^|\s)sr-only/);
   });
 

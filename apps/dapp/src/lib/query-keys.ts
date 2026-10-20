@@ -137,6 +137,18 @@ const app = {
     'CANCEL_RETURN_RECEIPT',
     chain,
     txHash.toLowerCase()
+  ],
+  // The account's own Linked addresses on the Wallets step: seeded by the
+  // page, kept by the step's own writes. Keyed by user so one browser never
+  // shows another account's after a sign-out.
+  walletLinks: ({ userId }: { userId: string }) => ['WALLET_LINKS', userId],
+  // Whitelist membership of the addresses asked about (the Wallets step's
+  // connected wallet), read in one pass across every active chain and share
+  // class — one entry for the whole list, since every address is asked
+  // about in the same multicalls.
+  walletLinkMembership: ({ addresses }: { addresses: ReadonlyArray<string> }) => [
+    'WALLET_LINK_MEMBERSHIP',
+    ...addresses.map((address) => address.toLowerCase())
   ]
 };
 

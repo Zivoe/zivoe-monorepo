@@ -1,11 +1,12 @@
-import { CheckIcon, DocumentIcon, UserIcon } from '@zivoe/ui/icons';
+import { CheckIcon, DocumentIcon, UserIcon, WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
-export type VerificationStepId = 'profile' | 'identity';
+export type VerificationStepId = 'profile' | 'identity' | 'wallets';
 
 export const VERIFICATION_STEPS = [
   { id: 'profile', label: 'Investor profile', Icon: UserIcon },
-  { id: 'identity', label: 'Identity verification', Icon: DocumentIcon }
+  { id: 'identity', label: 'Identity verification', Icon: DocumentIcon },
+  { id: 'wallets', label: 'Wallets', Icon: WalletIcon }
 ] as const satisfies ReadonlyArray<{ id: VerificationStepId; label: string; Icon: typeof UserIcon }>;
 
 type StepState = 'done' | 'current' | 'upcoming';
@@ -38,15 +39,14 @@ export function VerificationSteps({
   orientation: 'vertical' | 'horizontal';
 }) {
   const vertical = orientation === 'vertical';
-  // Once every step is done none is current; the row then keeps the last label, not just icons.
-  const hasCurrent = VERIFICATION_STEPS.some((step) => step.id === current && !done.includes(step.id));
 
   return (
     <ol aria-label="Verification steps" className={cn('flex', vertical ? 'flex-col' : 'items-center gap-3')}>
       {VERIFICATION_STEPS.map((step, index) => {
         const state: StepState = done.includes(step.id) ? 'done' : step.id === current ? 'current' : 'upcoming';
         const Icon = state === 'done' ? CheckIcon : step.Icon;
-        const isLabelShown = state === 'current' || (!hasCurrent && index === VERIFICATION_STEPS.length - 1);
+        // The last step is the completed state, so one step is always current.
+        const isLabelShown = state === 'current';
 
         return (
           <li
