@@ -14,6 +14,21 @@ import { toSignableTypedData } from './wallet-link-typed-data';
 const EIP_7702_DELEGATION_PREFIX = '0xef0100';
 
 /**
+ * The transport behind every read: one retry per endpoint, not viem's three,
+ * and none around them. A server action and the 60-second receivers wait on
+ * these reads, so a hung endpoint must fail inside their budget — two
+ * attempts of ten seconds. `fallback` retries on its own count on top of the
+ * endpoints' (its default of three would make eight attempts, eighty seconds),
+ * so it is told not to.
+ */
+export function createChainTransport(urls: ReadonlyArray<string>) {
+  return fallback(
+    urls.map((url) => http(url, { batch: true, timeout: 10_000, retryCount: 1 })),
+    { retryCount: 0 }
+  );
+}
+
+/**
  * The ChainPort over viem: one public client per active chain, built once
  * per instance (not through React's request cache — the reconcile runs
  * outside a render). `verifyTypedData` on a public client is the
@@ -27,12 +42,7 @@ export function createViemChainPort(): ChainPort {
     if (!client) {
       client = createPublicClient({
         chain: getViemChain(chain),
-        // One retry, not viem's three: a server action and the 60-second
-        // receivers wait on these reads, and a hung endpoint must fail inside
-        // their budget rather than forty seconds later.
-        transport: fallback(
-          getChainRpcUrls(chain).map((url) => http(url, { batch: true, timeout: 10_000, retryCount: 1 }))
-        )
+        transport: createChainTransport(getChainRpcUrls(chain))
       });
       clients.set(chain, client);
     }

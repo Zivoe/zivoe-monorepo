@@ -3,6 +3,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createChainTransport } from './wallet-link-chain';
 import { buildWalletLinkTypedData, toSignableTypedData } from './wallet-link-typed-data';
 
 // Pins the viem behaviour the chain port relies on with `mode: 'eoa'`: a
@@ -25,6 +26,19 @@ const clientWith = (answer: () => Promise<unknown>) => {
   const request = vi.fn(answer);
   return { request, client: createPublicClient({ chain: sepolia, transport: custom({ request }) }) };
 };
+
+describe('the chain transport', () => {
+  it('retries once per endpoint and never around them, so a hung endpoint costs two attempts, not eight', () => {
+    // `fallback` builds its own transport with viem's default of three retries
+    // unless told otherwise, and `http` keeps its own count over the zero the
+    // fallback hands down: the two multiply.
+    const transport = createChainTransport(['https://rpc.example'])({ chain: sepolia });
+
+    expect(transport.config.retryCount).toBe(0);
+    expect(transport.value?.transports.map((inner) => inner.config.retryCount)).toEqual([1]);
+    expect(transport.value?.transports.map((inner) => inner.config.timeout)).toEqual([10_000]);
+  });
+});
 
 describe("viem's verifyTypedData in eoa mode", () => {
   it("settles a key's signature by recovery, without a single RPC call", async () => {
