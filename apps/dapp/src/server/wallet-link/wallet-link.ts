@@ -561,6 +561,10 @@ export function createWalletLink({
           case 'revoke_request': {
             if (record.status !== 'removed') return err({ code: 'not_caught_up' });
             if (!sameStamp(record.removedAt)) return ok('skipped');
+            // A yes again inside the queue's delay (a revoke reversed, a
+            // decline re-decided): the investor may link again, and a
+            // request to revoke would only undo what ops is asked for next.
+            if (await mayLink(record.userId)) return ok('skipped');
             await sendOperatorMessage('revoke_request', record);
             return ok('sent');
           }

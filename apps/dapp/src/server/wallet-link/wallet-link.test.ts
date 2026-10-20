@@ -766,6 +766,24 @@ describe('deliverNotification', () => {
     expect(operator.sent).toEqual([]);
   });
 
+  it('skips a Revoke request whose investor is a yes again before it was delivered', async () => {
+    const { walletLink, kyc, outbox, operator, clock } = setup();
+    await linkEoa(walletLink);
+    kyc.set(ALICE, { status: 'revoked' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
+
+    // Re-approved and linked again while the Revoke request waited in the
+    // queue: delivering it now would ask ops to undo the Whitelist request.
+    kyc.set(ALICE, { status: 'approved' });
+    await linkEoa(walletLink);
+    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
+      ok: true,
+      value: 'skipped'
+    });
+    expect(operator.sent).toEqual([]);
+  });
+
   it('has nobody to tell when the row is gone', async () => {
     const { walletLink, outbox, store } = setup();
     await linkEoa(walletLink);
