@@ -22,6 +22,8 @@ import { queryKeys } from '@/lib/query-keys';
  * is in the background; a return to the tab reads again once this has passed.
  */
 const PENDING_REFETCH_MS = 5 * 60_000;
+/** A chain that did not answer is asked again soon: until it does, the card can claim and offer nothing. */
+const UNCHECKED_REFETCH_MS = 30_000;
 
 /**
  * Whitelist membership of the given addresses, read live from each active
@@ -57,10 +59,9 @@ export function useAddressesMembership(addresses: Array<Address>): Record<Addres
     refetchOnWindowFocus: true,
     refetchInterval: (query) => {
       const membership = query.state.data;
-      const allWhitelisted =
-        !!membership &&
-        addresses.every((address) => summarizeMembership(membership[address] ?? []).status === 'whitelisted');
-      return allWhitelisted ? false : PENDING_REFETCH_MS;
+      const statuses = addresses.map((address) => summarizeMembership(membership?.[address] ?? []).status);
+      if (membership && statuses.every((status) => status === 'whitelisted')) return false;
+      return statuses.includes('unchecked') ? UNCHECKED_REFETCH_MS : PENDING_REFETCH_MS;
     },
     // A failed chain read is 'unknown' inside the summary, never a toast.
     meta: { skipErrorToast: true }

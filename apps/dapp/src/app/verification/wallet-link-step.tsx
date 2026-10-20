@@ -8,7 +8,7 @@ import { WalletIcon } from '@dynamic-labs/wallet-book';
 import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useConnection, useSwitchChain } from 'wagmi';
+import { useConnection } from 'wagmi';
 
 import { Badge } from '@zivoe/ui/core/badge';
 import { Button } from '@zivoe/ui/core/button';
@@ -29,7 +29,7 @@ import { type MembershipSummary } from '@/server/wallet-link/wallet-link-members
 import { toSignableTypedData } from '@/server/wallet-link/wallet-link-typed-data';
 import { type LinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
-import { DEFAULT_CHAIN, getChainId, isActiveChainId } from '@/lib/chains';
+import { isActiveChainId } from '@/lib/chains';
 import { EMAILS } from '@/lib/emails';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -104,7 +104,10 @@ export function WalletLinkStep({ userId }: { userId: string }) {
         // A refusal can mean the requests on screen are behind the server
         // (made in another tab), so they are read again. A success is not:
         // the action's own answer is already in the cache.
-        onRefused={() => void queryClient.invalidateQueries({ queryKey })}
+        onRefused={() => {
+          void queryClient.invalidateQueries({ queryKey });
+          focusCard();
+        }}
         onDisconnected={focusCard}
         onLinked={async (linked) => {
           await addLink(linked);
@@ -129,13 +132,20 @@ class LinkRefused extends Error {
   }
 }
 
-/** The wallet said no (EIP-1193 4001, viem's UserRejectedRequestError, or a wallet that says so in words). */
+/**
+ * The wallet said no: EIP-1193 4001, ethers' ACTION_REJECTED, viem's
+ * UserRejectedRequestError, or words to that effect — "User rejected the
+ * request" (MetaMask, Rabby), "denied by the user" (Ledger), "rejected"
+ * (Safe). Only the toast's tone and a Sentry event ride on it, so a wide
+ * match costs little and a miss reports an investor's "no" as a fault.
+ */
 const isWalletRejection = (error: unknown) => {
   const candidate = error as { code?: unknown; name?: unknown; message?: unknown } | null;
   return (
     candidate?.code === 4001 ||
+    candidate?.code === 'ACTION_REJECTED' ||
     candidate?.name === 'UserRejectedRequestError' ||
-    /user (rejected|denied|cancel)/i.test(typeof candidate?.message === 'string' ? candidate.message : '')
+    /reject|denied|declin|cancel/i.test(typeof candidate?.message === 'string' ? candidate.message : '')
   );
 };
 
@@ -160,7 +170,6 @@ function ConnectedWalletCard({
   const { primaryWallet, setShowAuthFlow, handleLogOut } = useDynamicContext();
   const { chainId } = useConnection();
   const assessment = useChainalysis();
-  const switchChain = useSwitchChain();
   const lowercase = address?.toLowerCase() as Address | undefined;
   const linkedRow = lowercase ? links.find((link) => link.address === lowercase) : undefined;
   // The chain's answer for the connected address, read live; `undefined` while it loads.
@@ -204,10 +213,11 @@ function ConnectedWalletCard({
       return completed.value;
     },
     onSuccess: (linked) => {
+      // Named, because the wallet may show another address by now — or none.
       toast({
         type: 'success',
         title: 'Whitelist requested',
-        description: 'We will whitelist this address within one business day.'
+        description: `We usually whitelist new addresses like ${shortAddress(linked.address)} within one business day.`
       });
       onLinked(linked);
     },
@@ -314,15 +324,22 @@ function ConnectedWalletCard({
     );
   }
 
-  // -- Some chain did not answer: nothing is known, so nothing is claimed
-  // and nothing is offered — not a signature, not "no longer whitelisted".
-  // The hook reads again in a few minutes and on the next return to the tab.
+  // -- Some chain did not answer: nothing is known about the whitelist, so
+  // nothing is claimed and nothing is offered — not a signature, not "no
+  // longer whitelisted". The request this account made is the record's fact,
+  // not the chain's, so it still shows. The hook reads again in half a minute
+  // and on the next return to the tab.
   if (summary.status === 'unchecked') {
     return (
       <Card heading="Connected wallet">
         {addressLine}
         <div className="flex flex-col gap-2">
-          <WhitelistBadge summary={summary} isRequested={false} />
+          <WhitelistBadge summary={summary} isRequested={!!linkedRow} />
+          {linkedRow ? (
+            <p className="text-small text-secondary" suppressHydrationWarning>
+              Whitelist requested {formatRelativeTime(linkedRow.signedAt, new Date())}.
+            </p>
+          ) : null}
           <Note tone="alert">
             Couldn&apos;t read the whitelist right now. We will try again shortly, or reload the page to try now.
           </Note>
@@ -363,8 +380,8 @@ function ConnectedWalletCard({
           <WhitelistBadge summary={summary} isRequested />
           {/* Server and client read the clock at different moments; the minute can tick between them. */}
           <p className="text-small text-secondary" suppressHydrationWarning>
-            Whitelist requested {formatRelativeTime(linkedRow.signedAt, new Date())}. We whitelist new addresses within
-            one business day and will email you when it&apos;s done.
+            Whitelist requested {formatRelativeTime(linkedRow.signedAt, new Date())}. We usually whitelist new addresses
+            within one business day and will email you when it&apos;s done.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -376,31 +393,13 @@ function ConnectedWalletCard({
   }
 
   // -- wagmi learns of the connection a beat after Dynamic reports the
-  // address. A chain not known yet is not an unsupported one: the placeholder
-  // holds, or "Switch network" would flash on every load.
-  if (chainId === undefined) return placeholder;
-
-  // -- On a chain this deployment does not serve: the signature names a chain, so it must be one of ours.
-  if (!isActiveChainId(chainId)) {
-    return (
-      <Card heading="Connected wallet">
-        {addressLine}
-        <Note tone="neutral">Switch your wallet to a supported network to continue.</Note>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            variant="primary"
-            onPress={() => switchChain.mutate({ chainId: getChainId(DEFAULT_CHAIN) })}
-            isPending={switchChain.isPending}
-            pendingContent="Switching…"
-            className="w-full sm:w-fit"
-          >
-            Switch network
-          </Button>
-          {disconnectButton}
-        </div>
-      </Card>
-    );
-  }
+  // address, and a chain this deployment does not serve is Dynamic's to fix:
+  // its network-validation overlay sits over the page until the wallet
+  // switches (or disconnects), as everywhere else in the dapp. Either way
+  // the signature names a chain and it must be one of ours, so the
+  // placeholder holds: no "switch network" card of this step's own to be
+  // hidden behind the overlay, and nothing to flash on every load.
+  if (chainId === undefined || !isActiveChainId(chainId)) return placeholder;
 
   // -- Chainalysis, before any signature: the placeholder stays until it
   // answers. The first answer only: a background refetch after the hour's
@@ -435,7 +434,9 @@ function ConnectedWalletCard({
           <Button
             variant="primary"
             onPress={() => link.mutate({ address, chainId })}
-            isPending={link.isPending}
+            // Pending for the address that asked: switched to another account
+            // mid-signature, the wallet shows that one its own button.
+            isPending={link.isPending && link.variables?.address === address}
             pendingContent="Waiting for your wallet…"
             className="w-full sm:w-fit"
           >

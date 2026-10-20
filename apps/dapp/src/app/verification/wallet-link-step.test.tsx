@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type MembershipSummary } from '@/server/wallet-link/wallet-link-membership';
 import { type LinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
+import { shortAddress } from './wallet-link-copy';
 import { WalletLinkStep } from './wallet-link-step';
 
 const ADDRESS = '0x4b7E5A1f9c2D6e8A0b3C4d5E6f7A8b9C0d1E2f3A';
@@ -23,7 +24,6 @@ type Mocks = {
   signTypedData: ReturnType<typeof vi.fn>;
   issue: ReturnType<typeof vi.fn>;
   complete: ReturnType<typeof vi.fn>;
-  switchChain: ReturnType<typeof vi.fn>;
   account: { address: string | undefined; isPending: boolean; isDisconnected: boolean };
   chainId: number | undefined;
   chainalysis: { data: unknown; isPending: boolean; isFetching: boolean; isRiskyAddress: boolean };
@@ -39,7 +39,6 @@ const mocks = vi.hoisted(
     signTypedData: vi.fn(async () => '0xsig'),
     issue: vi.fn(),
     complete: vi.fn(),
-    switchChain: vi.fn(),
     account: { address: undefined, isPending: false, isDisconnected: true },
     chainId: 11155111,
     chainalysis: { data: undefined, isPending: false, isFetching: false, isRiskyAddress: false },
@@ -99,10 +98,7 @@ vi.mock('@dynamic-labs/sdk-react-core', () => ({
     handleLogOut: mocks.handleLogOut
   })
 }));
-vi.mock('wagmi', () => ({
-  useConnection: () => ({ chainId: mocks.chainId }),
-  useSwitchChain: () => ({ mutate: mocks.switchChain, isPending: false })
-}));
+vi.mock('wagmi', () => ({ useConnection: () => ({ chainId: mocks.chainId }) }));
 vi.mock('@/hooks/useAccount', () => ({ useAccount: () => mocks.account }));
 vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => mocks.chainalysis }));
 vi.mock('@/server/actions/wallet-link', () => ({
@@ -238,19 +234,16 @@ describe('the connected wallet', () => {
     renderStep();
 
     expect(screen.getByText('Loading wallet…')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Switch network' })).toBeNull();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
-  it('asks for a supported network before a signature when the wallet sits elsewhere', () => {
+  it('holds the placeholder on a network this deployment does not serve: the switch is Dynamic’s overlay, not a card', () => {
     connect();
     mocks.chainId = 1;
 
     renderStep();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Switch network' }));
-
-    expect(mocks.switchChain).toHaveBeenCalledWith({ chainId: 11155111 });
+    expect(screen.getByText('Loading wallet…')).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
@@ -283,7 +276,7 @@ describe('the connected wallet', () => {
 
     expect(screen.getByRole('img', { name: 'Whitelist pending, Whitelisted on 1 of 2 chains' })).toBeTruthy();
     expect(
-      screen.getByText(/Whitelist requested just now\. We whitelist new addresses within one business day/)
+      screen.getByText(/Whitelist requested just now\. We usually whitelist new addresses within one business day/)
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
@@ -300,21 +293,25 @@ describe('the connected wallet', () => {
   });
 
   it.each([
-    ['never requested', []],
-    ['requested', [linked()]],
-    ['whitelisted once', [linked({ wasWhitelisted: true })]]
-  ] as const)('claims nothing and offers nothing while a chain did not answer (%s)', (_label, links) => {
-    connect(ADDRESS, UNCHECKED);
+    ['never requested', [], false],
+    ['requested', [linked()], true],
+    ['whitelisted once', [linked({ wasWhitelisted: true })], true]
+  ] as const)(
+    'claims nothing about the chain and offers nothing while it did not answer (%s), keeping only the request on record',
+    (_label, links, isRequested) => {
+      connect(ADDRESS, UNCHECKED);
 
-    renderStep([...links]);
+      renderStep([...links]);
 
-    expect(screen.getByRole('img', { name: "Not checked, Couldn't check one chain" })).toBeTruthy();
-    expect(screen.getByText(/Couldn't read the whitelist right now/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
-    expect(screen.queryByText(/was whitelisted and no longer is/)).toBeNull();
-    expect(screen.queryByText(/within one business day/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
-  });
+      expect(screen.getByRole('img', { name: "Not checked, Couldn't check one chain" })).toBeTruthy();
+      expect(screen.getByText(/Couldn't read the whitelist right now/)).toBeTruthy();
+      expect(screen.queryByText(/Whitelist requested just now/) !== null).toBe(isRequested);
+      expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+      expect(screen.queryByText(/was whitelisted and/)).toBeNull();
+      expect(screen.queryByText(/within one business day/)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
+    }
+  );
 
   it('looks at the connected wallet only: a request for another address changes nothing', () => {
     connect();
@@ -352,8 +349,13 @@ describe('the connected wallet', () => {
     expect(await screen.findByText('Whitelist pending')).toBeTruthy();
     expect(screen.getByText(/within one business day/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+    // The toast names the address: the wallet may show another one by the time it lands.
     expect(mocks.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'success', title: 'Whitelist requested' })
+      expect.objectContaining({
+        type: 'success',
+        title: 'Whitelist requested',
+        description: expect.stringContaining(shortAddress(LOWER))
+      })
     );
     // The requests are the cache's now: the action's answer was written into it, nothing was re-read.
     expect(mocks.list).not.toHaveBeenCalled();
@@ -361,10 +363,14 @@ describe('the connected wallet', () => {
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Connected wallet' }));
   });
 
-  it('returns to the signature after the wallet declines, and says so once', async () => {
+  it.each([
+    ['MetaMask', Object.assign(new Error('User rejected the request.'), { code: 4001 })],
+    ['Ledger', new Error('Ledger device: Condition of use not satisfied (denied by the user?) (0x6985)')],
+    ['Safe', new Error('Transaction was rejected')]
+  ])('returns to the signature after the wallet declines (%s), and says so once', async (_wallet, refusal) => {
     connect();
     mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });
-    mocks.signTypedData.mockRejectedValueOnce(Object.assign(new Error('User rejected the request.'), { code: 4001 }));
+    mocks.signTypedData.mockRejectedValueOnce(refusal);
 
     renderStep();
     fireEvent.click(screen.getByRole('button', { name: SIGN }));
@@ -374,7 +380,39 @@ describe('the connected wallet', () => {
         expect.objectContaining({ type: 'warning', title: 'Signature declined' })
       )
     );
+    expect(mocks.toast).toHaveBeenCalledTimes(1);
     expect(mocks.complete).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
+  });
+
+  it('keeps a signature in flight with the address that asked for it when the wallet switches accounts', async () => {
+    connect();
+    mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });
+    let finishSigning: (signature: string) => void = () => undefined;
+    mocks.signTypedData.mockImplementationOnce(() => new Promise<string>((resolve) => (finishSigning = resolve)));
+    mocks.complete.mockResolvedValue({ ok: true, value: linked() });
+
+    const { rerenderStep } = renderStep();
+    fireEvent.click(screen.getByRole('button', { name: SIGN }));
+    await waitFor(() => expect(mocks.signTypedData).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: 'Waiting for your wallet…' })).toBeTruthy();
+
+    // The wallet now shows another account: that one gets its own, live, sign button.
+    connect(OTHER);
+    rerenderStep();
+    expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Waiting for your wallet…' })).toBeNull();
+
+    // The first address's signature lands: the toast names it, and the other address's card is untouched.
+    finishSigning('0xsig');
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Whitelist requested',
+          description: expect.stringContaining(shortAddress(LOWER))
+        })
+      )
+    );
     expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
   });
 
