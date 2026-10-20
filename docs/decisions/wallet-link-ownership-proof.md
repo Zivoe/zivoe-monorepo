@@ -27,6 +27,9 @@ Ownership proof.
   address is another account's, or any approved investor could probe for Zivoe's customer
   addresses. A Revoke request names the other accounts that connected the address, so ops decides
   with all of them in view.
+- **The message names the account by id, never by email.** A Safe stores every message it signs in
+  the Safe Transaction Service, readable by anyone who knows the Safe's address; an email there
+  would tie the address to a person in public.
 - **Chainalysis before any signature and again on write**: the client never shows the sign button
   for a High or Severe address; the server screens at issue and at completion, and a flagged
   address leaves no row.

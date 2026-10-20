@@ -119,7 +119,7 @@ describe('the challenge', () => {
       primaryType: 'WalletLink',
       message: {
         statement: WALLET_LINK_STATEMENT,
-        account: 'alice@example.com',
+        account: ALICE,
         wallet: SIGNER,
         issuedAt: Math.floor(T0.getTime() / 1000),
         expiresAt: Math.floor(T0.getTime() / 1000) + 24 * 60 * 60

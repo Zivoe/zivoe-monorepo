@@ -105,6 +105,11 @@ export const walletLink = pgTable(
     uniqueIndex('wallet_link_pending_user_address_uidx')
       .on(table.userId, table.address)
       .where(sql`${table.status} = 'pending'`),
-    check('wallet_link_address_lowercase_check', sql`${table.address} = lower(${table.address})`)
+    check('wallet_link_address_lowercase_check', sql`${table.address} = lower(${table.address})`),
+    // Only a challenge is unsigned: a linked or removed row is an Ownership proof, signature and time included.
+    check(
+      'wallet_link_linked_has_signature',
+      sql`${table.status} = 'pending' OR (${table.signature} IS NOT NULL AND ${table.signedAt} IS NOT NULL)`
+    )
   ]
 );

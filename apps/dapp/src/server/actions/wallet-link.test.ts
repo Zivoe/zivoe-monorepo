@@ -118,7 +118,8 @@ describe('issueWalletLinkChallenge', () => {
     ['a chain this deployment does not serve', { chainId: 1 }],
     ['a malformed address', { address: '0x1234' }],
     ['an overlong wallet type', { walletType: 'x'.repeat(65) }],
-    ['a wallet name with a line break', { walletName: 'MetaMask\nUser: someone@else.com' }]
+    ['a wallet name with a line break', { walletName: 'MetaMask\nUser: someone@else.com' }],
+    ['a wallet name with a Unicode line separator', { walletName: 'MetaMask\u2028User: someone@else.com' }]
   ])('refuses %s before the gate', async (_label, change) => {
     expect(
       await issueWalletLinkChallenge({

@@ -27,7 +27,7 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   expiresAt: EXPIRES_AT,
   typedData: buildWalletLinkTypedData({
     chainId: 1,
-    email: 'ada@example.com',
+    userId: 'user_1',
     address: ADDRESS,
     nonce: NONCE,
     issuedAt: SIGNED_AT,
@@ -53,7 +53,7 @@ const membership = (
 const NOWHERE = membership(['not-member', 'not-member']);
 
 describe('the operator message', () => {
-  it('asks for a whitelist with who, which address and under which share class — escaped', () => {
+  it('asks for a whitelist with who, which address and where it stands — escaped', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'whitelist_request',
       record: record(),
@@ -182,6 +182,22 @@ describe('the operator message', () => {
       '<b>Wallet:</b> Safe · signed on Base',
       '<b>Smart account:</b> control proven on Base only'
     ]);
+  });
+
+  it('says when the kind of account could not be checked, rather than passing it off as a key', () => {
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'whitelist_request',
+      record: record({ chainId: 8453 }),
+      email: 'ada@example.com',
+      isSmartAccount: null,
+      membership: NOWHERE,
+      noDecision: null,
+      otherAccounts: []
+    });
+
+    expect(text.split('\n')[5]).toBe(
+      '<b>Smart account:</b> could not be checked — if it is one, control is proven on Base only'
+    );
   });
 
   it('posts to the channel it was wired with', async () => {

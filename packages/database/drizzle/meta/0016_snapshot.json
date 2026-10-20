@@ -1307,6 +1307,10 @@
         "wallet_link_address_lowercase_check": {
           "name": "wallet_link_address_lowercase_check",
           "value": "\"wallet_link\".\"address\" = lower(\"wallet_link\".\"address\")"
+        },
+        "wallet_link_linked_has_signature": {
+          "name": "wallet_link_linked_has_signature",
+          "value": "\"wallet_link\".\"status\" = 'pending' OR (\"wallet_link\".\"signature\" IS NOT NULL AND \"wallet_link\".\"signed_at\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

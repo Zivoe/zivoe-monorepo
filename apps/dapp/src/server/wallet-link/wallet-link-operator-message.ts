@@ -65,7 +65,7 @@ export function formatWalletLinkOperatorMessage({
   kind: WalletLinkOperatorKind;
   record: WalletLinkRecord;
   email: string | null;
-  isSmartAccount: boolean;
+  isSmartAccount: boolean | null;
   membership: AddressMembership | null;
   noDecision: 'declined' | 'revoked' | null;
   otherAccounts: Array<{ email: string; isVerified: boolean }>;
@@ -78,10 +78,16 @@ export function formatWalletLinkOperatorMessage({
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
-    // A contract is deployed per chain: the same address elsewhere may be nobody's, or someone else's.
+    // A contract is deployed per chain: the same address elsewhere may be
+    // nobody's, or someone else's. A probe the chain did not answer must not
+    // read as "a key's account", so it says so.
     ...(isSmartAccount
       ? [`<b>Smart account:</b> control proven on ${escapeHtml(chainLabel(record.chainId))} only`]
-      : []),
+      : isSmartAccount === null
+        ? [
+            `<b>Smart account:</b> could not be checked — if it is one, control is proven on ${escapeHtml(chainLabel(record.chainId))} only`
+          ]
+        : []),
     `<b>Whitelist now:</b> ${membershipLine(membership)}`
   ];
 

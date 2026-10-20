@@ -27,7 +27,12 @@ export function createViemChainPort(): ChainPort {
     if (!client) {
       client = createPublicClient({
         chain: getViemChain(chain),
-        transport: fallback(getChainRpcUrls(chain).map((url) => http(url, { batch: true })))
+        // One retry, not viem's three: a server action and the 60-second
+        // receivers wait on these reads, and a hung endpoint must fail inside
+        // their budget rather than forty seconds later.
+        transport: fallback(
+          getChainRpcUrls(chain).map((url) => http(url, { batch: true, timeout: 10_000, retryCount: 1 }))
+        )
       });
       clients.set(chain, client);
     }
@@ -39,10 +44,17 @@ export function createViemChainPort(): ChainPort {
       // A chain this deployment does not serve has no client to ask — and no vault to whitelist for.
       const chain = chainOfChainId(chainId);
       if (!chain) return false;
-      // viem fails closed: an RPC it cannot reach makes a smart wallet's
-      // signature read as invalid (an EOA still recovers offline), so the
-      // refusal copy also names the network as a reason to try again.
-      return clientFor(chain).verifyTypedData({ address, signature, ...toSignableTypedData(typedData) });
+      // `mode: 'eoa'`: ECDSA recovery first, offline, so a key's signature
+      // never waits on — or trusts — the RPC; only one recovery does not
+      // explain goes to the chain (EIP-1271, ERC-6492). There viem fails
+      // closed: an RPC it cannot reach makes a smart wallet's signature read
+      // as invalid, so the refusal copy also names the network as a reason to try again.
+      return clientFor(chain).verifyTypedData({
+        address,
+        signature,
+        mode: 'eoa',
+        ...toSignableTypedData(typedData)
+      });
     },
 
     async isSmartAccount({ chainId, address, signature }) {
@@ -53,12 +65,13 @@ export function createViemChainPort(): ChainPort {
       if (!chain) return false;
       // Best effort: the answer is one label on an operator line. A chain that
       // cannot be read must not fail the delivery that carries it, or an RPC
-      // outage would spend the Outbox's retries and lose the request.
+      // outage would spend the Outbox's retries and lose the request — but it
+      // is not "a key's account" either, so the line says it was not checked.
       try {
         const code = await clientFor(chain).getCode({ address });
         return !!code && code !== '0x' && !code.toLowerCase().startsWith(EIP_7702_DELEGATION_PREFIX);
       } catch {
-        return false;
+        return null;
       }
     },
 

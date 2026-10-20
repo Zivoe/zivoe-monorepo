@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { randomBytes } from 'node:crypto';
 import { type Address, type Hex } from 'viem';
 
@@ -119,11 +121,12 @@ export type ChainPort = {
   }): Promise<boolean>;
   readMembership(input: { addresses: ReadonlyArray<Address> }): Promise<Record<Address, AddressMembership>>;
   /**
-   * Whether the address is a smart-contract account on that chain. A contract
-   * exists per chain, so its Ownership proof holds on the signing chain only;
-   * a key controls its address on every chain.
+   * Whether the address is a smart-contract account on that chain, or null
+   * when the chain could not be asked. A contract exists per chain, so its
+   * Ownership proof holds on the signing chain only; a key controls its
+   * address on every chain.
    */
-  isSmartAccount(input: { chainId: number; address: Address; signature: Hex }): Promise<boolean>;
+  isSmartAccount(input: { chainId: number; address: Address; signature: Hex }): Promise<boolean | null>;
 };
 
 /**
@@ -151,8 +154,8 @@ export type WalletLinkOperatorMessenger = {
     kind: WalletLinkOperatorKind;
     record: WalletLinkRecord;
     email: string | null;
-    /** Read from the chain at delivery; ops is told the proof covers the signing chain only. */
-    isSmartAccount: boolean;
+    /** Read from the chain at delivery; ops is told the proof covers the signing chain only. Null when it could not be read. */
+    isSmartAccount: boolean | null;
     /**
      * Where the address stands on every target at delivery, or null when the
      * chains could not be asked at all: a Revoke request for an address that
@@ -305,11 +308,15 @@ export function createWalletLink({
   const sendOperatorMessage = async (kind: WalletLinkOperatorKind, record: WalletLinkRecord) => {
     const [account, isSmartAccount, membership, decision, connected] = await Promise.all([
       store.getAccount({ userId: record.userId }),
-      // A linked or removed row always carries its signature; the fallback only types the field.
+      // A linked or removed row always carries its signature (the database
+      // checks it); the fallback only types the field. Best effort: a line of
+      // context must not fail the request that carries it.
       record.signature
-        ? chain.isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
+        ? chain
+            .isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
+            .catch(() => null)
         : false,
-      // Best effort, like the probe above: a line of context must not fail the request that carries it.
+      // Best effort, like the probe above.
       chain
         .readMembership({ addresses: [record.address] })
         .then((read) => read[record.address] ?? null)
@@ -380,16 +387,12 @@ export function createWalletLink({
         return ok({ linkId: pending.id, typedData: pending.typedData });
       }
 
-      const account = await store.getAccount({ userId });
-      // Unreachable past the Decision gate (an approved user has a profile); typed for the compiler.
-      if (!account) return err({ code: 'not_approved' });
-
       const issuedAt = now;
       const expiresAt = new Date(now.getTime() + CHALLENGE_TTL_MS);
       const nonce: Hex = `0x${randomBytes(32).toString('hex')}`;
       const typedData = buildWalletLinkTypedData({
         chainId,
-        email: account.email,
+        userId,
         address,
         nonce,
         issuedAt,

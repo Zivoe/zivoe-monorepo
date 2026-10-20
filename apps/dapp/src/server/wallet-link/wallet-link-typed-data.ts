@@ -13,7 +13,10 @@ export const WALLET_LINK_STATEMENT =
 export const WALLET_LINK_TYPES = {
   WalletLink: [
     { name: 'statement', type: 'string' },
-    /** The user's email — what the signer recognises in the wallet prompt. */
+    /**
+     * The account's id — never the email: a Safe keeps every message it signs
+     * in the Safe Transaction Service, which anyone can read by Safe address.
+     */
     { name: 'account', type: 'string' },
     { name: 'wallet', type: 'address' },
     { name: 'nonce', type: 'bytes32' },
@@ -41,14 +44,14 @@ export type WalletLinkTypedData = {
 
 export function buildWalletLinkTypedData({
   chainId,
-  email,
+  userId,
   address,
   nonce,
   issuedAt,
   expiresAt
 }: {
   chainId: number;
-  email: string;
+  userId: string;
   address: Address;
   nonce: Hex;
   issuedAt: Date;
@@ -60,7 +63,7 @@ export function buildWalletLinkTypedData({
     primaryType: 'WalletLink',
     message: {
       statement: WALLET_LINK_STATEMENT,
-      account: email,
+      account: userId,
       wallet: address,
       nonce,
       issuedAt: Math.floor(issuedAt.getTime() / 1000),

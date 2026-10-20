@@ -18,7 +18,8 @@ CREATE TABLE "wallet_link" (
 	"removed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "wallet_link_address_lowercase_check" CHECK ("wallet_link"."address" = lower("wallet_link"."address"))
+	CONSTRAINT "wallet_link_address_lowercase_check" CHECK ("wallet_link"."address" = lower("wallet_link"."address")),
+	CONSTRAINT "wallet_link_linked_has_signature" CHECK ("wallet_link"."status" = 'pending' OR ("wallet_link"."signature" IS NOT NULL AND "wallet_link"."signed_at" IS NOT NULL))
 );
 --> statement-breakpoint
 ALTER TABLE "wallet_link" ADD CONSTRAINT "wallet_link_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

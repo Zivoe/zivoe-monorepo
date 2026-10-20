@@ -90,7 +90,10 @@ export async function readAddressesMembership({
           shareTokenAddress: target.shareTokenAddress,
           investors: addresses
         });
-        return facts.map(({ isFrozen, isMember }) => ({ verdict: isMember ? 'member' : 'not-member', frozen: isFrozen }));
+        return facts.map(({ isFrozen, isMember }) => ({
+          verdict: isMember ? 'member' : 'not-member',
+          frozen: isFrozen
+        }));
       } catch {
         return addresses.map(() => unknown);
       }
