@@ -35,13 +35,20 @@ export type WalletLinkActionError = {
 
 export type WalletLinkActionResult<T> = { ok: true; value: T } | { ok: false; error: WalletLinkActionError };
 
+const displayString = z
+  .string()
+  .max(64)
+  .regex(/^[^\p{Cc}]*$/u);
+
 const issueSchema = z.object({
   address: addressSchema,
   // The domain names the chain; a chain this deployment does not serve has nothing to link for.
   chainId: z.number().int().refine(isActiveChainId),
-  walletType: z.string().max(64).nullable(),
-  // Display only: stored as given and shown to ops, escaped.
-  walletName: z.string().max(64).nullable()
+  // Display only: stored as given and shown to ops, escaped. No control
+  // characters: a line break would let the wallet's name pose as the next
+  // field of the operator message.
+  walletType: displayString.nullable(),
+  walletName: displayString.nullable()
 });
 
 // ERC-6492 wraps a counterfactual wallet's signature with its deploy data (a few KB); past this it is not a signature.
