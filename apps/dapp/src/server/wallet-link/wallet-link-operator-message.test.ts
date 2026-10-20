@@ -125,6 +125,27 @@ describe('the operator message', () => {
     );
   });
 
+  it('names the first ten other accounts and counts the rest, so a shared address stays under Telegram’s limit', () => {
+    const otherAccounts = Array.from({ length: 12 }, (_, index) => ({
+      email: `user-${index}@example.com`,
+      isVerified: false
+    }));
+
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'revoke_request',
+      record: record({ status: 'removed', removedAt: new Date() }),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      noDecision: 'declined',
+      otherAccounts,
+      shareClasses: SHARE_CLASSES
+    });
+
+    const line = text.split('\n').find((candidate) => candidate.startsWith('<b>Also connected by:</b>'))!;
+    expect(line).toContain('user-9@example.com (not verified), and 2 more');
+    expect(line).not.toContain('user-10@example.com');
+  });
+
   it('tells ops when the address is a smart account, whose proof covers the signing chain only', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'whitelist_request',

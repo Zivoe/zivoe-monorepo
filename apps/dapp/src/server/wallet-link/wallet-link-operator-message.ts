@@ -15,6 +15,13 @@ const TITLES: Record<WalletLinkOperatorKind, string> = {
   revoke_request: '🔴 Revoke request'
 };
 
+/**
+ * How many other accounts a Revoke request names before it counts the rest.
+ * Connections are self-reported and unbounded; Telegram refuses a message
+ * past 4096 characters for good, and a refused Revoke request is one lost.
+ */
+const OTHER_ACCOUNTS_SHOWN = 10;
+
 /** The chain the message was signed on, by display label; a chain the app does not know shows its id. */
 function chainLabel(chainId: number): string {
   const chain = chainOfChainId(chainId);
@@ -67,9 +74,11 @@ export function formatWalletLinkOperatorMessage({
   if (kind === 'revoke_request') {
     // The address is not this account's alone: a revoke takes it from everyone
     // who uses it, and a verified one among them is a reason not to.
-    const others = otherAccounts.map(
-      ({ email: other, isVerified }) => `${escapeHtml(other)} (${isVerified ? 'verified' : 'not verified'})`
-    );
+    const others = otherAccounts
+      .slice(0, OTHER_ACCOUNTS_SHOWN)
+      .map(({ email: other, isVerified }) => `${escapeHtml(other)} (${isVerified ? 'verified' : 'not verified'})`);
+    const more = otherAccounts.length - others.length;
+    if (more > 0) others.push(`and ${more} more`);
     lines.push(`<b>Also connected by:</b> ${others.length > 0 ? others.join(', ') : 'no other account'}`);
     lines.push(`<b>Linked since:</b> ${record.signedAt ? record.signedAt.toISOString().slice(0, 10) : 'unknown'}`);
   }
