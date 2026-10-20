@@ -7,7 +7,7 @@ import { walletLink } from '@/server/wallet-link';
 import { type WalletLinkReconcileReport } from '@/server/wallet-link/wallet-link';
 
 import { WALLET_LINK_RECONCILE_CRON, WALLET_LINK_RECONCILE_SLUG, withQstashSignature } from '@/lib/qstash';
-import { handlePromise, truncateAddress, withErrorHandler } from '@/lib/utils';
+import { handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
 
@@ -25,9 +25,9 @@ const DIGEST_HOUR_UTC = 9;
 
 type StalledRow = WalletLinkReconcileReport['stuck'][number];
 
-/** One line per stalled row — the operator needs the address, how far it got, how long it has waited, and the link to find it by. */
+/** One line per stalled row — the operator needs the address to copy, how far it got and how long it has waited. */
 const line = (row: StalledRow) =>
-  `${truncateAddress(row.address)} · ${row.memberOn} of ${row.total} chains · day ${row.daysWaiting}${row.isLastReminder ? ' (last reminder)' : ''} · link ${row.linkId}`;
+  `<code>${row.address}</code> · ${row.memberOn} of ${row.total} chains · day ${row.daysWaiting}${row.isLastReminder ? ' (last reminder)' : ''}`;
 
 const handler = async (_req: NextRequest): ApiResponse<WalletLinkReconcileReport> => {
   const startTime = Date.now();

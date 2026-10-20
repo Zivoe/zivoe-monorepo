@@ -45,8 +45,8 @@ function membershipLine(membership: AddressMembership | null): string {
 }
 
 /**
- * Everything ops needs to act in Centrifuge and nothing more: who (email
- * and id), which address (short for the eye, full to copy) and where it
+ * Everything ops needs to act in Centrifuge and nothing more: who (by
+ * email), which address (short for the eye, full to copy) and where it
  * stands on the whitelist now. Neither the chains nor the share class are
  * listed: ops knows the live deployments, and the request is for all of
  * them. Every interpolated value is escaped — the wallet's name and type and
@@ -74,7 +74,7 @@ export function formatWalletLinkOperatorMessage({
     '',
     // Only a no Decision ends a link; one that moved on before delivery is not named.
     ...(kind === 'revoke_request' ? [`<b>Reason:</b> verification ${noDecision ?? 'no longer approved'}`] : []),
-    `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'} (${escapeHtml(record.userId)})`,
+    `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> ${escapeHtml(truncateAddress(record.address))}`,
     `<code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,

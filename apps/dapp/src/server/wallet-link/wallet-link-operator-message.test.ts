@@ -64,7 +64,7 @@ describe('the operator message', () => {
     expect(text.split('\n')).toEqual([
       '<b>🟢 Whitelist request</b>',
       '',
-      '<b>User:</b> ada&lt;script&gt;@example.com (user-1)',
+      '<b>User:</b> ada&lt;script&gt;@example.com',
       '<b>Address:</b> 0x8815...e9e6',
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
@@ -93,7 +93,7 @@ describe('the operator message', () => {
       '<b>🔴 Revoke request</b>',
       '',
       '<b>Reason:</b> verification no longer approved',
-      '<b>User:</b> unknown (profile gone) (user-1)',
+      '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> 0x8815...e9e6',
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
