@@ -2,6 +2,7 @@ import { type Address } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type WalletLinkRecord } from './wallet-link';
+import { type AddressMembership, type MembershipVerdict } from './wallet-link-membership';
 import { createTelegramWalletLinkMessenger, formatWalletLinkOperatorMessage } from './wallet-link-operator-message';
 import { buildWalletLinkTypedData } from './wallet-link-typed-data';
 
@@ -9,7 +10,8 @@ import { buildWalletLinkTypedData } from './wallet-link-typed-data';
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 // Two mainnet targets of one share class, so the Share class line appears
 // once and names a mainnet pool — the shape the snapshots pin.
-vi.mock('./wallet-link-membership', () => ({
+vi.mock('./wallet-link-membership', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   listMembershipTargets: () => [
     { chain: 'ethereum', chainId: 1, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS },
     { chain: 'base', chainId: 8453, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS }
@@ -51,6 +53,14 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
 
 const SHARE_CLASSES = [{ key: 'zsmb', poolId: '42', scId: '0xabc' }];
 
+const TARGETS = [
+  { chain: 'ethereum', chainId: 1, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS },
+  { chain: 'base', chainId: 8453, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS }
+] as const;
+const membership = (verdicts: [MembershipVerdict, MembershipVerdict]): AddressMembership =>
+  TARGETS.map((target, index) => ({ target, verdict: verdicts[index]! }));
+const NOWHERE = membership(['not-member', 'not-member']);
+
 describe('the operator message', () => {
   it('asks for a whitelist with who, which address and under which share class — escaped', () => {
     const text = formatWalletLinkOperatorMessage({
@@ -58,6 +68,7 @@ describe('the operator message', () => {
       record: record(),
       email: 'ada<script>@example.com',
       isSmartAccount: false,
+      membership: NOWHERE,
       noDecision: null,
       otherAccounts: [],
       shareClasses: SHARE_CLASSES
@@ -70,6 +81,7 @@ describe('the operator message', () => {
       '<b>Address:</b> 0x8815...e9e6',
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
+      '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Share class:</b> zsmb (pool 42, scId 0xabc)'
     ]);
   });
@@ -86,6 +98,7 @@ describe('the operator message', () => {
       }),
       email: null,
       isSmartAccount: false,
+      membership: NOWHERE,
       noDecision: null,
       otherAccounts: [],
       shareClasses: SHARE_CLASSES
@@ -99,6 +112,7 @@ describe('the operator message', () => {
       '<b>Address:</b> 0x8815...e9e6',
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
+      '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Share class:</b> zsmb (pool 42, scId 0xabc)',
       '<b>Also connected by:</b> no other account',
       '<b>Linked since:</b> 2026-10-01'
@@ -111,6 +125,7 @@ describe('the operator message', () => {
       record: record({ status: 'removed', removedAt: new Date() }),
       email: 'ada@example.com',
       isSmartAccount: false,
+      membership: NOWHERE,
       noDecision: 'revoked',
       otherAccounts: [
         { email: 'bob@example.com', isVerified: true },
@@ -136,6 +151,7 @@ describe('the operator message', () => {
       record: record({ status: 'removed', removedAt: new Date() }),
       email: 'ada@example.com',
       isSmartAccount: false,
+      membership: NOWHERE,
       noDecision: 'declined',
       otherAccounts,
       shareClasses: SHARE_CLASSES
@@ -146,12 +162,34 @@ describe('the operator message', () => {
     expect(line).not.toContain('user-10@example.com');
   });
 
+  it.each([
+    ['a member on 1 of 2 chains', membership(['member', 'not-member'])],
+    ['a member on 1 of 2 chains, frozen on Base', membership(['member', 'frozen'])],
+    ['a member on 2 of 2 chains', membership(['member', 'member'])],
+    ['a member on 1 of 2 chains, could not be read on Base', membership(['member', 'unknown'])],
+    ['could not be read', null]
+  ] as const)('says where the address stands now: %s', (expected, current) => {
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'revoke_request',
+      record: record({ status: 'removed', removedAt: new Date() }),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      membership: current,
+      noDecision: 'revoked',
+      otherAccounts: [],
+      shareClasses: SHARE_CLASSES
+    });
+
+    expect(text).toContain(`<b>Whitelist now:</b> ${expected}`);
+  });
+
   it('tells ops when the address is a smart account, whose proof covers the signing chain only', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'whitelist_request',
       record: record({ walletType: 'safe', walletName: 'Safe', chainId: 8453 }),
       email: 'ada@example.com',
       isSmartAccount: true,
+      membership: NOWHERE,
       noDecision: null,
       otherAccounts: [],
       shareClasses: SHARE_CLASSES
@@ -171,6 +209,7 @@ describe('the operator message', () => {
       record: record(),
       email: 'ada@example.com',
       isSmartAccount: false,
+      membership: NOWHERE,
       noDecision: null,
       otherAccounts: []
     });

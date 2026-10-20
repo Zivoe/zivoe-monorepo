@@ -8,7 +8,7 @@ import { escapeHtml, truncateAddress } from '@/lib/utils';
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { type WalletLinkOperatorKind, type WalletLinkOperatorMessenger, type WalletLinkRecord } from './wallet-link';
-import { listMembershipTargets } from './wallet-link-membership';
+import { type AddressMembership, listMembershipTargets, summarizeMembership } from './wallet-link-membership';
 
 const TITLES: Record<WalletLinkOperatorKind, string> = {
   whitelist_request: '🟢 Whitelist request',
@@ -29,17 +29,37 @@ function chainLabel(chainId: number): string {
 }
 
 /**
+ * Where the address stands right now, in one line: how many of the live
+ * targets it is a member of, and the chains it is frozen or unreadable on.
+ * The count is what tells a Revoke request that needs no action (a member
+ * nowhere) from one that does.
+ */
+function membershipLine(membership: AddressMembership | null): string {
+  if (!membership) return 'could not be read';
+  const { memberOn, total, unknown } = summarizeMembership(membership);
+  const chainsWith = (verdict: 'frozen' | 'unknown') =>
+    membership.filter((entry) => entry.verdict === verdict).map(({ target }) => CHAIN_DISPLAY[target.chain].label);
+  const parts = [`a member on ${memberOn === 0 ? 'none' : memberOn} of ${total} chains`];
+  const frozen = chainsWith('frozen');
+  if (frozen.length > 0) parts.push(`frozen on ${frozen.join(', ')}`);
+  if (unknown > 0) parts.push(`could not be read on ${chainsWith('unknown').join(', ')}`);
+  return parts.join(', ');
+}
+
+/**
  * Everything ops needs to act in Centrifuge and nothing more: who (email
- * and id), which address (short for the eye, full to copy) and under which
- * pool and share class. The chains are not listed: ops knows the live
- * deployments, and the request is for all of them. Every interpolated value
- * is escaped — the wallet's name and type and the email come from outside.
+ * and id), which address (short for the eye, full to copy), where it stands
+ * on the whitelist now, and under which pool and share class. The chains
+ * are not listed with the share class: ops knows the live deployments, and
+ * the request is for all of them. Every interpolated value is escaped — the
+ * wallet's name and type and the email come from outside.
  */
 export function formatWalletLinkOperatorMessage({
   kind,
   record,
   email,
   isSmartAccount,
+  membership,
   noDecision,
   otherAccounts,
   shareClasses
@@ -48,6 +68,7 @@ export function formatWalletLinkOperatorMessage({
   record: WalletLinkRecord;
   email: string | null;
   isSmartAccount: boolean;
+  membership: AddressMembership | null;
   noDecision: 'declined' | 'revoked' | null;
   otherAccounts: Array<{ email: string; isVerified: boolean }>;
   shareClasses: Array<{ key: string; poolId: string; scId: string }>;
@@ -65,6 +86,7 @@ export function formatWalletLinkOperatorMessage({
     ...(isSmartAccount
       ? [`<b>Smart account:</b> control proven on ${escapeHtml(chainLabel(record.chainId))} only`]
       : []),
+    `<b>Whitelist now:</b> ${membershipLine(membership)}`,
     ...shareClasses.map(
       ({ key, poolId, scId }) =>
         `<b>Share class:</b> ${escapeHtml(key)} (pool ${escapeHtml(poolId)}, scId ${escapeHtml(scId)})`
@@ -105,7 +127,7 @@ export function createTelegramWalletLinkMessenger({
   });
 
   return {
-    async send({ kind, record, email, isSmartAccount, noDecision, otherAccounts }) {
+    async send({ kind, record, email, isSmartAccount, membership, noDecision, otherAccounts }) {
       await sendTelegramMessage({
         chatId,
         text: formatWalletLinkOperatorMessage({
@@ -113,6 +135,7 @@ export function createTelegramWalletLinkMessenger({
           record,
           email,
           isSmartAccount,
+          membership,
           noDecision,
           otherAccounts,
           shareClasses

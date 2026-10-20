@@ -156,6 +156,7 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
   const smartWallets = new Map<string, Hex>();
   const membership = new Map<string, Array<MembershipVerdict>>();
   const verifications: Array<{ chainId: number; address: Address }> = [];
+  let membershipFailure: Error | null = null;
 
   const chain: ChainPort = {
     async verifyTypedData({ chainId, address, typedData, signature }) {
@@ -168,6 +169,7 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
       return smartWallets.has(address.toLowerCase());
     },
     async readMembership({ addresses }): Promise<Record<Address, AddressMembership>> {
+      if (membershipFailure) throw membershipFailure;
       return Object.fromEntries(
         addresses.map((address) => {
           const verdicts = membership.get(address.toLowerCase());
@@ -182,6 +184,10 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
     smartWallets,
     membership,
     verifications,
+    /** Every membership read rejects until cleared: the chains cannot be asked at all. */
+    failMembershipReads(error: Error | null) {
+      membershipFailure = error;
+    },
     /** One verdict for every target. */
     setMembership(address: Address, verdict: MembershipVerdict | Array<MembershipVerdict>) {
       membership.set(address.toLowerCase(), Array.isArray(verdict) ? verdict : targets.map(() => verdict));

@@ -305,6 +305,8 @@ describe('completing a link', () => {
         record: expect.objectContaining({ id: linked.value.id }),
         email: 'alice@example.com',
         isSmartAccount: false,
+        // Read at delivery too: a member nowhere yet, which is what the request is for.
+        membership: TARGETS.map((target) => ({ target, verdict: 'not-member' })),
         noDecision: null,
         otherAccounts: []
       }
@@ -597,8 +599,15 @@ describe('reconcile', () => {
         ok: true,
         value: 'sent'
       });
-      // And the request says which Decision ended the link.
-      expect(operator.sent).toMatchObject([{ kind: 'revoke_request', noDecision: status, otherAccounts: [] }]);
+      // And the request says which Decision ended the link, and where the address stands now.
+      expect(operator.sent).toMatchObject([
+        {
+          kind: 'revoke_request',
+          noDecision: status,
+          otherAccounts: [],
+          membership: TARGETS.map((target) => ({ target, verdict: 'member' }))
+        }
+      ]);
       expect(emails.sent).toEqual([]);
     }
   );
@@ -641,6 +650,21 @@ describe('reconcile', () => {
       kind: 'revoke_request',
       otherAccounts: [{ email: 'bob@example.com', isVerified: false }]
     });
+  });
+
+  it('still asks ops to revoke when the chains cannot be read, saying so instead of where the address stands', async () => {
+    const { walletLink, kyc, chain, outbox, operator, clock } = setup();
+    await linkEoa(walletLink);
+    kyc.set(ALICE, { status: 'revoked' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+
+    chain.failMembershipReads(new Error('every RPC down'));
+    await expect(walletLink.deliverNotification({ job: outbox.jobs.at(-1)! })).resolves.toEqual({
+      ok: true,
+      value: 'sent'
+    });
+
+    expect(operator.sent.at(-1)).toMatchObject({ kind: 'revoke_request', membership: null });
   });
 
   it('drops expired challenges, which nothing can act on any more', async () => {

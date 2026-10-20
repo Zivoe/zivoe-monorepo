@@ -13,6 +13,9 @@ import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 // `deliverNotification` and its Telegram adapter; here the answer becomes the
 // status code QStash acts on: 200 for sent or skipped, 500 for early or
 // failed so it retries, 489 for a body this outbox never produced so it does not.
+/** Delivery reads every live chain for the message's whitelist line; the reconcile's budget, for the same reads. */
+export const maxDuration = 60;
+
 const handler = async (req: NextRequest) => {
   Sentry.setTag('source', 'API');
   Sentry.setTag('flow', 'wallet-link-telegram');

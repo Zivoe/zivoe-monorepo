@@ -153,6 +153,13 @@ export type WalletLinkOperatorMessenger = {
     email: string | null;
     /** Read from the chain at delivery; ops is told the proof covers the signing chain only. */
     isSmartAccount: boolean;
+    /**
+     * Where the address stands on every target at delivery, or null when the
+     * chains could not be asked at all: a Revoke request for an address that
+     * is a member nowhere needs no action, and a Whitelist request for one
+     * already frozen somewhere is not a plain admission.
+     */
+    membership: AddressMembership | null;
     /** The investor's Decision when it is a no, read at delivery: why a Revoke request is asked. */
     noDecision: 'declined' | 'revoked' | null;
     /**
@@ -296,12 +303,17 @@ export function createWalletLink({
 
   /** A Whitelist or Revoke request, with what only delivery can read: the email, the kind of account and the Decision. */
   const sendOperatorMessage = async (kind: WalletLinkOperatorKind, record: WalletLinkRecord) => {
-    const [account, isSmartAccount, decision, connected] = await Promise.all([
+    const [account, isSmartAccount, membership, decision, connected] = await Promise.all([
       store.getAccount({ userId: record.userId }),
       // A linked or removed row always carries its signature; the fallback only types the field.
       record.signature
         ? chain.isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
         : false,
+      // Best effort, like the probe above: a line of context must not fail the request that carries it.
+      chain
+        .readMembership({ addresses: [record.address] })
+        .then((read) => read[record.address] ?? null)
+        .catch(() => null),
       kyc.getKycStatus({ userId: record.userId }),
       kind === 'revoke_request'
         ? store.listOtherConnectedAccounts({ address: record.address, exceptUserId: record.userId })
@@ -318,6 +330,7 @@ export function createWalletLink({
       record,
       email: account?.email ?? null,
       isSmartAccount,
+      membership,
       noDecision: isNoDecision(decision) ? decision.status : null,
       otherAccounts
     });
