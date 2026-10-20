@@ -1,14 +1,12 @@
 import 'server-only';
 
-import { getShareClassIdentity } from '@zivoe/centrifuge-indexer';
-
-import { ACTIVE_ENVIRONMENT, chainOfChainId } from '@/lib/chains';
+import { chainOfChainId } from '@/lib/chains';
 import { escapeHtml, truncateAddress } from '@/lib/utils';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
 import { type WalletLinkOperatorKind, type WalletLinkOperatorMessenger, type WalletLinkRecord } from './wallet-link';
-import { type AddressMembership, listMembershipTargets, summarizeMembership } from './wallet-link-membership';
+import { type AddressMembership, summarizeMembership } from './wallet-link-membership';
 
 const TITLES: Record<WalletLinkOperatorKind, string> = {
   whitelist_request: '🟢 Whitelist request',
@@ -48,11 +46,11 @@ function membershipLine(membership: AddressMembership | null): string {
 
 /**
  * Everything ops needs to act in Centrifuge and nothing more: who (email
- * and id), which address (short for the eye, full to copy), where it stands
- * on the whitelist now, and under which pool and share class. The chains
- * are not listed with the share class: ops knows the live deployments, and
- * the request is for all of them. Every interpolated value is escaped — the
- * wallet's name and type and the email come from outside.
+ * and id), which address (short for the eye, full to copy) and where it
+ * stands on the whitelist now. Neither the chains nor the share class are
+ * listed: ops knows the live deployments, and the request is for all of
+ * them. Every interpolated value is escaped — the wallet's name and type and
+ * the email come from outside.
  */
 export function formatWalletLinkOperatorMessage({
   kind,
@@ -61,8 +59,7 @@ export function formatWalletLinkOperatorMessage({
   isSmartAccount,
   membership,
   noDecision,
-  otherAccounts,
-  shareClasses
+  otherAccounts
 }: {
   kind: WalletLinkOperatorKind;
   record: WalletLinkRecord;
@@ -71,7 +68,6 @@ export function formatWalletLinkOperatorMessage({
   membership: AddressMembership | null;
   noDecision: 'declined' | 'revoked' | null;
   otherAccounts: Array<{ email: string; isVerified: boolean }>;
-  shareClasses: Array<{ key: string; poolId: string; scId: string }>;
 }): string {
   const lines = [
     `<b>${TITLES[kind]}</b>`,
@@ -86,11 +82,7 @@ export function formatWalletLinkOperatorMessage({
     ...(isSmartAccount
       ? [`<b>Smart account:</b> control proven on ${escapeHtml(chainLabel(record.chainId))} only`]
       : []),
-    `<b>Whitelist now:</b> ${membershipLine(membership)}`,
-    ...shareClasses.map(
-      ({ key, poolId, scId }) =>
-        `<b>Share class:</b> ${escapeHtml(key)} (pool ${escapeHtml(poolId)}, scId ${escapeHtml(scId)})`
-    )
+    `<b>Whitelist now:</b> ${membershipLine(membership)}`
   ];
 
   if (kind === 'revoke_request') {
@@ -108,12 +100,7 @@ export function formatWalletLinkOperatorMessage({
   return lines.join('\n');
 }
 
-/**
- * The operator message port over the wallet-link Telegram channel. The
- * share classes a request names are those of the deployment's live
- * membership targets — fixed for the life of the process, so they are
- * derived once here rather than on every send.
- */
+/** The operator message port over the wallet-link Telegram channel. */
 export function createTelegramWalletLinkMessenger({
   sendTelegramMessage,
   chatId
@@ -121,11 +108,6 @@ export function createTelegramWalletLinkMessenger({
   sendTelegramMessage: (input: { chatId: string; text: string }) => Promise<unknown>;
   chatId: string;
 }): WalletLinkOperatorMessenger {
-  const shareClasses = [...new Set(listMembershipTargets().map(({ shareClassKey }) => shareClassKey))].map((key) => {
-    const { poolId, scId } = getShareClassIdentity({ environment: ACTIVE_ENVIRONMENT, key });
-    return { key, poolId, scId };
-  });
-
   return {
     async send({ kind, record, email, isSmartAccount, membership, noDecision, otherAccounts }) {
       await sendTelegramMessage({
@@ -137,8 +119,7 @@ export function createTelegramWalletLinkMessenger({
           isSmartAccount,
           membership,
           noDecision,
-          otherAccounts,
-          shareClasses
+          otherAccounts
         })
       });
     }

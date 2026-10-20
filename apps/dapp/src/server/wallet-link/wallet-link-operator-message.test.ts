@@ -8,16 +8,6 @@ import { buildWalletLinkTypedData } from './wallet-link-typed-data';
 
 // `escapeHtml` lives in @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
-// Two mainnet targets of one share class, so the Share class line appears
-// once and names a mainnet pool — the shape the snapshots pin.
-vi.mock('./wallet-link-membership', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  listMembershipTargets: () => [
-    { chain: 'ethereum', chainId: 1, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS },
-    { chain: 'base', chainId: 8453, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS }
-  ]
-}));
-vi.mock('@/lib/chains', async (importOriginal) => ({ ...(await importOriginal()), ACTIVE_ENVIRONMENT: 'mainnet' }));
 
 const ADDRESS = '0x881500000000000000000000000000000000e9e6' as Address;
 const SIGNED_AT = new Date('2026-10-01T09:30:00.000Z');
@@ -51,8 +41,6 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   ...overrides
 });
 
-const SHARE_CLASSES = [{ key: 'zsmb', poolId: '42', scId: '0xabc' }];
-
 const TARGETS = [
   { chain: 'ethereum', chainId: 1, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS },
   { chain: 'base', chainId: 8453, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS }
@@ -70,8 +58,7 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       noDecision: null,
-      otherAccounts: [],
-      shareClasses: SHARE_CLASSES
+      otherAccounts: []
     });
 
     expect(text.split('\n')).toEqual([
@@ -81,8 +68,7 @@ describe('the operator message', () => {
       '<b>Address:</b> 0x8815...e9e6',
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
-      '<b>Whitelist now:</b> a member on none of 2 chains',
-      '<b>Share class:</b> zsmb (pool 42, scId 0xabc)'
+      '<b>Whitelist now:</b> a member on none of 2 chains'
     ]);
   });
 
@@ -100,8 +86,7 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       noDecision: null,
-      otherAccounts: [],
-      shareClasses: SHARE_CLASSES
+      otherAccounts: []
     });
 
     expect(text.split('\n')).toEqual([
@@ -113,7 +98,6 @@ describe('the operator message', () => {
       '<code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
       '<b>Whitelist now:</b> a member on none of 2 chains',
-      '<b>Share class:</b> zsmb (pool 42, scId 0xabc)',
       '<b>Also connected by:</b> no other account',
       '<b>Linked since:</b> 2026-10-01'
     ]);
@@ -130,8 +114,7 @@ describe('the operator message', () => {
       otherAccounts: [
         { email: 'bob@example.com', isVerified: true },
         { email: 'eve<b>@example.com', isVerified: false }
-      ],
-      shareClasses: SHARE_CLASSES
+      ]
     });
 
     expect(text.split('\n')[2]).toBe('<b>Reason:</b> verification revoked');
@@ -153,8 +136,7 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       noDecision: 'declined',
-      otherAccounts,
-      shareClasses: SHARE_CLASSES
+      otherAccounts
     });
 
     const line = text.split('\n').find((candidate) => candidate.startsWith('<b>Also connected by:</b>'))!;
@@ -176,8 +158,7 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: current,
       noDecision: 'revoked',
-      otherAccounts: [],
-      shareClasses: SHARE_CLASSES
+      otherAccounts: []
     });
 
     expect(text).toContain(`<b>Whitelist now:</b> ${expected}`);
@@ -191,8 +172,7 @@ describe('the operator message', () => {
       isSmartAccount: true,
       membership: NOWHERE,
       noDecision: null,
-      otherAccounts: [],
-      shareClasses: SHARE_CLASSES
+      otherAccounts: []
     });
 
     expect(text.split('\n').slice(5, 7)).toEqual([
@@ -201,7 +181,7 @@ describe('the operator message', () => {
     ]);
   });
 
-  it('posts to the channel it was wired with, naming the deployment’s share classes', async () => {
+  it('posts to the channel it was wired with', async () => {
     const sendTelegramMessage = vi.fn(async () => ({}));
 
     await createTelegramWalletLinkMessenger({ sendTelegramMessage, chatId: 'chat-1' }).send({
@@ -216,7 +196,7 @@ describe('the operator message', () => {
 
     expect(sendTelegramMessage).toHaveBeenCalledWith({
       chatId: 'chat-1',
-      text: expect.stringMatching(/<b>Share class:<\/b> zsmb \(pool \d+, scId 0x[0-9a-f]+\)/)
+      text: expect.stringContaining('<b>🟢 Whitelist request</b>')
     });
   });
 });
