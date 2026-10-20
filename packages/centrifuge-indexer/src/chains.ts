@@ -79,7 +79,10 @@ const pharos = defineChain({
   name: 'Pharos Mainnet',
   nativeCurrency: { name: 'PharosCoin', symbol: 'PROS', decimals: 18 },
   rpcUrls: { default: { http: ['https://rpc.pharos.xyz'] } },
-  blockExplorers: { default: { name: 'Pharos Explorer', url: 'https://pharosscan.xyz' } }
+  blockExplorers: { default: { name: 'Pharos Explorer', url: 'https://pharosscan.xyz' } },
+  // Multicall3 at its canonical address (code verified on chain 2026-10-04), so
+  // viem's `multicall` batches reads here as it does on every viem-defined chain.
+  contracts: { multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11' } }
 });
 
 /**

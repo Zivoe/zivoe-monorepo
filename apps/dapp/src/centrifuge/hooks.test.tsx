@@ -21,9 +21,16 @@ const getCentrifugeVault = vi.hoisted(() => vi.fn());
 vi.mock('./client', () => ({ getCentrifugeVault }));
 
 const readContract = vi.hoisted(() => vi.fn());
-vi.mock('wagmi', () => ({ usePublicClient: () => ({ readContract }), useConfig: () => ({}) }));
+// The hook interrogation batches its reads through `multicall`; here each
+// batched call is answered by the same per-function stub, so one answer
+// table serves both paths and "readContract not called" still proves no read.
+const fakeClient = vi.hoisted(() => ({
+  readContract: (...args: Array<unknown>) => readContract(...args),
+  multicall: ({ contracts }: { contracts: Array<unknown> }) => Promise.all(contracts.map((call) => readContract(call)))
+}));
+vi.mock('wagmi', () => ({ usePublicClient: () => fakeClient, useConfig: () => ({}) }));
 // The many-vault reader resolves each chain's client off the config; one fake client serves every chain here.
-vi.mock('wagmi/actions', () => ({ getPublicClient: () => ({ readContract }) }));
+vi.mock('wagmi/actions', () => ({ getPublicClient: () => fakeClient }));
 
 const useAccount = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAccount', () => ({ useAccount }));
