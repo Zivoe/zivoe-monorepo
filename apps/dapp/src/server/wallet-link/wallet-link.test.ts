@@ -306,7 +306,7 @@ describe('completing a link', () => {
         email: 'alice@example.com',
         isSmartAccount: false,
         // Read at delivery too: a member nowhere yet, which is what the request is for.
-        membership: TARGETS.map((target) => ({ target, verdict: 'not-member' })),
+        membership: TARGETS.map((target) => ({ target, verdict: 'not-member', frozen: false })),
         noDecision: null,
         otherAccounts: []
       }

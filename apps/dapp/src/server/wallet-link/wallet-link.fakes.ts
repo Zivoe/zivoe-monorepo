@@ -173,7 +173,10 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
       return Object.fromEntries(
         addresses.map((address) => {
           const verdicts = membership.get(address.toLowerCase());
-          return [address, targets.map((target, index) => ({ target, verdict: verdicts?.[index] ?? 'not-member' }))];
+          return [
+            address,
+            targets.map((target, index) => ({ target, verdict: verdicts?.[index] ?? 'not-member', frozen: false }))
+          ];
         })
       );
     }

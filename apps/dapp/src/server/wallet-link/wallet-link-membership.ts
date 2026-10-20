@@ -28,9 +28,16 @@ export type MembershipTarget = {
 };
 
 /** `unknown` is a read that failed or a hook that could not be interrogated — never a false negative. */
-export type MembershipVerdict = 'member' | 'not-member' | 'frozen' | 'unknown';
+export type MembershipVerdict = 'member' | 'not-member' | 'unknown';
 
-export type AddressMembership = Array<{ target: MembershipTarget; verdict: MembershipVerdict }>;
+/**
+ * One verdict per target, and beside it whether the hook has the address
+ * frozen there. The two are independent on the contract: a frozen member is
+ * still a member (an unfreeze restores access), so a freeze never hides
+ * membership from the count; it is reported on its own. False when the read
+ * failed.
+ */
+export type AddressMembership = Array<{ target: MembershipTarget; verdict: MembershipVerdict; frozen: boolean }>;
 
 /**
  * Every live (chain, share class) pair of this deployment, in catalog order.
@@ -61,8 +68,7 @@ export function listMembershipTargets(): Array<MembershipTarget> {
  * multicall per target, whatever the number of addresses, through whichever
  * client the caller has for the chain — wagmi's in the browser, the server's
  * viem clients in the reconcile. A target without a client, or one whose
- * read fails, answers 'unknown' for every address; a freeze is reported as
- * such and never counts as membership.
+ * read fails, answers 'unknown' for every address.
  */
 export async function readAddressesMembership({
   addresses,
@@ -73,19 +79,20 @@ export async function readAddressesMembership({
   targets: Array<MembershipTarget>;
   clientFor: (target: MembershipTarget) => ContractReader | undefined;
 }): Promise<Record<Address, AddressMembership>> {
+  const unknown = { verdict: 'unknown', frozen: false } as const;
   const byTarget = await Promise.all(
-    targets.map(async (target): Promise<Array<MembershipVerdict>> => {
+    targets.map(async (target): Promise<Array<Omit<AddressMembership[number], 'target'>>> => {
       const client = clientFor(target);
-      if (!client) return addresses.map(() => 'unknown');
+      if (!client) return addresses.map(() => unknown);
       try {
         const facts = await readHookMembership({
           client,
           shareTokenAddress: target.shareTokenAddress,
           investors: addresses
         });
-        return facts.map(({ isFrozen, isMember }) => (isFrozen ? 'frozen' : isMember ? 'member' : 'not-member'));
+        return facts.map(({ isFrozen, isMember }) => ({ verdict: isMember ? 'member' : 'not-member', frozen: isFrozen }));
       } catch {
-        return addresses.map(() => 'unknown');
+        return addresses.map(() => unknown);
       }
     })
   );
@@ -93,7 +100,7 @@ export async function readAddressesMembership({
   return Object.fromEntries(
     addresses.map((address, index) => [
       address,
-      targets.map((target, targetIndex) => ({ target, verdict: byTarget[targetIndex]?.[index] ?? 'unknown' }))
+      targets.map((target, targetIndex) => ({ target, ...(byTarget[targetIndex]?.[index] ?? unknown) }))
     ])
   );
 }

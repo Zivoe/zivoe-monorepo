@@ -35,12 +35,13 @@ function chainLabel(chainId: number): string {
 function membershipLine(membership: AddressMembership | null): string {
   if (!membership) return 'could not be read';
   const { memberOn, total, unknown } = summarizeMembership(membership);
-  const chainsWith = (verdict: 'frozen' | 'unknown') =>
-    membership.filter((entry) => entry.verdict === verdict).map(({ target }) => CHAIN_DISPLAY[target.chain].label);
+  const chainsWhere = (holds: (entry: AddressMembership[number]) => boolean) =>
+    membership.filter(holds).map(({ target }) => CHAIN_DISPLAY[target.chain].label);
   const parts = [`a member on ${memberOn === 0 ? 'none' : memberOn} of ${total} chains`];
-  const frozen = chainsWith('frozen');
+  // A freeze sits beside membership, not instead of it: a frozen member stays in the count.
+  const frozen = chainsWhere((entry) => entry.frozen);
   if (frozen.length > 0) parts.push(`frozen on ${frozen.join(', ')}`);
-  if (unknown > 0) parts.push(`could not be read on ${chainsWith('unknown').join(', ')}`);
+  if (unknown > 0) parts.push(`could not be read on ${chainsWhere((entry) => entry.verdict === 'unknown').join(', ')}`);
   return parts.join(', ');
 }
 

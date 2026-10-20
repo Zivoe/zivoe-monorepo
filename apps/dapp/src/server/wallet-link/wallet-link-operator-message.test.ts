@@ -45,8 +45,11 @@ const TARGETS = [
   { chain: 'ethereum', chainId: 1, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS },
   { chain: 'base', chainId: 8453, shareClassKey: 'zsmb', shareTokenAddress: ADDRESS }
 ] as const;
-const membership = (verdicts: [MembershipVerdict, MembershipVerdict]): AddressMembership =>
-  TARGETS.map((target, index) => ({ target, verdict: verdicts[index]! }));
+const membership = (
+  verdicts: [MembershipVerdict, MembershipVerdict],
+  frozenOn: Array<(typeof TARGETS)[number]['chain']> = []
+): AddressMembership =>
+  TARGETS.map((target, index) => ({ target, verdict: verdicts[index]!, frozen: frozenOn.includes(target.chain) }));
 const NOWHERE = membership(['not-member', 'not-member']);
 
 describe('the operator message', () => {
@@ -144,7 +147,9 @@ describe('the operator message', () => {
 
   it.each([
     ['a member on 1 of 2 chains', membership(['member', 'not-member'])],
-    ['a member on 1 of 2 chains, frozen on Base', membership(['member', 'frozen'])],
+    // Frozen is said beside the count, never instead of it: ops must still revoke a frozen member.
+    ['a member on 2 of 2 chains, frozen on Base', membership(['member', 'member'], ['base'])],
+    ['a member on 1 of 2 chains, frozen on Base', membership(['member', 'not-member'], ['base'])],
     ['a member on 2 of 2 chains', membership(['member', 'member'])],
     ['a member on 1 of 2 chains, could not be read on Base', membership(['member', 'unknown'])],
     ['could not be read', null]
