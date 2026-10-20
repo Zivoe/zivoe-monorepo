@@ -13,6 +13,7 @@ import { type KycEmailStatus } from '../kyc/kyc-status';
 import { BASE_URL } from './base-url';
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob, buildReceiptJobKey } from './centrifuge-tx-receipt-job';
+import AddressWhitelistedEmail from './emails/address-whitelisted-email';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
 import KycActionRequiredEmail from './emails/kyc-action-required-email';
 import KycApprovedEmail from './emails/kyc-approved-email';
@@ -244,6 +245,43 @@ export async function sendKycStatusEmail({
       },
       {
         idempotencyKey: `kyc-${status}-email/${inquiryId}/${statusChangedAt.getTime()}`
+      }
+    )
+  );
+}
+
+/**
+ * The Wallet link's one email, from the transactional sender like the KYC
+ * status emails: a whitelisted address is a fact about the person's account,
+ * never withheld. Idempotent per (link, `whitelistObservedAt`) on Resend's side,
+ * so a redelivered job sends once; the stamp is set once, so a link is emailed once.
+ */
+export async function sendAddressWhitelistedEmail({
+  to,
+  name,
+  address,
+  linkId,
+  whitelistObservedAt
+}: {
+  to: string;
+  name: string | null;
+  address: string;
+  linkId: string;
+  whitelistObservedAt: Date;
+}) {
+  const html = await render(AddressWhitelistedEmail({ name: name ?? undefined, address, vaultsUrl: `${BASE_URL}/` }));
+
+  return handleIdempotentResult(
+    await resend.emails.send(
+      {
+        from: 'Zivoe <verify@auth.zivoe.com>',
+        replyTo: EMAILS.INQUIRE,
+        to,
+        subject: 'Your address is whitelisted',
+        html
+      },
+      {
+        idempotencyKey: `wallet-link-whitelisted-email/${linkId}/${whitelistObservedAt.getTime()}`
       }
     )
   );

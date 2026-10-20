@@ -63,6 +63,8 @@ export const env = createEnv({
     TELEGRAM_ONBOARDING_CHAT_ID: z.string(),
     TELEGRAM_PERSONA_CHAT_ID: z.string(),
     TELEGRAM_TXS_CHAT_ID: z.string(),
+    // Wallet link ops channel: Whitelist and Revoke requests, and the reconcile's stalled rows
+    TELEGRAM_WALLET_LINK_CHAT_ID: z.string(),
 
     // Vercel (auto-populated on Vercel)
     VERCEL: z.enum(['1', '0']).default('0'),
@@ -148,6 +150,7 @@ export const env = createEnv({
     TELEGRAM_ONBOARDING_CHAT_ID: process.env.TELEGRAM_ONBOARDING_CHAT_ID,
     TELEGRAM_PERSONA_CHAT_ID: process.env.TELEGRAM_PERSONA_CHAT_ID,
     TELEGRAM_TXS_CHAT_ID: process.env.TELEGRAM_TXS_CHAT_ID,
+    TELEGRAM_WALLET_LINK_CHAT_ID: process.env.TELEGRAM_WALLET_LINK_CHAT_ID,
 
     // Vercel
     VERCEL: process.env.VERCEL ?? '0',
