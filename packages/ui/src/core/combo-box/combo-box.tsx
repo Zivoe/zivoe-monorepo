@@ -24,6 +24,8 @@ import { SelectListBox, SelectPopover } from '../select';
  */
 const ComboBox = <T extends object>({ className, ...props }: AriaComboBoxProps<T>) => (
   <AriaComboBox
+    // Keeps the list open on a search with no match, so the list box's empty state can show.
+    allowsEmptyCollection
     className={composeRenderProps(className, (className) => cn('group/combo-box flex flex-col gap-3', className))}
     {...props}
   />
@@ -41,7 +43,7 @@ interface ComboBoxInputProps extends AriaInputProps {
  */
 const ComboBoxInput = ({ className, startContent, ...props }: ComboBoxInputProps) => (
   // The input spans the whole field, so the popover (anchored to it) matches its width.
-  <div className="relative flex items-center group-data-disabled/combo-box:opacity-60">
+  <div className="group/field relative flex items-center group-data-disabled/combo-box:opacity-60">
     {startContent && (
       <span aria-hidden="true" className="pointer-events-none absolute left-5 flex items-center text-regular">
         {startContent}
@@ -53,8 +55,9 @@ const ComboBoxInput = ({ className, startContent, ...props }: ComboBoxInputProps
         cn(
           'h-12 w-full min-w-0 rounded-sm border border-default bg-surface-base-soft pr-10 pl-4 text-small text-primary outline-hidden',
           'placeholder:text-tertiary',
-          'hover:border-contrast',
-          'focus:border-active focus:shadow-[0px_0px_4px_0px_var(--color-primary-400)] focus:hover:border-active',
+          // Hover on the chevron (a sibling over the input's edge) tints the field too, like the Select trigger.
+          'group-hover/field:border-contrast',
+          'focus:border-active focus:shadow-[0px_0px_4px_0px_var(--color-primary-400)] group-hover/field:focus:border-active',
           'data-invalid:border-alert! data-invalid:shadow-[0px_0px_4px_0px_var(--color-alert-600)]!',
           'disabled:cursor-not-allowed',
           // Lines the text up with the option names in the list.

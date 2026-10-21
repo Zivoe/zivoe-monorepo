@@ -50,6 +50,13 @@ describe('CountryComboBox', () => {
     expect(screen.getAllByRole('option')[0]).toHaveProperty('textContent', '🇺🇸United States');
   });
 
+  it('opens the whole list on focus, as the Select it replaced did', () => {
+    const { input } = renderField();
+    act(() => input.focus());
+
+    expect(screen.getAllByRole('option').length).toBe(COUNTRIES.length);
+  });
+
   it('shows the whole list, alphabetical, when opened from the chevron with a country picked', () => {
     renderField('GB');
     fireEvent.click(screen.getByRole('button', { name: /show suggestions/i }));

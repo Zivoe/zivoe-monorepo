@@ -47,10 +47,11 @@ export function CountryComboBox({
     <ComboBox
       defaultItems={items}
       defaultFilter={(label) => matches.has(label)}
-      selectedKey={value || null}
-      onSelectionChange={(key) => onChange(key === null ? '' : String(key))}
+      value={value || null}
+      onChange={(key) => onChange(key === null ? '' : String(key))}
       onInputChange={setText}
-      allowsEmptyCollection
+      // The whole list opens on focus (a click, a tap, Tab), as the Select it replaced did.
+      menuTrigger="focus"
       isInvalid={isInvalid}
       validationBehavior="aria"
     >
@@ -77,7 +78,7 @@ export function CountryComboBox({
 /** The picked country's flag while the field shows its name; a search icon while typing. */
 function SelectedFlag() {
   const state = useContext(ComboBoxStateContext);
-  const selected = state?.selectedItem?.value as Country | null | undefined;
+  const selected = state?.selectedItems[0]?.value as Country | null | undefined;
 
   if (selected && state?.inputValue === selected.label) return selected.flag;
   return <SearchIcon className="size-4 text-icon-default" />;

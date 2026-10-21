@@ -44,7 +44,7 @@ type Country = (typeof countries)[number];
 /** The picked country's flag while the field shows its name; a search icon while typing. */
 function SelectedFlag() {
   const state = useContext(ComboBoxStateContext);
-  const selected = state?.selectedItem?.value as Country | null | undefined;
+  const selected = state?.selectedItems[0]?.value as Country | null | undefined;
 
   if (selected && state?.inputValue === selected.id) return selected.flag;
   return <SearchIcon className="size-4 text-icon-default" />;
@@ -57,9 +57,8 @@ function CountryField({ defaultValue = null, isInvalid }: { defaultValue?: Key |
     <div className="flex w-80 flex-col gap-4">
       <ComboBox
         defaultItems={countries}
-        selectedKey={value}
-        onSelectionChange={setValue}
-        allowsEmptyCollection
+        value={value}
+        onChange={setValue}
         isInvalid={isInvalid}
         validationBehavior="aria"
       >
@@ -100,7 +99,7 @@ export const Invalid: Story = {
 
 export const Disabled: Story = {
   render: () => (
-    <ComboBox className="w-80" isDisabled defaultItems={countries} defaultSelectedKey="Romania">
+    <ComboBox className="w-80" isDisabled defaultItems={countries} defaultValue="Romania">
       <Label>Country Of Residence</Label>
       <ComboBoxInput startContent="🇷🇴" />
       <ComboBoxPopover>
