@@ -53,7 +53,7 @@ export function CountryComboBox({
     >
       <Label>{label}</Label>
       <ComboBoxInput
-        placeholder="Search country"
+        placeholder="Search"
         startContent={<ComboBoxSelected<Country>>{(country) => country.flag}</ComboBoxSelected>}
       />
       <FieldError>{errorMessage}</FieldError>

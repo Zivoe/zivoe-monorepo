@@ -96,7 +96,7 @@ function CountryField({ defaultValue = '', isInvalid }: { defaultValue?: string;
       >
         <Label>Country Of Residence</Label>
         <ComboBoxInput
-          placeholder="Search country"
+          placeholder="Search"
           startContent={<ComboBoxSelected<Country>>{(country) => country.flag}</ComboBoxSelected>}
         />
         <FieldError>Please select a country</FieldError>
