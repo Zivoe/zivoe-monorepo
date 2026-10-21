@@ -9,10 +9,10 @@ import { Label } from '@zivoe/ui/core/field/label';
 import { Input } from '@zivoe/ui/core/input';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@zivoe/ui/core/select';
 
-import { COUNTRIES } from '@/types/countries';
-
 import { HOW_FOUND_ZIVOE_OPTIONS, INDIVIDUAL_AMOUNT_OPTIONS } from '@/lib/onboarding-options';
 import { type IndividualFormData, accountTypeValues, individualSchema } from '@/lib/schemas/onboarding';
+
+import { CountryComboBox } from '@/components/country-combo-box';
 
 import { Auth } from '../../_components/common';
 import { useCompleteOnboarding } from '../_hooks/useCompleteOnboarding';
@@ -84,51 +84,13 @@ export default function IndividualForm({ next, onBack }: { next?: string; onBack
               control={control}
               name="countryOfResidence"
               render={({ field, fieldState: { error, invalid } }) => (
-                <div className="flex flex-col gap-3">
-                  <Label>Country Of Residence</Label>
-
-                  <Select
-                    placeholder="Select"
-                    aria-label="Country of Residence"
-                    value={field.value}
-                    onChange={field.onChange}
-                    isInvalid={!!error}
-                    className="flex flex-col gap-3"
-                  >
-                    <Auth.SelectTrigger isInvalid={invalid}>
-                      <SelectValue>
-                        {({ selectedText, isPlaceholder }) => {
-                          if (isPlaceholder) return 'Select';
-
-                          const selected = COUNTRIES.find((c) => c.value === field.value);
-                          return selected ? (
-                            <span className="flex items-center gap-2">
-                              <span className="text-regular">{selected.flag}</span>
-                              <span>{selectedText}</span>
-                            </span>
-                          ) : (
-                            selectedText
-                          );
-                        }}
-                      </SelectValue>
-                    </Auth.SelectTrigger>
-
-                    <FieldError>{error?.message}</FieldError>
-
-                    <SelectPopover matchTriggerWidth>
-                      <SelectListBox items={COUNTRIES}>
-                        {(item) => (
-                          <SelectItem id={item.value} textValue={item.label}>
-                            <span className="flex items-center gap-2">
-                              <span className="text-regular">{item.flag}</span>
-                              <span>{item.label}</span>
-                            </span>
-                          </SelectItem>
-                        )}
-                      </SelectListBox>
-                    </SelectPopover>
-                  </Select>
-                </div>
+                <CountryComboBox
+                  label="Country Of Residence"
+                  value={field.value}
+                  onChange={field.onChange}
+                  isInvalid={invalid}
+                  errorMessage={error?.message}
+                />
               )}
             />
 
