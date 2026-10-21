@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, useContext, useMemo, useState } from 'react';
 
 import {
   Button as AriaButton,
@@ -9,10 +9,11 @@ import {
   Input as AriaInput,
   type InputProps as AriaInputProps,
   type ListBoxProps as AriaListBoxProps,
+  ComboBoxStateContext,
   composeRenderProps
 } from 'react-aria-components';
 
-import { ChevronDownIcon } from '../../icons';
+import { ChevronDownIcon, SearchIcon } from '../../icons';
 import { cn } from '../../lib/tw-utils';
 import { ListBoxItem } from '../list-box';
 import { nativeScrollAreaStyles } from '../native-scroll-area';
@@ -98,4 +99,61 @@ const ComboBoxListBox = <T extends object>({
 
 const ComboBoxItem = ListBoxItem;
 
-export { ComboBox, ComboBoxInput, ComboBoxPopover, ComboBoxListBox, ComboBoxItem, type ComboBoxInputProps };
+/**
+ * Ranked search for a ComboBox; spread the result onto `ComboBox`. react-aria filters the
+ * list but never reorders it, so this hands it every item as `defaultItems` with the matches
+ * first, a `defaultFilter` that keeps the matches, and `onInputChange` to follow the text.
+ * Every item stays in the list because react-aria reads the picked item's text from it; while
+ * the field shows that text (`selectedText`) the order is `items`' own, so the whole list
+ * opened from the chevron reads naturally.
+ */
+function useComboBoxSearch<T>({
+  items,
+  search,
+  textValue,
+  selectedText
+}: {
+  /** Every item, in the order the whole list shows. */
+  items: Array<T>;
+  /** The items a search matches, best first; every item for an empty search. */
+  search: (query: string) => Array<T>;
+  /** The text an item shows in the field: its `ComboBoxItem`'s `textValue`. */
+  textValue: (item: T) => string;
+  /** The picked item's text, if any. */
+  selectedText?: string;
+}) {
+  const [text, setText] = useState('');
+
+  return useMemo(() => {
+    const ranked = search(text);
+    const matches = new Set(ranked.map(textValue));
+    const browsing = text === selectedText;
+    const defaultItems = browsing ? items : [...ranked, ...items.filter((item) => !matches.has(textValue(item)))];
+    return { defaultItems, defaultFilter: (itemText: string) => matches.has(itemText), onInputChange: setText };
+  }, [text, items, search, textValue, selectedText]);
+}
+
+/**
+ * For `ComboBoxInput`'s `startContent`: `children(item)` for the picked item while the field
+ * shows its text, a search icon while the user types.
+ */
+function ComboBoxSelected<T>({ children }: { children: (item: T) => ReactNode }) {
+  const state = useContext(ComboBoxStateContext);
+  const selected = state?.selectedItems[0];
+  const icon = <SearchIcon className="size-4 text-icon-default" />;
+
+  if (!selected) return icon;
+  // The context is untyped; the node's value is the item the consumer passed in.
+  return state?.inputValue === selected.textValue ? children(selected.value as T) : icon;
+}
+
+export {
+  ComboBox,
+  ComboBoxInput,
+  ComboBoxPopover,
+  ComboBoxListBox,
+  ComboBoxItem,
+  ComboBoxSelected,
+  useComboBoxSearch,
+  type ComboBoxInputProps
+};

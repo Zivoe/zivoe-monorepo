@@ -1,12 +1,18 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { ComboBoxStateContext, type Key } from 'react-aria-components';
 
-import { SearchIcon } from '../../icons';
 import { FieldError } from '../field/field-error';
 import { Label } from '../field/label';
-import { ComboBox, ComboBoxInput, ComboBoxItem, ComboBoxListBox, ComboBoxPopover } from './combo-box';
+import {
+  ComboBox,
+  ComboBoxInput,
+  ComboBoxItem,
+  ComboBoxListBox,
+  ComboBoxPopover,
+  ComboBoxSelected,
+  useComboBoxSearch
+} from './combo-box';
 
 const meta: Meta = {
   title: 'Core/ComboBox',
@@ -17,70 +23,99 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj<typeof ComboBox>;
 
-// A sample of the dapp's country list (English display names, flag emoji).
+// A sample of the dapp's country list: ISO code (the value), English name, flag emoji.
 const countries = [
-  { id: 'Australia', flag: '🇦🇺' },
-  { id: 'Brazil', flag: '🇧🇷' },
-  { id: 'Canada', flag: '🇨🇦' },
-  { id: 'Côte d’Ivoire', flag: '🇨🇮' },
-  { id: 'France', flag: '🇫🇷' },
-  { id: 'Germany', flag: '🇩🇪' },
-  { id: 'India', flag: '🇮🇳' },
-  { id: 'Japan', flag: '🇯🇵' },
-  { id: 'Mexico', flag: '🇲🇽' },
-  { id: 'Netherlands', flag: '🇳🇱' },
-  { id: 'Romania', flag: '🇷🇴' },
-  { id: 'Singapore', flag: '🇸🇬' },
-  { id: 'South Korea', flag: '🇰🇷' },
-  { id: 'Spain', flag: '🇪🇸' },
-  { id: 'Switzerland', flag: '🇨🇭' },
-  { id: 'Türkiye', flag: '🇹🇷' },
-  { id: 'United Kingdom', flag: '🇬🇧' },
-  { id: 'United States', flag: '🇺🇸' }
+  { code: 'AU', name: 'Australia', flag: '🇦🇺' },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'CI', name: 'Côte d’Ivoire', flag: '🇨🇮' },
+  { code: 'FR', name: 'France', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+  { code: 'IN', name: 'India', flag: '🇮🇳' },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+  { code: 'RO', name: 'Romania', flag: '🇷🇴' },
+  { code: 'SG', name: 'Singapore', flag: '🇸🇬' },
+  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+  { code: 'CH', name: 'Switzerland', flag: '🇨🇭' },
+  { code: 'TR', name: 'Türkiye', flag: '🇹🇷' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'US', name: 'United States', flag: '🇺🇸' }
 ];
 
 type Country = (typeof countries)[number];
 
-/** The picked country's flag while the field shows its name; a search icon while typing. */
-function SelectedFlag() {
-  const state = useContext(ComboBoxStateContext);
-  const selected = state?.selectedItems[0]?.value as Country | null | undefined;
+// Letters and digits only, lowercase: "Côte d’Ivoire" matches "cote d ivoire".
+const normalize = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .toLowerCase();
 
-  if (selected && state?.inputValue === selected.id) return selected.flag;
-  return <SearchIcon className="size-4 text-icon-default" />;
+/** The countries a search matches, best first: the ISO code ("us"), then names starting with the text, then names containing it. */
+function searchCountries(query: string): Array<Country> {
+  const q = normalize(query);
+  if (!q) return countries;
+
+  const rank = ({ code, name }: Country) =>
+    code.toLowerCase() === q ? 0 : normalize(name).startsWith(q) ? 1 : normalize(name).includes(q) ? 2 : null;
+
+  return countries
+    .flatMap((country) => {
+      const r = rank(country);
+      return r === null ? [] : [{ country, r }];
+    })
+    .sort((a, b) => a.r - b.r)
+    .map(({ country }) => country);
 }
 
-function CountryField({ defaultValue = null, isInvalid }: { defaultValue?: Key | null; isInvalid?: boolean }) {
-  const [value, setValue] = useState<Key | null>(defaultValue);
+const countryName = (country: Country) => country.name;
+
+/** The dapp's country field, in short: ranked search, the picked country's flag, the code as value. */
+function CountryField({ defaultValue = '', isInvalid }: { defaultValue?: string; isInvalid?: boolean }) {
+  const [value, setValue] = useState(defaultValue);
+  const search = useComboBoxSearch({
+    items: countries,
+    search: searchCountries,
+    textValue: countryName,
+    selectedText: countries.find((country) => country.code === value)?.name
+  });
 
   return (
     <div className="flex w-80 flex-col gap-4">
       <ComboBox
-        defaultItems={countries}
-        value={value}
-        onChange={setValue}
+        {...search}
+        value={value || null}
+        onChange={(key) => setValue(key === null ? '' : String(key))}
+        // The whole list opens on focus (a click on the field or its label, Tab, a tap).
+        menuTrigger="focus"
         isInvalid={isInvalid}
         validationBehavior="aria"
       >
         <Label>Country Of Residence</Label>
-        <ComboBoxInput placeholder="Search country" startContent={<SelectedFlag />} />
+        <ComboBoxInput
+          placeholder="Search country"
+          startContent={<ComboBoxSelected<Country>>{(country) => country.flag}</ComboBoxSelected>}
+        />
         <FieldError>Please select a country</FieldError>
 
         <ComboBoxPopover>
           <ComboBoxListBox<Country>>
             {(country) => (
-              <ComboBoxItem id={country.id} textValue={country.id}>
+              <ComboBoxItem id={country.code} textValue={country.name}>
                 <span aria-hidden="true" className="text-regular">
                   {country.flag}
                 </span>
-                <span>{country.id}</span>
+                <span>{country.name}</span>
               </ComboBoxItem>
             )}
           </ComboBoxListBox>
         </ComboBoxPopover>
       </ComboBox>
 
-      <p className="text-small text-tertiary">Value: {value === null ? '—' : String(value)}</p>
+      <p className="text-small text-tertiary">Value: {value || '—'}</p>
     </div>
   );
 }
@@ -90,7 +125,7 @@ export const Default: Story = {
 };
 
 export const WithValue: Story = {
-  render: () => <CountryField defaultValue="Romania" />
+  render: () => <CountryField defaultValue="RO" />
 };
 
 export const Invalid: Story = {
@@ -99,12 +134,16 @@ export const Invalid: Story = {
 
 export const Disabled: Story = {
   render: () => (
-    <ComboBox className="w-80" isDisabled defaultItems={countries} defaultValue="Romania">
+    <ComboBox className="w-80" isDisabled defaultItems={countries} defaultValue="RO">
       <Label>Country Of Residence</Label>
       <ComboBoxInput startContent="🇷🇴" />
       <ComboBoxPopover>
         <ComboBoxListBox<Country>>
-          {(country) => <ComboBoxItem id={country.id}>{country.id}</ComboBoxItem>}
+          {(country) => (
+            <ComboBoxItem id={country.code} textValue={country.name}>
+              {country.name}
+            </ComboBoxItem>
+          )}
         </ComboBoxListBox>
       </ComboBoxPopover>
     </ComboBox>
