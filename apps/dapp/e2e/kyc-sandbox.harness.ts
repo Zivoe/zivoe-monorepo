@@ -193,7 +193,7 @@ export async function createTestUser({ scenario, lastName }: { scenario: string;
     lastName,
     amountOfInterest: '10k_100k',
     howFoundZivoe: 'other',
-    countryOfResidence: 'United States'
+    countryOfResidence: 'US'
   });
   runUserIds.add(created.id);
   return { userId: created.id, email };

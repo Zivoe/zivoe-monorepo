@@ -1,9 +1,10 @@
 import 'server-only';
 
-import { getCode } from 'country-list';
 import { and, asc, count, eq, gt, inArray, lt, notInArray, sql } from 'drizzle-orm';
 
 import { kycVerification, kycWebhookEvent, profile, user } from '@zivoe/database/schema';
+
+import { isSupportedCountryCode } from '@/types/countries';
 
 import { type Db } from '@/server/clients/db';
 
@@ -131,9 +132,10 @@ export function createPostgresKycStore({ db }: { db: Db }): KycStore {
       const row = rows[0];
       if (!row) return null;
 
-      // Onboarding stores the country's display name; Persona prefills by ISO code.
+      // Onboarding stores the ISO code Persona prefills by; anything else (a legacy name) prefills nothing.
       const { countryOfResidence, ...rest } = row;
-      return { ...rest, countryCode: countryOfResidence ? (getCode(countryOfResidence) ?? null) : null };
+      const countryCode = countryOfResidence && isSupportedCountryCode(countryOfResidence) ? countryOfResidence : null;
+      return { ...rest, countryCode };
     }
   };
 }
