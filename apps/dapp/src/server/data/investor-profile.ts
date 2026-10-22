@@ -17,7 +17,7 @@ export type InvestorProfile = {
   accountType: AccountType;
   firstName: string;
   lastName: string;
-  /** The country's display name, as onboarding stores it — null for an organization. */
+  /** The country's ISO 3166-1 alpha-2 code, as onboarding stores it — null for an organization. */
   countryOfResidence: string | null;
   email: string;
 };

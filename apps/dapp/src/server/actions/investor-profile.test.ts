@@ -30,7 +30,7 @@ vi.mock('@/server/clients/db', () => ({
 const DETAILS = {
   firstName: 'Ada',
   lastName: 'Lovelace',
-  countryOfResidence: 'United Kingdom of Great Britain and Northern Ireland (the)'
+  countryOfResidence: 'GB'
 };
 
 beforeEach(() => {

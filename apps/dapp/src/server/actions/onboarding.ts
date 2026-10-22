@@ -7,6 +7,8 @@ import * as Sentry from '@sentry/nextjs';
 
 import { profile } from '@zivoe/database/schema';
 
+import { getCountryLabel } from '@/types/countries';
+
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
@@ -72,6 +74,8 @@ export async function completeOnboarding(data: OnboardingFormData) {
   after(async () => {
     const flows = ['schedule-welcome-email', 'schedule-telegram-notification', 'onboarding-posthog-capture'];
     const { id, firstName, lastName, ...rest } = insertData;
+    const countryKey = rest.accountType === 'individual' ? 'countryOfResidence' : 'countryOfIncorporation';
+    const country = rest.accountType === 'individual' ? rest.countryOfResidence : rest.countryOfIncorporation;
 
     const results = await Promise.allSettled([
       qstash.publishJSON({
@@ -85,7 +89,14 @@ export async function completeOnboarding(data: OnboardingFormData) {
 
       qstash.publishJSON({
         url: `${BASE_URL}/api/telegram/onboarding`,
-        body: { userId: session.user.id, email: session.user.email, name: `${firstName} ${lastName}`, ...rest },
+        // Read by people, so the country goes by name rather than its code.
+        body: {
+          userId: session.user.id,
+          email: session.user.email,
+          name: `${firstName} ${lastName}`,
+          ...rest,
+          [countryKey]: getCountryLabel(country)
+        },
         retries: 3,
         deduplicationId: `onboarding-telegram-${session.user.id}`,
         failureCallback: getQstashFailureCallback(BASE_URL),
@@ -99,12 +110,8 @@ export async function completeOnboarding(data: OnboardingFormData) {
           account_type: rest.accountType,
           amount_of_interest: rest.amountOfInterest,
           how_found_zivoe: rest.howFoundZivoe,
-          country:
-            rest.accountType === 'individual'
-              ? rest.countryOfResidence
-              : rest.accountType === 'organization'
-                ? rest.countryOfIncorporation
-                : undefined,
+          country,
+          country_name: getCountryLabel(country),
           $set: { ...rest, authId: id, name: `${firstName} ${lastName}` }
         }
       })

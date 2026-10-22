@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { type AccountType, type AmountOfInterest } from '@zivoe/database/onboarding';
 import { profile, user } from '@zivoe/database/schema';
 
+import { getCountryLabel } from '@/types/countries';
+
 import { db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
 import { redis } from '@/server/clients/redis';
@@ -130,11 +132,12 @@ export function formatChainalysisAlert({
     const name = [person.firstName, person.lastName].filter(Boolean).join(' ') || person.name;
     lines.push(`<b>Who:</b> ${escapeHtml(name)} · ${escapeHtml(person.email)}`);
 
+    const countryName = (code: string | null) => code && getCountryLabel(code);
     const details =
       person.accountType === 'organization'
-        ? ['Organization', person.entityName, person.countryOfIncorporation]
+        ? ['Organization', person.entityName, countryName(person.countryOfIncorporation)]
         : person.accountType === 'individual'
-          ? ['Individual', person.countryOfResidence]
+          ? ['Individual', countryName(person.countryOfResidence)]
           : [];
     if (person.amountOfInterest) details.push(AMOUNT_LABELS[person.amountOfInterest]);
 

@@ -76,7 +76,7 @@ describe('formatChainalysisAlert', () => {
     firstName: 'Ada',
     lastName: 'Lovelace',
     entityName: null,
-    countryOfResidence: 'Philippines (the)',
+    countryOfResidence: 'PH',
     countryOfIncorporation: null,
     amountOfInterest: '100k_250k' as const
   };
@@ -87,7 +87,7 @@ describe('formatChainalysisAlert', () => {
         '🚩 <b>Chainalysis: High risk</b>',
         '<b>Reason:</b> 38% indirect exposure to Gambling',
         '<b>Who:</b> Ada Lovelace · investor@example.com',
-        '<b>Profile:</b> Individual · Philippines (the) · $100k - $250k',
+        '<b>Profile:</b> Individual · Philippines · $100k - $250k',
         `<b>Wallet:</b> <code>${ADDRESS}</code>`,
         '<b>Other wallets:</b> <code>0xaa65</code>'
       ].join('\n')
@@ -100,7 +100,7 @@ describe('formatChainalysisAlert', () => {
       accountType: 'organization' as const,
       entityName: 'Acme & Co',
       countryOfResidence: null,
-      countryOfIncorporation: 'Singapore'
+      countryOfIncorporation: 'SG'
     };
 
     expect(formatChainalysisAlert({ job: JOB, person: organization, otherWallets: [] })).toContain(

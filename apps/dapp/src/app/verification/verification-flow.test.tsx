@@ -74,28 +74,23 @@ vi.mock('@zivoe/ui/core/input', () => ({
     </label>
   )
 }));
-// The select, as a plain input carrying its value; the popover internals are the UI package's to test.
-vi.mock('@zivoe/ui/core/select', () => ({
-  // Its children carry the field's Label; the rest of them render nothing here.
-  Select: ({
-    children,
+vi.mock('@zivoe/ui/core/select', () => ({ SelectTrigger: () => null }));
+// The country field, as a plain input carrying its value; the list is the combo box's to test.
+vi.mock('@/components/country-combo-box', () => ({
+  CountryComboBox: ({
+    label,
     value,
     onChange
   }: {
-    children: ReactNode;
-    value?: string;
-    onChange?: (value: string) => void;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
   }) => (
     <label>
-      {children}
-      <input value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />
+      {label}
+      <input value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
-  ),
-  SelectItem: () => null,
-  SelectListBox: () => null,
-  SelectPopover: () => null,
-  SelectTrigger: () => null,
-  SelectValue: () => null
+  )
 }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: mocks.toast, Toaster: () => null }));
 vi.mock('@sentry/nextjs', () => ({ addBreadcrumb: vi.fn(), captureException: vi.fn() }));
@@ -121,7 +116,7 @@ const profile = (overrides: Partial<InvestorProfile> = {}): InvestorProfile => (
   accountType: 'individual',
   firstName: 'Zivoe',
   lastName: 'Agent',
-  countryOfResidence: 'Romania',
+  countryOfResidence: 'RO',
   email: 'alex+agent@zivoe.com',
   ...overrides
 });
@@ -160,7 +155,7 @@ describe('VerificationFlow', () => {
     expect(screen.getByRole('heading', { name: 'Investor profile' })).toBeTruthy();
     expect(field('First Name').value).toBe('Zivoe');
     expect(field('Last Name').value).toBe('Agent');
-    expect(field('Country Of Residence').value).toBe('Romania');
+    expect(field('Country Of Residence').value).toBe('RO');
     expect(field('Account type')).toMatchObject({ value: 'Individual', readOnly: true });
     expect(field('Email')).toMatchObject({ value: 'alex+agent@zivoe.com', readOnly: true });
     expect(field('First Name').readOnly).toBe(false);
@@ -184,7 +179,7 @@ describe('VerificationFlow', () => {
     expect(mocks.updateInvestorProfile).toHaveBeenCalledWith({
       firstName: 'Ada',
       lastName: 'Agent',
-      countryOfResidence: 'Romania'
+      countryOfResidence: 'RO'
     });
 
     finishSave({ success: true });

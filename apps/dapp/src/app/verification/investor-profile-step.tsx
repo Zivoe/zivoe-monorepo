@@ -7,13 +7,8 @@ import { useMutation } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Button } from '@zivoe/ui/core/button';
-import { FieldError } from '@zivoe/ui/core/field/field-error';
-import { Label } from '@zivoe/ui/core/field/label';
 import { Input } from '@zivoe/ui/core/input';
-import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@zivoe/ui/core/select';
 import { LockIcon } from '@zivoe/ui/icons';
-
-import { COUNTRIES } from '@/types/countries';
 
 import { updateInvestorProfile } from '@/server/actions/investor-profile';
 import { type InvestorProfile } from '@/server/data/investor-profile';
@@ -21,6 +16,8 @@ import { type KycStatusView as KycStatusViewModel } from '@/server/kyc/kyc-statu
 
 import { type InvestorProfileFormData, investorProfileSchema } from '@/lib/schemas/onboarding';
 import { AppError, onTxError } from '@/lib/utils';
+
+import { CountryComboBox } from '@/components/country-combo-box';
 
 import { Auth } from '@/app/(auth)/_components/common';
 
@@ -154,49 +151,13 @@ function IndividualProfileForm({
               control={control}
               name="countryOfResidence"
               render={({ field, fieldState: { error, invalid } }) => (
-                <Select
-                  placeholder="Select"
+                <CountryComboBox
+                  label="Country Of Residence"
                   value={field.value}
                   onChange={field.onChange}
-                  isInvalid={!!error}
-                  className="flex flex-col gap-3"
-                >
-                  {/* Inside the Select, so it names the trigger and a click on it focuses it. */}
-                  <Label>Country Of Residence</Label>
-
-                  <Auth.SelectTrigger isInvalid={invalid}>
-                    <SelectValue>
-                      {({ selectedText, isPlaceholder }) => {
-                        if (isPlaceholder) return 'Select';
-
-                        const selected = COUNTRIES.find((c) => c.value === field.value);
-                        return selected ? (
-                          <span className="flex items-center gap-2">
-                            <span className="text-regular">{selected.flag}</span>
-                            <span>{selectedText}</span>
-                          </span>
-                        ) : (
-                          selectedText
-                        );
-                      }}
-                    </SelectValue>
-                  </Auth.SelectTrigger>
-
-                  <FieldError>{error?.message}</FieldError>
-
-                  <SelectPopover matchTriggerWidth>
-                    <SelectListBox items={COUNTRIES}>
-                      {(item) => (
-                        <SelectItem id={item.value} textValue={item.label}>
-                          <span className="flex items-center gap-2">
-                            <span className="text-regular">{item.flag}</span>
-                            <span>{item.label}</span>
-                          </span>
-                        </SelectItem>
-                      )}
-                    </SelectListBox>
-                  </SelectPopover>
-                </Select>
+                  isInvalid={invalid}
+                  errorMessage={error?.message}
+                />
               )}
             />
 
