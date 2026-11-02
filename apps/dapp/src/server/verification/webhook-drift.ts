@@ -1,4 +1,4 @@
-import { type PersonaApi, type PersonaApiError, type PersonaWebhookConfig } from './kyc-verification';
+import { type PersonaApi, type PersonaApiError, type PersonaWebhookConfig } from './verification';
 
 // ---------------------------------------------------------------------------
 // The Drift check. `PERSONA_SUBSCRIBED_EVENTS` is enforced only after a
@@ -23,8 +23,8 @@ function sameEndpoint(a: string, b: string) {
   return normalize(a) === normalize(b);
 }
 
-/** The relationships the webhook parser reads from every delivery. */
-const PARSED_RELATIONSHIPS = ['account', 'inquiry-template', 'inquiry-template-version'];
+/** The relationships the webhook parsers read: an inquiry's account and template, a case's template and inquiries. */
+const PARSED_RELATIONSHIPS = ['account', 'inquiry-template', 'inquiry-template-version', 'case-template', 'inquiries'];
 
 /**
  * Human-readable findings, empty when the dashboard matches expectations.
@@ -80,7 +80,7 @@ export function diffPersonaWebhookConfig({
     if (withheld.length > 0) {
       findings.push(`${name} withholds the ${withheld.join(', ')} relationship the parser reads`);
     }
-    // Identity data stays in Persona: see docs/runbooks/persona-webhook-attribute-blocklist.md.
+    // Identity data stays in Persona: the blocklist entries are in docs/persona-kyb-local-testing.md §4.
     if (webhook.attributeBlocklist.length === 0) {
       findings.push(`${name} has no attribute blocklist; every delivery carries the investor's identity fields`);
     }
@@ -110,31 +110,30 @@ export type DriftReport = {
   reachable: boolean;
   /** Why, when `reachable` is false. */
   unavailable?: PersonaApiError;
-  /** True when the template's latest published version was read and compared against the pin. */
+  /** True when every pinned template's latest published version was read and compared against its pin. */
   templateChecked: boolean;
-  /** Why the template was not compared although an id was configured: the read failed. Not drift. */
+  /** Why a template was not compared although one was configured: the first read that failed. Not drift. */
   templateUnavailable?: PersonaApiError;
   findings: Array<string>;
 };
 
 /**
  * The Drift check over the Persona port: what the dashboard must have
- * registered for the endpoint, and the template version the app pins. One
- * `check` is two Persona reads; the caller turns the report into alerts.
+ * registered for the endpoint, and the template versions the app pins, one
+ * per flow. One `check` is one Persona read plus one per template; the
+ * caller turns the report into alerts.
  */
 export function createPersonaDriftCheck({
   persona,
-  config: { endpointUrl, expectedEvents, expectedApiVersion, templateVersionId, templateId }
+  config: { endpointUrl, expectedEvents, expectedApiVersion, templates }
 }: {
   persona: Pick<PersonaApi, 'listWebhooks' | 'latestPublishedVersion'>;
   config: {
     endpointUrl: string;
     expectedEvents: ReadonlySet<string>;
     expectedApiVersion: string;
-    /** The version the app creates inquiries on; a newer published one is a finding. */
-    templateVersionId: string;
-    /** The template that version belongs to (`itmpl_…`). Without it the template is not checked. */
-    templateId?: string;
+    /** Each flow's template (`itmpl_…`) and the version the app creates inquiries on; a newer published one is a finding. */
+    templates: ReadonlyArray<{ templateId: string; templateVersionId: string }>;
   };
 }): { check(): Promise<DriftReport> } {
   return {
@@ -152,21 +151,28 @@ export function createPersonaDriftCheck({
         expectedApiVersion
       });
 
-      // The app pins a template version, so a publish in the dashboard changes
-      // nothing until someone bumps the pin — and nothing said a newer version
-      // existed. Persona does not expose templates to sandbox keys; a failed
-      // read is reported as "not checked", never as drift.
-      if (!templateId) return { endpointUrl, reachable: true, templateChecked: false, findings };
-      const latest = await persona.latestPublishedVersion({ templateId });
-      if (!latest.ok) {
-        return { endpointUrl, reachable: true, templateChecked: false, templateUnavailable: latest.error, findings };
+      // The app pins each template's version, so a publish in the dashboard
+      // changes nothing until someone bumps the pin — and nothing said a newer
+      // version existed. Persona does not expose templates to sandbox keys; a
+      // failed read is reported as "not checked", never as drift.
+      if (templates.length === 0) return { endpointUrl, reachable: true, templateChecked: false, findings };
+      // Every pin is compared even when one read fails: the first failure is reported, the rest still count.
+      let templateUnavailable: PersonaApiError | undefined;
+      for (const { templateId, templateVersionId } of templates) {
+        const latest = await persona.latestPublishedVersion({ templateId });
+        if (!latest.ok) {
+          templateUnavailable ??= latest.error;
+          continue;
+        }
+        if (latest.value && latest.value !== templateVersionId) {
+          findings.push(
+            `template ${templateId} has a newer published version ${latest.value}; the app is pinned to ${templateVersionId}`
+          );
+        }
       }
-      if (latest.value && latest.value !== templateVersionId) {
-        findings.push(
-          `template ${templateId} has a newer published version ${latest.value}; the app is pinned to ${templateVersionId}`
-        );
-      }
-      return { endpointUrl, reachable: true, templateChecked: true, findings };
+      return templateUnavailable
+        ? { endpointUrl, reachable: true, templateChecked: false, templateUnavailable, findings }
+        : { endpointUrl, reachable: true, templateChecked: true, findings };
     }
   };
 }

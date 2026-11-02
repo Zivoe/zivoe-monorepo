@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { type PersonaWebhookConfig } from './kyc-verification';
-import { createFakePersonaApi, createManualClock } from './kyc-verification.fakes';
-import { createPersonaDriftCheck, diffPersonaWebhookConfig } from './kyc-webhook-drift';
+import { type PersonaWebhookConfig } from './verification';
+import { createFakePersonaApi, createManualClock } from './verification.fakes';
+import { createPersonaDriftCheck, diffPersonaWebhookConfig } from './webhook-drift';
 
 const ENDPOINT = 'https://app.zivoe.com/api/webhooks/persona';
 const EXPECTED_EVENTS = new Set(['inquiry.approved', 'inquiry.declined', 'workflow-run.errored']);
@@ -78,12 +78,18 @@ describe('diffPersonaWebhookConfig', () => {
     ]);
   });
 
+  it('names a withheld relationship the case parser reads, not only the inquiry ones', () => {
+    expect(
+      diff([webhook({ relationshipAllowlist: ['account', 'inquiry-template', 'inquiry-template-version'] })])
+    ).toEqual(['webhook wbh_1 withholds the case-template, inquiries relationship the parser reads']);
+  });
+
   it('reports a payload shape the parser cannot read', () => {
     expect(
       diff([webhook({ keyInflection: 'camel', relationshipAllowlist: ['account', 'inquiry-template-version'] })])
     ).toEqual([
       'webhook wbh_1 sends camel keys; the parser reads kebab-case',
-      'webhook wbh_1 withholds the inquiry-template relationship the parser reads'
+      'webhook wbh_1 withholds the inquiry-template, case-template, inquiries relationship the parser reads'
     ]);
   });
 
@@ -107,7 +113,7 @@ describe('createPersonaDriftCheck', () => {
   const PINNED = 'itmplv_pinned';
   const UNAVAILABLE = { reason: 'http', message: 'Persona GET failed (403)', httpStatus: 403 } as const;
 
-  function setup({ templateId }: { templateId?: string } = {}) {
+  function setup({ templateIds = [] }: { templateIds?: Array<string> } = {}) {
     const persona = createFakePersonaApi({ clock: createManualClock(new Date('2026-09-07T08:00:00.000Z')).clock });
     const drift = createPersonaDriftCheck({
       persona: persona.persona,
@@ -115,15 +121,14 @@ describe('createPersonaDriftCheck', () => {
         endpointUrl: ENDPOINT,
         expectedEvents: EXPECTED_EVENTS,
         expectedApiVersion: API_VERSION,
-        templateVersionId: PINNED,
-        templateId
+        templates: templateIds.map((templateId) => ({ templateId, templateVersionId: PINNED }))
       }
     });
     return { persona, drift };
   }
 
   it('reports Persona as unreachable rather than as drift, and does not go on to the template', async () => {
-    const { persona, drift } = setup({ templateId: 'itmpl_1' });
+    const { persona, drift } = setup({ templateIds: ['itmpl_1'] });
     persona.failNextCall(UNAVAILABLE);
 
     await expect(drift.check()).resolves.toEqual({
@@ -149,10 +154,11 @@ describe('createPersonaDriftCheck', () => {
     expect(persona.calls.map((call) => call.method)).toEqual(['listWebhooks']);
   });
 
-  it('adds a newer published template version to the webhook findings', async () => {
-    const { persona, drift } = setup({ templateId: 'itmpl_1' });
+  it('adds a newer published version of either pinned template to the webhook findings', async () => {
+    const { persona, drift } = setup({ templateIds: ['itmpl_1', 'itmpl_kyb'] });
     persona.webhooks.push(webhook({ status: 'disabled' }));
-    persona.latestVersions.set('itmpl_1', 'itmplv_newer');
+    persona.latestVersions.set('itmpl_1', PINNED);
+    persona.latestVersions.set('itmpl_kyb', 'itmplv_newer');
 
     await expect(drift.check()).resolves.toEqual({
       endpointUrl: ENDPOINT,
@@ -160,14 +166,20 @@ describe('createPersonaDriftCheck', () => {
       templateChecked: true,
       findings: [
         'webhook wbh_1 is disabled, not enabled',
-        'template itmpl_1 has a newer published version itmplv_newer; the app is pinned to itmplv_pinned'
+        'template itmpl_kyb has a newer published version itmplv_newer; the app is pinned to itmplv_pinned'
       ]
     });
+    expect(persona.calls.map((call) => call.method)).toEqual([
+      'listWebhooks',
+      'latestPublishedVersion',
+      'latestPublishedVersion'
+    ]);
   });
 
-  it('reports a template it could not read as unchecked, never as drift, and keeps the webhook findings', async () => {
-    const { persona, drift } = setup({ templateId: 'itmpl_1' });
+  it('reports a template it could not read as unchecked, never as drift, and still compares the other pin', async () => {
+    const { persona, drift } = setup({ templateIds: ['itmpl_1', 'itmpl_kyb'] });
     persona.webhooks.push(webhook({ enabledEvents: ['*'] }));
+    persona.latestVersions.set('itmpl_kyb', 'itmplv_newer');
     persona.failNextCall(UNAVAILABLE, 'latestPublishedVersion');
 
     await expect(drift.check()).resolves.toEqual({
@@ -175,12 +187,15 @@ describe('createPersonaDriftCheck', () => {
       reachable: true,
       templateChecked: false,
       templateUnavailable: UNAVAILABLE,
-      findings: ["webhook wbh_1 subscribes to every event ('*') instead of exactly the handled set"]
+      findings: [
+        "webhook wbh_1 subscribes to every event ('*') instead of exactly the handled set",
+        'template itmpl_kyb has a newer published version itmplv_newer; the app is pinned to itmplv_pinned'
+      ]
     });
   });
 
   it('treats a template with nothing published as checked and current', async () => {
-    const { persona, drift } = setup({ templateId: 'itmpl_1' });
+    const { persona, drift } = setup({ templateIds: ['itmpl_1'] });
     persona.webhooks.push(webhook());
     persona.latestVersions.set('itmpl_1', null);
 

@@ -3,10 +3,17 @@ import 'server-only';
 import { type Client } from '@upstash/qstash';
 import { z } from 'zod';
 
+import { verificationStatusValues } from '@zivoe/database/kyc';
+
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 
-import { isKycEmailStatus, isKycOperatorStatus } from './kyc-status';
-import { type KycNotification, type Outbox } from './kyc-verification';
+import { type Outbox, type VerificationNotification } from './verification';
+import {
+  DECISION_STATUSES,
+  isOneOf,
+  isVerificationEmailStatus,
+  isVerificationOperatorStatus
+} from './verification-status';
 
 export const KYC_STATUS_EMAIL_PATH = '/api/email/kyc-status';
 export const KYC_OPERATOR_MESSAGE_PATH = '/api/telegram/kyc';
@@ -21,41 +28,59 @@ const jobBodySchema = z.object({
   inquiryId: z.string().min(1),
   status: z.string(),
   /** The transition this job announces, on Persona's clock. */
-  statusChangedAt: z.string().datetime({ offset: true })
+  statusChangedAt: z.string().datetime({ offset: true }),
+  /** Both present on a raw KYB case move; absent on every other job, including those queued before they existed. */
+  caseId: z.string().min(1).optional(),
+  caseStatus: z.string().min(1).optional(),
+  /** Present on a reopen's email and operator jobs; absent on every other job, including those queued before it existed. */
+  reopenedFrom: z.enum(DECISION_STATUSES).optional()
 });
+
+const isVerificationStatus = isOneOf(verificationStatusValues);
 
 /**
  * Null when the body is not a job this outbox produced for that channel — a
  * contract bug, which a retry cannot fix and the route answers as such.
  */
-export function parseKycNotificationJob({
+export function parseVerificationNotificationJob({
   kind,
   body
 }: {
-  kind: KycNotification['kind'];
+  kind: VerificationNotification['kind'];
   body: unknown;
-}): KycNotification | null {
+}): VerificationNotification | null {
   const parsed = jobBodySchema.safeParse(body);
   if (!parsed.success) return null;
 
-  const { userId, inquiryId, status } = parsed.data;
+  const { userId, inquiryId, status, caseId, caseStatus, reopenedFrom } = parsed.data;
   const statusChangedAt = new Date(parsed.data.statusChangedAt);
+  const reopen = reopenedFrom ? { reopenedFrom } : {};
   if (kind === 'status_email') {
-    return isKycEmailStatus(status) ? { kind, userId, inquiryId, status, statusChangedAt } : null;
+    return isVerificationEmailStatus(status)
+      ? { kind: 'status_email', userId, inquiryId, status, statusChangedAt, ...reopen }
+      : null;
   }
-  return isKycOperatorStatus(status) ? { kind, userId, inquiryId, status, statusChangedAt } : null;
+  // The operator channel carries both a transition and a raw case move.
+  if (caseId && caseStatus) {
+    return isVerificationStatus(status)
+      ? { kind: 'case_status', userId, inquiryId, status, statusChangedAt, caseId, caseStatus }
+      : null;
+  }
+  return isVerificationOperatorStatus(status)
+    ? { kind: 'operator_message', userId, inquiryId, status, statusChangedAt, ...reopen }
+    : null;
 }
 
 /**
- * How long the `pending_review` email waits before QStash delivers it. Review
- * is the one emailable status the investor cannot act on, and a review that
- * resolves quickly would otherwise send "under review" and "you're verified"
- * back to back. Held for this long, a fast decision leaves the record past
- * the job and the receiver's directional check drops it — so a quick review
- * sends one email, a slow one still sets expectations. The operator message
- * for the same transition is not held: that is who can clear the review.
+ * How long the `pending_review` email waits before QStash delivers it. Not
+ * to swallow a fast decision — after a review starts only a person decides,
+ * and the investor should hear at once, a reopen above all — but to let the
+ * KYB case settle: the Workflow creates it at Open and moves it to Waiting
+ * on UBOs a fraction of a second later, as a second webhook, and the email
+ * picks its words (the owners' turn or the team's) from the record when it
+ * is sent.
  */
-const PENDING_REVIEW_EMAIL_DELAY = '30m';
+const PENDING_REVIEW_EMAIL_DELAY = '1m';
 /**
  * Every other job waits a few seconds. The write path enqueues before it
  * persists (so a failed persist is retried, not silently unnotified), and
@@ -86,7 +111,13 @@ export function createQstashOutbox({ qstash, baseUrl }: { qstash: Client; baseUr
           userId: notification.userId,
           inquiryId: notification.inquiryId,
           status: notification.status,
-          statusChangedAt: notification.statusChangedAt.toISOString()
+          statusChangedAt: notification.statusChangedAt.toISOString(),
+          ...(notification.kind === 'case_status'
+            ? { caseId: notification.caseId, caseStatus: notification.caseStatus }
+            : {}),
+          ...(notification.kind !== 'case_status' && notification.reopenedFrom
+            ? { reopenedFrom: notification.reopenedFrom }
+            : {})
         },
         retries: 3,
         failureCallback: getQstashFailureCallback(baseUrl),
