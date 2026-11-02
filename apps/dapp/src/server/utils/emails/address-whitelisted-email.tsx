@@ -1,6 +1,6 @@
 import { EMAILS } from '@/lib/emails';
 
-import { KycEmailShell } from './components/kyc-email-shell';
+import { VerificationEmailShell } from './components/verification-email-shell';
 
 /**
  * The one Wallet link email: sent the first time the reconcile sees a linked
@@ -20,7 +20,7 @@ export default function AddressWhitelistedEmail({
   const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
 
   return (
-    <KycEmailShell
+    <VerificationEmailShell
       preview="Your address is whitelisted."
       heading="Your address is whitelisted"
       name={name}

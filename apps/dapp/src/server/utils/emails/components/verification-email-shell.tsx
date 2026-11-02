@@ -3,12 +3,12 @@ import { Heading, Link, Section, Text } from '@react-email/components';
 import { EmailLayout } from './email-layout';
 
 /**
- * The shape every KYC status email shares: a heading, a greeting, body
+ * The shape every verification status email shares: a heading, a greeting, body
  * paragraphs and one button to the verification page. Transactional —
  * no unsubscribe link, no marketing disclosure, and never a token in the
  * URL: the page authenticates the reader itself.
  */
-export function KycEmailShell({
+export function VerificationEmailShell({
   preview,
   heading,
   name,
