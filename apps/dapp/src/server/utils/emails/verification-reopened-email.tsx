@@ -12,15 +12,15 @@ export default function VerificationReopenedEmail({
   name,
   verificationUrl,
   accountType,
-  reopenedFrom
+  previousDecision
 }: {
   name?: string;
   verificationUrl: string;
   accountType: AccountType;
-  reopenedFrom: DecisionStatus;
+  previousDecision: DecisionStatus;
 }) {
   const what = accountType === 'organization' ? "your organization's verification" : 'your identity verification';
-  const wasApproved = reopenedFrom === 'approved';
+  const wasApproved = previousDecision === 'approved';
 
   return (
     <VerificationEmailShell

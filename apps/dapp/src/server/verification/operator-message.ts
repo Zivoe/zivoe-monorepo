@@ -19,14 +19,18 @@ const LABELS: Record<VerificationOperatorStatus, string> = {
   failed: 'Verification failed — awaiting Persona Workflow'
 };
 
-/** What a status line says: the move, with an organization's two moves that mean something else. */
+/** What a status line says: the move, with the moves that mean something else. */
 function statusLine(input: Parameters<OperatorMessenger['send']>[0]): string {
   if (input.kind === 'case_status') return `Case moved to ${input.case.status} (verification ${input.status})`;
+  // A reviewer reversed a Decision: ops may have whitelisted the addresses an approval let them link.
+  if (input.status === 'declined' && input.previousDecision === 'approved')
+    return 'Declined — the approval no longer stands';
+  if (input.status === 'approved' && input.previousDecision === 'declined') return 'Approved after a decline';
   if (input.accountType !== 'organization') return LABELS[input.status];
   // A reviewer took a Decision back by reopening the case: a review, like the email's check.
-  if (input.status === 'pending_review' && input.reopenedFrom === 'approved')
+  if (input.status === 'pending_review' && input.previousDecision === 'approved')
     return 'KYB case reopened — the approval no longer stands';
-  if (input.status === 'pending_review' && input.reopenedFrom === 'declined')
+  if (input.status === 'pending_review' && input.previousDecision === 'declined')
     return 'KYB case reopened after a decline';
   // The KYB Workflow opened the case; who it waits on is the case line below.
   if (input.status === 'pending_review') return 'KYB case opened';

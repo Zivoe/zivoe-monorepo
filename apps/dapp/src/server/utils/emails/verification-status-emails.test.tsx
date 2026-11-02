@@ -29,13 +29,13 @@ describe('Verification status emails', () => {
   });
 
   it('tells a reopened organization that its wallets stop after an approval, and that nothing is needed after a decline', async () => {
-    const reopened = (reopenedFrom: 'approved' | 'declined') =>
+    const reopened = (previousDecision: 'approved' | 'declined') =>
       render(
         VerificationReopenedEmail({
           name: 'Grace',
           verificationUrl: VERIFICATION_URL,
           accountType: 'organization',
-          reopenedFrom
+          previousDecision
         })
       );
 
@@ -48,6 +48,21 @@ describe('Verification status emails', () => {
     const afterDecline = await reopened('declined');
     expect(afterDecline).toContain('nothing you need to do');
     expect(afterDecline).not.toContain('whitelist');
+  });
+
+  it('tells a declined investor their wallets stop only when the decline reversed an approval', async () => {
+    const declined = (previousDecision?: 'approved') =>
+      render(
+        VerificationDeclinedEmail({
+          name: 'Ada',
+          verificationUrl: VERIFICATION_URL,
+          accountType: 'individual',
+          previousDecision
+        })
+      );
+
+    expect(await declined('approved')).toContain('removed from the whitelist');
+    expect(await declined()).not.toContain('whitelist');
   });
 
   it('tells an approved investor the wallet step is what remains', async () => {

@@ -32,8 +32,8 @@ const jobBodySchema = z.object({
   /** Both present on a raw KYB case move; absent on every other job, including those queued before they existed. */
   caseId: z.string().min(1).optional(),
   caseStatus: z.string().min(1).optional(),
-  /** Present on a reopen's email and operator jobs; absent on every other job, including those queued before it existed. */
-  reopenedFrom: z.enum(DECISION_STATUSES).optional()
+  /** Present on a reopen's or a reversal's email and operator jobs; absent on every other job, including those queued before it existed. */
+  previousDecision: z.enum(DECISION_STATUSES).optional()
 });
 
 const isVerificationStatus = isOneOf(verificationStatusValues);
@@ -52,9 +52,9 @@ export function parseVerificationNotificationJob({
   const parsed = jobBodySchema.safeParse(body);
   if (!parsed.success) return null;
 
-  const { userId, inquiryId, status, caseId, caseStatus, reopenedFrom } = parsed.data;
+  const { userId, inquiryId, status, caseId, caseStatus, previousDecision } = parsed.data;
   const statusChangedAt = new Date(parsed.data.statusChangedAt);
-  const reopen = reopenedFrom ? { reopenedFrom } : {};
+  const reopen = previousDecision ? { previousDecision } : {};
   if (kind === 'status_email') {
     return isVerificationEmailStatus(status)
       ? { kind: 'status_email', userId, inquiryId, status, statusChangedAt, ...reopen }
@@ -115,8 +115,8 @@ export function createQstashOutbox({ qstash, baseUrl }: { qstash: Client; baseUr
           ...(notification.kind === 'case_status'
             ? { caseId: notification.caseId, caseStatus: notification.caseStatus }
             : {}),
-          ...(notification.kind !== 'case_status' && notification.reopenedFrom
-            ? { reopenedFrom: notification.reopenedFrom }
+          ...(notification.kind !== 'case_status' && notification.previousDecision
+            ? { previousDecision: notification.previousDecision }
             : {})
         },
         retries: 3,

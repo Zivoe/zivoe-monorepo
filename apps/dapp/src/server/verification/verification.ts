@@ -269,12 +269,13 @@ export type VerificationNotification = {
   statusChangedAt: Date;
 } &
   /**
-   * `reopenedFrom` marks a reopen: the organization's KYB case moved off
-   * this Decision back into review. Absent on every other transition, and
-   * on jobs queued before it existed.
+   * `previousDecision` is the Decision the transition took the record off:
+   * a reopen (the organization's KYB case moved back into review) or a
+   * reversal (a reviewer moved the inquiry or case to the other Decision).
+   * Absent on every other transition, and on jobs queued before it existed.
    */
-  (| { kind: 'status_email'; status: VerificationEmailStatus; reopenedFrom?: DecisionStatus }
-    | { kind: 'operator_message'; status: VerificationOperatorStatus; reopenedFrom?: DecisionStatus }
+  (| { kind: 'status_email'; status: VerificationEmailStatus; previousDecision?: DecisionStatus }
+    | { kind: 'operator_message'; status: VerificationOperatorStatus; previousDecision?: DecisionStatus }
     /**
      * A raw KYB case move the Verification Status did not follow — the
      * owners done and the team's turn. `status` and
@@ -305,8 +306,8 @@ export type StatusEmailSender = {
     accountType: AccountType;
     /** For an organization's review email: who the KYB case waits on at the time of sending. */
     caseWaitingOn: 'people' | 'team' | null;
-    /** For a review email: the Decision a reopened KYB case took back, when it was one. */
-    reopenedFrom?: DecisionStatus;
+    /** The Decision a reopen or a reversal took back, when the transition was one. */
+    previousDecision?: DecisionStatus;
     inquiryId: string;
     statusChangedAt: Date;
   }): Promise<void>;
@@ -331,8 +332,8 @@ export type OperatorMessenger = {
           kind: 'status';
           status: VerificationOperatorStatus;
           case: { id: string; status: string } | null;
-          /** The Decision a reopened KYB case took back, when the move is one. */
-          reopenedFrom?: DecisionStatus;
+          /** The Decision a reopen or a reversal took back, when the move is one. */
+          previousDecision?: DecisionStatus;
         }
       /** A raw case move: the case as moved, and the Verification Status the record keeps meanwhile. */
       | { kind: 'case_status'; status: VerificationStatus; case: { id: string; status: string } }
@@ -1672,7 +1673,7 @@ export function createVerification({
             kind: 'status',
             status: notification.status,
             case: recordCase,
-            ...(notification.reopenedFrom ? { reopenedFrom: notification.reopenedFrom } : {})
+            ...(notification.previousDecision ? { previousDecision: notification.previousDecision } : {})
           })
         );
       }
@@ -1687,7 +1688,7 @@ export function createVerification({
           status: notification.status,
           accountType: profile.accountType,
           caseWaitingOn: caseWaitingOnFor(record, profile.accountType),
-          ...(notification.reopenedFrom ? { reopenedFrom: notification.reopenedFrom } : {}),
+          ...(notification.previousDecision ? { previousDecision: notification.previousDecision } : {}),
           inquiryId,
           statusChangedAt
         })

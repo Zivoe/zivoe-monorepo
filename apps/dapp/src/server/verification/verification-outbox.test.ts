@@ -132,8 +132,8 @@ describe('the wire contract between the outbox and its receivers', () => {
   it.each([
     emailJob('approved'),
     operatorJob('submitted'),
-    { ...emailJob('pending_review'), reopenedFrom: 'approved' } as const,
-    { ...operatorJob('pending_review'), reopenedFrom: 'declined' } as const
+    { ...emailJob('pending_review'), previousDecision: 'approved' } as const,
+    { ...operatorJob('pending_review'), previousDecision: 'declined' } as const
   ])('publishes a body the receiver parses back to the same $kind', async (notification) => {
     const { published, outbox } = setup();
 

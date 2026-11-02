@@ -128,6 +128,13 @@ export function decide({
   const reopenedFrom: DecisionStatus | undefined =
     reopen && record && isDecision(record.status) && !isDecision(snapshot.status) ? record.status : undefined;
   const regression = !!record && isDecision(record.status) && !isDecision(snapshot.status) && !reopenedFrom;
+  // The Decision this transition takes the record off, for the words of its
+  // notifications: a reopen back into review, or a reversal to the other Decision.
+  const reversedFrom: DecisionStatus | undefined =
+    record && isDecision(record.status) && isDecision(snapshot.status) && record.status !== snapshot.status
+      ? record.status
+      : undefined;
+  const previousDecision = reopenedFrom ?? reversedFrom;
   // A status that stands keeps the record where it is; only the case it
   // follows on that same inquiry may move, so this is never a transition.
   const sameInquiry = record?.personaInquiryId === snapshot.inquiryId;
@@ -197,7 +204,12 @@ export function decide({
     };
   }
 
-  const base = { userId, inquiryId: snapshot.inquiryId, statusChangedAt, ...(reopenedFrom ? { reopenedFrom } : {}) };
+  const base = {
+    userId,
+    inquiryId: snapshot.inquiryId,
+    statusChangedAt,
+    ...(previousDecision ? { previousDecision } : {})
+  };
   const notifications: Array<VerificationNotification> = [];
   // An expiry for an inquiry the app has no record of — one made in the
   // dashboard, or a start whose record write was lost — is not a nudge worth

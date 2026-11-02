@@ -62,29 +62,35 @@ describe('the operator message', () => {
   });
 
   it('says a reopen took a Decision back, and which one', () => {
-    const line = (reopenedFrom: 'approved' | 'declined') =>
+    const line = (previousDecision: 'approved' | 'declined') =>
       formatOperatorMessage({
         ...LINE,
         accountType: 'organization',
         case: { id: 'case_1', status: 'Open' },
         kind: 'status',
         status: 'pending_review',
-        reopenedFrom
+        previousDecision
       });
 
     expect(line('approved')).toContain('<b>Status:</b> KYB case reopened — the approval no longer stands');
     expect(line('declined')).toContain('<b>Status:</b> KYB case reopened after a decline');
-    // Only a review is a reopen; any other status reads as itself.
-    expect(
+  });
+
+  it('says a reversal took the other Decision back, for either flow', () => {
+    const line = (input: { accountType: 'individual' | 'organization'; status: 'approved' | 'declined' }) =>
       formatOperatorMessage({
         ...LINE,
-        accountType: 'organization',
-        case: null,
+        ...input,
         kind: 'status',
-        status: 'approved',
-        reopenedFrom: 'declined'
-      })
-    ).toContain('<b>Status:</b> Approved');
+        previousDecision: input.status === 'approved' ? 'declined' : 'approved'
+      });
+
+    expect(line({ accountType: 'individual', status: 'declined' })).toContain(
+      '<b>Status:</b> Declined — the approval no longer stands'
+    );
+    expect(line({ accountType: 'organization', status: 'approved' })).toContain(
+      '<b>Status:</b> Approved after a decline'
+    );
   });
 
   it('posts to the channel it was wired with', async () => {

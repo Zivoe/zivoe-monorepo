@@ -1745,9 +1745,10 @@ describe('reconcile', () => {
 
       expect(await s.verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 1 });
       expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'declined', personaInquiryId: 'inq_seeded' });
-      expect(s.outbox.notifications.map((job) => `${job.kind}:${job.status}`)).toEqual([
-        'status_email:declined',
-        'operator_message:declined'
+      // Both say the approval it took back, so the words can tell the investor their wallets stop.
+      expect(s.outbox.notifications).toEqual([
+        expect.objectContaining({ kind: 'status_email', status: 'declined', previousDecision: 'approved' }),
+        expect.objectContaining({ kind: 'operator_message', status: 'declined', previousDecision: 'approved' })
       ]);
       expect(s.approvalsEnded).toEqual([USER_ID]);
 
@@ -2813,8 +2814,8 @@ describe('the organization flow', () => {
       statusChangedAt: new Date(T0.getTime() + MINUTE)
     });
     expect(outbox.notifications).toEqual([
-      expect.objectContaining({ kind: 'status_email', status: 'pending_review', reopenedFrom: 'approved' }),
-      expect.objectContaining({ kind: 'operator_message', status: 'pending_review', reopenedFrom: 'approved' })
+      expect.objectContaining({ kind: 'status_email', status: 'pending_review', previousDecision: 'approved' }),
+      expect.objectContaining({ kind: 'operator_message', status: 'pending_review', previousDecision: 'approved' })
     ]);
 
     // Approved again: a transition like the first approval, announced the same way.
@@ -2858,9 +2859,9 @@ describe('the organization flow', () => {
       await expect(verification.deliverNotification({ notification })).resolves.toEqual({ ok: true, value: 'sent' });
     }
 
-    expect(emails.sent).toEqual([expect.objectContaining({ status: 'pending_review', reopenedFrom: 'declined' })]);
+    expect(emails.sent).toEqual([expect.objectContaining({ status: 'pending_review', previousDecision: 'declined' })]);
     expect(operator.sent).toEqual([
-      expect.objectContaining({ kind: 'status', status: 'pending_review', reopenedFrom: 'declined' })
+      expect.objectContaining({ kind: 'status', status: 'pending_review', previousDecision: 'declined' })
     ]);
   });
 
@@ -2869,7 +2870,7 @@ describe('the organization flow', () => {
     seedRecord({ status: 'submitted' });
 
     await caseDelivery({ verification, name: 'case.created', status: 'Open' });
-    expect(outbox.notifications.some((job) => 'reopenedFrom' in job)).toBe(false);
+    expect(outbox.notifications.some((job) => 'previousDecision' in job)).toBe(false);
   });
 
   it('tells the Wallet link at once when a yes is taken back, and only then', async () => {
@@ -3273,8 +3274,8 @@ describe('the organization flow', () => {
     expect(await verification.reconcile({ now: clock.clock.now() })).toMatchObject({ checked: 1, changed: 1 });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'pending_review', personaCaseStatus: 'Open' });
     expect(outbox.notifications).toEqual([
-      expect.objectContaining({ kind: 'status_email', reopenedFrom: 'approved' }),
-      expect.objectContaining({ kind: 'operator_message', reopenedFrom: 'approved' })
+      expect.objectContaining({ kind: 'status_email', previousDecision: 'approved' }),
+      expect.objectContaining({ kind: 'operator_message', previousDecision: 'approved' })
     ]);
     expect(approvalsEnded).toEqual([USER_ID]);
   });
@@ -3424,8 +3425,8 @@ describe('the organization flow', () => {
       personaCaseStatus: 'Open'
     });
     expect(outbox.notifications).toEqual([
-      expect.objectContaining({ kind: 'status_email', reopenedFrom: 'approved' }),
-      expect.objectContaining({ kind: 'operator_message', reopenedFrom: 'approved' })
+      expect.objectContaining({ kind: 'status_email', previousDecision: 'approved' }),
+      expect.objectContaining({ kind: 'operator_message', previousDecision: 'approved' })
     ]);
   });
 
@@ -3460,8 +3461,8 @@ describe('the organization flow', () => {
       personaCaseStatus: 'Open'
     });
     expect(outbox.notifications).toEqual([
-      expect.objectContaining({ kind: 'status_email', reopenedFrom: 'approved' }),
-      expect.objectContaining({ kind: 'operator_message', reopenedFrom: 'approved' })
+      expect.objectContaining({ kind: 'status_email', previousDecision: 'approved' }),
+      expect.objectContaining({ kind: 'operator_message', previousDecision: 'approved' })
     ]);
   });
 

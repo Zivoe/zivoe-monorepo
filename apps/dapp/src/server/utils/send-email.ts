@@ -216,6 +216,8 @@ const VERIFICATION_EMAILS: Record<
       verificationUrl: string;
       accountType: AccountType;
       caseWaitingOn: 'people' | 'team' | null;
+      /** The Decision a reviewer reversed, when the email announces a reversal. */
+      previousDecision?: DecisionStatus;
     }) => ReactElement;
   }
 > = {
@@ -271,7 +273,7 @@ export async function sendVerificationStatusEmail({
   status,
   accountType,
   caseWaitingOn,
-  reopenedFrom,
+  previousDecision,
   inquiryId,
   statusChangedAt
 }: {
@@ -280,19 +282,19 @@ export async function sendVerificationStatusEmail({
   status: VerificationEmailStatus;
   accountType: AccountType;
   caseWaitingOn: 'people' | 'team' | null;
-  reopenedFrom?: DecisionStatus;
+  previousDecision?: DecisionStatus;
   inquiryId: string;
   statusChangedAt: Date;
 }) {
   const verificationUrl = `${BASE_URL}/verification`;
-  const reopen = status === 'pending_review' && reopenedFrom;
+  const reopen = status === 'pending_review' && previousDecision;
   const subject = reopen
     ? VERIFICATION_REOPENED_SUBJECTS[accountType]
     : VERIFICATION_EMAILS[status].subject[accountType];
   const html = await render(
     reopen
-      ? VerificationReopenedEmail({ name, verificationUrl, accountType, reopenedFrom })
-      : VERIFICATION_EMAILS[status].render({ name, verificationUrl, accountType, caseWaitingOn })
+      ? VerificationReopenedEmail({ name, verificationUrl, accountType, previousDecision })
+      : VERIFICATION_EMAILS[status].render({ name, verificationUrl, accountType, caseWaitingOn, previousDecision })
   );
 
   return handleIdempotentResult(

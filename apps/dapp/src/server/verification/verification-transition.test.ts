@@ -89,8 +89,8 @@ describe('decide', () => {
       outcome: 'changed',
       next: { status: 'pending_review' },
       notifications: [
-        { kind: 'status_email', reopenedFrom: 'approved' },
-        { kind: 'operator_message', reopenedFrom: 'approved' }
+        { kind: 'status_email', previousDecision: 'approved' },
+        { kind: 'operator_message', previousDecision: 'approved' }
       ]
     });
     // A status the configuration does not know keeps the Decision, and the feed hears the move.
