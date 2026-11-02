@@ -6,7 +6,7 @@ import { type DecisionStatus } from '../../verification/verification-status';
 import { VerificationEmailShell } from './components/verification-email-shell';
 
 /**
- * The decline email. After an approval a reviewer reversed, it also says what
+ * The decline email. After an approval a reviewer or a resync reversed, it also says what
  * stops — linking, and the wallets already linked — so a failing deposit is
  * not the first sign.
  */

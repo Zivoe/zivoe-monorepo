@@ -135,7 +135,10 @@ export function decide({
     record && isDecision(record.status) ? record.status : record?.status === 'manually_approved' ? 'approved' : null;
   const reversedFrom: DecisionStatus | undefined =
     held && isDecision(snapshot.status) && held !== snapshot.status ? held : undefined;
-  const previousDecision = reopenedFrom ?? reversedFrom;
+  // A resync handing an operator's approval back to a review takes it back like a reopen.
+  const releasedToReview: DecisionStatus | undefined =
+    releasing && held === 'approved' && snapshot.status === 'pending_review' ? held : undefined;
+  const previousDecision = reopenedFrom ?? reversedFrom ?? releasedToReview;
   // A status that stands keeps the record where it is; only the case it
   // follows on that same inquiry may move, so this is never a transition.
   const sameInquiry = record?.personaInquiryId === snapshot.inquiryId;

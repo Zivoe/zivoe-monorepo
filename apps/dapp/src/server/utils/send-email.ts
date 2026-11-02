@@ -216,7 +216,7 @@ const VERIFICATION_EMAILS: Record<
       verificationUrl: string;
       accountType: AccountType;
       caseWaitingOn: 'people' | 'team' | null;
-      /** The Decision a reviewer reversed, when the email announces a reversal. */
+      /** The Decision a reversal took back, when the email announces one. */
       previousDecision?: DecisionStatus;
     }) => ReactElement;
   }

@@ -22,7 +22,7 @@ const LABELS: Record<VerificationOperatorStatus, string> = {
 /** What a status line says: the move, with the moves that mean something else. */
 function statusLine(input: Parameters<OperatorMessenger['send']>[0]): string {
   if (input.kind === 'case_status') return `Case moved to ${input.case.status} (verification ${input.status})`;
-  // A reviewer reversed a Decision: ops may have whitelisted the addresses an approval let them link.
+  // A reviewer, or a resync, reversed a Decision: ops may have whitelisted the addresses an approval let them link.
   if (input.status === 'declined' && input.previousDecision === 'approved')
     return 'Declined — the approval no longer stands';
   if (input.status === 'approved' && input.previousDecision === 'declined') return 'Approved after a decline';

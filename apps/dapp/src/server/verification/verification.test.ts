@@ -2412,6 +2412,10 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
       value: { from: 'manually_approved', to: 'pending_review' }
     });
     expect(reviewing.approvalsEnded).toEqual([USER_ID]);
+    // Its email is the reopen's, which says the linked wallets come off the whitelist.
+    expect(reviewing.outbox.notifications).toContainEqual(
+      expect.objectContaining({ kind: 'status_email', status: 'pending_review', previousDecision: 'approved' })
+    );
 
     const approved = setup();
     approved.seedRecord({ status: 'manually_approved' });

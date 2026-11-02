@@ -270,8 +270,9 @@ export type VerificationNotification = {
 } &
   /**
    * `previousDecision` is the Decision the transition took the record off:
-   * a reopen (the organization's KYB case moved back into review) or a
-   * reversal (a reviewer moved the inquiry or case to the other Decision).
+   * a reopen (the organization's KYB case moved back into review, or a
+   * resync handed an operator's approval back to a review) or a reversal (a
+   * reviewer or a resync moved the record to the other Decision).
    * Absent on every other transition, and on jobs queued before it existed.
    */
   (| { kind: 'status_email'; status: VerificationEmailStatus; previousDecision?: DecisionStatus }
