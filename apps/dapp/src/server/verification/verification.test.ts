@@ -50,7 +50,7 @@ const ORGANIZATION_FLOW = {
   caseStatuses: KYB_CASE_STATUS_SETS
 } as const;
 
-function setup({ organization = false }: { organization?: boolean } = {}) {
+function setup() {
   const manualClock = createManualClock(T0);
   const memoryStore = createInMemoryVerificationStore();
   const fakePersona = createFakePersonaApi({ clock: manualClock.clock });
@@ -77,7 +77,7 @@ function setup({ organization = false }: { organization?: boolean } = {}) {
     // Most fixtures name no template at all, so they also prove that such an inquiry is let through.
     config: {
       webhookSecret: WEBHOOK_SECRET,
-      flows: { individual: INDIVIDUAL_FLOW, ...(organization ? { organization: ORGANIZATION_FLOW } : {}) }
+      flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW }
     }
   });
 
@@ -888,7 +888,7 @@ describe('startVerification', () => {
       persona: s.persona.persona,
       clock: s.clock.clock,
       outbox: { enqueue: () => new Promise<void>(() => undefined) },
-      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW } }
+      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW } }
     });
 
     vi.useFakeTimers();
@@ -1083,7 +1083,7 @@ describe('startVerification', () => {
       },
       outbox: s.outbox.outbox,
       clock: s.clock.clock,
-      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW } }
+      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW } }
     });
     s.persona.inquiries.set('inq_seeded', {
       id: 'inq_seeded',
@@ -1167,18 +1167,6 @@ describe('startVerification', () => {
     });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries']);
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'pending_review', personaInquiryId: 'inq_seeded' });
-  });
-
-  it('refuses organization accounts before consulting the status while their flow is not configured', async () => {
-    const { verification, store, persona } = setup();
-    store.profiles.set(USER_ID, { ...INDIVIDUAL_PROFILE, accountType: 'organization' });
-
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
-      ok: false,
-      error: { code: 'organization' }
-    });
-    expect(persona.calls).toHaveLength(0);
-    expect(store.records.size).toBe(0);
   });
 
   it('refuses a user who has not completed onboarding', async () => {
@@ -1322,7 +1310,7 @@ describe('reconcile', () => {
       },
       outbox: s.outbox.outbox,
       clock: s.clock.clock,
-      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW } }
+      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW } }
     });
 
     const sweep = verification.reconcile({ now: T0 });
@@ -1392,7 +1380,7 @@ describe('reconcile', () => {
         }
       },
       clock: s.clock.clock,
-      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW } }
+      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW } }
     });
 
     const start = verification.startVerification({ userId: USER_ID });
@@ -1560,7 +1548,11 @@ describe('reconcile', () => {
       persona: s.persona.persona,
       outbox: s.outbox.outbox,
       clock: { now: () => s.clock.clock.now() },
-      config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW }, reconcileBudgetMs: 0 }
+      config: {
+        webhookSecret: WEBHOOK_SECRET,
+        flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW },
+        reconcileBudgetMs: 0
+      }
     });
     for (const userId of ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6']) {
       seedSynced({ setup: s, userId, status: 'submitted', personaStatus: 'approved', staleMinutes: 45 });
@@ -2505,24 +2497,13 @@ const ORGANIZATION_PROFILE = {
 } as const;
 
 function setupOrganization() {
-  const s = setup({ organization: true });
+  const s = setup();
   s.store.profiles.set(USER_ID, ORGANIZATION_PROFILE);
   return s;
 }
 
 describe('the organization flow', () => {
-  it('lets an organization start once its flow is configured, where an unconfigured one is refused', async () => {
-    const off = setup();
-    off.store.profiles.set(USER_ID, ORGANIZATION_PROFILE);
-    await expect(off.verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
-      path: 'organization',
-      canStart: false
-    });
-    await expect(off.verification.startVerification({ userId: USER_ID })).resolves.toEqual({
-      ok: false,
-      error: { code: 'organization' }
-    });
-
+  it('lets an organization start', async () => {
     const { verification } = setupOrganization();
     await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toEqual({
       status: 'not_started',
@@ -2578,7 +2559,7 @@ describe('the organization flow', () => {
     });
     expect(org.store.records.get(USER_ID)?.status).toBe('in_progress');
 
-    const individual = setup({ organization: true });
+    const individual = setup();
     individual.seedRecord({ status: 'in_progress' });
     await expect(
       delivery({
@@ -3105,16 +3086,6 @@ describe('the organization flow', () => {
     expect(store.records.get(USER_ID)?.status).toBe('submitted');
   });
 
-  it('ignores every case while the organization flow is not configured', async () => {
-    const { verification, seedRecord } = setup();
-    seedRecord({ status: 'submitted' });
-
-    await expect(caseDelivery({ verification, status: 'Approved' })).resolves.toMatchObject({
-      ok: true,
-      value: { outcome: 'ignored', reason: 'foreign_case' }
-    });
-  });
-
   it('names a case none of whose inquiries any record follows, for someone to look at', async () => {
     const { verification } = setupOrganization();
 
@@ -3127,7 +3098,7 @@ describe('the organization flow', () => {
   });
 
   it("names a case on an individual's inquiry, and a second case on the organization's", async () => {
-    const individual = setup({ organization: true });
+    const individual = setup();
     individual.seedRecord({ status: 'submitted' });
     await expect(caseDelivery({ verification: individual.verification, status: 'Approved' })).resolves.toMatchObject({
       ok: true,
@@ -3598,31 +3569,6 @@ describe('the organization flow', () => {
       changed: 1
     });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'declined', personaCaseId: 'case_1' });
-  });
-
-  it('leaves an organization as it is on a resync while its flow is not configured', async () => {
-    const { verification, store, seedRecord } = setup();
-    store.profiles.set(USER_ID, ORGANIZATION_PROFILE);
-    seedRecord({ status: 'revoked' });
-
-    await expect(verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
-      ok: true,
-      value: { from: 'revoked', to: 'revoked', inquiryId: null, path: 'organization', case: null }
-    });
-    expect(store.records.get(USER_ID)?.status).toBe('revoked');
-  });
-
-  it('confirms an organization the sweep cannot read while its flow is not configured, so it waits its cadence', async () => {
-    const { verification, store, persona, clock, seedRecord } = setup();
-    store.profiles.set(USER_ID, ORGANIZATION_PROFILE);
-    const stale = new Date(T0.getTime() - 7 * 60 * MINUTE);
-    seedRecord({ status: 'pending_review', statusChangedAt: stale, lastSyncedAt: stale });
-
-    expect(await verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 0 });
-    expect(store.records.get(USER_ID)).toMatchObject({ status: 'pending_review', lastSyncedAt: T0 });
-    expect(persona.calls).toHaveLength(0);
-    clock.advance(15 * MINUTE);
-    expect(await verification.reconcile({ now: clock.clock.now() })).toMatchObject({ checked: 0 });
   });
 
   it("releases a revoked organization to its case's decision on a resync", async () => {

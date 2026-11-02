@@ -12,7 +12,6 @@ import { LockIcon } from '@zivoe/ui/icons';
 
 import { updateInvestorProfile } from '@/server/actions/investor-profile';
 import { type InvestorProfile } from '@/server/data/investor-profile';
-import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
 import {
   type InvestorProfileFormData,
@@ -26,8 +25,6 @@ import { CountryComboBox } from '@/components/country-combo-box';
 
 import { Auth } from '@/app/(auth)/_components/common';
 
-import { VerificationStatusView } from './verification-status-view';
-
 const ACCOUNT_TYPE_LABELS: Record<InvestorProfile['accountType'], string> = {
   individual: 'Individual',
   organization: 'Organization'
@@ -39,37 +36,16 @@ const ACCOUNT_TYPE_LABELS: Record<InvestorProfile['accountType'], string> = {
  * and the email are shown locked — the first is a decision onboarding made,
  * the second the sign-in identity. An individual confirms the person, an
  * organization the entity and the person filling the form in, and either
- * saves and moves on. An organization whose flow is not yet configured sees
- * the step locked instead, with the team as the way forward.
+ * saves and moves on.
  */
 export function InvestorProfileStep({
   profile,
-  view,
   onSaved
 }: {
   profile: InvestorProfile;
-  view: VerificationStatusViewModel;
   onSaved: (profile: InvestorProfile) => void;
 }) {
-  if (profile.accountType === 'organization' && view.canStart) {
-    return <OrganizationProfileForm profile={profile} onSaved={onSaved} />;
-  }
-
-  if (profile.accountType === 'organization') {
-    return (
-      <>
-        <Auth.Header title="Investor profile" description="Your account is registered as an organization.">
-          <Auth.StepIndicator>Step 1 of 3</Auth.StepIndicator>
-        </Auth.Header>
-
-        <div className="flex flex-col gap-7">
-          <LockedField label="Account type" value={ACCOUNT_TYPE_LABELS[profile.accountType]} />
-          <VerificationStatusView view={view} />
-        </div>
-      </>
-    );
-  }
-
+  if (profile.accountType === 'organization') return <OrganizationProfileForm profile={profile} onSaved={onSaved} />;
   return <IndividualProfileForm profile={profile} onSaved={onSaved} />;
 }
 

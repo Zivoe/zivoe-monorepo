@@ -27,13 +27,13 @@ export const env = createEnv({
     // The investor template the pinned version belongs to (`itmpl_…`): inquiries on any other
     // template are ignored, and the daily drift check notices a newer published version.
     PERSONA_TEMPLATE_ID: z.string(),
-    // Persona (KYB) — the organization flow, on when the four ids are set (all or none): the
-    // business template and version, the Business account type the auto-created account must have,
-    // and the KYB case template. Case status mappings live in server/verification/verification-status.ts.
-    PERSONA_KYB_TEMPLATE_ID: z.string().optional(),
-    PERSONA_KYB_TEMPLATE_VERSION_ID: z.string().optional(),
-    PERSONA_KYB_ACCOUNT_TYPE_ID: z.string().optional(),
-    PERSONA_KYB_CASE_TEMPLATE_ID: z.string().optional(),
+    // Persona (KYB) — the organization flow: the business template and version, the Business
+    // account type the auto-created account must have, and the KYB case template. Case status
+    // mappings live in server/verification/verification-status.ts.
+    PERSONA_KYB_TEMPLATE_ID: z.string(),
+    PERSONA_KYB_TEMPLATE_VERSION_ID: z.string(),
+    PERSONA_KYB_ACCOUNT_TYPE_ID: z.string(),
+    PERSONA_KYB_CASE_TEMPLATE_ID: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
@@ -173,20 +173,3 @@ export const env = createEnv({
   skipValidation: Boolean(process.env.SKIP_ENV_VALIDATION),
   emptyStringAsUndefined: true
 });
-
-// The organization flow's ids are set together or not at all: a half-set
-// group would silently leave organizations on the team path, so it fails
-// here, at boot, rather than on the first request that reaches Persona.
-// Read from process.env, not the proxy: server keys throw when this module
-// is bundled for the client, where these are inlined as undefined.
-const kybGroup = [
-  process.env.PERSONA_KYB_TEMPLATE_ID,
-  process.env.PERSONA_KYB_TEMPLATE_VERSION_ID,
-  process.env.PERSONA_KYB_ACCOUNT_TYPE_ID,
-  process.env.PERSONA_KYB_CASE_TEMPLATE_ID
-];
-if (!process.env.SKIP_ENV_VALIDATION && kybGroup.some(Boolean) && !kybGroup.every(Boolean)) {
-  throw new Error(
-    'PERSONA_KYB_* must be set together: the template, its version, the account type and the case template'
-  );
-}

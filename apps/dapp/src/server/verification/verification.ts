@@ -360,7 +360,7 @@ export type Clock = { now(): Date };
 // ---------------------------------------------------------------------------
 
 export type StartVerificationError =
-  | { code: StartRefusal | 'organization' | 'profile_missing' }
+  | { code: StartRefusal | 'profile_missing' }
   | { code: 'persona_unavailable'; cause: PersonaApiError }
   /** The re-read before the start applied a transition whose notifications could not be queued; nothing was persisted. */
   | { code: 'queue_unavailable'; cause: unknown };
@@ -404,7 +404,7 @@ export type WebhookIgnoredReason =
    * decides an organization, so the event is dropped and the route alerts.
    */
   | 'case_decides'
-  /** A case on another case template (a KYC review's), or any case while the organization flow is off. */
+  /** A case on another case template (a KYC review's). */
   | 'foreign_case'
   /**
    * A KYB case none of whose inquiries any record follows: a start whose
@@ -586,8 +586,7 @@ export type VerificationConfig = {
   webhookSecret: string;
   flows: {
     individual: KycFlowConfig;
-    /** Absent until the KYB environment is configured: an organization is then refused as before. */
-    organization?: KybFlowConfig;
+    organization: KybFlowConfig;
   };
   /** How long a sync stays fresh for the sweep: a record confirmed more recently than this is not re-read. */
   staleAfterMs?: number;
@@ -776,7 +775,7 @@ export function createVerification({
     // another one decides again on the present; the store holds no rules.
     for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt += 1) {
       const record = await store.get({ userId });
-      const transition = decide({ record, input, caseStatuses: config.flows.organization?.caseStatuses });
+      const transition = decide({ record, input, caseStatuses: config.flows.organization.caseStatuses });
       if (!transition.next) {
         if (transition.confirm) await store.markSynced({ userId, syncedAt: now });
         return { outcome: transition.outcome, record };
@@ -832,7 +831,6 @@ export function createVerification({
       ok({ outcome: 'ignored', reason, eventName: event.name, caseId: kybCase.id });
 
     const flow = config.flows.organization;
-    if (!flow) return ignored('foreign_case');
     if (kybCase.caseTemplateId !== flow.caseTemplateId) return ignored('foreign_case');
 
     let records: Array<StoredVerification>;
@@ -916,7 +914,7 @@ export function createVerification({
   const decisionCadenceMs = config.decisionCadenceMs ?? VERIFICATION_DEFAULT_THRESHOLDS.decisionCadenceMs;
   const abandonedAfterMs = config.abandonedAfterMs ?? VERIFICATION_DEFAULT_THRESHOLDS.abandonedAfterMs;
 
-  /** The flow a user verifies through, by account type — undefined for an organization while KYB is not configured. */
+  /** The flow a user verifies through, by account type. */
   const flowFor = (path: InvestorPath) => config.flows[path];
   /**
    * Whether an inquiry's own status may decide the flow. An individual's
@@ -933,7 +931,7 @@ export function createVerification({
    */
   const caseWaitingOnFor = (record: VerificationRecord | null, path: InvestorPath): 'people' | 'team' | null => {
     const flow = flowFor(path);
-    if (flow?.path !== 'organization' || record?.status !== 'pending_review' || !record.personaCaseStatus) return null;
+    if (flow.path !== 'organization' || record?.status !== 'pending_review' || !record.personaCaseStatus) return null;
     return classifyCaseStatus({ status: record.personaCaseStatus, sets: flow.caseStatuses }) === 'people'
       ? 'people'
       : 'team';
@@ -1117,12 +1115,6 @@ export function createVerification({
       const status = record?.status ?? 'not_started';
       const path: InvestorPath = profile?.accountType ?? 'individual';
 
-      // An organization without a configured flow is verified with the team:
-      // nothing to start or resume, and the stored status still renders (a
-      // human may have set it).
-      const flow = flowFor(path);
-      if (!flow) return { status, path, canStart: false, canResume: false, inquiryId: null, caseWaitingOn: null };
-
       const canResume = canResumeFrom(status);
 
       return {
@@ -1173,10 +1165,8 @@ export function createVerification({
       const [stored, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
 
       if (!profile) return err({ code: 'profile_missing' });
-      // Before anything else: an organization starts only once its flow is configured.
       const path = profile.accountType;
       const flow = flowFor(path);
-      if (!flow) return err({ code: 'organization' });
 
       // The policy must see the present, so this is the one read that never
       // trusts the staleness gate. A non-terminal record can have moved on
@@ -1544,15 +1534,11 @@ export function createVerification({
         // Settled per record: one row whose persist or enqueue fails must not
         // abort the rest of the batch. It stays stale and is re-read next sweep.
         const outcomes = await Promise.allSettled(
-          stale.slice(index, index + RECONCILE_CONCURRENCY).map(async (record) => {
-            // An organization's row from before its flow was switched off has
-            // nothing to be re-read against. Confirmed all the same, or it would
-            // stay the oldest sync and take a slot at the head of every sweep.
-            const flow = flowFor(record.accountType);
-            if (flow) return refreshFromPersona({ userId: record.userId, flow, record, now });
-            await store.markSynced({ userId: record.userId, syncedAt: now });
-            return { outcome: 'unchanged' as const };
-          })
+          stale
+            .slice(index, index + RECONCILE_CONCURRENCY)
+            .map((record) =>
+              refreshFromPersona({ userId: record.userId, flow: flowFor(record.accountType), record, now })
+            )
         );
         for (const settled of outcomes) {
           report.checked += 1;
@@ -1579,20 +1565,17 @@ export function createVerification({
       // touched recently can still have waited too long.
       const undecidedBefore = new Date(now.getTime() - undecidedAfterMs);
       const reviewBefore = new Date(now.getTime() - reviewAfterMs);
-      const peopleStatuses = config.flows.organization?.caseStatuses.people;
       const [undecidedIndividuals, undecidedOrganizations, inReview, awaitingOwners] = await Promise.all([
         store.count({ ...undecidedFor('individual'), changedBefore: undecidedBefore }),
         store.count({ ...undecidedFor('organization'), changedBefore: undecidedBefore }),
         store.count({ statuses: IN_REVIEW_STATUSES, changedBefore: reviewBefore }),
         // An organization whose case waits on its own owners is not the team's to act on.
-        peopleStatuses
-          ? store.count({
-              statuses: IN_REVIEW_STATUSES,
-              accountType: 'organization',
-              caseStatuses: peopleStatuses,
-              changedBefore: reviewBefore
-            })
-          : 0
+        store.count({
+          statuses: IN_REVIEW_STATUSES,
+          accountType: 'organization',
+          caseStatuses: config.flows.organization.caseStatuses.people,
+          changedBefore: reviewBefore
+        })
       ]);
       const undecided = undecidedIndividuals + undecidedOrganizations;
       const awaitingReview = inReview - awaitingOwners;
@@ -1707,13 +1690,10 @@ export function createVerification({
       const now = clock.now();
       const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
       if (!profile) return err({ code: 'profile_missing' });
-      // An organization without a configured flow has nothing in Persona to go back to.
-      const flow = flowFor(profile.accountType);
       const status = record?.status ?? 'not_started';
       const path = profile.accountType;
-      if (!flow) return ok({ from: status, to: status, inquiryId: null, path, case: caseOf(record) });
 
-      const refreshed = await refreshFromPersona({ userId, flow, record, release: true, now });
+      const refreshed = await refreshFromPersona({ userId, flow: flowFor(path), record, release: true, now });
       if (refreshed.outcome === 'unavailable') return err({ code: 'persona_unavailable', cause: refreshed.error });
       return ok({
         from: status,

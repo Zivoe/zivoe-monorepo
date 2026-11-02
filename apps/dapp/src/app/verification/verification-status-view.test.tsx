@@ -50,21 +50,9 @@ describe('VerificationStatusView', () => {
     ['declined', view({ status: 'declined', canStart: false }), 'Verification declined', 'Contact support'],
     ['revoked', view({ status: 'revoked', canStart: false }), 'Verification revoked', 'Contact support'],
     [
-      'an organization',
-      view({ path: 'organization', canStart: false }),
-      'Verify your organization',
-      'Contact the team'
-    ],
-    [
       'a revoked organization',
       view({ path: 'organization', status: 'revoked', canStart: false }),
       'Verification revoked',
-      'Contact the team'
-    ],
-    [
-      'an organization whose flow was switched off mid-way',
-      view({ path: 'organization', status: 'in_progress', canStart: false, canResume: false }),
-      'Verify your organization',
       'Contact the team'
     ],
     [

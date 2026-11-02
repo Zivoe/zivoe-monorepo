@@ -17,11 +17,11 @@ import {
 
 import { env } from '@/env';
 
-import { readKybFlowConfig } from './kyb-flow-env';
 import { createTelegramOperatorMessenger } from './operator-message';
 import { PERSONA_API_VERSION, type PersonaRateLimit, createPersonaApi } from './persona-api';
 import { PERSONA_CASE_EVENTS, PERSONA_OPS_EVENTS, PERSONA_SUBSCRIBED_EVENTS, createVerification } from './verification';
 import { createQstashOutbox } from './verification-outbox';
+import { KYB_CASE_STATUS_SETS } from './verification-status';
 import { createPostgresVerificationStore } from './verification-store';
 import { createPersonaDriftCheck } from './webhook-drift';
 
@@ -54,9 +54,6 @@ const personaApi = createPersonaApi({ apiKey: env.PERSONA_API_KEY, onRateLimit: 
  * fails answers 500 and Persona redelivers.
  */
 const outboxQstash = new Client({ token: env.QSTASH_TOKEN, retry: { retries: 1, backoff: () => 200 } });
-
-/** The organization flow, when its `PERSONA_KYB_*` group is set; organizations stay on the team path otherwise. */
-const organizationFlow = readKybFlowConfig(env);
 
 /**
  * The default-wired Verification module: real adapters, system clock. Routes
@@ -101,7 +98,14 @@ export const verification = createVerification({
         templateId: env.PERSONA_TEMPLATE_ID,
         templateVersionId: env.PERSONA_TEMPLATE_VERSION_ID
       },
-      organization: organizationFlow
+      organization: {
+        path: 'organization',
+        templateId: env.PERSONA_KYB_TEMPLATE_ID,
+        templateVersionId: env.PERSONA_KYB_TEMPLATE_VERSION_ID,
+        accountTypeId: env.PERSONA_KYB_ACCOUNT_TYPE_ID,
+        caseTemplateId: env.PERSONA_KYB_CASE_TEMPLATE_ID,
+        caseStatuses: KYB_CASE_STATUS_SETS
+      }
     }
   }
 });
@@ -110,24 +114,17 @@ export const verification = createVerification({
  * The daily Drift check, over the same Persona adapter: the dashboard must
  * point exactly the handled events at `/api/webhooks/persona` on the API
  * version the adapter speaks, and nothing newer than a pinned template
- * version should be published unnoticed. Case events are expected only
- * while the organization flow is configured.
+ * version should be published unnoticed.
  */
 export const personaDriftCheck = createPersonaDriftCheck({
   persona: personaApi,
   config: {
     endpointUrl: `${BASE_URL}/api/webhooks/persona`,
-    expectedEvents: new Set([
-      ...PERSONA_SUBSCRIBED_EVENTS,
-      ...(organizationFlow ? PERSONA_CASE_EVENTS : []),
-      ...PERSONA_OPS_EVENTS
-    ]),
+    expectedEvents: new Set([...PERSONA_SUBSCRIBED_EVENTS, ...PERSONA_CASE_EVENTS, ...PERSONA_OPS_EVENTS]),
     expectedApiVersion: PERSONA_API_VERSION,
     templates: [
       { templateId: env.PERSONA_TEMPLATE_ID, templateVersionId: env.PERSONA_TEMPLATE_VERSION_ID },
-      ...(organizationFlow
-        ? [{ templateId: organizationFlow.templateId, templateVersionId: organizationFlow.templateVersionId }]
-        : [])
+      { templateId: env.PERSONA_KYB_TEMPLATE_ID, templateVersionId: env.PERSONA_KYB_TEMPLATE_VERSION_ID }
     ]
   }
 });

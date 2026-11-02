@@ -88,14 +88,6 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
   }
 }
 
-/** An organization the page cannot verify: its flow is not configured, the team does it by hand. */
-const TEAM_HANDLES_IT: VerificationStatusPresentation = {
-  tone: 'neutral',
-  title: 'Verify your organization',
-  body: 'Entity verification is handled directly with the Zivoe team rather than on this page.',
-  action: TEAM
-};
-
 /**
  * An organization's states. The flow is the business inquiry, then the KYB
  * case the team decides; while the case waits on the owners the organization
@@ -104,26 +96,20 @@ const TEAM_HANDLES_IT: VerificationStatusPresentation = {
 function presentOrganizationStatus(view: VerificationStatusView): VerificationStatusPresentation {
   switch (view.status) {
     case 'not_started':
-      // Without a configured flow the team verifies an organization by hand.
-      return view.canStart
-        ? {
-            tone: 'neutral',
-            title: 'Verify your organization',
-            body: 'The flow runs right here on this page.',
-            action: { kind: 'start', label: 'Verify organization' }
-          }
-        : TEAM_HANDLES_IT;
+      return {
+        tone: 'neutral',
+        title: 'Verify your organization',
+        body: 'The flow runs right here on this page.',
+        action: { kind: 'start', label: 'Verify organization' }
+      };
     case 'in_progress':
     case 'expired':
-      // A flow switched off after a start: nothing on this page can resume it.
-      return view.canResume
-        ? {
-            tone: 'progress',
-            title: 'Continue your verification',
-            body: 'You started verifying your organization. Pick up where you left off, right here on this page.',
-            action: { kind: 'resume', label: 'Continue verification' }
-          }
-        : TEAM_HANDLES_IT;
+      return {
+        tone: 'progress',
+        title: 'Continue your verification',
+        body: 'You started verifying your organization. Pick up where you left off, right here on this page.',
+        action: { kind: 'resume', label: 'Continue verification' }
+      };
     case 'submitted':
       return {
         tone: 'progress',
@@ -176,7 +162,7 @@ function presentOrganizationStatus(view: VerificationStatusView): VerificationSt
 
 /** What the page says when a start is refused — one sentence per `StartVerificationError` code. */
 export const START_REFUSAL_COPY: Record<
-  StartRefusal | 'organization' | 'profile_missing' | 'persona_unavailable' | 'queue_unavailable',
+  StartRefusal | 'profile_missing' | 'persona_unavailable' | 'queue_unavailable',
   string
 > = {
   awaiting_decision: 'Your verification has been received and is awaiting a decision. We will email you when it is in.',
@@ -184,7 +170,6 @@ export const START_REFUSAL_COPY: Record<
   declined: 'Your verification was declined. If you believe this is a mistake, contact support and the team will help.',
   revoked: 'Your verification is no longer active. Contact support to find out what happens next.',
   failed: "Your organization's verification could not be completed. Contact the team to find out what happens next.",
-  organization: 'Organizations are verified directly with the Zivoe team rather than through this flow.',
   profile_missing: 'Complete onboarding before verifying.',
   persona_unavailable: 'Verification is temporarily unavailable. Please try again in a few minutes.',
   queue_unavailable: 'Verification is temporarily unavailable. Please try again in a few minutes.'

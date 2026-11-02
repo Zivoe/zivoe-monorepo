@@ -27,9 +27,7 @@ import { WalletLinkStep } from './wallet-link-step';
  * step, with the profile step marked done, whatever a stale render may have
  * shown a moment earlier. A yes Decision ends the identity step for good:
  * the page opens on Wallets with both earlier steps done, and that step is
- * the completed state. An organization whose flow is not configured is the
- * team's: it opens on a locked profile step that says so until the team's
- * yes lands it on Wallets like anyone else. The one way back to the
+ * the completed state. The one way back to the
  * profile step is Back on the identity step, and `PersonaFlow` withholds it
  * while a start is in flight or a Persona frame is up: no shell-level
  * control can unmount a live inquiry.
@@ -46,8 +44,6 @@ export default function VerificationFlow({
 }) {
   const canEditProfile = view.canStart;
   const isVerified = isYesDecision(view);
-  // An organization the app cannot start — its flow is off — stays on the locked profile step.
-  const lockedOnProfile = view.path === 'organization' && !view.canStart && view.status === 'not_started';
 
   // `count` is bumped on every move: the step subtree's key, so Back lands on
   // a form rebuilt from the saved values, and the trigger that moves focus to
@@ -55,13 +51,7 @@ export default function VerificationFlow({
   const [nav, setNav] = useState<{ step: VerificationStepId; count: number }>({ step: 'profile', count: 0 });
   const go = (step: VerificationStepId) => setNav((current) => ({ step, count: current.count + 1 }));
   // The record outranks the navigation: once an inquiry exists the profile step is over, and once it is decided yes so is the identity step.
-  const step: VerificationStepId = isVerified
-    ? 'wallets'
-    : lockedOnProfile
-      ? 'profile'
-      : canEditProfile
-        ? nav.step
-        : 'identity';
+  const step: VerificationStepId = isVerified ? 'wallets' : canEditProfile ? nav.step : 'identity';
 
   // The values the server last accepted, so Back shows what is saved, not what the page first loaded.
   const [savedProfile, setSavedProfile] = useState(profile);
@@ -102,7 +92,6 @@ export default function VerificationFlow({
           {step === 'profile' ? (
             <InvestorProfileStep
               profile={savedProfile}
-              view={view}
               onSaved={(saved) => {
                 setSavedProfile(saved);
                 go('identity');

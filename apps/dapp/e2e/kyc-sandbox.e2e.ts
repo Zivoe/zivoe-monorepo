@@ -22,7 +22,6 @@ import {
   createTestUser,
   deleteStaleTestUsers,
   driftCheck,
-  kybFlow,
   persona,
   poll,
   readAccountType,
@@ -289,7 +288,7 @@ async function waitForCase({ userId, caseStatus }: { userId: string; caseStatus:
   return { ...record, personaCaseId: record.personaCaseId };
 }
 
-describe.skipIf(!kybFlow).concurrent('Persona sandbox — organizations', () => {
+describe.concurrent('Persona sandbox — organizations', () => {
   const start = async (scenario: string) => {
     const { userId } = await createTestUser({ scenario, lastName: 'E2E-APPROVE', accountType: 'organization' });
     const { inquiryId } = unwrap(await verification.startVerification({ userId }), 'startVerification');

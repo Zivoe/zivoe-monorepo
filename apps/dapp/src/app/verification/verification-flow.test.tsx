@@ -283,7 +283,7 @@ describe('VerificationFlow', () => {
     expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
   });
 
-  it('lets an organization confirm the entity and its own details while it can start, then moves on', async () => {
+  it('lets an organization confirm the entity and its own details, then moves on', async () => {
     mocks.updateInvestorProfile.mockResolvedValue({ success: true });
     renderFlow({
       statusView: view({ path: 'organization', canStart: true }),
@@ -314,21 +314,6 @@ describe('VerificationFlow', () => {
       })
     );
     await waitFor(() => expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step'));
-  });
-
-  it('locks the step for an organization and points to the team instead of a form', () => {
-    renderFlow({
-      statusView: view({ path: 'organization', canStart: false }),
-      investor: profile({ accountType: 'organization', countryOfResidence: null })
-    });
-
-    expect(field('Account type')).toMatchObject({ value: 'Organization', readOnly: true });
-    expect(screen.getByRole('link', { name: 'Contact the team' }).getAttribute('href')).toBe(
-      'mailto:inquire@zivoe.com'
-    );
-    expect(screen.queryByLabelText('First Name')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Exit' }).getAttribute('href')).toBe('/');
   });
 
   it("shows an organization's no on the business step, with the profile step done", () => {

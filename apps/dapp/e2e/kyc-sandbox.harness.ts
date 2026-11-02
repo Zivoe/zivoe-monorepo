@@ -16,7 +16,6 @@ import postgres from 'postgres';
 import { createDatabase } from '@zivoe/database';
 import { kycVerification, kycWebhookEvent, profile, user } from '@zivoe/database/schema';
 
-import { readKybFlowConfig } from '@/server/verification/kyb-flow-env';
 import {
   PERSONA_API_BASE_URL,
   PERSONA_API_VERSION,
@@ -32,6 +31,7 @@ import {
   createVerification
 } from '@/server/verification/verification';
 import { createQstashOutbox } from '@/server/verification/verification-outbox';
+import { KYB_CASE_STATUS_SETS } from '@/server/verification/verification-status';
 import { createPostgresVerificationStore } from '@/server/verification/verification-store';
 import { createPersonaDriftCheck } from '@/server/verification/webhook-drift';
 
@@ -52,8 +52,14 @@ const databaseUrl = required('DATABASE_URL');
 const apiKey = required('PERSONA_API_KEY');
 const templateVersionId = required('PERSONA_TEMPLATE_VERSION_ID');
 const templateId = required('PERSONA_TEMPLATE_ID');
-/** The organization flow, when `.env` carries its `PERSONA_KYB_*` group; the organization scenarios skip without it. */
-export const kybFlow = readKybFlowConfig(process.env);
+const kybFlow = {
+  path: 'organization',
+  templateId: required('PERSONA_KYB_TEMPLATE_ID'),
+  templateVersionId: required('PERSONA_KYB_TEMPLATE_VERSION_ID'),
+  accountTypeId: required('PERSONA_KYB_ACCOUNT_TYPE_ID'),
+  caseTemplateId: required('PERSONA_KYB_CASE_TEMPLATE_ID'),
+  caseStatuses: KYB_CASE_STATUS_SETS
+} as const;
 const qstashToken = required('QSTASH_TOKEN');
 /** The dev server, as Persona and QStash reach it. */
 export const appUrl = required('APP_URL').replace(/\/+$/, '');
@@ -172,15 +178,11 @@ export const driftCheck = createPersonaDriftCheck({
   persona,
   config: {
     endpointUrl: `${appUrl}/api/webhooks/persona`,
-    expectedEvents: new Set([
-      ...PERSONA_SUBSCRIBED_EVENTS,
-      ...(kybFlow ? PERSONA_CASE_EVENTS : []),
-      ...PERSONA_OPS_EVENTS
-    ]),
+    expectedEvents: new Set([...PERSONA_SUBSCRIBED_EVENTS, ...PERSONA_CASE_EVENTS, ...PERSONA_OPS_EVENTS]),
     expectedApiVersion: PERSONA_API_VERSION,
     templates: [
       { templateId, templateVersionId },
-      ...(kybFlow ? [{ templateId: kybFlow.templateId, templateVersionId: kybFlow.templateVersionId }] : [])
+      { templateId: kybFlow.templateId, templateVersionId: kybFlow.templateVersionId }
     ]
   }
 });
