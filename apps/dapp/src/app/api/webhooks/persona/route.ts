@@ -156,12 +156,16 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
     // A Workflow run errored: a decisioning run leaves its user at
     // `submitted` until it is fixed; the KYB Workflow's run ends errored for
     // every business inquiry with a blank TIN (its TIN lookup step has no
-    // guard) until the workflow is changed in persona-config. The Workflow
-    // rides as a tag so the two can be told apart in Sentry without hiding
-    // either; the sweep's undecided alarm stays the safety net behind it.
+    // guard) until the workflow is changed in persona-config. Each Workflow
+    // gets its own Sentry issue: the alert fires only on a new or regressed
+    // issue, so one Workflow's known errors must not keep the issue another
+    // Workflow's first error would join open. The sweep's undecided alarm
+    // stays the safety net behind it.
     if (result.value.outcome === 'ops_alert') {
+      const workflowId = result.value.workflowId ?? 'unknown';
       Sentry.captureException(new Error('Persona reported a workflow run error'), {
-        tags: { source: 'API', flow: FLOW, workflowId: result.value.workflowId ?? 'unknown' },
+        fingerprint: ['persona-workflow-run-errored', workflowId],
+        tags: { source: 'API', flow: FLOW, workflowId },
         extra: { eventName: result.value.eventName, resourceId: result.value.resourceId }
       });
     }
