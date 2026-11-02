@@ -11,7 +11,7 @@ import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { HamburgerIcon } from '@zivoe/ui/icons';
 
 import { getUserMenuData, verifySession } from '@/server/data/auth';
-import { isKycEnabled } from '@/server/kyc/kyc-flag';
+import { isKycEnabled } from '@/server/verification/kyc-flag';
 
 import ChainalysisAssessmentDialog from '@/app/(dashboard)/_components/chainalysis-assessment-dialog';
 import Footer from '@/app/(dashboard)/_components/footer';

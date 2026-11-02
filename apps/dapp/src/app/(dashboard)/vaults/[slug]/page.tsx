@@ -5,7 +5,7 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { getUser, verifyOnboarded } from '@/server/data/auth';
 import { getCurrentShareMetrics } from '@/server/data/centrifuge-metrics';
-import { isKycEnabled } from '@/server/kyc/kyc-flag';
+import { isKycEnabled } from '@/server/verification/kyc-flag';
 
 import { getQueryClient } from '@/lib/get-query-client';
 import { queryKeys } from '@/lib/query-keys';

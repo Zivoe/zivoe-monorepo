@@ -1,12 +1,8 @@
 import { err, ok } from '@/lib/result';
 
-import { isHumanOwned } from './kyc-status';
+import { type PersonaCase } from './persona-case';
 import {
   type Clock,
-  type KycNotification,
-  type KycProfile,
-  type KycStore,
-  type KycVerificationRecord,
   type OperatorMessenger,
   type Outbox,
   type ParsedPersonaInquiry,
@@ -14,8 +10,13 @@ import {
   type PersonaApiError,
   type PersonaInquiry,
   type PersonaWebhookConfig,
-  type StatusEmailSender
-} from './kyc-verification';
+  type StatusEmailSender,
+  type StoredVerification,
+  type VerificationNotification,
+  type VerificationProfile,
+  type VerificationRecord,
+  type VerificationStore
+} from './verification';
 
 // ---------------------------------------------------------------------------
 // In-memory adapters for the module's ports. TEST-ONLY: nothing on a
@@ -23,33 +24,61 @@ import {
 // its interface and assert on the state these adapters expose.
 // ---------------------------------------------------------------------------
 
-export function createInMemoryKycStore() {
-  const records = new Map<string, KycVerificationRecord>();
+export function createInMemoryVerificationStore() {
+  /** A seeded record without a version reads as version 0, as a freshly inserted row does. */
+  const records = new Map<string, VerificationRecord & { version?: number }>();
   const events = new Map<string, Date>();
-  const profiles = new Map<string, KycProfile>();
+  const profiles = new Map<string, VerificationProfile>();
   /** Armed to make the next store call (or the next call of one method) reject, to exercise `store_failure`. */
-  let nextFailure: { error: Error; method?: keyof KycStore } | null = null;
+  let nextFailure: { error: Error; method?: keyof VerificationStore } | null = null;
 
-  const failIfArmed = (method: keyof KycStore) => {
+  const failIfArmed = (method: keyof VerificationStore) => {
     if (!nextFailure || (nextFailure.method && nextFailure.method !== method)) return;
     const { error } = nextFailure;
     nextFailure = null;
     throw error;
   };
 
-  const store: KycStore = {
+  /** The join the Postgres store makes: a record reads with its profile's account type, an individual's without a profile. */
+  const withFlow = (record: VerificationRecord & { version?: number }): StoredVerification => ({
+    ...record,
+    accountType: profiles.get(record.userId)?.accountType ?? 'individual',
+    version: record.version ?? 0
+  });
+
+  const store: VerificationStore = {
     async get({ userId }) {
       failIfArmed('get');
-      return records.get(userId) ?? null;
+      const record = records.get(userId);
+      return record ? withFlow(record) : null;
     },
-    async upsert(record, { overrideHumanOwned = false, expectInquiryId }) {
-      failIfArmed('upsert');
+    async getByInquiryIds({ inquiryIds }) {
+      failIfArmed('getByInquiryIds');
+      return [...records.values()]
+        .filter((record) => !!record.personaInquiryId && inquiryIds.includes(record.personaInquiryId))
+        .map(withFlow);
+    },
+    async write(record, { expectVersion }) {
+      failIfArmed('write');
       const stored = records.get(record.userId);
-      if (stored && record.statusChangedAt < stored.statusChangedAt) return false;
-      if (stored && isHumanOwned(stored.status) && !overrideHumanOwned) return false;
-      if (stored && stored.personaInquiryId !== expectInquiryId) return false;
-      records.set(record.userId, { ...record });
-      return true;
+      if ((stored ? (stored.version ?? 0) : null) !== expectVersion) return null;
+      const version = expectVersion === null ? 0 : expectVersion + 1;
+      // Only the row's own columns, as the Postgres store writes them: a record read back carries its flow too.
+      const { userId, status, personaInquiryId, personaAccountId, personaCaseId, personaCaseStatus } = record;
+      const { sourceAt, statusChangedAt, lastSyncedAt } = record;
+      records.set(userId, {
+        userId,
+        status,
+        personaInquiryId,
+        personaAccountId,
+        personaCaseId,
+        personaCaseStatus,
+        sourceAt,
+        statusChangedAt,
+        lastSyncedAt,
+        version
+      });
+      return version;
     },
     async markSynced({ userId, syncedAt }) {
       failIfArmed('markSynced');
@@ -73,12 +102,14 @@ export function createInMemoryKycStore() {
       }
       return deleted;
     },
-    async list({ statuses, userIds, syncedBefore, changedBefore, changedAfter, limit }) {
+    async list({ statuses, accountType, userIds, syncedBefore, changedBefore, changedAfter, limit }) {
       failIfArmed('list');
       return [...records.values()]
+        .map(withFlow)
         .filter(
           (record) =>
             statuses.includes(record.status) &&
+            (!accountType || record.accountType === accountType) &&
             (!userIds || userIds.includes(record.userId)) &&
             (!syncedBefore || record.lastSyncedAt < syncedBefore) &&
             (!changedBefore || record.statusChangedAt < changedBefore) &&
@@ -87,11 +118,17 @@ export function createInMemoryKycStore() {
         .sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime())
         .slice(0, limit);
     },
-    async count({ statuses, changedBefore }) {
+    async count({ statuses, accountType, caseStatuses, changedBefore }) {
       failIfArmed('count');
-      return [...records.values()].filter(
-        (record) => statuses.includes(record.status) && record.statusChangedAt < changedBefore
-      ).length;
+      return [...records.values()]
+        .map(withFlow)
+        .filter(
+          (record) =>
+            statuses.includes(record.status) &&
+            (!accountType || record.accountType === accountType) &&
+            (!caseStatuses || (!!record.personaCaseStatus && caseStatuses.includes(record.personaCaseStatus))) &&
+            record.statusChangedAt < changedBefore
+        ).length;
     },
     async getProfile({ userId }) {
       failIfArmed('getProfile');
@@ -104,7 +141,7 @@ export function createInMemoryKycStore() {
     records,
     events,
     profiles,
-    failNextCall(error: Error, method?: keyof KycStore) {
+    failNextCall(error: Error, method?: keyof VerificationStore) {
       nextFailure = { error, method };
     }
   };
@@ -117,13 +154,25 @@ export function createInMemoryKycStore() {
  * `sessionToken`s are derived from the inquiry id and a counter so a resume
  * visibly issues a fresh one.
  */
-/** The template version the fake creates inquiries on; tests pin the module to the same one. */
+/** The individual template the fake creates inquiries on; tests pin the module to the same one. */
 export const FAKE_TEMPLATE_VERSION_ID = 'itmplv_fake';
 export const FAKE_TEMPLATE_ID = 'itmpl_fake';
+/** The organization flow's template, Business account type and case template, for the tests that configure it. */
+export const FAKE_KYB_TEMPLATE_VERSION_ID = 'itmplv_fake_kyb';
+export const FAKE_KYB_TEMPLATE_ID = 'itmpl_fake_kyb';
+export const FAKE_KYB_ACCOUNT_TYPE_ID = 'acttp_fake_business';
+export const FAKE_KYB_CASE_TEMPLATE_ID = 'ctmpl_fake_kyb';
 
 export function createFakePersonaApi({ clock }: { clock: Clock }) {
   /** May hold a null status, the way Persona can list an inquiry in a state the mapping does not know. */
   const inquiries = new Map<string, ParsedPersonaInquiry>();
+  /** Which template each version belongs to, the way Persona stamps a created inquiry. */
+  const templates = new Map<string, string>([
+    [FAKE_TEMPLATE_VERSION_ID, FAKE_TEMPLATE_ID],
+    [FAKE_KYB_TEMPLATE_VERSION_ID, FAKE_KYB_TEMPLATE_ID]
+  ]);
+  /** What the dashboard's reviewers and the KYB Workflow make: cases over inquiries. */
+  const cases = new Map<string, PersonaCase>();
   /** What the dashboard shows: the registered webhooks, and each template's latest published version. */
   const webhooks: Array<PersonaWebhookConfig> = [];
   const latestVersions = new Map<string, string | null>();
@@ -151,8 +200,8 @@ export function createFakePersonaApi({ clock }: { clock: Clock }) {
         status: 'created',
         referenceId: input.referenceId,
         accountId: `act_${input.referenceId}`,
-        templateId: FAKE_TEMPLATE_ID,
-        templateVersionId: FAKE_TEMPLATE_VERSION_ID,
+        templateId: templates.get(input.templateVersionId) ?? FAKE_TEMPLATE_ID,
+        templateVersionId: input.templateVersionId,
         createdAt: now,
         updatedAt: now
       };
@@ -196,6 +245,18 @@ export function createFakePersonaApi({ clock }: { clock: Clock }) {
       );
     },
 
+    async listCases({ inquiryId }) {
+      calls.push({ method: 'listCases', input: { inquiryId } });
+      const failure = takeFailure('listCases');
+      if (failure) return err(failure);
+
+      return ok(
+        [...cases.values()]
+          .filter((kybCase) => kybCase.inquiryIds.includes(inquiryId))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      );
+    },
+
     async listWebhooks() {
       calls.push({ method: 'listWebhooks', input: undefined });
       const failure = takeFailure('listWebhooks');
@@ -222,6 +283,8 @@ export function createFakePersonaApi({ clock }: { clock: Clock }) {
   return {
     persona,
     inquiries,
+    templates,
+    cases,
     webhooks,
     latestVersions,
     calls,
@@ -246,7 +309,7 @@ export function createFakePersonaApi({ clock }: { clock: Clock }) {
 }
 
 export function createInMemoryOutbox() {
-  const notifications: Array<KycNotification> = [];
+  const notifications: Array<VerificationNotification> = [];
   let nextFailure: Error | null = null;
 
   const outbox: Outbox = {
