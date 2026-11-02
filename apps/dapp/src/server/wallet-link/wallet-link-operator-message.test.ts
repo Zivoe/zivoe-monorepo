@@ -60,7 +60,7 @@ describe('the operator message', () => {
       email: 'ada<script>@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      noDecision: null,
+      endedBy: null,
       otherAccounts: []
     });
 
@@ -87,14 +87,14 @@ describe('the operator message', () => {
       email: null,
       isSmartAccount: false,
       membership: NOWHERE,
-      noDecision: null,
+      endedBy: null,
       otherAccounts: []
     });
 
     expect(text.split('\n')).toEqual([
       '<b>🔴 Revoke request</b>',
       '',
-      '<b>Reason:</b> verification no longer approved',
+      '<b>Reason:</b> link ended, approved again since — the investor links this address again',
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
@@ -104,14 +104,14 @@ describe('the operator message', () => {
     ]);
   });
 
-  it('says on a revoke which Decision ended the link and who else connected the address', () => {
+  it('says on a revoke what ended the link and who else connected the address', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'revoke_request',
       record: record({ status: 'removed', removedAt: new Date() }),
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      noDecision: 'revoked',
+      endedBy: 'revoked',
       otherAccounts: [
         { email: 'bob@example.com', isVerified: true },
         { email: 'eve<b>@example.com', isVerified: false }
@@ -119,6 +119,28 @@ describe('the operator message', () => {
     });
 
     expect(text.split('\n')[2]).toBe('<b>Reason:</b> verification revoked');
+
+    const underReview = formatWalletLinkOperatorMessage({
+      kind: 'revoke_request',
+      record: record({ status: 'removed', removedAt: new Date() }),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      membership: NOWHERE,
+      endedBy: 'pending_review',
+      otherAccounts: []
+    });
+    expect(underReview.split('\n')[2]).toBe('<b>Reason:</b> verification back under review');
+
+    const resynced = formatWalletLinkOperatorMessage({
+      kind: 'revoke_request',
+      record: record({ status: 'removed', removedAt: new Date() }),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      membership: NOWHERE,
+      endedBy: 'in_progress',
+      otherAccounts: []
+    });
+    expect(resynced.split('\n')[2]).toBe('<b>Reason:</b> verification no longer approved');
     expect(text).toContain(
       '<b>Also connected by:</b> bob@example.com (verified), eve&lt;b&gt;@example.com (not verified)'
     );
@@ -131,7 +153,7 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      noDecision: 'declined',
+      endedBy: 'declined',
       otherAccounts
     })
       .split('\n')
@@ -178,7 +200,7 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: current,
-      noDecision: 'revoked',
+      endedBy: 'revoked',
       otherAccounts: []
     });
 
@@ -192,7 +214,7 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: true,
       membership: NOWHERE,
-      noDecision: null,
+      endedBy: null,
       otherAccounts: []
     });
 
@@ -209,7 +231,7 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: null,
       membership: NOWHERE,
-      noDecision: null,
+      endedBy: null,
       otherAccounts: []
     });
 
@@ -227,7 +249,7 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      noDecision: null,
+      endedBy: null,
       otherAccounts: []
     });
 

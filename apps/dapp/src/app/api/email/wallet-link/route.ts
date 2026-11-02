@@ -8,7 +8,7 @@ import { parseWalletLinkJob } from '@/server/wallet-link/wallet-link-outbox';
 import { QSTASH_NON_RETRYABLE, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
-// A QStash receiver in the shape of the KYC status email route, and
+// A QStash receiver in the shape of the verification status email route, and
 // transport only: the directional check and the send live in
 // `deliverNotification`. Here its answer becomes the status code QStash acts
 // on — 200 for sent or skipped, 500 for early or failed so it retries, 489

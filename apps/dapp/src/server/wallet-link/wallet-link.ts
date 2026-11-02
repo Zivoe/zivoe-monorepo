@@ -3,10 +3,11 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { type Address, type Hex } from 'viem';
 
+import { type VerificationStatus } from '@zivoe/database/kyc';
 import { type WalletLinkStatus } from '@zivoe/database/wallet-link';
 
-import { isNoDecision, isYesDecision } from '@/server/kyc/kyc-status';
-import { type DeliveryError, type DeliveryOutcome, type KycVerification } from '@/server/kyc/kyc-verification';
+import { type DeliveryError, type DeliveryOutcome, type Verification } from '@/server/verification/verification';
+import { isYesDecision } from '@/server/verification/verification-status';
 
 import { type Result, err, ok } from '@/lib/result';
 
@@ -16,7 +17,7 @@ import { type WalletLinkTypedData, buildWalletLinkTypedData } from './wallet-lin
 // ---------------------------------------------------------------------------
 // Wallet link — one account's signed request to whitelist one address. One
 // module, five operations, over injected ports: the store,
-// the Decision (KYC Verification), Chainalysis, the chain (signature
+// the Decision (the Verification module), Chainalysis, the chain (signature
 // verification and whitelist membership), the Outbox and the two channels.
 // Production wires Postgres / viem / QStash / Telegram / Resend; tests wire
 // the in-memory adapters in wallet-link.fakes.ts. The signed message lives in
@@ -163,8 +164,8 @@ export type WalletLinkOperatorMessenger = {
      * already frozen somewhere is not a plain admission.
      */
     membership: AddressMembership | null;
-    /** The investor's Decision when it is a no, read at delivery: why a Revoke request is asked. */
-    noDecision: 'declined' | 'revoked' | null;
+    /** The investor's status when it is not a yes, read at delivery: why a Revoke request is asked. */
+    endedBy: VerificationStatus | null;
     /**
      * On a Revoke request, the other accounts that connected the address: it
      * is not bound to one account, and ops decides with all of them in view.
@@ -199,24 +200,15 @@ export type CompleteLinkError = {
   code: 'not_approved' | 'flagged' | 'no_challenge' | 'expired' | 'bad_signature' | 'already_linked';
 };
 
-/** The same answers the KYC receivers map to status codes: retry (early or channel down) or 200 (sent, skipped). */
-export type { DeliveryError, DeliveryOutcome } from '@/server/kyc/kyc-verification';
-
-/**
- * `skipped_untracked`: a Revoke request skipped because the investor is a yes
- * again, who has not linked the address again — so it stays whitelisted under
- * a Removed row the sweep never reads, and a later no would not revoke it.
- * Rare (a reversal inside the delivery window) and still a 200; the receiver
- * reports it so someone can look.
- */
-export type WalletLinkDeliveryOutcome = DeliveryOutcome | 'skipped_untracked';
+/** The same answers the verification receivers map to status codes: retry (early or channel down) or 200 (sent, skipped). */
+export type { DeliveryError, DeliveryOutcome } from '@/server/verification/verification';
 
 export type WalletLinkReconcileReport = {
   /** Rows whose membership was read. */
   checked: number;
   /** Rows first seen whitelisted on this pass (an email each). */
   whitelisted: number;
-  /** Linked rows removed on this pass because their investor's Decision became a no (a Revoke request each). */
+  /** Linked rows removed on this pass because their investor's yes no longer stands (a Revoke request each). */
   ended: number;
   /** Reads that could not conclude on some chain; they stay for the next pass. */
   unchecked: number;
@@ -259,14 +251,14 @@ export type WalletLink = {
   listLinks(input: { userId: string }): Promise<Array<WalletLinkRecord>>;
   /**
    * The scheduled sweep: removes the Linked addresses of an investor whose
-   * Decision became a no, then reads membership for every linked row not yet
+   * yes no longer stands, then reads membership for every linked row not yet
    * seen whitelisted. Observes and reports; never retries anything on chain.
    * A row seen whitelisted once is not read again: what ops does to a
    * membership afterwards (a revoke on request, a freeze) is theirs to know.
    */
   reconcile(input: { now: Date }): Promise<WalletLinkReconcileReport>;
   /** The receiving half of the Outbox: re-reads the row, then sends through the channel for the job's kind. */
-  deliverNotification(input: { job: WalletLinkJob }): Promise<Result<WalletLinkDeliveryOutcome, DeliveryError>>;
+  deliverNotification(input: { job: WalletLinkJob }): Promise<Result<DeliveryOutcome, DeliveryError>>;
 };
 
 /**
@@ -293,7 +285,7 @@ const STUCK_REMINDER_DAYS = [3, 7, 14, 30];
 
 export function createWalletLink({
   store,
-  kyc,
+  verification,
   screening,
   chain,
   outbox,
@@ -302,7 +294,7 @@ export function createWalletLink({
   clock
 }: {
   store: WalletLinkStore;
-  kyc: Pick<KycVerification, 'getKycStatus' | 'listNoDecisions'>;
+  verification: Pick<Verification, 'getVerificationStatus' | 'listUnapproved'>;
   screening: ScreeningPort;
   chain: ChainPort;
   outbox: WalletLinkOutbox;
@@ -311,7 +303,7 @@ export function createWalletLink({
   clock: Clock;
 }): WalletLink {
   /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
-  const mayLink = async (userId: string) => isYesDecision(await kyc.getKycStatus({ userId }));
+  const mayLink = async (userId: string) => isYesDecision(await verification.getVerificationStatus({ userId }));
 
   /** A Whitelist or Revoke request, with what only delivery can read: the email, the kind of account and the Decision. */
   const sendOperatorMessage = async (kind: WalletLinkOperatorKind, record: WalletLinkRecord) => {
@@ -330,7 +322,7 @@ export function createWalletLink({
         .readMembership({ addresses: [record.address] })
         .then((read) => read[record.address] ?? null)
         .catch(() => null),
-      kyc.getKycStatus({ userId: record.userId }),
+      verification.getVerificationStatus({ userId: record.userId }),
       kind === 'revoke_request'
         ? store.listOtherConnectedAccounts({ address: record.address, exceptUserId: record.userId })
         : []
@@ -338,7 +330,7 @@ export function createWalletLink({
     const otherAccounts = await Promise.all(
       connected.map(async ({ userId, email }) => ({
         email,
-        isVerified: isYesDecision(await kyc.getKycStatus({ userId }))
+        isVerified: isYesDecision(await verification.getVerificationStatus({ userId }))
       }))
     );
     await operatorMessages.send({
@@ -347,7 +339,7 @@ export function createWalletLink({
       email: account?.email ?? null,
       isSmartAccount,
       membership,
-      noDecision: isNoDecision(decision) ? decision.status : null,
+      endedBy: isYesDecision(decision) ? null : decision.status,
       otherAccounts
     });
   };
@@ -452,7 +444,7 @@ export function createWalletLink({
       });
       if (!valid) return err({ code: 'bad_signature' });
 
-      // Enqueue before persisting, as the KYC write path does: a persist that
+      // Enqueue before persisting, as the verification write path does: a persist that
       // fails leaves the challenge pending, so the next click re-enqueues and
       // the receiver tells the stale job from the live one by `signedAt`.
       const signedAt = now;
@@ -502,13 +494,15 @@ export function createWalletLink({
         store.listWhitelistObserved()
       ]);
 
-      // A Decision that became a no since the link ends it: the row is removed
-      // and ops is asked to revoke. Read off the
-      // record here rather than hooked to an act, so an operator's revoke and
-      // a reviewer's decline in Persona are covered alike. One read for every
-      // linked investor: the set only grows, whitelisted rows included.
+      // A yes that no longer stands ends the link: the row is removed and ops
+      // is asked to revoke. Read off the record here rather than hooked to an
+      // act, so an operator's revoke, a reviewer's decline and a reopened KYB
+      // case are covered alike. One read for every linked investor: the set
+      // only grows, whitelisted rows included.
       const linked = [...allAwaiting, ...allObserved];
-      const ended = await kyc.listNoDecisions({ userIds: [...new Set(linked.map((record) => record.userId))] });
+      const ended = await verification.listUnapproved({
+        userIds: [...new Set(linked.map((record) => record.userId))]
+      });
       for (const record of linked) {
         if (ended.has(record.userId) && (await remove({ id: record.id, removedAt: now }))) report.ended += 1;
       }
@@ -561,7 +555,7 @@ export function createWalletLink({
           case 'whitelist_request': {
             // Still a challenge: the link's persist has not landed yet.
             if (record.status === 'pending') return err({ code: 'not_caught_up' });
-            // Removed since (the Decision became a no): asking ops to whitelist it would
+            // Removed since (the yes no longer stands): asking ops to whitelist it would
             // only undo the revoke that was queued after it (deliveries are not ordered).
             if (record.status === 'removed' || !sameStamp(record.signedAt)) return ok('skipped');
             // No longer a yes inside the queue's delay: nobody to admit. A
@@ -573,14 +567,17 @@ export function createWalletLink({
           case 'revoke_request': {
             if (record.status !== 'removed') return err({ code: 'not_caught_up' });
             if (!sameStamp(record.removedAt)) return ok('skipped');
-            // A yes again inside the queue's delay (a revoke reversed, a
-            // decline re-decided): the investor may link again, and a
-            // request to revoke would only undo what ops is asked for next.
-            // Until they do, the address is whitelisted under this Removed
-            // row alone, which no sweep reads again — said, not fixed.
-            if (await mayLink(record.userId)) {
-              const linkedAgain = await store.getLinked({ userId: record.userId, address: record.address });
-              return ok(linkedAgain ? 'skipped' : 'skipped_untracked');
+            // A yes again inside the queue's delay (a reopen re-approved, a
+            // revoke reversed) who has already linked the address again: its
+            // Whitelist request is what ops needs, and a revoke would undo it.
+            // Without a new link the revoke still goes: this Removed row is
+            // the address's only one and no sweep reads it again, so a later
+            // no would never revoke it. The investor links it again anyway.
+            if (
+              (await mayLink(record.userId)) &&
+              (await store.getLinked({ userId: record.userId, address: record.address }))
+            ) {
+              return ok('skipped');
             }
             await sendOperatorMessage('revoke_request', record);
             return ok('sent');

@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException, captureMessage: mocks.captureMessage }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('@/server/kyc/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
+vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 vi.mock('@/server/clients/redis', () => ({ redis: {} }));
 vi.mock('@upstash/ratelimit', () => ({
   Ratelimit: Object.assign(

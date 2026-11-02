@@ -14,6 +14,7 @@ import {
   KYC_WEBHOOK_DRIFT_CRON,
   QSTASH_JOB_LABELS,
   WALLET_LINK_RECONCILE_CRON,
+  WALLET_LINK_RECONCILE_PATH,
   getQstashFailureCallback
 } from '../src/lib/qstash';
 
@@ -57,7 +58,7 @@ const SCHEDULES: Array<ScheduleConfig> = [
     label: QSTASH_JOB_LABELS.kycWebhookDrift
   },
   {
-    destination: '/api/wallet-link/reconcile',
+    destination: WALLET_LINK_RECONCILE_PATH,
     scheduleId: 'wallet-link-reconcile',
     cron: WALLET_LINK_RECONCILE_CRON, // Hourly
     retries: 1,

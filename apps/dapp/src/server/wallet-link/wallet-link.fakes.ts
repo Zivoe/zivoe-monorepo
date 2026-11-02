@@ -1,6 +1,6 @@
 import { type Address, type Hex, verifyTypedData } from 'viem';
 
-import { type KycStatusView, isNoDecision } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView, isYesDecision } from '@/server/verification/verification-status';
 
 import {
   type ChainPort,
@@ -253,38 +253,40 @@ export function createInMemoryWhitelistedEmailSender() {
 }
 
 /** The Decision gate as a map from user id to status view; unknown users read as not started. */
-export function createFakeKyc() {
-  const views = new Map<string, KycStatusView>();
-  const kyc = {
-    async getKycStatus({ userId }: { userId: string }): Promise<KycStatusView> {
+export function createFakeVerification() {
+  const views = new Map<string, VerificationStatusView>();
+  const verification = {
+    async getVerificationStatus({ userId }: { userId: string }): Promise<VerificationStatusView> {
       return (
         views.get(userId) ?? {
           status: 'not_started',
           path: 'individual',
           canStart: true,
           canResume: false,
-          inquiryId: null
+          inquiryId: null,
+          caseWaitingOn: null
         }
       );
     },
-    async listNoDecisions({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
+    async listUnapproved({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
       return new Set(
         userIds.filter((userId) => {
           const view = views.get(userId);
-          return view !== undefined && isNoDecision(view);
+          return view !== undefined && !isYesDecision(view);
         })
       );
     }
   };
   return {
-    kyc,
-    set(userId: string, view: Partial<KycStatusView>) {
+    verification,
+    set(userId: string, view: Partial<VerificationStatusView>) {
       views.set(userId, {
         status: 'approved',
         path: 'individual',
         canStart: false,
         canResume: false,
         inquiryId: null,
+        caseWaitingOn: null,
         ...view
       });
     }

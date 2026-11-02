@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
-import { isKycEnabled } from '@/server/kyc/kyc-flag';
+import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { walletLink } from '@/server/wallet-link';
 import { type CompleteLinkError, type IssueChallengeError } from '@/server/wallet-link/wallet-link';
 import { type WalletLinkTypedData } from '@/server/wallet-link/wallet-link-typed-data';

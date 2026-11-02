@@ -30,6 +30,13 @@ export const KYC_RECONCILE_CRON = `*/${KYC_RECONCILE_STEP_MINUTES} * * * *`;
 export const KYC_WEBHOOK_DRIFT_CRON = '0 8 * * *';
 /** The Wallet link reconcile's cadence — hourly: it observes and reports stalled whitelists, nothing waits on it. */
 export const WALLET_LINK_RECONCILE_CRON = '0 * * * *';
+export const WALLET_LINK_RECONCILE_PATH = '/api/wallet-link/reconcile';
+/**
+ * The query parameter that marks a reconcile run published by hand or on an
+ * event rather than by the schedule: it sweeps like any run, but the
+ * schedule's Sentry monitor and the daily digest belong to scheduled runs.
+ */
+export const WALLET_LINK_RECONCILE_TRIGGER_PARAM = 'trigger';
 
 // One slug per cron for its Sentry monitor AND its route's `flow` tag, so
 // the two views correlate. Kept here rather than exported from the route

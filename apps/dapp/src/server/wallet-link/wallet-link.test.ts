@@ -2,15 +2,15 @@ import { type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createManualClock } from '@/server/kyc/kyc-verification.fakes';
+import { createManualClock } from '@/server/verification/verification.fakes';
 
 import { type WalletLink, createWalletLink } from './wallet-link';
 import { type MembershipTarget } from './wallet-link-membership';
 import { WALLET_LINK_STATEMENT, type WalletLinkTypedData, toSignableTypedData } from './wallet-link-typed-data';
 import {
   createFakeChain,
-  createFakeKyc,
   createFakeScreening,
+  createFakeVerification,
   createInMemoryWalletLinkOperatorMessenger,
   createInMemoryWalletLinkOutbox,
   createInMemoryWalletLinkStore,
@@ -47,7 +47,7 @@ const TARGETS: Array<MembershipTarget> = [
 function setup() {
   const manualClock = createManualClock(T0);
   const memoryStore = createInMemoryWalletLinkStore();
-  const fakeKyc = createFakeKyc();
+  const fakeVerification = createFakeVerification();
   const fakeScreening = createFakeScreening();
   const fakeChain = createFakeChain({ targets: TARGETS });
   const memoryOutbox = createInMemoryWalletLinkOutbox();
@@ -56,7 +56,7 @@ function setup() {
 
   const walletLink = createWalletLink({
     store: memoryStore.store,
-    kyc: fakeKyc.kyc,
+    verification: fakeVerification.verification,
     screening: fakeScreening.screening,
     chain: fakeChain.chain,
     outbox: memoryOutbox.outbox,
@@ -65,8 +65,8 @@ function setup() {
     clock: manualClock.clock
   });
 
-  fakeKyc.set(ALICE, {});
-  fakeKyc.set(BOB, {});
+  fakeVerification.set(ALICE, {});
+  fakeVerification.set(BOB, {});
   memoryStore.accounts.set(ALICE, { email: 'alice@example.com', name: 'Alice' });
   memoryStore.accounts.set(BOB, { email: 'bob@example.com', name: null });
 
@@ -74,7 +74,7 @@ function setup() {
     walletLink,
     clock: manualClock,
     store: memoryStore,
-    kyc: fakeKyc,
+    verification: fakeVerification,
     screening: fakeScreening,
     chain: fakeChain,
     outbox: memoryOutbox,
@@ -198,8 +198,8 @@ describe('the challenge', () => {
     ['a revoked verification', { status: 'revoked' } as const],
     ['an organization the team has not approved', { path: 'organization', status: 'not_started' } as const]
   ])('is refused without a yes Decision (%s)', async (_label, view) => {
-    const { walletLink, kyc, store, screening } = setup();
-    kyc.set(ALICE, view);
+    const { walletLink, verification, store, screening } = setup();
+    verification.set(ALICE, view);
 
     const issued = await walletLink.issueChallenge({
       userId: ALICE,
@@ -215,8 +215,8 @@ describe('the challenge', () => {
   });
 
   it('is issued for an organization the team approved: its yes is a Decision like any other', async () => {
-    const { walletLink, kyc } = setup();
-    kyc.set(ALICE, { path: 'organization', status: 'manually_approved' });
+    const { walletLink, verification } = setup();
+    verification.set(ALICE, { path: 'organization', status: 'manually_approved' });
 
     const issued = await walletLink.issueChallenge({
       userId: ALICE,
@@ -307,7 +307,7 @@ describe('completing a link', () => {
         isSmartAccount: false,
         // Read at delivery too: a member nowhere yet, which is what the request is for.
         membership: TARGETS.map((target) => ({ target, verdict: 'not-member', frozen: false })),
-        noDecision: null,
+        endedBy: null,
         otherAccounts: []
       }
     ]);
@@ -373,7 +373,7 @@ describe('completing a link', () => {
   });
 
   it('refuses a stored signature after the record stopped being a yes Decision', async () => {
-    const { walletLink, kyc } = setup();
+    const { walletLink, verification } = setup();
     const issued = await walletLink.issueChallenge({
       userId: ALICE,
       address: SIGNER,
@@ -382,7 +382,7 @@ describe('completing a link', () => {
       walletName: null
     });
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
 
     await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
       ok: false,
@@ -578,18 +578,18 @@ describe('reconcile', () => {
     expect(await reportedOn(60, 5_000)).toEqual([]);
   });
 
-  it.each(['revoked', 'declined'] as const)(
-    'ends the Linked addresses of an investor whose Decision became %s, and asks ops to revoke',
+  it.each(['revoked', 'declined', 'pending_review'] as const)(
+    'ends the Linked addresses of an investor whose yes became %s, and asks ops to revoke',
     async (status) => {
-      const { walletLink, kyc, chain, outbox, operator, emails, clock } = setup();
+      const { walletLink, verification, chain, outbox, operator, emails, clock } = setup();
       await linkEoa(walletLink);
 
-      // "Not yet" is not a no: a review reopened ends nothing.
-      kyc.set(ALICE, { status: 'pending_review' });
+      // An operator's approval is a yes like Persona's, and ends nothing.
+      verification.set(ALICE, { status: 'manually_approved' });
       expect((await walletLink.reconcile({ now: clock.clock.now() })).ended).toBe(0);
 
       chain.setMembership(SIGNER, 'member');
-      kyc.set(ALICE, { status });
+      verification.set(ALICE, { status });
       const report = await walletLink.reconcile({ now: clock.clock.now() });
 
       // Neither announced as whitelisted nor left linked: the revoke is on its way.
@@ -599,11 +599,11 @@ describe('reconcile', () => {
         ok: true,
         value: 'sent'
       });
-      // And the request says which Decision ended the link, and where the address stands now.
+      // And the request says what ended the link, and where the address stands now.
       expect(operator.sent).toMatchObject([
         {
           kind: 'revoke_request',
-          noDecision: status,
+          endedBy: status,
           otherAccounts: [],
           membership: TARGETS.map((target) => ({ target, verdict: 'member' }))
         }
@@ -613,7 +613,7 @@ describe('reconcile', () => {
   );
 
   it("treats two accounts' requests for one address apart: both are emailed, and a no ends only its own", async () => {
-    const { walletLink, kyc, chain, outbox, operator, clock } = setup();
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
     await linkEoa(walletLink, ALICE);
     await linkEoa(walletLink, BOB);
     chain.setMembership(SIGNER, 'member');
@@ -622,7 +622,7 @@ describe('reconcile', () => {
     expect(first).toMatchObject({ checked: 2, whitelisted: 2 });
     expect(outbox.jobs.filter((job) => job.kind === 'whitelisted_email')).toHaveLength(2);
 
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
     const second = await walletLink.reconcile({ now: clock.clock.now() });
     expect(second).toMatchObject({ ended: 1 });
     await expect(walletLink.listLinks({ userId: ALICE })).resolves.toEqual([]);
@@ -636,13 +636,13 @@ describe('reconcile', () => {
   });
 
   it('names on a Revoke request every other account that connected the address, and whether it is verified', async () => {
-    const { walletLink, kyc, outbox, operator, store, clock } = setup();
+    const { walletLink, verification, outbox, operator, store, clock } = setup();
     await linkEoa(walletLink, ALICE);
     // Bob only connected the address in the dapp; he never asked for a whitelist, and is not verified.
     store.connections.add(`${BOB}:${SIGNER}`);
-    kyc.set(BOB, { status: 'in_progress' });
+    verification.set(BOB, { status: 'in_progress' });
 
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
     await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
 
@@ -653,9 +653,9 @@ describe('reconcile', () => {
   });
 
   it('still asks ops to revoke when the chains cannot be read, saying so instead of where the address stands', async () => {
-    const { walletLink, kyc, chain, outbox, operator, clock } = setup();
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
     await linkEoa(walletLink);
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
 
     chain.failMembershipReads(new Error('every RPC down'));
@@ -731,12 +731,12 @@ describe('deliverNotification', () => {
   });
 
   it('skips the whitelist request and the email for an address removed meanwhile; the revoke still goes', async () => {
-    const { walletLink, kyc, outbox, operator, emails, chain, clock } = setup();
+    const { walletLink, verification, outbox, operator, emails, chain, clock } = setup();
     await linkEoa(walletLink);
     // The sweep saw it whitelisted and queued the email; then the Decision became a no and the next pass removed it.
     chain.setMembership(SIGNER, 'member');
     await walletLink.reconcile({ now: clock.clock.now() });
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
     const [whitelistRequest, whitelistedEmail, revokeRequest] = outbox.jobs;
 
@@ -755,9 +755,9 @@ describe('deliverNotification', () => {
   });
 
   it('skips a Whitelist request whose investor stopped being a yes before it was delivered', async () => {
-    const { walletLink, kyc, outbox, operator } = setup();
+    const { walletLink, verification, outbox, operator } = setup();
     await linkEoa(walletLink);
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
 
     await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
       ok: true,
@@ -767,15 +767,15 @@ describe('deliverNotification', () => {
   });
 
   it('skips a Revoke request whose investor is a yes again before it was delivered', async () => {
-    const { walletLink, kyc, outbox, operator, clock } = setup();
+    const { walletLink, verification, outbox, operator, clock } = setup();
     await linkEoa(walletLink);
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
     const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
 
     // Re-approved and linked again while the Revoke request waited in the
     // queue: delivering it now would ask ops to undo the Whitelist request.
-    kyc.set(ALICE, { status: 'approved' });
+    verification.set(ALICE, { status: 'approved' });
     await linkEoa(walletLink);
     await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
       ok: true,
@@ -784,21 +784,22 @@ describe('deliverNotification', () => {
     expect(operator.sent).toEqual([]);
   });
 
-  it('says when the skipped Revoke request leaves the address whitelisted under no Linked row', async () => {
-    const { walletLink, kyc, outbox, operator, clock } = setup();
+  it('still asks ops to revoke when the investor is a yes again but has not linked the address again', async () => {
+    const { walletLink, verification, outbox, operator, clock } = setup();
     await linkEoa(walletLink);
-    kyc.set(ALICE, { status: 'revoked' });
+    verification.set(ALICE, { status: 'pending_review' });
     await walletLink.reconcile({ now: clock.clock.now() });
     const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
 
-    // A yes again, but no new link: the Removed row is the only one, and the
-    // sweep reads Linked rows alone, so a later no would never revoke this address.
-    kyc.set(ALICE, { status: 'approved' });
+    // Re-approved before delivery, no new link: the Removed row is the address's
+    // only one and no sweep reads it again, so skipping would leave it whitelisted
+    // where a later no could never revoke it.
+    verification.set(ALICE, { status: 'approved' });
     await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
       ok: true,
-      value: 'skipped_untracked'
+      value: 'sent'
     });
-    expect(operator.sent).toEqual([]);
+    expect(operator.sent).toMatchObject([{ kind: 'revoke_request', endedBy: null }]);
   });
 
   it('has nobody to tell when the row is gone', async () => {
