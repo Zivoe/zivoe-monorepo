@@ -114,11 +114,57 @@ describe('decide', () => {
     expect(run(record(), { snapshot: caseSnapshot('Waiting on UBOs', 'pending_review') }).caseMove).toBeNull();
   });
 
-  it('writes a newer case snapshot that moves nothing for its stamp alone, and an inquiry read not at all', () => {
+  it('writes a newer case snapshot or Decision read that moves nothing for its stamp alone, and any other inquiry read not at all', () => {
     const declined = record({ status: 'declined', personaCaseStatus: 'Declined' });
     expect(run(declined, { snapshot: caseSnapshot('Declined', 'declined') }).next).toMatchObject({ sourceAt: at(5) });
-    const individual = record({ status: 'submitted', personaCaseId: null, personaCaseStatus: null });
-    const read = { status: 'submitted', inquiryId: 'inq_1', accountId: null, case: null } as const;
-    expect(run(individual, { snapshot: read, source: 'fetch' })).toMatchObject({ next: null, confirm: true });
+
+    const individual = (status: 'submitted' | 'approved') =>
+      record({ status, personaCaseId: null, personaCaseStatus: null, accountType: 'individual' });
+    const read = (status: 'submitted' | 'approved') =>
+      ({ status, inquiryId: 'inq_1', accountId: null, case: null }) as const;
+    expect(run(individual('submitted'), { snapshot: read('submitted'), source: 'fetch' })).toMatchObject({
+      next: null,
+      confirm: true
+    });
+    const confirmed = run(individual('approved'), { path: 'individual', snapshot: read('approved'), source: 'fetch' });
+    expect(confirmed).toMatchObject({
+      outcome: 'unchanged',
+      next: { status: 'approved', sourceAt: at(5), statusChangedAt: T0 },
+      notifications: []
+    });
+  });
+
+  it('names the Decision a reversal takes back, and none on a first decision', () => {
+    const individual = { path: 'individual', source: 'event' } as const;
+    const inquiry = (status: 'approved' | 'declined') =>
+      ({ status, inquiryId: 'inq_1', accountId: null, case: null }) as const;
+    const from = (status: 'submitted' | 'approved' | 'declined', to: 'approved' | 'declined') =>
+      run(record({ status, personaCaseId: null, personaCaseStatus: null, accountType: 'individual' }), {
+        ...individual,
+        snapshot: inquiry(to)
+      }).notifications;
+
+    expect(from('approved', 'declined')).toEqual([
+      expect.objectContaining({ kind: 'status_email', status: 'declined', previousDecision: 'approved' }),
+      expect.objectContaining({ kind: 'operator_message', status: 'declined', previousDecision: 'approved' })
+    ]);
+    expect(
+      from('declined', 'approved').map((job) => (job.kind === 'case_status' ? undefined : job.previousDecision))
+    ).toEqual(['declined', 'declined']);
+    expect(from('submitted', 'declined').every((job) => !('previousDecision' in job))).toBe(true);
+    // A resync handing an operator's approval to Persona's decline takes an approval back.
+    const released = run(
+      record({ status: 'manually_approved', personaCaseId: null, personaCaseStatus: null, accountType: 'individual' }),
+      { ...individual, source: 'fetch', release: true, snapshot: inquiry('declined') }
+    );
+    expect(
+      released.notifications.map((job) => (job.kind === 'case_status' ? undefined : job.previousDecision))
+    ).toEqual(['approved', 'approved']);
+    // An organization's case moving straight from one Decision to the other is a reversal too.
+    expect(
+      run(record({ status: 'approved', personaCaseStatus: 'Approved' }), {
+        snapshot: caseSnapshot('Declined', 'declined')
+      }).notifications.map((job) => (job.kind === 'case_status' ? undefined : job.previousDecision))
+    ).toEqual(['approved', 'approved']);
   });
 });

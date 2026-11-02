@@ -1757,6 +1757,23 @@ describe('reconcile', () => {
       expect(await s.verification.reconcile({ now: s.clock.clock.now() })).toMatchObject({ checked: 0 });
     });
 
+    it('carries the approval it takes back when the reversal arrives by webhook', async () => {
+      const s = setup();
+      s.seedRecord({ status: 'approved' });
+
+      await delivery({
+        verification: s.verification,
+        name: 'inquiry.declined',
+        status: 'declined',
+        minutesAfterT0: 30
+      });
+
+      expect(s.store.records.get(USER_ID)?.status).toBe('declined');
+      expect(
+        s.outbox.notifications.map((job) => (job.kind === 'case_status' ? undefined : job.previousDecision))
+      ).toEqual(['approved', 'approved']);
+    });
+
     it("stays on its own inquiry when a reviewer's newer follow-up is decided", async () => {
       const s = setup();
       s.seedRecord({ status: 'approved', statusChangedAt: sevenHoursAgo, lastSyncedAt: sevenHoursAgo });

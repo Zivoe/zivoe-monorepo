@@ -617,7 +617,8 @@ export type VerificationConfig = {
    * waits on its owners for up to a month first, and only a person can move
    * either, so these rows are re-read for a long while — hourly, so a
    * reviewer's decision whose webhook was lost still reaches the investor
-   * within the hour, at one or two Persona reads per waiting record.
+   * within the hour and the sweep's step, at one or two Persona reads per
+   * waiting record.
    */
   reviewHorizonMs?: number;
   reviewCadenceMs?: number;
@@ -692,9 +693,10 @@ const MAX_WRITE_ATTEMPTS = 3;
 /** Records one sweep lists; the budget, not this, is what bounds a pass. */
 const RECONCILE_BATCH_SIZE = 200;
 /**
- * Decisions one sweep re-reads, at most: about 4,800 Persona reads a day,
- * which holds the decision cadence up to some 1,200 decided records and
- * stretches it smoothly past that instead of growing the load.
+ * Decisions one sweep re-reads, at most: about 4,800 records a day (an
+ * organization's is two Persona reads), which holds the decision cadence up
+ * to some 1,200 decided records and stretches it smoothly past that instead
+ * of growing the load.
  */
 const DECIDED_BATCH_SIZE = 50;
 /** Persona reads are independent per user; a small fan-out keeps one slow read from eating the budget. */
@@ -1478,28 +1480,30 @@ export function createVerification({
       // organization's KYB case.
       const syncedBefore = new Date(now.getTime() - staleAfterMs);
       const undecidedFor = (path: InvestorPath) => ({ statuses: undecidedStatusesFor(path), accountType: path });
-      const batches = await Promise.all([
-        // Undecided differs per flow: an organization's `failed` is terminal, nobody decides it.
-        ...(['individual', 'organization'] as const).map((path) =>
+      const [waiting, decided] = await Promise.all([
+        Promise.all([
+          // Undecided differs per flow: an organization's `failed` is terminal, nobody decides it.
+          ...(['individual', 'organization'] as const).map((path) =>
+            store.list({
+              ...undecidedFor(path),
+              syncedBefore,
+              changedAfter: new Date(now.getTime() - reconcileHorizonMs),
+              limit: RECONCILE_BATCH_SIZE
+            })
+          ),
           store.list({
-            ...undecidedFor(path),
+            statuses: IN_REVIEW_STATUSES,
+            syncedBefore: new Date(now.getTime() - reviewCadenceMs),
+            changedAfter: new Date(now.getTime() - reviewHorizonMs),
+            limit: RECONCILE_BATCH_SIZE
+          }),
+          store.list({
+            statuses: AWAITING_INVESTOR_STATUSES,
             syncedBefore,
-            changedAfter: new Date(now.getTime() - reconcileHorizonMs),
+            changedAfter: new Date(now.getTime() - abandonedAfterMs),
             limit: RECONCILE_BATCH_SIZE
           })
-        ),
-        store.list({
-          statuses: IN_REVIEW_STATUSES,
-          syncedBefore: new Date(now.getTime() - reviewCadenceMs),
-          changedAfter: new Date(now.getTime() - reviewHorizonMs),
-          limit: RECONCILE_BATCH_SIZE
-        }),
-        store.list({
-          statuses: AWAITING_INVESTOR_STATUSES,
-          syncedBefore,
-          changedAfter: new Date(now.getTime() - abandonedAfterMs),
-          limit: RECONCILE_BATCH_SIZE
-        }),
+        ]),
         // A Decision can still move: a reviewer may decline an approved
         // inquiry, approve a declined one, or reopen an organization's KYB
         // case. A lost webhook for any of them would leave the record decided
@@ -1515,9 +1519,8 @@ export function createVerification({
       // apart: they are always the oldest synced, and a set that only grows
       // must neither hold up a submission waiting on Persona nor raise
       // Persona's load with the number of investors.
-      const decided = batches.pop() ?? [];
       const stale = [
-        ...batches.flat().sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime()),
+        ...waiting.flat().sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime()),
         ...decided
       ].slice(0, RECONCILE_BATCH_SIZE);
 
