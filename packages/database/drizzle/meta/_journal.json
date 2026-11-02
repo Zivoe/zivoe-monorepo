@@ -127,6 +127,20 @@
       "when": 1792576568591,
       "tag": "0017_country_codes_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792794655340,
+      "tag": "0018_kyb_case",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793404459675,
+      "tag": "0019_kyb_record_version",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@
  * Human-owned values (`manually_approved`, `revoked`) are only ever set and
  * cleared by an operator.
  */
-export const kycStatusValues = [
+export const verificationStatusValues = [
   'not_started',
   'in_progress',
   'submitted',
@@ -17,4 +17,4 @@ export const kycStatusValues = [
   'manually_approved',
   'revoked'
 ] as const;
-export type KycStatus = (typeof kycStatusValues)[number];
+export type VerificationStatus = (typeof verificationStatusValues)[number];
