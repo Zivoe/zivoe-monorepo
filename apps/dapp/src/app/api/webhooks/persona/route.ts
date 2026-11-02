@@ -49,17 +49,30 @@ const once = (key: string) => {
   return true;
 };
 
+/** The envelope's event id; null for a body that is not JSON or names none. Only read for a signed delivery. */
+const eventIdOf = (rawBody: string): string | null => {
+  try {
+    const id: unknown = (JSON.parse(rawBody) as { data?: { id?: unknown } } | null)?.data?.id;
+    return typeof id === 'string' ? id : null;
+  } catch {
+    return null;
+  }
+};
+
 const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome: 'unparseable' }> => {
   Sentry.setTag('source', 'API');
   Sentry.setTag('flow', FLOW);
 
   // One log line per delivery: how long the route held Persona (its timeout
   // is 5 s) and which attempt this was. The headers also answer, in the
-  // sandbox, whether retries are freshly signed. Never any payload content.
+  // sandbox, whether retries are freshly signed. The event id (`evt_…`) is
+  // what Persona's dashboard log is searched by; it comes from the envelope,
+  // and never any payload content.
   const startedAt = Date.now();
   const logDelivery = (outcome: string) =>
     Sentry.logger.info('persona-webhook delivery', {
       outcome,
+      eventId: eventIdOf(rawBody),
       durationMs: Date.now() - startedAt,
       attemptsMade: req.headers.get('persona-webhook-attempts-made'),
       attemptsLeft: req.headers.get('persona-webhook-attempts-left'),
