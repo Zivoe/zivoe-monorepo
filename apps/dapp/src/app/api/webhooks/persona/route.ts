@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createHash } from 'node:crypto';
 
-import { kycVerification } from '@/server/kyc';
-import { type WebhookIgnoredReason, type WebhookOutcome } from '@/server/kyc/kyc-verification';
+import { verification } from '@/server/verification';
+import { type WebhookOutcome } from '@/server/verification/verification';
 
 import { ApiError, withErrorHandler } from '@/lib/utils';
 
@@ -29,13 +29,25 @@ const FLOW = 'persona-webhook';
  * floor. Subscribing to an event the module does not handle is otherwise a
  * silent no-op, which is exactly how a subscription change goes unnoticed.
  */
-const DRIFT_REASONS = new Set<WebhookIgnoredReason>(['unsubscribed_event', 'unmapped_status']);
+const DRIFT_REASONS: ReadonlySet<string> = new Set(['unsubscribed_event', 'unmapped_status']);
 /**
- * Event names already reported by this instance. A wildcard subscription
- * delivers every event Persona has, dozens per inquiry; one capture per
- * unexpected name per instance says the same thing as one per delivery.
+ * A KYB case the verification could not place: a record nobody holds, an
+ * individual's inquiry on a business case, a second case. Someone has to
+ * look — once per case, since every status move of a stray case delivers again.
  */
-const reportedDrift = new Set<string>();
+const CASE_ALERT_REASONS: ReadonlySet<string> = new Set(['unmatched_case', 'conflicting_case']);
+/**
+ * What this instance already reported: unexpected event names, unknown case
+ * statuses, stray cases. A wildcard subscription delivers every event
+ * Persona has, dozens per inquiry; one capture per thing per instance says
+ * the same as one per delivery.
+ */
+const reported = new Set<string>();
+const once = (key: string) => {
+  if (reported.has(key)) return false;
+  reported.add(key);
+  return true;
+};
 
 const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome: 'unparseable' }> => {
   Sentry.setTag('source', 'API');
@@ -56,7 +68,7 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
 
   const rawBody = await req.text();
 
-  const result = await kycVerification.receiveWebhook({
+  const result = await verification.receiveWebhook({
     rawBody,
     signatureHeader: req.headers.get('persona-signature'),
     receivedAt: new Date()
@@ -66,15 +78,38 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
     logDelivery(result.value.outcome);
     // Stable message per reason so the drift groups into one Sentry issue and
     // the event names travel in extra, rather than one issue per delivery.
-    if (result.value.outcome === 'ignored' && DRIFT_REASONS.has(result.value.reason)) {
-      const key = `${result.value.reason}:${result.value.eventName}`;
-      if (!reportedDrift.has(key)) {
-        reportedDrift.add(key);
-        Sentry.captureException(new Error(`Persona webhook ignored: ${result.value.reason}`), {
-          tags: { source: 'API', flow: FLOW },
-          extra: { eventName: result.value.eventName }
-        });
-      }
+    if (
+      result.value.outcome === 'ignored' &&
+      DRIFT_REASONS.has(result.value.reason) &&
+      once(`${result.value.reason}:${result.value.eventName}`)
+    ) {
+      Sentry.captureException(new Error(`Persona webhook ignored: ${result.value.reason}`), {
+        tags: { source: 'API', flow: FLOW },
+        extra: { eventName: result.value.eventName }
+      });
+    }
+
+    // A KYB case status outside every configured set: applied as in review,
+    // but the configuration must learn its name. Once per name, like the drift above.
+    const unknownCaseStatus = 'unknownCaseStatus' in result.value ? result.value.unknownCaseStatus : undefined;
+    if (unknownCaseStatus && once(`unknown_case_status:${unknownCaseStatus}`)) {
+      Sentry.captureException(new Error('Persona KYB case carries a status the configuration does not know'), {
+        tags: { source: 'API', flow: FLOW },
+        extra: { caseStatus: unknownCaseStatus }
+      });
+    }
+
+    if (
+      result.value.outcome === 'ignored' &&
+      'caseId' in result.value &&
+      CASE_ALERT_REASONS.has(result.value.reason) &&
+      once(`${result.value.reason}:${result.value.caseId}`)
+    ) {
+      Sentry.captureException(new Error(`Persona KYB case could not be placed: ${result.value.reason}`), {
+        level: 'warning',
+        tags: { source: 'API', flow: FLOW, reason: result.value.reason },
+        extra: { eventName: result.value.eventName, caseId: result.value.caseId }
+      });
     }
 
     // A newer inquiry than the user's Decision will never be read on its own:
@@ -87,12 +122,33 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
       });
     }
 
-    // A decisioning Workflow run errored: the affected user sits at
-    // `submitted` until it is fixed. This names the run the moment it breaks;
-    // the sweep's undecided alarm stays the safety net behind it.
+    // Someone decided an organization's business inquiry instead of its KYB
+    // case. The app ignored it; the case still has to be decided. Once per
+    // inquiry: Persona redelivers nothing here, but a second click would.
+    if (
+      result.value.outcome === 'ignored' &&
+      result.value.reason === 'case_decides' &&
+      once(`case_decides:${result.value.inquiryId}`)
+    ) {
+      Sentry.captureException(
+        new Error("Persona decided an organization's business inquiry; only its KYB case decides"),
+        {
+          level: 'warning',
+          tags: { source: 'API', flow: FLOW },
+          extra: { eventName: result.value.eventName, userId: result.value.userId, inquiryId: result.value.inquiryId }
+        }
+      );
+    }
+
+    // A Workflow run errored: a decisioning run leaves its user at
+    // `submitted` until it is fixed; the KYB Workflow's run ends errored for
+    // every business inquiry with a blank TIN (its TIN lookup step has no
+    // guard) until the workflow is changed in persona-config. The Workflow
+    // rides as a tag so the two can be told apart in Sentry without hiding
+    // either; the sweep's undecided alarm stays the safety net behind it.
     if (result.value.outcome === 'ops_alert') {
       Sentry.captureException(new Error('Persona reported a workflow run error'), {
-        tags: { source: 'API', flow: FLOW },
+        tags: { source: 'API', flow: FLOW, workflowId: result.value.workflowId ?? 'unknown' },
         extra: { eventName: result.value.eventName, resourceId: result.value.resourceId }
       });
     }

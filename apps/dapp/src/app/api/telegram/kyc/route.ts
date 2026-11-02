@@ -2,13 +2,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { kycVerification } from '@/server/kyc';
-import { parseKycNotificationJob } from '@/server/kyc/kyc-outbox';
+import { verification } from '@/server/verification';
+import { parseVerificationNotificationJob } from '@/server/verification/verification-outbox';
 
 import { QSTASH_NON_RETRYABLE, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
-// Operator message for a lifecycle move in `KYC_OPERATOR_STATUSES` — the
+// Operator message for a lifecycle move in `VERIFICATION_OPERATOR_STATUSES` — the
 // transport half only. The directional check and the message itself live in
 // `deliverNotification` and its Telegram adapter; here the answer becomes the
 // status code QStash acts on: 200 for sent or skipped, 500 for early or
@@ -22,10 +22,10 @@ const handler = async (req: NextRequest) => {
     throw new ApiError({ message: 'Request body not found', capture: true, ...QSTASH_NON_RETRYABLE });
   }
 
-  const notification = parseKycNotificationJob({ kind: 'operator_message', body: body.res });
+  const notification = parseVerificationNotificationJob({ kind: 'operator_message', body: body.res });
   if (!notification) throw new ApiError({ message: 'Invalid request payload', capture: true, ...QSTASH_NON_RETRYABLE });
 
-  const result = await kycVerification.deliverNotification({ notification });
+  const result = await verification.deliverNotification({ notification });
   if (result.ok) {
     return NextResponse.json({
       success: true,

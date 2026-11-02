@@ -3,9 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
-import { kycVerification } from '@/server/kyc';
-import { type OperatorChange } from '@/server/kyc/kyc-verification';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
+import { verification } from '@/server/verification';
+import { type OperatorChange } from '@/server/verification/verification';
 
 import { QSTASH_NON_RETRYABLE, withQstashSignature } from '@/lib/qstash';
 import { ApiError, escapeHtml, handlePromise, withErrorHandler } from '@/lib/utils';
@@ -39,7 +39,7 @@ const handler = async (req: NextRequest): ApiResponse<OperatorChange> => {
       sendTelegramMessage({
         chatId: env.TELEGRAM_PERSONA_CHAT_ID,
         text: [
-          '<b>KYC operator action</b>',
+          '<b>Verification operator action</b>',
           '',
           `<b>Action:</b> ${action}`,
           `<b>User:</b> ${escapeHtml(userId)}`,
@@ -52,10 +52,10 @@ const handler = async (req: NextRequest): ApiResponse<OperatorChange> => {
 
   const result =
     action === 'revoke'
-      ? await kycVerification.revoke({ userId })
+      ? await verification.revoke({ userId })
       : action === 'approve'
-        ? await kycVerification.approveManually({ userId })
-        : await kycVerification.resyncFromPersona({ userId });
+        ? await verification.approveManually({ userId })
+        : await verification.resyncFromPersona({ userId });
 
   if (!result.ok) {
     switch (result.error.code) {
@@ -69,14 +69,24 @@ const handler = async (req: NextRequest): ApiResponse<OperatorChange> => {
     }
   }
 
-  const { from, to, inquiryId } = result.value;
+  const { from, to, inquiryId, path, case: kybCase } = result.value;
   const noInquiry = action === 'resync' ? 'none in Persona — the record was left as it is' : 'none';
+  // The record stops hearing Persona, which an Inquiry is still decided in —
+  // unless nothing in Persona decides it: an organization's failed inquiry.
+  const overridesPersona = action === 'approve' && !!inquiryId && !(path === 'organization' && from === 'failed');
   await report([
     `<b>Status:</b> ${from === to ? `${to} (unchanged)` : `${from} → ${to}`}`,
     `<b>Inquiry:</b> ${inquiryId ? escapeHtml(inquiryId) : noInquiry}`,
-    // The record stops hearing Persona, which an Inquiry is still decided in.
-    ...(action === 'approve' && inquiryId
-      ? ['', '⚠️ This user has an Inquiry: Persona is ignored from here on. Decide it in Persona and resync instead.']
+    ...(kybCase ? [`<b>Case:</b> ${escapeHtml(kybCase.id)} (${escapeHtml(kybCase.status)})`] : []),
+    ...(overridesPersona
+      ? [
+          '',
+          path !== 'organization'
+            ? '⚠️ This user has an Inquiry: Persona is ignored from here on. Decide it in Persona and resync instead.'
+            : kybCase
+              ? '⚠️ This organization has a KYB case: Persona is ignored from here on. Decide the case in Persona and resync instead.'
+              : '⚠️ This organization has a business inquiry and no KYB case yet: Persona is ignored from here on. When the case is decided, resync.'
+        ]
       : [])
   ]);
 
