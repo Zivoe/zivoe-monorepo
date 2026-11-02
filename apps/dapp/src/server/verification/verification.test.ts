@@ -1610,12 +1610,12 @@ describe('reconcile', () => {
     expect(s.store.records.get('u-walked-away')?.lastSyncedAt).toEqual(new Date(T0.getTime() - 45 * MINUTE));
   });
 
-  it('re-reads a review every six hours for 90 days, not every sweep for seven', async () => {
+  it('re-reads a review every hour for 90 days, not every sweep for seven', async () => {
     const s = setup();
     const review = { status: 'pending_review', personaStatus: 'needs_review' } as const;
-    seedSynced({ setup: s, userId: 'u-read-recently', ...review, staleMinutes: 5 * 60, changedHoursAgo: 24 * 20 });
-    seedSynced({ setup: s, userId: 'u-due', ...review, staleMinutes: 7 * 60, changedHoursAgo: 24 * 80 });
-    seedSynced({ setup: s, userId: 'u-forgotten', ...review, staleMinutes: 7 * 60, changedHoursAgo: 24 * 100 });
+    seedSynced({ setup: s, userId: 'u-read-recently', ...review, staleMinutes: 45, changedHoursAgo: 24 * 20 });
+    seedSynced({ setup: s, userId: 'u-due', ...review, staleMinutes: 61, changedHoursAgo: 24 * 80 });
+    seedSynced({ setup: s, userId: 'u-forgotten', ...review, staleMinutes: 61, changedHoursAgo: 24 * 100 });
 
     const report = await s.verification.reconcile({ now: T0 });
 

@@ -612,11 +612,18 @@ export type VerificationConfig = {
    * How long the sweep keeps re-reading a record that waits on a REVIEWER,
    * and how often. A compliance review can take weeks, an organization's
    * waits on its owners for up to a month first, and only a person can move
-   * either, so these rows are re-read on a slow cadence for a long while: a
-   * few reads a day, and the one lost decision webhook is still caught.
+   * either, so these rows are re-read for a long while — hourly, so a
+   * reviewer's decision whose webhook was lost still reaches the investor
+   * within the hour, at one or two Persona reads per waiting record.
    */
   reviewHorizonMs?: number;
   reviewCadenceMs?: number;
+  /**
+   * How often the sweep re-reads a decided organization, whose KYB case a
+   * reviewer may reopen. Kept slower than the review cadence: the set only
+   * grows, and a reopen is rare where a decision is the one thing a review waits for.
+   */
+  decisionCadenceMs?: number;
   /**
    * How long the sweep keeps re-reading a record that waits on the INVESTOR.
    * Past this they have abandoned the flow: an expired inquiry cannot move
@@ -633,7 +640,8 @@ export const VERIFICATION_DEFAULT_THRESHOLDS = {
   reconcileBudgetMs: 25_000,
   reconcileHorizonMs: 7 * 24 * 60 * 60_000,
   reviewHorizonMs: 90 * 24 * 60 * 60_000,
-  reviewCadenceMs: 6 * 60 * 60_000,
+  reviewCadenceMs: 60 * 60_000,
+  decisionCadenceMs: 6 * 60 * 60_000,
   abandonedAfterMs: 24 * 60 * 60_000
 } as const;
 
@@ -892,6 +900,7 @@ export function createVerification({
   const reconcileHorizonMs = config.reconcileHorizonMs ?? VERIFICATION_DEFAULT_THRESHOLDS.reconcileHorizonMs;
   const reviewHorizonMs = config.reviewHorizonMs ?? VERIFICATION_DEFAULT_THRESHOLDS.reviewHorizonMs;
   const reviewCadenceMs = config.reviewCadenceMs ?? VERIFICATION_DEFAULT_THRESHOLDS.reviewCadenceMs;
+  const decisionCadenceMs = config.decisionCadenceMs ?? VERIFICATION_DEFAULT_THRESHOLDS.decisionCadenceMs;
   const abandonedAfterMs = config.abandonedAfterMs ?? VERIFICATION_DEFAULT_THRESHOLDS.abandonedAfterMs;
 
   /** The flow a user verifies through, by account type — undefined for an organization while KYB is not configured. */
@@ -1448,13 +1457,13 @@ export function createVerification({
       // people. A `submitted` or `failed` record waits on a Persona Workflow,
       // which answers in seconds: re-read at the staleness gate for a week,
       // past which it is a defect the counts below report. A `pending_review`
-      // record waits on a reviewer, who may take weeks: re-read on a slow
-      // cadence for a long while. A record waiting on the investor cannot
+      // record waits on a reviewer, who may take weeks: re-read hourly for a
+      // long while. A record waiting on the investor cannot
       // move until they come back, and `startVerification` fetches when they do;
       // keeping a week of abandoned flows in the batch is the largest and
       // least useful part of it.
       // A decided organization is the one terminal record re-read, on the
-      // review cadence: its KYB case can be reopened.
+      // decision cadence: its KYB case can be reopened.
       const syncedBefore = new Date(now.getTime() - staleAfterMs);
       const undecidedFor = (path: InvestorPath) => ({ statuses: undecidedStatusesFor(path), accountType: path });
       const batches = await Promise.all([
@@ -1481,12 +1490,12 @@ export function createVerification({
         }),
         // An organization's Decision can still move: a reviewer may reopen its
         // KYB case. A lost reopen webhook would leave it decided for good, so
-        // decided organizations are re-read on the review cadence, for as long
-        // as they hold one.
+        // decided organizations are re-read on the decision cadence, for as
+        // long as they hold one.
         store.list({
           statuses: DECISION_STATUSES,
           accountType: 'organization',
-          syncedBefore: new Date(now.getTime() - reviewCadenceMs),
+          syncedBefore: new Date(now.getTime() - decisionCadenceMs),
           limit: RECONCILE_BATCH_SIZE
         })
       ]);
