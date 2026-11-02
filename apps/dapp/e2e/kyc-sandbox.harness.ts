@@ -1,7 +1,7 @@
 /**
  * What the sandbox scenarios share: the guarded environment, the Verification module
  * wired to the real adapters, throwaway users, and the reads the assertions
- * poll. See docs/persona-kyb-local-testing.md §6.
+ * poll.
  *
  * The module built here runs IN THIS PROCESS — that is how a scenario calls
  * `startVerification` and `reconcile` directly. Persona's webhooks and QStash's

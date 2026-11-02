@@ -80,7 +80,7 @@ export function diffPersonaWebhookConfig({
     if (withheld.length > 0) {
       findings.push(`${name} withholds the ${withheld.join(', ')} relationship the parser reads`);
     }
-    // Identity data stays in Persona: the blocklist entries are in docs/persona-kyb-local-testing.md §4.
+    // Identity data stays in Persona: the blocklist itself is configured on the webhook in persona-config.
     if (webhook.attributeBlocklist.length === 0) {
       findings.push(`${name} has no attribute blocklist; every delivery carries the investor's identity fields`);
     }

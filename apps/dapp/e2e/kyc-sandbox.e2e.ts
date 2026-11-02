@@ -8,8 +8,6 @@
  * test address and the Telegram test group) but not asserted here.
  *
  *   KYC_E2E_DB_HOST=<host> pnpm --filter zivoe-dapp kyc:e2e
- *
- * See docs/persona-kyb-local-testing.md §6.
  */
 import { afterAll, beforeAll, describe, it } from 'vitest';
 
@@ -132,7 +130,7 @@ describe.concurrent('Persona sandbox', () => {
     });
     expect(
       record.status,
-      'the Workflow did not decline an E2E-DECLINE inquiry: the conditional step is missing (see the runbook)'
+      'the Workflow did not decline an E2E-DECLINE inquiry: its E2E conditional step is missing (kyc-aml-inquiry-completed-enrich-and-decision in persona-config)'
     ).toBe('declined');
     await waitForEvents({ objectId: inquiryId, names: ['inquiry.completed', 'inquiry.declined'] });
 
@@ -153,11 +151,11 @@ describe.concurrent('Persona sandbox', () => {
     });
     expect(
       record.status,
-      'the Workflow did not mark an E2E-REVIEW inquiry for review: the conditional step is missing (see the runbook)'
+      'the Workflow did not mark an E2E-REVIEW inquiry for review: its E2E conditional step is missing (kyc-aml-inquiry-completed-enrich-and-decision in persona-config)'
     ).toBe('pending_review');
     await waitForEvents({ objectId: inquiryId, names: ['inquiry.completed', 'inquiry.marked-for-review'] });
 
-    // The review email is held 30 minutes by QStash; this user stays until the next run so it can land.
+    // The review email is held a minute by QStash; this user stays until the next run so it can land.
     expect(await verification.startVerification({ userId })).toMatchObject({
       ok: false,
       error: { code: 'awaiting_decision' }

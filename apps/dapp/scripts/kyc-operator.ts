@@ -2,7 +2,7 @@
  * KYC operator actions — publishes one job through QStash to the deployed
  * app's `/api/kyc/operator`, where the Verification module runs it. The
  * outcome is posted to the Persona Telegram channel; QStash carries no
- * response back. See docs/persona-kyb-local-testing.md §8–9.
+ * response back.
  *
  *   pnpm kyc:operator revoke <user-id>    set the Human-owned `revoked`
  *   pnpm kyc:operator approve <user-id>   set the Human-owned `manually_approved`

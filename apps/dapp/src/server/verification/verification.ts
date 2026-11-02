@@ -922,7 +922,7 @@ export function createVerification({
    * Whether an inquiry's own status may decide the flow. An individual's
    * does. An organization is decided by its KYB case alone: a decision on
    * the business inquiry itself (a reviewer's click on the inquiry page,
-   * which the runbook forbids) must never grant or remove access.
+   * instead of on the case) must never grant or remove access.
    */
   const inquiryDecides = (flow: KycFlowConfig | KybFlowConfig, status: VerificationStatus) =>
     flow.path !== 'organization' || !isDecision(status);
