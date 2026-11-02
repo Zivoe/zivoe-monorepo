@@ -391,8 +391,9 @@ export type WebhookIgnoredReason =
   | 'superseded_inquiry'
   /**
    * An inquiry created after the record's Decision (a reviewer's follow-up,
-   * a re-verification): the record keeps the Decision, since neither the
-   * sweep nor a start re-reads one, until an operator resyncs.
+   * a re-verification): the record keeps the Decision until an operator
+   * resyncs, since the sweep re-reads a Decision through its own inquiry
+   * and a start never re-reads one.
    */
   | 'unadopted_inquiry'
   /**
@@ -511,7 +512,7 @@ export type Verification = {
     signatureHeader: string | null;
     receivedAt: Date;
   }): Promise<Result<WebhookOutcome, WebhookError>>;
-  /** The Reconciliation Sweep: re-reads stale non-terminal records and decided organizations, and reports the stuck ones. */
+  /** The Reconciliation Sweep: re-reads stale non-terminal records and Decisions, and reports the stuck ones. */
   reconcile(input: { now: Date }): Promise<ReconcileReport>;
   /**
    * The receiving half of the Outbox: re-reads the record, drops a job it has
@@ -539,8 +540,9 @@ export type Verification = {
   approveManually(input: { userId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
   /**
    * An operator's re-read of one user, whatever the record says: the one way a
-   * Human-owned status is cleared, and the recovery for a Decision whose
-   * change never arrived (the sweep leaves Decisions alone). The record
+   * Human-owned status is cleared, and the way a record adopts an inquiry
+   * made after its Decision (the sweep reads a Decision only through its
+   * own inquiry). The record
    * becomes what Persona holds now — never a status typed by hand, because
    * everything Persona sent while the record was Human-owned was dropped.
    */
@@ -619,9 +621,10 @@ export type VerificationConfig = {
   reviewHorizonMs?: number;
   reviewCadenceMs?: number;
   /**
-   * How often the sweep re-reads a decided organization, whose KYB case a
-   * reviewer may reopen. Kept slower than the review cadence: the set only
-   * grows, and a reopen is rare where a decision is the one thing a review waits for.
+   * How often the sweep re-reads a Decision, which a reviewer may still
+   * reverse (or reopen, for an organization's KYB case). Kept slower than the
+   * review cadence and capped per sweep: the set only grows, and a reversal
+   * is rare where a decision is the one thing a review waits for.
    */
   decisionCadenceMs?: number;
   /**
@@ -687,6 +690,12 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const MAX_WRITE_ATTEMPTS = 3;
 /** Records one sweep lists; the budget, not this, is what bounds a pass. */
 const RECONCILE_BATCH_SIZE = 200;
+/**
+ * Decisions one sweep re-reads, at most: about 4,800 Persona reads a day,
+ * which holds the decision cadence up to some 1,200 decided records and
+ * stretches it smoothly past that instead of growing the load.
+ */
+const DECIDED_BATCH_SIZE = 50;
 /** Persona reads are independent per user; a small fan-out keeps one slow read from eating the budget. */
 const RECONCILE_CONCURRENCY = 5;
 /**
@@ -958,19 +967,20 @@ export function createVerification({
     const listed = await persona.listInquiries({ referenceId: userId });
     if (!listed.ok) return { outcome: 'unavailable', record, error: listed.error };
 
-    // An organization that follows a KYB case is decided by that case alone,
-    // read through its own inquiry whatever is newer: a business inquiry
-    // opened since in the dashboard must not hide a reopen, and a second case
-    // is the webhook's conflict to alert on, never the sweep's to apply. An
-    // operator's resync adopts what is newest instead, as for an individual.
-    const bound =
-      flow.path === 'organization' && !release && record?.personaCaseId && record.personaInquiryId
-        ? { caseId: record.personaCaseId, inquiryId: record.personaInquiryId }
-        : null;
+    // Two records are read through their own inquiry whatever is newer. An
+    // organization that follows a KYB case is decided by that case alone: a
+    // business inquiry opened since in the dashboard must not hide a reopen,
+    // and a second case is the webhook's conflict to alert on, never the
+    // sweep's to apply. An individual's Decision stands on its own inquiry:
+    // a reviewer's follow-up is `unadopted_inquiry`, not the record's to
+    // follow. An operator's resync adopts what is newest instead.
+    const boundCaseId =
+      flow.path === 'organization' && !release && record?.personaInquiryId ? record.personaCaseId : null;
+    const bound = !!boundCaseId || (flow.path === 'individual' && !release && !!record && isDecision(record.status));
     // Newest first, the flow's template only: a follow-up inquiry, or the
     // other flow's, under the same reference id must not replace the user's Inquiry.
     const newest = bound
-      ? listed.value.find((inquiry) => inquiry.id === bound.inquiryId)
+      ? listed.value.find((inquiry) => inquiry.id === record?.personaInquiryId)
       : listed.value.find((inquiry) => !onOtherTemplate(inquiry, flow));
     if (!newest) {
       // Nothing under this reference any more (retention deleted it): confirmed,
@@ -1009,7 +1019,7 @@ export function createVerification({
       const own = listedCases.value.filter(
         (kybCase) => kybCase.caseTemplateId === flow.caseTemplateId && kybCase.inquiryIds.includes(inquiry.id)
       );
-      const kybCase = bound ? own.find((candidate) => candidate.id === bound.caseId) : (own.find(decided) ?? own[0]);
+      const kybCase = bound ? own.find((candidate) => candidate.id === boundCaseId) : (own.find(decided) ?? own[0]);
       if (kybCase) {
         // The record's own case reached through another inquiry (a resync
         // adopting the newest) keeps the record on the inquiry, and the
@@ -1462,8 +1472,9 @@ export function createVerification({
       // move until they come back, and `startVerification` fetches when they do;
       // keeping a week of abandoned flows in the batch is the largest and
       // least useful part of it.
-      // A decided organization is the one terminal record re-read, on the
-      // decision cadence: its KYB case can be reopened.
+      // A Decision is re-read too, on the slower decision cadence and for as
+      // long as it stands: a reviewer can still reverse one, or reopen an
+      // organization's KYB case.
       const syncedBefore = new Date(now.getTime() - staleAfterMs);
       const undecidedFor = (path: InvestorPath) => ({ statuses: undecidedStatusesFor(path), accountType: path });
       const batches = await Promise.all([
@@ -1488,23 +1499,26 @@ export function createVerification({
           changedAfter: new Date(now.getTime() - abandonedAfterMs),
           limit: RECONCILE_BATCH_SIZE
         }),
-        // An organization's Decision can still move: a reviewer may reopen its
-        // KYB case. A lost reopen webhook would leave it decided for good, so
-        // decided organizations are re-read on the decision cadence, for as
-        // long as they hold one.
+        // A Decision can still move: a reviewer may decline an approved
+        // inquiry, approve a declined one, or reopen an organization's KYB
+        // case. A lost webhook for any of them would leave the record decided
+        // wrongly for good, so Decisions are re-read on the decision cadence.
         store.list({
           statuses: DECISION_STATUSES,
-          accountType: 'organization',
           syncedBefore: new Date(now.getTime() - decisionCadenceMs),
-          limit: RECONCILE_BATCH_SIZE
+          limit: DECIDED_BATCH_SIZE
         })
       ]);
-      // Oldest sync first across all of them, then one batch cap: the budget
-      // below is shared, so the queries must merge into a single queue.
-      const stale = batches
-        .flat()
-        .sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime())
-        .slice(0, RECONCILE_BATCH_SIZE);
+      // Oldest sync first, then one batch cap: the budget below is shared, so
+      // the queries merge into a single queue. Decisions go last and capped
+      // apart: they are always the oldest synced, and a set that only grows
+      // must neither hold up a submission waiting on Persona nor raise
+      // Persona's load with the number of investors.
+      const decided = batches.pop() ?? [];
+      const stale = [
+        ...batches.flat().sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime()),
+        ...decided
+      ].slice(0, RECONCILE_BATCH_SIZE);
 
       const report: Pick<
         ReconcileReport,

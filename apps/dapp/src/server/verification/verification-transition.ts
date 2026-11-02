@@ -68,7 +68,8 @@ export type Transition = {
  * 4. A snapshot not newer than the newest the record has taken
  *    (`sourceAt`) is a duplicate or out-of-order delivery. An inquiry read
  *    carries whole seconds, so it is compared at that grain, strictly. The
- *    stamp moves with every write, and with a newer case snapshot alone.
+ *    stamp moves with every write, and with a newer case snapshot or a newer
+ *    read of a Decision alone.
  * 5. A Decision is never replaced by a non-Decision, except by a reopen: the
  *    record's own KYB case moved into a review status the configuration
  *    knows. A status it does not know keeps the Decision (and is recorded).
@@ -151,9 +152,12 @@ export function decide({
   // Nothing moved. A newer case snapshot is still written for its stamp: a
   // decision reached again (declined, reopened unheard, declined) moves
   // nothing else, and only the stamp keeps a delayed approval from between
-  // the two out. An inquiry's updated-at moves for reasons of its own, so
-  // writing it would only churn the row.
-  if (!transition && !caseMoved && (!snapshot.case || nextSourceAt.getTime() === record.sourceAt.getTime()))
+  // the two out. A read confirming a Decision is written for the same reason:
+  // a reviewer can reverse an inquiry and reverse it back, and the event from
+  // between the two must not land. Any other inquiry's updated-at moves for
+  // reasons of its own, so writing it would only churn the row.
+  const stampWorthWriting = !!snapshot.case || (source === 'fetch' && isDecision(status));
+  if (!transition && !caseMoved && (!stampWorthWriting || nextSourceAt.getTime() === record.sourceAt.getTime()))
     return nothing('unchanged');
 
   const next: VerificationRecord = {

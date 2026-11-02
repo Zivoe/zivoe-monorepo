@@ -51,7 +51,8 @@ export const AWAITING_PERSONA_STATUSES = [
 
 /**
  * Statuses that can still move on their own (Persona or the user acts next).
- * The Reconciliation Sweep and a start only ever re-read these.
+ * A start only ever re-reads these; the Reconciliation Sweep re-reads these
+ * and, more slowly, a Decision a reviewer may still reverse.
  * Derived from the two halves above so a new status cannot be added to one
  * and silently left out of here.
  */

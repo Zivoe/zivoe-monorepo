@@ -1689,9 +1689,9 @@ describe('reconcile', () => {
     expect(s.outbox.notifications).toHaveLength(0);
   });
 
-  it('never fetches terminal or freshly synced records', async () => {
+  it('never fetches Human-owned or freshly synced records, and a Decision only on its cadence', async () => {
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-approved', status: 'approved', personaStatus: 'approved', staleMinutes: 600 });
+    seedSynced({ setup: s, userId: 'u-approved', status: 'approved', personaStatus: 'approved', staleMinutes: 300 });
     seedSynced({ setup: s, userId: 'u-declined', status: 'declined', personaStatus: 'declined', staleMinutes: 600 });
     seedSynced({
       setup: s,
@@ -1704,16 +1704,115 @@ describe('reconcile', () => {
 
     const report = await s.verification.reconcile({ now: T0 });
 
-    expect(report).toEqual({
-      checked: 0,
-      changed: 0,
-      unavailable: 0,
-      errored: 0,
-      undecided: 0,
-      awaitingReview: 0,
-      awaitingOwners: 0
+    expect(report).toMatchObject({ checked: 1, changed: 0 });
+    expect(s.persona.calls.map((call) => call.input)).toEqual([{ referenceId: 'u-declined' }]);
+    expect(s.store.records.get('u-declined')).toMatchObject({ status: 'declined', lastSyncedAt: T0 });
+  });
+
+  describe('a Decision', () => {
+    /** Persona's own inquiry for the seeded record, as a reviewer last left it. */
+    const personaHolds = ({
+      s,
+      status,
+      minutesAfterT0,
+      id = 'inq_seeded'
+    }: {
+      s: ReturnType<typeof setup>;
+      status: 'approved' | 'declined';
+      minutesAfterT0: number;
+      id?: string;
+    }) =>
+      s.persona.inquiries.set(id, {
+        id,
+        status,
+        referenceId: USER_ID,
+        accountId: 'act_seeded',
+        templateVersionId: FAKE_TEMPLATE_VERSION_ID,
+        // The record's own inquiry is the older one; a follow-up is made when it is decided.
+        createdAt:
+          id === 'inq_seeded'
+            ? new Date(T0.getTime() - 24 * 60 * MINUTE)
+            : new Date(T0.getTime() + minutesAfterT0 * MINUTE),
+        updatedAt: new Date(T0.getTime() + minutesAfterT0 * MINUTE)
+      });
+    const sevenHoursAgo = new Date(T0.getTime() - 7 * 60 * MINUTE);
+
+    it('is re-read on the decision cadence, so a reversal whose webhook was lost still lands', async () => {
+      const s = setup();
+      s.seedRecord({ status: 'approved', statusChangedAt: sevenHoursAgo, lastSyncedAt: sevenHoursAgo });
+      // A reviewer declined the approved inquiry in the dashboard; the webhook never came.
+      personaHolds({ s, status: 'declined', minutesAfterT0: -30 });
+
+      expect(await s.verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 1 });
+      expect(s.store.records.get(USER_ID)).toMatchObject({ status: 'declined', personaInquiryId: 'inq_seeded' });
+      expect(s.outbox.notifications.map((job) => `${job.kind}:${job.status}`)).toEqual([
+        'status_email:declined',
+        'operator_message:declined'
+      ]);
+      expect(s.approvalsEnded).toEqual([USER_ID]);
+
+      // Confirmed now, so it waits the cadence out.
+      s.clock.advance(5 * 60 * MINUTE);
+      expect(await s.verification.reconcile({ now: s.clock.clock.now() })).toMatchObject({ checked: 0 });
     });
-    expect(s.persona.calls).toHaveLength(0);
+
+    it("stays on its own inquiry when a reviewer's newer follow-up is decided", async () => {
+      const s = setup();
+      s.seedRecord({ status: 'approved', statusChangedAt: sevenHoursAgo, lastSyncedAt: sevenHoursAgo });
+      personaHolds({ s, status: 'approved', minutesAfterT0: -7 * 60 });
+      personaHolds({ s, status: 'declined', minutesAfterT0: -60, id: 'inq_follow_up' });
+
+      expect(await s.verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 0 });
+      expect(s.store.records.get(USER_ID)).toMatchObject({
+        status: 'approved',
+        personaInquiryId: 'inq_seeded',
+        lastSyncedAt: T0
+      });
+      expect(s.outbox.notifications).toHaveLength(0);
+      expect(s.approvalsEnded).toHaveLength(0);
+    });
+
+    it('keeps out a delayed event from before a reversal the read already saw undone', async () => {
+      const s = setup();
+      s.seedRecord({ status: 'approved', statusChangedAt: sevenHoursAgo, lastSyncedAt: sevenHoursAgo });
+      // Declined at -2 h, approved again at -1 h; neither webhook has arrived.
+      personaHolds({ s, status: 'approved', minutesAfterT0: -60 });
+
+      expect(await s.verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 0 });
+      expect(s.store.records.get(USER_ID)?.sourceAt).toEqual(new Date(T0.getTime() - 60 * MINUTE));
+
+      // The decline's delivery, retried late, is older than what the read confirmed.
+      await expect(
+        delivery({ verification: s.verification, name: 'inquiry.declined', status: 'declined', minutesAfterT0: -120 })
+      ).resolves.toEqual({ ok: true, value: { outcome: 'unchanged' } });
+      expect(s.store.records.get(USER_ID)?.status).toBe('approved');
+      expect(s.outbox.notifications).toHaveLength(0);
+    });
+
+    it('goes after every record waiting on someone, and only so many per sweep', async () => {
+      const s = setup();
+      for (let index = 0; index < 60; index += 1) {
+        seedSynced({
+          setup: s,
+          userId: `u-decided-${index}`,
+          status: 'approved',
+          personaStatus: 'approved',
+          staleMinutes: 24 * 60
+        });
+      }
+      seedSynced({
+        setup: s,
+        userId: 'u-submitted',
+        status: 'submitted',
+        personaStatus: 'completed',
+        staleMinutes: 45
+      });
+
+      const report = await s.verification.reconcile({ now: T0 });
+
+      expect(report).toMatchObject({ checked: 51 });
+      expect(s.persona.calls[0]?.input).toEqual({ referenceId: 'u-submitted' });
+    });
   });
 
   it('separates an undecided submission or failure from a review a human has not got to', async () => {
@@ -2238,15 +2337,10 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     expect(s.store.records.get(USER_ID)!.statusChangedAt.getTime()).toBeGreaterThan(revokedAt.getTime());
   });
 
-  it('applies a decline to a stale approved record, which the sweep never re-reads', async () => {
+  it('applies a decline to an approved record on a resync', async () => {
     const s = setup();
-    s.seedRecord({ status: 'approved', lastSyncedAt: new Date(T0.getTime() - 24 * 60 * MINUTE) });
+    s.seedRecord({ status: 'approved' });
     personaHolds({ s, status: 'declined', minutesAfterT0: 30 });
-
-    await expect(s.verification.reconcile({ now: new Date(T0.getTime() + 60 * MINUTE) })).resolves.toMatchObject({
-      checked: 0
-    });
-    expect(s.store.records.get(USER_ID)?.status).toBe('approved');
 
     await expect(s.verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
       ok: true,
