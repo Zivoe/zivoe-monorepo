@@ -4,9 +4,9 @@ import { type ReactNode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type KycStatusView as KycStatusViewModel } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
-import KycFlow from './kyc-flow';
+import PersonaFlow from './persona-flow';
 
 vi.mock('@zivoe/ui/icons', async () => (await import('@/test/icon-mocks')).ICON_BARREL_MOCK);
 vi.mock('@zivoe/ui/core/badge', () => ({
@@ -52,12 +52,13 @@ vi.mock('next/dynamic', async () => {
 
 const STORAGE_KEY = 'persona-session:inq_1';
 
-const view = (overrides: Partial<KycStatusViewModel>): KycStatusViewModel => ({
+const view = (overrides: Partial<VerificationStatusViewModel>): VerificationStatusViewModel => ({
   status: 'in_progress',
   path: 'individual',
   canStart: false,
   canResume: true,
   inquiryId: 'inq_1',
+  caseWaitingOn: null,
   ...overrides
 });
 
@@ -93,10 +94,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('KycFlow reuses the session token its tab stored', () => {
+describe('PersonaFlow reuses the session token its tab stored', () => {
   it('mounts a Continue with the stored token and never calls the server', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
 
     pressContinue();
 
@@ -107,7 +108,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
 
   it('keeps the session the server hands out for the next Continue', async () => {
     serverSession('tok_fresh');
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
 
     pressContinue();
 
@@ -122,7 +123,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
   it('forgets a stored session Persona refuses and asks the server once', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stale');
     serverSession('tok_fresh');
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -142,7 +143,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
 
   it('forgets a stored session on any hard error, so the next Continue reaches the server', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -157,7 +158,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
   });
 
   it('re-reads the view when the tab comes back into view, so a Continue acts on the present', () => {
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
 
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
@@ -170,7 +171,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
     vi.useFakeTimers();
     try {
       window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-      render(<KycFlow view={view({})} />);
+      render(<PersonaFlow view={view({})} />);
       pressContinue();
       act(() => lastMount().onComplete());
       router.refresh.mockClear();
@@ -194,23 +195,25 @@ describe('KycFlow reuses the session token its tab stored', () => {
     }
   });
 
-  it('stops polling once the record has moved past the submission', () => {
+  it('stops polling once the record has moved past the submission, but still re-reads when the tab comes back', () => {
     vi.useFakeTimers();
     try {
       window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-      const { rerender } = render(<KycFlow view={view({})} />);
+      const { rerender } = render(<PersonaFlow view={view({})} />);
       pressContinue();
       act(() => lastMount().onComplete());
       router.refresh.mockClear();
 
-      rerender(<KycFlow view={view({ status: 'pending_review', canResume: false, inquiryId: null })} />);
+      rerender(<PersonaFlow view={view({ status: 'pending_review', canResume: false, inquiryId: null })} />);
       act(() => {
         vi.advanceTimersByTime(30_000);
       });
+      expect(router.refresh).not.toHaveBeenCalled();
+      // A review can change what it waits on days later, and a decision may have landed.
       act(() => {
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      expect(router.refresh).not.toHaveBeenCalled();
+      expect(router.refresh).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
@@ -218,7 +221,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
 
   it('forgets the session on completion', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -231,7 +234,7 @@ describe('KycFlow reuses the session token its tab stored', () => {
   it('always resumes an expired inquiry through the server, whatever the tab stored', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
     serverSession('tok_fresh');
-    render(<KycFlow view={view({ status: 'expired' })} />);
+    render(<PersonaFlow view={view({ status: 'expired' })} />);
 
     pressContinue();
 
@@ -241,11 +244,11 @@ describe('KycFlow reuses the session token its tab stored', () => {
   });
 });
 
-describe('KycFlow says each thing once', () => {
+describe('PersonaFlow says each thing once', () => {
   const notStarted = () => view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null });
 
   it('renders a start as one card: the title, the checklist and the button, no status card', () => {
-    render(<KycFlow view={notStarted()} />);
+    render(<PersonaFlow view={notStarted()} />);
 
     expect(screen.getByRole('heading', { name: 'Verify your identity' })).toBeTruthy();
     expect(screen.getByRole('list', { name: "What you'll need" })).toBeTruthy();
@@ -256,8 +259,18 @@ describe('KycFlow says each thing once', () => {
     expect(screen.getAllByRole('heading')).toHaveLength(2);
   });
 
+  it("renders an organization's start under the business title with the business checklist", () => {
+    render(<PersonaFlow view={{ ...notStarted(), path: 'organization' }} />);
+
+    expect(screen.getByRole('heading', { name: 'Business verification' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Verify your organization' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Verify organization' })).toBeTruthy();
+    expect(screen.getByText(/control person/)).toBeTruthy();
+    expect(screen.queryByText(/selfie/)).toBeNull();
+  });
+
   it('renders a resume as the same card under the resume title', () => {
-    render(<KycFlow view={view({})} />);
+    render(<PersonaFlow view={view({})} />);
 
     expect(screen.getByRole('heading', { name: 'Continue your verification' })).toBeTruthy();
     expect(screen.getByRole('list', { name: "What you'll need" })).toBeTruthy();
@@ -266,7 +279,7 @@ describe('KycFlow says each thing once', () => {
   });
 
   it('renders a state with nothing to do as the status card alone', () => {
-    render(<KycFlow view={view({ status: 'submitted', canStart: false, canResume: false, inquiryId: null })} />);
+    render(<PersonaFlow view={view({ status: 'submitted', canStart: false, canResume: false, inquiryId: null })} />);
 
     expect(screen.getByRole('heading', { name: 'Verification processing' })).toBeTruthy();
     expect(screen.queryByRole('list', { name: "What you'll need" })).toBeNull();
@@ -274,7 +287,7 @@ describe('KycFlow says each thing once', () => {
   });
 });
 
-describe('KycFlow start answers another click cannot change yet', () => {
+describe('PersonaFlow start answers another click cannot change yet', () => {
   const answer = (status: number, body: object, retryAfter: string | null = null) =>
     fetchMock.mockResolvedValueOnce({ status, headers: { get: () => retryAfter }, json: async () => body });
   const pressStart = async () => {
@@ -289,7 +302,7 @@ describe('KycFlow start answers another click cannot change yet', () => {
 
   it('rests the button, without a Retry, while Persona is unavailable', async () => {
     answer(503, { error: 'Identity verification is temporarily unavailable', code: 'persona_unavailable' });
-    render(<KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
 
     await pressStart();
 
@@ -306,7 +319,7 @@ describe('KycFlow start answers another click cannot change yet', () => {
 
   it('rests the button for the Retry-After of a rate-limited start', async () => {
     answer(429, { error: 'The request has been rate limited.' }, '120');
-    render(<KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
 
     await pressStart();
 
@@ -324,7 +337,7 @@ describe('KycFlow start answers another click cannot change yet', () => {
 
   it('sends a start that finds the session gone to sign-in, with the way back here', async () => {
     answer(401, { error: 'Unauthorized' });
-    render(<KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
 
     await pressStart();
 
@@ -333,7 +346,7 @@ describe('KycFlow start answers another click cannot change yet', () => {
 
   it("shows the page's own words for a server fault, never the server's", async () => {
     answer(500, { error: 'Error starting identity verification' });
-    render(<KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
 
     await pressStart();
 
@@ -343,13 +356,13 @@ describe('KycFlow start answers another click cannot change yet', () => {
   it('drops the refusal callout once the refreshed card names the state', async () => {
     answer(409, { error: 'Identity verification cannot be started', code: 'already_verified' });
     const { rerender } = render(
-      <KycFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />
+      <PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />
     );
 
     await pressStart();
     expect(screen.getByText(/already verified/)).toBeTruthy();
 
-    rerender(<KycFlow view={view({ status: 'approved', canStart: false, canResume: false, inquiryId: null })} />);
+    rerender(<PersonaFlow view={view({ status: 'approved', canStart: false, canResume: false, inquiryId: null })} />);
     expect(screen.queryByText(/already verified/)).toBeNull();
     expect(screen.getByText('Your identity is verified.')).toBeTruthy();
   });

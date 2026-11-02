@@ -5,9 +5,9 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
-import { kycVerification } from '@/server/kyc';
-import { isKycEnabled } from '@/server/kyc/kyc-flag';
-import { isYesDecision } from '@/server/kyc/kyc-status';
+import { verification } from '@/server/verification';
+import { isKycEnabled } from '@/server/verification/kyc-flag';
+import { isYesDecision } from '@/server/verification/verification-status';
 import { walletLink } from '@/server/wallet-link';
 import { toLinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
@@ -29,7 +29,7 @@ export const metadata: Metadata = { title: 'Verification | Zivoe' };
  * so the page waits on one round of parallel reads after the session instead
  * of two. Behind the `kyc` flag: a 404 for anyone it is off for.
  */
-export default async function KycPage() {
+export default async function VerificationPage() {
   // Signed out (the proxy catches a missing cookie; this, an expired session): back here after sign-in.
   const { user } = await getUser();
   if (!user) redirect(withNext('/sign-in', '/verification'));
@@ -37,7 +37,7 @@ export default async function KycPage() {
   if (!(await isKycEnabled({ user }))) notFound();
 
   const [view, profile, termsStatus] = await Promise.all([
-    kycVerification.getKycStatus({ userId: user.id }),
+    verification.getVerificationStatus({ userId: user.id }),
     getInvestorProfile({ userId: user.id }),
     getTermsStatus(user.id)
   ]);

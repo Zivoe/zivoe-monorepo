@@ -9,9 +9,9 @@ import { db } from '@/server/clients/db';
 
 /**
  * What the Investor Profile step shows: the account type chosen at
- * onboarding (locked), the answers an individual may correct, and the
- * sign-in email (locked). Read once per page render; the step's save writes
- * back through `updateInvestorProfile`.
+ * onboarding (locked), the answers an individual or an organization may
+ * correct, and the sign-in email (locked). Read once per page render; the
+ * step's save writes back through `updateInvestorProfile`.
  */
 export type InvestorProfile = {
   accountType: AccountType;
@@ -19,6 +19,10 @@ export type InvestorProfile = {
   lastName: string;
   /** The country's ISO 3166-1 alpha-2 code, as onboarding stores it — null for an organization. */
   countryOfResidence: string | null;
+  /** The organization's answers, as onboarding stores them — null for an individual. */
+  jobTitle: string | null;
+  entityName: string | null;
+  countryOfIncorporation: string | null;
   email: string;
 };
 
@@ -29,6 +33,9 @@ export async function getInvestorProfile({ userId }: { userId: string }): Promis
       firstName: profile.firstName,
       lastName: profile.lastName,
       countryOfResidence: profile.countryOfResidence,
+      jobTitle: profile.jobTitle,
+      entityName: profile.entityName,
+      countryOfIncorporation: profile.countryOfIncorporation,
       email: user.email
     })
     .from(profile)

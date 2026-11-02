@@ -191,7 +191,7 @@ export function UserMenu({ user, showVerification }: { user: User; showVerificat
 
           {showVerification && (
             <Link variant="ghost-light" fullWidth className="justify-start" href="/verification">
-              Identity verification
+              Verification
             </Link>
           )}
 

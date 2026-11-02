@@ -16,9 +16,10 @@ import { useIsKycEnabled } from '../../kyc-flag-provider';
 // different route out — access was taken away rather than never granted, so
 // the ask is to have the suspension reviewed, and the action stays a dead
 // end. Every other restriction (not a member, membership expired, an absent
-// or unexplained one) is "not whitelisted yet": whitelisting follows identity
-// verification, so the action leads to `/verification`, which knows the
-// investor's exact status and next step whoever they are.
+// or unexplained one) is "not whitelisted yet": whitelisting follows
+// verification — a person's identity, or an organization's business — so the
+// action leads to `/verification`, which knows the investor's exact status
+// and next step whoever they are.
 //
 // Behind the `kyc` flag: while it is off, "not whitelisted" stays the pre-KYC
 // dead end — a disabled action, a locked form and "contact us".
@@ -67,7 +68,7 @@ export function WalletAccessCallout({ restriction }: { restriction: InvestorRest
 
   return (
     <Callout variant="warning">
-      You must be whitelisted to interact with this vault. Verify your identity, then request a whitelist for this
+      You must be whitelisted to interact with this vault. Complete verification, then request a whitelist for this
       wallet. For questions, contact us at <ContactLink />.
     </Callout>
   );

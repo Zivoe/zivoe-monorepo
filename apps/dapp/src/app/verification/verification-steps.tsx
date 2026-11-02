@@ -1,11 +1,19 @@
 import { CheckIcon, DocumentIcon, UserIcon, WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
+import { type InvestorPath } from '@/server/verification/verification-status';
+
 export type VerificationStepId = 'profile' | 'identity' | 'wallets';
+
+/** The middle step is the Persona flow: a person's identity, or a business. */
+const IDENTITY_STEP_LABEL: Record<InvestorPath, string> = {
+  individual: 'Identity verification',
+  organization: 'Business verification'
+};
 
 export const VERIFICATION_STEPS = [
   { id: 'profile', label: 'Investor profile', Icon: UserIcon },
-  { id: 'identity', label: 'Identity verification', Icon: DocumentIcon },
+  { id: 'identity', label: IDENTITY_STEP_LABEL.individual, Icon: DocumentIcon },
   { id: 'wallets', label: 'Wallets', Icon: WalletIcon }
 ] as const satisfies ReadonlyArray<{ id: VerificationStepId; label: string; Icon: typeof UserIcon }>;
 
@@ -32,13 +40,17 @@ const LABEL_STYLES: Record<StepState, string> = {
 export function VerificationSteps({
   current,
   done,
-  orientation
+  orientation,
+  path
 }: {
   current: VerificationStepId;
   done: ReadonlyArray<VerificationStepId>;
   orientation: 'vertical' | 'horizontal';
+  path: InvestorPath;
 }) {
   const vertical = orientation === 'vertical';
+  const labelOf = (step: (typeof VERIFICATION_STEPS)[number]) =>
+    step.id === 'identity' ? IDENTITY_STEP_LABEL[path] : step.label;
 
   return (
     <ol aria-label="Verification steps" className={cn('flex', vertical ? 'flex-col' : 'items-center gap-3')}>
@@ -73,7 +85,7 @@ export function VerificationSteps({
                   !vertical && !isLabelShown && 'sr-only sm:not-sr-only'
                 )}
               >
-                {step.label}
+                {labelOf(step)}
               </span>
               {state === 'done' ? <span className="sr-only">, completed</span> : null}
             </div>

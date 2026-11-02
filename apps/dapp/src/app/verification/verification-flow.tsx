@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { type InvestorProfile } from '@/server/data/investor-profile';
-import { type KycStatusView, isYesDecision } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView, isYesDecision } from '@/server/verification/verification-status';
 
 import { InvestorProfileStep } from './investor-profile-step';
-import KycFlow from './kyc-flow';
+import PersonaFlow from './persona-flow';
 import VerificationShell from './verification-shell';
 import { type VerificationStepId, VerificationSteps } from './verification-steps';
 import { WalletLinkStep } from './wallet-link-step';
@@ -14,9 +14,10 @@ import { WalletLinkStep } from './wallet-link-step';
 /**
  * The `/verification` flow inside `VerificationShell`: the step rail and the
  * three steps it moves between — the Investor Profile (the onboarding answers,
- * confirmed and saved), the Persona flow (`KycFlow`), and Wallets
- * (`WalletLinkStep`). A layout of its own, deliberately without the
- * dashboard's navigation: the ways out are Exit and finishing.
+ * confirmed and saved), the Persona flow (`PersonaFlow`: a person's identity or
+ * an organization's business), and Wallets (`WalletLinkStep`). A layout of
+ * its own, deliberately without the dashboard's navigation: the ways out
+ * are Exit and finishing.
  *
  * Which step shows is the record's call. The profile step exists for one
  * moment: before any inquiry, since what is saved there prefills the inquiry
@@ -26,10 +27,10 @@ import { WalletLinkStep } from './wallet-link-step';
  * step, with the profile step marked done, whatever a stale render may have
  * shown a moment earlier. A yes Decision ends the identity step for good:
  * the page opens on Wallets with both earlier steps done, and that step is
- * the completed state. An organization's details are the team's, so it
- * opens on a locked profile step that says so until the team's yes lands
- * it on Wallets like anyone else. The one way back to the
- * profile step is Back on the identity step, and `KycFlow` withholds it
+ * the completed state. An organization whose flow is not configured is the
+ * team's: it opens on a locked profile step that says so until the team's
+ * yes lands it on Wallets like anyone else. The one way back to the
+ * profile step is Back on the identity step, and `PersonaFlow` withholds it
  * while a start is in flight or a Persona frame is up: no shell-level
  * control can unmount a live inquiry.
  */
@@ -38,13 +39,15 @@ export default function VerificationFlow({
   profile,
   userId
 }: {
-  view: KycStatusView;
+  view: VerificationStatusView;
   profile: InvestorProfile;
   /** Whose Linked addresses the Wallets step reads from the cache the page seeded. */
   userId: string;
 }) {
-  const canEditProfile = view.path === 'individual' && view.canStart;
+  const canEditProfile = view.canStart;
   const isVerified = isYesDecision(view);
+  // An organization the app cannot start — its flow is off — stays on the locked profile step.
+  const lockedOnProfile = view.path === 'organization' && !view.canStart && view.status === 'not_started';
 
   // `count` is bumped on every move: the step subtree's key, so Back lands on
   // a form rebuilt from the saved values, and the trigger that moves focus to
@@ -54,9 +57,11 @@ export default function VerificationFlow({
   // The record outranks the navigation: once an inquiry exists the profile step is over, and once it is decided yes so is the identity step.
   const step: VerificationStepId = isVerified
     ? 'wallets'
-    : view.path === 'organization' || canEditProfile
-      ? nav.step
-      : 'identity';
+    : lockedOnProfile
+      ? 'profile'
+      : canEditProfile
+        ? nav.step
+        : 'identity';
 
   // The values the server last accepted, so Back shows what is saved, not what the page first loaded.
   const [savedProfile, setSavedProfile] = useState(profile);
@@ -67,7 +72,6 @@ export default function VerificationFlow({
     if (nav.count > 0) contentRef.current?.focus();
   }, [nav]);
 
-  // An organization never takes the identity step: its Decision shows on the profile step instead.
   const done: Array<VerificationStepId> = [];
   if (step !== 'profile') done.push('profile');
   if (step === 'wallets') done.push('identity');
@@ -76,12 +80,12 @@ export default function VerificationFlow({
     <VerificationShell
       rail={
         <nav>
-          <VerificationSteps current={step} done={done} orientation="vertical" />
+          <VerificationSteps current={step} done={done} orientation="vertical" path={view.path} />
         </nav>
       }
       mobileRail={
         <nav>
-          <VerificationSteps current={step} done={done} orientation="horizontal" />
+          <VerificationSteps current={step} done={done} orientation="horizontal" path={view.path} />
         </nav>
       }
     >
@@ -105,7 +109,7 @@ export default function VerificationFlow({
               }}
             />
           ) : step === 'identity' ? (
-            <KycFlow view={view} onBack={canEditProfile ? () => go('profile') : undefined} />
+            <PersonaFlow view={view} onBack={canEditProfile ? () => go('profile') : undefined} />
           ) : (
             <WalletLinkStep userId={userId} />
           )}

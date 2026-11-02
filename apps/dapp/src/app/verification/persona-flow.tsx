@@ -9,20 +9,20 @@ import * as Sentry from '@sentry/nextjs';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
-import { CameraIcon, ClockIcon, DocumentIcon, Spinner } from '@zivoe/ui/icons';
+import { CameraIcon, ClockIcon, DocumentIcon, Spinner, UserIcon } from '@zivoe/ui/icons';
 
-import { type KycStatusView as KycStatusViewModel } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
 import { withNext } from '@/lib/lighthouse';
 import { handlePromise } from '@/lib/utils';
 
 import { Auth } from '@/app/(auth)/_components/common';
-import { type StartKycErrorResponse, type StartKycResponse } from '@/app/api/kyc/start/route';
+import { type StartVerificationErrorResponse, type StartVerificationResponse } from '@/app/api/kyc/start/route';
 
 import { env } from '@/env';
 
-import { START_REFUSAL_COPY, presentKycStatus } from './kyc-status-copy';
-import { KycStatusView } from './kyc-status-view';
+import { START_REFUSAL_COPY, presentVerificationStatus } from './verification-status-copy';
+import { VerificationStatusView } from './verification-status-view';
 
 // Persona's SDK is only needed once a flow is mounted; keep it out of the
 // page's initial bundle (and off the server, where it has no business).
@@ -82,22 +82,22 @@ type Phase =
   /** `reused`: the token came from this tab's storage, not from the server. */
   | { kind: 'inquiry'; inquiryId: string; sessionToken: string; reused: boolean }
   | { kind: 'submitted' }
-  | { kind: 'refused'; code: StartKycErrorResponse['code'] }
+  | { kind: 'refused'; code: StartVerificationErrorResponse['code'] }
   /** Another click cannot help yet: no Retry, the button rests, then the view is re-read. */
   | { kind: 'cooldown'; message: string; ms: number }
   | { kind: 'error'; message: string };
 
-const isRefusal = (body: StartKycResponse): body is StartKycErrorResponse => 'code' in body;
+const isRefusal = (body: StartVerificationResponse): body is StartVerificationErrorResponse => 'code' in body;
 
 /** The page owns the words: a server's error text (a handler's generic message, a 404) never reaches the investor. */
 const START_FAILED_COPY = 'Could not start verification. Please try again.';
 const START_IN_FLIGHT_COPY = 'A verification is already being started. Try again in a moment.';
 
-export default function KycFlow({
+export default function PersonaFlow({
   view,
   onBack
 }: {
-  view: KycStatusViewModel;
+  view: VerificationStatusViewModel;
   /** Back to the Investor Profile step; offered while nothing is in flight. */
   onBack?: () => void;
 }) {
@@ -120,7 +120,7 @@ export default function KycFlow({
     return () => document.body.classList.remove('overflow-hidden');
   }, [phase.kind]);
 
-  const presentation = presentKycStatus(view);
+  const presentation = presentVerificationStatus(view);
   // Start / Continue, when the view allows either; the copy module derives it from the same domain facts.
   const { action } = presentation;
   const beginAction = action.kind === 'start' || action.kind === 'resume' ? action : null;
@@ -129,14 +129,20 @@ export default function KycFlow({
   // in flight, the frame is up, or a submission/refusal is being confirmed.
   const canLeaveStep =
     phase.kind !== 'starting' && phase.kind !== 'inquiry' && phase.kind !== 'submitted' && phase.kind !== 'refused';
+  const organization = view.path === 'organization';
   const header = (
     <Auth.Header
-      title="Identity verification"
-      description="Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents."
+      title={organization ? 'Business verification' : 'Identity verification'}
+      description={
+        organization
+          ? "Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents or your owners' details."
+          : 'Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents.'
+      }
     >
       <Auth.StepIndicator onBack={onBack && canLeaveStep ? onBack : undefined}>Step 2 of 3</Auth.StepIndicator>
     </Auth.Header>
   );
+  const frameTitle = organization ? 'Verify your organization' : 'Verify your identity';
 
   // Inquiries are created only on click, never on page load. A Continue on
   // an in-flight inquiry first tries the session this tab already holds;
@@ -154,11 +160,11 @@ export default function KycFlow({
 
     setPhase({ kind: 'starting' });
     const { res, err } = await handlePromise(fetch('/api/kyc/start', { method: 'POST' }));
-    const body = res ? ((await handlePromise(res.json())).res as StartKycResponse | undefined) : undefined;
+    const body = res ? ((await handlePromise(res.json())).res as StartVerificationResponse | undefined) : undefined;
 
     if (err || !body) {
       setPhase({ kind: 'error', message: START_FAILED_COPY });
-    } else if (isRefusal(body) && body.code === 'persona_unavailable') {
+    } else if (isRefusal(body) && (body.code === 'persona_unavailable' || body.code === 'queue_unavailable')) {
       // Not a state change: the server is already capturing it, and the page rests before the next try.
       setPhase({
         kind: 'cooldown',
@@ -221,6 +227,13 @@ export default function KycFlow({
   const serverAwaitingDecision = serverStillPreSubmission || view.status === 'submitted' || view.status === 'failed';
   const polling = phase.kind === 'submitted' && serverAwaitingDecision;
   const watching = phase.kind === 'idle' || polling;
+  // Once the server has moved past the submission the optimistic phase has
+  // nothing left to show, and the page is idle again: no ticks, but a tab
+  // coming back into view re-reads — a review can change what it waits on
+  // days later, and a decision may have landed.
+  useEffect(() => {
+    if (phase.kind === 'submitted' && !serverAwaitingDecision) setPhase({ kind: 'idle' });
+  }, [phase.kind, serverAwaitingDecision]);
   useEffect(() => {
     if (!watching) return;
 
@@ -273,7 +286,7 @@ export default function KycFlow({
             container. */}
         <div className="fixed inset-0 z-50 flex flex-col bg-surface-base sm:static sm:z-auto sm:gap-4 sm:bg-transparent">
           <div className="flex items-center justify-between px-4 py-2 sm:hidden">
-            <span className="text-small font-medium text-primary">Identity verification</span>
+            <span className="text-small font-medium text-primary">{frameTitle}</span>
             <Button variant="ghost-light" size="s" onPress={leave}>
               Finish later
             </Button>
@@ -282,7 +295,7 @@ export default function KycFlow({
           <div
             ref={frameRef}
             tabIndex={-1}
-            aria-label="Identity verification"
+            aria-label={frameTitle}
             className="relative flex-1 overflow-hidden bg-surface-base outline-none sm:h-[650px] sm:flex-none sm:rounded-2xl sm:border sm:border-default [&>iframe]:block [&>iframe]:size-full"
           >
             {/* Visual only: it must never sit between the pointer and a frame that loaded but did not say so. */}
@@ -298,7 +311,7 @@ export default function KycFlow({
               environmentId={env.NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID}
               frameHeight="100%"
               frameWidth="100%"
-              iframeTitle="Verify your identity"
+              iframeTitle={frameTitle}
               onReady={() => setFrameReady(true)}
               onComplete={() => {
                 forgetSessionToken(phase.inquiryId);
@@ -358,7 +371,9 @@ export default function KycFlow({
     return (
       <>
         {header}
-        <KycStatusView view={{ ...view, status: 'submitted', canStart: false, canResume: false, inquiryId: null }} />
+        <VerificationStatusView
+          view={{ ...view, status: 'submitted', canStart: false, canResume: false, inquiryId: null }}
+        />
       </>
     );
   }
@@ -410,20 +425,38 @@ export default function KycFlow({
               <p className="text-small text-secondary">{presentation.body}</p>
             </div>
 
-            <ul aria-label="What you'll need" className="flex flex-col gap-3 text-regular text-primary">
-              <li className="flex items-start gap-3">
-                <DocumentIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A
-                government-issued photo ID (passport, driver&apos;s license or national ID)
-              </li>
-              <li className="flex items-start gap-3">
-                <CameraIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A device with a
-                camera, for a quick selfie
-              </li>
-              <li className="flex items-start gap-3">
-                <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                About five minutes
-              </li>
-            </ul>
+            {organization ? (
+              <ul aria-label="What you'll need" className="flex flex-col gap-3 text-regular text-primary">
+                <li className="flex items-start gap-3">
+                  <DocumentIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
+                  Your organization&apos;s registered address and tax or registration number
+                </li>
+                <li className="flex items-start gap-3">
+                  <UserIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
+                  The names and emails of a control person and of any owner of 25% or more — each will receive an email
+                  from Persona to verify their identity — and the names of any authorized persons
+                </li>
+                <li className="flex items-start gap-3">
+                  <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
+                  About fifteen minutes
+                </li>
+              </ul>
+            ) : (
+              <ul aria-label="What you'll need" className="flex flex-col gap-3 text-regular text-primary">
+                <li className="flex items-start gap-3">
+                  <DocumentIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A
+                  government-issued photo ID (passport, driver&apos;s license or national ID)
+                </li>
+                <li className="flex items-start gap-3">
+                  <CameraIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A device with a
+                  camera, for a quick selfie
+                </li>
+                <li className="flex items-start gap-3">
+                  <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
+                  About five minutes
+                </li>
+              </ul>
+            )}
 
             <Button
               variant="primary"
@@ -437,7 +470,7 @@ export default function KycFlow({
             </Button>
           </div>
         ) : (
-          <KycStatusView view={view} />
+          <VerificationStatusView view={view} />
         )}
       </div>
     </>

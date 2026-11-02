@@ -3,9 +3,9 @@ import { Link } from '@zivoe/ui/core/link';
 import { CheckCircleIcon, ClockIcon, LockIcon, WarningIcon } from '@zivoe/ui/icons';
 import { tv } from '@zivoe/ui/lib/tw-utils';
 
-import { type KycStatusView as KycStatusViewModel } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
-import { type KycStatusPresentation, presentKycStatus } from './kyc-status-copy';
+import { type VerificationStatusPresentation, presentVerificationStatus } from './verification-status-copy';
 
 // Pure renderer of a status view — exactly one state at a time, and nothing
 // from `@/server`, so the `/verification` page renders it from a client component.
@@ -29,16 +29,16 @@ const TONE_ICONS = {
   success: CheckCircleIcon,
   warning: WarningIcon,
   alert: WarningIcon
-} satisfies Record<KycStatusPresentation['tone'], typeof LockIcon>;
+} satisfies Record<VerificationStatusPresentation['tone'], typeof LockIcon>;
 
 /**
  * The status card on `/verification`, for the states with nothing to do: a
  * state whose only way forward is the team carries its support link. Start
- * and Continue never reach it — `KycFlow` renders its own action card for
+ * and Continue never reach it — `PersonaFlow` renders its own action card for
  * them.
  */
-export function KycStatusView({ view }: { view: KycStatusViewModel }) {
-  const presentation = presentKycStatus(view);
+export function VerificationStatusView({ view }: { view: VerificationStatusViewModel }) {
+  const presentation = presentVerificationStatus(view);
   const Icon = TONE_ICONS[presentation.tone];
   const { action } = presentation;
 
