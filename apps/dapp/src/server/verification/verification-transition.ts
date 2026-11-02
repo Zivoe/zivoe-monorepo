@@ -129,11 +129,12 @@ export function decide({
     reopen && record && isDecision(record.status) && !isDecision(snapshot.status) ? record.status : undefined;
   const regression = !!record && isDecision(record.status) && !isDecision(snapshot.status) && !reopenedFrom;
   // The Decision this transition takes the record off, for the words of its
-  // notifications: a reopen back into review, or a reversal to the other Decision.
+  // notifications: a reopen back into review, or a reversal to the other
+  // Decision — an operator's approval a resync hands to Persona's decline included.
+  const held: DecisionStatus | null =
+    record && isDecision(record.status) ? record.status : record?.status === 'manually_approved' ? 'approved' : null;
   const reversedFrom: DecisionStatus | undefined =
-    record && isDecision(record.status) && isDecision(snapshot.status) && record.status !== snapshot.status
-      ? record.status
-      : undefined;
+    held && isDecision(snapshot.status) && held !== snapshot.status ? held : undefined;
   const previousDecision = reopenedFrom ?? reversedFrom;
   // A status that stands keeps the record where it is; only the case it
   // follows on that same inquiry may move, so this is never a transition.
