@@ -54,6 +54,15 @@ describe('POST /api/wallet-link/reconcile', () => {
     expect(captureCheckIn).toHaveBeenCalledWith(expect.objectContaining({ checkInId: 'check-in-1', status: 'ok' }));
   });
 
+  it('sweeps on the later scheduled runs of the digest hour without repeating the digest', async () => {
+    vi.setSystemTime(new Date('2026-10-30T09:15:03.000Z'));
+
+    expect((await run()).status).toBe(200);
+    expect(reconcile).toHaveBeenCalledTimes(1);
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
+    expect(captureCheckIn).toHaveBeenCalledWith(expect.objectContaining({ checkInId: 'check-in-1', status: 'ok' }));
+  });
+
   it('sweeps on a triggered run inside the digest hour without repeating the digest or checking in', async () => {
     vi.setSystemTime(new Date('2026-10-30T09:20:00.000Z'));
 

@@ -9,6 +9,7 @@ import { type WalletLinkReconcileReport } from '@/server/wallet-link/wallet-link
 import {
   WALLET_LINK_RECONCILE_CRON,
   WALLET_LINK_RECONCILE_SLUG,
+  WALLET_LINK_RECONCILE_STEP_MINUTES,
   WALLET_LINK_RECONCILE_TRIGGER_PARAM,
   withQstashSignature
 } from '@/lib/qstash';
@@ -23,11 +24,11 @@ export const maxDuration = 60;
 /**
  * UTC hour of the one scheduled run per day that tells ops about stalled rows.
  * A stalled whitelist is a standing condition, not an event: reporting it on
- * every hourly run would repeat it twenty-four times. The sweep itself stays
- * hourly so the "you're whitelisted" email goes out within the hour. A
- * triggered run inside that hour must not repeat the digest, so only a
- * scheduled run posts it; that is once a day only while the schedule fires
- * once an hour.
+ * every run would repeat it ninety-six times a day. The sweep itself runs
+ * every 15 minutes so the "you're whitelisted" email goes out soon after ops
+ * whitelists. Only the scheduled run that opens this hour posts it — a later
+ * scheduled run in the hour, or a triggered run at any time, must not repeat
+ * it; the schedule step guarantees exactly one run falls inside its first step.
  */
 const DIGEST_HOUR_UTC = 9;
 
@@ -66,7 +67,10 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
     // to the wallet-link channel and nowhere else — once a day, on the digest
     // run. The one thing that is ours, chains the sweep could not read, is
     // reported to Sentry on the same run.
-    const isDigestRun = scheduled && now.getUTCHours() === DIGEST_HOUR_UTC;
+    const isDigestRun =
+      scheduled &&
+      now.getUTCHours() === DIGEST_HOUR_UTC &&
+      now.getUTCMinutes() < WALLET_LINK_RECONCILE_STEP_MINUTES;
     if (isDigestRun) {
       // One item per line, so a long digest splits across messages at a line
       // instead of failing Telegram's size limit.

@@ -343,7 +343,7 @@ export type OperatorMessenger = {
 /**
  * Approval-ended port — in production, a run of the Wallet link sweep queued
  * on QStash, so ops is asked to revoke the user's whitelisted addresses now
- * rather than on the next hourly run. Called after the write lands, best
+ * rather than on its next scheduled run. Called after the write lands, best
  * effort: a lost notice only waits for the schedule, which reads the same
  * records. Optional; nothing is notified without it.
  */
@@ -741,7 +741,7 @@ export function createVerification({
     try {
       await approvalEnded.notify({ userId });
     } catch {
-      // The hourly sweep reads the same records and catches up.
+      // The Wallet link's scheduled sweep reads the same records and catches up.
     }
   }
 

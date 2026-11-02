@@ -28,8 +28,14 @@ export const KYC_RECONCILE_STEP_MINUTES = 15;
 export const KYC_RECONCILE_CRON = `*/${KYC_RECONCILE_STEP_MINUTES} * * * *`;
 /** Daily check that the Persona dashboard's webhook still matches what the code handles. */
 export const KYC_WEBHOOK_DRIFT_CRON = '0 8 * * *';
-/** The Wallet link reconcile's cadence — hourly: it observes and reports stalled whitelists, nothing waits on it. */
-export const WALLET_LINK_RECONCILE_CRON = '0 * * * *';
+/**
+ * The Wallet link reconcile's cadence. Nothing in the app waits on it — the
+ * badge reads the chain itself — but the "you're whitelisted" email does, so
+ * it runs every 15 minutes. Must divide 60, as for the KYC sweep: the daily
+ * digest fires on the one run that opens its hour.
+ */
+export const WALLET_LINK_RECONCILE_STEP_MINUTES = 15;
+export const WALLET_LINK_RECONCILE_CRON = `*/${WALLET_LINK_RECONCILE_STEP_MINUTES} * * * *`;
 export const WALLET_LINK_RECONCILE_PATH = '/api/wallet-link/reconcile';
 /**
  * The query parameter that marks a reconcile run published by hand or on an
