@@ -25,8 +25,39 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function api(fetchImpl: ReturnType<typeof vi.fn>) {
-  return createPersonaApi({ apiKey: 'persona_sandbox_key', templateVersionId: 'itmplv_1', fetchImpl });
+  return createPersonaApi({ apiKey: 'persona_sandbox_key', fetchImpl });
 }
+
+const PERSON_FIELDS = {
+  'name-first': 'Ada',
+  'name-last': 'Lovelace',
+  'email-address': 'ada@example.com',
+  'address-country-code': 'GB'
+};
+
+// A case as Persona lists it, with the business inquiry and an owner's child inquiry attached.
+const CASE_RESOURCE = {
+  type: 'case',
+  id: 'case_1',
+  attributes: {
+    status: 'Approved',
+    resolution: null,
+    'resolved-at': '2026-10-13T01:21:33.000Z',
+    'created-at': '2026-10-13T01:10:50.629Z',
+    'updated-at': '2026-10-13T01:21:33.665Z',
+    fields: { business_name: { type: 'string', value: 'never read' } }
+  },
+  relationships: {
+    'case-template': { data: { type: 'case-template', id: 'ctmpl_kyb' } },
+    inquiries: {
+      data: [
+        { type: 'inquiry', id: 'inq_ABC123' },
+        { type: 'inquiry', id: 'inq_owner' }
+      ]
+    },
+    accounts: { data: [{ type: 'account', id: 'act_XYZ' }] }
+  }
+};
 
 describe('createPersonaApi', () => {
   it('creates an inquiry with the documented body and reads the session token from the response meta', async () => {
@@ -35,8 +66,9 @@ describe('createPersonaApi', () => {
       .mockResolvedValue(jsonResponse({ data: INQUIRY_RESOURCE, meta: { 'session-token': 'tok' } }, 201));
 
     const result = await api(fetchImpl).createInquiry({
+      templateVersionId: 'itmplv_1',
+      fields: PERSON_FIELDS,
       referenceId: 'user-1',
-      prefill: { firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com', countryCode: 'GB' },
       idempotencyKey: 'key-1'
     });
 
@@ -69,23 +101,64 @@ describe('createPersonaApi', () => {
       'Idempotency-Key': 'key-1'
     });
     expect(JSON.parse(init.body as string)).toEqual({
-      data: {
-        attributes: {
-          'inquiry-template-version-id': 'itmplv_1',
-          fields: {
-            'name-first': 'Ada',
-            'name-last': 'Lovelace',
-            'email-address': 'ada@example.com',
-            'address-country-code': 'GB'
-          }
-        }
-      },
+      data: { attributes: { 'inquiry-template-version-id': 'itmplv_1', fields: PERSON_FIELDS } },
       meta: {
         'auto-create-account': true,
         'auto-create-account-reference-id': 'user-1',
         'auto-create-inquiry-session': true
       }
     });
+  });
+
+  it('asks for the account type a business inquiry needs, and only then', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ data: INQUIRY_RESOURCE, meta: { 'session-token': 'tok' } }, 201));
+
+    await api(fetchImpl).createInquiry({
+      templateVersionId: 'itmplv_kyb',
+      fields: { 'business-name': 'Zivoe Probe LLC' },
+      referenceId: 'user-1',
+      accountTypeId: 'acttp_business'
+    });
+
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).meta).toEqual({
+      'auto-create-account': true,
+      'auto-create-account-reference-id': 'user-1',
+      'auto-create-account-type-id': 'acttp_business',
+      'auto-create-inquiry-session': true
+    });
+    expect(init.headers).not.toHaveProperty('Idempotency-Key');
+  });
+
+  it('lists the cases an inquiry sits on, newest first, reading only the slice the module needs', async () => {
+    const older = {
+      ...CASE_RESOURCE,
+      id: 'case_0',
+      attributes: { ...CASE_RESOURCE.attributes, 'created-at': '2026-10-01T00:00:00.000Z' }
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ data: [older, CASE_RESOURCE] }));
+
+    const result = await api(fetchImpl).listCases({ inquiryId: 'inq_ABC123' });
+
+    expect(result).toEqual({
+      ok: true,
+      value: [
+        {
+          id: 'case_1',
+          status: 'Approved',
+          caseTemplateId: 'ctmpl_kyb',
+          inquiryIds: ['inq_ABC123', 'inq_owner'],
+          createdAt: new Date('2026-10-13T01:10:50.629Z'),
+          updatedAt: new Date('2026-10-13T01:21:33.665Z')
+        },
+        expect.objectContaining({ id: 'case_0' })
+      ]
+    });
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.withpersona.com/api/v1/cases?filter%5Binquiry-id%5D=inq_ABC123&page%5Bsize%5D=25'
+    );
   });
 
   it('retries a create once with the same idempotency key when the connection failed', async () => {
@@ -95,8 +168,9 @@ describe('createPersonaApi', () => {
       .mockResolvedValueOnce(jsonResponse({ data: INQUIRY_RESOURCE, meta: { 'session-token': 'tok' } }, 201));
 
     const result = await api(fetchImpl).createInquiry({
+      templateVersionId: 'itmplv_1',
+      fields: PERSON_FIELDS,
       referenceId: 'user-1',
-      prefill: { firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com', countryCode: null },
       idempotencyKey: 'key-1'
     });
 
@@ -194,7 +268,7 @@ describe('createPersonaApi', () => {
       .fn()
       .mockResolvedValueOnce(limited)
       .mockResolvedValueOnce(jsonResponse({ data: [] }));
-    const api = createPersonaApi({ apiKey: 'k', templateVersionId: 'itmplv_1', fetchImpl, onRateLimit });
+    const api = createPersonaApi({ apiKey: 'k', fetchImpl, onRateLimit });
 
     await expect(api.listInquiries({ referenceId: 'u' })).resolves.toEqual({ ok: true, value: [] });
     expect(fetchImpl).toHaveBeenCalledTimes(2);

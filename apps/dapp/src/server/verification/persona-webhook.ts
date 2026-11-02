@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 import { type Result, err, ok } from '@/lib/result';
 
-import { type ParsedPersonaInquiry } from './kyc-verification';
+import { type PersonaCase, personaCaseResourceSchema, toPersonaCase } from './persona-case';
 import { personaInquiryResourceSchema, toPersonaInquiry } from './persona-inquiry';
+import { type ParsedPersonaInquiry } from './verification';
 
 // ---------------------------------------------------------------------------
 // Persona webhook contract (verified 2026-08-22 against Persona's docs):
@@ -73,8 +74,10 @@ export function verifyPersonaSignature({
 }
 
 // The envelope is common to every Persona event; what sits under
-// `payload.data` depends on the event's resource (inquiry, workflow-run, …),
-// so the envelope parses first and the inquiry shape is attempted after.
+// `payload.data` depends on the event's resource (inquiry, case, workflow-run,
+// …), so the envelope parses first and the resource shape is chosen by the
+// event's name after — a case carries a status and timestamps too, and would
+// otherwise pass for an inquiry.
 const webhookEnvelopeSchema = z.object({
   data: z.object({
     id: z.string().min(1),
@@ -86,19 +89,28 @@ const webhookEnvelopeSchema = z.object({
   })
 });
 
-const payloadResourceIdSchema = z.object({ id: z.string().min(1) });
+const payloadResourceIdSchema = z.object({
+  id: z.string().min(1),
+  relationships: z
+    .object({ workflow: z.object({ data: z.object({ id: z.string() }).nullable() }).optional() })
+    .optional()
+});
 
 export type PersonaWebhookEvent = {
   id: string;
   name: string;
   createdAt: Date;
   /**
-   * The inquiry as Persona saw it when the event fired; null when the payload
-   * is some other resource. A null status is an inquiry status we do not model.
+   * The inquiry an `inquiry.*` event carries, as Persona serialises it at
+   * delivery; null for any other event. A null status is one we do not model.
    */
   inquiry: ParsedPersonaInquiry | null;
+  /** The case a `case.*` event carries, serialised at delivery; null for any other event. */
+  case: PersonaCase | null;
   /** The payload resource's id whatever its type — names a failed workflow run in an ops alert. */
   resourceId: string | null;
+  /** The Workflow a run belongs to, so an ops alert can be read per Workflow. */
+  workflowId: string | null;
 };
 
 /** Null when the body is not a Persona event of the documented envelope shape. */
@@ -115,14 +127,18 @@ export function parsePersonaWebhookEvent(rawBody: string): PersonaWebhookEvent |
 
   const { data } = parsed.data;
   const payloadData = data.attributes.payload.data;
-  const inquiry = personaInquiryResourceSchema.safeParse(payloadData);
+  const name = data.attributes.name;
+  const inquiry = name.startsWith('inquiry.') ? personaInquiryResourceSchema.safeParse(payloadData) : null;
+  const kybCase = name.startsWith('case.') ? personaCaseResourceSchema.safeParse(payloadData) : null;
   const resource = payloadResourceIdSchema.safeParse(payloadData);
 
   return {
     id: data.id,
-    name: data.attributes.name,
+    name,
     createdAt: data.attributes['created-at'],
-    inquiry: inquiry.success ? toPersonaInquiry(inquiry.data) : null,
-    resourceId: resource.success ? resource.data.id : null
+    inquiry: inquiry?.success ? toPersonaInquiry(inquiry.data) : null,
+    case: kybCase?.success ? toPersonaCase(kybCase.data) : null,
+    resourceId: resource.success ? resource.data.id : null,
+    workflowId: resource.success ? (resource.data.relationships?.workflow?.data?.id ?? null) : null
   };
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { isPersonaInquiryStatus } from './kyc-status';
-import { type ParsedPersonaInquiry } from './kyc-verification';
+import { type ParsedPersonaInquiry } from './verification';
+import { isPersonaInquiryStatus } from './verification-status';
 
 // ---------------------------------------------------------------------------
 // The JSON:API inquiry resource as Persona returns it (kebab-case keys), in
@@ -9,7 +9,8 @@ import { type ParsedPersonaInquiry } from './kyc-verification';
 // the module reads are modelled; the rest (names, documents) is never parsed.
 // ---------------------------------------------------------------------------
 
-const isoDate = z
+/** Persona's timestamps, as the resource schemas read them. */
+export const isoDate = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'expected an ISO 8601 timestamp')
   .transform((value) => new Date(value));

@@ -2,18 +2,20 @@ import { z } from 'zod';
 
 import { type Result, err, ok } from '@/lib/result';
 
-import { type PersonaApi, type PersonaApiError, type PersonaSession } from './kyc-verification';
+import { personaCaseResourceSchema, toPersonaCase } from './persona-case';
 import { personaInquiryResourceSchema, toPersonaInquiry } from './persona-inquiry';
+import { type PersonaApi, type PersonaApiError, type PersonaSession } from './verification';
 
 // ---------------------------------------------------------------------------
 // Persona HTTPS adapter for the PersonaApi port. Contract verified 2026-08-22
 // against Persona's API reference:
 //   POST /inquiries                  { data: { attributes: { inquiry-template-version-id, fields } },
 //                                      meta: { auto-create-account, auto-create-account-reference-id,
-//                                              auto-create-inquiry-session } }
+//                                              auto-create-account-type-id?, auto-create-inquiry-session } }
 //                                    → { data: <inquiry>, meta: { session-token } }
 //   POST /inquiries/{id}/resume      → { data: <inquiry>, meta: { session-token } }  (expired → pending)
 //   GET  /inquiries?filter[reference-id]=  → { data: [<inquiry>, ...] }
+//   GET  /cases?filter[inquiry-id]=  → { data: [<case>, ...] }                       (probed 2026-10-13)
 //   GET  /webhooks                   → { data: [<webhook>, ...] }                    (the Drift check)
 //   GET  /inquiry-templates/{id}     → { data: { relationships: { latest-published-version } } }
 // Every failure is returned as the port's error — nothing here throws.
@@ -41,6 +43,8 @@ const sessionResponseSchema = z.object({
 const listResponseSchema = z.object({
   data: z.array(personaInquiryResourceSchema)
 });
+
+const caseListResponseSchema = z.object({ data: z.array(personaCaseResourceSchema) });
 
 // Only what identifies a webhook is required of the envelope. Each setting is
 // read on its own below, so Persona repackaging one of them (as it did with
@@ -188,13 +192,11 @@ async function personaRequest<T>({
 
 export function createPersonaApi({
   apiKey,
-  templateVersionId,
   baseUrl = PERSONA_API_BASE_URL,
   fetchImpl = fetch,
   onRateLimit
 }: {
   apiKey: string;
-  templateVersionId: string;
   baseUrl?: string;
   /** Injected for the parse tests; production uses the global fetch. */
   fetchImpl?: FetchLike;
@@ -223,27 +225,18 @@ export function createPersonaApi({
   }
 
   return {
-    async createInquiry({ referenceId, prefill, idempotencyKey }) {
+    async createInquiry({ templateVersionId, fields, referenceId, accountTypeId, idempotencyKey }) {
       const path = '/inquiries';
       const create = () =>
         request({
           method: 'POST',
           path,
           body: {
-            data: {
-              attributes: {
-                'inquiry-template-version-id': templateVersionId,
-                fields: {
-                  'name-first': prefill.firstName,
-                  'name-last': prefill.lastName,
-                  'email-address': prefill.email,
-                  ...(prefill.countryCode ? { 'address-country-code': prefill.countryCode } : {})
-                }
-              }
-            },
+            data: { attributes: { 'inquiry-template-version-id': templateVersionId, fields } },
             meta: {
               'auto-create-account': true,
               'auto-create-account-reference-id': referenceId,
+              ...(accountTypeId ? { 'auto-create-account-type-id': accountTypeId } : {}),
               'auto-create-inquiry-session': true
             }
           },
@@ -277,6 +270,18 @@ export function createPersonaApi({
       // depends on it. Unmodelled statuses stay in the list (as null) so the
       // module can see that the newest inquiry is one it cannot read.
       return ok(result.value.data.map(toPersonaInquiry).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    },
+
+    // A business inquiry sits on one case, two if someone made another by hand.
+    async listCases({ inquiryId }) {
+      const query = new URLSearchParams({ 'filter[inquiry-id]': inquiryId, 'page[size]': '25' });
+      const result = await request({
+        method: 'GET',
+        path: `/cases?${query.toString()}`,
+        schema: caseListResponseSchema
+      });
+      if (!result.ok) return result;
+      return ok(result.value.data.map(toPersonaCase).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
     },
 
     // One page is plenty: an environment holds a handful of webhooks, not hundreds.
