@@ -78,6 +78,14 @@ export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 /** Persona prefills the inquiry from these, so a name is trimmed and bounded. */
 const MAX_NAME_LENGTH = 100;
+/** Persona's `business-name` field takes up to 255 characters; a legal name is often longer than a person's. */
+const MAX_ENTITY_NAME_LENGTH = 255;
+const boundedName = (label: string, max = MAX_NAME_LENGTH) =>
+  z
+    .string({ required_error: `${label} is required` })
+    .trim()
+    .min(1, `${label} is required`)
+    .max(max, `${label} is too long`);
 
 /**
  * The Investor Profile step of `/verification`: the onboarding answers an
@@ -99,3 +107,16 @@ export const investorProfileSchema = z.object({
   countryOfResidence: countryCodeSchema
 });
 export type InvestorProfileFormData = z.infer<typeof investorProfileSchema>;
+
+/**
+ * The same step for an organization: the entity Persona verifies and the
+ * person filling the form in, as the business inquiry is prefilled from both.
+ */
+export const organizationProfileSchema = z.object({
+  firstName: boundedName('First name'),
+  lastName: boundedName('Last name'),
+  jobTitle: boundedName('Job title'),
+  entityName: boundedName('Entity name', MAX_ENTITY_NAME_LENGTH),
+  countryOfIncorporation: countryCodeSchema
+});
+export type OrganizationProfileFormData = z.infer<typeof organizationProfileSchema>;

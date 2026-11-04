@@ -4,10 +4,10 @@ import { Client } from '@upstash/qstash';
 
 import { getChainalysisAssessment } from '@/server/chainalysis/assessment';
 import { db } from '@/server/clients/db';
-import { kycVerification } from '@/server/kyc';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendAddressWhitelistedEmail } from '@/server/utils/send-email';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
+import { verification } from '@/server/verification';
 
 import { env } from '@/env';
 
@@ -22,7 +22,7 @@ import { createPostgresWalletLinkStore } from './wallet-link-store';
 // vocabulary from `./wallet-link-membership`, so a client tree never reaches
 // a module that opens a database connection through them.
 
-/** Same one-quick-retry client as the KYC outbox: a server action should not hang on a queue outage. */
+/** Same one-quick-retry client as the verification outbox: a server action should not hang on a queue outage. */
 const outboxQstash = new Client({ token: env.QSTASH_TOKEN, retry: { retries: 1, backoff: () => 200 } });
 
 /**
@@ -32,7 +32,7 @@ const outboxQstash = new Client({ token: env.QSTASH_TOKEN, retry: { retries: 1, 
  */
 export const walletLink = createWalletLink({
   store: createPostgresWalletLinkStore({ db }),
-  kyc: kycVerification,
+  verification,
   screening: {
     // The same screen the dapp runs on connect (safelist first, then
     // Chainalysis); High or Severe refuses. A screen that cannot be made

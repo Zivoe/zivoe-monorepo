@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type InvestorProfile } from '@/server/data/investor-profile';
-import { type KycStatusView } from '@/server/kyc/kyc-status';
+import { type VerificationStatusView } from '@/server/verification/verification-status';
 
 import VerificationFlow from './verification-flow';
 
@@ -103,17 +103,21 @@ vi.mock('./wallet-link-step', () => ({
   WalletLinkStep: ({ userId }: { userId: string }) => <div data-testid="wallets-step">{userId}</div>
 }));
 
-const view = (overrides: Partial<KycStatusView> = {}): KycStatusView => ({
+const view = (overrides: Partial<VerificationStatusView> = {}): VerificationStatusView => ({
   status: 'not_started',
   path: 'individual',
   canStart: true,
   canResume: false,
   inquiryId: null,
+  caseWaitingOn: null,
   ...overrides
 });
 
 const profile = (overrides: Partial<InvestorProfile> = {}): InvestorProfile => ({
   accountType: 'individual',
+  jobTitle: null,
+  entityName: null,
+  countryOfIncorporation: null,
   firstName: 'Zivoe',
   lastName: 'Agent',
   countryOfResidence: 'RO',
@@ -123,13 +127,13 @@ const profile = (overrides: Partial<InvestorProfile> = {}): InvestorProfile => (
 
 function renderFlow({ statusView = view(), investor = profile() } = {}) {
   const client = new QueryClient();
-  const tree = (statusView: KycStatusView) => (
+  const tree = (statusView: VerificationStatusView) => (
     <QueryClientProvider client={client}>
       <VerificationFlow view={statusView} profile={investor} userId="user_1" />
     </QueryClientProvider>
   );
   const result = render(tree(statusView));
-  return { ...result, rerenderWith: (next: KycStatusView) => result.rerender(tree(next)) };
+  return { ...result, rerenderWith: (next: VerificationStatusView) => result.rerender(tree(next)) };
 }
 
 /** The record once an inquiry exists but the investor can still resume it. */
@@ -279,30 +283,59 @@ describe('VerificationFlow', () => {
     expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
   });
 
-  it('locks the step for an organization and points to the team instead of a form', () => {
+  it('lets an organization confirm the entity and its own details, then moves on', async () => {
+    mocks.updateInvestorProfile.mockResolvedValue({ success: true });
     renderFlow({
-      statusView: view({ path: 'organization', canStart: false }),
-      investor: profile({ accountType: 'organization', countryOfResidence: null })
+      statusView: view({ path: 'organization', canStart: true }),
+      investor: profile({
+        accountType: 'organization',
+        countryOfResidence: null,
+        jobTitle: 'Managing Partner',
+        entityName: 'Acme Capital LLC',
+        countryOfIncorporation: 'US'
+      })
     });
 
+    expect(field('Entity Name')).toMatchObject({ value: 'Acme Capital LLC', readOnly: false });
+    expect(field('Job Title')).toMatchObject({ value: 'Managing Partner', readOnly: false });
     expect(field('Account type')).toMatchObject({ value: 'Organization', readOnly: true });
-    expect(screen.getByRole('link', { name: 'Contact the team' }).getAttribute('href')).toBe(
-      'mailto:inquire@zivoe.com'
+    expect(screen.queryByRole('link', { name: 'Contact the team' })).toBeNull();
+
+    fireEvent.change(field('Entity Name'), { target: { value: 'Acme Capital Holdings LLC' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() =>
+      expect(mocks.updateInvestorProfile).toHaveBeenCalledWith({
+        firstName: 'Zivoe',
+        lastName: 'Agent',
+        jobTitle: 'Managing Partner',
+        entityName: 'Acme Capital Holdings LLC',
+        countryOfIncorporation: 'US'
+      })
     );
-    expect(screen.queryByLabelText('First Name')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Exit' }).getAttribute('href')).toBe('/');
+    await waitFor(() => expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step'));
   });
 
-  it("shows an organization's no on the profile step without marking the identity step done", () => {
+  it("shows an organization's no on the business step, with the profile step done", () => {
     renderFlow({
       statusView: view({ path: 'organization', status: 'revoked', canStart: false }),
       investor: profile({ accountType: 'organization', countryOfResidence: null })
     });
 
     expect(screen.getByText(/Your organization's verification is no longer active/)).toBeTruthy();
-    expect(stepItem('Investor profile').getAttribute('aria-current')).toBe('step');
-    expect(within(stepItem('Identity verification')).queryByText(', completed')).toBeNull();
+    expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step');
+    expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
+  });
+
+  it('holds an organization in review on the business step and names what the review waits on', () => {
+    renderFlow({
+      statusView: view({ path: 'organization', status: 'pending_review', canStart: false, caseWaitingOn: 'people' }),
+      investor: profile({ accountType: 'organization', countryOfResidence: null })
+    });
+
+    expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step');
+    expect(screen.getByText(/owners and control person you listed/)).toBeTruthy();
+    expect(screen.queryByLabelText('Entity Name')).toBeNull();
   });
 
   it('lands an organization the team approved on Wallets, as it does an individual', () => {
@@ -314,6 +347,6 @@ describe('VerificationFlow', () => {
     expect(screen.getByTestId('wallets-step').textContent).toBe('user_1');
     expect(stepItem('Wallets').getAttribute('aria-current')).toBe('step');
     expect(within(stepItem('Investor profile')).getByText(', completed')).toBeTruthy();
-    expect(within(stepItem('Identity verification')).getByText(', completed')).toBeTruthy();
+    expect(within(stepItem('Business verification')).getByText(', completed')).toBeTruthy();
   });
 });

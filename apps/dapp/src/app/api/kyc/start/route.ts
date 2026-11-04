@@ -7,9 +7,9 @@ import { ipAddress } from '@vercel/functions';
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
 import { getRequiredStep } from '@/server/data/auth';
-import { kycVerification } from '@/server/kyc';
-import { isKycEnabled } from '@/server/kyc/kyc-flag';
-import { type StartKycError } from '@/server/kyc/kyc-verification';
+import { verification } from '@/server/verification';
+import { isKycEnabled } from '@/server/verification/kyc-flag';
+import { type StartVerificationError } from '@/server/verification/verification';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 
@@ -18,10 +18,13 @@ import { type ApiResponseError } from '../../utils';
 const FLOW = 'kyc-start';
 
 /** The page's typed refusal: the code drives the copy (the page owns the words), never a redirect. */
-export type StartKycErrorResponse = { error: string; code: StartKycError['code'] };
-export type StartKycSuccessResponse = { success: true; data: { inquiryId: string; sessionToken: string } };
+export type StartVerificationErrorResponse = { error: string; code: StartVerificationError['code'] };
+export type StartVerificationSuccessResponse = { success: true; data: { inquiryId: string; sessionToken: string } };
 /** Everything the route can answer with, including `withErrorHandler`'s generic shape. */
-export type StartKycResponse = StartKycSuccessResponse | StartKycErrorResponse | ApiResponseError;
+export type StartVerificationResponse =
+  | StartVerificationSuccessResponse
+  | StartVerificationErrorResponse
+  | ApiResponseError;
 
 // Every inquiry costs money on the Persona bill and a user has one inquiry
 // at a time: a tight per-user limit (resumes share it), with a looser IP
@@ -48,7 +51,7 @@ const ipRatelimit = new Ratelimit({
 const START_LOCK_TTL_SECONDS = 75;
 export const maxDuration = 75;
 
-const handler = async (req: NextRequest): Promise<NextResponse<StartKycResponse>> => {
+const handler = async (req: NextRequest): Promise<NextResponse<StartVerificationResponse>> => {
   Sentry.setTag('source', 'API');
   Sentry.setTag('flow', FLOW);
 
@@ -104,25 +107,38 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartKycResponse>
   }
 
   try {
-    const result = await kycVerification.startKyc({ userId: user.id });
+    const result = await verification.startVerification({ userId: user.id });
 
     if (result.ok) return NextResponse.json({ success: true, data: result.value });
 
-    const { code } = result.error;
+    const { error } = result;
 
-    if (code === 'persona_unavailable') {
-      Sentry.captureException(new Error(`Persona unavailable: ${result.error.cause.message}`), {
-        tags: { source: 'API', flow: FLOW, reason: result.error.cause.reason },
-        extra: { userId: user.id, httpStatus: result.error.cause.httpStatus }
+    if (error.code === 'persona_unavailable') {
+      Sentry.captureException(new Error(`Persona unavailable: ${error.cause.message}`), {
+        tags: { source: 'API', flow: FLOW, reason: error.cause.reason },
+        extra: { userId: user.id, httpStatus: error.cause.httpStatus }
       });
-      return NextResponse.json({ error: 'Identity verification is temporarily unavailable', code }, { status: 503 });
+      return NextResponse.json({ error: 'Verification is temporarily unavailable', code: error.code }, { status: 503 });
     }
 
+    // The queue, not Persona: the re-read found a transition and could not announce it. Same answer to the page.
+    if (error.code === 'queue_unavailable') {
+      Sentry.captureException(
+        new Error('KYC notifications could not be queued during a start', { cause: error.cause }),
+        {
+          tags: { source: 'API', flow: FLOW, reason: 'queue' },
+          extra: { userId: user.id }
+        }
+      );
+      return NextResponse.json({ error: 'Verification is temporarily unavailable', code: error.code }, { status: 503 });
+    }
+    const { code } = error;
+
     // Policy refusals are the user's own state, not a fault: no capture.
-    return NextResponse.json({ error: 'Identity verification cannot be started', code }, { status: 409 });
+    return NextResponse.json({ error: 'Verification cannot be started', code }, { status: 409 });
   } finally {
     await handlePromise(redis.del(lockKey));
   }
 };
 
-export const POST = withErrorHandler('Error starting identity verification', handler);
+export const POST = withErrorHandler('Error starting verification', handler);

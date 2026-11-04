@@ -12,7 +12,7 @@ export const WALLET_LINK_WHITELISTED_EMAIL_PATH = '/api/email/wallet-link';
 
 /**
  * The wire shape of one queued job: what the adapter publishes and what a
- * receiver route hands back to `deliverNotification`. Unlike the KYC outbox,
+ * receiver route hands back to `deliverNotification`. Unlike the verification outbox,
  * `kind` travels: the operator route serves two kinds, so the body must say
  * which transition it announces.
  */
@@ -45,7 +45,7 @@ export function parseWalletLinkJob({
 }
 
 /**
- * Every job waits a few seconds, for the reason the KYC outbox holds its
+ * Every job waits a few seconds, for the reason the verification outbox holds its
  * jobs: the module enqueues before it persists, and QStash delivers faster
  * than the persist that follows lands. Without the hold the receiver's first
  * read finds the row behind the job, answers 500, and every first delivery

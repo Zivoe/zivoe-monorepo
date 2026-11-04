@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { personaDriftCheck } from '@/server/kyc';
-import { isPersonaSandboxKey } from '@/server/kyc/persona-api';
+import { personaDriftCheck } from '@/server/verification';
+import { isPersonaSandboxKey } from '@/server/verification/persona-api';
 
 import { KYC_WEBHOOK_DRIFT_CRON, KYC_WEBHOOK_DRIFT_SLUG, withQstashSignature } from '@/lib/qstash';
 import { withErrorHandler } from '@/lib/utils';

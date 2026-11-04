@@ -13,7 +13,7 @@ vi.mock('@/lib/qstash', async (importOriginal) => ({
 }));
 // Hoisted so the mock factory below can reach it; the tests set what the module answers.
 const deliverNotification = vi.hoisted(() => vi.fn());
-vi.mock('@/server/kyc', () => ({ kycVerification: { deliverNotification } }));
+vi.mock('@/server/verification', () => ({ verification: { deliverNotification } }));
 vi.mock('@sentry/nextjs', () => ({ setTag: vi.fn(), captureException: vi.fn() }));
 
 const USER_ID = '7b6f9a1e-0c1d-4e6f-9a2b-3c4d5e6f7a8b';

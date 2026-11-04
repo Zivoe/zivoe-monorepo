@@ -6,7 +6,13 @@ import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 import { walletLink } from '@/server/wallet-link';
 import { type WalletLinkReconcileReport } from '@/server/wallet-link/wallet-link';
 
-import { WALLET_LINK_RECONCILE_CRON, WALLET_LINK_RECONCILE_SLUG, withQstashSignature } from '@/lib/qstash';
+import {
+  WALLET_LINK_RECONCILE_CRON,
+  WALLET_LINK_RECONCILE_SLUG,
+  WALLET_LINK_RECONCILE_STEP_MINUTES,
+  WALLET_LINK_RECONCILE_TRIGGER_PARAM,
+  withQstashSignature
+} from '@/lib/qstash';
 import { handlePromise, withErrorHandler } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -16,10 +22,13 @@ import { type ApiResponse } from '../../utils';
 export const maxDuration = 60;
 
 /**
- * UTC hour of the one run per day that tells ops about stalled rows. A stalled
- * whitelist is a standing condition, not an event: reporting it on
- * every hourly run would repeat it twenty-four times. The sweep itself stays
- * hourly so the "you're whitelisted" email goes out within the hour.
+ * UTC hour of the one scheduled run per day that tells ops about stalled rows.
+ * A stalled whitelist is a standing condition, not an event: reporting it on
+ * every run would repeat it ninety-six times a day. The sweep itself runs
+ * every 15 minutes so the "you're whitelisted" email goes out soon after ops
+ * whitelists. Only the scheduled run that opens this hour posts it — a later
+ * scheduled run in the hour, or a triggered run at any time, must not repeat
+ * it; the schedule step guarantees exactly one run falls inside its first step.
  */
 const DIGEST_HOUR_UTC = 9;
 
@@ -29,17 +38,25 @@ type StalledRow = WalletLinkReconcileReport['stuck'][number];
 const line = (row: StalledRow) =>
   `<code>${row.address}</code> · ${row.memberOn} of ${row.total} chains · day ${row.daysWaiting}${row.isLastReminder ? ' (last reminder)' : ''}`;
 
-const handler = async (_req: NextRequest): ApiResponse<WalletLinkReconcileReport> => {
+const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport> => {
   const startTime = Date.now();
+  const scheduled = !req.nextUrl.searchParams.has(WALLET_LINK_RECONCILE_TRIGGER_PARAM);
 
   Sentry.setTag('flow', WALLET_LINK_RECONCILE_SLUG);
 
-  const sentryCheckInId = Sentry.captureCheckIn(
-    { monitorSlug: WALLET_LINK_RECONCILE_SLUG, status: 'in_progress' },
-    // The schedule lets Sentry alert on MISSED runs — a sweep that stops
-    // firing is a stalled whitelist nobody hears about.
-    { schedule: { type: 'crontab', value: WALLET_LINK_RECONCILE_CRON }, checkinMargin: 5, maxRuntime: 2 }
-  );
+  // The schedule lets Sentry alert on MISSED runs — a sweep that stops
+  // firing is a stalled whitelist nobody hears about. A triggered run is
+  // not one of the schedule's, and does not check in.
+  const sentryCheckInId = scheduled
+    ? Sentry.captureCheckIn(
+        { monitorSlug: WALLET_LINK_RECONCILE_SLUG, status: 'in_progress' },
+        { schedule: { type: 'crontab', value: WALLET_LINK_RECONCILE_CRON }, checkinMargin: 5, maxRuntime: 2 }
+      )
+    : null;
+  const checkIn = (status: 'ok' | 'error') => {
+    if (sentryCheckInId)
+      Sentry.captureCheckIn({ checkInId: sentryCheckInId, monitorSlug: WALLET_LINK_RECONCILE_SLUG, status });
+  };
 
   const now = new Date();
 
@@ -50,7 +67,10 @@ const handler = async (_req: NextRequest): ApiResponse<WalletLinkReconcileReport
     // to the wallet-link channel and nowhere else — once a day, on the digest
     // run. The one thing that is ours, chains the sweep could not read, is
     // reported to Sentry on the same run.
-    const isDigestRun = now.getUTCHours() === DIGEST_HOUR_UTC;
+    const isDigestRun =
+      scheduled &&
+      now.getUTCHours() === DIGEST_HOUR_UTC &&
+      now.getUTCMinutes() < WALLET_LINK_RECONCILE_STEP_MINUTES;
     if (isDigestRun) {
       // One item per line, so a long digest splits across messages at a line
       // instead of failing Telegram's size limit.
@@ -78,7 +98,7 @@ const handler = async (_req: NextRequest): ApiResponse<WalletLinkReconcileReport
       }
     }
 
-    Sentry.captureCheckIn({ checkInId: sentryCheckInId, monitorSlug: WALLET_LINK_RECONCILE_SLUG, status: 'ok' });
+    checkIn('ok');
 
     Sentry.logger.info(`${WALLET_LINK_RECONCILE_SLUG} completed`, {
       checked: report.checked,
@@ -87,12 +107,13 @@ const handler = async (_req: NextRequest): ApiResponse<WalletLinkReconcileReport
       unchecked: report.unchecked,
       stuck: report.stuck.length,
       digest: isDigestRun,
+      scheduled,
       durationMs: Date.now() - startTime
     });
 
     return NextResponse.json({ success: true, data: report });
   } catch (error) {
-    Sentry.captureCheckIn({ checkInId: sentryCheckInId, monitorSlug: WALLET_LINK_RECONCILE_SLUG, status: 'error' });
+    checkIn('error');
     throw error;
   } finally {
     await Sentry.flush(2000);

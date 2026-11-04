@@ -30,7 +30,7 @@ posthog.init(POSTHOG_ENABLED ? env.NEXT_PUBLIC_POSTHOG_KEY : 'fake-key', {
   // A pageview on every path or query-string change (tabs); the `defaults` alone
   // count path changes only.
   capture_pageview: { path: true, search: true },
-  // Flags are evaluated on the server (server/kyc/kyc-flag.ts); the browser reads none, and every
+  // Flags are evaluated on the server (server/verification/kyc-flag.ts); the browser reads none, and every
   // /flags call is billed. Keeps the remote config call that carries project settings.
   advanced_disable_feature_flags: true,
   // No surveys run here; without this the SDK still downloads the surveys script on every load.

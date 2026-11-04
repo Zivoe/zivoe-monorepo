@@ -1,37 +1,39 @@
 /**
- * What the sandbox scenarios share: the guarded environment, the KYC module
+ * What the sandbox scenarios share: the guarded environment, the Verification module
  * wired to the real adapters, throwaway users, and the reads the assertions
- * poll. See docs/runbooks/persona-kyc-sandbox-e2e.md.
+ * poll.
  *
  * The module built here runs IN THIS PROCESS — that is how a scenario calls
- * `startKyc` and `reconcile` directly. Persona's webhooks and QStash's
+ * `startVerification` and `reconcile` directly. Persona's webhooks and QStash's
  * callbacks still go to the dev server behind APP_URL, which is why both
  * sides must share DATABASE_URL: this side writes the start, the server
  * writes the webhook, and the assertions read the one record.
  */
 import { Client } from '@upstash/qstash';
-import { and, asc, count, eq, gt, inArray, like, lt } from 'drizzle-orm';
+import { and, asc, count, sql as drizzleSql, eq, gt, inArray, like, lt } from 'drizzle-orm';
 import postgres from 'postgres';
 
 import { createDatabase } from '@zivoe/database';
 import { kycVerification, kycWebhookEvent, profile, user } from '@zivoe/database/schema';
 
-import { createQstashOutbox } from '@/server/kyc/kyc-outbox';
-import { createPostgresKycStore } from '@/server/kyc/kyc-store';
-import {
-  type KycStore,
-  type KycVerificationRecord,
-  PERSONA_OPS_EVENTS,
-  PERSONA_SUBSCRIBED_EVENTS,
-  createKycVerification
-} from '@/server/kyc/kyc-verification';
-import { createPersonaDriftCheck } from '@/server/kyc/kyc-webhook-drift';
 import {
   PERSONA_API_BASE_URL,
   PERSONA_API_VERSION,
   createPersonaApi,
   isPersonaSandboxKey
-} from '@/server/kyc/persona-api';
+} from '@/server/verification/persona-api';
+import {
+  PERSONA_CASE_EVENTS,
+  PERSONA_OPS_EVENTS,
+  PERSONA_SUBSCRIBED_EVENTS,
+  type VerificationRecord,
+  type VerificationStore,
+  createVerification
+} from '@/server/verification/verification';
+import { createQstashOutbox } from '@/server/verification/verification-outbox';
+import { KYB_CASE_STATUS_SETS } from '@/server/verification/verification-status';
+import { createPostgresVerificationStore } from '@/server/verification/verification-store';
+import { createPersonaDriftCheck } from '@/server/verification/webhook-drift';
 
 import { type Result } from '@/lib/result';
 
@@ -49,6 +51,15 @@ function required(name: string): string {
 const databaseUrl = required('DATABASE_URL');
 const apiKey = required('PERSONA_API_KEY');
 const templateVersionId = required('PERSONA_TEMPLATE_VERSION_ID');
+const templateId = required('PERSONA_TEMPLATE_ID');
+const kybFlow = {
+  path: 'organization',
+  templateId: required('PERSONA_KYB_TEMPLATE_ID'),
+  templateVersionId: required('PERSONA_KYB_TEMPLATE_VERSION_ID'),
+  accountTypeId: required('PERSONA_KYB_ACCOUNT_TYPE_ID'),
+  caseTemplateId: required('PERSONA_KYB_CASE_TEMPLATE_ID'),
+  caseStatuses: KYB_CASE_STATUS_SETS
+} as const;
 const qstashToken = required('QSTASH_TOKEN');
 /** The dev server, as Persona and QStash reach it. */
 export const appUrl = required('APP_URL').replace(/\/+$/, '');
@@ -72,14 +83,14 @@ if (appHost === 'zivoe.com' || appHost.endsWith('.zivoe.com')) {
 }
 
 // ---------------------------------------------------------------------------
-// Wiring — the same adapters as src/server/kyc/index.ts, minus the channels:
+// Wiring — the same adapters as src/server/verification/index.ts, minus the channels:
 // notifications are delivered by the dev server, never by this process.
 // ---------------------------------------------------------------------------
 
 const sql = postgres(databaseUrl, { prepare: false });
 export const db = createDatabase(sql);
-export const store = createPostgresKycStore({ db });
-export const persona = createPersonaApi({ apiKey, templateVersionId });
+export const store = createPostgresVerificationStore({ db });
+export const persona = createPersonaApi({ apiKey });
 const outbox = createQstashOutbox({ qstash: new Client({ token: qstashToken }), baseUrl: appUrl });
 
 /** Users this run created. Scenarios only ever sweep or count these. */
@@ -91,10 +102,10 @@ const runUserIds = new Set<string>();
  * shared dev database has records that are not this run's business. Recorded
  * events are left alone for the same reason.
  */
-export function createScopedKyc(userIds: ReadonlySet<string>) {
-  const scoped: KycStore = {
+export function createScopedVerification(userIds: ReadonlySet<string>) {
+  const scoped: VerificationStore = {
     ...store,
-    async list({ statuses, syncedBefore, changedBefore, changedAfter, limit }) {
+    async list({ statuses, accountType, syncedBefore, changedBefore, changedAfter, limit }) {
       if (userIds.size === 0) return [];
       return db
         .select({
@@ -102,14 +113,21 @@ export function createScopedKyc(userIds: ReadonlySet<string>) {
           status: kycVerification.status,
           personaInquiryId: kycVerification.personaInquiryId,
           personaAccountId: kycVerification.personaAccountId,
+          personaCaseId: kycVerification.personaCaseId,
+          personaCaseStatus: kycVerification.personaCaseStatus,
+          sourceAt: kycVerification.sourceAt,
           statusChangedAt: kycVerification.statusChangedAt,
-          lastSyncedAt: kycVerification.lastSyncedAt
+          lastSyncedAt: kycVerification.lastSyncedAt,
+          version: kycVerification.version,
+          accountType: profile.accountType
         })
         .from(kycVerification)
+        .innerJoin(profile, eq(profile.id, kycVerification.userId))
         .where(
           and(
             inArray(kycVerification.userId, [...userIds]),
             inArray(kycVerification.status, [...statuses]),
+            accountType ? eq(profile.accountType, accountType) : undefined,
             syncedBefore ? lt(kycVerification.lastSyncedAt, syncedBefore) : undefined,
             changedBefore ? lt(kycVerification.statusChangedAt, changedBefore) : undefined,
             changedAfter ? gt(kycVerification.statusChangedAt, changedAfter) : undefined
@@ -118,15 +136,18 @@ export function createScopedKyc(userIds: ReadonlySet<string>) {
         .orderBy(asc(kycVerification.lastSyncedAt))
         .limit(limit);
     },
-    async count({ statuses, changedBefore }) {
+    async count({ statuses, accountType, caseStatuses, changedBefore }) {
       if (userIds.size === 0) return 0;
       const rows = await db
         .select({ total: count() })
         .from(kycVerification)
+        .innerJoin(profile, eq(profile.id, kycVerification.userId))
         .where(
           and(
             inArray(kycVerification.userId, [...userIds]),
             inArray(kycVerification.status, [...statuses]),
+            accountType ? eq(profile.accountType, accountType) : undefined,
+            caseStatuses ? inArray(kycVerification.personaCaseStatus, [...caseStatuses]) : undefined,
             lt(kycVerification.statusChangedAt, changedBefore)
           )
         );
@@ -134,7 +155,7 @@ export function createScopedKyc(userIds: ReadonlySet<string>) {
     },
     deleteEventsBefore: () => Promise.resolve(0)
   };
-  return createKycVerification({
+  return createVerification({
     store: scoped,
     persona,
     outbox,
@@ -142,21 +163,27 @@ export function createScopedKyc(userIds: ReadonlySet<string>) {
     operatorMessages: { send: () => Promise.resolve() },
     clock: { now: () => new Date() },
     // Webhooks are verified by the dev server; this instance never receives one.
-    config: { webhookSecret: 'not-used-in-process', templateVersionId }
+    config: {
+      webhookSecret: 'not-used-in-process',
+      flows: { individual: { path: 'individual', templateId, templateVersionId }, organization: kybFlow }
+    }
   });
 }
 
-/** The module for the whole run — `startKyc` and the policy refusals. Sweeps take a narrower scope. */
-export const kyc = createScopedKyc(runUserIds);
+/** The module for the whole run — `startVerification` and the policy refusals. Sweeps take a narrower scope. */
+export const verification = createScopedVerification(runUserIds);
 
 /** The dashboard check the daily cron runs, pointed at this dev server. */
 export const driftCheck = createPersonaDriftCheck({
   persona,
   config: {
     endpointUrl: `${appUrl}/api/webhooks/persona`,
-    expectedEvents: new Set([...PERSONA_SUBSCRIBED_EVENTS, ...PERSONA_OPS_EVENTS]),
+    expectedEvents: new Set([...PERSONA_SUBSCRIBED_EVENTS, ...PERSONA_CASE_EVENTS, ...PERSONA_OPS_EVENTS]),
     expectedApiVersion: PERSONA_API_VERSION,
-    templateVersionId
+    templates: [
+      { templateId, templateVersionId },
+      { templateId: kybFlow.templateId, templateVersionId: kybFlow.templateVersionId }
+    ]
   }
 });
 
@@ -176,7 +203,15 @@ export const runId = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
 
 export type WorkflowMarker = 'E2E-APPROVE' | 'E2E-DECLINE' | 'E2E-REVIEW';
 
-export async function createTestUser({ scenario, lastName }: { scenario: string; lastName: WorkflowMarker }) {
+export async function createTestUser({
+  scenario,
+  lastName,
+  accountType = 'individual'
+}: {
+  scenario: string;
+  lastName: WorkflowMarker;
+  accountType?: 'individual' | 'organization';
+}) {
   const now = new Date();
   const email = `${E2E_EMAIL_PREFIX}${scenario}-${runId}@resend.dev`;
   const [created] = await db
@@ -184,16 +219,24 @@ export async function createTestUser({ scenario, lastName }: { scenario: string;
     .values({ name: `E2E ${scenario}`, email, emailVerified: true, createdAt: now, updatedAt: now })
     .returning({ id: user.id });
   if (!created) throw new Error('user insert returned no row');
-  // The profile is what `startKyc` prefills from, and what the webhook route
-  // requires before it applies an event for this reference id.
+  // The profile is what `startVerification` prefills from, and what the webhook route
+  // requires before it applies an event for this reference id. An
+  // organization's answers prefill the business; no owner is listed, so the
+  // KYB Workflow opens no child inquiry and the case is the team's at once.
   await db.insert(profile).values({
     id: created.id,
-    accountType: 'individual',
+    accountType,
     firstName: 'Sandbox',
     lastName,
     amountOfInterest: '10k_100k',
     howFoundZivoe: 'other',
-    countryOfResidence: 'US'
+    ...(accountType === 'organization'
+      ? {
+          jobTitle: 'Managing Partner',
+          entityName: `E2E ${scenario} LLC`,
+          countryOfIncorporation: 'US'
+        }
+      : { countryOfResidence: 'US' })
   });
   runUserIds.add(created.id);
   return { userId: created.id, email };
@@ -217,12 +260,21 @@ export async function deleteStaleTestUsers() {
 /**
  * Puts the record back to an earlier snapshot, stamps included — the app as
  * it would look had the webhooks since then never arrived. Bypasses the
- * store's monotonic guard on purpose; nothing in the app can do this.
+ * write path on purpose; nothing in the app can do this. The version still
+ * moves, so a write that read the row before the rewind loses.
  */
-export async function rewindRecord({ userId, to }: { userId: string; to: KycVerificationRecord }) {
+export async function rewindRecord({ userId, to }: { userId: string; to: VerificationRecord }) {
   await db
     .update(kycVerification)
-    .set({ status: to.status, statusChangedAt: to.statusChangedAt, lastSyncedAt: to.lastSyncedAt })
+    .set({
+      status: to.status,
+      personaCaseId: to.personaCaseId,
+      personaCaseStatus: to.personaCaseStatus,
+      sourceAt: to.sourceAt,
+      statusChangedAt: to.statusChangedAt,
+      lastSyncedAt: to.lastSyncedAt,
+      version: drizzleSql`${kycVerification.version} + 1`
+    })
     .where(eq(kycVerification.userId, userId));
 }
 
@@ -255,13 +307,37 @@ export async function simulate({ inquiryId, actions }: { inquiryId: string; acti
   }
 }
 
+/** Sets a sandbox case's status by API, the way a reviewer's click does — it emits the same events. */
+export async function setCaseStatus({ caseId, status }: { caseId: string; status: string }) {
+  const response = await fetch(`${PERSONA_API_BASE_URL}/cases/${caseId}/set-status`, {
+    method: 'POST',
+    headers: { ...personaHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meta: { status } })
+  });
+  if (!response.ok) {
+    throw new Error(
+      `set-status ${status} on ${caseId} failed (${response.status}): ${(await response.text()).slice(0, 300)}`
+    );
+  }
+}
+
+/** The account type Persona gave an auto-created account — Business for a business inquiry, or the Workflow's owner relation fails. */
+export async function readAccountType({ accountId }: { accountId: string }) {
+  const response = await fetch(`${PERSONA_API_BASE_URL}/accounts/${accountId}`, { headers: personaHeaders });
+  if (!response.ok)
+    throw new Error(`account read failed (${response.status}): ${(await response.text()).slice(0, 300)}`);
+  const { data } = (await response.json()) as { data: { attributes: { 'account-type-name': string | null } } };
+  return data.attributes['account-type-name'];
+}
+
 /**
- * Persona's own events for one inquiry, oldest first, each marked whether the
- * app recorded it — the proof that a delivery reached the webhook route and
- * was applied (a superseded event is recorded too; an unsubscribed one never is).
+ * Persona's own events for one object (an inquiry or a case), oldest first,
+ * each marked whether the app recorded it — the proof that a delivery reached
+ * the webhook route and was applied (a superseded event is recorded too; an
+ * unsubscribed one never is).
  */
-export async function recordedEvents({ inquiryId }: { inquiryId: string }) {
-  const query = new URLSearchParams({ 'filter[object-id]': inquiryId, 'page[size]': '25' });
+export async function recordedEvents({ objectId }: { objectId: string }) {
+  const query = new URLSearchParams({ 'filter[object-id]': objectId, 'page[size]': '25' });
   const response = await fetch(`${PERSONA_API_BASE_URL}/events?${query.toString()}`, { headers: personaHeaders });
   if (!response.ok)
     throw new Error(`events list failed (${response.status}): ${(await response.text()).slice(0, 300)}`);

@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { type VerificationStatus } from '@zivoe/database/kyc';
+
 import { chainOfChainId } from '@/lib/chains';
 import { escapeHtml } from '@/lib/utils';
 
@@ -11,6 +13,13 @@ import { type AddressMembership, summarizeMembership } from './wallet-link-membe
 const TITLES: Record<WalletLinkOperatorKind, string> = {
   whitelist_request: '🟢 Whitelist request',
   revoke_request: '🔴 Revoke request'
+};
+
+/** Why a Revoke request is asked, by the status that ended the link; any other reads as no longer approved. */
+const REVOKE_REASONS: Partial<Record<VerificationStatus, string>> = {
+  declined: 'verification declined',
+  revoked: 'verification revoked',
+  pending_review: 'verification back under review'
 };
 
 /**
@@ -59,7 +68,7 @@ export function formatWalletLinkOperatorMessage({
   email,
   isSmartAccount,
   membership,
-  noDecision,
+  endedBy,
   otherAccounts
 }: {
   kind: WalletLinkOperatorKind;
@@ -67,14 +76,23 @@ export function formatWalletLinkOperatorMessage({
   email: string | null;
   isSmartAccount: boolean | null;
   membership: AddressMembership | null;
-  noDecision: 'declined' | 'revoked' | null;
+  endedBy: VerificationStatus | null;
   otherAccounts: Array<{ email: string; isVerified: boolean }>;
 }): string {
   const lines = [
     `<b>${TITLES[kind]}</b>`,
     '',
-    // Only a no Decision ends a link; one that moved on before delivery is not named.
-    ...(kind === 'revoke_request' ? [`<b>Reason:</b> verification ${noDecision ?? 'no longer approved'}`] : []),
+    // A yes again by delivery still revokes: the link ended, and the
+    // investor links the address again for a fresh Whitelist request.
+    ...(kind === 'revoke_request'
+      ? [
+          `<b>Reason:</b> ${
+            endedBy === null
+              ? 'link ended, approved again since — the investor links this address again'
+              : (REVOKE_REASONS[endedBy] ?? 'verification no longer approved')
+          }`
+        ]
+      : []),
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
@@ -119,7 +137,7 @@ export function createTelegramWalletLinkMessenger({
   chatId: string;
 }): WalletLinkOperatorMessenger {
   return {
-    async send({ kind, record, email, isSmartAccount, membership, noDecision, otherAccounts }) {
+    async send({ kind, record, email, isSmartAccount, membership, endedBy, otherAccounts }) {
       await sendTelegramMessage({
         chatId,
         text: formatWalletLinkOperatorMessage({
@@ -128,7 +146,7 @@ export function createTelegramWalletLinkMessenger({
           email,
           isSmartAccount,
           membership,
-          noDecision,
+          endedBy,
           otherAccounts
         })
       });

@@ -3,9 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 
 import { redis } from '@/server/clients/redis';
-import { kycVerification } from '@/server/kyc';
-import { type ReconcileReport } from '@/server/kyc/kyc-verification';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
+import { verification } from '@/server/verification';
+import { type ReconcileReport } from '@/server/verification/verification';
 
 import { KYC_RECONCILE_CRON, KYC_RECONCILE_SLUG, KYC_RECONCILE_STEP_MINUTES, withQstashSignature } from '@/lib/qstash';
 import { handlePromise, withErrorHandler } from '@/lib/utils';
@@ -43,7 +43,7 @@ const handler = async (_req: NextRequest): ApiResponse<ReconcileReport> => {
   const now = new Date();
 
   try {
-    const report = await kycVerification.reconcile({ now });
+    const report = await verification.reconcile({ now });
 
     // A long review is a person who has not got to it. That is work, not a
     // fault, so it goes to the operators who can act on it — and a failed
@@ -52,15 +52,19 @@ const handler = async (_req: NextRequest): ApiResponse<ReconcileReport> => {
     // a run the platform kills here must show as a failed run, not a green one.
     const opensDigestHour =
       now.getUTCHours() === REVIEW_DIGEST_HOUR_UTC && now.getUTCMinutes() < KYC_RECONCILE_STEP_MINUTES;
-    if (report.awaitingReview > 0 && opensDigestHour) {
+    if ((report.awaitingReview > 0 || report.awaitingOwners > 0) && opensDigestHour) {
       const { err } = await handlePromise(
         sendTelegramMessage({
           chatId: env.TELEGRAM_PERSONA_CHAT_ID,
           text: [
-            '<b>KYC review backlog</b>',
+            '<b>Verification review backlog</b>',
             '',
             `<b>Awaiting manual review:</b> ${report.awaitingReview}`,
-            'These are waiting on a reviewer, not on Persona.'
+            'These are waiting on a reviewer, not on Persona.',
+            // An organization's owners verifying is its own wait, not the team's.
+            ...(report.awaitingOwners > 0
+              ? ['', `<b>Organizations waiting on their owners:</b> ${report.awaitingOwners}`]
+              : [])
           ].join('\n')
         })
       );
@@ -103,6 +107,14 @@ const handler = async (_req: NextRequest): ApiResponse<ReconcileReport> => {
         tags: { source: 'API', flow: KYC_RECONCILE_SLUG, reason: report.unavailableCause?.reason },
         extra: report
       });
+    }
+    // A re-read that failed on this side (the store or the queue) after
+    // Persona answered: the record stays stale; the cause is ours to look at.
+    if (report.errored > 0) {
+      Sentry.captureException(
+        new Error('KYC reconciliation could not apply some re-reads', { cause: report.erroredCause }),
+        { tags: { source: 'API', flow: KYC_RECONCILE_SLUG }, extra: report }
+      );
     }
 
     return NextResponse.json({ success: true, data: report });

@@ -27,6 +27,13 @@ export const env = createEnv({
     // The investor template the pinned version belongs to (`itmpl_…`): inquiries on any other
     // template are ignored, and the daily drift check notices a newer published version.
     PERSONA_TEMPLATE_ID: z.string(),
+    // Persona (KYB) — the organization flow: the business template and version, the Business
+    // account type the auto-created account must have, and the KYB case template. Case status
+    // mappings live in server/verification/verification-status.ts.
+    PERSONA_KYB_TEMPLATE_ID: z.string(),
+    PERSONA_KYB_TEMPLATE_VERSION_ID: z.string(),
+    PERSONA_KYB_ACCOUNT_TYPE_ID: z.string(),
+    PERSONA_KYB_CASE_TEMPLATE_ID: z.string(),
 
     // Newsletter
     BEEHIIV_PUBLICATION_ID: z.string(),
@@ -120,6 +127,10 @@ export const env = createEnv({
     PERSONA_WEBHOOK_SECRET: process.env.PERSONA_WEBHOOK_SECRET,
     PERSONA_TEMPLATE_VERSION_ID: process.env.PERSONA_TEMPLATE_VERSION_ID,
     PERSONA_TEMPLATE_ID: process.env.PERSONA_TEMPLATE_ID,
+    PERSONA_KYB_TEMPLATE_ID: process.env.PERSONA_KYB_TEMPLATE_ID,
+    PERSONA_KYB_TEMPLATE_VERSION_ID: process.env.PERSONA_KYB_TEMPLATE_VERSION_ID,
+    PERSONA_KYB_ACCOUNT_TYPE_ID: process.env.PERSONA_KYB_ACCOUNT_TYPE_ID,
+    PERSONA_KYB_CASE_TEMPLATE_ID: process.env.PERSONA_KYB_CASE_TEMPLATE_ID,
     NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID: process.env.NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID,
 
     // Newsletter

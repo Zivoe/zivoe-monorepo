@@ -18,7 +18,7 @@ const { revoke, approveManually, resyncFromPersona, sendTelegramMessage } = vi.h
   resyncFromPersona: vi.fn(),
   sendTelegramMessage: vi.fn()
 }));
-vi.mock('@/server/kyc', () => ({ kycVerification: { revoke, approveManually, resyncFromPersona } }));
+vi.mock('@/server/verification', () => ({ verification: { revoke, approveManually, resyncFromPersona } }));
 vi.mock('@/server/utils/send-telegram', () => ({ sendTelegramMessage }));
 vi.mock('@/env', () => ({ env: { TELEGRAM_PERSONA_CHAT_ID: 'persona-chat' } }));
 vi.mock('@sentry/nextjs', () => ({ setTag: vi.fn(), captureException: vi.fn() }));

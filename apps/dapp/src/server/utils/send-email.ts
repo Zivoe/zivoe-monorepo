@@ -5,23 +5,27 @@ import { type ReactElement } from 'react';
 import { render } from '@react-email/components';
 import { Resend } from 'resend';
 
+import { type AccountType } from '@zivoe/database/onboarding';
+
 import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
 
-import { type KycEmailStatus } from '../kyc/kyc-status';
+import { type DecisionStatus, type VerificationEmailStatus } from '../verification/verification-status';
 import { BASE_URL } from './base-url';
 import { buildTransactionReceiptEmail } from './centrifuge-tx-receipt-email';
 import { type TransactionReceiptJob, buildReceiptJobKey } from './centrifuge-tx-receipt-job';
 import AddressWhitelistedEmail from './emails/address-whitelisted-email';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
-import KycActionRequiredEmail from './emails/kyc-action-required-email';
-import KycApprovedEmail from './emails/kyc-approved-email';
-import KycDeclinedEmail from './emails/kyc-declined-email';
-import KycUnderReviewEmail from './emails/kyc-under-review-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
 import OTPEmail from './emails/otp-email';
 import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
+import VerificationActionRequiredEmail from './emails/verification-action-required-email';
+import VerificationApprovedEmail from './emails/verification-approved-email';
+import VerificationDeclinedEmail from './emails/verification-declined-email';
+import VerificationFailedEmail from './emails/verification-failed-email';
+import VerificationReopenedEmail from './emails/verification-reopened-email';
+import VerificationUnderReviewEmail from './emails/verification-under-review-email';
 import WelcomeEmail from './emails/welcome-email';
 import { buildOneClickUnsubscribeUrl, buildUnsubscribeUrl } from './unsubscribe';
 
@@ -198,18 +202,63 @@ export async function sendTransactionReceiptEmail({
   );
 }
 
-/** One subject and template per emailable status — the table a reviewer scans against the page copy. */
-const KYC_EMAILS: Record<
-  KycEmailStatus,
-  { subject: string; render: (props: { name?: string; kycUrl: string }) => ReactElement }
+/**
+ * One subject and template per emailable status — the table a reviewer scans
+ * against the page copy. An organization reads about its organization where
+ * an individual reads about their identity.
+ */
+const VERIFICATION_EMAILS: Record<
+  VerificationEmailStatus,
+  {
+    subject: Record<AccountType, string>;
+    render: (props: {
+      name?: string;
+      verificationUrl: string;
+      accountType: AccountType;
+      caseWaitingOn: 'people' | 'team' | null;
+      /** The Decision a reversal took back, when the email announces one. */
+      previousDecision?: DecisionStatus;
+    }) => ReactElement;
+  }
 > = {
-  approved: { subject: 'Your identity is verified', render: (props) => KycApprovedEmail(props) },
-  declined: { subject: 'An update on your identity verification', render: (props) => KycDeclinedEmail(props) },
-  pending_review: {
-    subject: 'Your identity verification is under review',
-    render: (props) => KycUnderReviewEmail(props)
+  approved: {
+    subject: { individual: 'Your identity is verified', organization: 'Your organization is verified' },
+    render: (props) => VerificationApprovedEmail(props)
   },
-  expired: { subject: 'Finish your identity verification', render: (props) => KycActionRequiredEmail(props) }
+  declined: {
+    subject: {
+      individual: 'An update on your identity verification',
+      organization: "An update on your organization's verification"
+    },
+    render: (props) => VerificationDeclinedEmail(props)
+  },
+  pending_review: {
+    subject: {
+      individual: 'Your identity verification is under review',
+      organization: "Your organization's verification is under review"
+    },
+    render: (props) => VerificationUnderReviewEmail(props)
+  },
+  expired: {
+    subject: {
+      individual: 'Finish your identity verification',
+      organization: "Finish your organization's verification"
+    },
+    render: (props) => VerificationActionRequiredEmail(props)
+  },
+  failed: {
+    subject: {
+      individual: 'An update on your identity verification',
+      organization: "Your organization's verification could not be completed"
+    },
+    render: (props) => VerificationFailedEmail(props)
+  }
+};
+
+/** A review that is a reopen reads differently: a Decision was taken back, nothing was just completed. */
+const VERIFICATION_REOPENED_SUBJECTS: Record<AccountType, string> = {
+  individual: "We're taking another look at your identity verification",
+  organization: "We're taking another look at your organization's verification"
 };
 
 /**
@@ -218,21 +267,35 @@ const KYC_EMAILS: Record<
  * must never be withheld. Idempotent per transition (status, inquiry and when
  * it changed) on Resend's side, so a status reached a second time is emailed.
  */
-export async function sendKycStatusEmail({
+export async function sendVerificationStatusEmail({
   to,
   name,
   status,
+  accountType,
+  caseWaitingOn,
+  previousDecision,
   inquiryId,
   statusChangedAt
 }: {
   to: string;
   name?: string;
-  status: KycEmailStatus;
+  status: VerificationEmailStatus;
+  accountType: AccountType;
+  caseWaitingOn: 'people' | 'team' | null;
+  previousDecision?: DecisionStatus;
   inquiryId: string;
   statusChangedAt: Date;
 }) {
-  const { subject, render: renderTemplate } = KYC_EMAILS[status];
-  const html = await render(renderTemplate({ name, kycUrl: `${BASE_URL}/verification` }));
+  const verificationUrl = `${BASE_URL}/verification`;
+  const reopen = status === 'pending_review' && previousDecision;
+  const subject = reopen
+    ? VERIFICATION_REOPENED_SUBJECTS[accountType]
+    : VERIFICATION_EMAILS[status].subject[accountType];
+  const html = await render(
+    reopen
+      ? VerificationReopenedEmail({ name, verificationUrl, accountType, previousDecision })
+      : VERIFICATION_EMAILS[status].render({ name, verificationUrl, accountType, caseWaitingOn, previousDecision })
+  );
 
   return handleIdempotentResult(
     await resend.emails.send(
@@ -251,7 +314,7 @@ export async function sendKycStatusEmail({
 }
 
 /**
- * The Wallet link's one email, from the transactional sender like the KYC
+ * The Wallet link's one email, from the transactional sender like the verification
  * status emails: a whitelisted address is a fact about the person's account,
  * never withheld. Idempotent per (link, `whitelistObservedAt`) on Resend's side,
  * so a redelivered job sends once; the stamp is set once, so a link is emailed once.

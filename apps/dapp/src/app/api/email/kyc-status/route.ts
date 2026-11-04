@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
 
-import { kycVerification } from '@/server/kyc';
-import { parseKycNotificationJob } from '@/server/kyc/kyc-outbox';
+import { verification } from '@/server/verification';
+import { parseVerificationNotificationJob } from '@/server/verification/verification-outbox';
 
 import { QSTASH_NON_RETRYABLE, withQstashSignature } from '@/lib/qstash';
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
@@ -24,10 +24,10 @@ const handler = async (req: NextRequest) => {
     throw new ApiError({ message: 'Request body not found', capture: true, ...QSTASH_NON_RETRYABLE });
   }
 
-  const notification = parseKycNotificationJob({ kind: 'status_email', body: body.res });
+  const notification = parseVerificationNotificationJob({ kind: 'status_email', body: body.res });
   if (!notification) throw new ApiError({ message: 'Invalid request payload', capture: true, ...QSTASH_NON_RETRYABLE });
 
-  const result = await kycVerification.deliverNotification({ notification });
+  const result = await verification.deliverNotification({ notification });
   if (result.ok) {
     return NextResponse.json({
       success: true,
