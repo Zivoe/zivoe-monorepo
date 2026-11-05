@@ -323,6 +323,23 @@ describe('the connected wallet', () => {
     expect(mocks.ownership).toHaveBeenCalledTimes(1);
   });
 
+  it('says so when the wallet is this account’s but its links cannot be read, instead of loading for good', async () => {
+    connect();
+    mocks.list.mockResolvedValue({ ok: false, error: { code: 'failed' } });
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+    client.setQueryData(['WALLET_LINKS', USER_ID], []);
+    client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'mine');
+    render(
+      <QueryClientProvider client={client}>
+        <WalletLinkStep userId={USER_ID} />
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByText(/Couldn’t load this address/)).toBeTruthy();
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
   it('keeps a wallet this account owns linked while its whitelist is on hold, with nothing to sign', () => {
     connect(ADDRESS, FROZEN);
 

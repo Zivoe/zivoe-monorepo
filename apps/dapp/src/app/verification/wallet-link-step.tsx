@@ -56,7 +56,11 @@ import { LINK_REFUSAL_COPY, formatRelativeTime, presentWhitelist, shortAddress }
 export function WalletLinkStep({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const queryKey = queryKeys.app.walletLinks({ userId });
-  const { data: links = [] } = useQuery({
+  const {
+    data: links = [],
+    isError: linksError,
+    isFetching: linksFetching
+  } = useQuery({
     queryKey,
     queryFn: async () => {
       const result = await listWalletLinks();
@@ -110,6 +114,7 @@ export function WalletLinkStep({ userId }: { userId: string }) {
       <ConnectedWalletCard
         userId={userId}
         links={links}
+        linksFailed={linksError && !linksFetching}
         onStale={refreshLinks}
         // A refusal can mean the requests on screen are behind the server
         // (made in another tab), so they are read again. A success is not:
@@ -171,6 +176,7 @@ const isWalletRejection = (error: unknown) => {
 function ConnectedWalletCard({
   userId,
   links,
+  linksFailed,
   onLinked,
   onRefused,
   onStale,
@@ -179,6 +185,8 @@ function ConnectedWalletCard({
   userId: string;
   /** This account's Linked addresses: the ones it owns. */
   links: Array<LinkedAddress>;
+  /** The latest read of `links` failed and none is under way. */
+  linksFailed: boolean;
   onLinked: (linked: LinkedAddress) => void;
   /** The server refused the request; the ones on screen may be stale. */
   onRefused: () => void;
@@ -461,6 +469,17 @@ function ConnectedWalletCard({
   }
 
   // ---- Not this account's (as far as the cache knows): whose is it?
+  // Owned here but the re-read of this account's links failed: say so
+  // rather than hold the placeholder for good.
+  if (ownedHereUnseen && linksFailed) {
+    return (
+      <Card heading="Connected wallet">
+        {addressLine}
+        <Note tone="alert">Couldn’t load this address. Reload the page to try again.</Note>
+        {disconnectButton}
+      </Card>
+    );
+  }
   if (ownership.isPending || ownedHereUnseen) return placeholder;
   if (ownership.isError) {
     return (
