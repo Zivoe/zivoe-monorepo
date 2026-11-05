@@ -94,7 +94,7 @@ describe('the operator message', () => {
     expect(text.split('\n')).toEqual([
       '<b>🔴 Revoke request #2</b>',
       '',
-      '<b>Reason:</b> no longer approved when asked, approved again since; a member on no chain when sent, so nothing to freeze unless admitted since',
+      '<b>Reason:</b> no longer approved when asked, approved again since; a member on no chain when sent, so nothing to freeze unless admitted since; a restore request follows unless Chainalysis flags the address',
       '<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number',
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',

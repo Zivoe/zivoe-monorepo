@@ -91,7 +91,7 @@ export function formatWalletLinkOperatorMessage({
             ? 'new link to an address already frozen; check why before unfreezing'
             : 'new link'
       : endedBy === null
-        ? `no longer approved when asked, approved again since; ${revokeAction}`
+        ? `no longer approved when asked, approved again since; ${revokeAction}; a restore request follows unless Chainalysis flags the address`
         : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'}; ${revokeAction}`;
   const lines = [
     `<b>${TITLES[kind]} #${record.opsRequestVersion}</b>`,
