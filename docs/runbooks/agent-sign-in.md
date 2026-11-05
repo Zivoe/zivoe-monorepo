@@ -12,6 +12,10 @@ the human setting that up. Code: `apps/dapp/src/app/api/agent-sign-in/`, identit
   run through a flow can be verified from the mailbox and the notification chat. The newsletter
   subscription only runs in production, for every user. PostHog runs on every Vercel deployment:
   previews report to the "Zivoe - staging" project, production to "Zivoe", local runs to none.
+- A wallet link is permanent for the agent too. Once the agent is approved and signs on the
+  Wallets step, that address belongs to the agent account for good on that database, and neither
+  the link nor the agent can be deleted. Sign only with a throwaway wallet, never one a person
+  invests from, and keep in mind that previews sharing a database share the claim.
 - Sessions minted by the agent route last one hour and are never extended. Normal sessions last
   seven days and slide back to seven on use once a day old; the hook exempts only the agent.
 
@@ -41,8 +45,10 @@ docker run -d --name zivoe-pg -p 5433:5432 -e POSTGRES_HOST_AUTH_METHOD=trust -e
 
    Without an explicit `DATABASE_URL` both commands read `packages/database/.env`. To test
    onboarding and the terms page themselves, `db:seed -- --fresh` deletes the agent and the next
-   sign-in recreates it. To see the terms page alone as a returning user behind on the terms, age
-   the agent's acceptances: `UPDATE terms_acceptance SET terms_version = 'earlier' WHERE user_id =
+   sign-in recreates it. It refuses once the agent has signed a wallet link; start from a fresh
+   database instead (`docker rm -f zivoe-pg`, start it again as above, then this step). To see the
+   terms page alone as a returning user behind on the terms, age the agent's acceptances:
+   `UPDATE terms_acceptance SET terms_version = 'earlier' WHERE user_id =
 (SELECT id FROM "user" WHERE email = 'alex+agent@zivoe.com')`; running `db:seed` again accepts
    the current version.
 
