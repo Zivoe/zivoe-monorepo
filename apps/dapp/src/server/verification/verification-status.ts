@@ -86,10 +86,10 @@ export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
  * its writes gate on: Persona's `approved` (an individual's inquiry, an
  * organization's KYB case) or the team's `manually_approved`.
  *
- * Only a yes keeps a Linked address, as only a yes can link one: anything
- * else ends them — a decline, an operator's revocation, a KYB case reopened
- * for review, an operator's resync that hands the user back to a Persona
- * that has not decided.
+ * Only a yes can link an address or keep its whitelist. The link itself stays
+ * whatever happens; anything else asks ops to revoke it — a decline, an
+ * operator's revocation, a KYB case reopened for review, an operator's resync
+ * that hands the user back to a Persona that has not decided.
  */
 export const YES_DECISION_STATUSES = [
   'approved',

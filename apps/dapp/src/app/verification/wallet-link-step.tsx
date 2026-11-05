@@ -231,7 +231,7 @@ function ConnectedWalletCard({
   // switch accounts while one is in flight, and the callbacks below run with
   // the latest render. The answer belongs to the address that asked.
   const link = useMutation({
-    mutationFn: async ({ address, chainId }: { address: Address; chainId: number }) => {
+    mutationFn: async ({ address, chainId }: { address: Address; chainId: number; isWhitelisted: boolean }) => {
       if (!primaryWallet || !isEthereumWallet(primaryWallet)) throw new LinkRefused('invalid_input');
       const issued = await issueWalletLinkChallenge({
         address,
@@ -253,12 +253,15 @@ function ConnectedWalletCard({
       if (!completed.ok) throw new LinkRefused(completed.error.code);
       return completed.value;
     },
-    onSuccess: (linked) => {
+    onSuccess: (linked, { isWhitelisted }) => {
       // Named, because the wallet may show another address by now — or none.
+      const short = shortAddress(linked.address);
       toast({
         type: 'success',
         title: 'Address linked',
-        description: `We usually whitelist new addresses like ${shortAddress(linked.address)} within one business day.`
+        description: isWhitelisted
+          ? `${short} is now linked to your account.`
+          : `We usually whitelist new addresses like ${short} within one business day.`
       });
       onLinked(linked);
     },
@@ -541,7 +544,7 @@ function ConnectedWalletCard({
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button
             variant="primary"
-            onPress={() => link.mutate({ address, chainId })}
+            onPress={() => link.mutate({ address, chainId, isWhitelisted })}
             // Pending for the address that asked: switched to another account
             // mid-signature, the wallet shows that one its own button.
             isPending={link.isPending && link.variables?.address === address}

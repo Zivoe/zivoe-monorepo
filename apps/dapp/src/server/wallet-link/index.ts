@@ -17,6 +17,9 @@ import { createTelegramWalletLinkMessenger } from './wallet-link-operator-messag
 import { createQstashWalletLinkOutbox } from './wallet-link-outbox';
 import { createPostgresWalletLinkStore } from './wallet-link-store';
 
+/** Screens wait on this inside a request: past it, the screen counts as not answered. */
+const SCREEN_TIMEOUT_MS = 10_000;
+
 // The wiring, and only the wiring. Types come from `./wallet-link`, the
 // signed message from `./wallet-link-typed-data` and the membership
 // vocabulary from `./wallet-link-membership`, so a client tree never reaches
@@ -38,7 +41,7 @@ export const walletLink = createWalletLink({
     // Chainalysis); High or Severe refuses. A screen that cannot be made
     // rejects, and nothing is linked on an unanswered question.
     async assess({ address }) {
-      const { risk } = await getChainalysisAssessment({ address });
+      const { risk } = await getChainalysisAssessment({ address, timeoutMs: SCREEN_TIMEOUT_MS });
       return risk === 'High' || risk === 'Severe' ? 'flagged' : 'clear';
     }
   },

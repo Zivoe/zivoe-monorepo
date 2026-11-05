@@ -324,6 +324,23 @@ export function createWalletLink({
   /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
   const mayLink = async (userId: string) => isYesDecision(await verification.getVerificationStatus({ userId }));
 
+  /**
+   * Asks ops the other way: the job is queued before the row moves, like
+   * every write here, so a write that fails is asked again and the receiver
+   * retries a job the row has not reached yet. False when the row moved
+   * meanwhile (another sweep or delivery asked first).
+   */
+  const askOps = async ({ record, to, now }: { record: WalletLinkRecord; to: WalletLinkOpsRequest; now: Date }) => {
+    if (record.opsRequest === null) return false;
+    await outbox.enqueue({ kind: `${to}_request`, linkId: record.id, version: record.opsRequestVersion + 1 });
+    return store.setOpsRequest({
+      id: record.id,
+      from: { opsRequest: record.opsRequest, version: record.opsRequestVersion },
+      to,
+      at: now
+    });
+  };
+
   /** Best effort: a line of context must not fail the request that carries it. Null when the chains could not be asked. */
   const readOneMembership = (address: Address) =>
     chain
@@ -447,8 +464,9 @@ export function createWalletLink({
       // challenge is dropped, so the job queued above finds no row and skips.
       if (written.outcome === 'address_taken') return ownedBy();
       // No longer this challenge (re-issued meanwhile, or completed twice): the
-      // job queued above never matches the row — skipped once it is linked,
-      // retried out while it stays pending.
+      // job queued above is retried out while the row stays pending. Once it
+      // links, that job matches too, as every first link is version 1, so ops
+      // can see the line twice, as with any at-least-once delivery.
       return err({ code: 'no_challenge' });
     },
 
@@ -499,15 +517,24 @@ export function createWalletLink({
         userIds: [...new Set(owned.map((record) => record.userId))]
       });
       const current: Array<WalletLinkRecord> = [];
-      for (const record of owned) {
+      // A yes again is screened again before ops is asked to restore, as a new
+      // link is. Started together, so a slow Chainalysis costs one timeout
+      // however many wait; and owners who are not a yes go first below, so it
+      // never holds up a freeze.
+      const screens = new Map(
+        owned
+          .filter((record) => record.opsRequest === 'revoke' && approved.has(record.userId))
+          .map((record) => [record.id, screening.assess({ address: record.address }).catch(() => null)])
+      );
+      const revokesFirst = [...owned].sort((a, b) => Number(approved.has(a.userId)) - Number(approved.has(b.userId)));
+      for (const record of revokesFirst) {
         const wanted: WalletLinkOpsRequest = approved.has(record.userId) ? 'whitelist' : 'revoke';
         if (record.opsRequest === null || record.opsRequest === wanted) {
           current.push(record);
           continue;
         }
-        // A yes again is screened again before ops is asked to restore, as a new link is.
         if (wanted === 'whitelist') {
-          const risk = await screening.assess({ address: record.address }).catch(() => null);
+          const risk = (await screens.get(record.id)) ?? null;
           if (risk === null) report.unscreened += 1;
           if (risk === 'flagged') report.flagged.push({ linkId: record.id, address: record.address });
           if (risk !== 'clear') {
@@ -515,18 +542,8 @@ export function createWalletLink({
             continue;
           }
         }
-        // Queued before the row moves, like every write here: a write that
-        // fails is asked again next pass, and the receiver retries a job the
-        // row has not reached yet.
         const version = record.opsRequestVersion + 1;
-        await outbox.enqueue({ kind: `${wanted}_request`, linkId: record.id, version });
-        const moved = await store.setOpsRequest({
-          id: record.id,
-          from: { opsRequest: record.opsRequest, version: record.opsRequestVersion },
-          to: wanted,
-          at: now
-        });
-        if (!moved) {
+        if (!(await askOps({ record, to: wanted, now }))) {
           current.push(record);
           continue;
         }
@@ -547,10 +564,6 @@ export function createWalletLink({
 
       for (const record of current) {
         const summary = summarizeMembership(membership[record.address] ?? []);
-        if (summary.status === 'unchecked') {
-          report.unchecked += 1;
-          continue;
-        }
         const drift = {
           linkId: record.id,
           address: record.address,
@@ -558,10 +571,13 @@ export function createWalletLink({
           total: summary.total
         };
 
-        if (record.opsRequest === 'revoke') {
-          if (summary.admittedOn > 0) report.stillAdmitted.push(drift);
+        // One chain admitting it settles that a revoke is not done, whatever another chain answers.
+        if (record.opsRequest === 'revoke' && summary.admittedOn > 0) report.stillAdmitted.push(drift);
+        if (summary.status === 'unchecked') {
+          report.unchecked += 1;
           continue;
         }
+        if (record.opsRequest === 'revoke') continue;
 
         if (summary.status === 'whitelisted') {
           if (record.whitelistObservedAt) continue;
@@ -614,26 +630,36 @@ export function createWalletLink({
             // Every change is told to ops, whatever the chain shows now: a
             // request may supersede an earlier, opposite one ops has not acted
             // on yet, and only this message cancels it.
-            const [decision, membership] = await Promise.all([
+            // Read together: run one after another, slow chains could use up
+            // the receiver's time before Telegram is called.
+            const [decision, membership, account, isSmartAccount] = await Promise.all([
               verification.getVerificationStatus({ userId: record.userId }),
-              readOneMembership(record.address)
-            ]);
-            const isYes = isYesDecision(decision);
-            // No longer a yes inside the queue's delay: nobody to admit, and the
-            // revoke ops last heard still stands. The sweep asks to revoke next.
-            // A Whitelist request in the channel is one for a verified investor.
-            if (job.kind === 'whitelist_request' && !isYes) return ok('skipped');
-
-            const [account, isSmartAccount] = await Promise.all([
+              readOneMembership(record.address),
               store.getAccount({ userId: record.userId }),
               // A linked row always carries its signature (the database checks
-              // it); the fallback only types the field. Best effort, like the read above.
+              // it); the fallback only types the field. Best effort, like membership.
               record.signature
                 ? chain
                     .isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
                     .catch(() => null)
                 : false
             ]);
+            const isYes = isYesDecision(decision);
+            // No longer a yes inside the queue's delay: nobody to admit. The
+            // row is moved to a revoke here, as the sweep would, so the change
+            // is never only skipped — an approval again then asks to restore
+            // anew, whether or not a sweep saw the no in between. A Whitelist
+            // request in the channel is one for a verified investor.
+            if (job.kind === 'whitelist_request' && !isYes) {
+              await askOps({ record, to: 'revoke', now: clock.now() });
+              return ok('skipped');
+            }
+
+            // The reads above take seconds; a later request may have been
+            // asked and sent meanwhile. Sending this one after it would read
+            // as cancelling it.
+            const latest = await store.get({ id: record.id });
+            if (latest?.opsRequestVersion !== job.version) return ok('skipped');
             await operatorMessages.send({
               kind: job.kind,
               record,

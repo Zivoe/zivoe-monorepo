@@ -407,6 +407,24 @@ describe('the connected wallet', () => {
     expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
   });
 
+  it('does not promise a whitelist to a wallet that already has one', async () => {
+    connect(ADDRESS, WHITELISTED);
+    mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });
+    mocks.complete.mockResolvedValue({ ok: true, value: linked() });
+
+    renderStep();
+    fireEvent.click(screen.getByRole('button', { name: CLAIM }));
+
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Address linked',
+          description: `${shortAddress(LOWER)} is now linked to your account.`
+        })
+      )
+    );
+  });
+
   it('issues, signs the exact challenge with bigint timestamps, completes, and shows the request', async () => {
     connect();
     mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });

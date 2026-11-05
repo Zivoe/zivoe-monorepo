@@ -749,6 +749,92 @@ describe('reconcile', () => {
     expect(store.records.get(id)).toMatchObject({ opsRequest: 'revoke', opsRequestVersion: 2 });
   });
 
+  it('asks for a revoke before it waits on the screen of a restore', async () => {
+    const s = setup();
+    const { walletLink, verification, outbox, clock, screening } = s;
+    await linkThenRevoke(s);
+    clock.advance(HOUR);
+    const issued = await walletLink.issueChallenge({
+      userId: BOB,
+      address: stranger.address,
+      chainId: CHAIN_ID,
+      walletType: 'metamask',
+      walletName: 'MetaMask'
+    });
+    if (!issued.ok) throw new Error('issue refused');
+    const linked = await walletLink.completeLink({
+      userId: BOB,
+      address: stranger.address,
+      signature: await sign(issued.value.typedData, stranger)
+    });
+    if (!linked.ok) throw new Error('link refused');
+    verification.set(ALICE, { status: 'approved' });
+    verification.set(BOB, { status: 'revoked' });
+
+    // Chainalysis takes the call and does not answer; Alice signed first.
+    vi.spyOn(screening.screening, 'assess').mockReturnValue(new Promise(() => undefined));
+    void walletLink.reconcile({ now: clock.clock.now() });
+
+    await vi.waitFor(() =>
+      expect(outbox.jobs.at(-1)).toMatchObject({ kind: 'revoke_request', linkId: linked.value.id })
+    );
+  });
+
+  it('screens every restore together, so a slow Chainalysis costs one wait however many are waiting', async () => {
+    const s = setup();
+    const { walletLink, verification, clock, screening, store } = s;
+    const id = await linkThenRevoke(s);
+    const { id: _id, ...row } = store.records.get(id)!;
+    const other = await store.store.putPending({
+      ...row,
+      userId: BOB,
+      address: stranger.address.toLowerCase() as Address,
+      status: 'pending'
+    });
+    const written = await store.store.link({
+      id: other.id,
+      nonce: other.nonce,
+      signature: row.signature!,
+      signedAt: clock.clock.now()
+    });
+    if (written.outcome !== 'linked') throw new Error('link refused');
+    await store.store.setOpsRequest({
+      id: other.id,
+      from: { opsRequest: 'whitelist', version: 1 },
+      to: 'revoke',
+      at: clock.clock.now()
+    });
+    verification.set(ALICE, { status: 'approved' });
+    verification.set(BOB, { status: 'approved' });
+
+    let answer = (_risk: 'clear') => undefined as void;
+    const assess = vi.spyOn(screening.screening, 'assess').mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const pass = walletLink.reconcile({ now: clock.clock.now() });
+
+    await vi.waitFor(() => expect(assess).toHaveBeenCalledTimes(2));
+    answer('clear');
+    expect(await pass).toMatchObject({ restored: 2 });
+  });
+
+  it('lists a revoke a chain still admits when another chain did not answer, and claims nothing from the unread one', async () => {
+    const s = setup();
+    const { walletLink, chain, clock } = s;
+    await linkThenRevoke(s);
+
+    chain.setMembership(SIGNER, ['member', 'unknown']);
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({
+      unchecked: 1,
+      stillAdmitted: [{ address: SIGNER, admittedOn: 1, total: 2 }]
+    });
+
+    chain.setMembership(SIGNER, ['not-member', 'unknown']);
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ unchecked: 1, stillAdmitted: [] });
+  });
+
   it('asks again next pass when the row could not be moved after its job was queued', async () => {
     const { walletLink, verification, outbox, clock, store } = setup();
     await linkEoa(walletLink);
@@ -846,9 +932,10 @@ describe('deliverNotification', () => {
     expect(emails.sent).toEqual([]);
   });
 
-  it('skips a Whitelist request whose investor stopped being a yes before it was delivered', async () => {
-    const { walletLink, verification, outbox, operator } = setup();
-    await linkEoa(walletLink);
+  it('turns a Whitelist request whose owner stopped being a yes into a revoke, so an approval again restores anew', async () => {
+    const { walletLink, verification, outbox, operator, store, clock } = setup();
+    const linked = await linkEoa(walletLink);
+    if (!linked.ok) throw new Error('link refused');
     verification.set(ALICE, { status: 'revoked' });
 
     await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
@@ -856,6 +943,42 @@ describe('deliverNotification', () => {
       value: 'skipped'
     });
     expect(operator.sent).toEqual([]);
+    // Moved at delivery, as the sweep would have: nothing waits on a sweep seeing the no.
+    expect(store.records.get(linked.value.id)).toMatchObject({ opsRequest: 'revoke', opsRequestVersion: 2 });
+    expect(outbox.jobs.at(-1)).toEqual({ kind: 'revoke_request', linkId: linked.value.id, version: 2 });
+
+    // A yes again before any sweep saw the no: the next pass still asks to restore.
+    verification.set(ALICE, { status: 'approved' });
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ restored: 1 });
+    expect(outbox.jobs.at(-1)).toEqual({ kind: 'whitelist_request', linkId: linked.value.id, version: 3 });
+  });
+
+  it('drops a request a later one overtook while it read the chain, so the older never lands last', async () => {
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
+    await linkEoa(walletLink);
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    verification.set(ALICE, { status: 'declined' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const revoke = outbox.jobs.at(-1)!;
+
+    // The revoke's delivery is held up on the chain; meanwhile the owner is approved again and the restore is sent.
+    let release: () => void = () => undefined;
+    const probe = chain.chain.isSmartAccount.bind(chain.chain);
+    vi.spyOn(chain.chain, 'isSmartAccount').mockImplementationOnce(async (input) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return probe(input);
+    });
+    const slow = walletLink.deliverNotification({ job: revoke });
+    verification.set(ALICE, { status: 'approved' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    release();
+
+    await expect(slow).resolves.toEqual({ ok: true, value: 'skipped' });
+    expect(operator.sent.map(({ kind, record }) => [kind, record.opsRequestVersion])).toEqual([
+      ['whitelist_request', 1],
+      ['whitelist_request', 3]
+    ]);
   });
 
   it('tells ops of a new link to an address already admitted everywhere: it has an owner now', async () => {

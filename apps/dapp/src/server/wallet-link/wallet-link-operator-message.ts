@@ -72,22 +72,32 @@ export function formatWalletLinkOperatorMessage({
 }): string {
   // A Linked address is never unlinked: a revoke is a freeze, and the owner
   // approved again is a Whitelist request to lift it, with no new signature.
-  // Each request supersedes the opposite one before it, which ops may not
-  // have acted on yet, so it says so.
+  // Each request supersedes every lower-numbered one for the address, which
+  // ops may not have acted on yet — by number, not by arrival: two lines can
+  // land in either order.
+  const summary = membership && summarizeMembership(membership);
+  // Only when every chain answered: an unread one may still admit the address.
+  const revokeAction =
+    summary?.memberOn === 0 && summary.unknown === 0
+      ? 'a member on no chain when sent, so nothing to freeze unless admitted since'
+      : 'freeze on every chain';
   const reason =
     kind === 'whitelist_request'
       ? record.opsRequestVersion > 1
-        ? 'approved again — unfreeze where frozen, whitelist where missing; cancels the earlier Revoke request'
-        : membership && summarizeMembership(membership).status === 'whitelisted'
+        ? 'approved again — unfreeze where frozen, whitelist where missing'
+        : summary?.status === 'whitelisted'
           ? 'new link to an address already whitelisted — nothing to do unless this owner is unexpected'
           : 'new link'
       : endedBy === null
-        ? 'no longer approved when asked, approved again since — freeze now; a Whitelist request that follows supersedes this'
-        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — freeze on every chain; cancels any earlier Whitelist request not yet done`;
+        ? `no longer approved when asked, approved again since — ${revokeAction}`
+        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — ${revokeAction}`;
   const lines = [
-    `<b>${TITLES[kind]}</b>`,
+    `<b>${TITLES[kind]} #${record.opsRequestVersion}</b>`,
     '',
     `<b>Reason:</b> ${reason}`,
+    ...(record.opsRequestVersion > 1
+      ? ['<b>Supersedes:</b> every lower-numbered request for this address — act on the highest number']
+      : []),
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
