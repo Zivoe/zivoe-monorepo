@@ -72,13 +72,13 @@ export const verification = createVerification({
   },
   operatorMessages: createTelegramOperatorMessenger({ sendTelegramMessage, chatId: env.TELEGRAM_PERSONA_CHAT_ID }),
   // The whole Wallet link sweep, queued: it finds this user's links among
-  // everyone's and asks ops to revoke them. Published by URL, so this module
-  // never imports the Wallet link (which imports it).
-  approvalEnded: {
+  // everyone's and asks ops to revoke or restore them. Published by URL, so
+  // this module never imports the Wallet link (which imports it).
+  approvalChanged: {
     async notify({ userId }) {
       try {
         await outboxQstash.publishJSON({
-          url: `${BASE_URL}${WALLET_LINK_RECONCILE_PATH}?${WALLET_LINK_RECONCILE_TRIGGER_PARAM}=approval-ended`,
+          url: `${BASE_URL}${WALLET_LINK_RECONCILE_PATH}?${WALLET_LINK_RECONCILE_TRIGGER_PARAM}=approval-changed`,
           body: { userId },
           retries: 3,
           failureCallback: getQstashFailureCallback(BASE_URL),

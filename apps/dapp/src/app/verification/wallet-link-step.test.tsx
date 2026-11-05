@@ -24,6 +24,7 @@ type Mocks = {
   signTypedData: ReturnType<typeof vi.fn>;
   issue: ReturnType<typeof vi.fn>;
   complete: ReturnType<typeof vi.fn>;
+  ownership: ReturnType<typeof vi.fn>;
   account: { address: string | undefined; isPending: boolean; isDisconnected: boolean };
   chainId: number | undefined;
   chainalysis: { data: unknown; isPending: boolean; isFetching: boolean; isRiskyAddress: boolean };
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(
     signTypedData: vi.fn(async () => '0xsig'),
     issue: vi.fn(),
     complete: vi.fn(),
+    ownership: vi.fn(),
     account: { address: undefined, isPending: false, isDisconnected: true },
     chainId: 11155111,
     chainalysis: { data: undefined, isPending: false, isFetching: false, isRiskyAddress: false },
@@ -104,7 +106,8 @@ vi.mock('@/hooks/useChainalysis', () => ({ useChainalysis: () => mocks.chainalys
 vi.mock('@/server/actions/wallet-link', () => ({
   listWalletLinks: mocks.list,
   issueWalletLinkChallenge: mocks.issue,
-  completeWalletLink: mocks.complete
+  completeWalletLink: mocks.complete,
+  getWalletOwnership: mocks.ownership
 }));
 vi.mock('./use-address-membership', () => ({ useAddressesMembership: () => mocks.membership }));
 
@@ -112,6 +115,9 @@ const linked = (overrides: Partial<LinkedAddress> = {}): LinkedAddress => ({
   id: 'link_1',
   address: LOWER as LinkedAddress['address'],
   signedAt: new Date(),
+  opsRequest: 'whitelist',
+  whitelistRequestedAt: new Date(),
+  isRestore: false,
   wasWhitelisted: false,
   ...overrides
 });
@@ -132,10 +138,15 @@ const typedData = {
 
 const USER_ID = 'user_1';
 
-/** The step over the cache the page seeds on the server: fresh, so nothing is re-read on mount. */
-function renderStep(links: Array<LinkedAddress> = []) {
+/**
+ * The step over the cache the page seeds on the server: fresh, so nothing is
+ * re-read on mount. Both test addresses are nobody's unless the test says
+ * otherwise, as if the ownership read had answered.
+ */
+function renderStep(links: Array<LinkedAddress> = [], ownership: 'none' | 'elsewhere' = 'none') {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   client.setQueryData(['WALLET_LINKS', USER_ID], links);
+  for (const address of [LOWER, OTHER]) client.setQueryData(['WALLET_OWNERSHIP', USER_ID, address], ownership);
   const tree = () => (
     <QueryClientProvider client={client}>
       <WalletLinkStep userId={USER_ID} />
@@ -146,10 +157,32 @@ function renderStep(links: Array<LinkedAddress> = []) {
   return { ...view, rerenderStep: () => view.rerender(tree()) };
 }
 
-const NOT_MEMBER: MembershipSummary = { status: 'pending', memberOn: 0, total: 2, unknown: 0 };
-const PARTIAL: MembershipSummary = { status: 'partial', memberOn: 1, total: 2, unknown: 0 };
-const WHITELISTED: MembershipSummary = { status: 'whitelisted', memberOn: 2, total: 2, unknown: 0 };
-const UNCHECKED: MembershipSummary = { status: 'unchecked', memberOn: 1, total: 2, unknown: 1 };
+const NOT_MEMBER: MembershipSummary = {
+  status: 'pending',
+  memberOn: 0,
+  admittedOn: 0,
+  frozenOn: 0,
+  total: 2,
+  unknown: 0
+};
+const PARTIAL: MembershipSummary = { status: 'partial', memberOn: 1, admittedOn: 1, frozenOn: 0, total: 2, unknown: 0 };
+const WHITELISTED: MembershipSummary = {
+  status: 'whitelisted',
+  memberOn: 2,
+  admittedOn: 2,
+  frozenOn: 0,
+  total: 2,
+  unknown: 0
+};
+const FROZEN: MembershipSummary = { status: 'frozen', memberOn: 2, admittedOn: 0, frozenOn: 2, total: 2, unknown: 0 };
+const UNCHECKED: MembershipSummary = {
+  status: 'unchecked',
+  memberOn: 1,
+  admittedOn: 1,
+  frozenOn: 0,
+  total: 2,
+  unknown: 1
+};
 
 /** A clean wallet on a supported chain, a member nowhere unless the test says otherwise. */
 const connect = (address = ADDRESS, summary: MembershipSummary = NOT_MEMBER) => {
@@ -159,6 +192,7 @@ const connect = (address = ADDRESS, summary: MembershipSummary = NOT_MEMBER) => 
 };
 
 const SIGN = 'Sign to request whitelist';
+const CLAIM = 'Link to your account';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -247,17 +281,85 @@ describe('the connected wallet', () => {
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
-  it('shows a whitelisted wallet as whitelisted with nothing to sign, whoever requested it', () => {
-    // Another account's request, or an investor from before the step existed: the chain is all that is asked.
+  it('offers to link a whitelisted wallet nobody owns, saying the link is for good', () => {
+    // Whitelisted before links existed: linking it puts its whitelist under this account's verification.
     connect(ADDRESS, WHITELISTED);
-    mocks.chainId = 1;
 
     renderStep();
 
     expect(screen.getByText('Whitelisted')).toBeTruthy();
+    expect(screen.getByRole('button', { name: CLAIM })).toBeTruthy();
+    expect(screen.getByText(/stays linked to your Zivoe account and can’t be linked to another account/)).toBeTruthy();
+  });
+
+  it.each([
+    ['not whitelisted', NOT_MEMBER],
+    ['whitelisted', WHITELISTED]
+  ])('offers nothing for a wallet another account owns (%s), only the team', (_label, summary) => {
+    connect(ADDRESS, summary);
+
+    renderStep([], 'elsewhere');
+
+    expect(screen.getByText(/linked to another Zivoe account/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Switch network' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: CLAIM })).toBeNull();
+    expect(screen.getByRole('link', { name: /@/ })).toBeTruthy();
+  });
+
+  it('asks whose the wallet is before offering a signature, once per address', async () => {
+    connect();
+    mocks.ownership.mockResolvedValue({ ok: true, value: 'elsewhere' });
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    client.setQueryData(['WALLET_LINKS', USER_ID], []);
+    render(
+      <QueryClientProvider client={client}>
+        <WalletLinkStep userId={USER_ID} />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('Loading wallet…')).toBeTruthy();
+    expect(await screen.findByText(/linked to another Zivoe account/)).toBeTruthy();
+    expect(mocks.ownership).toHaveBeenCalledWith({ address: LOWER });
+    expect(mocks.ownership).toHaveBeenCalledTimes(1);
+  });
+
+  it('says so when the wallet is this account’s but its links cannot be read, instead of loading for good', async () => {
+    connect();
+    mocks.list.mockResolvedValue({ ok: false, error: { code: 'failed' } });
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+    client.setQueryData(['WALLET_LINKS', USER_ID], []);
+    client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'mine');
+    render(
+      <QueryClientProvider client={client}>
+        <WalletLinkStep userId={USER_ID} />
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByText(/Couldn’t load this address/)).toBeTruthy();
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
+  it('keeps a wallet this account owns linked while its whitelist is on hold, with nothing to sign', () => {
+    connect(ADDRESS, FROZEN);
+
+    renderStep([linked({ opsRequest: 'revoke', wasWhitelisted: true })]);
+
+    expect(screen.getByRole('img', { name: 'Frozen, Frozen on 2 of 2 chains' })).toBeTruthy();
+    expect(screen.getByText(/stays linked to your account, and its whitelist is on hold/)).toBeTruthy();
+    expect(screen.getByText(/no new signature needed/)).toBeTruthy();
+    expect(screen.queryByText(/isn.t approved/)).toBeNull();
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
+  it('shows a restore under way once approved again, with no new signature', () => {
+    connect(ADDRESS, FROZEN);
+
+    renderStep([linked({ isRestore: true })]);
+
+    expect(screen.getByRole('img', { name: 'Whitelist pending, Frozen on 2 of 2 chains' })).toBeTruthy();
+    expect(screen.getByText(/Restoring the whitelist, requested just now\. No new signature needed/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
   it('offers the request for a wallet whitelisted on some chains only, and says how far it is', () => {
@@ -276,7 +378,7 @@ describe('the connected wallet', () => {
 
     expect(screen.getByRole('img', { name: 'Whitelist pending, Whitelisted on 1 of 2 chains' })).toBeTruthy();
     expect(
-      screen.getByText(/Whitelist requested just now\. We usually whitelist new addresses within one business day/)
+      screen.getByText(/Whitelist requested just now\. We usually whitelist addresses within one business day/)
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
@@ -305,7 +407,7 @@ describe('the connected wallet', () => {
 
       expect(screen.getByRole('img', { name: "Not checked, Couldn't check one chain" })).toBeTruthy();
       expect(screen.getByText(/Couldn't read the whitelist right now/)).toBeTruthy();
-      expect(screen.queryByText(/Whitelist requested just now/) !== null).toBe(isRequested);
+      expect(screen.queryByText(/Linked to your account just now/) !== null).toBe(isRequested);
       expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
       expect(screen.queryByText(/was whitelisted and/)).toBeNull();
       expect(screen.queryByText(/within one business day/)).toBeNull();
@@ -320,6 +422,24 @@ describe('the connected wallet', () => {
 
     expect(screen.getByText('Not whitelisted')).toBeTruthy();
     expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
+  });
+
+  it('does not promise a whitelist to a wallet that already has one', async () => {
+    connect(ADDRESS, WHITELISTED);
+    mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });
+    mocks.complete.mockResolvedValue({ ok: true, value: linked() });
+
+    renderStep();
+    fireEvent.click(screen.getByRole('button', { name: CLAIM }));
+
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Address linked',
+          description: `${shortAddress(LOWER)} is now linked to your account.`
+        })
+      )
+    );
   });
 
   it('issues, signs the exact challenge with bigint timestamps, completes, and shows the request', async () => {
@@ -353,7 +473,7 @@ describe('the connected wallet', () => {
     expect(mocks.toast).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'success',
-        title: 'Whitelist requested',
+        title: 'Address linked',
         description: expect.stringContaining(shortAddress(LOWER))
       })
     );
@@ -408,7 +528,7 @@ describe('the connected wallet', () => {
     await waitFor(() =>
       expect(mocks.toast).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Whitelist requested',
+          title: 'Address linked',
           description: expect.stringContaining(shortAddress(LOWER))
         })
       )
@@ -423,6 +543,7 @@ describe('the connected wallet', () => {
     const request = linked();
     mocks.complete.mockResolvedValue({ ok: true, value: request });
     const client = new QueryClient();
+    client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'none');
     render(
       <QueryClientProvider client={client}>
         <WalletLinkStep userId={USER_ID} />
@@ -452,5 +573,21 @@ describe('the connected wallet', () => {
 
     expect(await screen.findByText('Whitelist pending')).toBeTruthy();
     expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the wallet as another account's when that account linked it while this one was signing", async () => {
+    connect();
+    mocks.issue.mockResolvedValue({ ok: true, value: { linkId: 'link_1', typedData } });
+    mocks.complete.mockResolvedValue({ ok: false, error: { code: 'linked_elsewhere' } });
+    mocks.list.mockResolvedValue({ ok: true, value: [] });
+    mocks.ownership.mockResolvedValue({ ok: true, value: 'elsewhere' });
+
+    renderStep();
+    fireEvent.click(screen.getByRole('button', { name: SIGN }));
+
+    expect(await screen.findByText(/linked to another Zivoe account, so it can/)).toBeTruthy();
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'This address is linked to another Zivoe account.' })
+    );
   });
 });

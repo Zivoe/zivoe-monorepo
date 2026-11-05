@@ -3,8 +3,8 @@ import { EMAILS } from '@/lib/emails';
 import { VerificationEmailShell } from './components/verification-email-shell';
 
 /**
- * The one Wallet link email: sent the first time the reconcile sees a linked
- * address a member everywhere. The address is shortened here (the shape of
+ * The one Wallet link email: sent the first time since the latest Whitelist
+ * request that the reconcile sees a linked address a member everywhere. The address is shortened here (the shape of
  * `truncateAddress`) rather than imported: `@/lib/utils` drags next/server,
  * Sentry and the toast runtime into a template.
  */

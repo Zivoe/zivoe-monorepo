@@ -11,14 +11,18 @@ import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { walletLink } from '@/server/wallet-link';
-import { type CompleteLinkError, type IssueChallengeError } from '@/server/wallet-link/wallet-link';
+import {
+  type CompleteLinkError,
+  type IssueChallengeError,
+  type WalletOwnership
+} from '@/server/wallet-link/wallet-link';
 import { type WalletLinkTypedData } from '@/server/wallet-link/wallet-link-typed-data';
 import { type LinkedAddress, toLinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
 import { isActiveChainId } from '@/lib/chains';
 import { addressSchema } from '@/lib/schemas';
 
-// The Wallets step's two writes and its one read, in the shape of
+// The Wallets step's two writes and its two reads, in the shape of
 // `investor-profile.ts`: session, the `kyc` flag, zod on the input, then the module. Every answer
 // is plain data the client maps to copy; a thrown failure is captured here
 // and answered as `failed`, so the page never shows a server's words.
@@ -57,6 +61,8 @@ const issueSchema = z.object({
 // and a Sentry warning. No floor: a Safe that signed on-chain hands the dapp
 // `0x`, and its contract answers for it. ERC-6492 wraps a counterfactual
 // wallet's signature with its deploy data (a few KB); past 20 000 it is not a signature.
+const ownershipSchema = z.object({ address: addressSchema });
+
 const completeSchema = z.object({
   address: addressSchema,
   signature: z
@@ -72,6 +78,18 @@ const completeSchema = z.object({
  */
 const ratelimit = new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(20, '10 m') });
 
+/**
+ * Per user, the ownership read on its own budget: it says whether an address
+ * is some Zivoe account's, so a script does not get to walk a list of
+ * addresses — and reloads or wallet switches must not spend the budget a
+ * signature needs.
+ */
+const ownershipRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(30, '10 m'),
+  prefix: 'wallet-link-ownership'
+});
+
 /** The signed-in user the `kyc` flag is on for — the page's own gate — or null. */
 async function authorizedUserId(): Promise<string | null> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -81,7 +99,8 @@ async function authorizedUserId(): Promise<string | null> {
 
 async function guarded<T>(
   flow: string,
-  run: (userId: string) => Promise<WalletLinkActionResult<T>>
+  run: (userId: string) => Promise<WalletLinkActionResult<T>>,
+  limiter: Ratelimit = ratelimit
 ): Promise<WalletLinkActionResult<T>> {
   const userId = await authorizedUserId();
   if (!userId) return { ok: false, error: { code: 'unauthorized' } };
@@ -89,7 +108,7 @@ async function guarded<T>(
   try {
     // A limiter that cannot answer refuses too: Upstash answers a timeout as
     // a success with a reason, and nothing here is worth running unmetered.
-    const limit = await ratelimit.limit(`wallet-link:${userId}`);
+    const limit = await limiter.limit(`wallet-link:${userId}`);
     if (!limit.success || limit.reason === 'timeout') return { ok: false, error: { code: 'rate_limited' } };
 
     return await run(userId);
@@ -114,6 +133,26 @@ export async function listWalletLinks(): Promise<WalletLinkActionResult<Array<Li
     Sentry.captureException(error, { tags: { source: 'SERVER', flow: 'wallet-link-list' }, extra: { userId } });
     return { ok: false, error: { code: 'failed' } };
   }
+}
+
+/**
+ * Whether the connected address is this account's, another account's, or
+ * nobody's yet — before anything is signed, so a wallet another account owns
+ * is never asked to sign. Approved investors only (`not_approved` otherwise);
+ * never who the other account is.
+ */
+export async function getWalletOwnership(input: { address: string }): Promise<WalletLinkActionResult<WalletOwnership>> {
+  const parsed = ownershipSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: { code: 'invalid_input' } };
+
+  return guarded(
+    'wallet-link-ownership',
+    async (userId) => {
+      const result = await walletLink.getOwnership({ userId, address: parsed.data.address as Address });
+      return result.ok ? { ok: true, value: result.value } : { ok: false, error: result.error };
+    },
+    ownershipRatelimit
+  );
 }
 
 /** Step one of a link: the challenge the wallet signs — the same one again while it is unexpired. */
@@ -150,16 +189,19 @@ export async function completeWalletLink(input: {
     const address = parsed.data.address as Address;
     const result = await walletLink.completeLink({ userId, address, signature: parsed.data.signature as Hex });
     if (result.ok) return { ok: true, value: toLinkedAddress(result.value) };
-    // The one refusal worth a signal; every other one is the step working. A
+    // The two refusals worth a signal; every other one is the step working. A
     // signature that does not verify is also all a smart wallet hears when
     // its chain's RPC cannot be reached (the verification fails closed), and
-    // nothing else would say an investor is stuck there.
-    if (result.error.code === 'bad_signature') {
-      Sentry.captureMessage('Wallet link refused: signature did not verify', {
-        level: 'warning',
-        tags: { source: 'SERVER', flow: 'wallet-link-complete' },
-        extra: { userId, address }
-      });
+    // nothing else would say an investor is stuck there. An address another
+    // account linked while this one was signing is two accounts claiming one
+    // wallet, which the team should know of.
+    if (result.error.code === 'bad_signature' || result.error.code === 'linked_elsewhere') {
+      Sentry.captureMessage(
+        result.error.code === 'bad_signature'
+          ? 'Wallet link refused: signature did not verify'
+          : 'Wallet link refused: another account linked the address first',
+        { level: 'warning', tags: { source: 'SERVER', flow: 'wallet-link-complete' }, extra: { userId, address } }
+      );
     }
     return { ok: false, error: result.error };
   });

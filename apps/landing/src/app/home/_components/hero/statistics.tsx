@@ -83,7 +83,7 @@ function Statistic({
       <p className="mt-2 text-h5 tabular-nums sm:text-h4">
         {value ?? (
           <>
-            <span aria-hidden="true">—</span>
+            <span aria-hidden="true">-</span>
             <span className="sr-only">Unavailable</span>
           </>
         )}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { completeWalletLink, issueWalletLinkChallenge, listWalletLinks } from './wallet-link';
+import { completeWalletLink, getWalletOwnership, issueWalletLinkChallenge, listWalletLinks } from './wallet-link';
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   captureMessage: vi.fn(),
   issueChallenge: vi.fn(),
   completeLink: vi.fn(),
+  getOwnership: vi.fn(),
   listLinks: vi.fn()
 }));
 
@@ -30,6 +31,7 @@ vi.mock('@/server/wallet-link', () => ({
   walletLink: {
     issueChallenge: mocks.issueChallenge,
     completeLink: mocks.completeLink,
+    getOwnership: mocks.getOwnership,
     listLinks: mocks.listLinks
   }
 }));
@@ -48,7 +50,20 @@ const record = {
   status: 'linked',
   signedAt: new Date('2026-10-04T10:00:00Z'),
   issuedAt: new Date('2026-10-04T09:59:00Z'),
-  whitelistObservedAt: null
+  whitelistRequestedAt: new Date('2026-10-04T10:00:00Z'),
+  whitelistObservedAt: null,
+  opsRequest: 'whitelist',
+  opsRequestVersion: 1
+};
+/** The page row `record` maps to. */
+const row = {
+  id: LINK_ID,
+  address: ADDRESS.toLowerCase(),
+  signedAt: record.signedAt,
+  opsRequest: 'whitelist',
+  whitelistRequestedAt: record.whitelistRequestedAt,
+  isRestore: false,
+  wasWhitelisted: false
 };
 
 beforeEach(() => {
@@ -147,15 +162,7 @@ describe('completeWalletLink', () => {
   it('maps the linked record to the page row', async () => {
     const result = await completeWalletLink({ address: ADDRESS, signature: SIGNATURE });
 
-    expect(result).toEqual({
-      ok: true,
-      value: {
-        id: LINK_ID,
-        address: record.address,
-        signedAt: record.signedAt,
-        wasWhitelisted: false
-      }
-    });
+    expect(result).toEqual({ ok: true, value: row });
     expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: SIGNATURE });
   });
 
@@ -189,23 +196,43 @@ describe('completeWalletLink', () => {
       expect.objectContaining({ level: 'warning', extra: { userId: 'user_1', address: ADDRESS } })
     );
   });
+
+  it('notes an address another account linked while this one signed, and passes the refusal through', async () => {
+    mocks.completeLink.mockResolvedValue({ ok: false, error: { code: 'linked_elsewhere' } });
+
+    expect(await completeWalletLink({ address: ADDRESS, signature: SIGNATURE })).toEqual({
+      ok: false,
+      error: { code: 'linked_elsewhere' }
+    });
+    expect(mocks.captureMessage).toHaveBeenCalledWith(
+      'Wallet link refused: another account linked the address first',
+      expect.objectContaining({ level: 'warning' })
+    );
+  });
+});
+
+describe('getWalletOwnership', () => {
+  it('answers whose the address is, spending the limiter like the writes', async () => {
+    mocks.getOwnership.mockResolvedValue({ ok: true, value: 'elsewhere' });
+
+    expect(await getWalletOwnership({ address: ADDRESS })).toEqual({ ok: true, value: 'elsewhere' });
+    expect(mocks.getOwnership).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS });
+    expect(mocks.limit).toHaveBeenCalledTimes(1);
+
+    mocks.limit.mockResolvedValueOnce({ success: false });
+    expect(await getWalletOwnership({ address: ADDRESS })).toEqual({ ok: false, error: { code: 'rate_limited' } });
+    expect(await getWalletOwnership({ address: 'not-an-address' })).toEqual({
+      ok: false,
+      error: { code: 'invalid_input' }
+    });
+  });
 });
 
 describe('listWalletLinks', () => {
   it('answers the session’s Linked addresses as the page shows them, without spending the limiter', async () => {
     mocks.listLinks.mockResolvedValue([record]);
 
-    expect(await listWalletLinks()).toEqual({
-      ok: true,
-      value: [
-        {
-          id: LINK_ID,
-          address: ADDRESS.toLowerCase(),
-          signedAt: record.signedAt,
-          wasWhitelisted: false
-        }
-      ]
-    });
+    expect(await listWalletLinks()).toEqual({ ok: true, value: [row] });
     expect(mocks.listLinks).toHaveBeenCalledWith({ userId: 'user_1' });
     expect(mocks.limit).not.toHaveBeenCalled();
   });

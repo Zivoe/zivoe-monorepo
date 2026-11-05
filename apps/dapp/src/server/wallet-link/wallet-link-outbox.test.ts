@@ -26,7 +26,8 @@ function setup() {
   return { published, outbox: createQstashWalletLinkOutbox({ qstash, baseUrl: BASE_URL }) };
 }
 
-const job = (kind: WalletLinkJob['kind']): WalletLinkJob => ({ linkId: LINK_ID, kind, at: AT });
+const job = (kind: WalletLinkJob['kind']): WalletLinkJob =>
+  kind === 'whitelisted_email' ? { linkId: LINK_ID, kind, at: AT } : { linkId: LINK_ID, kind, version: 2 };
 
 describe('createQstashWalletLinkOutbox', () => {
   it.each([
@@ -41,18 +42,23 @@ describe('createQstashWalletLinkOutbox', () => {
     expect(published[0]).toMatchObject({ url: `${BASE_URL}${path}`, delay: '5s', retries: 3 });
   });
 
-  it('carries the stamp the receiver checks against the row', async () => {
+  it('carries the version or the stamp the receiver checks against the row', async () => {
     const { published, outbox } = setup();
 
     await outbox.enqueue(job('revoke_request'));
+    await outbox.enqueue(job('whitelisted_email'));
 
-    expect(published[0]?.body).toEqual({ linkId: LINK_ID, kind: 'revoke_request', at: AT.toISOString() });
+    expect(published.map((request) => request.body)).toEqual([
+      { linkId: LINK_ID, kind: 'revoke_request', version: 2 },
+      { linkId: LINK_ID, kind: 'whitelisted_email', at: AT.toISOString() }
+    ]);
   });
 });
 
 describe('the wire contract between the outbox and its receivers', () => {
   it.each([
     [job('whitelist_request'), ['whitelist_request', 'revoke_request']],
+    [job('revoke_request'), ['whitelist_request', 'revoke_request']],
     [job('whitelisted_email'), ['whitelisted_email']]
   ] as const)('publishes a body the receiver parses back to the same $kind', async (sent, kinds) => {
     const { published, outbox } = setup();
@@ -67,5 +73,12 @@ describe('the wire contract between the outbox and its receivers', () => {
 
     expect(parseWalletLinkJob({ kinds: ['whitelist_request', 'revoke_request'], body })).toBeNull();
     expect(parseWalletLinkJob({ kinds: ['whitelisted_email'], body: { linkId: LINK_ID } })).toBeNull();
+    // A request to ops names the version it announces; a stamp is the email's.
+    expect(
+      parseWalletLinkJob({
+        kinds: ['whitelist_request'],
+        body: { linkId: LINK_ID, kind: 'whitelist_request', at: AT.toISOString() }
+      })
+    ).toBeNull();
   });
 });

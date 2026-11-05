@@ -176,7 +176,7 @@ describe('formatTelegramItem', () => {
   it('formats a deposit with USDC, shares, execution price, and tx link', () => {
     const item = formatTelegramItem({ event: event(), ...shared });
 
-    expect(item).toContain('<b>Deposit</b> — zSMB');
+    expect(item).toContain('<b>Deposit</b> · zSMB');
     expect(item).toContain('Account: <code>0xb8da328a4edb64af841c6bb72b55988e9abeb172</code>');
     expect(item).toContain('Linked email: a@b.c');
     expect(item).toContain('Amount: 5.00 USDC → 4.40 zSMB @ 1.1348');
@@ -204,7 +204,7 @@ describe('formatTelegramItem', () => {
       ...shared
     });
 
-    expect(item).toContain('<b>Redemption Request</b> — zSMB');
+    expect(item).toContain('<b>Redemption Request</b> · zSMB');
     expect(item).toContain('Requested: 2.00 zSMB');
     expect(item).not.toContain(' @ ');
     expect(item).not.toContain('USDC');
@@ -221,7 +221,7 @@ describe('formatTelegramItem', () => {
       ...shared
     });
 
-    expect(item).toContain('<b>Redemption Claimable</b> — zSMB');
+    expect(item).toContain('<b>Redemption Claimable</b> · zSMB');
     expect(item).toContain('Amount: 2.00 zSMB → 2.26 USDC @ 1.1349');
   });
 
@@ -236,7 +236,7 @@ describe('formatTelegramItem', () => {
       ...shared
     });
 
-    expect(item).toContain('<b>Redemption Claimed</b> — zSMB');
+    expect(item).toContain('<b>Redemption Claimed</b> · zSMB');
     expect(item).toContain('Amount: 2.00 zSMB → 2.26 USDC @ 1.1349');
   });
 

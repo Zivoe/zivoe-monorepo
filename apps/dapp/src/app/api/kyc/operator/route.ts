@@ -60,7 +60,7 @@ const handler = async (req: NextRequest): ApiResponse<OperatorChange> => {
   if (!result.ok) {
     switch (result.error.code) {
       case 'profile_missing':
-        await report(['<b>Result:</b> refused — no onboarded user has this id']);
+        await report(['<b>Result:</b> refused: no onboarded user has this id']);
         throw new ApiError({ message: 'No onboarded user has this id', capture: false, ...QSTASH_NON_RETRYABLE });
       case 'conflict':
         throw new ApiError({ message: 'The record changed under the operator action', status: 500, capture: false });
@@ -70,7 +70,7 @@ const handler = async (req: NextRequest): ApiResponse<OperatorChange> => {
   }
 
   const { from, to, inquiryId, path, case: kybCase } = result.value;
-  const noInquiry = action === 'resync' ? 'none in Persona — the record was left as it is' : 'none';
+  const noInquiry = action === 'resync' ? 'none in Persona, so the record was left as it is' : 'none';
   // The record stops hearing Persona, which an Inquiry is still decided in —
   // unless nothing in Persona decides it: an organization's failed inquiry.
   const overridesPersona = action === 'approve' && !!inquiryId && !(path === 'organization' && from === 'failed');

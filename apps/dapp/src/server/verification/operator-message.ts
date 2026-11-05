@@ -12,11 +12,11 @@ import { type VerificationOperatorStatus } from './verification-status';
  */
 const LABELS: Record<VerificationOperatorStatus, string> = {
   in_progress: 'Started or resumed the flow',
-  submitted: 'Submitted — awaiting decision',
+  submitted: 'Submitted, awaiting decision',
   pending_review: 'Needs manual review',
   approved: 'Approved',
   declined: 'Declined',
-  failed: 'Verification failed — awaiting Persona Workflow'
+  failed: 'Verification failed, awaiting Persona Workflow'
 };
 
 /** What a status line says: the move, with the moves that mean something else. */
@@ -24,19 +24,19 @@ function statusLine(input: Parameters<OperatorMessenger['send']>[0]): string {
   if (input.kind === 'case_status') return `Case moved to ${input.case.status} (verification ${input.status})`;
   // A reviewer, or a resync, reversed a Decision: ops may have whitelisted the addresses an approval let them link.
   if (input.status === 'declined' && input.previousDecision === 'approved')
-    return 'Declined — the approval no longer stands';
+    return 'Declined: the approval no longer stands';
   if (input.status === 'approved' && input.previousDecision === 'declined') return 'Approved after a decline';
   if (input.accountType !== 'organization') return LABELS[input.status];
   // A reviewer took a Decision back by reopening the case: a review, like the email's check.
   if (input.status === 'pending_review' && input.previousDecision === 'approved')
-    return 'KYB case reopened — the approval no longer stands';
+    return 'KYB case reopened: the approval no longer stands';
   if (input.status === 'pending_review' && input.previousDecision === 'declined')
     return 'KYB case reopened after a decline';
   // The KYB Workflow opened the case; who it waits on is the case line below.
   if (input.status === 'pending_review') return 'KYB case opened';
   // No Workflow decides a failed business inquiry: the team takes it from here.
   if (input.status === 'failed')
-    return 'Verification failed — terminal for an organization, the team takes it from here';
+    return 'Verification failed: terminal for an organization, the team takes it from here';
   return LABELS[input.status];
 }
 

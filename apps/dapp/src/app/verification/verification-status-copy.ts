@@ -166,7 +166,7 @@ export const START_REFUSAL_COPY: Record<
   string
 > = {
   awaiting_decision: 'Your verification has been received and is awaiting a decision. We will email you when it is in.',
-  already_verified: 'You are already verified — there is nothing more to do.',
+  already_verified: 'You are already verified. There is nothing more to do.',
   declined: 'Your verification was declined. If you believe this is a mistake, contact support and the team will help.',
   revoked: 'Your verification is no longer active. Contact support to find out what happens next.',
   failed: "Your organization's verification could not be completed. Contact the team to find out what happens next.",

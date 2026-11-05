@@ -176,13 +176,13 @@ export function formatTelegramItem({
   // falling through to a mislabeled alert.
   switch (event.type) {
     case 'SYNC_DEPOSIT':
-      return [`<b>Deposit</b> — ${symbol}`, ...head, `Amount: ${assets} → ${shares} ${symbol}${price}`, chainLine].join(
+      return [`<b>Deposit</b> · ${symbol}`, ...head, `Amount: ${assets} → ${shares} ${symbol}${price}`, chainLine].join(
         '\n'
       );
 
     case 'REDEEM_REQUEST_UPDATED':
       return [
-        `<b>Redemption Request</b> — ${symbol}`,
+        `<b>Redemption Request</b> · ${symbol}`,
         ...head,
         // The indexer reports the shares added by THIS call; an increase to an
         // open request correctly shows up as its own alert.
@@ -195,7 +195,7 @@ export function formatTelegramItem({
     case 'REDEEM_CLAIMABLE':
     case 'REDEEM_CLAIMED':
       return [
-        `<b>${event.type === 'REDEEM_CLAIMABLE' ? 'Redemption Claimable' : 'Redemption Claimed'}</b> — ${symbol}`,
+        `<b>${event.type === 'REDEEM_CLAIMABLE' ? 'Redemption Claimable' : 'Redemption Claimed'}</b> · ${symbol}`,
         ...head,
         `Amount: ${shares} ${symbol} → ${assets}${price}`,
         chainLine

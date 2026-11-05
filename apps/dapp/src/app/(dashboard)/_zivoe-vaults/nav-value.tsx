@@ -15,5 +15,5 @@ export default function NavValue({
   skeletonClassName: string;
 }) {
   if (nav === 'loading') return <TextSkeleton className={skeletonClassName} />;
-  return nav !== null ? `$${formatNav(nav)}` : '—';
+  return nav !== null ? `$${formatNav(nav)}` : '-';
 }

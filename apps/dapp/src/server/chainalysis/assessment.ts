@@ -17,12 +17,13 @@ const assessmentSchema = z.object({
 
 export type ChainalysisAssessment = z.infer<typeof assessmentSchema>;
 
-async function fetchAssessment({ address }: { address: Address }) {
+async function fetchAssessment({ address, timeoutMs }: { address: Address; timeoutMs?: number }) {
   const response = await fetch(CHAINALYSIS_BASE_URL + address, {
     headers: {
       Accept: 'application/json',
       Token: env.CHAINALYSIS_API_KEY
-    }
+    },
+    signal: timeoutMs === undefined ? null : AbortSignal.timeout(timeoutMs)
   });
 
   if (!response.ok) {
@@ -41,12 +42,13 @@ async function fetchAssessment({ address }: { address: Address }) {
   return parsedData.data;
 }
 
-export async function getChainalysisAssessment({ address }: { address: Address }) {
+/** `timeoutMs` rejects a screen that takes longer; without it, the call waits for Chainalysis. */
+export async function getChainalysisAssessment({ address, timeoutMs }: { address: Address; timeoutMs?: number }) {
   const isOnSafeList = await isSafelistedAddress(address);
 
   if (isOnSafeList) {
     return { address, risk: 'Low', riskReason: null } satisfies ChainalysisAssessment;
   }
 
-  return fetchAssessment({ address });
+  return fetchAssessment({ address, timeoutMs });
 }

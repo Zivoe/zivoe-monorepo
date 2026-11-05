@@ -120,7 +120,7 @@ export function BalanceChart({
               {history.livePoint ? (
                 formatUsdD18(history.livePoint.valueD18)
               ) : liveStatus === 'error' ? (
-                '—'
+                '-'
               ) : (
                 <TextSkeleton className="w-28" />
               )}
@@ -145,7 +145,7 @@ export function BalanceChart({
               {shareAmounts ? (
                 formatAmount(shareAmounts.wallet, shareSymbol)
               ) : liveStatus === 'error' ? (
-                '—'
+                '-'
               ) : (
                 <TextSkeleton className="w-20" />
               )}

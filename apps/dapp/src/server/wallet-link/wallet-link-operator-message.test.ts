@@ -37,7 +37,8 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   signedAt: SIGNED_AT,
   whitelistRequestedAt: SIGNED_AT,
   whitelistObservedAt: null,
-  removedAt: null,
+  opsRequest: 'whitelist',
+  opsRequestVersion: 1,
   ...overrides
 });
 
@@ -60,13 +61,13 @@ describe('the operator message', () => {
       email: 'ada<script>@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null,
-      otherAccounts: []
+      endedBy: null
     });
 
     expect(text.split('\n')).toEqual([
-      '<b>🟢 Whitelist request</b>',
+      '<b>🟢 Whitelist request #1</b>',
       '',
+      '<b>Reason:</b> new link',
       '<b>User:</b> ada&lt;script&gt;@example.com',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
@@ -78,111 +79,114 @@ describe('the operator message', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'revoke_request',
       record: record({
-        status: 'removed',
         walletType: null,
         walletName: null,
         chainId: 999_999,
-        removedAt: new Date()
+        opsRequest: 'revoke',
+        opsRequestVersion: 2
       }),
       email: null,
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null,
-      otherAccounts: []
+      endedBy: null
     });
 
     expect(text.split('\n')).toEqual([
-      '<b>🔴 Revoke request</b>',
+      '<b>🔴 Revoke request #2</b>',
       '',
-      '<b>Reason:</b> link ended, approved again since — the investor links this address again',
+      '<b>Reason:</b> no longer approved when asked, approved again since; a member on no chain when sent, so nothing to freeze unless admitted since; a restore request follows unless Chainalysis flags the address',
+      '<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number',
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
       '<b>Whitelist now:</b> a member on none of 2 chains',
-      '<b>Also connected by:</b> no other account',
       '<b>Linked since:</b> 2026-10-01'
     ]);
   });
 
-  it('says on a revoke what ended the link and who else connected the address', () => {
+  it("says on a revoke what the owner's status is now", () => {
+    const reasonFor = (endedBy: 'revoked' | 'pending_review' | 'in_progress') =>
+      formatWalletLinkOperatorMessage({
+        kind: 'revoke_request',
+        record: record({ opsRequest: 'revoke', opsRequestVersion: 2 }),
+        email: 'ada@example.com',
+        isSmartAccount: false,
+        membership: membership(['member', 'not-member']),
+        endedBy
+      }).split('\n')[2];
+
+    expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked; freeze on every chain');
+    expect(reasonFor('pending_review')).toBe('<b>Reason:</b> verification back under review; freeze on every chain');
+    expect(reasonFor('in_progress')).toBe('<b>Reason:</b> verification no longer approved; freeze on every chain');
+  });
+
+  it('asks to freeze unless every chain read the address as no member', () => {
+    const reasonWith = (read: AddressMembership | null) =>
+      formatWalletLinkOperatorMessage({
+        kind: 'revoke_request',
+        record: record({ opsRequest: 'revoke', opsRequestVersion: 2 }),
+        email: 'ada@example.com',
+        isSmartAccount: false,
+        membership: read,
+        endedBy: 'declined'
+      }).split('\n')[2];
+
+    expect(reasonWith(NOWHERE)).toBe(
+      '<b>Reason:</b> verification declined; a member on no chain when sent, so nothing to freeze unless admitted since'
+    );
+    expect(reasonWith(membership(['not-member', 'unknown']))).toBe(
+      '<b>Reason:</b> verification declined; freeze on every chain'
+    );
+    expect(reasonWith(null)).toBe('<b>Reason:</b> verification declined; freeze on every chain');
+  });
+
+  it('asks to lift a freeze when the owner is approved again, with no new signature', () => {
     const text = formatWalletLinkOperatorMessage({
-      kind: 'revoke_request',
-      record: record({ status: 'removed', removedAt: new Date() }),
+      kind: 'whitelist_request',
+      record: record({ opsRequestVersion: 3 }),
       email: 'ada@example.com',
       isSmartAccount: false,
-      membership: NOWHERE,
-      endedBy: 'revoked',
-      otherAccounts: [
-        { email: 'bob@example.com', isVerified: true },
-        { email: 'eve<b>@example.com', isVerified: false }
-      ]
+      membership: membership(['member', 'member'], ['base']),
+      endedBy: null
     });
 
-    expect(text.split('\n')[2]).toBe('<b>Reason:</b> verification revoked');
-
-    const underReview = formatWalletLinkOperatorMessage({
-      kind: 'revoke_request',
-      record: record({ status: 'removed', removedAt: new Date() }),
-      email: 'ada@example.com',
-      isSmartAccount: false,
-      membership: NOWHERE,
-      endedBy: 'pending_review',
-      otherAccounts: []
-    });
-    expect(underReview.split('\n')[2]).toBe('<b>Reason:</b> verification back under review');
-
-    const resynced = formatWalletLinkOperatorMessage({
-      kind: 'revoke_request',
-      record: record({ status: 'removed', removedAt: new Date() }),
-      email: 'ada@example.com',
-      isSmartAccount: false,
-      membership: NOWHERE,
-      endedBy: 'in_progress',
-      otherAccounts: []
-    });
-    expect(resynced.split('\n')[2]).toBe('<b>Reason:</b> verification no longer approved');
-    expect(text).toContain(
-      '<b>Also connected by:</b> bob@example.com (verified), eve&lt;b&gt;@example.com (not verified)'
-    );
+    expect(text.split('\n').slice(0, 4)).toEqual([
+      '<b>🟢 Whitelist request #3</b>',
+      '',
+      '<b>Reason:</b> approved again; unfreeze where frozen, whitelist where missing',
+      '<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number'
+    ]);
   });
 
-  const alsoConnectedLine = (otherAccounts: Array<{ email: string; isVerified: boolean }>) =>
-    formatWalletLinkOperatorMessage({
-      kind: 'revoke_request',
-      record: record({ status: 'removed', removedAt: new Date() }),
-      email: 'ada@example.com',
-      isSmartAccount: false,
-      membership: NOWHERE,
-      endedBy: 'declined',
-      otherAccounts
-    })
-      .split('\n')
-      .find((candidate) => candidate.startsWith('<b>Also connected by:</b>'))!;
+  it('flags a new link to an address already frozen, even where another chain did not answer', () => {
+    const reasonWith = (read: AddressMembership) =>
+      formatWalletLinkOperatorMessage({
+        kind: 'whitelist_request',
+        record: record(),
+        email: 'ada@example.com',
+        isSmartAccount: false,
+        membership: read,
+        endedBy: null
+      }).split('\n')[2];
+    const reason = '<b>Reason:</b> new link to an address already frozen; check why before unfreezing';
 
-  it('names ten other accounts and counts the rest, so a shared address stays under Telegram’s limit', () => {
-    const line = alsoConnectedLine(
-      Array.from({ length: 12 }, (_, index) => ({ email: `user-${index}@example.com`, isVerified: false }))
-    );
-
-    expect(line).toContain('user-9@example.com (not verified), and 2 more');
-    expect(line).not.toContain('user-10@example.com');
-    expect(line).not.toContain('more (');
+    expect(reasonWith(membership(['member', 'not-member'], ['ethereum']))).toBe(reason);
+    expect(reasonWith(membership(['member', 'unknown'], ['ethereum']))).toBe(reason);
   });
 
-  it('names a verified account before the unverified, wherever it sorts, and counts the verified it cannot name', () => {
-    const unverified = Array.from({ length: 11 }, (_, index) => ({
-      email: `a-${index}@example.com`,
-      isVerified: false
-    }));
+  it('flags a new link to an address already whitelisted: someone else may be investing with it', () => {
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'whitelist_request',
+      record: record(),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      membership: membership(['member', 'member']),
+      endedBy: null
+    });
 
-    // The one verified account sorts last by email; the line must not hide it behind "and 2 more".
-    expect(alsoConnectedLine([...unverified, { email: 'z@example.com', isVerified: true }])).toMatch(
-      /^<b>Also connected by:<\/b> z@example.com \(verified\), a-0@example.com \(not verified\), .*a-8@example.com \(not verified\), and 2 more$/
+    expect(text.split('\n')[2]).toBe(
+      '<b>Reason:</b> new link to an address already whitelisted; nothing to do unless this owner is unexpected'
     );
-
-    // More verified accounts than the line names: the count says so.
-    const verified = Array.from({ length: 11 }, (_, index) => ({ email: `v-${index}@example.com`, isVerified: true }));
-    expect(alsoConnectedLine([...unverified, ...verified])).toMatch(/, and 12 more \(1 verified\)$/);
   });
 
   it.each([
@@ -196,12 +200,11 @@ describe('the operator message', () => {
   ] as const)('says where the address stands now: %s', (expected, current) => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'revoke_request',
-      record: record({ status: 'removed', removedAt: new Date() }),
+      record: record({ opsRequest: 'revoke', opsRequestVersion: 2 }),
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: current,
-      endedBy: 'revoked',
-      otherAccounts: []
+      endedBy: 'revoked'
     });
 
     expect(text).toContain(`<b>Whitelist now:</b> ${expected}`);
@@ -214,11 +217,10 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: true,
       membership: NOWHERE,
-      endedBy: null,
-      otherAccounts: []
+      endedBy: null
     });
 
-    expect(text.split('\n').slice(4, 6)).toEqual([
+    expect(text.split('\n').slice(5, 7)).toEqual([
       '<b>Wallet:</b> Safe · signed on Base',
       '<b>Smart account:</b> control proven on Base only'
     ]);
@@ -231,12 +233,11 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: null,
       membership: NOWHERE,
-      endedBy: null,
-      otherAccounts: []
+      endedBy: null
     });
 
-    expect(text.split('\n')[5]).toBe(
-      '<b>Smart account:</b> could not be checked — if it is one, control is proven on Base only'
+    expect(text.split('\n')[6]).toBe(
+      '<b>Smart account:</b> could not be checked; if it is one, control is proven on Base only'
     );
   });
 
@@ -249,13 +250,12 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null,
-      otherAccounts: []
+      endedBy: null
     });
 
     expect(sendTelegramMessage).toHaveBeenCalledWith({
       chatId: 'chat-1',
-      text: expect.stringContaining('<b>🟢 Whitelist request</b>')
+      text: expect.stringContaining('<b>🟢 Whitelist request #1</b>')
     });
   });
 });

@@ -115,7 +115,7 @@ function CountryField({ defaultValue = '', isInvalid }: { defaultValue?: string;
         </ComboBoxPopover>
       </ComboBox>
 
-      <p className="text-small text-tertiary">Value: {value || '—'}</p>
+      <p className="text-small text-tertiary">Value: {value || '-'}</p>
     </div>
   );
 }

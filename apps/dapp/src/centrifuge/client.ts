@@ -130,7 +130,7 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
 
   if (vaultRouter === undefined)
     throw new Error(
-      `The SDK dropped the indexer-reported VaultRouter on "${centrifugeVault.chain}" — it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
+      `The SDK dropped the indexer-reported VaultRouter on "${centrifugeVault.chain}": it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
     );
 
   if (vaultRouter.toLowerCase() !== centrifugeVault.vaultRouterAddress.toLowerCase())
@@ -140,7 +140,7 @@ async function resolveCentrifugeVault(centrifugeVault: TransactedCentrifugeVault
 
   if (asyncRequestManager === undefined)
     throw new Error(
-      `The SDK dropped the indexer-reported AsyncRequestManager on "${centrifugeVault.chain}" — it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
+      `The SDK dropped the indexer-reported AsyncRequestManager on "${centrifugeVault.chain}": it disagrees with the SDK's bundled allowlist. Reconcile the SDK version and the catalog before transacting.`
     );
 
   return Object.assign(resolved as typeof resolved & WithEscrow, { asyncRequestManagerAddress: asyncRequestManager });

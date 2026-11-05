@@ -14,13 +14,16 @@ export const WALLET_LINK_WHITELISTED_EMAIL_PATH = '/api/email/wallet-link';
  * The wire shape of one queued job: what the adapter publishes and what a
  * receiver route hands back to `deliverNotification`. Unlike the verification outbox,
  * `kind` travels: the operator route serves two kinds, so the body must say
- * which transition it announces.
+ * which transition it announces — by `version` for a request to ops, by the
+ * `at` stamp for the email.
  */
 const jobBodySchema = z.object({
   linkId: z.string().uuid(),
   kind: z.string(),
-  /** The stamp of the transition — `signedAt`, `removedAt` or `whitelistObservedAt`. */
-  at: z.string().datetime({ offset: true })
+  /** The `opsRequestVersion` a Whitelist or Revoke request was queued for. */
+  version: z.number().int().positive().optional(),
+  /** The `whitelistObservedAt` the email announces. */
+  at: z.string().datetime({ offset: true }).optional()
 });
 
 /**
@@ -39,9 +42,12 @@ export function parseWalletLinkJob({
   if (!parsed.success) return null;
 
   const kind = kinds.find((candidate) => candidate === parsed.data.kind);
-  if (!kind) return null;
-
-  return { linkId: parsed.data.linkId, kind, at: new Date(parsed.data.at) };
+  const { linkId, version, at } = parsed.data;
+  if (kind === 'whitelisted_email') return at === undefined ? null : { kind, linkId, at: new Date(at) };
+  if (kind === 'whitelist_request' || kind === 'revoke_request') {
+    return version === undefined ? null : { kind, linkId, version };
+  }
+  return null;
 }
 
 /**
@@ -58,7 +64,7 @@ const SETTLE_DELAY = '5s';
  * email kind to the email route. No QStash deduplication id on purpose —
  * QStash remembers them for 90 days, which would silently drop the
  * re-enqueue a failed persist relies on. `deliverNotification` skips a job
- * the row has moved past (it re-reads the row and matches the stamp); a live
+ * the row has moved past (it re-reads the row and matches the version or stamp); a live
  * job delivered twice is the channel's to absorb, which the email's adapter
  * does and Telegram does not.
  */
@@ -76,7 +82,10 @@ export function createQstashWalletLinkOutbox({
       await qstash.publishJSON({
         url: `${baseUrl}${isEmail ? WALLET_LINK_WHITELISTED_EMAIL_PATH : WALLET_LINK_OPERATOR_MESSAGE_PATH}`,
         delay: SETTLE_DELAY,
-        body: { linkId: job.linkId, kind: job.kind, at: job.at.toISOString() },
+        body:
+          job.kind === 'whitelisted_email'
+            ? { linkId: job.linkId, kind: job.kind, at: job.at.toISOString() }
+            : { linkId: job.linkId, kind: job.kind, version: job.version },
         retries: 3,
         failureCallback: getQstashFailureCallback(baseUrl),
         label: isEmail ? QSTASH_JOB_LABELS.emailWalletLink : QSTASH_JOB_LABELS.telegramWalletLink

@@ -28,7 +28,19 @@ vi.mock('@sentry/nextjs', () => ({
   logger: { info: vi.fn() }
 }));
 
-const STALLED = { linkId: 'link_1', address: '0xabc', memberOn: 0, total: 2, daysWaiting: 3, isLastReminder: false };
+const STALLED = { linkId: 'link_1', address: '0xabc', admittedOn: 0, total: 2, daysWaiting: 3, isLastReminder: false };
+const REPORT = {
+  checked: 1,
+  whitelisted: 0,
+  revoked: 0,
+  restored: 0,
+  unchecked: 0,
+  unscreened: 0,
+  stuck: [STALLED],
+  lapsed: [],
+  stillAdmitted: [],
+  flagged: []
+};
 
 const run = (query = '') =>
   POST(new NextRequest(`http://localhost/api/wallet-link/reconcile${query}`, { method: 'POST' }));
@@ -36,7 +48,7 @@ const run = (query = '') =>
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  reconcile.mockResolvedValue({ checked: 1, whitelisted: 0, ended: 0, unchecked: 0, stuck: [STALLED] });
+  reconcile.mockResolvedValue(REPORT);
   sendBatchedTelegramMessages.mockResolvedValue(undefined);
   captureCheckIn.mockReturnValue('check-in-1');
 });
@@ -52,6 +64,33 @@ describe('POST /api/wallet-link/reconcile', () => {
     expect((await run()).status).toBe(200);
     expect(sendBatchedTelegramMessages).toHaveBeenCalledTimes(1);
     expect(captureCheckIn).toHaveBeenCalledWith(expect.objectContaining({ checkInId: 'check-in-1', status: 'ok' }));
+  });
+
+  it('lists the drift both ways in the digest, a section each, and posts nothing when there is none', async () => {
+    vi.setSystemTime(new Date('2026-10-30T09:00:04.000Z'));
+    reconcile.mockResolvedValueOnce({
+      ...REPORT,
+      stuck: [],
+      lapsed: [{ linkId: 'link_2', address: '0xdef', admittedOn: 1, total: 2 }],
+      stillAdmitted: [{ linkId: 'link_3', address: '0x123', admittedOn: 2, total: 2 }]
+    });
+
+    await run();
+    expect(sendBatchedTelegramMessages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          '<b>Wallet link: whitelisted before, not now</b>',
+          '<code>0xdef</code> · admitted on 1 of 2 chains',
+          '<b>Wallet link: revoke asked, still admitted</b>',
+          '<code>0x123</code> · admitted on 2 of 2 chains'
+        ]
+      })
+    );
+
+    vi.clearAllMocks();
+    reconcile.mockResolvedValueOnce({ ...REPORT, stuck: [] });
+    await run();
+    expect(sendBatchedTelegramMessages).not.toHaveBeenCalled();
   });
 
   it('sweeps on the later scheduled runs of the digest hour without repeating the digest', async () => {

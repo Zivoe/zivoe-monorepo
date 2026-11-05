@@ -317,7 +317,7 @@ export async function sendVerificationStatusEmail({
  * The Wallet link's one email, from the transactional sender like the verification
  * status emails: a whitelisted address is a fact about the person's account,
  * never withheld. Idempotent per (link, `whitelistObservedAt`) on Resend's side,
- * so a redelivered job sends once; the stamp is set once, so a link is emailed once.
+ * so a redelivered job sends once; the stamp is set once per Whitelist request, so each is emailed once.
  */
 export async function sendAddressWhitelistedEmail({
   to,

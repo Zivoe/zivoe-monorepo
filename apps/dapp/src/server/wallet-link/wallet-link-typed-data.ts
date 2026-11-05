@@ -8,6 +8,7 @@ import { type Address, type Hex } from 'viem';
 
 export const WALLET_LINK_STATEMENT =
   'I control this wallet and ask Zivoe to link it to my verified account. ' +
+  'Once linked, it stays linked to this account and cannot be linked to another. ' +
   'Zivoe may whitelist it for Zivoe vaults. This signature is free and moves no funds.';
 
 export const WALLET_LINK_TYPES = {

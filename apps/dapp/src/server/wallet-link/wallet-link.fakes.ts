@@ -27,10 +27,8 @@ export function createInMemoryWalletLinkStore() {
   const accounts = new Map<string, { email: string; name: string | null }>();
   let sequence = 0;
 
-  const linkedFor = ({ userId, address }: { userId: string; address: Address }) =>
-    [...records.values()].find(
-      (record) => record.status === 'linked' && record.userId === userId && record.address === address
-    ) ?? null;
+  const ownerOf = (address: Address) =>
+    [...records.values()].find((record) => record.status === 'linked' && record.address === address) ?? null;
 
   const store: WalletLinkStore = {
     async get({ id }) {
@@ -43,8 +41,8 @@ export function createInMemoryWalletLinkStore() {
       );
       return record ? { ...record } : null;
     },
-    async getLinked(input) {
-      const record = linkedFor(input);
+    async getOwner({ address }) {
+      const record = ownerOf(address);
       return record ? { ...record } : null;
     },
     async putPending(record) {
@@ -63,28 +61,48 @@ export function createInMemoryWalletLinkStore() {
     async link({ id, nonce, signature, signedAt }) {
       const record = records.get(id);
       if (record?.status !== 'pending' || record.nonce !== nonce) return { outcome: 'not_pending' };
-      // The partial unique index: one `linked` row per (user, address).
-      if (linkedFor(record)) return { outcome: 'already_linked' };
+      // The partial unique index: one `linked` row per address.
+      if (ownerOf(record.address)) return { outcome: 'address_taken' };
       connections.add(`${record.userId}:${record.address}`);
       const linked: WalletLinkRecord = {
         ...record,
         status: 'linked',
         signature,
         signedAt,
-        whitelistRequestedAt: signedAt
+        whitelistRequestedAt: signedAt,
+        opsRequest: 'whitelist',
+        opsRequestVersion: 1
       };
       records.set(id, linked);
       return { outcome: 'linked', record: { ...linked } };
     },
-    async remove({ id, removedAt }) {
+    async setOpsRequest({ id, from, to, at }) {
       const record = records.get(id);
-      if (record?.status !== 'linked') return false;
-      records.set(id, { ...record, status: 'removed', removedAt });
+      if (
+        record?.status !== 'linked' ||
+        record.opsRequest !== from.opsRequest ||
+        record.opsRequestVersion !== from.version
+      ) {
+        return false;
+      }
+      records.set(id, {
+        ...record,
+        opsRequest: to,
+        opsRequestVersion: from.version + 1,
+        ...(to === 'whitelist' ? { whitelistRequestedAt: at, whitelistObservedAt: null } : {})
+      });
       return true;
     },
-    async markWhitelistObserved({ id, whitelistObservedAt }) {
+    async markWhitelistObserved({ id, version, whitelistObservedAt }) {
       const record = records.get(id);
-      if (record?.status !== 'linked' || record.whitelistObservedAt) return false;
+      if (
+        record?.status !== 'linked' ||
+        record.opsRequest !== 'whitelist' ||
+        record.opsRequestVersion !== version ||
+        record.whitelistObservedAt
+      ) {
+        return false;
+      }
       records.set(id, { ...record, whitelistObservedAt });
       return true;
     },
@@ -94,14 +112,10 @@ export function createInMemoryWalletLinkStore() {
         .sort((a, b) => (b.signedAt?.getTime() ?? 0) - (a.signedAt?.getTime() ?? 0))
         .map((record) => ({ ...record }));
     },
-    async listAwaitingWhitelist() {
+    async listAllLinked() {
       return [...records.values()]
-        .filter((record) => record.status === 'linked' && !record.whitelistObservedAt)
-        .map((record) => ({ ...record }));
-    },
-    async listWhitelistObserved() {
-      return [...records.values()]
-        .filter((record) => record.status === 'linked' && !!record.whitelistObservedAt)
+        .filter((record) => record.status === 'linked')
+        .sort((a, b) => (a.signedAt?.getTime() ?? 0) - (b.signedAt?.getTime() ?? 0))
         .map((record) => ({ ...record }));
     },
     async deleteExpiredPending({ expiredBefore }) {
@@ -113,16 +127,6 @@ export function createInMemoryWalletLinkStore() {
         }
       }
       return deleted;
-    },
-    async listOtherConnectedAccounts({ address, exceptUserId }) {
-      return [...connections]
-        .map((key) => key.split(':') as [string, string])
-        .filter(([userId, connected]) => connected === address && userId !== exceptUserId)
-        .flatMap(([userId]) => {
-          const account = accounts.get(userId);
-          return account ? [{ userId, email: account.email }] : [];
-        })
-        .sort((a, b) => a.email.localeCompare(b.email));
     },
     async getAccount({ userId }) {
       return accounts.get(userId) ?? null;
@@ -136,13 +140,23 @@ export function createInMemoryWalletLinkStore() {
 export function createFakeScreening() {
   const flagged = new Set<string>();
   const calls: Array<Address> = [];
+  let failure: Error | null = null;
   const screening: ScreeningPort = {
     async assess({ address }) {
       calls.push(address);
+      if (failure) throw failure;
       return flagged.has(address.toLowerCase()) ? 'flagged' : 'clear';
     }
   };
-  return { screening, flagged, calls };
+  return {
+    screening,
+    flagged,
+    calls,
+    /** Every screen rejects until cleared: Chainalysis cannot be asked. */
+    failScreens(error: Error | null) {
+      failure = error;
+    }
+  };
 }
 
 /**
@@ -155,6 +169,7 @@ export function createFakeScreening() {
 export function createFakeChain({ targets }: { targets: Array<MembershipTarget> }) {
   const smartWallets = new Map<string, Hex>();
   const membership = new Map<string, Array<MembershipVerdict>>();
+  const frozen = new Map<string, Array<boolean>>();
   const verifications: Array<{ chainId: number; address: Address }> = [];
   let membershipFailure: Error | null = null;
 
@@ -175,7 +190,11 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
           const verdicts = membership.get(address.toLowerCase());
           return [
             address,
-            targets.map((target, index) => ({ target, verdict: verdicts?.[index] ?? 'not-member', frozen: false }))
+            targets.map((target, index) => ({
+              target,
+              verdict: verdicts?.[index] ?? 'not-member',
+              frozen: frozen.get(address.toLowerCase())?.[index] ?? false
+            }))
           ];
         })
       );
@@ -194,6 +213,10 @@ export function createFakeChain({ targets }: { targets: Array<MembershipTarget> 
     /** One verdict for every target. */
     setMembership(address: Address, verdict: MembershipVerdict | Array<MembershipVerdict>) {
       membership.set(address.toLowerCase(), Array.isArray(verdict) ? verdict : targets.map(() => verdict));
+    },
+    /** Frozen or not on every target: a revoke carried out, or lifted. */
+    setFrozen(address: Address, isFrozen: boolean | Array<boolean>) {
+      frozen.set(address.toLowerCase(), Array.isArray(isFrozen) ? isFrozen : targets.map(() => isFrozen));
     }
   };
 }
@@ -268,11 +291,11 @@ export function createFakeVerification() {
         }
       );
     },
-    async listUnapproved({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
+    async listApproved({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
       return new Set(
         userIds.filter((userId) => {
           const view = views.get(userId);
-          return view !== undefined && !isYesDecision(view);
+          return view !== undefined && isYesDecision(view);
         })
       );
     }

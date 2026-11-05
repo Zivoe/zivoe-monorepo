@@ -433,8 +433,8 @@ export default function PersonaFlow({
                 </li>
                 <li className="flex items-start gap-3">
                   <UserIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                  The names and emails of a control person and of any owner of 25% or more — each will receive an email
-                  from Persona to verify their identity — and the names of any authorized persons
+                  The names and emails of a control person and of any owner of 25% or more (each will receive an email
+                  from Persona to verify their identity), and the names of any authorized persons
                 </li>
                 <li className="flex items-start gap-3">
                   <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />

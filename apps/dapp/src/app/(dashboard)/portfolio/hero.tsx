@@ -67,7 +67,7 @@ export function PortfolioHero({
             {totalD18 !== null ? (
               formatUsdD18(totalD18)
             ) : unavailable ? (
-              '—'
+              '-'
             ) : (
               <TextSkeleton className="w-40 bg-neutral-0/15 lg:w-56" />
             )}

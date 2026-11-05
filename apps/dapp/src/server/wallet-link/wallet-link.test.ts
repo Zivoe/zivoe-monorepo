@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createManualClock } from '@/server/verification/verification.fakes';
 
+import { ok } from '@/lib/result';
+
 import { type WalletLink, createWalletLink } from './wallet-link';
 import { type MembershipTarget } from './wallet-link-membership';
 import { WALLET_LINK_STATEMENT, type WalletLinkTypedData, toSignableTypedData } from './wallet-link-typed-data';
@@ -245,34 +247,45 @@ describe('the challenge', () => {
     expect(store.records.size).toBe(0);
   });
 
-  it('is refused for an address the user already linked, but never tells whose an address is', async () => {
-    const { walletLink } = setup();
+  it('is refused for an address with an owner, before any screen: the owner is told it is theirs, anyone else only that it is taken', async () => {
+    const { walletLink, screening, store } = setup();
     await linkEoa(walletLink, ALICE);
+    const screens = screening.calls.length;
+    const input = { address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
 
-    await expect(
-      walletLink.issueChallenge({
-        userId: ALICE,
-        address: SIGNER,
-        chainId: CHAIN_ID,
-        walletType: null,
-        walletName: null
-      })
-    ).resolves.toEqual({ ok: false, error: { code: 'already_linked' } });
-    // Bob is issued a challenge like anyone else: what Alice asked for is
-    // hers, and saying so would be an oracle for Zivoe's customer addresses.
-    const bobs = await walletLink.issueChallenge({
-      userId: BOB,
-      address: SIGNER,
-      chainId: CHAIN_ID,
-      walletType: null,
-      walletName: null
+    await expect(walletLink.issueChallenge({ userId: ALICE, ...input })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_linked' }
     });
-    expect(bobs.ok).toBe(true);
+    await expect(walletLink.issueChallenge({ userId: BOB, ...input })).resolves.toEqual({
+      ok: false,
+      error: { code: 'linked_elsewhere' }
+    });
+    expect(screening.calls).toHaveLength(screens);
+    await expect(store.store.getPending({ userId: BOB, address: SIGNER })).resolves.toBeNull();
+  });
+});
+
+describe('ownership', () => {
+  it('answers mine, elsewhere or none — to a yes Decision only', async () => {
+    const { walletLink, verification } = setup();
+    await linkEoa(walletLink, ALICE);
+    const other = '0x2222222222222222222222222222222222222222';
+
+    await expect(walletLink.getOwnership({ userId: ALICE, address: signer.address })).resolves.toEqual(ok('mine'));
+    await expect(walletLink.getOwnership({ userId: BOB, address: SIGNER })).resolves.toEqual(ok('elsewhere'));
+    await expect(walletLink.getOwnership({ userId: BOB, address: other })).resolves.toEqual(ok('none'));
+
+    verification.set(BOB, { status: 'declined' });
+    await expect(walletLink.getOwnership({ userId: BOB, address: SIGNER })).resolves.toEqual({
+      ok: false,
+      error: { code: 'not_approved' }
+    });
   });
 });
 
 describe('completing a link', () => {
-  it('links an EOA: the row is linked, the wallet connection exists, ops is queued with the signature stamp', async () => {
+  it('links an EOA: the row is linked and asks ops to whitelist, the wallet connection exists, ops is queued with version 1', async () => {
     const { walletLink, store, outbox, operator } = setup();
 
     const linked = await linkEoa(walletLink);
@@ -288,12 +301,14 @@ describe('completing a link', () => {
       status: 'linked',
       signedAt: T0,
       whitelistRequestedAt: T0,
-      whitelistObservedAt: null
+      whitelistObservedAt: null,
+      opsRequest: 'whitelist',
+      opsRequestVersion: 1
     });
     expect(linked.value.signature).toMatch(/^0x/);
     // The tracker never ran; the link write itself guaranteed the connection row.
     expect(store.connections.has(`${ALICE}:${SIGNER}`)).toBe(true);
-    expect(outbox.jobs).toEqual([{ kind: 'whitelist_request', linkId: linked.value.id, at: T0 }]);
+    expect(outbox.jobs).toEqual([{ kind: 'whitelist_request', linkId: linked.value.id, version: 1 }]);
     await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
 
     // The queued job, delivered: the operator line carries the record and the email read at delivery.
@@ -307,8 +322,7 @@ describe('completing a link', () => {
         isSmartAccount: false,
         // Read at delivery too: a member nowhere yet, which is what the request is for.
         membership: TARGETS.map((target) => ({ target, verdict: 'not-member', frozen: false })),
-        endedBy: null,
-        otherAccounts: []
+        endedBy: null
       }
     ]);
   });
@@ -410,26 +424,56 @@ describe('completing a link', () => {
     expect(outbox.jobs).toHaveLength(0);
   });
 
-  it('links one address for two accounts: each has its own request, and ops hears of both', async () => {
-    const { walletLink, outbox } = setup();
-    const alices = await linkEoa(walletLink, ALICE);
-    const bobs = await linkEoa(walletLink, BOB);
+  it('refuses a challenge issued before another account linked the address, and drops it before anything is queued', async () => {
+    const { walletLink, store, outbox } = setup();
+    const bobs = await walletLink.issueChallenge({
+      userId: BOB,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: null,
+      walletName: null
+    });
+    if (!bobs.ok) throw new Error('issue refused');
+    await linkEoa(walletLink, ALICE);
 
-    expect(alices.ok && alices.value.userId).toBe(ALICE);
-    expect(bobs.ok && bobs.value.userId).toBe(BOB);
-    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
-    await expect(walletLink.listLinks({ userId: BOB })).resolves.toHaveLength(1);
-    expect(outbox.jobs.map((job) => job.kind)).toEqual(['whitelist_request', 'whitelist_request']);
+    await expect(
+      walletLink.completeLink({ userId: BOB, address: SIGNER, signature: await sign(bobs.value.typedData) })
+    ).resolves.toEqual({ ok: false, error: { code: 'linked_elsewhere' } });
+    await expect(store.store.getPending({ userId: BOB, address: SIGNER })).resolves.toBeNull();
+    expect(outbox.jobs.map((job) => job.linkId)).toEqual([(await store.store.getOwner({ address: SIGNER }))?.id]);
+    await expect(walletLink.listLinks({ userId: BOB })).resolves.toEqual([]);
   });
 
-  it('refuses a second challenge for an address the account linked meanwhile, and drops it', async () => {
+  it('lets the database refuse a second owner that got past the check, and skips the job queued for it', async () => {
+    const { walletLink, store, outbox, operator } = setup();
+    const input = { address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
+    const alices = await walletLink.issueChallenge({ userId: ALICE, ...input });
+    const bobs = await walletLink.issueChallenge({ userId: BOB, ...input });
+    if (!alices.ok || !bobs.ok) throw new Error('issue refused');
+    await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(alices.value.typedData) });
+
+    // Both completions in the same instant: Bob's check ran before Alice's write landed.
+    const getOwner = store.store.getOwner.bind(store.store);
+    vi.spyOn(store.store, 'getOwner').mockResolvedValueOnce(null).mockImplementation(getOwner);
+    await expect(
+      walletLink.completeLink({ userId: BOB, address: SIGNER, signature: await sign(bobs.value.typedData) })
+    ).resolves.toEqual({ ok: false, error: { code: 'linked_elsewhere' } });
+
+    // Bob's job was queued before the refusal; his challenge is gone, so it skips.
+    const bobsJob = outbox.jobs.find((job) => job.linkId === bobs.value.linkId)!;
+    await expect(walletLink.deliverNotification({ job: bobsJob })).resolves.toEqual({ ok: true, value: 'skipped' });
+    expect(operator.sent).toEqual([]);
+    expect([...store.records.values()].filter((record) => record.status === 'linked')).toHaveLength(1);
+  });
+
+  it('refuses a second challenge of the same account for an address it linked meanwhile', async () => {
     const { walletLink, store } = setup();
     const input = { userId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
     const first = await walletLink.issueChallenge(input);
     if (!first.ok) throw new Error('issue refused');
     await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(first.value.typedData) });
     // A challenge issued in the same instant the first was completed: the pre-check could not see the link.
-    vi.spyOn(store.store, 'getLinked').mockResolvedValueOnce(null);
+    vi.spyOn(store.store, 'getOwner').mockResolvedValueOnce(null);
     const second = await walletLink.issueChallenge(input);
     if (!second.ok) throw new Error('issue refused');
 
@@ -438,6 +482,39 @@ describe('completing a link', () => {
     ).resolves.toEqual({ ok: false, error: { code: 'already_linked' } });
     await expect(store.store.getPending({ userId: ALICE, address: SIGNER })).resolves.toBeNull();
     await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+  });
+
+  it('answers already linked when another tab completed the same challenge while this one was verifying', async () => {
+    const { walletLink, chain } = setup();
+    const issued = await walletLink.issueChallenge({
+      userId: ALICE,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: null,
+      walletName: null
+    });
+    if (!issued.ok) throw new Error('issue refused');
+    const signature = await sign(issued.value.typedData);
+
+    // The other tab completes the same challenge while this one's signature is out for verification.
+    const verify = chain.chain.verifyTypedData.bind(chain.chain);
+    vi.spyOn(chain.chain, 'verifyTypedData').mockImplementationOnce(async (args) => {
+      const valid = await verify(args);
+      await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature });
+      return valid;
+    });
+
+    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_linked' }
+    });
+    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+
+    // A third tab, after both: no challenge left, and the answer is still that it is linked.
+    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_linked' }
+    });
   });
 
   it('refuses when the challenge was re-issued while its signature was being verified', async () => {
@@ -512,8 +589,20 @@ describe('completing a link', () => {
   });
 });
 
+/** Links Alice's address, has the sweep ask ops to revoke it (the Decision became `status`), and returns the row id. */
+async function linkThenRevoke(
+  s: ReturnType<typeof setup>,
+  status: 'revoked' | 'declined' | 'pending_review' = 'revoked'
+) {
+  const linked = await linkEoa(s.walletLink);
+  if (!linked.ok) throw new Error('link refused');
+  s.verification.set(ALICE, { status });
+  await s.walletLink.reconcile({ now: s.clock.clock.now() });
+  return linked.value.id;
+}
+
 describe('reconcile', () => {
-  it('marks a row whitelisted once every chain reports membership, and emails once', async () => {
+  it('marks a row whitelisted once every chain admits it, emails once, and reports it if it lapses', async () => {
     const { walletLink, chain, outbox, emails, clock, store } = setup();
     const linked = await linkEoa(walletLink);
     if (!linked.ok) throw new Error('link refused');
@@ -526,9 +615,14 @@ describe('reconcile', () => {
     expect(report).toEqual({
       checked: 1,
       whitelisted: 1,
-      ended: 0,
+      revoked: 0,
+      restored: 0,
       unchecked: 0,
-      stuck: []
+      unscreened: 0,
+      stuck: [],
+      lapsed: [],
+      stillAdmitted: [],
+      flagged: []
     });
     expect(store.records.get(linked.value.id)?.whitelistObservedAt).toEqual(now);
     expect(outbox.jobs.at(-1)).toEqual({ kind: 'whitelisted_email', linkId: linked.value.id, at: now });
@@ -541,11 +635,15 @@ describe('reconcile', () => {
       { to: 'alice@example.com', name: 'Alice', address: SIGNER, linkId: linked.value.id, whitelistObservedAt: now }
     ]);
 
-    // Seen whitelisted once, the row is out of the chain read: whatever ops
-    // does to the membership afterwards, no second email and no report.
-    chain.setMembership(SIGNER, ['member', 'not-member']);
+    // Frozen on one chain since, by mistake or a chain added: the digest lists it, every day, and nobody is emailed again.
+    chain.setFrozen(SIGNER, [false, true]);
     const again = await walletLink.reconcile({ now: new Date(now.getTime() + 4 * DAY) });
-    expect(again).toMatchObject({ checked: 0, whitelisted: 0, stuck: [] });
+    expect(again).toMatchObject({
+      checked: 1,
+      whitelisted: 0,
+      stuck: [],
+      lapsed: [{ linkId: linked.value.id, address: SIGNER, admittedOn: 1, total: 2 }]
+    });
     expect(outbox.jobs.filter((job) => job.kind === 'whitelisted_email')).toHaveLength(1);
   });
 
@@ -564,7 +662,7 @@ describe('reconcile', () => {
 
     // Days 3, 7, 14 and 30 after the request, then never again — wherever
     // inside its hour a run happens to start.
-    const stalled = { linkId: linked.value.id, address: SIGNER, memberOn: 1, total: 2 };
+    const stalled = { linkId: linked.value.id, address: SIGNER, admittedOn: 1, total: 2 };
     const reportedOn = async (day: number, offsetMs: number) =>
       (await walletLink.reconcile({ now: new Date(T0.getTime() + day * DAY + offsetMs) })).stuck;
 
@@ -579,92 +677,210 @@ describe('reconcile', () => {
   });
 
   it.each(['revoked', 'declined', 'pending_review'] as const)(
-    'ends the Linked addresses of an investor whose yes became %s, and asks ops to revoke',
+    'keeps the Linked address of an owner whose yes became %s, and asks ops to revoke it once',
     async (status) => {
-      const { walletLink, verification, chain, outbox, operator, emails, clock } = setup();
+      const s = setup();
+      const { walletLink, verification, chain, outbox, operator, emails, clock } = s;
       await linkEoa(walletLink);
 
-      // An operator's approval is a yes like Persona's, and ends nothing.
+      // An operator's approval is a yes like Persona's, and asks nothing new.
       verification.set(ALICE, { status: 'manually_approved' });
-      expect((await walletLink.reconcile({ now: clock.clock.now() })).ended).toBe(0);
+      expect((await walletLink.reconcile({ now: clock.clock.now() })).revoked).toBe(0);
 
       chain.setMembership(SIGNER, 'member');
       verification.set(ALICE, { status });
       const report = await walletLink.reconcile({ now: clock.clock.now() });
 
-      // Neither announced as whitelisted nor left linked: the revoke is on its way.
-      expect(report).toMatchObject({ ended: 1, whitelisted: 0, checked: 0 });
-      await expect(walletLink.listLinks({ userId: ALICE })).resolves.toEqual([]);
-      await expect(walletLink.deliverNotification({ job: outbox.jobs.at(-1)! })).resolves.toEqual({
+      // Not announced as whitelisted, still linked for good, and the revoke is on its way.
+      expect(report).toMatchObject({ revoked: 1, whitelisted: 0 });
+      await expect(walletLink.listLinks({ userId: ALICE })).resolves.toMatchObject([
+        { opsRequest: 'revoke', opsRequestVersion: 2 }
+      ]);
+      const revokeRequest = outbox.jobs.at(-1)!;
+      expect(revokeRequest).toMatchObject({ kind: 'revoke_request', version: 2 });
+      await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
         ok: true,
         value: 'sent'
       });
-      // And the request says what ended the link, and where the address stands now.
+      // The request says why, and where the address stands now.
       expect(operator.sent).toMatchObject([
         {
           kind: 'revoke_request',
           endedBy: status,
-          otherAccounts: [],
           membership: TARGETS.map((target) => ({ target, verdict: 'member' }))
         }
       ]);
       expect(emails.sent).toEqual([]);
+
+      // Asked once: the next pass has nothing new to ask, and lists the revoke as not done yet.
+      const next = await walletLink.reconcile({ now: clock.clock.now() });
+      expect(next).toMatchObject({ revoked: 0, stillAdmitted: [{ address: SIGNER, admittedOn: 2, total: 2 }] });
+      expect(outbox.jobs.filter((job) => job.kind === 'revoke_request')).toHaveLength(1);
+
+      // Frozen everywhere: the revoke is done, and the digest stops.
+      chain.setFrozen(SIGNER, true);
+      expect((await walletLink.reconcile({ now: clock.clock.now() })).stillAdmitted).toEqual([]);
     }
   );
 
-  it("treats two accounts' requests for one address apart: both are emailed, and a no ends only its own", async () => {
-    const { walletLink, verification, chain, outbox, operator, clock } = setup();
-    await linkEoa(walletLink, ALICE);
-    await linkEoa(walletLink, BOB);
+  it('asks ops to restore an owner approved again, with no new signature, and emails again once restored', async () => {
+    const s = setup();
+    const { walletLink, verification, chain, outbox, operator, emails, clock, screening, store } = s;
+    const id = await linkThenRevoke(s);
     chain.setMembership(SIGNER, 'member');
+    chain.setFrozen(SIGNER, true);
+    const screens = screening.calls.length;
 
-    const first = await walletLink.reconcile({ now: clock.clock.now() });
-    expect(first).toMatchObject({ checked: 2, whitelisted: 2 });
-    expect(outbox.jobs.filter((job) => job.kind === 'whitelisted_email')).toHaveLength(2);
+    verification.set(ALICE, { status: 'approved' });
+    clock.advance(HOUR);
+    const restoredAt = clock.clock.now();
+    const report = await walletLink.reconcile({ now: restoredAt });
 
-    verification.set(ALICE, { status: 'revoked' });
-    const second = await walletLink.reconcile({ now: clock.clock.now() });
-    expect(second).toMatchObject({ ended: 1 });
-    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toEqual([]);
-    await expect(walletLink.listLinks({ userId: BOB })).resolves.toHaveLength(1);
-    // Bob holds his own request, and so connected the address: the Revoke request names him.
-    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
-    expect(operator.sent.at(-1)).toMatchObject({
-      kind: 'revoke_request',
-      otherAccounts: [{ email: 'bob@example.com', isVerified: true }]
+    // Screened again first, as a new link is; then the Whitelist request, a new cycle.
+    expect(screening.calls.length).toBe(screens + 1);
+    expect(report).toMatchObject({ restored: 1, revoked: 0, whitelisted: 0 });
+    expect(store.records.get(id)).toMatchObject({
+      opsRequest: 'whitelist',
+      opsRequestVersion: 3,
+      whitelistRequestedAt: restoredAt,
+      whitelistObservedAt: null
     });
+    const restore = outbox.jobs.at(-1)!;
+    expect(restore).toEqual({ kind: 'whitelist_request', linkId: id, version: 3 });
+    await expect(walletLink.deliverNotification({ job: restore })).resolves.toEqual({ ok: true, value: 'sent' });
+    expect(operator.sent.at(-1)).toMatchObject({
+      kind: 'whitelist_request',
+      record: expect.objectContaining({ opsRequestVersion: 3 })
+    });
+
+    // Ops unfreezes: seen whitelisted for the new cycle, and the investor hears so.
+    chain.setFrozen(SIGNER, false);
+    const after = await walletLink.reconcile({ now: clock.clock.now() });
+    expect(after).toMatchObject({ whitelisted: 1 });
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    expect(emails.sent).toHaveLength(1);
   });
 
-  it('names on a Revoke request every other account that connected the address, and whether it is verified', async () => {
-    const { walletLink, verification, outbox, operator, store, clock } = setup();
-    await linkEoa(walletLink, ALICE);
-    // Bob only connected the address in the dapp; he never asked for a whitelist, and is not verified.
-    store.connections.add(`${BOB}:${SIGNER}`);
-    verification.set(BOB, { status: 'in_progress' });
+  it('keeps a revoked address frozen when Chainalysis flags it on approval again, and tries a screen that failed again', async () => {
+    const s = setup();
+    const { walletLink, verification, outbox, clock, screening, store } = s;
+    const id = await linkThenRevoke(s);
+    const jobs = outbox.jobs.length;
+    verification.set(ALICE, { status: 'approved' });
 
-    verification.set(ALICE, { status: 'revoked' });
-    await walletLink.reconcile({ now: clock.clock.now() });
-    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    screening.failScreens(new Error('chainalysis down'));
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ restored: 0, unscreened: 1 });
 
-    expect(operator.sent.at(-1)).toMatchObject({
-      kind: 'revoke_request',
-      otherAccounts: [{ email: 'bob@example.com', isVerified: false }]
+    screening.failScreens(null);
+    screening.flagged.add(SIGNER);
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({
+      restored: 0,
+      unscreened: 0,
+      flagged: [{ linkId: id, address: SIGNER }]
     });
+    expect(outbox.jobs).toHaveLength(jobs);
+    expect(store.records.get(id)).toMatchObject({ opsRequest: 'revoke', opsRequestVersion: 2 });
   });
 
-  it('still asks ops to revoke when the chains cannot be read, saying so instead of where the address stands', async () => {
-    const { walletLink, verification, chain, outbox, operator, clock } = setup();
+  it('asks for a revoke before it waits on the screen of a restore', async () => {
+    const s = setup();
+    const { walletLink, verification, outbox, clock, screening } = s;
+    await linkThenRevoke(s);
+    clock.advance(HOUR);
+    const issued = await walletLink.issueChallenge({
+      userId: BOB,
+      address: stranger.address,
+      chainId: CHAIN_ID,
+      walletType: 'metamask',
+      walletName: 'MetaMask'
+    });
+    if (!issued.ok) throw new Error('issue refused');
+    const linked = await walletLink.completeLink({
+      userId: BOB,
+      address: stranger.address,
+      signature: await sign(issued.value.typedData, stranger)
+    });
+    if (!linked.ok) throw new Error('link refused');
+    verification.set(ALICE, { status: 'approved' });
+    verification.set(BOB, { status: 'revoked' });
+
+    // Chainalysis takes the call and does not answer; Alice signed first.
+    vi.spyOn(screening.screening, 'assess').mockReturnValue(new Promise(() => undefined));
+    void walletLink.reconcile({ now: clock.clock.now() });
+
+    await vi.waitFor(() =>
+      expect(outbox.jobs.at(-1)).toMatchObject({ kind: 'revoke_request', linkId: linked.value.id })
+    );
+  });
+
+  it('screens every restore together, so a slow Chainalysis costs one wait however many are waiting', async () => {
+    const s = setup();
+    const { walletLink, verification, clock, screening, store } = s;
+    const id = await linkThenRevoke(s);
+    const { id: _id, ...row } = store.records.get(id)!;
+    const other = await store.store.putPending({
+      ...row,
+      userId: BOB,
+      address: stranger.address.toLowerCase() as Address,
+      status: 'pending'
+    });
+    const written = await store.store.link({
+      id: other.id,
+      nonce: other.nonce,
+      signature: row.signature!,
+      signedAt: clock.clock.now()
+    });
+    if (written.outcome !== 'linked') throw new Error('link refused');
+    await store.store.setOpsRequest({
+      id: other.id,
+      from: { opsRequest: 'whitelist', version: 1 },
+      to: 'revoke',
+      at: clock.clock.now()
+    });
+    verification.set(ALICE, { status: 'approved' });
+    verification.set(BOB, { status: 'approved' });
+
+    let answer = (_risk: 'clear') => undefined as void;
+    const assess = vi.spyOn(screening.screening, 'assess').mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const pass = walletLink.reconcile({ now: clock.clock.now() });
+
+    await vi.waitFor(() => expect(assess).toHaveBeenCalledTimes(2));
+    answer('clear');
+    expect(await pass).toMatchObject({ restored: 2 });
+  });
+
+  it('lists a revoke a chain still admits when another chain did not answer, and claims nothing from the unread one', async () => {
+    const s = setup();
+    const { walletLink, chain, clock } = s;
+    await linkThenRevoke(s);
+
+    chain.setMembership(SIGNER, ['member', 'unknown']);
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({
+      unchecked: 1,
+      stillAdmitted: [{ address: SIGNER, admittedOn: 1, total: 2 }]
+    });
+
+    chain.setMembership(SIGNER, ['not-member', 'unknown']);
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ unchecked: 1, stillAdmitted: [] });
+  });
+
+  it('asks again next pass when the row could not be moved after its job was queued', async () => {
+    const { walletLink, verification, outbox, clock, store } = setup();
     await linkEoa(walletLink);
     verification.set(ALICE, { status: 'revoked' });
-    await walletLink.reconcile({ now: clock.clock.now() });
+    vi.spyOn(store.store, 'setOpsRequest').mockRejectedValueOnce(new Error('db down'));
 
-    chain.failMembershipReads(new Error('every RPC down'));
-    await expect(walletLink.deliverNotification({ job: outbox.jobs.at(-1)! })).resolves.toEqual({
-      ok: true,
-      value: 'sent'
-    });
-
-    expect(operator.sent.at(-1)).toMatchObject({ kind: 'revoke_request', membership: null });
+    await expect(walletLink.reconcile({ now: clock.clock.now() })).rejects.toThrow('db down');
+    // The job queued for version 2 waits for a row that never reached it; the next pass queues it again.
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ revoked: 1 });
+    expect(outbox.jobs.filter((job) => job.kind === 'revoke_request')).toEqual([
+      expect.objectContaining({ version: 2 }),
+      expect.objectContaining({ version: 2 })
+    ]);
   });
 
   it('drops expired challenges, which nothing can act on any more', async () => {
@@ -687,8 +903,9 @@ describe('reconcile', () => {
 });
 
 describe('deliverNotification', () => {
-  it('asks for a retry while the row has not caught up, and skips a job the row moved past', async () => {
-    const { walletLink } = setup();
+  it('retries a job the row has not reached, and skips one it moved past', async () => {
+    const s = setup();
+    const { walletLink } = s;
     const issued = await walletLink.issueChallenge({
       userId: ALICE,
       address: SIGNER,
@@ -697,26 +914,28 @@ describe('deliverNotification', () => {
       walletName: null
     });
     if (!issued.ok) throw new Error('issue refused');
+    const linkId = issued.value.linkId;
 
     // Before any link: the whitelist request is early.
     await expect(
-      walletLink.deliverNotification({ job: { kind: 'whitelist_request', linkId: issued.value.linkId, at: T0 } })
+      walletLink.deliverNotification({ job: { kind: 'whitelist_request', linkId, version: 1 } })
     ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
 
     await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(issued.value.typedData) });
-    // A job with a stamp the row does not carry (an earlier click whose persist failed) is stale.
+    // The revoke the sweep is about to write, and the email before its stamp lands: early.
     await expect(
-      walletLink.deliverNotification({
-        job: { kind: 'whitelist_request', linkId: issued.value.linkId, at: new Date(T0.getTime() - 1) }
-      })
+      walletLink.deliverNotification({ job: { kind: 'revoke_request', linkId, version: 2 } })
+    ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
+    await expect(
+      walletLink.deliverNotification({ job: { kind: 'whitelisted_email', linkId, at: T0 } })
+    ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
+
+    // The row asked to revoke since: the Whitelist request it outlived is skipped, and so is a stale email.
+    s.verification.set(ALICE, { status: 'declined' });
+    await walletLink.reconcile({ now: s.clock.clock.now() });
+    await expect(
+      walletLink.deliverNotification({ job: { kind: 'whitelist_request', linkId, version: 1 } })
     ).resolves.toEqual({ ok: true, value: 'skipped' });
-    // The revoke and the email are early until their stamps land.
-    await expect(
-      walletLink.deliverNotification({ job: { kind: 'revoke_request', linkId: issued.value.linkId, at: T0 } })
-    ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
-    await expect(
-      walletLink.deliverNotification({ job: { kind: 'whitelisted_email', linkId: issued.value.linkId, at: T0 } })
-    ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
   });
 
   it("is the caller's retry when the channel refuses", async () => {
@@ -730,33 +949,26 @@ describe('deliverNotification', () => {
     });
   });
 
-  it('skips the whitelist request and the email for an address removed meanwhile; the revoke still goes', async () => {
-    const { walletLink, verification, outbox, operator, emails, chain, clock } = setup();
+  it('skips the email for an address asked to revoke meanwhile', async () => {
+    const { walletLink, verification, outbox, emails, chain, clock } = setup();
     await linkEoa(walletLink);
-    // The sweep saw it whitelisted and queued the email; then the Decision became a no and the next pass removed it.
     chain.setMembership(SIGNER, 'member');
     await walletLink.reconcile({ now: clock.clock.now() });
+    const whitelistedEmail = outbox.jobs.find((job) => job.kind === 'whitelisted_email')!;
     verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
-    const [whitelistRequest, whitelistedEmail, revokeRequest] = outbox.jobs;
 
-    // Asking ops to whitelist it now would undo the revoke that follows; the email would announce a lie.
-    await expect(walletLink.deliverNotification({ job: whitelistRequest! })).resolves.toEqual({
+    await expect(walletLink.deliverNotification({ job: whitelistedEmail })).resolves.toEqual({
       ok: true,
       value: 'skipped'
     });
-    await expect(walletLink.deliverNotification({ job: whitelistedEmail! })).resolves.toEqual({
-      ok: true,
-      value: 'skipped'
-    });
-    await expect(walletLink.deliverNotification({ job: revokeRequest! })).resolves.toEqual({ ok: true, value: 'sent' });
-    expect(operator.sent.map((message) => message.kind)).toEqual(['revoke_request']);
     expect(emails.sent).toEqual([]);
   });
 
-  it('skips a Whitelist request whose investor stopped being a yes before it was delivered', async () => {
-    const { walletLink, verification, outbox, operator } = setup();
-    await linkEoa(walletLink);
+  it('turns a Whitelist request whose owner stopped being a yes into a revoke, so an approval again restores anew', async () => {
+    const { walletLink, verification, outbox, operator, store, clock } = setup();
+    const linked = await linkEoa(walletLink);
+    if (!linked.ok) throw new Error('link refused');
     verification.set(ALICE, { status: 'revoked' });
 
     await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
@@ -764,42 +976,112 @@ describe('deliverNotification', () => {
       value: 'skipped'
     });
     expect(operator.sent).toEqual([]);
+    // Moved at delivery, as the sweep would have: nothing waits on a sweep seeing the no.
+    expect(store.records.get(linked.value.id)).toMatchObject({ opsRequest: 'revoke', opsRequestVersion: 2 });
+    expect(outbox.jobs.at(-1)).toEqual({ kind: 'revoke_request', linkId: linked.value.id, version: 2 });
+
+    // A yes again before any sweep saw the no: the next pass still asks to restore.
+    verification.set(ALICE, { status: 'approved' });
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ restored: 1 });
+    expect(outbox.jobs.at(-1)).toEqual({ kind: 'whitelist_request', linkId: linked.value.id, version: 3 });
   });
 
-  it('skips a Revoke request whose investor is a yes again before it was delivered', async () => {
-    const { walletLink, verification, outbox, operator, clock } = setup();
+  it('drops a request a later one overtook while it read the chain, so the older never lands last', async () => {
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
     await linkEoa(walletLink);
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    verification.set(ALICE, { status: 'declined' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const revoke = outbox.jobs.at(-1)!;
+
+    // The revoke's delivery is held up on the chain; meanwhile the owner is approved again and the restore is sent.
+    let release: () => void = () => undefined;
+    const probe = chain.chain.isSmartAccount.bind(chain.chain);
+    vi.spyOn(chain.chain, 'isSmartAccount').mockImplementationOnce(async (input) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return probe(input);
+    });
+    const slow = walletLink.deliverNotification({ job: revoke });
+    verification.set(ALICE, { status: 'approved' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    release();
+
+    await expect(slow).resolves.toEqual({ ok: true, value: 'skipped' });
+    expect(operator.sent.map(({ kind, record }) => [kind, record.opsRequestVersion])).toEqual([
+      ['whitelist_request', 1],
+      ['whitelist_request', 3]
+    ]);
+  });
+
+  it('tells ops of a new link to an address already admitted everywhere: it has an owner now', async () => {
+    const { walletLink, chain, outbox, operator } = setup();
+    chain.setMembership(SIGNER, 'member');
+    await linkEoa(walletLink);
+
+    await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
+      ok: true,
+      value: 'sent'
+    });
+    expect(operator.sent).toMatchObject([{ kind: 'whitelist_request' }]);
+  });
+
+  it('tells ops of every change whatever the chain shows, so the latest request cancels an earlier one not yet done', async () => {
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
+    // Linked, and its Whitelist request is in the channel; ops has not acted.
+    await linkEoa(walletLink);
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+
+    // Declined before ops acted: admitted nowhere, but the revoke still goes, or ops would whitelist it.
+    verification.set(ALICE, { status: 'declined' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    await expect(walletLink.deliverNotification({ job: outbox.jobs.at(-1)! })).resolves.toEqual({
+      ok: true,
+      value: 'sent'
+    });
+
+    // Approved again before ops froze it: still admitted, but the restore still goes, or ops would freeze it.
+    chain.setMembership(SIGNER, 'member');
+    verification.set(ALICE, { status: 'approved' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const restore = [...outbox.jobs].reverse().find((job) => job.kind === 'whitelist_request')!;
+    await expect(walletLink.deliverNotification({ job: restore })).resolves.toEqual({
+      ok: true,
+      value: 'sent'
+    });
+
+    expect(operator.sent.map((message) => message.kind)).toEqual([
+      'whitelist_request',
+      'revoke_request',
+      'whitelist_request'
+    ]);
+
+    // The chains cannot be read: the request goes, told the state is unknown.
     verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
-    const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
+    chain.failMembershipReads(new Error('every RPC down'));
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    expect(operator.sent.at(-1)).toMatchObject({ kind: 'revoke_request', membership: null });
+  });
 
-    // Re-approved and linked again while the Revoke request waited in the
-    // queue: delivering it now would ask ops to undo the Whitelist request.
+  it("skips a Revoke request the owner's approval again moved past, and sends one it has not", async () => {
+    const s = setup();
+    const { walletLink, verification, chain, outbox, operator, clock } = s;
+    chain.setMembership(SIGNER, 'member');
+    await linkThenRevoke(s);
+    const revokeRequest = outbox.jobs.at(-1)!;
+
+    // Approved again before delivery, not yet swept: the row still asks to revoke, so the revoke goes.
     verification.set(ALICE, { status: 'approved' });
-    await linkEoa(walletLink);
+    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({ ok: true, value: 'sent' });
+    expect(operator.sent).toMatchObject([{ kind: 'revoke_request', endedBy: null }]);
+
+    // Swept: the row asks to restore, and the revoke a retry would repeat is skipped.
+    await walletLink.reconcile({ now: clock.clock.now() });
     await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
       ok: true,
       value: 'skipped'
     });
-    expect(operator.sent).toEqual([]);
-  });
-
-  it('still asks ops to revoke when the investor is a yes again but has not linked the address again', async () => {
-    const { walletLink, verification, outbox, operator, clock } = setup();
-    await linkEoa(walletLink);
-    verification.set(ALICE, { status: 'pending_review' });
-    await walletLink.reconcile({ now: clock.clock.now() });
-    const revokeRequest = outbox.jobs.find((job) => job.kind === 'revoke_request')!;
-
-    // Re-approved before delivery, no new link: the Removed row is the address's
-    // only one and no sweep reads it again, so skipping would leave it whitelisted
-    // where a later no could never revoke it.
-    verification.set(ALICE, { status: 'approved' });
-    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
-      ok: true,
-      value: 'sent'
-    });
-    expect(operator.sent).toMatchObject([{ kind: 'revoke_request', endedBy: null }]);
   });
 
   it('has nobody to tell when the row is gone', async () => {

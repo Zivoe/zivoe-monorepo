@@ -27,10 +27,11 @@ export function formatRelativeTime(date: Date, now: Date): string {
 }
 
 /**
- * The whitelist badge: green only when the chain says member everywhere.
- * Short of that it is "pending" for an address this account has requested and
- * "not whitelisted" for one it has not; a tooltip explains a partial answer.
- * A read some chain did not answer claims neither: "not checked".
+ * The whitelist badge: green only when the chain says admitted everywhere (a
+ * member, not frozen). Short of that it is "pending" for an address this
+ * account has requested, and "not whitelisted" or "frozen" for one it has
+ * not; a tooltip explains a partial answer or a freeze. A read some chain did
+ * not answer claims neither: "not checked".
  */
 export function presentWhitelist({ summary, isRequested }: { summary: MembershipSummary; isRequested: boolean }): {
   label: string;
@@ -51,6 +52,13 @@ export function presentWhitelist({ summary, isRequested }: { summary: Membership
     };
   }
 
+  if (summary.status === 'frozen') {
+    const detail = `Frozen on ${summary.frozenOn} of ${summary.total} chains`;
+    return isRequested
+      ? { label: 'Whitelist pending', tone: 'pending', detail }
+      : { label: 'Frozen', tone: 'neutral', detail };
+  }
+
   const detail = summary.status === 'partial' ? `Whitelisted on ${summary.memberOn} of ${summary.total} chains` : null;
   return isRequested
     ? { label: 'Whitelist pending', tone: 'pending', detail }
@@ -65,7 +73,8 @@ export const LINK_REFUSAL_COPY: Record<WalletLinkActionError['code'], string> = 
   failed: 'Could not request the whitelist. Please try again.',
   not_approved: 'Only a verified account can request a whitelist.',
   flagged: "This address can't be whitelisted.",
-  already_linked: 'You have already requested a whitelist for this address.',
+  already_linked: 'This address is already linked to your account.',
+  linked_elsewhere: 'This address is linked to another Zivoe account.',
   no_challenge: 'The signing request is no longer valid. Try again.',
   expired: 'The signing request expired. Sign again to request the whitelist.',
   bad_signature:

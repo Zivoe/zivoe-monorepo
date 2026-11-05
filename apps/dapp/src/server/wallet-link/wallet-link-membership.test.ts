@@ -14,18 +14,41 @@ const membership = (verdicts: Array<MembershipVerdict>, frozen = false): Address
 
 describe('summarizeMembership', () => {
   it.each([
-    ['member everywhere', ['member', 'member'], { status: 'whitelisted', memberOn: 2, total: 2, unknown: 0 }],
-    ['member somewhere', ['member', 'not-member'], { status: 'partial', memberOn: 1, total: 2, unknown: 0 }],
-    ['member nowhere', ['not-member', 'not-member'], { status: 'pending', memberOn: 0, total: 2, unknown: 0 }],
+    [
+      'member everywhere',
+      ['member', 'member'],
+      { status: 'whitelisted', memberOn: 2, admittedOn: 2, frozenOn: 0, total: 2, unknown: 0 }
+    ],
+    [
+      'member somewhere',
+      ['member', 'not-member'],
+      { status: 'partial', memberOn: 1, admittedOn: 1, frozenOn: 0, total: 2, unknown: 0 }
+    ],
+    [
+      'member nowhere',
+      ['not-member', 'not-member'],
+      { status: 'pending', memberOn: 0, admittedOn: 0, frozenOn: 0, total: 2, unknown: 0 }
+    ],
     // A failed read is never a green badge, even with every other chain a member.
-    ['one read failed', ['member', 'unknown'], { status: 'unchecked', memberOn: 1, total: 2, unknown: 1 }],
-    ['nothing to check', [], { status: 'unchecked', memberOn: 0, total: 0, unknown: 0 }]
+    [
+      'one read failed',
+      ['member', 'unknown'],
+      { status: 'unchecked', memberOn: 1, admittedOn: 1, frozenOn: 0, total: 2, unknown: 1 }
+    ],
+    ['nothing to check', [], { status: 'unchecked', memberOn: 0, admittedOn: 0, frozenOn: 0, total: 0, unknown: 0 }]
   ] as const)('%s', (_label, verdicts, expected) => {
     expect(summarizeMembership(membership([...verdicts]))).toEqual(expected);
   });
 
-  // The hook keeps the two apart: an unfreeze restores access with no new admission.
-  it('counts a frozen member as a member', () => {
-    expect(summarizeMembership(membership(['member', 'member'], true)).status).toBe('whitelisted');
+  // The hook keeps the two apart: a frozen member is still a member, but it cannot invest.
+  it('counts a frozen member as a member, never as whitelisted', () => {
+    expect(summarizeMembership(membership(['member', 'member'], true))).toEqual({
+      status: 'frozen',
+      memberOn: 2,
+      admittedOn: 0,
+      frozenOn: 2,
+      total: 2,
+      unknown: 0
+    });
   });
 });

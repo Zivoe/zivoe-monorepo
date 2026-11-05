@@ -141,6 +141,13 @@
       "when": 1793404459675,
       "tag": "0019_kyb_record_version",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793610577878,
+      "tag": "0020_wallet_link_permanent_owner",
+      "breakpoints": true
     }
   ]
 }

@@ -110,13 +110,18 @@ export async function readAddressesMembership({
 
 export type MembershipSummary = {
   /**
-   * `whitelisted`: a member everywhere. `partial`: a member somewhere, not
-   * everywhere — a hub transaction whose message a destination chain never
-   * executed looks like this. `pending`: a member nowhere. `unchecked`: at
-   * least one read failed, so nothing can be concluded — never a green badge.
+   * `whitelisted`: admitted everywhere — a member and not frozen on every
+   * target. `frozen`: frozen on some target (a revoke is a freeze), whatever
+   * else holds. `partial`: a member somewhere, not everywhere — a hub
+   * transaction whose message a destination chain never executed looks like
+   * this. `pending`: a member nowhere. `unchecked`: at least one read failed,
+   * so nothing can be concluded — never a green badge.
    */
-  status: 'whitelisted' | 'partial' | 'pending' | 'unchecked';
+  status: 'whitelisted' | 'frozen' | 'partial' | 'pending' | 'unchecked';
   memberOn: number;
+  /** Targets where the address can invest: a member, not frozen. */
+  admittedOn: number;
+  frozenOn: number;
   total: number;
   unknown: number;
 };
@@ -124,16 +129,20 @@ export type MembershipSummary = {
 export function summarizeMembership(membership: AddressMembership): MembershipSummary {
   const total = membership.length;
   const memberOn = membership.filter(({ verdict }) => verdict === 'member').length;
+  const admittedOn = membership.filter(({ verdict, frozen }) => verdict === 'member' && !frozen).length;
+  const frozenOn = membership.filter(({ frozen }) => frozen).length;
   const unknown = membership.filter(({ verdict }) => verdict === 'unknown').length;
 
   const status: MembershipSummary['status'] =
     total === 0 || unknown > 0
       ? 'unchecked'
-      : memberOn === total
+      : admittedOn === total
         ? 'whitelisted'
-        : memberOn > 0
-          ? 'partial'
-          : 'pending';
+        : frozenOn > 0
+          ? 'frozen'
+          : memberOn > 0
+            ? 'partial'
+            : 'pending';
 
-  return { status, memberOn, total, unknown };
+  return { status, memberOn, admittedOn, frozenOn, total, unknown };
 }
