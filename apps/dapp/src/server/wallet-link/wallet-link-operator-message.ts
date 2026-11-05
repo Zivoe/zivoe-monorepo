@@ -72,14 +72,18 @@ export function formatWalletLinkOperatorMessage({
 }): string {
   // A Linked address is never unlinked: a revoke is a freeze, and the owner
   // approved again is a Whitelist request to lift it, with no new signature.
+  // Each request supersedes the opposite one before it, which ops may not
+  // have acted on yet, so it says so.
   const reason =
     kind === 'whitelist_request'
       ? record.opsRequestVersion > 1
-        ? 'approved again — unfreeze where frozen, whitelist where missing'
-        : 'new link'
+        ? 'approved again — unfreeze where frozen, whitelist where missing; cancels the earlier Revoke request'
+        : membership && summarizeMembership(membership).status === 'whitelisted'
+          ? 'new link to an address already whitelisted — nothing to do unless this owner is unexpected'
+          : 'new link'
       : endedBy === null
-        ? 'no longer approved when asked, approved again since — freeze on every chain'
-        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — freeze on every chain`;
+        ? 'no longer approved when asked, approved again since — freeze now; a Whitelist request that follows supersedes this'
+        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — freeze on every chain; cancels any earlier Whitelist request not yet done`;
   const lines = [
     `<b>${TITLES[kind]}</b>`,
     '',

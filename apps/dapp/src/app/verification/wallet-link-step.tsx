@@ -390,7 +390,9 @@ function ConnectedWalletCard({
       );
     }
 
-    // -- Asked to revoke: the account's yes does not stand right now.
+    // -- Asked to revoke, and the step only shows to an approved account: the
+    // sweep has not restored it yet (minutes), or Chainalysis flagged it when
+    // it tried. Neither is the investor's verification, so the card says neither.
     if (linkedRow.opsRequest === 'revoke') {
       return (
         <Card heading="Connected wallet">
@@ -398,8 +400,12 @@ function ConnectedWalletCard({
           <div className="flex flex-col gap-2">
             <WhitelistBadge summary={summary} isRequested={false} />
             <p className="text-small text-secondary">
-              This address stays linked to your account. It isn&apos;t whitelisted while your verification isn&apos;t
-              approved; once it is, we restore the whitelist — no new signature needed.
+              This address stays linked to your account, and its whitelist is on hold. If your verification was approved
+              recently, we restore it shortly — no new signature needed. If it stays on hold, email{' '}
+              <Link href={`mailto:${EMAILS.INQUIRE}`} variant="link-neutral-dark" size="s">
+                {EMAILS.INQUIRE}
+              </Link>
+              .
             </p>
           </div>
           {disconnectButton}

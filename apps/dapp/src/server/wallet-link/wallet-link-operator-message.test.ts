@@ -94,7 +94,7 @@ describe('the operator message', () => {
     expect(text.split('\n')).toEqual([
       '<b>🔴 Revoke request</b>',
       '',
-      '<b>Reason:</b> no longer approved when asked, approved again since — freeze on every chain',
+      '<b>Reason:</b> no longer approved when asked, approved again since — freeze now; a Whitelist request that follows supersedes this',
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
@@ -114,9 +114,15 @@ describe('the operator message', () => {
         endedBy
       }).split('\n')[2];
 
-    expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked — freeze on every chain');
-    expect(reasonFor('pending_review')).toBe('<b>Reason:</b> verification back under review — freeze on every chain');
-    expect(reasonFor('in_progress')).toBe('<b>Reason:</b> verification no longer approved — freeze on every chain');
+    expect(reasonFor('revoked')).toBe(
+      '<b>Reason:</b> verification revoked — freeze on every chain; cancels any earlier Whitelist request not yet done'
+    );
+    expect(reasonFor('pending_review')).toBe(
+      '<b>Reason:</b> verification back under review — freeze on every chain; cancels any earlier Whitelist request not yet done'
+    );
+    expect(reasonFor('in_progress')).toBe(
+      '<b>Reason:</b> verification no longer approved — freeze on every chain; cancels any earlier Whitelist request not yet done'
+    );
   });
 
   it('asks to lift a freeze when the owner is approved again, with no new signature', () => {
@@ -129,7 +135,24 @@ describe('the operator message', () => {
       endedBy: null
     });
 
-    expect(text.split('\n')[2]).toBe('<b>Reason:</b> approved again — unfreeze where frozen, whitelist where missing');
+    expect(text.split('\n')[2]).toBe(
+      '<b>Reason:</b> approved again — unfreeze where frozen, whitelist where missing; cancels the earlier Revoke request'
+    );
+  });
+
+  it('flags a new link to an address already whitelisted: someone else may be investing with it', () => {
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'whitelist_request',
+      record: record(),
+      email: 'ada@example.com',
+      isSmartAccount: false,
+      membership: membership(['member', 'member']),
+      endedBy: null
+    });
+
+    expect(text.split('\n')[2]).toBe(
+      '<b>Reason:</b> new link to an address already whitelisted — nothing to do unless this owner is unexpected'
+    );
   });
 
   it.each([

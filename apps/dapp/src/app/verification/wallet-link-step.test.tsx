@@ -323,14 +323,15 @@ describe('the connected wallet', () => {
     expect(mocks.ownership).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps a wallet this account owns linked while its verification is not approved, with nothing to sign', () => {
+  it('keeps a wallet this account owns linked while its whitelist is on hold, with nothing to sign', () => {
     connect(ADDRESS, FROZEN);
 
     renderStep([linked({ opsRequest: 'revoke', wasWhitelisted: true })]);
 
     expect(screen.getByRole('img', { name: 'Frozen, Frozen on 2 of 2 chains' })).toBeTruthy();
-    expect(screen.getByText(/stays linked to your account/)).toBeTruthy();
+    expect(screen.getByText(/stays linked to your account, and its whitelist is on hold/)).toBeTruthy();
     expect(screen.getByText(/no new signature needed/)).toBeTruthy();
+    expect(screen.queryByText(/isn.t approved/)).toBeNull();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 

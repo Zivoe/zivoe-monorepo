@@ -611,24 +611,18 @@ export function createWalletLink({
               return ok('skipped');
             }
 
+            // Every change is told to ops, whatever the chain shows now: a
+            // request may supersede an earlier, opposite one ops has not acted
+            // on yet, and only this message cancels it.
             const [decision, membership] = await Promise.all([
               verification.getVerificationStatus({ userId: record.userId }),
               readOneMembership(record.address)
             ]);
             const isYes = isYesDecision(decision);
-            const summary = membership ? summarizeMembership(membership) : null;
-            if (job.kind === 'whitelist_request') {
-              // No longer a yes inside the queue's delay: nobody to admit. The
-              // sweep asks the other way next. A request in the channel is one
-              // for a verified investor.
-              if (!isYes) return ok('skipped');
-              // Admitted everywhere already (a wallet someone had whitelisted,
-              // a revoke never carried out): nothing for ops to do.
-              if (summary?.status === 'whitelisted') return ok('skipped');
-            } else if (summary?.unknown === 0 && summary.admittedOn === 0) {
-              // Admitted nowhere (never whitelisted, or frozen everywhere already): nothing to revoke.
-              return ok('skipped');
-            }
+            // No longer a yes inside the queue's delay: nobody to admit, and the
+            // revoke ops last heard still stands. The sweep asks to revoke next.
+            // A Whitelist request in the channel is one for a verified investor.
+            if (job.kind === 'whitelist_request' && !isYes) return ok('skipped');
 
             const [account, isSmartAccount] = await Promise.all([
               store.getAccount({ userId: record.userId }),

@@ -858,41 +858,54 @@ describe('deliverNotification', () => {
     expect(operator.sent).toEqual([]);
   });
 
-  it('skips a Whitelist request for an address already admitted everywhere: ops has nothing to do', async () => {
+  it('tells ops of a new link to an address already admitted everywhere: it has an owner now', async () => {
     const { walletLink, chain, outbox, operator } = setup();
     chain.setMembership(SIGNER, 'member');
     await linkEoa(walletLink);
 
     await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
       ok: true,
-      value: 'skipped'
+      value: 'sent'
     });
-    expect(operator.sent).toEqual([]);
+    expect(operator.sent).toMatchObject([{ kind: 'whitelist_request' }]);
+  });
 
-    // Frozen somewhere, it is not admitted: the request goes.
-    chain.setFrozen(SIGNER, [true, false]);
-    await expect(walletLink.deliverNotification({ job: outbox.jobs[0]! })).resolves.toEqual({
+  it('tells ops of every change whatever the chain shows, so the latest request cancels an earlier one not yet done', async () => {
+    const { walletLink, verification, chain, outbox, operator, clock } = setup();
+    // Linked, and its Whitelist request is in the channel; ops has not acted.
+    await linkEoa(walletLink);
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+
+    // Declined before ops acted: admitted nowhere, but the revoke still goes, or ops would whitelist it.
+    verification.set(ALICE, { status: 'declined' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    await expect(walletLink.deliverNotification({ job: outbox.jobs.at(-1)! })).resolves.toEqual({
       ok: true,
       value: 'sent'
     });
-  });
 
-  it('skips a Revoke request for an address admitted nowhere, and sends one it cannot tell', async () => {
-    const s = setup();
-    const { walletLink, chain, outbox, operator } = s;
-    await linkThenRevoke(s);
-    const revokeRequest = outbox.jobs.at(-1)!;
-
-    // Never whitelisted: nothing to revoke.
-    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({
+    // Approved again before ops froze it: still admitted, but the restore still goes, or ops would freeze it.
+    chain.setMembership(SIGNER, 'member');
+    verification.set(ALICE, { status: 'approved' });
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const restore = [...outbox.jobs].reverse().find((job) => job.kind === 'whitelist_request')!;
+    await expect(walletLink.deliverNotification({ job: restore })).resolves.toEqual({
       ok: true,
-      value: 'skipped'
+      value: 'sent'
     });
 
-    // The chains cannot be read: ops is asked, told the state is unknown.
+    expect(operator.sent.map((message) => message.kind)).toEqual([
+      'whitelist_request',
+      'revoke_request',
+      'whitelist_request'
+    ]);
+
+    // The chains cannot be read: the request goes, told the state is unknown.
+    verification.set(ALICE, { status: 'revoked' });
+    await walletLink.reconcile({ now: clock.clock.now() });
     chain.failMembershipReads(new Error('every RPC down'));
-    await expect(walletLink.deliverNotification({ job: revokeRequest })).resolves.toEqual({ ok: true, value: 'sent' });
-    expect(operator.sent).toMatchObject([{ kind: 'revoke_request', membership: null }]);
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    expect(operator.sent.at(-1)).toMatchObject({ kind: 'revoke_request', membership: null });
   });
 
   it("skips a Revoke request the owner's approval again moved past, and sends one it has not", async () => {

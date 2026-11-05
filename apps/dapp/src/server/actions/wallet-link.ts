@@ -72,13 +72,23 @@ const completeSchema = z.object({
 });
 
 /**
- * Per user, across the two writes and the ownership read: an issue costs a
- * Chainalysis call and a row, a completion an RPC verification, and the
- * ownership read says whether an address is some Zivoe account's. A person
- * links a handful of addresses in a sitting; a script does not get to spend
- * the screening budget or walk a list of addresses.
+ * Per user, across the two writes: an issue costs a Chainalysis call and a
+ * row, a completion an RPC verification. A person links a handful of
+ * addresses in a sitting; a script does not get to spend the screening budget.
  */
 const ratelimit = new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(20, '10 m') });
+
+/**
+ * Per user, the ownership read on its own budget: it says whether an address
+ * is some Zivoe account's, so a script does not get to walk a list of
+ * addresses — and reloads or wallet switches must not spend the budget a
+ * signature needs.
+ */
+const ownershipRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(30, '10 m'),
+  prefix: 'wallet-link-ownership'
+});
 
 /** The signed-in user the `kyc` flag is on for — the page's own gate — or null. */
 async function authorizedUserId(): Promise<string | null> {
@@ -89,7 +99,8 @@ async function authorizedUserId(): Promise<string | null> {
 
 async function guarded<T>(
   flow: string,
-  run: (userId: string) => Promise<WalletLinkActionResult<T>>
+  run: (userId: string) => Promise<WalletLinkActionResult<T>>,
+  limiter: Ratelimit = ratelimit
 ): Promise<WalletLinkActionResult<T>> {
   const userId = await authorizedUserId();
   if (!userId) return { ok: false, error: { code: 'unauthorized' } };
@@ -97,7 +108,7 @@ async function guarded<T>(
   try {
     // A limiter that cannot answer refuses too: Upstash answers a timeout as
     // a success with a reason, and nothing here is worth running unmetered.
-    const limit = await ratelimit.limit(`wallet-link:${userId}`);
+    const limit = await limiter.limit(`wallet-link:${userId}`);
     if (!limit.success || limit.reason === 'timeout') return { ok: false, error: { code: 'rate_limited' } };
 
     return await run(userId);
@@ -134,10 +145,14 @@ export async function getWalletOwnership(input: { address: string }): Promise<Wa
   const parsed = ownershipSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: 'invalid_input' } };
 
-  return guarded('wallet-link-ownership', async (userId) => {
-    const result = await walletLink.getOwnership({ userId, address: parsed.data.address as Address });
-    return result.ok ? { ok: true, value: result.value } : { ok: false, error: result.error };
-  });
+  return guarded(
+    'wallet-link-ownership',
+    async (userId) => {
+      const result = await walletLink.getOwnership({ userId, address: parsed.data.address as Address });
+      return result.ok ? { ok: true, value: result.value } : { ok: false, error: result.error };
+    },
+    ownershipRatelimit
+  );
 }
 
 /** Step one of a link: the challenge the wallet signs — the same one again while it is unexpired. */
