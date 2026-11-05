@@ -72,7 +72,7 @@ describe('the operator message', () => {
         previousDecision
       });
 
-    expect(line('approved')).toContain('<b>Status:</b> KYB case reopened — the approval no longer stands');
+    expect(line('approved')).toContain('<b>Status:</b> KYB case reopened: the approval no longer stands');
     expect(line('declined')).toContain('<b>Status:</b> KYB case reopened after a decline');
   });
 
@@ -86,7 +86,7 @@ describe('the operator message', () => {
       });
 
     expect(line({ accountType: 'individual', status: 'declined' })).toContain(
-      '<b>Status:</b> Declined — the approval no longer stands'
+      '<b>Status:</b> Declined: the approval no longer stands'
     );
     expect(line({ accountType: 'organization', status: 'approved' })).toContain(
       '<b>Status:</b> Approved after a decline'

@@ -94,8 +94,8 @@ describe('the operator message', () => {
     expect(text.split('\n')).toEqual([
       '<b>🔴 Revoke request #2</b>',
       '',
-      '<b>Reason:</b> no longer approved when asked, approved again since — a member on no chain when sent, so nothing to freeze unless admitted since',
-      '<b>Supersedes:</b> every lower-numbered request for this address — act on the highest number',
+      '<b>Reason:</b> no longer approved when asked, approved again since; a member on no chain when sent, so nothing to freeze unless admitted since',
+      '<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number',
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
@@ -115,9 +115,9 @@ describe('the operator message', () => {
         endedBy
       }).split('\n')[2];
 
-    expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked — freeze on every chain');
-    expect(reasonFor('pending_review')).toBe('<b>Reason:</b> verification back under review — freeze on every chain');
-    expect(reasonFor('in_progress')).toBe('<b>Reason:</b> verification no longer approved — freeze on every chain');
+    expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked; freeze on every chain');
+    expect(reasonFor('pending_review')).toBe('<b>Reason:</b> verification back under review; freeze on every chain');
+    expect(reasonFor('in_progress')).toBe('<b>Reason:</b> verification no longer approved; freeze on every chain');
   });
 
   it('asks to freeze unless every chain read the address as no member', () => {
@@ -132,12 +132,12 @@ describe('the operator message', () => {
       }).split('\n')[2];
 
     expect(reasonWith(NOWHERE)).toBe(
-      '<b>Reason:</b> verification declined — a member on no chain when sent, so nothing to freeze unless admitted since'
+      '<b>Reason:</b> verification declined; a member on no chain when sent, so nothing to freeze unless admitted since'
     );
     expect(reasonWith(membership(['not-member', 'unknown']))).toBe(
-      '<b>Reason:</b> verification declined — freeze on every chain'
+      '<b>Reason:</b> verification declined; freeze on every chain'
     );
-    expect(reasonWith(null)).toBe('<b>Reason:</b> verification declined — freeze on every chain');
+    expect(reasonWith(null)).toBe('<b>Reason:</b> verification declined; freeze on every chain');
   });
 
   it('asks to lift a freeze when the owner is approved again, with no new signature', () => {
@@ -153,8 +153,8 @@ describe('the operator message', () => {
     expect(text.split('\n').slice(0, 4)).toEqual([
       '<b>🟢 Whitelist request #3</b>',
       '',
-      '<b>Reason:</b> approved again — unfreeze where frozen, whitelist where missing',
-      '<b>Supersedes:</b> every lower-numbered request for this address — act on the highest number'
+      '<b>Reason:</b> approved again; unfreeze where frozen, whitelist where missing',
+      '<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number'
     ]);
   });
 
@@ -169,7 +169,7 @@ describe('the operator message', () => {
     });
 
     expect(text.split('\n')[2]).toBe(
-      '<b>Reason:</b> new link to an address already whitelisted — nothing to do unless this owner is unexpected'
+      '<b>Reason:</b> new link to an address already whitelisted; nothing to do unless this owner is unexpected'
     );
   });
 
@@ -221,7 +221,7 @@ describe('the operator message', () => {
     });
 
     expect(text.split('\n')[6]).toBe(
-      '<b>Smart account:</b> could not be checked — if it is one, control is proven on Base only'
+      '<b>Smart account:</b> could not be checked; if it is one, control is proven on Base only'
     );
   });
 

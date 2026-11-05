@@ -45,7 +45,7 @@ describe('PortfolioHero', () => {
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Portfolio preview');
     expect(screen.queryByText(/Still checking/)).toBeNull();
-    expect(screen.queryByText('—')).toBeNull();
+    expect(screen.queryByText('-')).toBeNull();
 
     rerender(
       <PortfolioHero
@@ -72,7 +72,7 @@ describe('PortfolioHero', () => {
       />
     );
 
-    expect(screen.getByText('—')).toBeTruthy();
+    expect(screen.getByText('-')).toBeTruthy();
     expect(screen.getByText(/Share price unavailable/)).toBeTruthy();
   });
 
@@ -95,7 +95,7 @@ describe('PortfolioHero', () => {
     );
 
     expect(screen.getByText('$57.00')).toBeTruthy();
-    expect(screen.queryByText('—')).toBeNull();
+    expect(screen.queryByText('-')).toBeNull();
     expect(screen.getByText(/Could not load Ethereum; this figure leaves it out\./)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(refetch).toHaveBeenCalledTimes(1);
@@ -120,7 +120,7 @@ describe('PortfolioHero', () => {
     );
     expect(screen.getByText(/Could not load your positions\./)).toBeTruthy();
     expect(screen.queryByText(/Ethereum/)).toBeNull();
-    expect(screen.getByText('—')).toBeTruthy(); // nothing honest to print
+    expect(screen.getByText('-')).toBeTruthy(); // nothing honest to print
 
     rerender(
       <PortfolioHero

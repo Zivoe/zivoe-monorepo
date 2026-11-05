@@ -27,7 +27,7 @@ function formatTokenAmount({
   value: bigint | null;
   token: { decimals: number; symbol: string } | null;
 }): string {
-  if (value === null || token === null) return '—';
+  if (value === null || token === null) return '-';
   return `${formatBigIntWithCommas({ value, tokenDecimals: token.decimals, displayDecimals: 2, showUnderZero: true })} ${token.symbol}`;
 }
 

@@ -161,7 +161,7 @@ describe('buildTransactionReceiptEmail', () => {
     expect(html).toContain('Amount Redeemed');
   });
 
-  it('claimed with only the asset amount missing: the preview falls back rather than reading "redeemed for —"', async () => {
+  it('claimed with only the asset amount missing: the preview falls back rather than reading "redeemed for -"', async () => {
     const { email } = build({ type: 'REDEEM_CLAIMED', currencyAmount: null });
     const html = await render(email);
 
@@ -186,7 +186,8 @@ describe('buildTransactionReceiptEmail', () => {
     const { email } = build({ tokenAmount: null, currencyAmount: null });
     const html = await render(email);
 
-    expect(html).toContain('—');
+    // Bounded by tags: the markup around it is full of hyphens.
+    expect(html).toMatch(/>-</);
     expect(html).not.toContain('NaN');
     expect(html).toContain('Your deposit receipt is ready');
   });

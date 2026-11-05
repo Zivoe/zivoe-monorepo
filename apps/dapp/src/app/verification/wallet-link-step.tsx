@@ -404,7 +404,7 @@ function ConnectedWalletCard({
             <WhitelistBadge summary={summary} isRequested={false} />
             <p className="text-small text-secondary">
               This address stays linked to your account, and its whitelist is on hold. If your verification was approved
-              recently, we restore it shortly — no new signature needed. If it stays on hold, email{' '}
+              recently, we restore it shortly, with no new signature needed. If it stays on hold, email{' '}
               <Link href={`mailto:${EMAILS.INQUIRE}`} variant="link-neutral-dark" size="s">
                 {EMAILS.INQUIRE}
               </Link>
@@ -447,7 +447,7 @@ function ConnectedWalletCard({
           {/* Server and client read the clock at different moments; the minute can tick between them. */}
           <p className="text-small text-secondary" suppressHydrationWarning>
             {linkedRow.isRestore
-              ? `Restoring the whitelist, requested ${formatRelativeTime(linkedRow.whitelistRequestedAt, new Date())} — no new signature needed.`
+              ? `Restoring the whitelist, requested ${formatRelativeTime(linkedRow.whitelistRequestedAt, new Date())}. No new signature needed.`
               : `Whitelist requested ${formatRelativeTime(linkedRow.whitelistRequestedAt, new Date())}.`}{' '}
             We usually whitelist addresses within one business day and will email you when it&apos;s done.
           </p>

@@ -88,7 +88,7 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
         ...section('Wallet link: whitelisted before, not now', report.lapsed, driftLine),
         ...section('Wallet link: revoke asked, still admitted', report.stillAdmitted, driftLine),
         ...section(
-          'Wallet link: approved again, Chainalysis flags it — left frozen',
+          'Wallet link: approved again, Chainalysis flags it, so left frozen',
           report.flagged,
           (row) => `<code>${row.address}</code>`
         )

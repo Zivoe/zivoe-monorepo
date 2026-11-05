@@ -341,7 +341,7 @@ describe('the connected wallet', () => {
     renderStep([linked({ isRestore: true })]);
 
     expect(screen.getByRole('img', { name: 'Whitelist pending, Frozen on 2 of 2 chains' })).toBeTruthy();
-    expect(screen.getByText(/Restoring the whitelist, requested just now — no new signature needed/)).toBeTruthy();
+    expect(screen.getByText(/Restoring the whitelist, requested just now\. No new signature needed/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 

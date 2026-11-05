@@ -84,19 +84,19 @@ export function formatWalletLinkOperatorMessage({
   const reason =
     kind === 'whitelist_request'
       ? record.opsRequestVersion > 1
-        ? 'approved again — unfreeze where frozen, whitelist where missing'
+        ? 'approved again; unfreeze where frozen, whitelist where missing'
         : summary?.status === 'whitelisted'
-          ? 'new link to an address already whitelisted — nothing to do unless this owner is unexpected'
+          ? 'new link to an address already whitelisted; nothing to do unless this owner is unexpected'
           : 'new link'
       : endedBy === null
-        ? `no longer approved when asked, approved again since — ${revokeAction}`
-        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — ${revokeAction}`;
+        ? `no longer approved when asked, approved again since; ${revokeAction}`
+        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'}; ${revokeAction}`;
   const lines = [
     `<b>${TITLES[kind]} #${record.opsRequestVersion}</b>`,
     '',
     `<b>Reason:</b> ${reason}`,
     ...(record.opsRequestVersion > 1
-      ? ['<b>Supersedes:</b> every lower-numbered request for this address — act on the highest number']
+      ? ['<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number']
       : []),
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
@@ -108,7 +108,7 @@ export function formatWalletLinkOperatorMessage({
       ? [`<b>Smart account:</b> control proven on ${escapeHtml(chainLabel(record.chainId))} only`]
       : isSmartAccount === null
         ? [
-            `<b>Smart account:</b> could not be checked — if it is one, control is proven on ${escapeHtml(chainLabel(record.chainId))} only`
+            `<b>Smart account:</b> could not be checked; if it is one, control is proven on ${escapeHtml(chainLabel(record.chainId))} only`
           ]
         : []),
     `<b>Whitelist now:</b> ${membershipLine(membership)}`
