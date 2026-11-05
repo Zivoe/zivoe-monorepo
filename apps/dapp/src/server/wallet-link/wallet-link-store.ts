@@ -1,10 +1,10 @@
 import 'server-only';
 
-import { and, desc, eq, isNotNull, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, sql } from 'drizzle-orm';
 import { type Address, type Hex } from 'viem';
 
 import { profile, user, walletConnection, walletLink } from '@zivoe/database/schema';
-import { WALLET_LINK_LINKED_USER_ADDRESS_INDEX } from '@zivoe/database/wallet-link';
+import { WALLET_LINK_LINKED_ADDRESS_INDEX } from '@zivoe/database/wallet-link';
 
 import { type Db } from '@/server/clients/db';
 
@@ -27,7 +27,8 @@ const columns = {
   signedAt: walletLink.signedAt,
   whitelistRequestedAt: walletLink.whitelistRequestedAt,
   whitelistObservedAt: walletLink.whitelistObservedAt,
-  removedAt: walletLink.removedAt
+  opsRequest: walletLink.opsRequest,
+  opsRequestVersion: walletLink.opsRequestVersion
 };
 
 /** What `select(columns)` yields: the table's own types, nullable where the column is. */
@@ -44,13 +45,18 @@ const toRecord = (row: Row): WalletLinkRecord => ({
   signature: row.signature as Hex | null
 });
 
-/** Postgres' unique_violation on the one `linked` row per (user, address). */
-const isAlreadyLinked = (error: unknown) => {
+/** Postgres' unique_violation on the one `linked` row per address. */
+const isAddressTaken = (error: unknown) => {
   const candidate = (error instanceof Error && 'cause' in error && error.cause ? error.cause : error) as {
     code?: string;
+    /** postgres.js names it `constraint_name`; PGlite, which the store tests run on, `constraint`. */
     constraint_name?: string;
+    constraint?: string;
   };
-  return candidate?.code === '23505' && candidate.constraint_name === WALLET_LINK_LINKED_USER_ADDRESS_INDEX;
+  return (
+    candidate?.code === '23505' &&
+    (candidate.constraint_name ?? candidate.constraint) === WALLET_LINK_LINKED_ADDRESS_INDEX
+  );
 };
 
 /** The WalletLinkStore port over drizzle. Infrastructure failures reject, as the port allows. */
@@ -66,8 +72,7 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
     getPending: ({ userId, address }) =>
       one(and(eq(walletLink.userId, userId), eq(walletLink.address, address), eq(walletLink.status, 'pending'))),
 
-    getLinked: ({ userId, address }) =>
-      one(and(eq(walletLink.userId, userId), eq(walletLink.address, address), eq(walletLink.status, 'linked'))),
+    getOwner: ({ address }) => one(and(eq(walletLink.address, address), eq(walletLink.status, 'linked'))),
 
     async putPending(record) {
       // The partial unique index on (user, address) where pending: a re-issue replaces, never piles up.
@@ -117,7 +122,15 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
 
           const [linked] = await tx
             .update(walletLink)
-            .set({ status: 'linked', signature, signedAt, whitelistRequestedAt: signedAt, updatedAt: sql`now()` })
+            .set({
+              status: 'linked',
+              signature,
+              signedAt,
+              whitelistRequestedAt: signedAt,
+              opsRequest: 'whitelist',
+              opsRequestVersion: 1,
+              updatedAt: sql`now()`
+            })
             .where(eq(walletLink.id, id))
             .returning(columns);
           if (!linked) return { outcome: 'not_pending' as const };
@@ -125,25 +138,45 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         });
       } catch (error) {
         // Thrown out of the transaction so it rolls back whole: the connection row is not kept for a link that was refused.
-        if (isAlreadyLinked(error)) return { outcome: 'already_linked' };
+        if (isAddressTaken(error)) return { outcome: 'address_taken' };
         throw error;
       }
     },
 
-    async remove({ id, removedAt }) {
+    async setOpsRequest({ id, from, to, at }) {
       const rows = await db
         .update(walletLink)
-        .set({ status: 'removed', removedAt, updatedAt: sql`now()` })
-        .where(and(eq(walletLink.id, id), eq(walletLink.status, 'linked')))
+        .set({
+          opsRequest: to,
+          opsRequestVersion: from.version + 1,
+          ...(to === 'whitelist' ? { whitelistRequestedAt: at, whitelistObservedAt: null } : {}),
+          updatedAt: sql`now()`
+        })
+        .where(
+          and(
+            eq(walletLink.id, id),
+            eq(walletLink.status, 'linked'),
+            eq(walletLink.opsRequest, from.opsRequest),
+            eq(walletLink.opsRequestVersion, from.version)
+          )
+        )
         .returning({ id: walletLink.id });
       return rows.length > 0;
     },
 
-    async markWhitelistObserved({ id, whitelistObservedAt }) {
+    async markWhitelistObserved({ id, version, whitelistObservedAt }) {
       const rows = await db
         .update(walletLink)
         .set({ whitelistObservedAt, updatedAt: sql`now()` })
-        .where(and(eq(walletLink.id, id), eq(walletLink.status, 'linked'), isNull(walletLink.whitelistObservedAt)))
+        .where(
+          and(
+            eq(walletLink.id, id),
+            eq(walletLink.status, 'linked'),
+            eq(walletLink.opsRequest, 'whitelist'),
+            eq(walletLink.opsRequestVersion, version),
+            isNull(walletLink.whitelistObservedAt)
+          )
+        )
         .returning({ id: walletLink.id });
       return rows.length > 0;
     },
@@ -157,20 +190,11 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
       return rows.map(toRecord);
     },
 
-    async listAwaitingWhitelist() {
+    async listAllLinked() {
       const rows = await db
         .select(columns)
         .from(walletLink)
-        .where(and(eq(walletLink.status, 'linked'), isNull(walletLink.whitelistObservedAt)))
-        .orderBy(walletLink.signedAt);
-      return rows.map(toRecord);
-    },
-
-    async listWhitelistObserved() {
-      const rows = await db
-        .select(columns)
-        .from(walletLink)
-        .where(and(eq(walletLink.status, 'linked'), isNotNull(walletLink.whitelistObservedAt)))
+        .where(eq(walletLink.status, 'linked'))
         .orderBy(walletLink.signedAt);
       return rows.map(toRecord);
     },
@@ -182,14 +206,6 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         .returning({ id: walletLink.id });
       return rows.length;
     },
-
-    listOtherConnectedAccounts: ({ address, exceptUserId }) =>
-      db
-        .select({ userId: user.id, email: user.email })
-        .from(walletConnection)
-        .innerJoin(user, eq(user.id, walletConnection.userId))
-        .where(and(eq(walletConnection.address, address), ne(walletConnection.userId, exceptUserId)))
-        .orderBy(user.email),
 
     async getAccount({ userId }) {
       const rows = await db

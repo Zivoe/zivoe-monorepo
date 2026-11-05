@@ -33,10 +33,19 @@ export const maxDuration = 60;
 const DIGEST_HOUR_UTC = 9;
 
 type StalledRow = WalletLinkReconcileReport['stuck'][number];
+type DriftRow = WalletLinkReconcileReport['lapsed'][number];
 
 /** One line per stalled row — the operator needs the address to copy, how far it got and how long it has waited. */
-const line = (row: StalledRow) =>
-  `<code>${row.address}</code> · ${row.memberOn} of ${row.total} chains · day ${row.daysWaiting}${row.isLastReminder ? ' (last reminder)' : ''}`;
+const stalledLine = (row: StalledRow) =>
+  `<code>${row.address}</code> · ${row.admittedOn} of ${row.total} chains · day ${row.daysWaiting}${row.isLastReminder ? ' (last reminder)' : ''}`;
+
+/** Admitted means a member and not frozen: what lets the address invest. */
+const driftLine = (row: DriftRow) =>
+  `<code>${row.address}</code> · admitted on ${row.admittedOn} of ${row.total} chains`;
+
+/** A titled section of the digest, or nothing when it has no rows. */
+const section = <T>(title: string, rows: Array<T>, line: (row: T) => string) =>
+  rows.length > 0 ? [`<b>${title}</b>`, ...rows.map(line)] : [];
 
 const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport> => {
   const startTime = Date.now();
@@ -68,14 +77,22 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
     // run. The one thing that is ours, chains the sweep could not read, is
     // reported to Sentry on the same run.
     const isDigestRun =
-      scheduled &&
-      now.getUTCHours() === DIGEST_HOUR_UTC &&
-      now.getUTCMinutes() < WALLET_LINK_RECONCILE_STEP_MINUTES;
+      scheduled && now.getUTCHours() === DIGEST_HOUR_UTC && now.getUTCMinutes() < WALLET_LINK_RECONCILE_STEP_MINUTES;
     if (isDigestRun) {
       // One item per line, so a long digest splits across messages at a line
-      // instead of failing Telegram's size limit.
-      const items =
-        report.stuck.length > 0 ? ['<b>Wallet link: still not whitelisted</b>', ...report.stuck.map(line)] : [];
+      // instead of failing Telegram's size limit. Drift both ways: a whitelist
+      // asked and not done (on the reminder days, or lost since), a revoke
+      // asked and not done (every day until it is).
+      const items = [
+        ...section('Wallet link: still not whitelisted', report.stuck, stalledLine),
+        ...section('Wallet link: whitelisted before, not now', report.lapsed, driftLine),
+        ...section('Wallet link: revoke asked, still admitted', report.stillAdmitted, driftLine),
+        ...section(
+          'Wallet link: approved again, Chainalysis flags it — left frozen',
+          report.flagged,
+          (row) => `<code>${row.address}</code>`
+        )
+      ];
 
       // A failed send must not fail the sweep (every membership read would run
       // again), but it is sent before the check-in reports ok: a run the
@@ -96,6 +113,13 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
           extra: report
         });
       }
+      if (report.unscreened > 0) {
+        Sentry.captureMessage('Wallet link reconcile could not screen an address approved again', {
+          level: 'warning',
+          tags: { source: 'API', flow: WALLET_LINK_RECONCILE_SLUG },
+          extra: report
+        });
+      }
     }
 
     checkIn('ok');
@@ -103,9 +127,14 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
     Sentry.logger.info(`${WALLET_LINK_RECONCILE_SLUG} completed`, {
       checked: report.checked,
       whitelisted: report.whitelisted,
-      ended: report.ended,
+      revoked: report.revoked,
+      restored: report.restored,
       unchecked: report.unchecked,
+      unscreened: report.unscreened,
       stuck: report.stuck.length,
+      lapsed: report.lapsed.length,
+      stillAdmitted: report.stillAdmitted.length,
+      flagged: report.flagged.length,
       digest: isDigestRun,
       scheduled,
       durationMs: Date.now() - startTime

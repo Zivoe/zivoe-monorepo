@@ -142,6 +142,12 @@ const app = {
   // page, kept by the step's own writes. Keyed by user so one browser never
   // shows another account's after a sign-out.
   walletLinks: ({ userId }: { userId: string }) => ['WALLET_LINKS', userId],
+  // Whose the connected address is (this account's, another's, nobody's), as the Wallets step asks it.
+  walletOwnership: ({ userId, address }: { userId: string; address: string }) => [
+    'WALLET_OWNERSHIP',
+    userId,
+    address.toLowerCase()
+  ],
   // Whitelist membership of the addresses asked about (the Wallets step's
   // connected wallet), read in one pass across every active chain and share
   // class — one entry for the whole list, since every address is asked

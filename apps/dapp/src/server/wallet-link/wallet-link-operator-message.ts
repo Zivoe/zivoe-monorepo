@@ -15,19 +15,12 @@ const TITLES: Record<WalletLinkOperatorKind, string> = {
   revoke_request: '🔴 Revoke request'
 };
 
-/** Why a Revoke request is asked, by the status that ended the link; any other reads as no longer approved. */
+/** Why a Revoke request is asked, by the owner's status; any other reads as no longer approved. */
 const REVOKE_REASONS: Partial<Record<VerificationStatus, string>> = {
   declined: 'verification declined',
   revoked: 'verification revoked',
   pending_review: 'verification back under review'
 };
-
-/**
- * How many other accounts a Revoke request names before it counts the rest.
- * Connections are self-reported and unbounded; Telegram refuses a message
- * past 4096 characters for good, and a refused Revoke request is one lost.
- */
-const OTHER_ACCOUNTS_SHOWN = 10;
 
 /** The chain the message was signed on, by display label; a chain the app does not know shows its id. */
 function chainLabel(chainId: number): string {
@@ -55,7 +48,7 @@ function membershipLine(membership: AddressMembership | null): string {
 }
 
 /**
- * Everything ops needs to act in Centrifuge and nothing more: who (by
+ * Everything ops needs to act in Centrifuge and nothing more: why, who (by
  * email), which address (in full, tap to copy) and where it
  * stands on the whitelist now. Neither the chains nor the share class are
  * listed: ops knows the live deployments, and the request is for all of
@@ -68,8 +61,7 @@ export function formatWalletLinkOperatorMessage({
   email,
   isSmartAccount,
   membership,
-  endedBy,
-  otherAccounts
+  endedBy
 }: {
   kind: WalletLinkOperatorKind;
   record: WalletLinkRecord;
@@ -77,22 +69,21 @@ export function formatWalletLinkOperatorMessage({
   isSmartAccount: boolean | null;
   membership: AddressMembership | null;
   endedBy: VerificationStatus | null;
-  otherAccounts: Array<{ email: string; isVerified: boolean }>;
 }): string {
+  // A Linked address is never unlinked: a revoke is a freeze, and the owner
+  // approved again is a Whitelist request to lift it, with no new signature.
+  const reason =
+    kind === 'whitelist_request'
+      ? record.opsRequestVersion > 1
+        ? 'approved again — unfreeze where frozen, whitelist where missing'
+        : 'new link'
+      : endedBy === null
+        ? 'no longer approved when asked, approved again since — freeze on every chain'
+        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'} — freeze on every chain`;
   const lines = [
     `<b>${TITLES[kind]}</b>`,
     '',
-    // A yes again by delivery still revokes: the link ended, and the
-    // investor links the address again for a fresh Whitelist request.
-    ...(kind === 'revoke_request'
-      ? [
-          `<b>Reason:</b> ${
-            endedBy === null
-              ? 'link ended, approved again since — the investor links this address again'
-              : (REVOKE_REASONS[endedBy] ?? 'verification no longer approved')
-          }`
-        ]
-      : []),
+    `<b>Reason:</b> ${reason}`,
     `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
@@ -110,18 +101,6 @@ export function formatWalletLinkOperatorMessage({
   ];
 
   if (kind === 'revoke_request') {
-    // The address is not this account's alone: a revoke takes it from everyone
-    // who uses it, and a verified one among them is a reason not to — so the
-    // verified are named first, and the count of the rest says how many of
-    // them are verified too, so none can hide behind it.
-    const verifiedFirst = [...otherAccounts].sort((a, b) => Number(b.isVerified) - Number(a.isVerified));
-    const others = verifiedFirst
-      .slice(0, OTHER_ACCOUNTS_SHOWN)
-      .map(({ email: other, isVerified }) => `${escapeHtml(other)} (${isVerified ? 'verified' : 'not verified'})`);
-    const rest = verifiedFirst.slice(OTHER_ACCOUNTS_SHOWN);
-    const restVerified = rest.filter(({ isVerified }) => isVerified).length;
-    if (rest.length > 0) others.push(`and ${rest.length} more${restVerified > 0 ? ` (${restVerified} verified)` : ''}`);
-    lines.push(`<b>Also connected by:</b> ${others.length > 0 ? others.join(', ') : 'no other account'}`);
     lines.push(`<b>Linked since:</b> ${record.signedAt ? record.signedAt.toISOString().slice(0, 10) : 'unknown'}`);
   }
 
@@ -137,7 +116,7 @@ export function createTelegramWalletLinkMessenger({
   chatId: string;
 }): WalletLinkOperatorMessenger {
   return {
-    async send({ kind, record, email, isSmartAccount, membership, endedBy, otherAccounts }) {
+    async send({ kind, record, email, isSmartAccount, membership, endedBy }) {
       await sendTelegramMessage({
         chatId,
         text: formatWalletLinkOperatorMessage({
@@ -146,8 +125,7 @@ export function createTelegramWalletLinkMessenger({
           email,
           isSmartAccount,
           membership,
-          endedBy,
-          otherAccounts
+          endedBy
         })
       });
     }

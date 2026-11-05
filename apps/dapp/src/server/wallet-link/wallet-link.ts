@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { type Address, type Hex } from 'viem';
 
 import { type VerificationStatus } from '@zivoe/database/kyc';
-import { type WalletLinkStatus } from '@zivoe/database/wallet-link';
+import { type WalletLinkOpsRequest, type WalletLinkStatus } from '@zivoe/database/wallet-link';
 
 import { type DeliveryError, type DeliveryOutcome, type Verification } from '@/server/verification/verification';
 import { isYesDecision } from '@/server/verification/verification-status';
@@ -15,20 +15,23 @@ import { type AddressMembership, summarizeMembership } from './wallet-link-membe
 import { type WalletLinkTypedData, buildWalletLinkTypedData } from './wallet-link-typed-data';
 
 // ---------------------------------------------------------------------------
-// Wallet link — one account's signed request to whitelist one address. One
-// module, five operations, over injected ports: the store,
-// the Decision (the Verification module), Chainalysis, the chain (signature
-// verification and whitelist membership), the Outbox and the two channels.
-// Production wires Postgres / viem / QStash / Telegram / Resend; tests wire
-// the in-memory adapters in wallet-link.fakes.ts. The signed message lives in
-// wallet-link-typed-data.ts and the membership vocabulary in
-// wallet-link-membership.ts so the client shares both without this file.
+// Wallet link — one account's signed proof that it controls one address,
+// which makes it the address's owner for good, and the whitelist that follows
+// the owner's Decision: a yes asks ops to whitelist, anything else to revoke
+// (a freeze), a yes again to restore — never a new signature. One module, six
+// operations, over injected ports: the store, the Decision (the Verification
+// module), Chainalysis, the chain (signature verification and whitelist
+// membership), the Outbox and the two channels. Production wires Postgres /
+// viem / QStash / Telegram / Resend; tests wire the in-memory adapters in
+// wallet-link.fakes.ts. The signed message lives in wallet-link-typed-data.ts
+// and the membership vocabulary in wallet-link-membership.ts so the client
+// shares both without this file.
 // ---------------------------------------------------------------------------
 
 /**
- * One Wallet link challenge and what became of it: which account asked for
- * which address. `address` is lowercase, and not bound to one account —
- * several may each have asked for it.
+ * One Wallet link challenge and what became of it. `address` is lowercase. A
+ * `linked` row is the address's one owner — no other account can link it,
+ * and nothing ends it.
  */
 export type WalletLinkRecord = {
   id: string;
@@ -47,57 +50,61 @@ export type WalletLinkRecord = {
   typedData: WalletLinkTypedData;
   signature: Hex | null;
   signedAt: Date | null;
-  /** When the Whitelist request was queued for ops. */
+  /** When the latest Whitelist request was queued for ops: the link, or a yes again since. */
   whitelistRequestedAt: Date | null;
-  /** When the reconcile first observed membership everywhere — a record, not the truth; the chain is. */
+  /** When the reconcile first saw the address admitted everywhere since that request — a record, not the truth; the chain is. */
   whitelistObservedAt: Date | null;
-  removedAt: Date | null;
+  /** What ops was last asked for a Linked address; null on a challenge. */
+  opsRequest: WalletLinkOpsRequest | null;
+  /** Bumped by every change of `opsRequest`; the job that announces the change carries it. */
+  opsRequestVersion: number;
 };
 
 /** Store port — the app database. Rejects on infrastructure failure. */
 export type WalletLinkStore = {
   get(input: { id: string }): Promise<WalletLinkRecord | null>;
   getPending(input: { userId: string; address: Address }): Promise<WalletLinkRecord | null>;
-  /** The user's `linked` row for an address. Another account's is never read here. */
-  getLinked(input: { userId: string; address: Address }): Promise<WalletLinkRecord | null>;
+  /** The address's `linked` row, whichever account owns it. */
+  getOwner(input: { address: Address }): Promise<WalletLinkRecord | null>;
   /** Writes a pending challenge, replacing the user's existing pending one for the address. */
   putPending(record: Omit<WalletLinkRecord, 'id'>): Promise<WalletLinkRecord>;
   deletePending(input: { userId: string; address: Address }): Promise<void>;
   /**
    * In one transaction: ensures `wallet_connection` holds (user, address) —
    * a no-op when the tracker already recorded it — and flips the pending row
-   * to `linked`. `already_linked` when the partial unique index refuses (the
-   * user's own earlier challenge for this address was completed meanwhile);
-   * `not_pending` when the row
-   * is no longer the pending challenge `nonce` names — linked, gone, or
-   * re-issued (a re-issue keeps the row and replaces what it asks to sign).
+   * to `linked` with its Whitelist request (version 1). `address_taken` when
+   * the unique index refuses (some account, this one included, linked the
+   * address meanwhile); `not_pending` when the row is no longer the pending
+   * challenge `nonce` names — linked, gone, or re-issued (a re-issue keeps
+   * the row and replaces what it asks to sign).
    */
   link(input: {
     id: string;
     nonce: Hex;
     signature: Hex;
     signedAt: Date;
-  }): Promise<{ outcome: 'linked'; record: WalletLinkRecord } | { outcome: 'already_linked' | 'not_pending' }>;
-  /** Flips a `linked` row to `removed`; false when it was not linked. */
-  remove(input: { id: string; removedAt: Date }): Promise<boolean>;
-  /** Sets `whitelistObservedAt` on a `linked` row that has none; false otherwise. */
-  markWhitelistObserved(input: { id: string; whitelistObservedAt: Date }): Promise<boolean>;
+  }): Promise<{ outcome: 'linked'; record: WalletLinkRecord } | { outcome: 'address_taken' | 'not_pending' }>;
+  /**
+   * Records a new ask of ops on a `linked` row still at `from`, bumping the
+   * version. A Whitelist request also restarts the whitelist cycle: it is
+   * stamped `whitelistRequestedAt`, and the observation is cleared so the
+   * reconcile sees the address whitelisted, and emails, once more. False when
+   * the row moved meanwhile.
+   */
+  setOpsRequest(input: {
+    id: string;
+    from: { opsRequest: WalletLinkOpsRequest; version: number };
+    to: WalletLinkOpsRequest;
+    at: Date;
+  }): Promise<boolean>;
+  /** Sets `whitelistObservedAt` on a `linked` row still asking to whitelist at `version`, with none yet; false otherwise. */
+  markWhitelistObserved(input: { id: string; version: number; whitelistObservedAt: Date }): Promise<boolean>;
   /** The user's `linked` rows, newest signature first. */
   listLinked(input: { userId: string }): Promise<Array<WalletLinkRecord>>;
-  /** `linked` rows the reconcile has not yet seen whitelisted. */
-  listAwaitingWhitelist(): Promise<Array<WalletLinkRecord>>;
-  /** `linked` rows the reconcile has seen whitelisted — out of the chain read, still under the Decision check. */
-  listWhitelistObserved(): Promise<Array<WalletLinkRecord>>;
+  /** Every `linked` row, oldest signature first: what the reconcile holds against the Decisions and the chain. */
+  listAllLinked(): Promise<Array<WalletLinkRecord>>;
   /** Drops `pending` challenges that expired before the cut-off; resolves how many. */
   deleteExpiredPending(input: { expiredBefore: Date }): Promise<number>;
-  /**
-   * Every other account that connected this address in the dapp
-   * (`wallet_connection`), linked or not — who else a revoke touches.
-   */
-  listOtherConnectedAccounts(input: {
-    address: Address;
-    exceptUserId: string;
-  }): Promise<Array<{ userId: string; email: string }>>;
   /** The sign-in email and the profile's first name; null when the user is gone. */
   getAccount(input: { userId: string }): Promise<{ email: string; name: string | null } | null>;
 };
@@ -131,16 +138,15 @@ export type ChainPort = {
 };
 
 /**
- * One queued job: which link, and the stamp of the transition it announces
- * (`signedAt`, `removedAt` or `whitelistObservedAt`). `deliverNotification`
- * re-reads the row and compares, so a job the row has moved past is skipped
- * and one it has not caught up with is retried.
+ * One queued job: which link, and the transition it announces — for a
+ * request to ops, the `opsRequestVersion` it was queued for; for the email,
+ * the `whitelistObservedAt` stamp. `deliverNotification` re-reads the row and
+ * compares, so a job the row has moved past is skipped and one it has not
+ * caught up with is retried.
  */
-export type WalletLinkJob = {
-  linkId: string;
-  at: Date;
-  kind: 'whitelist_request' | 'revoke_request' | 'whitelisted_email';
-};
+export type WalletLinkJob =
+  | { kind: 'whitelist_request' | 'revoke_request'; linkId: string; version: number }
+  | { kind: 'whitelisted_email'; linkId: string; at: Date };
 
 export type WalletLinkOperatorKind = Extract<WalletLinkJob['kind'], 'whitelist_request' | 'revoke_request'>;
 
@@ -159,21 +165,12 @@ export type WalletLinkOperatorMessenger = {
     isSmartAccount: boolean | null;
     /**
      * Where the address stands on every target at delivery, or null when the
-     * chains could not be asked at all: a Revoke request for an address that
-     * is a member nowhere needs no action, and a Whitelist request for one
-     * already frozen somewhere is not a plain admission.
+     * chains could not be asked at all: a Whitelist request for one frozen
+     * somewhere is an unfreeze, not a plain admission.
      */
     membership: AddressMembership | null;
-    /** The investor's status when it is not a yes, read at delivery: why a Revoke request is asked. */
+    /** The owner's status when it is not a yes, read at delivery: why a Revoke request is asked. */
     endedBy: VerificationStatus | null;
-    /**
-     * On a Revoke request, the other accounts that connected the address: it
-     * is not bound to one account, and ops decides with all of them in view.
-     * `isVerified` is a yes Verification Status at delivery — an approved
-     * investor still using the wallet, as against an account that only
-     * connected it once.
-     */
-    otherAccounts: Array<{ email: string; isVerified: boolean }>;
   }): Promise<void>;
 };
 
@@ -194,45 +191,61 @@ export type Clock = { now(): Date };
 // The external seam.
 // ---------------------------------------------------------------------------
 
-export type IssueChallengeError = { code: 'not_approved' | 'flagged' | 'already_linked' };
+/** `already_linked`: this account owns the address. `linked_elsewhere`: another one does. */
+export type IssueChallengeError = { code: 'not_approved' | 'flagged' | 'already_linked' | 'linked_elsewhere' };
 
 export type CompleteLinkError = {
-  code: 'not_approved' | 'flagged' | 'no_challenge' | 'expired' | 'bad_signature' | 'already_linked';
+  code:
+    | 'not_approved'
+    | 'flagged'
+    | 'no_challenge'
+    | 'expired'
+    | 'bad_signature'
+    | 'already_linked'
+    | 'linked_elsewhere';
 };
+
+/** Who owns an address, as the account asking may know it: itself, another account, or nobody yet. */
+export type WalletOwnership = 'mine' | 'elsewhere' | 'none';
 
 /** The same answers the verification receivers map to status codes: retry (early or channel down) or 200 (sent, skipped). */
 export type { DeliveryError, DeliveryOutcome } from '@/server/verification/verification';
 
+/** One Linked address in a digest line: where it stands now, on how many chains. */
+export type WalletLinkDriftRow = { linkId: string; address: Address; admittedOn: number; total: number };
+
 export type WalletLinkReconcileReport = {
-  /** Rows whose membership was read. */
+  /** Linked addresses whose membership was read. */
   checked: number;
-  /** Rows first seen whitelisted on this pass (an email each). */
+  /** Rows first seen whitelisted since their latest Whitelist request on this pass (an email each). */
   whitelisted: number;
-  /** Linked rows removed on this pass because their investor's yes no longer stands (a Revoke request each). */
-  ended: number;
+  /** Revoke requests queued on this pass: the owner's yes no longer stands. */
+  revoked: number;
+  /** Whitelist requests queued on this pass: the owner is a yes again. */
+  restored: number;
   /** Reads that could not conclude on some chain; they stay for the next pass. */
   unchecked: number;
+  /** Owners a yes again whose address Chainalysis could not screen; tried again next pass. */
+  unscreened: number;
   /**
-   * Still not a member everywhere on one of the reminder days since the
-   * request — a stalled whitelist. Past the last reminder a link is never
-   * reported again.
+   * Still not whitelisted everywhere on one of the reminder days since the
+   * latest Whitelist request — a stalled whitelist. Past the last reminder a
+   * request is never reported again.
    */
-  stuck: Array<{
-    linkId: string;
-    address: Address;
-    memberOn: number;
-    total: number;
-    daysWaiting: number;
-    isLastReminder: boolean;
-  }>;
+  stuck: Array<WalletLinkDriftRow & { daysWaiting: number; isLastReminder: boolean }>;
+  /** Seen whitelisted since the latest Whitelist request, and no longer admitted everywhere (a freeze, a new chain). */
+  lapsed: Array<WalletLinkDriftRow>;
+  /** Asked to revoke, and still admitted somewhere: the revoke has not been done. */
+  stillAdmitted: Array<WalletLinkDriftRow>;
+  /** Owners a yes again whose address Chainalysis now flags: kept revoked, not asked to restore. */
+  flagged: Array<{ linkId: string; address: Address }>;
 };
 
 export type WalletLink = {
   /**
    * Issues (or re-issues, identically) the challenge for this user and
-   * address: the Decision and Chainalysis are checked first, so a wallet is
-   * never asked to sign for an address that could not be linked. What other
-   * accounts asked for the same address plays no part.
+   * address: the Decision, the owner and Chainalysis are checked first, so a
+   * wallet is never asked to sign for an address that could not be linked.
    */
   issueChallenge(input: {
     userId: string;
@@ -247,14 +260,20 @@ export type WalletLink = {
     address: Address;
     signature: Hex;
   }): Promise<Result<WalletLinkRecord, CompleteLinkError>>;
-  /** The user's own live requests, newest first. Membership is the chain's to answer, not this read's. */
+  /**
+   * Who owns the address, for a yes Decision only — the same answer
+   * `issueChallenge` would give, without a challenge. Never who the other
+   * account is.
+   */
+  getOwnership(input: { userId: string; address: Address }): Promise<Result<WalletOwnership, { code: 'not_approved' }>>;
+  /** The user's own Linked addresses, newest first. Membership is the chain's to answer, not this read's. */
   listLinks(input: { userId: string }): Promise<Array<WalletLinkRecord>>;
   /**
-   * The scheduled sweep: removes the Linked addresses of an investor whose
-   * yes no longer stands, then reads membership for every linked row not yet
-   * seen whitelisted. Observes and reports; never retries anything on chain.
-   * A row seen whitelisted once is not read again: what ops does to a
-   * membership afterwards (a revoke on request, a freeze) is theirs to know.
+   * The scheduled sweep: asks ops to revoke the Linked addresses of an owner
+   * whose yes no longer stands and to restore those of an owner who is a yes
+   * again, then reads membership for every Linked address — the email once a
+   * Whitelist request is done, and the digest's drift both ways. Observes and
+   * reports; never acts on chain.
    */
   reconcile(input: { now: Date }): Promise<WalletLinkReconcileReport>;
   /** The receiving half of the Outbox: re-reads the row, then sends through the channel for the job's kind. */
@@ -275,11 +294,11 @@ const HOUR_MS = 60 * 60_000;
 const DAY_MS = 24 * HOUR_MS;
 
 /**
- * The days after a request on which a link still not whitelisted is reported
- * to ops: four reminders, then silence. A request ops chose not to grant
- * would otherwise be repeated every day for ever; the address itself keeps
- * showing its state from the chain. Nothing records a reminder as sent, so
- * one whose digest run fails that day is skipped, not made up later.
+ * The days after a Whitelist request on which a link still not whitelisted
+ * is reported to ops: four reminders, then silence. A request ops chose not
+ * to grant would otherwise be repeated every day for ever; the address itself
+ * keeps showing its state from the chain. Nothing records a reminder as sent,
+ * so one whose digest run fails that day is skipped, not made up later.
  */
 const STUCK_REMINDER_DAYS = [3, 7, 14, 30];
 
@@ -294,7 +313,7 @@ export function createWalletLink({
   clock
 }: {
   store: WalletLinkStore;
-  verification: Pick<Verification, 'getVerificationStatus' | 'listUnapproved'>;
+  verification: Pick<Verification, 'getVerificationStatus' | 'listApproved'>;
   screening: ScreeningPort;
   chain: ChainPort;
   outbox: WalletLinkOutbox;
@@ -305,64 +324,22 @@ export function createWalletLink({
   /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
   const mayLink = async (userId: string) => isYesDecision(await verification.getVerificationStatus({ userId }));
 
-  /** A Whitelist or Revoke request, with what only delivery can read: the email, the kind of account and the Decision. */
-  const sendOperatorMessage = async (kind: WalletLinkOperatorKind, record: WalletLinkRecord) => {
-    const [account, isSmartAccount, membership, decision, connected] = await Promise.all([
-      store.getAccount({ userId: record.userId }),
-      // A linked or removed row always carries its signature (the database
-      // checks it); the fallback only types the field. Best effort: a line of
-      // context must not fail the request that carries it.
-      record.signature
-        ? chain
-            .isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
-            .catch(() => null)
-        : false,
-      // Best effort, like the probe above.
-      chain
-        .readMembership({ addresses: [record.address] })
-        .then((read) => read[record.address] ?? null)
-        .catch(() => null),
-      verification.getVerificationStatus({ userId: record.userId }),
-      kind === 'revoke_request'
-        ? store.listOtherConnectedAccounts({ address: record.address, exceptUserId: record.userId })
-        : []
-    ]);
-    const otherAccounts = await Promise.all(
-      connected.map(async ({ userId, email }) => ({
-        email,
-        isVerified: isYesDecision(await verification.getVerificationStatus({ userId }))
-      }))
-    );
-    await operatorMessages.send({
-      kind,
-      record,
-      email: account?.email ?? null,
-      isSmartAccount,
-      membership,
-      endedBy: isYesDecision(decision) ? null : decision.status,
-      otherAccounts
-    });
-  };
-
-  /**
-   * The sweep's removal — the only one: an investor cannot take an address
-   * back (they write to the team). The Revoke request is queued before the
-   * row flips, like every write here.
-   */
-  const remove = async ({ id, removedAt }: { id: string; removedAt: Date }) => {
-    await outbox.enqueue({ kind: 'revoke_request', linkId: id, at: removedAt });
-    return store.remove({ id, removedAt });
-  };
+  /** Best effort: a line of context must not fail the request that carries it. Null when the chains could not be asked. */
+  const readOneMembership = (address: Address) =>
+    chain
+      .readMembership({ addresses: [address] })
+      .then((read) => read[address] ?? null)
+      .catch(() => null);
 
   return {
     async issueChallenge({ userId, address: rawAddress, chainId, walletType, walletName }) {
       const address = rawAddress.toLowerCase() as Address;
       if (!(await mayLink(userId))) return err({ code: 'not_approved' });
 
-      // An address this account already asked for has nothing to sign for.
-      // Only its own rows are read: what another account asked for is never
-      // told, or anyone could probe which addresses are Zivoe customers.
-      if (await store.getLinked({ userId, address })) return err({ code: 'already_linked' });
+      // An address has one owner for good: nothing to sign for when it has
+      // one. Whose it is stays unsaid — only that it is not this account's.
+      const owner = await store.getOwner({ address });
+      if (owner) return err({ code: owner.userId === userId ? 'already_linked' : 'linked_elsewhere' });
 
       // Chainalysis before any signature. A flagged address leaves no row behind.
       if ((await screening.assess({ address })) === 'flagged') {
@@ -414,7 +391,8 @@ export function createWalletLink({
         signedAt: null,
         whitelistRequestedAt: null,
         whitelistObservedAt: null,
-        removedAt: null
+        opsRequest: null,
+        opsRequestVersion: 0
       });
       return ok({ linkId: record.id, typedData: record.typedData });
     },
@@ -427,6 +405,16 @@ export function createWalletLink({
       const pending = await store.getPending({ userId, address });
       if (!pending) return err({ code: 'no_challenge' });
       if (pending.expiresAt <= now) return err({ code: 'expired' });
+
+      // Linked meanwhile — by this account from another tab, or by another
+      // account: the challenge is dead. The unique index refuses it anyway;
+      // this spares the screen and the signature check.
+      const ownedBy = async () => {
+        await store.deletePending({ userId, address });
+        const owner = await store.getOwner({ address });
+        return err({ code: owner?.userId === userId ? ('already_linked' as const) : ('linked_elsewhere' as const) });
+      };
+      if (await store.getOwner({ address })) return ownedBy();
 
       // Screened again on write: a flag that landed between issue and signature still refuses.
       if ((await screening.assess({ address })) === 'flagged') {
@@ -444,27 +432,33 @@ export function createWalletLink({
       });
       if (!valid) return err({ code: 'bad_signature' });
 
-      // Enqueue before persisting, as the verification write path does: a persist that
-      // fails leaves the challenge pending, so the next click re-enqueues and
-      // the receiver tells the stale job from the live one by `signedAt`.
+      // Enqueue before persisting, as the verification write path does: a
+      // persist that fails leaves the challenge pending, so the next click
+      // re-enqueues and the receiver retries the job until the row reaches
+      // its version (or gives up on one that never will).
       const signedAt = now;
-      await outbox.enqueue({ kind: 'whitelist_request', linkId: pending.id, at: signedAt });
+      await outbox.enqueue({ kind: 'whitelist_request', linkId: pending.id, version: 1 });
 
       // By the nonce that was verified: a challenge re-issued for another chain
       // meanwhile sits in the same row, and the signature is not for it.
       const written = await store.link({ id: pending.id, nonce: pending.nonce, signature, signedAt });
       if (written.outcome === 'linked') return ok(written.record);
-      if (written.outcome === 'already_linked') {
-        // A second challenge for an address this account linked meanwhile: it
-        // is dead, and dropping it is what makes the job queued above find no
-        // row and skip.
-        await store.deletePending({ userId, address });
-        return err({ code: 'already_linked' });
-      }
+      // Linked by some account between the check above and the write: the
+      // challenge is dropped, so the job queued above finds no row and skips.
+      if (written.outcome === 'address_taken') return ownedBy();
       // No longer this challenge (re-issued meanwhile, or completed twice): the
       // job queued above never matches the row — skipped once it is linked,
       // retried out while it stays pending.
       return err({ code: 'no_challenge' });
+    },
+
+    async getOwnership({ userId, address: rawAddress }) {
+      const address = rawAddress.toLowerCase() as Address;
+      // Approved investors only, as `issueChallenge`: whether an address is a
+      // Zivoe customer's is not an anonymous lookup.
+      if (!(await mayLink(userId))) return err({ code: 'not_approved' });
+      const owner = await store.getOwner({ address });
+      return ok(!owner ? 'none' : owner.userId === userId ? 'mine' : 'elsewhere');
     },
 
     async listLinks({ userId }) {
@@ -475,9 +469,14 @@ export function createWalletLink({
       const report: WalletLinkReconcileReport = {
         checked: 0,
         whitelisted: 0,
-        ended: 0,
+        revoked: 0,
+        restored: 0,
         unchecked: 0,
-        stuck: []
+        unscreened: 0,
+        stuck: [],
+        lapsed: [],
+        stillAdmitted: [],
+        flagged: []
       };
       // Whole days since the request, counted from the top of this run's hour:
       // the daily digest run starts a few seconds off the hour each day, and
@@ -489,53 +488,102 @@ export function createWalletLink({
       // Housekeeping first: an expired challenge is a row nothing can act on.
       await store.deleteExpiredPending({ expiredBefore: now });
 
-      const [allAwaiting, allObserved] = await Promise.all([
-        store.listAwaitingWhitelist(),
-        store.listWhitelistObserved()
-      ]);
+      const owned = await store.listAllLinked();
 
-      // A yes that no longer stands ends the link: the row is removed and ops
-      // is asked to revoke. Read off the record here rather than hooked to an
-      // act, so an operator's revoke, a reviewer's decline and a reopened KYB
-      // case are covered alike. One read for every linked investor: the set
-      // only grows, whitelisted rows included.
-      const linked = [...allAwaiting, ...allObserved];
-      const ended = await verification.listUnapproved({
-        userIds: [...new Set(linked.map((record) => record.userId))]
+      // 1. What ops should be asked, from each owner's Decision: whitelist on a
+      // yes, revoke on anything else. Read off the record rather than hooked
+      // to an act, so an operator's revoke, a reviewer's decline, a reopened
+      // KYB case and an approval again are covered alike; a change is asked
+      // once, since the row remembers what was asked. One read for every owner.
+      const approved = await verification.listApproved({
+        userIds: [...new Set(owned.map((record) => record.userId))]
       });
-      for (const record of linked) {
-        if (ended.has(record.userId) && (await remove({ id: record.id, removedAt: now }))) report.ended += 1;
+      const current: Array<WalletLinkRecord> = [];
+      for (const record of owned) {
+        const wanted: WalletLinkOpsRequest = approved.has(record.userId) ? 'whitelist' : 'revoke';
+        if (record.opsRequest === null || record.opsRequest === wanted) {
+          current.push(record);
+          continue;
+        }
+        // A yes again is screened again before ops is asked to restore, as a new link is.
+        if (wanted === 'whitelist') {
+          const risk = await screening.assess({ address: record.address }).catch(() => null);
+          if (risk === null) report.unscreened += 1;
+          if (risk === 'flagged') report.flagged.push({ linkId: record.id, address: record.address });
+          if (risk !== 'clear') {
+            current.push(record);
+            continue;
+          }
+        }
+        // Queued before the row moves, like every write here: a write that
+        // fails is asked again next pass, and the receiver retries a job the
+        // row has not reached yet.
+        const version = record.opsRequestVersion + 1;
+        await outbox.enqueue({ kind: `${wanted}_request`, linkId: record.id, version });
+        const moved = await store.setOpsRequest({
+          id: record.id,
+          from: { opsRequest: record.opsRequest, version: record.opsRequestVersion },
+          to: wanted,
+          at: now
+        });
+        if (!moved) {
+          current.push(record);
+          continue;
+        }
+        if (wanted === 'whitelist') report.restored += 1;
+        else report.revoked += 1;
+        current.push({
+          ...record,
+          opsRequest: wanted,
+          opsRequestVersion: version,
+          ...(wanted === 'whitelist' ? { whitelistRequestedAt: now, whitelistObservedAt: null } : {})
+        });
       }
-      const awaiting = allAwaiting.filter((record) => !ended.has(record.userId));
 
-      // One pass over the chains for every row at once; the chain port batches
-      // per share token. Two accounts may have asked for one address.
-      const membership = await chain.readMembership({
-        addresses: [...new Set(awaiting.map((record) => record.address))]
-      });
-      report.checked = awaiting.length;
+      // 2. Where every Linked address stands: one pass over the chains for
+      // every row at once; the chain port batches per share token.
+      const membership = await chain.readMembership({ addresses: current.map((record) => record.address) });
+      report.checked = current.length;
 
-      for (const record of awaiting) {
+      for (const record of current) {
         const summary = summarizeMembership(membership[record.address] ?? []);
         if (summary.status === 'unchecked') {
           report.unchecked += 1;
-        } else if (summary.status === 'whitelisted') {
+          continue;
+        }
+        const drift = {
+          linkId: record.id,
+          address: record.address,
+          admittedOn: summary.admittedOn,
+          total: summary.total
+        };
+
+        if (record.opsRequest === 'revoke') {
+          if (summary.admittedOn > 0) report.stillAdmitted.push(drift);
+          continue;
+        }
+
+        if (summary.status === 'whitelisted') {
+          if (record.whitelistObservedAt) continue;
           // The email is queued before the stamp lands, like every other
           // notification here; the receiver matches the stamp, so a persist
           // that fails is re-queued next pass and a delivered job is sent once.
           await outbox.enqueue({ kind: 'whitelisted_email', linkId: record.id, at: now });
-          if (await store.markWhitelistObserved({ id: record.id, whitelistObservedAt: now })) report.whitelisted += 1;
+          if (
+            await store.markWhitelistObserved({
+              id: record.id,
+              version: record.opsRequestVersion,
+              whitelistObservedAt: now
+            })
+          ) {
+            report.whitelisted += 1;
+          }
+        } else if (record.whitelistObservedAt) {
+          report.lapsed.push(drift);
         } else if (record.whitelistRequestedAt) {
           const days = daysWaiting(record.whitelistRequestedAt);
           if (STUCK_REMINDER_DAYS.includes(days)) {
-            report.stuck.push({
-              linkId: record.id,
-              address: record.address,
-              memberOn: summary.memberOn,
-              total: summary.total,
-              daysWaiting: days,
-              isLastReminder: days === STUCK_REMINDER_DAYS.at(-1)
-            });
+            report.stuck.push({ ...drift, daysWaiting: days, isLastReminder: days === STUCK_REMINDER_DAYS.at(-1) });
           }
         }
       }
@@ -545,48 +593,69 @@ export function createWalletLink({
 
     async deliverNotification({ job }) {
       const record = await store.get({ id: job.linkId });
-      // A row that is gone (its user deleted) has nobody left to tell.
+      // A row that is gone (a challenge dropped) has nobody left to tell.
       if (!record) return ok('skipped');
-
-      const sameStamp = (stamp: Date | null) => stamp !== null && stamp.getTime() === job.at.getTime();
 
       try {
         switch (job.kind) {
-          case 'whitelist_request': {
+          case 'whitelist_request':
+          case 'revoke_request': {
             // Still a challenge: the link's persist has not landed yet.
             if (record.status === 'pending') return err({ code: 'not_caught_up' });
-            // Removed since (the yes no longer stands): asking ops to whitelist it would
-            // only undo the revoke that was queued after it (deliveries are not ordered).
-            if (record.status === 'removed' || !sameStamp(record.signedAt)) return ok('skipped');
-            // No longer a yes inside the queue's delay: nobody to admit. A
-            // request in the channel is one for a verified investor.
-            if (!(await mayLink(record.userId))) return ok('skipped');
-            await sendOperatorMessage('whitelist_request', record);
-            return ok('sent');
-          }
-          case 'revoke_request': {
-            if (record.status !== 'removed') return err({ code: 'not_caught_up' });
-            if (!sameStamp(record.removedAt)) return ok('skipped');
-            // A yes again inside the queue's delay (a reopen re-approved, a
-            // revoke reversed) who has already linked the address again: its
-            // Whitelist request is what ops needs, and a revoke would undo it.
-            // Without a new link the revoke still goes: this Removed row is
-            // the address's only one and no sweep reads it again, so a later
-            // no would never revoke it. The investor links it again anyway.
-            if (
-              (await mayLink(record.userId)) &&
-              (await store.getLinked({ userId: record.userId, address: record.address }))
-            ) {
+            if (record.status !== 'linked') return ok('skipped');
+            // The row has not reached the change this job announces, or has
+            // moved past it (asked the other way since): retry, or skip — a
+            // later job carries what ops must hear now.
+            if (record.opsRequestVersion < job.version) return err({ code: 'not_caught_up' });
+            if (record.opsRequestVersion > job.version || `${record.opsRequest}_request` !== job.kind) {
               return ok('skipped');
             }
-            await sendOperatorMessage('revoke_request', record);
+
+            const [decision, membership] = await Promise.all([
+              verification.getVerificationStatus({ userId: record.userId }),
+              readOneMembership(record.address)
+            ]);
+            const isYes = isYesDecision(decision);
+            const summary = membership ? summarizeMembership(membership) : null;
+            if (job.kind === 'whitelist_request') {
+              // No longer a yes inside the queue's delay: nobody to admit. The
+              // sweep asks the other way next. A request in the channel is one
+              // for a verified investor.
+              if (!isYes) return ok('skipped');
+              // Admitted everywhere already (a wallet someone had whitelisted,
+              // a revoke never carried out): nothing for ops to do.
+              if (summary?.status === 'whitelisted') return ok('skipped');
+            } else if (summary?.unknown === 0 && summary.admittedOn === 0) {
+              // Admitted nowhere (never whitelisted, or frozen everywhere already): nothing to revoke.
+              return ok('skipped');
+            }
+
+            const [account, isSmartAccount] = await Promise.all([
+              store.getAccount({ userId: record.userId }),
+              // A linked row always carries its signature (the database checks
+              // it); the fallback only types the field. Best effort, like the read above.
+              record.signature
+                ? chain
+                    .isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
+                    .catch(() => null)
+                : false
+            ]);
+            await operatorMessages.send({
+              kind: job.kind,
+              record,
+              email: account?.email ?? null,
+              isSmartAccount,
+              membership,
+              endedBy: isYes ? null : decision.status
+            });
             return ok('sent');
           }
           case 'whitelisted_email': {
-            // Removed since the sweep saw it (or before the stamp landed): nothing to announce.
-            if (record.status !== 'linked') return ok('skipped');
+            // Asked to revoke since the sweep saw it: nothing to announce.
+            if (record.status !== 'linked' || record.opsRequest !== 'whitelist') return ok('skipped');
             if (!record.whitelistObservedAt) return err({ code: 'not_caught_up' });
-            if (!sameStamp(record.whitelistObservedAt)) return ok('skipped');
+            if (record.whitelistObservedAt.getTime() !== job.at.getTime()) return ok('skipped');
+            if (!(await mayLink(record.userId))) return ok('skipped');
             const account = await store.getAccount({ userId: record.userId });
             if (!account) return ok('skipped');
             await whitelistedEmails.send({

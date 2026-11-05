@@ -343,13 +343,14 @@ export type OperatorMessenger = {
 };
 
 /**
- * Approval-ended port — in production, a run of the Wallet link sweep queued
- * on QStash, so ops is asked to revoke the user's whitelisted addresses now
- * rather than on its next scheduled run. Called after the write lands, best
- * effort: a lost notice only waits for the schedule, which reads the same
- * records. Optional; nothing is notified without it.
+ * Approval-changed port — in production, a run of the Wallet link sweep
+ * queued on QStash, so ops is asked to revoke (a yes ended) or restore (a yes
+ * again) the user's Linked addresses now rather than on its next scheduled
+ * run. Called after a write that crosses the yes boundary lands, best effort:
+ * a lost notice only waits for the schedule, which reads the same records.
+ * Optional; nothing is notified without it.
  */
-export type ApprovalEndedNotifier = {
+export type ApprovalChangedNotifier = {
   notify(input: { userId: string }): Promise<void>;
 };
 
@@ -499,11 +500,10 @@ export type Verification = {
   /** Local read; never calls Persona. */
   getVerificationStatus(input: { userId: string }): Promise<VerificationStatusView>;
   /**
-   * Local read, one query for all of them: which of `userIds` hold a record
-   * that is not a yes Decision (`isYesDecision`). A user with no record is
-   * not among them: nobody without one could have linked.
+   * Local read, one query for all of them: which of `userIds` hold a yes
+   * Decision (`isYesDecision`). A user with no record is not among them.
    */
-  listUnapproved(input: { userIds: ReadonlyArray<string> }): Promise<Set<string>>;
+  listApproved(input: { userIds: ReadonlyArray<string> }): Promise<Set<string>>;
   /** Applies the access policy, then creates or resumes the user's inquiry. */
   startVerification(input: {
     userId: string;
@@ -717,8 +717,8 @@ class OutboxFailure extends Error {
 }
 
 const isYes = isOneOf(YES_DECISION_STATUSES);
-/** Every status but a yes Decision, for `listUnapproved`'s one query. */
-const UNAPPROVED_STATUSES = verificationStatusValues.filter((status) => !isYes(status));
+/** The yes Decisions, for `listApproved`'s one query. */
+const APPROVED_STATUSES = verificationStatusValues.filter((status) => isYes(status));
 
 export function createVerification({
   store,
@@ -726,7 +726,7 @@ export function createVerification({
   outbox,
   statusEmails,
   operatorMessages,
-  approvalEnded,
+  approvalChanged,
   clock,
   config
 }: {
@@ -735,12 +735,12 @@ export function createVerification({
   outbox: Outbox;
   statusEmails: StatusEmailSender;
   operatorMessages: OperatorMessenger;
-  approvalEnded?: ApprovalEndedNotifier;
+  approvalChanged?: ApprovalChangedNotifier;
   clock: Clock;
   config: VerificationConfig;
 }): Verification {
-  /** A yes that a landed write took away: the Wallet link hears now, not on its next run. */
-  async function announceApprovalEnded({
+  /** A yes that a landed write took away or gave: the Wallet link hears now, not on its next run. */
+  async function announceApprovalChanged({
     userId,
     from,
     to
@@ -749,9 +749,9 @@ export function createVerification({
     from: VerificationStatus | undefined;
     to: VerificationStatus;
   }) {
-    if (!approvalEnded || !from || !isYes(from) || isYes(to)) return;
+    if (!approvalChanged || isYes(from ?? 'not_started') === isYes(to)) return;
     try {
-      await approvalEnded.notify({ userId });
+      await approvalChanged.notify({ userId });
     } catch {
       // The Wallet link's scheduled sweep reads the same records and catches up.
     }
@@ -800,7 +800,7 @@ export function createVerification({
       // change and would not re-enqueue, so a failed enqueue is dropped
       // rather than failing the write; the digest still counts the row.
       if (transition.caseMove) await outbox.enqueue(transition.caseMove).catch(() => undefined);
-      await announceApprovalEnded({ userId, from: record?.status, to: transition.next.status });
+      await announceApprovalChanged({ userId, from: record?.status, to: transition.next.status });
       return {
         outcome: transition.outcome,
         record: { ...transition.next, accountType: record?.accountType ?? input.path, version }
@@ -1093,7 +1093,7 @@ export function createVerification({
       { expectVersion: record?.version ?? null }
     );
     if (written === null) return err({ code: 'conflict' });
-    await announceApprovalEnded({ userId, from: record?.status, to: status });
+    await announceApprovalChanged({ userId, from: record?.status, to: status });
     return ok({ from: record?.status ?? 'not_started', to: status, ...change });
   }
 
@@ -1129,9 +1129,9 @@ export function createVerification({
 
     // The status alone decides a no, for an individual and an organization
     // alike, so the profile `getVerificationStatus` reads is not needed here.
-    async listUnapproved({ userIds }) {
+    async listApproved({ userIds }) {
       if (userIds.length === 0) return new Set();
-      const records = await store.list({ statuses: UNAPPROVED_STATUSES, userIds, limit: userIds.length });
+      const records = await store.list({ statuses: APPROVED_STATUSES, userIds, limit: userIds.length });
       return new Set(records.map((record) => record.userId));
     },
 

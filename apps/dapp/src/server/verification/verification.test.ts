@@ -57,9 +57,9 @@ function setup() {
   const memoryOutbox = createInMemoryOutbox();
   const memoryEmails = createInMemoryStatusEmailSender();
   const memoryOperator = createInMemoryOperatorMessenger();
-  /** Users whose yes a landed write took away, in order; `failApprovalEnded` makes the next notice reject. */
-  const approvalsEnded: Array<string> = [];
-  let failApprovalEnded = false;
+  /** Users whose yes a landed write took away or gave, in order; `failApprovalChanged` makes the next notice reject. */
+  const approvalsChanged: Array<string> = [];
+  let failApprovalChanged = false;
 
   const verification = createVerification({
     store: memoryStore.store,
@@ -67,10 +67,10 @@ function setup() {
     outbox: memoryOutbox.outbox,
     statusEmails: memoryEmails.sender,
     operatorMessages: memoryOperator.messenger,
-    approvalEnded: {
+    approvalChanged: {
       async notify({ userId }) {
-        if (failApprovalEnded) throw new Error('QStash is down');
-        approvalsEnded.push(userId);
+        if (failApprovalChanged) throw new Error('QStash is down');
+        approvalsChanged.push(userId);
       }
     },
     clock: manualClock.clock,
@@ -108,9 +108,9 @@ function setup() {
     outbox: memoryOutbox,
     emails: memoryEmails,
     operator: memoryOperator,
-    approvalsEnded,
-    failApprovalEnded: () => {
-      failApprovalEnded = true;
+    approvalsChanged,
+    failApprovalChanged: () => {
+      failApprovalChanged = true;
     },
     seedRecord
   };
@@ -177,8 +177,8 @@ describe('getVerificationStatus', () => {
   });
 });
 
-describe('listUnapproved', () => {
-  it('answers which of the given users hold a record that is not a yes Decision, in one read', async () => {
+describe('listApproved', () => {
+  it('answers which of the given users hold a yes Decision, in one read', async () => {
     const { verification, seedRecord, store } = setup();
     seedRecord({ userId: 'declined', status: 'declined' });
     seedRecord({ userId: 'revoked', status: 'revoked' });
@@ -188,11 +188,11 @@ describe('listUnapproved', () => {
     seedRecord({ userId: 'unlisted', status: 'revoked' });
     const list = vi.spyOn(store.store, 'list');
 
-    const unapproved = await verification.listUnapproved({
+    const approved = await verification.listApproved({
       userIds: ['declined', 'revoked', 'approved', 'manual', 'reopened', 'no-record']
     });
 
-    expect(unapproved).toEqual(new Set(['declined', 'revoked', 'reopened']));
+    expect(approved).toEqual(new Set(['approved', 'manual']));
     expect(list).toHaveBeenCalledTimes(1);
   });
 });
@@ -1742,7 +1742,7 @@ describe('reconcile', () => {
         expect.objectContaining({ kind: 'status_email', status: 'declined', previousDecision: 'approved' }),
         expect.objectContaining({ kind: 'operator_message', status: 'declined', previousDecision: 'approved' })
       ]);
-      expect(s.approvalsEnded).toEqual([USER_ID]);
+      expect(s.approvalsChanged).toEqual([USER_ID]);
 
       // Confirmed now, so it waits the cadence out.
       s.clock.advance(5 * 60 * MINUTE);
@@ -1779,7 +1779,7 @@ describe('reconcile', () => {
         lastSyncedAt: T0
       });
       expect(s.outbox.notifications).toHaveLength(0);
-      expect(s.approvalsEnded).toHaveLength(0);
+      expect(s.approvalsChanged).toHaveLength(0);
     });
 
     it('keeps out a delayed event from before a reversal the read already saw undone', async () => {
@@ -2265,12 +2265,12 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     const approved = setup();
     approved.seedRecord({ status: 'manually_approved' });
     await approved.verification.revoke({ userId: USER_ID });
-    expect(approved.approvalsEnded).toEqual([USER_ID]);
+    expect(approved.approvalsChanged).toEqual([USER_ID]);
 
     const declined = setup();
     declined.seedRecord({ status: 'declined' });
     await declined.verification.revoke({ userId: USER_ID });
-    expect(declined.approvalsEnded).toEqual([]);
+    expect(declined.approvalsChanged).toEqual([]);
   });
 
   it('revokes a user who never started, which also refuses a start', async () => {
@@ -2403,7 +2403,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
       ok: true,
       value: { from: 'manually_approved', to: 'pending_review' }
     });
-    expect(reviewing.approvalsEnded).toEqual([USER_ID]);
+    expect(reviewing.approvalsChanged).toEqual([USER_ID]);
     // Its email is the reopen's, which says the linked wallets come off the whitelist.
     expect(reviewing.outbox.notifications).toContainEqual(
       expect.objectContaining({ kind: 'status_email', status: 'pending_review', previousDecision: 'approved' })
@@ -2416,7 +2416,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
       ok: true,
       value: { from: 'manually_approved', to: 'approved' }
     });
-    expect(approved.approvalsEnded).toEqual([]);
+    expect(approved.approvalsChanged).toEqual([]);
   });
 
   it('approves a user Persona never decides, and the approval is deaf to Persona and to a resync', async () => {
@@ -2875,40 +2875,41 @@ describe('the organization flow', () => {
     expect(outbox.notifications.some((job) => 'previousDecision' in job)).toBe(false);
   });
 
-  it('tells the Wallet link at once when a yes is taken back, and only then', async () => {
+  it('tells the Wallet link at once when a yes is taken back or given, and only then', async () => {
     const reopened = setupOrganization();
     reopened.seedRecord({ status: 'approved', personaCaseId: 'case_1', personaCaseStatus: 'Approved' });
     await caseDelivery({ verification: reopened.verification, status: 'Open' });
-    expect(reopened.approvalsEnded).toEqual([USER_ID]);
+    expect(reopened.approvalsChanged).toEqual([USER_ID]);
 
     const declined = setupOrganization();
     declined.seedRecord({ status: 'approved', personaCaseId: 'case_1', personaCaseStatus: 'Approved' });
     await caseDelivery({ verification: declined.verification, status: 'Declined' });
-    expect(declined.approvalsEnded).toEqual([USER_ID]);
+    expect(declined.approvalsChanged).toEqual([USER_ID]);
 
-    // Nothing was approved to take back: a reopen after a decline, and a first approval.
+    // A reopen after a decline crosses nothing; the approval that follows does.
     const neverApproved = setupOrganization();
     neverApproved.seedRecord({ status: 'declined', personaCaseId: 'case_1', personaCaseStatus: 'Declined' });
     await caseDelivery({ verification: neverApproved.verification, status: 'Open' });
+    expect(neverApproved.approvalsChanged).toEqual([]);
     await caseDelivery({ verification: neverApproved.verification, status: 'Approved', minutesAfterT0: 2 });
-    expect(neverApproved.approvalsEnded).toEqual([]);
+    expect(neverApproved.approvalsChanged).toEqual([USER_ID]);
   });
 
   it('applies the reopen even when the Wallet link cannot be told', async () => {
-    const { verification, store, failApprovalEnded, approvalsEnded, seedRecord } = setupOrganization();
+    const { verification, store, failApprovalChanged, approvalsChanged, seedRecord } = setupOrganization();
     seedRecord({ status: 'approved', personaCaseId: 'case_1', personaCaseStatus: 'Approved' });
-    failApprovalEnded();
+    failApprovalChanged();
 
     await expect(caseDelivery({ verification, status: 'Open' })).resolves.toEqual({
       ok: true,
       value: { outcome: 'applied' }
     });
     expect(store.records.get(USER_ID)?.status).toBe('pending_review');
-    expect(approvalsEnded).toEqual([]);
+    expect(approvalsChanged).toEqual([]);
   });
 
   it('keeps a Decision when the case moves to a status the configuration does not know, and says so', async () => {
-    const { verification, store, outbox, approvalsEnded, seedRecord } = setupOrganization();
+    const { verification, store, outbox, approvalsChanged, seedRecord } = setupOrganization();
     seedRecord({ status: 'approved', personaCaseId: 'case_1', personaCaseStatus: 'Approved', sourceAt: T0 });
 
     await expect(caseDelivery({ verification, status: 'Needs more information' })).resolves.toEqual({
@@ -2922,7 +2923,7 @@ describe('the organization flow', () => {
     expect(outbox.notifications).toEqual([
       expect.objectContaining({ kind: 'case_status', status: 'approved', caseStatus: 'Needs more information' })
     ]);
-    expect(approvalsEnded).toEqual([]);
+    expect(approvalsChanged).toEqual([]);
   });
 
   it("never lets a reopen touch an operator's status, and still records the case move", async () => {
@@ -3241,7 +3242,7 @@ describe('the organization flow', () => {
   });
 
   it('re-reads a decided organization on the review cadence, so a reopen whose webhook was lost still lands', async () => {
-    const { verification, store, persona, outbox, approvalsEnded, clock, seedRecord } = setupOrganization();
+    const { verification, store, persona, outbox, approvalsChanged, clock, seedRecord } = setupOrganization();
     const decidedAt = new Date(T0.getTime() - 7 * 60 * MINUTE);
     seedRecord({
       status: 'approved',
@@ -3269,11 +3270,11 @@ describe('the organization flow', () => {
       expect.objectContaining({ kind: 'status_email', previousDecision: 'approved' }),
       expect.objectContaining({ kind: 'operator_message', previousDecision: 'approved' })
     ]);
-    expect(approvalsEnded).toEqual([USER_ID]);
+    expect(approvalsChanged).toEqual([USER_ID]);
   });
 
   it("keeps a decided organization's Decision when the sweep finds its case at a status the configuration does not know, and says so once", async () => {
-    const { verification, store, persona, outbox, approvalsEnded, seedRecord } = setupOrganization();
+    const { verification, store, persona, outbox, approvalsChanged, seedRecord } = setupOrganization();
     const decidedAt = new Date(T0.getTime() - 7 * 60 * MINUTE);
     const seeded = seedRecord({
       status: 'approved',
@@ -3296,7 +3297,7 @@ describe('the organization flow', () => {
     expect(outbox.notifications).toEqual([
       expect.objectContaining({ kind: 'case_status', status: 'approved', caseStatus: 'Needs more information' })
     ]);
-    expect(approvalsEnded).toEqual([]);
+    expect(approvalsChanged).toEqual([]);
 
     // The webhook arriving late finds nothing new to say.
     await caseDelivery({ verification, status: 'Needs more information', minutesAfterT0: -60 });

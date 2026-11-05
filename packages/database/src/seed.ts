@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import postgres from 'postgres';
 
 import { AGENT_ACCOUNT } from './agent';
 import { createDatabase } from './client';
-import { profile, termsAcceptance, user } from './schema/index';
+import { profile, termsAcceptance, user, walletLink } from './schema/index';
 
 // A copy of LATEST_LEGAL_DOCS_VERSION (@zivoe/ui/lib/legal-docs), which this package does not depend on. A stale
 // copy only means the seeded agent accepts the terms on /terms once.
@@ -14,7 +14,9 @@ const LATEST_LEGAL_DOCS_VERSION = '2026-10-19';
 //   pnpm --filter @zivoe/database db:seed            create or refresh the agent, terms accepted and onboarded
 //   pnpm --filter @zivoe/database db:seed -- --fresh  delete the agent (cascades: profile, terms
 //                                                     acceptances, sessions, wallets) so the next
-//                                                     sign-in runs onboarding and the terms from the start
+//                                                     sign-in runs onboarding and the terms from the start;
+//                                                     refused once the agent owns a Linked address, which
+//                                                     is never deleted (and neither is its owner)
 //
 // Reads DATABASE_URL from the environment, falling back to packages/database/.env like the
 // other db commands; an explicit `DATABASE_URL=… pnpm … db:seed` wins. Only the agent's own
@@ -34,6 +36,17 @@ async function main() {
 
   try {
     if (fresh) {
+      const [owned] = await db
+        .select({ id: walletLink.id })
+        .from(walletLink)
+        .innerJoin(user, eq(user.id, walletLink.userId))
+        .where(and(eq(user.email, AGENT_ACCOUNT.email), ne(walletLink.status, 'pending')))
+        .limit(1);
+      if (owned) {
+        throw new Error(
+          'The agent has signed a wallet link; a signed link is never deleted, and neither is its owner. Use a fresh database (db:reset).'
+        );
+      }
       const deleted = await db.delete(user).where(eq(user.email, AGENT_ACCOUNT.email)).returning({ id: user.id });
       console.log(
         deleted.length
