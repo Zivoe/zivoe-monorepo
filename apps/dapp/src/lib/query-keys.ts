@@ -143,9 +143,10 @@ const app = {
   // shows another account's after a sign-out.
   walletLinks: ({ userId }: { userId: string }) => ['WALLET_LINKS', userId],
   // Whose the connected address is (this account's, another's, nobody's), as the Wallets step asks it.
+  // `walletOwnerships` is every address's, for an invalidation.
+  walletOwnerships: ({ userId }: { userId: string }) => ['WALLET_OWNERSHIP', userId],
   walletOwnership: ({ userId, address }: { userId: string; address: string }) => [
-    'WALLET_OWNERSHIP',
-    userId,
+    ...app.walletOwnerships({ userId }),
     address.toLowerCase()
   ],
   // Whitelist membership of the addresses asked about (the Wallets step's

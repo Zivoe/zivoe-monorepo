@@ -116,7 +116,7 @@ export function WalletLinkStep({ userId }: { userId: string }) {
         // the action's own answer is already in the cache.
         onRefused={() => {
           void queryClient.invalidateQueries({ queryKey });
-          void queryClient.invalidateQueries({ queryKey: ['WALLET_OWNERSHIP', userId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.app.walletOwnerships({ userId }) });
           focusCard();
         }}
         onDisconnected={focusCard}
