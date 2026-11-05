@@ -39,7 +39,9 @@ export const useChainalysis = () => {
     enabled: !!(address && isActiveChain),
     staleTime: 60 * 60 * 1000,
     retry: false,
-    meta: { toastErrorMessage: 'Error Assessing Account Risk!' }
+    // Fails open: an unanswered screen lets the wallet through (Sentry still
+    // hears of it), so there is nothing for the investor to act on.
+    meta: { skipErrorToast: true }
   });
 
   return {

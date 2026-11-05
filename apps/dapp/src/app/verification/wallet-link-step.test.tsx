@@ -246,6 +246,15 @@ describe('the connected wallet', () => {
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
+  it('offers the signature when Chainalysis could not answer: the server screens again and tells ops', () => {
+    connect();
+    mocks.chainalysis = { data: undefined, isPending: false, isFetching: false, isRiskyAddress: false };
+
+    renderStep();
+
+    expect(screen.getByRole('button', { name: SIGN })).toBeTruthy();
+  });
+
   it('never offers a signature for a flagged address, only the way out', async () => {
     connect();
     mocks.chainalysis = { ...mocks.chainalysis, data: { risk: 'Severe' }, isRiskyAddress: true };

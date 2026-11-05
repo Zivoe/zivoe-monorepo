@@ -9,6 +9,9 @@ import { env } from '@/env';
 
 const CHAINALYSIS_BASE_URL = 'https://api.chainalysis.com/api/risk/v2/entities/';
 
+/** Past this, a screen counts as not answered: every caller fails open, so a hung Chainalysis must not hold a page or a write. */
+const TIMEOUT_MS = 10_000;
+
 const assessmentSchema = z.object({
   address: z.string(),
   risk: z.enum(['Severe', 'High', 'Medium', 'Low']),
@@ -17,13 +20,13 @@ const assessmentSchema = z.object({
 
 export type ChainalysisAssessment = z.infer<typeof assessmentSchema>;
 
-async function fetchAssessment({ address, timeoutMs }: { address: Address; timeoutMs?: number }) {
+async function fetchAssessment({ address }: { address: Address }) {
   const response = await fetch(CHAINALYSIS_BASE_URL + address, {
     headers: {
       Accept: 'application/json',
       Token: env.CHAINALYSIS_API_KEY
     },
-    signal: timeoutMs === undefined ? null : AbortSignal.timeout(timeoutMs)
+    signal: AbortSignal.timeout(TIMEOUT_MS)
   });
 
   if (!response.ok) {
@@ -42,13 +45,17 @@ async function fetchAssessment({ address, timeoutMs }: { address: Address; timeo
   return parsedData.data;
 }
 
-/** `timeoutMs` rejects a screen that takes longer; without it, the call waits for Chainalysis. */
-export async function getChainalysisAssessment({ address, timeoutMs }: { address: Address; timeoutMs?: number }) {
+/**
+ * Safelist first, then Chainalysis. Rejects when the screen cannot be made
+ * (an error, a bad shape, or past `TIMEOUT_MS`); the caller decides what an
+ * unanswered screen means — every one today lets the address through.
+ */
+export async function getChainalysisAssessment({ address }: { address: Address }) {
   const isOnSafeList = await isSafelistedAddress(address);
 
   if (isOnSafeList) {
     return { address, risk: 'Low', riskReason: null } satisfies ChainalysisAssessment;
   }
 
-  return fetchAssessment({ address, timeoutMs });
+  return fetchAssessment({ address });
 }

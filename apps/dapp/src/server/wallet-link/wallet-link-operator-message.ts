@@ -7,7 +7,12 @@ import { escapeHtml } from '@/lib/utils';
 
 import { CHAIN_DISPLAY } from '@/zivoe-vaults/chain-display';
 
-import { type WalletLinkOperatorKind, type WalletLinkOperatorMessenger, type WalletLinkRecord } from './wallet-link';
+import {
+  type ScreeningVerdict,
+  type WalletLinkOperatorKind,
+  type WalletLinkOperatorMessenger,
+  type WalletLinkRecord
+} from './wallet-link';
 import { type AddressMembership, summarizeMembership } from './wallet-link-membership';
 
 const TITLES: Record<WalletLinkOperatorKind, string> = {
@@ -20,6 +25,17 @@ const REVOKE_REASONS: Partial<Record<VerificationStatus, string>> = {
   declined: 'verification declined',
   revoked: 'verification revoked',
   pending_review: 'verification back under review'
+};
+
+/**
+ * Chainalysis as ops must read it before admitting the address. Only `clear`
+ * needs no action: the dapp lets an address it could not screen through, so
+ * the screen is theirs to make.
+ */
+const SCREENING_LINES: Record<ScreeningVerdict, string> = {
+  clear: 'clear',
+  flagged: '⚠️ High or Severe risk; do not whitelist before a compliance review',
+  unscreened: '⚠️ could not be screened (Chainalysis unavailable); screen the address before whitelisting'
 };
 
 /** The chain the message was signed on, by display label; a chain the app does not know shows its id. */
@@ -61,7 +77,8 @@ export function formatWalletLinkOperatorMessage({
   email,
   isSmartAccount,
   membership,
-  endedBy
+  endedBy,
+  screening
 }: {
   kind: WalletLinkOperatorKind;
   record: WalletLinkRecord;
@@ -69,6 +86,7 @@ export function formatWalletLinkOperatorMessage({
   isSmartAccount: boolean | null;
   membership: AddressMembership | null;
   endedBy: VerificationStatus | null;
+  screening: ScreeningVerdict | null;
 }): string {
   // A Linked address is never unlinked: a revoke is a freeze, and the owner
   // approved again is a Whitelist request to lift it, with no new signature.
@@ -113,7 +131,8 @@ export function formatWalletLinkOperatorMessage({
             `<b>Smart account:</b> could not be checked; if it is one, control is proven on ${escapeHtml(chainLabel(record.chainId))} only`
           ]
         : []),
-    `<b>Whitelist now:</b> ${membershipLine(membership)}`
+    `<b>Whitelist now:</b> ${membershipLine(membership)}`,
+    ...(screening ? [`<b>Chainalysis:</b> ${SCREENING_LINES[screening]}`] : [])
   ];
 
   if (kind === 'revoke_request') {
@@ -132,7 +151,7 @@ export function createTelegramWalletLinkMessenger({
   chatId: string;
 }): WalletLinkOperatorMessenger {
   return {
-    async send({ kind, record, email, isSmartAccount, membership, endedBy }) {
+    async send({ kind, record, email, isSmartAccount, membership, endedBy, screening }) {
       await sendTelegramMessage({
         chatId,
         text: formatWalletLinkOperatorMessage({
@@ -141,7 +160,8 @@ export function createTelegramWalletLinkMessenger({
           email,
           isSmartAccount,
           membership,
-          endedBy
+          endedBy,
+          screening
         })
       });
     }

@@ -61,7 +61,8 @@ describe('the operator message', () => {
       email: 'ada<script>@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null
+      endedBy: null,
+      screening: 'clear'
     });
 
     expect(text.split('\n')).toEqual([
@@ -71,8 +72,31 @@ describe('the operator message', () => {
       '<b>User:</b> ada&lt;script&gt;@example.com',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
-      '<b>Whitelist now:</b> a member on none of 2 chains'
+      '<b>Whitelist now:</b> a member on none of 2 chains',
+      '<b>Chainalysis:</b> clear'
     ]);
+  });
+
+  it('tells ops to screen an address Chainalysis could not answer for, and not to admit one it flags', () => {
+    const lineFor = (screening: 'unscreened' | 'flagged') =>
+      formatWalletLinkOperatorMessage({
+        kind: 'whitelist_request',
+        record: record(),
+        email: 'ada@example.com',
+        isSmartAccount: false,
+        membership: NOWHERE,
+        endedBy: null,
+        screening
+      })
+        .split('\n')
+        .at(-1);
+
+    expect(lineFor('unscreened')).toBe(
+      '<b>Chainalysis:</b> ⚠️ could not be screened (Chainalysis unavailable); screen the address before whitelisting'
+    );
+    expect(lineFor('flagged')).toBe(
+      '<b>Chainalysis:</b> ⚠️ High or Severe risk; do not whitelist before a compliance review'
+    );
   });
 
   it('asks for a revoke with the link date, naming an unknown wallet and chain as such', () => {
@@ -88,7 +112,8 @@ describe('the operator message', () => {
       email: null,
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(text.split('\n')).toEqual([
@@ -112,7 +137,8 @@ describe('the operator message', () => {
         email: 'ada@example.com',
         isSmartAccount: false,
         membership: membership(['member', 'not-member']),
-        endedBy
+        endedBy,
+        screening: null
       }).split('\n')[2];
 
     expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked; freeze on every chain');
@@ -128,7 +154,8 @@ describe('the operator message', () => {
         email: 'ada@example.com',
         isSmartAccount: false,
         membership: read,
-        endedBy: 'declined'
+        endedBy: 'declined',
+        screening: null
       }).split('\n')[2];
 
     expect(reasonWith(NOWHERE)).toBe(
@@ -147,7 +174,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: membership(['member', 'member'], ['base']),
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(text.split('\n').slice(0, 4)).toEqual([
@@ -166,7 +194,8 @@ describe('the operator message', () => {
         email: 'ada@example.com',
         isSmartAccount: false,
         membership: read,
-        endedBy: null
+        endedBy: null,
+        screening: null
       }).split('\n')[2];
     const reason = '<b>Reason:</b> new link to an address already frozen; check why before unfreezing';
 
@@ -181,7 +210,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: membership(['member', 'member']),
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(text.split('\n')[2]).toBe(
@@ -204,7 +234,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: current,
-      endedBy: 'revoked'
+      endedBy: 'revoked',
+      screening: null
     });
 
     expect(text).toContain(`<b>Whitelist now:</b> ${expected}`);
@@ -217,7 +248,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: true,
       membership: NOWHERE,
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(text.split('\n').slice(5, 7)).toEqual([
@@ -233,7 +265,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: null,
       membership: NOWHERE,
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(text.split('\n')[6]).toBe(
@@ -250,7 +283,8 @@ describe('the operator message', () => {
       email: 'ada@example.com',
       isSmartAccount: false,
       membership: NOWHERE,
-      endedBy: null
+      endedBy: null,
+      screening: null
     });
 
     expect(sendTelegramMessage).toHaveBeenCalledWith({
