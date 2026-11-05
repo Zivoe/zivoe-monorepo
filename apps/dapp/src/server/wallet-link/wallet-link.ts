@@ -418,11 +418,6 @@ export function createWalletLink({
       const address = rawAddress.toLowerCase() as Address;
       if (!(await mayLink(userId))) return err({ code: 'not_approved' });
 
-      const now = clock.now();
-      const pending = await store.getPending({ userId, address });
-      if (!pending) return err({ code: 'no_challenge' });
-      if (pending.expiresAt <= now) return err({ code: 'expired' });
-
       // Linked meanwhile — by this account from another tab, or by another
       // account: the challenge is dead. The unique index refuses it anyway;
       // this spares the screen and the signature check.
@@ -431,6 +426,12 @@ export function createWalletLink({
         const owner = await store.getOwner({ address });
         return err({ code: owner?.userId === userId ? ('already_linked' as const) : ('linked_elsewhere' as const) });
       };
+
+      const now = clock.now();
+      const pending = await store.getPending({ userId, address });
+      // No challenge left, perhaps because another tab completed it: then the answer is who owns it.
+      if (!pending) return (await store.getOwner({ address })) ? ownedBy() : err({ code: 'no_challenge' });
+      if (pending.expiresAt <= now) return err({ code: 'expired' });
       if (await store.getOwner({ address })) return ownedBy();
 
       // Screened again on write: a flag that landed between issue and signature still refuses.
@@ -463,10 +464,14 @@ export function createWalletLink({
       // Linked by some account between the check above and the write: the
       // challenge is dropped, so the job queued above finds no row and skips.
       if (written.outcome === 'address_taken') return ownedBy();
-      // No longer this challenge (re-issued meanwhile, or completed twice): the
-      // job queued above is retried out while the row stays pending. Once it
-      // links, that job matches too, as every first link is version 1, so ops
-      // can see the line twice, as with any at-least-once delivery.
+      // Completed twice (two tabs, one challenge): the other completion linked
+      // it, so the answer is that it is linked, not that the request is dead.
+      // Both queued a version 1 job and both match, so ops can see the line twice.
+      if (await store.getOwner({ address })) return ownedBy();
+      // No longer this challenge (re-issued meanwhile): the job queued above
+      // is retried out while the row stays pending. Once it links, that job
+      // matches too, as every first link is version 1, so ops can see the
+      // line twice, as with any at-least-once delivery.
       return err({ code: 'no_challenge' });
     },
 

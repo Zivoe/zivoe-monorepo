@@ -484,6 +484,39 @@ describe('completing a link', () => {
     await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
   });
 
+  it('answers already linked when another tab completed the same challenge while this one was verifying', async () => {
+    const { walletLink, chain } = setup();
+    const issued = await walletLink.issueChallenge({
+      userId: ALICE,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: null,
+      walletName: null
+    });
+    if (!issued.ok) throw new Error('issue refused');
+    const signature = await sign(issued.value.typedData);
+
+    // The other tab completes the same challenge while this one's signature is out for verification.
+    const verify = chain.chain.verifyTypedData.bind(chain.chain);
+    vi.spyOn(chain.chain, 'verifyTypedData').mockImplementationOnce(async (args) => {
+      const valid = await verify(args);
+      await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature });
+      return valid;
+    });
+
+    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_linked' }
+    });
+    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+
+    // A third tab, after both: no challenge left, and the answer is still that it is linked.
+    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+      ok: false,
+      error: { code: 'already_linked' }
+    });
+  });
+
   it('refuses when the challenge was re-issued while its signature was being verified', async () => {
     const { walletLink, chain, store } = setup();
     const input = { userId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: 'metamask', walletName: 'MetaMask' };
