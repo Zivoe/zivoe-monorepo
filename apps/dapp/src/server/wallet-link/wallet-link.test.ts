@@ -322,9 +322,36 @@ describe('completing a link', () => {
         isSmartAccount: false,
         // Read at delivery too: a member nowhere yet, which is what the request is for.
         membership: TARGETS.map((target) => ({ target, verdict: 'not-member', frozen: false })),
-        endedBy: null
+        endedBy: null,
+        // Screened again at delivery: what ops checks before admitting it.
+        screening: 'clear'
       }
     ]);
+  });
+
+  it('links when Chainalysis cannot answer, and the Whitelist request tells ops to screen the address', async () => {
+    const { walletLink, screening, outbox, operator } = setup();
+    screening.failScreens(new Error('chainalysis down'));
+
+    const linked = await linkEoa(walletLink);
+
+    expect(linked).toMatchObject({ ok: true, value: { status: 'linked', opsRequest: 'whitelist' } });
+    // Issue, completion and delivery each asked.
+    await walletLink.deliverNotification({ job: outbox.jobs[0]! });
+    expect(screening.calls).toHaveLength(3);
+    expect(operator.sent).toMatchObject([{ kind: 'whitelist_request', screening: 'unscreened' }]);
+  });
+
+  it('tells ops of a flag Chainalysis answers at delivery for a link it could not screen', async () => {
+    const { walletLink, screening, outbox, operator } = setup();
+    screening.failScreens(new Error('chainalysis down'));
+    await linkEoa(walletLink);
+
+    screening.failScreens(null);
+    screening.flagged.add(SIGNER);
+    await walletLink.deliverNotification({ job: outbox.jobs[0]! });
+
+    expect(operator.sent).toMatchObject([{ kind: 'whitelist_request', screening: 'flagged' }]);
   });
 
   it('accepts a checksummed address and stores it lowercase', async () => {
@@ -761,18 +788,14 @@ describe('reconcile', () => {
     expect(emails.sent).toHaveLength(1);
   });
 
-  it('keeps a revoked address frozen when Chainalysis flags it on approval again, and tries a screen that failed again', async () => {
+  it('keeps a revoked address frozen when Chainalysis flags it on approval again', async () => {
     const s = setup();
     const { walletLink, verification, outbox, clock, screening, store } = s;
     const id = await linkThenRevoke(s);
     const jobs = outbox.jobs.length;
     verification.set(ALICE, { status: 'approved' });
-
-    screening.failScreens(new Error('chainalysis down'));
-    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ restored: 0, unscreened: 1 });
-
-    screening.failScreens(null);
     screening.flagged.add(SIGNER);
+
     expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({
       restored: 0,
       unscreened: 0,
@@ -780,6 +803,19 @@ describe('reconcile', () => {
     });
     expect(outbox.jobs).toHaveLength(jobs);
     expect(store.records.get(id)).toMatchObject({ opsRequest: 'revoke', opsRequestVersion: 2 });
+  });
+
+  it('restores an owner approved again when Chainalysis cannot answer, and tells ops to screen the address', async () => {
+    const s = setup();
+    const { walletLink, verification, outbox, operator, clock, screening, store } = s;
+    const id = await linkThenRevoke(s);
+    verification.set(ALICE, { status: 'approved' });
+    screening.failScreens(new Error('chainalysis down'));
+
+    expect(await walletLink.reconcile({ now: clock.clock.now() })).toMatchObject({ restored: 1, unscreened: 1 });
+    expect(store.records.get(id)).toMatchObject({ opsRequest: 'whitelist', opsRequestVersion: 3 });
+    await walletLink.deliverNotification({ job: outbox.jobs.at(-1)! });
+    expect(operator.sent.at(-1)).toMatchObject({ kind: 'whitelist_request', screening: 'unscreened' });
   });
 
   it('asks for a revoke before it waits on the screen of a restore', async () => {

@@ -530,22 +530,15 @@ function ConnectedWalletCard({
 
   // -- Chainalysis, before any signature: the placeholder stays until it
   // answers. The first answer only: a background refetch after the hour's
-  // staleness must not hide the button for a beat.
+  // staleness must not hide the button for a beat. A screen that failed lets
+  // the investor sign: the server screens again and, still unanswered,
+  // links it and tells ops to screen it themselves.
   if (assessment.isPending) return placeholder;
   if (assessment.isRiskyAddress) {
     return (
       <Card heading="Connected wallet">
         {addressLine}
         <Note tone="alert">This address can&apos;t be whitelisted.</Note>
-        {disconnectButton}
-      </Card>
-    );
-  }
-  if (!assessment.data) {
-    return (
-      <Card heading="Connected wallet">
-        {addressLine}
-        <Note tone="alert">Couldn&apos;t check this address. Reload the page to try again.</Note>
         {disconnectButton}
       </Card>
     );

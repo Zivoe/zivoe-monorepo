@@ -113,13 +113,6 @@ const handler = async (req: NextRequest): ApiResponse<WalletLinkReconcileReport>
           extra: report
         });
       }
-      if (report.unscreened > 0) {
-        Sentry.captureMessage('Wallet link reconcile could not screen an address approved again', {
-          level: 'warning',
-          tags: { source: 'API', flow: WALLET_LINK_RECONCILE_SLUG },
-          extra: report
-        });
-      }
     }
 
     checkIn('ok');

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import * as Sentry from '@sentry/nextjs';
 import { Client } from '@upstash/qstash';
 
 import { getChainalysisAssessment } from '@/server/chainalysis/assessment';
@@ -16,9 +17,6 @@ import { createViemChainPort } from './wallet-link-chain';
 import { createTelegramWalletLinkMessenger } from './wallet-link-operator-message';
 import { createQstashWalletLinkOutbox } from './wallet-link-outbox';
 import { createPostgresWalletLinkStore } from './wallet-link-store';
-
-/** Screens wait on this inside a request: past it, the screen counts as not answered. */
-const SCREEN_TIMEOUT_MS = 10_000;
 
 // The wiring, and only the wiring. Types come from `./wallet-link`, the
 // signed message from `./wallet-link-typed-data` and the membership
@@ -39,10 +37,19 @@ export const walletLink = createWalletLink({
   screening: {
     // The same screen the dapp runs on connect (safelist first, then
     // Chainalysis); High or Severe refuses. A screen that cannot be made
-    // rejects, and nothing is linked on an unanswered question.
+    // rejects; the module goes ahead unscreened and tells ops, so the
+    // outage itself is reported here.
     async assess({ address }) {
-      const { risk } = await getChainalysisAssessment({ address, timeoutMs: SCREEN_TIMEOUT_MS });
-      return risk === 'High' || risk === 'Severe' ? 'flagged' : 'clear';
+      try {
+        const { risk } = await getChainalysisAssessment({ address });
+        return risk === 'High' || risk === 'Severe' ? 'flagged' : 'clear';
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: { source: 'SERVER', flow: 'wallet-link-screening' },
+          extra: { address }
+        });
+        throw error;
+      }
     }
   },
   chain: createViemChainPort(),

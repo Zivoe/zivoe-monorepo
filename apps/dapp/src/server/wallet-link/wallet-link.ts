@@ -109,10 +109,18 @@ export type WalletLinkStore = {
   getAccount(input: { userId: string }): Promise<{ email: string; name: string | null } | null>;
 };
 
-/** Chainalysis — `flagged` is High or Severe. Rejects when the screen cannot be made; nothing is linked then. */
+/**
+ * Chainalysis — `flagged` is High or Severe. Rejects when the screen cannot
+ * be made; the module then goes ahead `unscreened` (Chainalysis being down
+ * must not lock investors out) and the Whitelist request tells ops to screen
+ * the address themselves.
+ */
 export type ScreeningPort = {
   assess(input: { address: Address }): Promise<'clear' | 'flagged'>;
 };
+
+/** A screen's outcome as the module acts on it: only `flagged` refuses. */
+export type ScreeningVerdict = 'clear' | 'flagged' | 'unscreened';
 
 /**
  * The chain port: contract-aware signature verification on the chain the
@@ -171,6 +179,12 @@ export type WalletLinkOperatorMessenger = {
     membership: AddressMembership | null;
     /** The owner's status when it is not a yes, read at delivery: why a Revoke request is asked. */
     endedBy: VerificationStatus | null;
+    /**
+     * Chainalysis on the address, asked at delivery of a Whitelist request:
+     * what ops checks before admitting it — `unscreened` means screen it by
+     * hand. Null on a Revoke request, which is not asked.
+     */
+    screening: ScreeningVerdict | null;
   }): Promise<void>;
 };
 
@@ -225,7 +239,7 @@ export type WalletLinkReconcileReport = {
   restored: number;
   /** Reads that could not conclude on some chain; they stay for the next pass. */
   unchecked: number;
-  /** Owners a yes again whose address Chainalysis could not screen; tried again next pass. */
+  /** Owners a yes again whose address Chainalysis could not screen: restored all the same, and the request tells ops so. */
   unscreened: number;
   /**
    * Still not whitelisted everywhere on one of the reminder days since the
@@ -324,6 +338,10 @@ export function createWalletLink({
   /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
   const mayLink = async (userId: string) => isYesDecision(await verification.getVerificationStatus({ userId }));
 
+  /** Fails open: a screen that cannot be made is `unscreened`, never a refusal. */
+  const screen = (address: Address): Promise<ScreeningVerdict> =>
+    screening.assess({ address }).catch(() => 'unscreened' as const);
+
   /**
    * Asks ops the other way: the job is queued before the row moves, like
    * every write here, so a write that fails is asked again and the receiver
@@ -358,8 +376,10 @@ export function createWalletLink({
       const owner = await store.getOwner({ address });
       if (owner) return err({ code: owner.userId === userId ? 'already_linked' : 'linked_elsewhere' });
 
-      // Chainalysis before any signature. A flagged address leaves no row behind.
-      if ((await screening.assess({ address })) === 'flagged') {
+      // Chainalysis before any signature. A flagged address leaves no row
+      // behind; one Chainalysis could not answer for goes on, and is screened
+      // again on completion and at delivery.
+      if ((await screen(address)) === 'flagged') {
         await store.deletePending({ userId, address });
         return err({ code: 'flagged' });
       }
@@ -434,8 +454,10 @@ export function createWalletLink({
       if (pending.expiresAt <= now) return err({ code: 'expired' });
       if (await store.getOwner({ address })) return ownedBy();
 
-      // Screened again on write: a flag that landed between issue and signature still refuses.
-      if ((await screening.assess({ address })) === 'flagged') {
+      // Screened again on write: a flag that landed between issue and
+      // signature still refuses. Unanswered, it links: the Whitelist request
+      // re-screens at delivery and tells ops when it still cannot.
+      if ((await screen(address)) === 'flagged') {
         await store.deletePending({ userId, address });
         return err({ code: 'flagged' });
       }
@@ -523,13 +545,13 @@ export function createWalletLink({
       });
       const current: Array<WalletLinkRecord> = [];
       // A yes again is screened again before ops is asked to restore, as a new
-      // link is. Started together, so a slow Chainalysis costs one timeout
-      // however many wait; and owners who are not a yes go first below, so it
-      // never holds up a freeze.
+      // link is, and fails open the same way. Started together, so a slow
+      // Chainalysis costs one timeout however many wait; and owners who are
+      // not a yes go first below, so it never holds up a freeze.
       const screens = new Map(
         owned
           .filter((record) => record.opsRequest === 'revoke' && approved.has(record.userId))
-          .map((record) => [record.id, screening.assess({ address: record.address }).catch(() => null)])
+          .map((record) => [record.id, screen(record.address)])
       );
       const revokesFirst = [...owned].sort((a, b) => Number(approved.has(a.userId)) - Number(approved.has(b.userId)));
       for (const record of revokesFirst) {
@@ -539,10 +561,10 @@ export function createWalletLink({
           continue;
         }
         if (wanted === 'whitelist') {
-          const risk = (await screens.get(record.id)) ?? null;
-          if (risk === null) report.unscreened += 1;
-          if (risk === 'flagged') report.flagged.push({ linkId: record.id, address: record.address });
-          if (risk !== 'clear') {
+          const risk = await screens.get(record.id);
+          if (risk === 'unscreened') report.unscreened += 1;
+          if (risk === 'flagged') {
+            report.flagged.push({ linkId: record.id, address: record.address });
             current.push(record);
             continue;
           }
@@ -637,7 +659,7 @@ export function createWalletLink({
             // on yet, and only this message cancels it.
             // Read together: run one after another, slow chains could use up
             // the receiver's time before Telegram is called.
-            const [decision, membership, account, isSmartAccount] = await Promise.all([
+            const [decision, membership, account, isSmartAccount, screening] = await Promise.all([
               verification.getVerificationStatus({ userId: record.userId }),
               readOneMembership(record.address),
               store.getAccount({ userId: record.userId }),
@@ -647,7 +669,10 @@ export function createWalletLink({
                 ? chain
                     .isSmartAccount({ chainId: record.chainId, address: record.address, signature: record.signature })
                     .catch(() => null)
-                : false
+                : false,
+              // Asked again here rather than carried from the link: a link
+              // made while Chainalysis was down is screened now if it is back.
+              job.kind === 'whitelist_request' ? screen(record.address) : null
             ]);
             const isYes = isYesDecision(decision);
             // No longer a yes inside the queue's delay: nobody to admit. The
@@ -671,7 +696,8 @@ export function createWalletLink({
               email: account?.email ?? null,
               isSmartAccount,
               membership,
-              endedBy: isYes ? null : decision.status
+              endedBy: isYes ? null : decision.status,
+              screening
             });
             return ok('sent');
           }
