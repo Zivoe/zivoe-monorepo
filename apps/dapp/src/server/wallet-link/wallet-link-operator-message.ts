@@ -87,7 +87,9 @@ export function formatWalletLinkOperatorMessage({
         ? 'approved again; unfreeze where frozen, whitelist where missing'
         : summary?.status === 'whitelisted'
           ? 'new link to an address already whitelisted; nothing to do unless this owner is unexpected'
-          : 'new link'
+          : (summary?.frozenOn ?? 0) > 0
+            ? 'new link to an address already frozen; check why before unfreezing'
+            : 'new link'
       : endedBy === null
         ? `no longer approved when asked, approved again since; ${revokeAction}`
         : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'}; ${revokeAction}`;

@@ -158,6 +158,22 @@ describe('the operator message', () => {
     ]);
   });
 
+  it('flags a new link to an address already frozen, even where another chain did not answer', () => {
+    const reasonWith = (read: AddressMembership) =>
+      formatWalletLinkOperatorMessage({
+        kind: 'whitelist_request',
+        record: record(),
+        email: 'ada@example.com',
+        isSmartAccount: false,
+        membership: read,
+        endedBy: null
+      }).split('\n')[2];
+    const reason = '<b>Reason:</b> new link to an address already frozen; check why before unfreezing';
+
+    expect(reasonWith(membership(['member', 'not-member'], ['ethereum']))).toBe(reason);
+    expect(reasonWith(membership(['member', 'unknown'], ['ethereum']))).toBe(reason);
+  });
+
   it('flags a new link to an address already whitelisted: someone else may be investing with it', () => {
     const text = formatWalletLinkOperatorMessage({
       kind: 'whitelist_request',
