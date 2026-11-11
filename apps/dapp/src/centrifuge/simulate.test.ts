@@ -169,7 +169,8 @@ describe('createSimulationSigner', () => {
         value: 0n
       })
     );
-    expect(walletRequest).toHaveBeenCalledWith(SEND_TX);
+    // Sent once: a retried send is a second prompt, or a second custody transaction.
+    expect(walletRequest).toHaveBeenCalledWith(SEND_TX, { retryCount: 0 });
   });
 
   it('passes every other method through without simulating', async () => {
