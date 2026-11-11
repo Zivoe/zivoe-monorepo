@@ -120,13 +120,15 @@ export const SIGNING_TIMEOUT_MS = 5 * 60_000;
 
 /**
  * The timeout means "gave up waiting", not "did not happen": a wallet request
- * cannot be cancelled, so a late approval may still broadcast — refetch stays
- * on so balances self-correct, and the copy warns against blindly retrying.
+ * cannot be cancelled, so a late approval may still broadcast — a custody
+ * wallet (Fireblocks) routinely needs longer than this to collect its team's
+ * approvals. Refetch stays on so balances self-correct, and the copy warns
+ * against blindly retrying.
  */
 export function signingTimedOutError(): AppError {
   return new AppError({
     message:
-      'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.',
+      'Your wallet did not respond. The transaction may still go through if you approved it or your team is still approving it (e.g. in Fireblocks). Check your wallet before trying again.',
     type: 'warning'
   });
 }
