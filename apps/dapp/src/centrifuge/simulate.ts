@@ -84,7 +84,9 @@ const UNSIMULATED_WRITE_METHODS = new Set([
   'eth_signTypedData_v4',
   'eth_sendRawTransaction',
   'personal_sign',
-  'wallet_sendCalls'
+  'wallet_sendCalls',
+  // viem's fallback when a wallet refuses eth_sendTransaction
+  'wallet_sendTransaction'
 ]);
 
 /**
