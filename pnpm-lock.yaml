@@ -13,6 +13,9 @@ patchedDependencies:
   '@centrifuge/sdk@2.6.0':
     hash: a9a9decb1d3b2490fdcb2b50bbbe35c3fea67fd708ec043868652156b20cfd2f
     path: patches/@centrifuge__sdk@2.6.0.patch
+  '@dynamic-labs/ethereum-core@5.9.3':
+    hash: 6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4
+    path: patches/@dynamic-labs__ethereum-core@5.9.3.patch
 
 importers:
 
@@ -147,7 +150,7 @@ importers:
         version: 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(@types/react@19.3.0)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)
       '@dynamic-labs/wagmi-connector':
         specifier: 5.9.3
-        version: 5.9.3(f96adc469cff7339ea1c013c9342a06f)
+        version: 5.9.3(09fb9e4a5f5faaa021598d9c9a61d5be)
       '@dynamic-labs/wallet-book':
         specifier: 5.9.3
         version: 5.9.3(@types/node@22.19.17)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -12285,10 +12288,10 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@dynamic-labs-connectors/base-account-evm@4.7.1(@dynamic-labs/ethereum-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)))(@dynamic-labs/wallet-connector-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)':
+  '@dynamic-labs-connectors/base-account-evm@4.7.1(@dynamic-labs/ethereum-core@5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)))(@dynamic-labs/wallet-connector-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@base-org/account': 1.1.1(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(zod@3.25.76)
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/wallet-connector-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)
       viem: 2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)
     transitivePeerDependencies:
@@ -12301,10 +12304,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@dynamic-labs-connectors/metamask-evm@4.7.1(3469177e6ab16ccf37570362b0691e04)':
+  '@dynamic-labs-connectors/metamask-evm@4.7.1(ca79f1e08995169e4fa727e754942364)':
     dependencies:
       '@dynamic-labs/ethereum': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(@types/react@19.3.0)(@upstash/redis@1.37.0)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.34))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/utils': 5.9.3
       '@dynamic-labs/wallet-connector-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)
       '@metamask/connect-evm': 2.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -12423,7 +12426,7 @@ snapshots:
     dependencies:
       '@dynamic-labs/logger': 5.9.3
 
-  '@dynamic-labs/ethereum-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))':
+  '@dynamic-labs/ethereum-core@5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))':
     dependencies:
       '@dynamic-labs/assert-package-version': 5.9.3
       '@dynamic-labs/logger': 5.9.3
@@ -12458,10 +12461,10 @@ snapshots:
   '@dynamic-labs/ethereum@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(@types/react@19.3.0)(@upstash/redis@1.37.0)(@vercel/functions@2.2.13(@aws-sdk/credential-provider-web-identity@3.972.34))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@coinbase/wallet-sdk': 4.3.7(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)
-      '@dynamic-labs-connectors/base-account-evm': 4.7.1(@dynamic-labs/ethereum-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)))(@dynamic-labs/wallet-connector-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)
-      '@dynamic-labs-connectors/metamask-evm': 4.7.1(3469177e6ab16ccf37570362b0691e04)
+      '@dynamic-labs-connectors/base-account-evm': 4.7.1(@dynamic-labs/ethereum-core@5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)))(@dynamic-labs/wallet-connector-core@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(typescript@5.7.3)(use-sync-external-store@1.4.0(react@19.3.0))(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))(zod@3.25.76)
+      '@dynamic-labs-connectors/metamask-evm': 4.7.1(ca79f1e08995169e4fa727e754942364)
       '@dynamic-labs/assert-package-version': 5.9.3
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/logger': 5.9.3
       '@dynamic-labs/rpc-providers': 5.9.3
       '@dynamic-labs/types': 5.9.3
@@ -12715,7 +12718,7 @@ snapshots:
   '@dynamic-labs/waas-evm@5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76)':
     dependencies:
       '@dynamic-labs/assert-package-version': 5.9.3
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/ethereum-gasless-core': 5.9.3(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/logger': 5.9.3
       '@dynamic-labs/sdk-api-core': 0.70.0
@@ -12752,7 +12755,7 @@ snapshots:
       '@dynamic-labs-wallet/core': 1.1.27(@dynamic-labs-wallet/forward-mpc-client@1.0.2(@dynamic-labs-wallet/primitives@1.1.27)(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       '@dynamic-labs-wallet/forward-mpc-client': 1.0.2(@dynamic-labs-wallet/primitives@1.1.27)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@dynamic-labs/assert-package-version': 5.9.3
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/logger': 5.9.3
       '@dynamic-labs/sdk-api-core': 0.70.0
       '@dynamic-labs/solana-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.7.3)(utf-8-validate@6.0.6)
@@ -12782,10 +12785,10 @@ snapshots:
       - utf-8-validate
       - viem
 
-  '@dynamic-labs/wagmi-connector@5.9.3(f96adc469cff7339ea1c013c9342a06f)':
+  '@dynamic-labs/wagmi-connector@5.9.3(09fb9e4a5f5faaa021598d9c9a61d5be)':
     dependencies:
       '@dynamic-labs/assert-package-version': 5.9.3
-      '@dynamic-labs/ethereum-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
+      '@dynamic-labs/ethereum-core': 5.9.3(patch_hash=6f63c2ada50979beded73b95680fc9a7bb0ae404d4baa57ad3520c2978c2feb4)(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)(viem@2.57.2(bufferutil@4.1.0)(typescript@5.7.3)(utf-8-validate@6.0.6)(zod@3.25.76))
       '@dynamic-labs/logger': 5.9.3
       '@dynamic-labs/rpc-providers': 5.9.3
       '@dynamic-labs/sdk-react-core': 5.9.3(@dynamic-labs-wallet/primitives@1.1.27)(@types/node@22.19.17)(@types/react@19.3.0)(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(utf-8-validate@6.0.6)
