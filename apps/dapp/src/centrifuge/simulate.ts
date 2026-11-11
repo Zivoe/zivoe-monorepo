@@ -38,7 +38,9 @@ export function withEnableVariant({ vault, data }: { vault: Address; data: Hex }
   return [data, encodeFunctionData({ abi: ABI.VaultRouter, functionName: 'multicall', args: [[enableData, data]] })];
 }
 
-export type WalletClientLike = { request(args: { method: string; params?: unknown }): Promise<unknown> };
+export type WalletClientLike = {
+  request(args: { method: string; params?: unknown }, options?: { retryCount?: number }): Promise<unknown>;
+};
 
 export type SimulationClient = {
   call(params: { account?: Address; to?: Address; data?: Hex; value?: bigint }): Promise<unknown>;
@@ -82,7 +84,9 @@ const UNSIMULATED_WRITE_METHODS = new Set([
   'eth_signTypedData_v4',
   'eth_sendRawTransaction',
   'personal_sign',
-  'wallet_sendCalls'
+  'wallet_sendCalls',
+  // viem's fallback when a wallet refuses eth_sendTransaction
+  'wallet_sendTransaction'
 ]);
 
 /**
@@ -117,7 +121,12 @@ export function createSimulationSigner({
         });
       }
 
-      return walletClient.request(args);
+      // The SDK calls the signer raw, without the `retryCount: 0` viem's own
+      // wallet actions pass: a send or a signature must never be re-sent by the
+      // wallet client's transport (a second prompt, or a second custody
+      // transaction). Everything else keeps its retries.
+      const isWrite = args.method === 'eth_sendTransaction' || UNSIMULATED_WRITE_METHODS.has(args.method);
+      return isWrite ? walletClient.request(args, { retryCount: 0 }) : walletClient.request(args);
     }
   };
 }

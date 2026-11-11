@@ -490,7 +490,7 @@ describe('useDeposit', () => {
       expect(uiToast).toHaveBeenCalledWith({
         type: 'warning',
         title:
-          'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.'
+          'Your wallet did not respond. The transaction may still go through if you approved it or your team is still approving it (e.g. in Fireblocks). Check your wallet before trying again.'
       });
       // "Gave up waiting" is not "did not happen": a late approval can still
       // broadcast, so the invalidations must run and let balances self-correct.
@@ -518,7 +518,7 @@ describe('useDeposit', () => {
       expect(uiToast).toHaveBeenCalledWith({
         type: 'warning',
         title:
-          'Your wallet did not respond. If you approved the transaction in your wallet, wait for it to land before trying again.'
+          'Your wallet did not respond. The transaction may still go through if you approved it or your team is still approving it (e.g. in Fireblocks). Check your wallet before trying again.'
       });
     } finally {
       vi.useRealTimers();

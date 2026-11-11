@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AppError } from '@/lib/utils';
 
+import * as Sentry from '@sentry/nextjs';
+
 import { createSimulationSigner } from './simulate';
 
-vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn(), captureMessage: vi.fn() }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn(), Toaster: () => null }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { dismiss: vi.fn() }) }));
 
@@ -169,7 +171,22 @@ describe('createSimulationSigner', () => {
         value: 0n
       })
     );
-    expect(walletRequest).toHaveBeenCalledWith(SEND_TX);
+    // Sent once: a retried send is a second prompt, or a second custody transaction.
+    expect(walletRequest).toHaveBeenCalledWith(SEND_TX, { retryCount: 0 });
+  });
+
+  it("sends viem's wallet_sendTransaction fallback once and flags it", async () => {
+    const simulationClient = { call: vi.fn() };
+    const { signer, walletRequest } = signerWith(simulationClient);
+    const fallback = { ...SEND_TX, method: 'wallet_sendTransaction' };
+
+    await expect(signer.request(fallback)).resolves.toBe('0xhash');
+
+    expect(walletRequest).toHaveBeenCalledWith(fallback, { retryCount: 0 });
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Centrifuge signer passed a write method through without simulation',
+      expect.objectContaining({ extra: { method: 'wallet_sendTransaction' } })
+    );
   });
 
   it('passes every other method through without simulating', async () => {
