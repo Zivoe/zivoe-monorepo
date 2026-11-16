@@ -7,7 +7,7 @@ packages:
 # The hook overrides collapse the OpenTelemetry/Sentry module hooks to one
 # version each, preventing Turbopack's conflicting serverExternalPackages warning.
 overrides:
-  kysely: ^0.28.5
+  kysely: ^0.28.17
   import-in-the-middle: ^3.0.1
   require-in-the-middle: ^8.0.1
 

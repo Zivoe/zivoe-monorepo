@@ -15,12 +15,12 @@
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "prettier": "^3.5.2",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "turbo": "^2.4.2",
+    "turbo": "^2.9.14",
     "typescript": "5.7.3"
   },
   "pnpm": {
     "overrides": {
-      "kysely": "^0.28.5",
+      "kysely": "^0.28.17",
       "import-in-the-middle": "^3.0.1",
       "require-in-the-middle": "^8.0.1"
     },
