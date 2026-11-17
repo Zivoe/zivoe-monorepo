@@ -307,15 +307,6 @@ export const SHARE_CLASSES = {
               {
                 address: '0xF6AB108f90e7fbdf34940685C0Be07acfff091CE',
                 asset: { address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', symbol: 'USDC', decimals: 6 }
-              },
-              {
-                address: '0x1f646591dd35FCbA30234C3A2D9F8865afb5A273',
-                asset: {
-                  address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
-                  symbol: 'USDT',
-                  onChainSymbol: 'USDT0',
-                  decimals: 6
-                }
               }
             ]
           },

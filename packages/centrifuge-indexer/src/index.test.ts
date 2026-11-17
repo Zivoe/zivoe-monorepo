@@ -299,8 +299,7 @@ describe('share-class catalog', () => {
       ['arbitrum', 'USD₮0'],
       ['avalanche', 'USDt'],
       ['hyperliquid', 'USD₮0'],
-      ['xlayer', 'USD₮0'],
-      ['monad', 'USDT0']
+      ['xlayer', 'USD₮0']
     ]);
   });
 
