@@ -64,8 +64,8 @@ export default function OnboardingForm({
       setStep('invite');
     }
   });
-  // No way back while the save runs or once it has: a second, different save would race the first.
-  const isBackDisabled = onboarding.isPending || onboarding.isSuccess;
+  // Saving until the page leaves: no way back and no second Continue, since a second save would race the first.
+  const isSaving = onboarding.isPending || onboarding.isSuccess;
 
   return (
     <>
@@ -104,8 +104,7 @@ export default function OnboardingForm({
                 ? "First, about you. Your organization's details come next."
                 : 'Please fill out the fields below.'
             }
-            isPending={onboarding.isPending}
-            isBackDisabled={isBackDisabled}
+            isSaving={isSaving}
             onBack={
               canInvestThroughOrganization
                 ? (values) => {
@@ -129,14 +128,14 @@ export default function OnboardingForm({
               title="About Your Organization"
               description="The organization's legal name and country, as they appear on its registration documents."
             >
-              <Auth.StepIndicator onBack={() => setStep('profile')} isBackDisabled={isBackDisabled} />
+              <Auth.StepIndicator onBack={() => setStep('profile')} isBackDisabled={isSaving} />
             </Auth.Header>
 
             <OrganizationDetailsForm
               defaultValues={organizationDraft}
               onValuesChange={setOrganizationDraft}
               submitLabel="Continue"
-              isPending={onboarding.isPending}
+              isPending={isSaving}
               onSubmit={(details: OrganizationDetailsFormData) => {
                 // Before the save: if the page renders again while it runs, it renders the invite step.
                 const url = new URL(window.location.href);
@@ -177,15 +176,13 @@ export default function OnboardingForm({
 function ProfileStep({
   defaultValues,
   description,
-  isPending,
-  isBackDisabled,
+  isSaving,
   onBack,
   onSubmit
 }: {
   defaultValues?: Partial<OnboardingFormData>;
   description: string;
-  isPending: boolean;
-  isBackDisabled: boolean;
+  isSaving: boolean;
   onBack?: (values: Partial<OnboardingFormData>) => void;
   onSubmit: (data: OnboardingFormData) => void;
 }) {
@@ -197,7 +194,7 @@ function ProfileStep({
   return (
     <>
       <Auth.Header title="Tell Us About Yourself" description={description}>
-        {onBack ? <Auth.StepIndicator onBack={() => onBack(getValues())} isBackDisabled={isBackDisabled} /> : null}
+        {onBack ? <Auth.StepIndicator onBack={() => onBack(getValues())} isBackDisabled={isSaving} /> : null}
       </Auth.Header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-11">
@@ -313,7 +310,7 @@ function ProfileStep({
           />
         </div>
 
-        <Button type="submit" fullWidth isPending={isPending} pendingContent="Onboarding...">
+        <Button type="submit" fullWidth isPending={isSaving} pendingContent="Onboarding...">
           Continue
         </Button>
       </form>

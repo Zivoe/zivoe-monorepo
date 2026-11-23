@@ -194,6 +194,40 @@ describe('OnboardingForm', () => {
     expect(valueOf('Legal Name')).toBe('Acme');
   });
 
+  it('saves only their own answers when they switch from an organization to "Just me"', async () => {
+    renderForm();
+
+    press('Through an organization');
+    press('Continue');
+    fill(PROFILE_FIELDS, PROFILE);
+    press('Continue');
+    await findHeading('About Your Organization');
+    fill(ORGANIZATION_FIELDS, ORGANIZATION);
+    press('Back');
+    press('Back');
+    press('Just me');
+    press('Continue');
+    press('Continue');
+
+    await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalledWith({ profile: PROFILE }));
+  });
+
+  it('offers no way back while the save runs', async () => {
+    mocks.completeOnboarding.mockReturnValue(new Promise(() => undefined));
+    renderForm();
+
+    press('Through an organization');
+    press('Continue');
+    fill(PROFILE_FIELDS, PROFILE);
+    press('Continue');
+    await findHeading('About Your Organization');
+    fill(ORGANIZATION_FIELDS, ORGANIZATION);
+    press('Continue');
+
+    await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(true));
+  });
+
   it('asks an invitee only for their own answers, with no way back to a choice', async () => {
     renderForm({ canInvestThroughOrganization: false });
     expect(heading()).toBe('Tell Us About Yourself');
