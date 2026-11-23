@@ -50,11 +50,19 @@ function Header({
 Header.displayName = 'Auth.Header';
 
 /** Back, and where the step sits ("Step 1 of 3") when the flow has a fixed length. */
-function StepIndicator({ onBack, children }: { onBack?: () => void; children?: React.ReactNode }) {
+function StepIndicator({
+  onBack,
+  isBackDisabled,
+  children
+}: {
+  onBack?: () => void;
+  isBackDisabled?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-4">
       {onBack && (
-        <Button variant="link-primary" onPress={onBack} className="font-medium">
+        <Button variant="link-primary" onPress={onBack} isDisabled={isBackDisabled} className="font-medium">
           <ArrowLeftIcon className="size-4" />
           <span className="text-leading font-medium">Back</span>
         </Button>

@@ -26,15 +26,16 @@ import { useCompleteOnboarding, useLeaveOnboarding } from '../_hooks/useComplete
 const amountOfInterestItems = Object.entries(AMOUNT_OF_INTEREST_OPTIONS).map(([value, label]) => ({ value, label }));
 const referralSourceItems = Object.entries(REFERRAL_SOURCE_OPTIONS).map(([value, label]) => ({ value, label }));
 
-type Step = 'profile' | 'invest' | 'organization' | 'invite';
+type Step = 'invest' | 'profile' | 'organization' | 'invite';
 type Choice = 'me' | 'organization';
 
 /**
- * Onboarding, after the terms, as one multi-step form: the person's answers, then how they will invest and,
+ * Onboarding, after the terms, as one multi-step form: how they will invest, the person's own answers and,
  * through an organization, its details. Nothing is saved until the last of those: one write keeps the profile
- * and the organization together. The invite step comes after that write, and is in the URL (`?step=invite`),
- * so a reload or a re-render there shows it again for the organization just made, never a second one. Without `canInvestThroughOrganization`
- * (an invitation waiting in `next`) onboarding is the first step alone.
+ * and the organization together, and the server refuses either without the person's answers. The invite step
+ * comes after that write, and is in the URL (`?step=invite`), so a reload or a re-render there shows it again
+ * for the organization just made, never a second one. Without `canInvestThroughOrganization` (an invitation waiting in
+ * `next`) onboarding is the person's answers alone. Answers typed on a step are kept when they step back from it.
  */
 export default function OnboardingForm({
   next,
@@ -46,9 +47,12 @@ export default function OnboardingForm({
   /** Onboarded already, on `?step=invite`: straight to the invite step for this organization. */
   inviteTo?: { id: string; name: string };
 }) {
-  const [step, setStep] = useState<Step>(inviteTo ? 'invite' : 'profile');
-  const [profile, setProfile] = useState<OnboardingFormData>();
+  const [step, setStep] = useState<Step>(inviteTo ? 'invite' : canInvestThroughOrganization ? 'invest' : 'profile');
   const [choice, setChoice] = useState<Choice | null>(null);
+  // What the steps show again on the way back; `profile` is the validated answers the save sends.
+  const [profileDraft, setProfileDraft] = useState<Partial<OnboardingFormData>>();
+  const [profile, setProfile] = useState<OnboardingFormData>();
+  const [organizationDraft, setOrganizationDraft] = useState<Partial<OrganizationDetailsFormData>>();
   const [organization, setOrganization] = useState<{ id: string; name: string } | null>(inviteTo ?? null);
   const [organizationName, setOrganizationName] = useState('');
 
@@ -60,30 +64,18 @@ export default function OnboardingForm({
       setStep('invite');
     }
   });
+  // No way back while the save runs or once it has: a second, different save would race the first.
+  const isBackDisabled = onboarding.isPending || onboarding.isSuccess;
 
   return (
     <>
       <Auth.Container>
-        {step === 'profile' ? (
-          <ProfileStep
-            defaultValues={profile}
-            isPending={onboarding.isPending}
-            onSubmit={(data) => {
-              setProfile(data);
-              if (canInvestThroughOrganization) setStep('invest');
-              else onboarding.mutate({ profile: data });
-            }}
-          />
-        ) : null}
-
-        {step === 'invest' && profile ? (
+        {step === 'invest' ? (
           <>
             <Auth.Header
               title="How Will You Invest?"
               description="You can invest yourself, through an organization, or both. You can add an organization at any time."
-            >
-              <Auth.StepIndicator onBack={() => setStep('profile')} />
-            </Auth.Header>
+            />
 
             <RadioGroup
               aria-label="How you will invest"
@@ -98,19 +90,37 @@ export default function OnboardingForm({
               </Radio>
             </RadioGroup>
 
-            <Button
-              fullWidth
-              isDisabled={!choice}
-              isPending={onboarding.isPending}
-              pendingContent="Onboarding..."
-              onPress={() => {
-                if (choice === 'organization') setStep('organization');
-                else onboarding.mutate({ profile });
-              }}
-            >
+            <Button fullWidth isDisabled={!choice} onPress={() => setStep('profile')}>
               Continue
             </Button>
           </>
+        ) : null}
+
+        {step === 'profile' ? (
+          <ProfileStep
+            defaultValues={profileDraft}
+            description={
+              choice === 'organization'
+                ? "First, about you. Your organization's details come next."
+                : 'Please fill out the fields below.'
+            }
+            isPending={onboarding.isPending}
+            isBackDisabled={isBackDisabled}
+            onBack={
+              canInvestThroughOrganization
+                ? (values) => {
+                    setProfileDraft(values);
+                    setStep('invest');
+                  }
+                : undefined
+            }
+            onSubmit={(data) => {
+              setProfileDraft(data);
+              setProfile(data);
+              if (choice === 'organization') setStep('organization');
+              else onboarding.mutate({ profile: data });
+            }}
+          />
         ) : null}
 
         {step === 'organization' && profile ? (
@@ -119,10 +129,12 @@ export default function OnboardingForm({
               title="About Your Organization"
               description="The organization's legal name and country, as they appear on its registration documents."
             >
-              <Auth.StepIndicator onBack={() => setStep('invest')} />
+              <Auth.StepIndicator onBack={() => setStep('profile')} isBackDisabled={isBackDisabled} />
             </Auth.Header>
 
             <OrganizationDetailsForm
+              defaultValues={organizationDraft}
+              onValuesChange={setOrganizationDraft}
               submitLabel="Continue"
               isPending={onboarding.isPending}
               onSubmit={(details: OrganizationDetailsFormData) => {
@@ -158,24 +170,35 @@ export default function OnboardingForm({
   );
 }
 
-/** Step one, for everyone: the person's own answers. Kept when they step back from a later step. */
+/**
+ * The person's own answers, asked of everyone: after "How will you invest?", or alone for an invitee.
+ * `onBack` hands up what was typed, valid or not, so it is there again on the way forward.
+ */
 function ProfileStep({
   defaultValues,
+  description,
   isPending,
+  isBackDisabled,
+  onBack,
   onSubmit
 }: {
-  defaultValues?: OnboardingFormData;
+  defaultValues?: Partial<OnboardingFormData>;
+  description: string;
   isPending: boolean;
+  isBackDisabled: boolean;
+  onBack?: (values: Partial<OnboardingFormData>) => void;
   onSubmit: (data: OnboardingFormData) => void;
 }) {
-  const { control, handleSubmit } = useForm<OnboardingFormData>({
+  const { control, getValues, handleSubmit } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues
   });
 
   return (
     <>
-      <Auth.Header title="Tell Us About Yourself" description="Please fill out the fields below." />
+      <Auth.Header title="Tell Us About Yourself" description={description}>
+        {onBack ? <Auth.StepIndicator onBack={() => onBack(getValues())} isBackDisabled={isBackDisabled} /> : null}
+      </Auth.Header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-11">
         <div className="flex flex-col gap-7">

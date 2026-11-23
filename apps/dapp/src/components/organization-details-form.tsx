@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -22,19 +22,28 @@ export function OrganizationDetailsForm({
   submitLabel,
   isPending,
   onSubmit,
+  onValuesChange,
   before
 }: {
   defaultValues?: Partial<OrganizationDetailsFormData>;
+  /** Every edit, valid or not: onboarding keeps them for its way back. */
+  onValuesChange?: (values: Partial<OrganizationDetailsFormData>) => void;
   submitLabel: string;
   isPending: boolean;
   onSubmit: (data: OrganizationDetailsFormData) => void;
   /** Shown above the fields, inside the form. */
   before?: ReactNode;
 }) {
-  const { control, handleSubmit } = useForm<OrganizationDetailsFormData>({
+  const { control, handleSubmit, watch } = useForm<OrganizationDetailsFormData>({
     resolver: zodResolver(organizationDetailsSchema),
     defaultValues: { name: '', countryOfIncorporation: '', title: '', ...defaultValues }
   });
+
+  useEffect(() => {
+    if (!onValuesChange) return;
+    const subscription = watch((values) => onValuesChange(values));
+    return () => subscription.unsubscribe();
+  }, [watch, onValuesChange]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-11">

@@ -37,7 +37,7 @@ export const investorProfileSchema = z.object({
 });
 export type InvestorProfileFormData = z.infer<typeof investorProfileSchema>;
 
-/** Onboarding's first step: everyone is a person first. A company follows when they invest through one. */
+/** Onboarding's "Tell us about yourself": asked of everyone, a company's details follow when they invest through one. */
 export const onboardingSchema = investorProfileSchema.extend({
   amountOfInterest: z.enum(amountOfInterestOptionValues, { required_error: 'Please select an amount of interest' }),
   referralSource: z.enum(referralSourceValues, { required_error: 'Please select how you found Zivoe' })
