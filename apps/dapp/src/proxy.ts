@@ -2,16 +2,18 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { getSessionCookie } from 'better-auth/cookies';
 
-import { isDappReturnPath } from '@/lib/return-paths';
+import { isDappReturnPath, verificationReturnPath } from '@/lib/return-paths';
 
 export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
     const signIn = new URL('/sign-in', request.url);
-    // A page an email links to is where the visitor lands once signed in.
-    const { pathname } = request.nextUrl;
-    if (isDappReturnPath(pathname)) signIn.searchParams.set('next', pathname);
+    // A page an email links to is where the visitor lands once signed in, with the subject an
+    // organization's verification email names.
+    const { pathname, searchParams } = request.nextUrl;
+    const returnTo = pathname === '/verification' ? verificationReturnPath(searchParams.get('subject')) : pathname;
+    if (isDappReturnPath(returnTo)) signIn.searchParams.set('next', returnTo);
     // Campaign parameters ride along, so the sign-in pageview still credits the link followed.
     for (const [key, value] of request.nextUrl.searchParams) {
       if (key.startsWith('utm_')) signIn.searchParams.append(key, value);

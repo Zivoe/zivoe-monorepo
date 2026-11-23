@@ -60,8 +60,9 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
       // A full load: post-signin picks the page in `next` or the way back to Lighthouse, which can end cross-origin.
       if (next) return window.location.assign(withNext('/api/auth/post-signin', next));
 
-      // Otherwise the action's redirect brings the dashboard in one request, with no full load: its promise rejects
+      // Otherwise the action's redirect brings the next page in one request, with no full load: its promise rejects
       // with NEXT_REDIRECT while the router navigates. Any other failure falls back to the full load.
+      // A newcomer goes on to onboarding; someone back for updated terms goes on to the dashboard.
       const { err } = await handlePromise(continueAfterSignInAction());
       if (err && !(err instanceof Error && err.message.includes('NEXT_REDIRECT'))) {
         Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'accept-terms' } });

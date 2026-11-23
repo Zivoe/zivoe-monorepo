@@ -12,6 +12,7 @@ import { toast as sonnerToast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@zivoe/ui/core/button';
+import { Callout } from '@zivoe/ui/core/callout';
 import { Input } from '@zivoe/ui/core/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from '@zivoe/ui/core/otp';
 import { Separator } from '@zivoe/ui/core/separator';
@@ -25,6 +26,7 @@ import { continueAfterSignInAction } from '@/server/actions/auth';
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { authClient } from '@/lib/auth-client';
 import { withNext } from '@/lib/lighthouse';
+import { isInvitationPath } from '@/lib/return-paths';
 import { handlePromise } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -71,6 +73,11 @@ export default function SignInForm({ next }: { next?: string }) {
               title="Sign Up or Sign In"
               description="Enter your email to sign in to your account. If you don't have an account yet, one will be created for you."
             />
+
+            {/* The hint is about the link, not about any invitation: it says nothing of what exists. */}
+            {isInvitationPath(next) ? (
+              <Callout variant="info">Sign in with the email address your invitation was sent to.</Callout>
+            ) : null}
 
             <EmailStepForm next={next} onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
           </>
@@ -138,13 +145,13 @@ function EmailStepForm({
     if (provider === 'google') setIsGoogleLoading(true);
     else setIsTwitterLoading(true);
 
-    // A new user always starts at onboarding, so they skip the post-signin hop that decides it for returning users.
+    // A new user always starts at the terms, so they skip the post-signin hop that decides it for returning users.
     // The error URL is absolute: on a preview the provider calls production back, and a refusal there
     // (cancelled consent, a bad code) must come back to this host, not production's sign-in page.
     const { error } = await authClient.signIn.social({
       provider,
       callbackURL: withNext('/api/auth/post-signin', next),
-      newUserCallbackURL: withNext('/onboarding', next),
+      newUserCallbackURL: withNext('/terms', next),
       errorCallbackURL: `${window.location.origin}${withNext('/sign-in', next)}`
     });
 

@@ -7,7 +7,7 @@ import { onboardedDestination, signInReturnUrl, withNext } from '@/lib/lighthous
 import TermsForm from './_components/terms-form';
 
 /**
- * Where a signed-in, onboarded user lands until they accept the current terms: right after onboarding, and
+ * Where a signed-in user lands until they accept the current terms: right after sign-up, before onboarding, and
  * again each time a deploy moves `LATEST_LEGAL_DOCS_VERSION` past their last acceptance. `next` is the validated
  * page that sent them here; they return to it once they accept (lib/lighthouse.ts).
  */

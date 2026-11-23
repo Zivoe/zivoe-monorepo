@@ -6,6 +6,29 @@
  */
 const DAPP_RETURN_PATHS = new Set(['/verification']);
 
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+
+/** One exact shape: a lowercase UUID, nothing after it, so it stays a page of ours and carries nothing else. */
+const INVITATION_PATH = new RegExp(`^/invitations/${UUID}$`);
+
+/** `/verification` on one subject, as an organization's status email links it: the same exact-shape rule. */
+const VERIFICATION_SUBJECT_PATH = new RegExp(`^/verification\\?subject=${UUID}$`);
+
+/**
+ * The return path for `/verification`, keeping the subject it was opened on when that is a well-formed id,
+ * so signing in again does not land a member on themselves instead of their organization.
+ */
+export const verificationReturnPath = (subject: unknown) => {
+  const path = typeof subject === 'string' ? `/verification?subject=${subject}` : '/verification';
+  return VERIFICATION_SUBJECT_PATH.test(path) ? path : '/verification';
+};
+
+export const isInvitationPath = (path: unknown): path is string =>
+  typeof path === 'string' && INVITATION_PATH.test(path);
+
 export function isDappReturnPath(path: unknown): path is string {
-  return typeof path === 'string' && DAPP_RETURN_PATHS.has(path);
+  return (
+    typeof path === 'string' &&
+    (DAPP_RETURN_PATHS.has(path) || isInvitationPath(path) || VERIFICATION_SUBJECT_PATH.test(path))
+  );
 }

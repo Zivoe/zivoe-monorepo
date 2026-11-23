@@ -88,14 +88,15 @@ export const getTermsStatus = cache(async (userId: string): Promise<TermsStatus>
 });
 
 /**
- * The page a signed-in user has to finish before the dapp opens to them: onboarding first, then the terms.
- * Null once both are done. Never redirects, so route handlers can call it.
+ * The page a signed-in user has to finish before the dapp opens to them: the terms first, then onboarding, so
+ * nothing onboarding saves (a profile, an organization, invitations to colleagues) happens before the terms are
+ * accepted. Null once both are done. Never redirects, so route handlers can call it.
  */
 export const getRequiredStep = async (userId: string) => {
   const [termsStatus, isOnboarded] = await Promise.all([getTermsStatus(userId), isUserOnboarded(userId)]);
 
-  if (!isOnboarded) return '/onboarding';
   if (termsStatus !== 'accepted') return '/terms';
+  if (!isOnboarded) return '/onboarding';
 
   return null;
 };
@@ -106,7 +107,7 @@ export const getAccessStatus = cache(async () => {
   return { requiredStep: await getRequiredStep(user.id), user };
 });
 
-/** The gate for dapp pages: sends the user to onboarding or to the terms while either is unfinished. */
+/** The gate for dapp pages: sends the user to the terms or to onboarding while either is unfinished. */
 export const verifyOnboarded = async () => {
   const { requiredStep, user } = await getAccessStatus();
   if (requiredStep) redirect(requiredStep);
@@ -121,7 +122,6 @@ export const getUserEmailProfile = async (userId: string) => {
         email: schema.user.email,
         firstName: schema.profile.firstName,
         lastName: schema.profile.lastName,
-        accountType: schema.profile.accountType,
         createdAt: schema.profile.createdAt
       })
       .from(schema.user)
