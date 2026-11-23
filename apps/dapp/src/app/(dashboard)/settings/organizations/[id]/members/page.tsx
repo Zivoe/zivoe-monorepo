@@ -18,11 +18,13 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
 
   const { user } = await verifyOnboarded();
 
-  const page = await organizations.getForMember({ organizationId: id, userId: user.id });
+  // The links are only for Delete's warning (the wallets linked to an organization stay linked to it): read beside
+  // the page rather than after it, and never shown to someone the page turns away.
+  const [page, links] = await Promise.all([
+    organizations.getForMember({ organizationId: id, userId: user.id }),
+    walletLink.listLinks({ subjectId: id })
+  ]);
   if (!page) notFound();
-
-  // Only for Delete's warning: the wallets linked to an organization stay linked to it.
-  const links = await walletLink.listLinks({ subjectId: id });
 
   return <MembersView page={page} viewerId={user.id} hasLinkedWallets={links.length > 0} />;
 }
