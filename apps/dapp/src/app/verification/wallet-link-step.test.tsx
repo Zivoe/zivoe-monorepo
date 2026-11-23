@@ -143,7 +143,10 @@ const USER_ID = 'user_1';
  * re-read on mount. Both test addresses are nobody's unless the test says
  * otherwise, as if the ownership read had answered.
  */
-function renderStep(links: Array<LinkedAddress> = [], ownership: 'none' | 'elsewhere' = 'none') {
+function renderStep(
+  links: Array<LinkedAddress> = [],
+  ownership: 'none' | 'elsewhere' | { yours: string | null } = 'none'
+) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   client.setQueryData(['WALLET_LINKS', USER_ID], links);
   for (const address of [LOWER, OTHER]) client.setQueryData(['WALLET_OWNERSHIP', USER_ID, address], ownership);
@@ -313,6 +316,19 @@ describe('the connected wallet', () => {
     expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
     expect(screen.queryByRole('button', { name: CLAIM })).toBeNull();
     expect(screen.getByRole('link', { name: /@/ })).toBeTruthy();
+  });
+
+  it.each([
+    [{ yours: null }, /linked to your personal account/],
+    [{ yours: 'Acme Ltd' }, /linked to Acme Ltd/]
+  ])("names the person's own other account that owns the wallet, and asks for a different one", (ownership, words) => {
+    connect(ADDRESS, NOT_MEMBER);
+
+    renderStep([], ownership);
+
+    expect(screen.getByText(words)).toBeTruthy();
+    expect(screen.queryByText(/another Zivoe account/)).toBeNull();
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
   });
 
   it('asks whose the wallet is before offering a signature, once per address', async () => {

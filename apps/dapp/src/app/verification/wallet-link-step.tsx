@@ -495,6 +495,23 @@ function ConnectedWalletCard({
     );
   }
 
+  // -- Another of the person's own accounts: an address has one owner, so this one needs a different address.
+  if (typeof ownership.data === 'object') {
+    return (
+      <Card heading="Connected wallet">
+        {addressLine}
+        <p className="text-small text-secondary">
+          This address is already linked to {ownership.data.yours ?? 'your personal account'}. An address can be linked
+          to one account only, so connect a different one to link it to {owner}.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {disconnectButton}
+          {switchHint}
+        </div>
+      </Card>
+    );
+  }
+
   // -- Another account's, for good: whitelisted or not, nothing here is this account's to ask.
   if (ownership.data === 'elsewhere') {
     return (

@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => ({
   issueChallenge: vi.fn(),
   completeLink: vi.fn(),
   getOwnership: vi.fn(),
-  listLinks: vi.fn()
+  listLinks: vi.fn(),
+  canActForSubject: vi.fn(),
+  listForUser: vi.fn()
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
@@ -27,6 +29,9 @@ vi.mock('@upstash/ratelimit', () => ({
     { fixedWindow: () => ({}) }
   )
 }));
+vi.mock('@/server/organizations', () => ({
+  organizations: { canActForSubject: mocks.canActForSubject, listForUser: mocks.listForUser }
+}));
 vi.mock('@/server/wallet-link', () => ({
   walletLink: {
     issueChallenge: mocks.issueChallenge,
@@ -38,11 +43,14 @@ vi.mock('@/server/wallet-link', () => ({
 
 const ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
 const SIGNATURE = `0x${'ab'.repeat(65)}`;
+/** Who the step is acting for; the session's own user is `user_1`. */
+const SUBJECT_ID = 'a2a1c6c4-6e3e-4f7e-8a51-4e1b9a0d3c11';
 const SEPOLIA = 11155111;
 const LINK_ID = '77ce3fa7-9c2d-404f-8f90-3c8d562dbcd8';
 const record = {
   id: LINK_ID,
-  userId: 'user_1',
+  subjectId: SUBJECT_ID,
+  signedByUserId: 'user_1',
   address: ADDRESS.toLowerCase(),
   walletType: 'metamask',
   walletName: 'MetaMask',
@@ -70,6 +78,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getSession.mockResolvedValue({ user: { id: 'user_1', email: 'ada@example.com' } });
   mocks.isKycEnabled.mockResolvedValue(true);
+  mocks.canActForSubject.mockResolvedValue(true);
   mocks.limit.mockResolvedValue({ success: true });
   mocks.issueChallenge.mockResolvedValue({ ok: true, value: { linkId: LINK_ID, typedData: {} } });
   mocks.completeLink.mockResolvedValue({ ok: true, value: record });
@@ -90,7 +99,13 @@ describe('the gate every action shares', () => {
     arrange();
 
     expect(
-      await issueWalletLinkChallenge({ address: ADDRESS, chainId: SEPOLIA, walletType: null, walletName: null })
+      await issueWalletLinkChallenge({
+        subjectId: SUBJECT_ID,
+        address: ADDRESS,
+        chainId: SEPOLIA,
+        walletType: null,
+        walletName: null
+      })
     ).toEqual({
       ok: false,
       error: { code }
@@ -102,7 +117,13 @@ describe('the gate every action shares', () => {
     mocks.issueChallenge.mockRejectedValue(new Error('database down'));
 
     expect(
-      await issueWalletLinkChallenge({ address: ADDRESS, chainId: SEPOLIA, walletType: null, walletName: null })
+      await issueWalletLinkChallenge({
+        subjectId: SUBJECT_ID,
+        address: ADDRESS,
+        chainId: SEPOLIA,
+        walletType: null,
+        walletName: null
+      })
     ).toEqual({
       ok: false,
       error: { code: 'failed' }
@@ -114,6 +135,7 @@ describe('the gate every action shares', () => {
 describe('issueWalletLinkChallenge', () => {
   it('hands the module the address, the chain and the wallet type', async () => {
     const result = await issueWalletLinkChallenge({
+      subjectId: SUBJECT_ID,
       address: ADDRESS,
       chainId: SEPOLIA,
       walletType: 'metamask',
@@ -122,7 +144,7 @@ describe('issueWalletLinkChallenge', () => {
 
     expect(result).toEqual({ ok: true, value: { linkId: LINK_ID, typedData: {} } });
     expect(mocks.issueChallenge).toHaveBeenCalledWith({
-      userId: 'user_1',
+      subjectId: SUBJECT_ID,
       address: ADDRESS,
       chainId: SEPOLIA,
       walletType: 'metamask',
@@ -131,7 +153,13 @@ describe('issueWalletLinkChallenge', () => {
   });
 
   it('trims the wallet type and name, and passes a blank one as none', async () => {
-    await issueWalletLinkChallenge({ address: ADDRESS, chainId: SEPOLIA, walletType: ' metamask ', walletName: '  ' });
+    await issueWalletLinkChallenge({
+      subjectId: SUBJECT_ID,
+      address: ADDRESS,
+      chainId: SEPOLIA,
+      walletType: ' metamask ',
+      walletName: '  '
+    });
 
     expect(mocks.issueChallenge).toHaveBeenCalledWith(
       expect.objectContaining({ walletType: 'metamask', walletName: null })
@@ -147,6 +175,7 @@ describe('issueWalletLinkChallenge', () => {
   ])('refuses %s before the gate', async (_label, change) => {
     expect(
       await issueWalletLinkChallenge({
+        subjectId: SUBJECT_ID,
         address: ADDRESS,
         chainId: SEPOLIA,
         walletType: null,
@@ -160,16 +189,26 @@ describe('issueWalletLinkChallenge', () => {
 
 describe('completeWalletLink', () => {
   it('maps the linked record to the page row', async () => {
-    const result = await completeWalletLink({ address: ADDRESS, signature: SIGNATURE });
+    const result = await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature: SIGNATURE });
 
     expect(result).toEqual({ ok: true, value: row });
-    expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: SIGNATURE });
+    expect(mocks.completeLink).toHaveBeenCalledWith({
+      subjectId: SUBJECT_ID,
+      signedByUserId: 'user_1',
+      address: ADDRESS,
+      signature: SIGNATURE
+    });
   });
 
   it("lets a Safe's on-chain signature through to the chain: `0x`, for its contract to answer", async () => {
-    await completeWalletLink({ address: ADDRESS, signature: '0x' });
+    await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature: '0x' });
 
-    expect(mocks.completeLink).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS, signature: '0x' });
+    expect(mocks.completeLink).toHaveBeenCalledWith({
+      subjectId: SUBJECT_ID,
+      signedByUserId: 'user_1',
+      address: ADDRESS,
+      signature: '0x'
+    });
   });
 
   it.each([
@@ -177,7 +216,7 @@ describe('completeWalletLink', () => {
     ['a signature of half a byte', `0x${'ab'.repeat(65)}a`],
     ['a signature past the ERC-6492 size', `0x${'ab'.repeat(10_001)}`]
   ])('refuses %s before the gate', async (_label, signature) => {
-    expect(await completeWalletLink({ address: ADDRESS, signature })).toEqual({
+    expect(await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature })).toEqual({
       ok: false,
       error: { code: 'invalid_input' }
     });
@@ -187,20 +226,23 @@ describe('completeWalletLink', () => {
   it('notes a signature that did not verify, and passes the refusal through', async () => {
     mocks.completeLink.mockResolvedValue({ ok: false, error: { code: 'bad_signature' } });
 
-    expect(await completeWalletLink({ address: ADDRESS, signature: SIGNATURE })).toEqual({
+    expect(await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature: SIGNATURE })).toEqual({
       ok: false,
       error: { code: 'bad_signature' }
     });
     expect(mocks.captureMessage).toHaveBeenCalledWith(
       'Wallet link refused: signature did not verify',
-      expect.objectContaining({ level: 'warning', extra: { userId: 'user_1', address: ADDRESS } })
+      expect.objectContaining({
+        level: 'warning',
+        extra: { userId: 'user_1', subjectId: SUBJECT_ID, address: ADDRESS }
+      })
     );
   });
 
   it('notes an address another account linked while this one signed, and passes the refusal through', async () => {
     mocks.completeLink.mockResolvedValue({ ok: false, error: { code: 'linked_elsewhere' } });
 
-    expect(await completeWalletLink({ address: ADDRESS, signature: SIGNATURE })).toEqual({
+    expect(await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature: SIGNATURE })).toEqual({
       ok: false,
       error: { code: 'linked_elsewhere' }
     });
@@ -211,17 +253,65 @@ describe('completeWalletLink', () => {
   });
 });
 
+describe('an address another account owns', () => {
+  const ORGANIZATION_ID = '7b1f0f0e-58a1-4f0e-9d53-0a2f6f0c1d11';
+  const ask = () => getWalletOwnership({ subjectId: SUBJECT_ID, address: ADDRESS });
+
+  it("names the person's own other account, and never a stranger's", async () => {
+    mocks.listForUser.mockResolvedValue([{ id: ORGANIZATION_ID, name: 'Acme Ltd' }]);
+
+    mocks.getOwnership.mockResolvedValue({ ok: true, value: { elsewhere: 'user_1' } });
+    expect(await ask()).toEqual({ ok: true, value: { yours: null } });
+
+    mocks.getOwnership.mockResolvedValue({ ok: true, value: { elsewhere: ORGANIZATION_ID } });
+    expect(await ask()).toEqual({ ok: true, value: { yours: 'Acme Ltd' } });
+
+    mocks.getOwnership.mockResolvedValue({ ok: true, value: { elsewhere: 'someone-else' } });
+    expect(await ask()).toEqual({ ok: true, value: 'elsewhere' });
+  });
+});
+
+describe('who may act for a subject', () => {
+  it('refuses someone who is not a member, on every action, and never reaches the module', async () => {
+    mocks.canActForSubject.mockResolvedValue(false);
+
+    const refused = { ok: false, error: { code: 'unauthorized' } };
+    expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual(refused);
+    expect(await getWalletOwnership({ subjectId: SUBJECT_ID, address: ADDRESS })).toEqual(refused);
+    expect(
+      await issueWalletLinkChallenge({
+        subjectId: SUBJECT_ID,
+        address: ADDRESS,
+        chainId: SEPOLIA,
+        walletType: null,
+        walletName: null
+      })
+    ).toEqual(refused);
+    expect(await completeWalletLink({ subjectId: SUBJECT_ID, address: ADDRESS, signature: SIGNATURE })).toEqual(
+      refused
+    );
+
+    expect(mocks.listLinks).not.toHaveBeenCalled();
+    expect(mocks.getOwnership).not.toHaveBeenCalled();
+    expect(mocks.issueChallenge).not.toHaveBeenCalled();
+    expect(mocks.completeLink).not.toHaveBeenCalled();
+  });
+});
+
 describe('getWalletOwnership', () => {
   it('answers whose the address is, spending the limiter like the writes', async () => {
-    mocks.getOwnership.mockResolvedValue({ ok: true, value: 'elsewhere' });
+    mocks.getOwnership.mockResolvedValue({ ok: true, value: 'mine' });
 
-    expect(await getWalletOwnership({ address: ADDRESS })).toEqual({ ok: true, value: 'elsewhere' });
-    expect(mocks.getOwnership).toHaveBeenCalledWith({ userId: 'user_1', address: ADDRESS });
+    expect(await getWalletOwnership({ subjectId: SUBJECT_ID, address: ADDRESS })).toEqual({ ok: true, value: 'mine' });
+    expect(mocks.getOwnership).toHaveBeenCalledWith({ subjectId: SUBJECT_ID, address: ADDRESS });
     expect(mocks.limit).toHaveBeenCalledTimes(1);
 
     mocks.limit.mockResolvedValueOnce({ success: false });
-    expect(await getWalletOwnership({ address: ADDRESS })).toEqual({ ok: false, error: { code: 'rate_limited' } });
-    expect(await getWalletOwnership({ address: 'not-an-address' })).toEqual({
+    expect(await getWalletOwnership({ subjectId: SUBJECT_ID, address: ADDRESS })).toEqual({
+      ok: false,
+      error: { code: 'rate_limited' }
+    });
+    expect(await getWalletOwnership({ subjectId: SUBJECT_ID, address: 'not-an-address' })).toEqual({
       ok: false,
       error: { code: 'invalid_input' }
     });
@@ -232,20 +322,20 @@ describe('listWalletLinks', () => {
   it('answers the session’s Linked addresses as the page shows them, without spending the limiter', async () => {
     mocks.listLinks.mockResolvedValue([record]);
 
-    expect(await listWalletLinks()).toEqual({ ok: true, value: [row] });
-    expect(mocks.listLinks).toHaveBeenCalledWith({ userId: 'user_1' });
+    expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual({ ok: true, value: [row] });
+    expect(mocks.listLinks).toHaveBeenCalledWith({ subjectId: SUBJECT_ID });
     expect(mocks.limit).not.toHaveBeenCalled();
   });
 
   it('refuses without a session or with the flag off, and answers a thrown read as failed', async () => {
     mocks.getSession.mockResolvedValueOnce(null);
-    expect(await listWalletLinks()).toEqual({ ok: false, error: { code: 'unauthorized' } });
+    expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual({ ok: false, error: { code: 'unauthorized' } });
 
     mocks.isKycEnabled.mockResolvedValueOnce(false);
-    expect(await listWalletLinks()).toEqual({ ok: false, error: { code: 'unauthorized' } });
+    expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual({ ok: false, error: { code: 'unauthorized' } });
 
     mocks.listLinks.mockRejectedValue(new Error('db down'));
-    expect(await listWalletLinks()).toEqual({ ok: false, error: { code: 'failed' } });
+    expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual({ ok: false, error: { code: 'failed' } });
     expect(mocks.captureException).toHaveBeenCalled();
   });
 });

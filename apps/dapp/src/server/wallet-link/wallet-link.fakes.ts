@@ -8,6 +8,7 @@ import {
   type WalletLinkJob,
   type WalletLinkOperatorMessenger,
   type WalletLinkOutbox,
+  type WalletLinkOwningOrganization,
   type WalletLinkRecord,
   type WalletLinkStore,
   type WhitelistedEmailSender
@@ -25,6 +26,7 @@ export function createInMemoryWalletLinkStore() {
   /** `wallet_connection`, as "user:address" keys — what the link write must guarantee. */
   const connections = new Set<string>();
   const accounts = new Map<string, { email: string; name: string | null }>();
+  const owningOrganizations = new Map<string, WalletLinkOwningOrganization>();
   let sequence = 0;
 
   const ownerOf = (address: Address) =>
@@ -35,9 +37,10 @@ export function createInMemoryWalletLinkStore() {
       const record = records.get(id);
       return record ? { ...record } : null;
     },
-    async getPending({ userId, address }) {
+    async getPending({ subjectId, address }) {
       const record = [...records.values()].find(
-        (candidate) => candidate.status === 'pending' && candidate.userId === userId && candidate.address === address
+        (candidate) =>
+          candidate.status === 'pending' && candidate.subjectId === subjectId && candidate.address === address
       );
       return record ? { ...record } : null;
     },
@@ -47,26 +50,28 @@ export function createInMemoryWalletLinkStore() {
     },
     async putPending(record) {
       // Like the real upsert: a pending row for the pair keeps its id, so a refreshed challenge is the same link.
-      const existing = await store.getPending({ userId: record.userId, address: record.address });
+      const existing = await store.getPending({ subjectId: record.subjectId, address: record.address });
       const id = existing?.id ?? `link_${(sequence += 1)}`;
       const stored: WalletLinkRecord = { ...record, id };
       records.set(id, stored);
       return { ...stored };
     },
-    async deletePending({ userId, address }) {
+    async deletePending({ subjectId, address }) {
       for (const [id, record] of records) {
-        if (record.status === 'pending' && record.userId === userId && record.address === address) records.delete(id);
+        if (record.status === 'pending' && record.subjectId === subjectId && record.address === address)
+          records.delete(id);
       }
     },
-    async link({ id, nonce, signature, signedAt }) {
+    async link({ id, nonce, signature, signedAt, signedByUserId }) {
       const record = records.get(id);
       if (record?.status !== 'pending' || record.nonce !== nonce) return { outcome: 'not_pending' };
       // The partial unique index: one `linked` row per address.
       if (ownerOf(record.address)) return { outcome: 'address_taken' };
-      connections.add(`${record.userId}:${record.address}`);
+      connections.add(`${signedByUserId}:${record.address}`);
       const linked: WalletLinkRecord = {
         ...record,
         status: 'linked',
+        signedByUserId,
         signature,
         signedAt,
         whitelistRequestedAt: signedAt,
@@ -106,9 +111,9 @@ export function createInMemoryWalletLinkStore() {
       records.set(id, { ...record, whitelistObservedAt });
       return true;
     },
-    async listLinked({ userId }) {
+    async listLinked({ subjectId }) {
       return [...records.values()]
-        .filter((record) => record.status === 'linked' && record.userId === userId)
+        .filter((record) => record.status === 'linked' && record.subjectId === subjectId)
         .sort((a, b) => (b.signedAt?.getTime() ?? 0) - (a.signedAt?.getTime() ?? 0))
         .map((record) => ({ ...record }));
     },
@@ -128,12 +133,15 @@ export function createInMemoryWalletLinkStore() {
       }
       return deleted;
     },
+    async getOwningOrganization({ subjectId }) {
+      return owningOrganizations.get(subjectId) ?? null;
+    },
     async getAccount({ userId }) {
       return accounts.get(userId) ?? null;
     }
   };
 
-  return { store, records, connections, accounts };
+  return { store, records, connections, accounts, owningOrganizations };
 }
 
 /** Chainalysis as a set of flagged addresses. */
@@ -279,22 +287,23 @@ export function createInMemoryWhitelistedEmailSender() {
 export function createFakeVerification() {
   const views = new Map<string, VerificationStatusView>();
   const verification = {
-    async getVerificationStatus({ userId }: { userId: string }): Promise<VerificationStatusView> {
+    async getVerificationStatus({ subjectId }: { subjectId: string }): Promise<VerificationStatusView> {
       return (
-        views.get(userId) ?? {
+        views.get(subjectId) ?? {
           status: 'not_started',
           path: 'individual',
           canStart: true,
           canResume: false,
           inquiryId: null,
-          caseWaitingOn: null
+          caseWaitingOn: null,
+          startedBy: null
         }
       );
     },
-    async listApproved({ userIds }: { userIds: ReadonlyArray<string> }): Promise<Set<string>> {
+    async listApproved({ subjectIds }: { subjectIds: ReadonlyArray<string> }): Promise<Set<string>> {
       return new Set(
-        userIds.filter((userId) => {
-          const view = views.get(userId);
+        subjectIds.filter((subjectId) => {
+          const view = views.get(subjectId);
           return view !== undefined && isYesDecision(view);
         })
       );
@@ -302,14 +311,15 @@ export function createFakeVerification() {
   };
   return {
     verification,
-    set(userId: string, view: Partial<VerificationStatusView>) {
-      views.set(userId, {
+    set(subjectId: string, view: Partial<VerificationStatusView>) {
+      views.set(subjectId, {
         status: 'approved',
         path: 'individual',
         canStart: false,
         canResume: false,
         inquiryId: null,
         caseWaitingOn: null,
+        startedBy: null,
         ...view
       });
     }

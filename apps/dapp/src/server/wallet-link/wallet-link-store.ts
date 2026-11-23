@@ -1,9 +1,18 @@
 import 'server-only';
 
 import { and, desc, eq, isNull, lt, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { type Address, type Hex } from 'viem';
 
-import { profile, user, walletConnection, walletLink } from '@zivoe/database/schema';
+import {
+  organization,
+  organizationInvitation,
+  organizationMember,
+  profile,
+  user,
+  walletConnection,
+  walletLink
+} from '@zivoe/database/schema';
 import { WALLET_LINK_LINKED_ADDRESS_INDEX } from '@zivoe/database/wallet-link';
 
 import { type Db } from '@/server/clients/db';
@@ -13,7 +22,8 @@ import { type WalletLinkTypedData } from './wallet-link-typed-data';
 
 const columns = {
   id: walletLink.id,
-  userId: walletLink.userId,
+  subjectId: walletLink.subjectId,
+  signedByUserId: walletLink.signedByUserId,
   address: walletLink.address,
   walletType: walletLink.walletType,
   walletName: walletLink.walletName,
@@ -69,8 +79,8 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
   return {
     get: ({ id }) => one(eq(walletLink.id, id)),
 
-    getPending: ({ userId, address }) =>
-      one(and(eq(walletLink.userId, userId), eq(walletLink.address, address), eq(walletLink.status, 'pending'))),
+    getPending: ({ subjectId, address }) =>
+      one(and(eq(walletLink.subjectId, subjectId), eq(walletLink.address, address), eq(walletLink.status, 'pending'))),
 
     getOwner: ({ address }) => one(and(eq(walletLink.address, address), eq(walletLink.status, 'linked'))),
 
@@ -80,7 +90,7 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         .insert(walletLink)
         .values(record)
         .onConflictDoUpdate({
-          target: [walletLink.userId, walletLink.address],
+          target: [walletLink.subjectId, walletLink.address],
           targetWhere: sql`${walletLink.status} = 'pending'`,
           set: {
             walletType: record.walletType,
@@ -98,13 +108,15 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
       return toRecord(row);
     },
 
-    async deletePending({ userId, address }) {
+    async deletePending({ subjectId, address }) {
       await db
         .delete(walletLink)
-        .where(and(eq(walletLink.userId, userId), eq(walletLink.address, address), eq(walletLink.status, 'pending')));
+        .where(
+          and(eq(walletLink.subjectId, subjectId), eq(walletLink.address, address), eq(walletLink.status, 'pending'))
+        );
     },
 
-    async link({ id, nonce, signature, signedAt }) {
+    async link({ id, nonce, signature, signedAt, signedByUserId }) {
       try {
         return await db.transaction(async (tx) => {
           const [pending] = await tx
@@ -114,16 +126,41 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
             .for('update');
           if (!pending) return { outcome: 'not_pending' as const };
 
-          // The same values WalletTracker writes; a row it already recorded is left as it is.
+          // Signing for an organization (a person's subject is their own id): its row locked first, then the
+          // signer read as a member in a statement of its own, so it sees a removal or delete that committed
+          // while this waited for the lock (one statement would keep the membership it read before waiting).
+          if (pending.subjectId !== signedByUserId) {
+            const [live] = await tx
+              .select({ id: organization.id })
+              .from(organization)
+              .where(and(eq(organization.id, pending.subjectId), isNull(organization.deletedAt)))
+              .for('update');
+            const [member] = live
+              ? await tx
+                  .select({ id: organizationMember.id })
+                  .from(organizationMember)
+                  .where(
+                    and(
+                      eq(organizationMember.organizationId, pending.subjectId),
+                      eq(organizationMember.userId, signedByUserId)
+                    )
+                  )
+                  .limit(1)
+              : [];
+            if (!member) return { outcome: 'not_member' as const };
+          }
+
+          // The same values WalletTracker writes, for the person who signed; a row it already recorded is left as it is.
           await tx
             .insert(walletConnection)
-            .values({ userId: pending.userId, address: pending.address, walletType: pending.walletType })
+            .values({ userId: signedByUserId, address: pending.address, walletType: pending.walletType })
             .onConflictDoNothing({ target: [walletConnection.userId, walletConnection.address] });
 
           const [linked] = await tx
             .update(walletLink)
             .set({
               status: 'linked',
+              signedByUserId,
               signature,
               signedAt,
               whitelistRequestedAt: signedAt,
@@ -181,11 +218,11 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
       return rows.length > 0;
     },
 
-    async listLinked({ userId }) {
+    async listLinked({ subjectId }) {
       const rows = await db
         .select(columns)
         .from(walletLink)
-        .where(and(eq(walletLink.userId, userId), eq(walletLink.status, 'linked')))
+        .where(and(eq(walletLink.subjectId, subjectId), eq(walletLink.status, 'linked')))
         .orderBy(desc(walletLink.signedAt));
       return rows.map(toRecord);
     },
@@ -205,6 +242,32 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         .where(and(eq(walletLink.status, 'pending'), lt(walletLink.expiresAt, expiredBefore)))
         .returning({ id: walletLink.id });
       return rows.length;
+    },
+
+    async getOwningOrganization({ subjectId, signedByUserId }) {
+      const inviter = alias(user, 'inviter');
+      const [owner] = await db
+        .select({ name: organization.name, deletedAt: organization.deletedAt })
+        .from(organization)
+        .where(eq(organization.id, subjectId))
+        .limit(1);
+      if (!owner) return null;
+
+      const [signer] = signedByUserId
+        ? await db
+            .select({ joinedAt: organizationMember.joinedAt, invitedBy: inviter.email })
+            .from(organizationMember)
+            .leftJoin(organizationInvitation, eq(organizationInvitation.id, organizationMember.invitationId))
+            .leftJoin(inviter, eq(inviter.id, organizationInvitation.invitedByUserId))
+            .where(and(eq(organizationMember.organizationId, subjectId), eq(organizationMember.userId, signedByUserId)))
+            .limit(1)
+        : [];
+      return {
+        name: owner.name,
+        deleted: !!owner.deletedAt,
+        signerJoinedAt: signer?.joinedAt ?? null,
+        signerInvitedBy: signer?.invitedBy ?? null
+      };
     },
 
     async getAccount({ userId }) {

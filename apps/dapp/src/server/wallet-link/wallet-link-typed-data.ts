@@ -1,5 +1,7 @@
 import { type Address, type Hex } from 'viem';
 
+import { type SubjectKind } from '@zivoe/database/organizations';
+
 // ---------------------------------------------------------------------------
 // The signed message — EIP-712, one shape, built in one place. Pure: no
 // `@/server`, no Node, so the client can type what it signs and the module
@@ -11,11 +13,17 @@ export const WALLET_LINK_STATEMENT =
   'Once linked, it stays linked to this account and cannot be linked to another. ' +
   'Zivoe may whitelist it for Zivoe vaults. This signature is free and moves no funds.';
 
+/** The same promise when a member signs for their organization: the account named below is the organization's. */
+export const WALLET_LINK_ORGANIZATION_STATEMENT =
+  "I control this wallet and ask Zivoe to link it to my organization's verified account. " +
+  'Once linked, it stays linked to this account and cannot be linked to another. ' +
+  'Zivoe may whitelist it for Zivoe vaults. This signature is free and moves no funds.';
+
 export const WALLET_LINK_TYPES = {
   WalletLink: [
     { name: 'statement', type: 'string' },
     /**
-     * The account's id — never the email: a Safe keeps every message it signs
+     * The account's id, a person's or an organization's — never the email: a Safe keeps every message it signs
      * in the Safe Transaction Service, which anyone can read by Safe address.
      */
     { name: 'account', type: 'string' },
@@ -45,14 +53,16 @@ export type WalletLinkTypedData = {
 
 export function buildWalletLinkTypedData({
   chainId,
-  userId,
+  subjectId,
+  subjectKind,
   address,
   nonce,
   issuedAt,
   expiresAt
 }: {
   chainId: number;
-  userId: string;
+  subjectId: string;
+  subjectKind: SubjectKind;
   address: Address;
   nonce: Hex;
   issuedAt: Date;
@@ -63,8 +73,8 @@ export function buildWalletLinkTypedData({
     types: WALLET_LINK_TYPES,
     primaryType: 'WalletLink',
     message: {
-      statement: WALLET_LINK_STATEMENT,
-      account: userId,
+      statement: subjectKind === 'organization' ? WALLET_LINK_ORGANIZATION_STATEMENT : WALLET_LINK_STATEMENT,
+      account: subjectId,
       wallet: address,
       nonce,
       issuedAt: Math.floor(issuedAt.getTime() / 1000),

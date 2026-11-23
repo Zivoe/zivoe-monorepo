@@ -8,7 +8,12 @@ import { ok } from '@/lib/result';
 
 import { type WalletLink, createWalletLink } from './wallet-link';
 import { type MembershipTarget } from './wallet-link-membership';
-import { WALLET_LINK_STATEMENT, type WalletLinkTypedData, toSignableTypedData } from './wallet-link-typed-data';
+import {
+  WALLET_LINK_STATEMENT,
+  type WalletLinkTypedData,
+  buildWalletLinkTypedData,
+  toSignableTypedData
+} from './wallet-link-typed-data';
 import {
   createFakeChain,
   createFakeScreening,
@@ -89,9 +94,9 @@ const sign = (typedData: WalletLinkTypedData, account = signer) =>
   account.signTypedData(toSignableTypedData(typedData));
 
 /** Issue, sign with the EOA and complete — the happy path as one call. */
-async function linkEoa(walletLink: WalletLink, userId = ALICE, address: Address = SIGNER) {
+async function linkEoa(walletLink: WalletLink, subjectId = ALICE, address: Address = SIGNER) {
   const issued = await walletLink.issueChallenge({
-    userId,
+    subjectId,
     address,
     chainId: CHAIN_ID,
     walletType: 'metamask',
@@ -99,7 +104,7 @@ async function linkEoa(walletLink: WalletLink, userId = ALICE, address: Address 
   });
   if (!issued.ok) throw new Error(`issue refused: ${issued.error.code}`);
   const signature = await sign(issued.value.typedData);
-  return walletLink.completeLink({ userId, address, signature });
+  return walletLink.completeLink({ subjectId, signedByUserId: subjectId, address, signature });
 }
 
 describe('the challenge', () => {
@@ -107,7 +112,7 @@ describe('the challenge', () => {
     const { walletLink } = setup();
 
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: signer.address,
       chainId: CHAIN_ID,
       walletType: 'metamask',
@@ -132,7 +137,13 @@ describe('the challenge', () => {
 
   it('is identical on a second issue inside the window and fresh after it expires', async () => {
     const { walletLink, clock } = setup();
-    const input = { userId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: 'metamask', walletName: 'MetaMask' };
+    const input = {
+      subjectId: ALICE,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: 'metamask',
+      walletName: 'MetaMask'
+    };
 
     const first = await walletLink.issueChallenge(input);
     clock.advance(23 * HOUR);
@@ -152,14 +163,14 @@ describe('the challenge', () => {
     const { walletLink } = setup();
 
     const onSepolia = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: 11155111,
       walletType: null,
       walletName: null
     });
     const onBase = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: 84532,
       walletType: null,
@@ -176,14 +187,14 @@ describe('the challenge', () => {
     const { walletLink, store } = setup();
 
     const first = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: 'metamask',
       walletName: 'MetaMask'
     });
     const second = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: 'walletconnect',
@@ -191,7 +202,7 @@ describe('the challenge', () => {
     });
 
     expect(second).toEqual(first);
-    expect((await store.store.getPending({ userId: ALICE, address: SIGNER }))?.walletType).toBe('walletconnect');
+    expect((await store.store.getPending({ subjectId: ALICE, address: SIGNER }))?.walletType).toBe('walletconnect');
   });
 
   it.each([
@@ -204,7 +215,7 @@ describe('the challenge', () => {
     verification.set(ALICE, view);
 
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -221,7 +232,7 @@ describe('the challenge', () => {
     verification.set(ALICE, { path: 'organization', status: 'manually_approved' });
 
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -236,7 +247,7 @@ describe('the challenge', () => {
     screening.flagged.add(SIGNER);
 
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -253,16 +264,16 @@ describe('the challenge', () => {
     const screens = screening.calls.length;
     const input = { address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
 
-    await expect(walletLink.issueChallenge({ userId: ALICE, ...input })).resolves.toEqual({
+    await expect(walletLink.issueChallenge({ subjectId: ALICE, ...input })).resolves.toEqual({
       ok: false,
       error: { code: 'already_linked' }
     });
-    await expect(walletLink.issueChallenge({ userId: BOB, ...input })).resolves.toEqual({
+    await expect(walletLink.issueChallenge({ subjectId: BOB, ...input })).resolves.toEqual({
       ok: false,
       error: { code: 'linked_elsewhere' }
     });
     expect(screening.calls).toHaveLength(screens);
-    await expect(store.store.getPending({ userId: BOB, address: SIGNER })).resolves.toBeNull();
+    await expect(store.store.getPending({ subjectId: BOB, address: SIGNER })).resolves.toBeNull();
   });
 });
 
@@ -272,12 +283,14 @@ describe('ownership', () => {
     await linkEoa(walletLink, ALICE);
     const other = '0x2222222222222222222222222222222222222222';
 
-    await expect(walletLink.getOwnership({ userId: ALICE, address: signer.address })).resolves.toEqual(ok('mine'));
-    await expect(walletLink.getOwnership({ userId: BOB, address: SIGNER })).resolves.toEqual(ok('elsewhere'));
-    await expect(walletLink.getOwnership({ userId: BOB, address: other })).resolves.toEqual(ok('none'));
+    await expect(walletLink.getOwnership({ subjectId: ALICE, address: signer.address })).resolves.toEqual(ok('mine'));
+    await expect(walletLink.getOwnership({ subjectId: BOB, address: SIGNER })).resolves.toEqual(
+      ok({ elsewhere: ALICE })
+    );
+    await expect(walletLink.getOwnership({ subjectId: BOB, address: other })).resolves.toEqual(ok('none'));
 
     verification.set(BOB, { status: 'declined' });
-    await expect(walletLink.getOwnership({ userId: BOB, address: SIGNER })).resolves.toEqual({
+    await expect(walletLink.getOwnership({ subjectId: BOB, address: SIGNER })).resolves.toEqual({
       ok: false,
       error: { code: 'not_approved' }
     });
@@ -293,7 +306,7 @@ describe('completing a link', () => {
     expect(linked.ok).toBe(true);
     if (!linked.ok) return;
     expect(linked.value).toMatchObject({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       walletType: 'metamask',
       walletName: 'MetaMask',
@@ -309,7 +322,7 @@ describe('completing a link', () => {
     // The tracker never ran; the link write itself guaranteed the connection row.
     expect(store.connections.has(`${ALICE}:${SIGNER}`)).toBe(true);
     expect(outbox.jobs).toEqual([{ kind: 'whitelist_request', linkId: linked.value.id, version: 1 }]);
-    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+    await expect(walletLink.listLinks({ subjectId: ALICE })).resolves.toHaveLength(1);
 
     // The queued job, delivered: the operator line carries the record and the email read at delivery.
     const delivered = await walletLink.deliverNotification({ job: outbox.jobs[0]! });
@@ -324,7 +337,9 @@ describe('completing a link', () => {
         membership: TARGETS.map((target) => ({ target, verdict: 'not-member', frozen: false })),
         endedBy: null,
         // Screened again at delivery: what ops checks before admitting it.
-        screening: 'clear'
+        screening: 'clear',
+        organization: null,
+        signerStatus: null
       }
     ]);
   });
@@ -365,13 +380,15 @@ describe('completing a link', () => {
   it('refuses without a challenge, and after the challenge expired', async () => {
     const { walletLink, clock } = setup();
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: '0x00' })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature: '0x00' })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'no_challenge' }
     });
 
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -379,7 +396,9 @@ describe('completing a link', () => {
     });
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
     clock.advance(DAY);
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'expired' }
     });
@@ -388,7 +407,7 @@ describe('completing a link', () => {
   it('refuses a signature by another key, and one over a different nonce', async () => {
     const { walletLink, store } = setup();
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -397,7 +416,9 @@ describe('completing a link', () => {
     if (!issued.ok) throw new Error('issue refused');
 
     const byStranger = await sign(issued.value.typedData, stranger);
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: byStranger })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature: byStranger })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'bad_signature' }
     });
@@ -407,7 +428,12 @@ describe('completing a link', () => {
       message: { ...issued.value.typedData.message, nonce: `0x${'ab'.repeat(32)}` as const }
     };
     await expect(
-      walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(otherNonce) })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        address: SIGNER,
+        signature: await sign(otherNonce)
+      })
     ).resolves.toEqual({ ok: false, error: { code: 'bad_signature' } });
     // The challenge is still there for a correct signature.
     expect([...store.records.values()].filter((record) => record.status === 'pending')).toHaveLength(1);
@@ -416,7 +442,7 @@ describe('completing a link', () => {
   it('refuses a stored signature after the record stopped being a yes Decision', async () => {
     const { walletLink, verification } = setup();
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -425,7 +451,9 @@ describe('completing a link', () => {
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
     verification.set(ALICE, { status: 'revoked' });
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'not_approved' }
     });
@@ -434,7 +462,7 @@ describe('completing a link', () => {
   it('refuses an address flagged between issue and signature, and drops the challenge', async () => {
     const { walletLink, screening, store, outbox } = setup();
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -443,7 +471,9 @@ describe('completing a link', () => {
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
     screening.flagged.add(SIGNER);
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'flagged' }
     });
@@ -454,7 +484,7 @@ describe('completing a link', () => {
   it('refuses a challenge issued before another account linked the address, and drops it before anything is queued', async () => {
     const { walletLink, store, outbox } = setup();
     const bobs = await walletLink.issueChallenge({
-      userId: BOB,
+      subjectId: BOB,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -464,26 +494,41 @@ describe('completing a link', () => {
     await linkEoa(walletLink, ALICE);
 
     await expect(
-      walletLink.completeLink({ userId: BOB, address: SIGNER, signature: await sign(bobs.value.typedData) })
+      walletLink.completeLink({
+        subjectId: BOB,
+        signedByUserId: BOB,
+        address: SIGNER,
+        signature: await sign(bobs.value.typedData)
+      })
     ).resolves.toEqual({ ok: false, error: { code: 'linked_elsewhere' } });
-    await expect(store.store.getPending({ userId: BOB, address: SIGNER })).resolves.toBeNull();
+    await expect(store.store.getPending({ subjectId: BOB, address: SIGNER })).resolves.toBeNull();
     expect(outbox.jobs.map((job) => job.linkId)).toEqual([(await store.store.getOwner({ address: SIGNER }))?.id]);
-    await expect(walletLink.listLinks({ userId: BOB })).resolves.toEqual([]);
+    await expect(walletLink.listLinks({ subjectId: BOB })).resolves.toEqual([]);
   });
 
   it('lets the database refuse a second owner that got past the check, and skips the job queued for it', async () => {
     const { walletLink, store, outbox, operator } = setup();
     const input = { address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
-    const alices = await walletLink.issueChallenge({ userId: ALICE, ...input });
-    const bobs = await walletLink.issueChallenge({ userId: BOB, ...input });
+    const alices = await walletLink.issueChallenge({ subjectId: ALICE, ...input });
+    const bobs = await walletLink.issueChallenge({ subjectId: BOB, ...input });
     if (!alices.ok || !bobs.ok) throw new Error('issue refused');
-    await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(alices.value.typedData) });
+    await walletLink.completeLink({
+      subjectId: ALICE,
+      signedByUserId: ALICE,
+      address: SIGNER,
+      signature: await sign(alices.value.typedData)
+    });
 
     // Both completions in the same instant: Bob's check ran before Alice's write landed.
     const getOwner = store.store.getOwner.bind(store.store);
     vi.spyOn(store.store, 'getOwner').mockResolvedValueOnce(null).mockImplementation(getOwner);
     await expect(
-      walletLink.completeLink({ userId: BOB, address: SIGNER, signature: await sign(bobs.value.typedData) })
+      walletLink.completeLink({
+        subjectId: BOB,
+        signedByUserId: BOB,
+        address: SIGNER,
+        signature: await sign(bobs.value.typedData)
+      })
     ).resolves.toEqual({ ok: false, error: { code: 'linked_elsewhere' } });
 
     // Bob's job was queued before the refusal; his challenge is gone, so it skips.
@@ -495,26 +540,36 @@ describe('completing a link', () => {
 
   it('refuses a second challenge of the same account for an address it linked meanwhile', async () => {
     const { walletLink, store } = setup();
-    const input = { userId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
+    const input = { subjectId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: null, walletName: null };
     const first = await walletLink.issueChallenge(input);
     if (!first.ok) throw new Error('issue refused');
-    await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(first.value.typedData) });
+    await walletLink.completeLink({
+      subjectId: ALICE,
+      signedByUserId: ALICE,
+      address: SIGNER,
+      signature: await sign(first.value.typedData)
+    });
     // A challenge issued in the same instant the first was completed: the pre-check could not see the link.
     vi.spyOn(store.store, 'getOwner').mockResolvedValueOnce(null);
     const second = await walletLink.issueChallenge(input);
     if (!second.ok) throw new Error('issue refused');
 
     await expect(
-      walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(second.value.typedData) })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        address: SIGNER,
+        signature: await sign(second.value.typedData)
+      })
     ).resolves.toEqual({ ok: false, error: { code: 'already_linked' } });
-    await expect(store.store.getPending({ userId: ALICE, address: SIGNER })).resolves.toBeNull();
-    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+    await expect(store.store.getPending({ subjectId: ALICE, address: SIGNER })).resolves.toBeNull();
+    await expect(walletLink.listLinks({ subjectId: ALICE })).resolves.toHaveLength(1);
   });
 
   it('answers already linked when another tab completed the same challenge while this one was verifying', async () => {
     const { walletLink, chain } = setup();
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -527,18 +582,22 @@ describe('completing a link', () => {
     const verify = chain.chain.verifyTypedData.bind(chain.chain);
     vi.spyOn(chain.chain, 'verifyTypedData').mockImplementationOnce(async (args) => {
       const valid = await verify(args);
-      await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature });
+      await walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature });
       return valid;
     });
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'already_linked' }
     });
-    await expect(walletLink.listLinks({ userId: ALICE })).resolves.toHaveLength(1);
+    await expect(walletLink.listLinks({ subjectId: ALICE })).resolves.toHaveLength(1);
 
     // A third tab, after both: no challenge left, and the answer is still that it is linked.
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'already_linked' }
     });
@@ -546,7 +605,13 @@ describe('completing a link', () => {
 
   it('refuses when the challenge was re-issued while its signature was being verified', async () => {
     const { walletLink, chain, store } = setup();
-    const input = { userId: ALICE, address: SIGNER, chainId: CHAIN_ID, walletType: 'metamask', walletName: 'MetaMask' };
+    const input = {
+      subjectId: ALICE,
+      address: SIGNER,
+      chainId: CHAIN_ID,
+      walletType: 'metamask',
+      walletName: 'MetaMask'
+    };
     const issued = await walletLink.issueChallenge(input);
     if (!issued.ok) throw new Error('issue refused');
 
@@ -559,10 +624,15 @@ describe('completing a link', () => {
     });
 
     await expect(
-      walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(issued.value.typedData) })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        address: SIGNER,
+        signature: await sign(issued.value.typedData)
+      })
     ).resolves.toEqual({ ok: false, error: { code: 'no_challenge' } });
     // The row is still the second challenge, unsigned: the proof on record is never one nobody verified.
-    await expect(store.store.getPending({ userId: ALICE, address: SIGNER })).resolves.toMatchObject({
+    await expect(store.store.getPending({ subjectId: ALICE, address: SIGNER })).resolves.toMatchObject({
       id: issued.value.linkId,
       chainId: 84532,
       signature: null
@@ -574,18 +644,25 @@ describe('completing a link', () => {
     const safe = '0x1111111111111111111111111111111111111111';
     chain.smartWallets.set(safe, '0xdeadbeef');
     await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: safe,
       chainId: CHAIN_ID,
       walletType: 'safe',
       walletName: 'Safe'
     });
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: safe, signature: '0xbadbad' })).resolves.toEqual({
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: safe, signature: '0xbadbad' })
+    ).resolves.toEqual({
       ok: false,
       error: { code: 'bad_signature' }
     });
-    const linked = await walletLink.completeLink({ userId: ALICE, address: safe, signature: '0xdeadbeef' });
+    const linked = await walletLink.completeLink({
+      subjectId: ALICE,
+      signedByUserId: ALICE,
+      address: safe,
+      signature: '0xdeadbeef'
+    });
     expect(linked.ok && linked.value.status).toBe('linked');
     // Verified on the chain the challenge was issued for.
     expect(chain.verifications.at(-1)).toEqual({ chainId: CHAIN_ID, address: safe });
@@ -598,7 +675,7 @@ describe('completing a link', () => {
   it('does not persist when the Outbox refuses, so the next click re-enqueues', async () => {
     const { walletLink, outbox, store } = setup();
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -607,10 +684,17 @@ describe('completing a link', () => {
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
     outbox.failNextCall(new Error('queue down'));
 
-    await expect(walletLink.completeLink({ userId: ALICE, address: SIGNER, signature })).rejects.toThrow('queue down');
+    await expect(
+      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+    ).rejects.toThrow('queue down');
     expect([...store.records.values()][0]?.status).toBe('pending');
 
-    const retried = await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature });
+    const retried = await walletLink.completeLink({
+      subjectId: ALICE,
+      signedByUserId: ALICE,
+      address: SIGNER,
+      signature
+    });
     expect(retried.ok && retried.value.status).toBe('linked');
     expect(outbox.jobs).toHaveLength(1);
   });
@@ -720,7 +804,7 @@ describe('reconcile', () => {
 
       // Not announced as whitelisted, still linked for good, and the revoke is on its way.
       expect(report).toMatchObject({ revoked: 1, whitelisted: 0 });
-      await expect(walletLink.listLinks({ userId: ALICE })).resolves.toMatchObject([
+      await expect(walletLink.listLinks({ subjectId: ALICE })).resolves.toMatchObject([
         { opsRequest: 'revoke', opsRequestVersion: 2 }
       ]);
       const revokeRequest = outbox.jobs.at(-1)!;
@@ -824,7 +908,7 @@ describe('reconcile', () => {
     await linkThenRevoke(s);
     clock.advance(HOUR);
     const issued = await walletLink.issueChallenge({
-      userId: BOB,
+      subjectId: BOB,
       address: stranger.address,
       chainId: CHAIN_ID,
       walletType: 'metamask',
@@ -832,7 +916,8 @@ describe('reconcile', () => {
     });
     if (!issued.ok) throw new Error('issue refused');
     const linked = await walletLink.completeLink({
-      userId: BOB,
+      subjectId: BOB,
+      signedByUserId: BOB,
       address: stranger.address,
       signature: await sign(issued.value.typedData, stranger)
     });
@@ -856,7 +941,7 @@ describe('reconcile', () => {
     const { id: _id, ...row } = store.records.get(id)!;
     const other = await store.store.putPending({
       ...row,
-      userId: BOB,
+      subjectId: BOB,
       address: stranger.address.toLowerCase() as Address,
       status: 'pending'
     });
@@ -864,7 +949,8 @@ describe('reconcile', () => {
       id: other.id,
       nonce: other.nonce,
       signature: row.signature!,
-      signedAt: clock.clock.now()
+      signedAt: clock.clock.now(),
+      signedByUserId: BOB
     });
     if (written.outcome !== 'linked') throw new Error('link refused');
     await store.store.setOpsRequest({
@@ -922,7 +1008,7 @@ describe('reconcile', () => {
   it('drops expired challenges, which nothing can act on any more', async () => {
     const { walletLink, clock, store } = setup();
     await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -930,11 +1016,11 @@ describe('reconcile', () => {
     });
     clock.advance(23 * HOUR);
     await walletLink.reconcile({ now: clock.clock.now() });
-    await expect(store.store.getPending({ userId: ALICE, address: SIGNER })).resolves.not.toBeNull();
+    await expect(store.store.getPending({ subjectId: ALICE, address: SIGNER })).resolves.not.toBeNull();
 
     clock.advance(2 * HOUR);
     await walletLink.reconcile({ now: clock.clock.now() });
-    await expect(store.store.getPending({ userId: ALICE, address: SIGNER })).resolves.toBeNull();
+    await expect(store.store.getPending({ subjectId: ALICE, address: SIGNER })).resolves.toBeNull();
   });
 });
 
@@ -943,7 +1029,7 @@ describe('deliverNotification', () => {
     const s = setup();
     const { walletLink } = s;
     const issued = await walletLink.issueChallenge({
-      userId: ALICE,
+      subjectId: ALICE,
       address: SIGNER,
       chainId: CHAIN_ID,
       walletType: null,
@@ -957,7 +1043,12 @@ describe('deliverNotification', () => {
       walletLink.deliverNotification({ job: { kind: 'whitelist_request', linkId, version: 1 } })
     ).resolves.toEqual({ ok: false, error: { code: 'not_caught_up' } });
 
-    await walletLink.completeLink({ userId: ALICE, address: SIGNER, signature: await sign(issued.value.typedData) });
+    await walletLink.completeLink({
+      subjectId: ALICE,
+      signedByUserId: ALICE,
+      address: SIGNER,
+      signature: await sign(issued.value.typedData)
+    });
     // The revoke the sweep is about to write, and the email before its stamp lands: early.
     await expect(
       walletLink.deliverNotification({ job: { kind: 'revoke_request', linkId, version: 2 } })
@@ -993,6 +1084,21 @@ describe('deliverNotification', () => {
     const whitelistedEmail = outbox.jobs.find((job) => job.kind === 'whitelisted_email')!;
     verification.set(ALICE, { status: 'revoked' });
     await walletLink.reconcile({ now: clock.clock.now() });
+
+    await expect(walletLink.deliverNotification({ job: whitelistedEmail })).resolves.toEqual({
+      ok: true,
+      value: 'skipped'
+    });
+    expect(emails.sent).toEqual([]);
+  });
+
+  it("skips the email for an organization's address whose signer has left since", async () => {
+    const { walletLink, outbox, emails, chain, store, clock } = setup();
+    await linkEoa(walletLink);
+    chain.setMembership(SIGNER, 'member');
+    await walletLink.reconcile({ now: clock.clock.now() });
+    const whitelistedEmail = outbox.jobs.find((job) => job.kind === 'whitelisted_email')!;
+    store.owningOrganizations.set(ALICE, { name: 'Acme', deleted: false, signerJoinedAt: null, signerInvitedBy: null });
 
     await expect(walletLink.deliverNotification({ job: whitelistedEmail })).resolves.toEqual({
       ok: true,
@@ -1129,5 +1235,82 @@ describe('deliverNotification', () => {
       ok: true,
       value: 'skipped'
     });
+  });
+});
+
+describe('an organization owns what a member links', () => {
+  const ORGANIZATION = '3a4b5c6d-7e8f-4a0b-9c1d-2e3f4a5b6c7d';
+
+  it('records the member who signed, keeps the wallet connection theirs, and the link the organization’s', async () => {
+    const { walletLink, verification, store } = setup();
+    verification.set(ORGANIZATION, { status: 'approved', path: 'organization' });
+
+    const issued = await walletLink.issueChallenge({
+      subjectId: ORGANIZATION,
+      address: SIGNER,
+      chainId: 11155111,
+      walletType: 'metamask',
+      walletName: 'MetaMask'
+    });
+    if (!issued.ok) throw new Error('issue refused');
+
+    const linked = await walletLink.completeLink({
+      subjectId: ORGANIZATION,
+      signedByUserId: ALICE,
+      address: SIGNER,
+      signature: await sign(issued.value.typedData)
+    });
+
+    expect(linked.ok && linked.value).toMatchObject({ subjectId: ORGANIZATION, signedByUserId: ALICE });
+    expect(store.connections.has(`${ALICE}:${SIGNER}`)).toBe(true);
+    await expect(walletLink.listLinks({ subjectId: ALICE })).resolves.toEqual([]);
+    await expect(walletLink.listLinks({ subjectId: ORGANIZATION })).resolves.toHaveLength(1);
+  });
+
+  it('links nothing for a member removed while the link was checked, and drops its challenge', async () => {
+    const { walletLink, verification, store, outbox, operator } = setup();
+    verification.set(ORGANIZATION, { status: 'approved', path: 'organization' });
+    const issued = await walletLink.issueChallenge({
+      subjectId: ORGANIZATION,
+      address: SIGNER,
+      chainId: 11155111,
+      walletType: null,
+      walletName: null
+    });
+    if (!issued.ok) throw new Error('issue refused');
+
+    // The store's write reads membership under the organization's lock: Alice is out by then.
+    vi.spyOn(store.store, 'link').mockResolvedValueOnce({ outcome: 'not_member' });
+    await expect(
+      walletLink.completeLink({
+        subjectId: ORGANIZATION,
+        signedByUserId: ALICE,
+        address: SIGNER,
+        signature: await sign(issued.value.typedData)
+      })
+    ).resolves.toEqual({ ok: false, error: { code: 'not_member' } });
+
+    await expect(walletLink.listLinks({ subjectId: ORGANIZATION })).resolves.toEqual([]);
+    // The job queued before the write finds no challenge, and skips.
+    const job = outbox.jobs.find((queued) => queued.linkId === issued.value.linkId)!;
+    await expect(walletLink.deliverNotification({ job })).resolves.toEqual({ ok: true, value: 'skipped' });
+    expect(operator.sent).toEqual([]);
+  });
+
+  it('asks a person’s wallet to sign a statement naming an organization only for an organization', () => {
+    const base = {
+      chainId: 11155111,
+      subjectId: ORGANIZATION,
+      address: SIGNER,
+      nonce: `0x${'ab'.repeat(32)}` as const,
+      issuedAt: new Date('2026-11-04T00:00:00Z'),
+      expiresAt: new Date('2026-11-05T00:00:00Z')
+    } as const;
+
+    const forOrganization = buildWalletLinkTypedData({ ...base, subjectKind: 'organization' });
+    const forPerson = buildWalletLinkTypedData({ ...base, subjectKind: 'individual' });
+
+    expect(forOrganization.message.statement).not.toBe(forPerson.message.statement);
+    expect(forOrganization.message.statement).toMatch(/organization/i);
   });
 });

@@ -138,15 +138,15 @@ const app = {
     chain,
     txHash.toLowerCase()
   ],
-  // The account's own Linked addresses on the Wallets step: seeded by the
-  // page, kept by the step's own writes. Keyed by user so one browser never
-  // shows another account's after a sign-out.
-  walletLinks: ({ userId }: { userId: string }) => ['WALLET_LINKS', userId],
-  // Whose the connected address is (this account's, another's, nobody's), as the Wallets step asks it.
+  // A Verification subject's Linked addresses on the Wallets step: seeded by the
+  // page, kept by the step's own writes. Keyed by subject so one browser never
+  // shows another's after a sign-out or a switch of who is verifying.
+  walletLinks: ({ subjectId }: { subjectId: string }) => ['WALLET_LINKS', subjectId],
+  // Whose the connected address is (this subject's, another's, nobody's), as the Wallets step asks it.
   // `walletOwnerships` is every address's, for an invalidation.
-  walletOwnerships: ({ userId }: { userId: string }) => ['WALLET_OWNERSHIP', userId],
-  walletOwnership: ({ userId, address }: { userId: string; address: string }) => [
-    ...app.walletOwnerships({ userId }),
+  walletOwnerships: ({ subjectId }: { subjectId: string }) => ['WALLET_OWNERSHIP', subjectId],
+  walletOwnership: ({ subjectId, address }: { subjectId: string; address: string }) => [
+    ...app.walletOwnerships({ subjectId }),
     address.toLowerCase()
   ],
   // Whitelist membership of the addresses asked about (the Wallets step's

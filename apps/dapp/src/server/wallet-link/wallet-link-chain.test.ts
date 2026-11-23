@@ -15,7 +15,8 @@ const signer = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae8
 const safe: Address = '0x1111111111111111111111111111111111111111';
 const typedData = buildWalletLinkTypedData({
   chainId: sepolia.id,
-  userId: 'user_1',
+  subjectId: 'user_1',
+  subjectKind: 'individual',
   address: signer.address,
   nonce: `0x${'ab'.repeat(32)}`,
   issuedAt: new Date('2026-10-18T00:00:00Z'),

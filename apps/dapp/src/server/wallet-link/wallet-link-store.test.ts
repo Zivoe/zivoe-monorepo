@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { fileURLToPath } from 'node:url';
@@ -30,9 +31,10 @@ const SIGNATURE: Hex = `0x${'ab'.repeat(65)}`;
 const users: Record<'ada' | 'bob' | 'cy' | 'dee', string> = { ada: '', bob: '', cy: '', dee: '' };
 
 /** An unsigned challenge for the address. */
-const challenge = ({ userId, on }: { userId: string; on: Address }) =>
+const challenge = ({ subjectId, on }: { subjectId: string; on: Address }) =>
   store.putPending({
-    userId,
+    subjectId,
+    signedByUserId: null,
     address: on,
     walletType: null,
     walletName: null,
@@ -51,13 +53,14 @@ const challenge = ({ userId, on }: { userId: string; on: Address }) =>
   });
 
 /** A challenge signed through the store, the way a link is made. */
-async function linked({ userId, on, minutes }: { userId: string; on: Address; minutes: number }) {
-  const pending = await challenge({ userId, on });
+async function linked({ subjectId, on, minutes }: { subjectId: string; on: Address; minutes: number }) {
+  const pending = await challenge({ subjectId, on });
   const result = await store.link({
     id: pending.id,
     nonce: pending.nonce,
     signature: SIGNATURE,
-    signedAt: at(minutes)
+    signedAt: at(minutes),
+    signedByUserId: subjectId
   });
   if (result.outcome !== 'linked') throw new Error(`Could not link ${on}: ${result.outcome}`);
   return result.record;
@@ -75,10 +78,11 @@ beforeAll(async () => {
       .values({ name, email: `${name}@example.com`, createdAt: T0, updatedAt: T0 })
       .returning({ id: schema.user.id });
     users[name] = row!.id;
+    await db.insert(schema.verificationSubject).values({ id: row!.id, kind: 'individual', userId: row!.id });
   }
 
-  adaOnA = await linked({ userId: users.ada, on: address('a'), minutes: 10 });
-  cyOnC = await linked({ userId: users.cy, on: address('c'), minutes: 30 });
+  adaOnA = await linked({ subjectId: users.ada, on: address('a'), minutes: 10 });
+  cyOnC = await linked({ subjectId: users.cy, on: address('c'), minutes: 30 });
 });
 
 afterAll(async () => {
@@ -88,19 +92,25 @@ afterAll(async () => {
 describe('one owner per address', () => {
   it('refuses a second account the link, by the named index', async () => {
     // Dee's challenge for C, issued before Cy's link landed.
-    const pending = await challenge({ userId: users.dee, on: address('c') });
+    const pending = await challenge({ subjectId: users.dee, on: address('c') });
 
     await expect(
-      store.link({ id: pending.id, nonce: pending.nonce, signature: SIGNATURE, signedAt: at(40) })
+      store.link({
+        id: pending.id,
+        nonce: pending.nonce,
+        signature: SIGNATURE,
+        signedAt: at(40),
+        signedByUserId: users.dee
+      })
     ).resolves.toEqual({ outcome: 'address_taken' });
     // Rolled back whole: no wallet connection was kept for the refused link.
     const { rows } = await client.query(`SELECT 1 FROM wallet_connection WHERE user_id = $1`, [users.dee]);
     expect(rows).toEqual([]);
-    expect(await store.getOwner({ address: address('c') })).toMatchObject({ userId: users.cy });
+    expect(await store.getOwner({ address: address('c') })).toMatchObject({ subjectId: users.cy });
   });
 
   it('links a free address with its Whitelist request at version 1', async () => {
-    const record = await linked({ userId: users.dee, on: address('d'), minutes: 50 });
+    const record = await linked({ subjectId: users.dee, on: address('d'), minutes: 50 });
 
     expect(record).toMatchObject({
       status: 'linked',
@@ -113,6 +123,37 @@ describe('one owner per address', () => {
       address('c'),
       address('d')
     ]);
+  });
+});
+
+describe('signing for an organization', () => {
+  it('links only while the signer is still a member of a live organization', async () => {
+    const [organization] = await db
+      .insert(schema.organization)
+      .values({ name: 'Acme LLC', countryOfIncorporation: 'US', createdByUserId: users.bob })
+      .returning({ id: schema.organization.id });
+    const organizationId = organization!.id;
+    await db.insert(schema.verificationSubject).values({ id: organizationId, kind: 'organization', organizationId });
+    await db.insert(schema.organizationMember).values({ organizationId, userId: users.bob });
+    const sign = async (on: Address, signer: string) => {
+      const pending = await challenge({ subjectId: organizationId, on });
+      return store.link({
+        id: pending.id,
+        nonce: pending.nonce,
+        signature: SIGNATURE,
+        signedAt: at(60),
+        signedByUserId: signer
+      });
+    };
+
+    // Ada was never a member: whatever she was told before, the write refuses.
+    await expect(sign(address('e'), users.ada)).resolves.toEqual({ outcome: 'not_member' });
+    expect((await sign(address('e'), users.bob)).outcome).toBe('linked');
+
+    // Bob removed between the check and the write: nothing links.
+    await db.delete(schema.organizationMember).where(eq(schema.organizationMember.userId, users.bob));
+    await expect(sign(address('f'), users.bob)).resolves.toEqual({ outcome: 'not_member' });
+    expect(await store.getOwner({ address: address('f') })).toBeNull();
   });
 });
 
@@ -154,15 +195,15 @@ describe('the guard on signed rows', () => {
 
   it('never moves a Linked address out of linked, to another owner or address, or rewrites its proof', async () => {
     await refused(`UPDATE wallet_link SET status = 'pending' WHERE id = $1`, [adaOnA.id]);
-    await refused(`UPDATE wallet_link SET user_id = $2 WHERE id = $1`, [adaOnA.id, users.bob]);
+    await refused(`UPDATE wallet_link SET subject_id = $2 WHERE id = $1`, [adaOnA.id, users.bob]);
     await refused(`UPDATE wallet_link SET address = $2 WHERE id = $1`, [adaOnA.id, address('e')]);
     await refused(`UPDATE wallet_link SET signature = '0x00' WHERE id = $1`, [adaOnA.id]);
   });
 
   it('lets a challenge be deleted', async () => {
-    const pending = await challenge({ userId: users.ada, on: address('f') });
+    const pending = await challenge({ subjectId: users.ada, on: address('f') });
 
-    await store.deletePending({ userId: users.ada, address: address('f') });
+    await store.deletePending({ subjectId: users.ada, address: address('f') });
 
     expect(await store.get({ id: pending.id })).toBeNull();
   });
