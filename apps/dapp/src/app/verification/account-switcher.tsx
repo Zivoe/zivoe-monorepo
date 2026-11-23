@@ -16,6 +16,8 @@ import { initialsOf } from '@/lib/initials';
 
 import { CreateOrganizationDialog } from '@/components/create-organization-dialog';
 
+import { organizationIdOf, verificationHref } from './verification-href';
+
 /** Someone a person can verify as: themselves (`organization` null), or an organization they belong to. */
 export type SubjectOption = {
   id: string;
@@ -25,24 +27,6 @@ export type SubjectOption = {
 };
 
 const CREATE = 'create';
-
-/** Plain `/verification` is the person themselves, so their own pages have one URL; an organization adds `?subject=`. */
-export const verificationHref = ({
-  organizationId,
-  step
-}: {
-  organizationId?: string | null;
-  step?: 'details' | 'identity';
-}) => {
-  const params = new URLSearchParams();
-  if (organizationId) params.set('subject', organizationId);
-  if (step) params.set('step', step);
-  const query = params.toString();
-  return query ? `/verification?${query}` : '/verification';
-};
-
-/** The organization's id, or null for the person themselves: what `verificationHref` takes. */
-export const organizationIdOf = (subject: SubjectOption) => (subject.organization ? subject.id : null);
 
 /**
  * "Verifying as", at the top of `/verification`'s rail on every step: who is being verified, and a menu to
@@ -147,7 +131,7 @@ export function AccountSwitcher({
         isOpen={isCreating}
         onOpenChange={setIsCreating}
         // Its details were just given: on to verifying it.
-        onCreated={(organizationId) => router.push(verificationHref({ organizationId, step: 'identity' }))}
+        onCreated={(organizationId) => router.push(verificationHref({ organizationId, step: 'agreements' }))}
       />
     </>
   );

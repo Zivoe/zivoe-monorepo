@@ -5,39 +5,44 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { type InvestorProfile } from '@/server/data/investor-profile';
-import { isYesDecision } from '@/server/verification/verification-status';
 
 import { AccountDetailsStep } from './account-details-step';
-import { AccountSwitcher, type SubjectOption, organizationIdOf, verificationHref } from './account-switcher';
+import { AccountSwitcher, type SubjectOption } from './account-switcher';
+import { AgreementsStep } from './agreements-step';
 import PersonaFlow from './persona-flow';
+import { organizationIdOf, verificationHref } from './verification-href';
 import VerificationShell from './verification-shell';
-import { type VerificationStepId, VerificationSteps } from './verification-steps';
+import { type VerificationStepId, VerificationSteps, stepsBefore } from './verification-steps';
 import { WalletLinkStep } from './wallet-link-step';
 
 /**
  * The `/verification` flow inside `VerificationShell`: the account switcher
- * and step rail, and the three steps they move between. Step one confirms the
- * selected account's details (`AccountDetailsStep`), step two is the Persona
- * flow (a person's identity or an organization's business), step three Wallets.
+ * and step rail, and the four steps they move between. Step one confirms the
+ * selected account's details (`AccountDetailsStep`), step two accepts the
+ * offering agreements (`AgreementsStep`), step three is the Persona flow (a
+ * person's identity or an organization's business), step four Wallets.
  * A layout of its own, deliberately without the dashboard's navigation: the
  * ways out are Exit and finishing.
  *
  * Who is being verified is the switcher's call, at the top of the rail on every
  * step; which step shows is the URL's and the record's, read by the page. A yes
- * Decision ends the identity step for good: the page opens on Wallets with both
- * earlier steps done, and that step is the completed state. The switcher and
- * the Account details link are disabled only while a start is in flight;
+ * Decision ends the identity step for good: the page opens on Wallets with every
+ * earlier step done, and that step is the completed state. The switcher and
+ * the links back to earlier steps are disabled only while a start is in flight;
  * leaving an open Persona form is like a refresh: Persona keeps the progress.
  */
 export default function VerificationFlow({
   subjects,
   activeId,
-  showDetails,
+  step,
+  agreementsAcceptedAt,
   profile
 }: {
   subjects: Array<SubjectOption>;
   activeId: string;
-  showDetails: boolean;
+  step: VerificationStepId;
+  /** When the active subject accepted the offering agreements; null if it has not. */
+  agreementsAcceptedAt: Date | null;
   profile: InvestorProfile;
 }) {
   const router = useRouter();
@@ -46,11 +51,6 @@ export default function VerificationFlow({
 
   // The steps are one page with different URLs: a move unmounts the control
   // that had focus, and the new step's content takes it.
-  const step: VerificationStepId = showDetails
-    ? 'profile'
-    : active && isYesDecision(active.view)
-      ? 'wallets'
-      : 'identity';
   const moveKey = `${activeId}:${step}`;
   const contentRef = useRef<HTMLDivElement>(null);
   const firstKey = useRef(moveKey);
@@ -61,13 +61,16 @@ export default function VerificationFlow({
 
   if (!active) return null;
 
-  const done: Array<VerificationStepId> = [];
-  if (step !== 'profile') done.push('profile');
-  if (step === 'wallets') done.push('identity');
-
-  const detailsHref = isStarting
+  const done = stepsBefore(step);
+  const organizationId = organizationIdOf(active);
+  const hrefs = isStarting
     ? undefined
-    : verificationHref({ organizationId: organizationIdOf(active), step: 'details' });
+    : {
+        profile: verificationHref({ organizationId, step: 'details' }),
+        agreements: verificationHref({ organizationId, step: 'agreements' })
+      };
+  // The checklist before the Persona flow turns on this: the country of residence, or of incorporation.
+  const countryCode = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
   const switcher = <AccountSwitcher subjects={subjects} activeId={active.id} isDisabled={isStarting} />;
 
   return (
@@ -75,13 +78,7 @@ export default function VerificationFlow({
       rail={
         <nav className="flex flex-col gap-6">
           {switcher}
-          <VerificationSteps
-            current={step}
-            done={done}
-            orientation="vertical"
-            path={active.view.path}
-            detailsHref={detailsHref}
-          />
+          <VerificationSteps current={step} done={done} orientation="vertical" path={active.view.path} hrefs={hrefs} />
         </nav>
       }
       mobileRail={
@@ -92,7 +89,7 @@ export default function VerificationFlow({
             done={done}
             orientation="horizontal"
             path={active.view.path}
-            detailsHref={detailsHref}
+            hrefs={hrefs}
           />
         </nav>
       }
@@ -104,13 +101,16 @@ export default function VerificationFlow({
         <div className="flex w-full animate-in flex-col gap-11 break-words duration-300 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
           {step === 'profile' ? (
             <AccountDetailsStep key={active.id} subject={active} profile={profile} />
+          ) : step === 'agreements' ? (
+            <AgreementsStep key={active.id} subject={active} acceptedAt={agreementsAcceptedAt} />
           ) : step === 'identity' ? (
             <PersonaFlow
               subjectId={active.id}
               view={active.view}
+              countryCode={countryCode}
               onBack={
                 active.view.canStart
-                  ? () => router.push(verificationHref({ organizationId: organizationIdOf(active), step: 'details' }))
+                  ? () => router.push(verificationHref({ organizationId, step: 'agreements' }))
                   : undefined
               }
               onStartingChange={setIsStarting}

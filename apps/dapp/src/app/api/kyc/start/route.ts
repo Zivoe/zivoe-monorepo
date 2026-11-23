@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
+import { getAgreementAcceptance } from '@/server/data/agreements';
 import { getRequiredStep } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
 import { verification } from '@/server/verification';
@@ -28,11 +29,14 @@ export type StartVerificationErrorResponse = { error: string; code: StartVerific
 export type StartVerificationSuccessResponse = { success: true; data: { inquiryId: string; sessionToken: string } };
 /** Not in the organization asked for, or no longer: told apart from the flag's plain 404, so the page can say so. */
 export type StartVerificationNotMemberResponse = { error: string; code: 'not_member' };
+/** The subject has not accepted the offering agreements: the page sends them to that step. */
+export type StartVerificationAgreementsResponse = { error: string; code: 'agreements_required' };
 /** Everything the route can answer with, including `withErrorHandler`'s generic shape. */
 export type StartVerificationResponse =
   | StartVerificationSuccessResponse
   | StartVerificationErrorResponse
   | StartVerificationNotMemberResponse
+  | StartVerificationAgreementsResponse
   | ApiResponseError;
 
 const notMember = () =>
@@ -85,6 +89,13 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
   const subjectId = body.data.subjectId ?? user.id;
   // Read fresh on every start: someone removed from an organization cannot start for it from an open tab.
   if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) return notMember();
+  // The Agreements step comes first, for a new inquiry and a resumed one alike; asked before the limits spend a token.
+  if (!(await getAgreementAcceptance({ subjectId }))) {
+    return NextResponse.json<StartVerificationResponse>(
+      { error: 'Agreements not accepted', code: 'agreements_required' },
+      { status: 409 }
+    );
+  }
 
   const ip = ipAddress(req) ?? '127.0.0.1';
   const [userLimitRes, ipLimitRes] = await Promise.all([

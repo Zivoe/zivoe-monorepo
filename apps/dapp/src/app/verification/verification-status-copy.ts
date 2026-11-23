@@ -25,9 +25,9 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
   if (view.path === 'organization') return presentOrganizationStatus(view);
 
   switch (view.status) {
-    // Start and Continue are the page's action card: the title and body sit
-    // above its checklist and button, so neither repeats what the checklist
-    // says (the ID, the camera, the minutes) or what the page header says (why).
+    // Start and Continue are the page's "Prepare your documents" checklist:
+    // only the body shows there, above the button, so it never repeats what
+    // the checklist says (the ID, the camera) or the header (the minutes).
     case 'not_started':
       return {
         tone: 'neutral',

@@ -21,19 +21,22 @@ import { OrganizationDetailsForm } from '@/components/organization-details-form'
 
 import { Auth } from '@/app/(auth)/_components/common';
 
-import { type SubjectOption, organizationIdOf, verificationHref } from './account-switcher';
+import { type SubjectOption } from './account-switcher';
 import { LockedField, PersonalDetailsForm } from './investor-profile-step';
+import { organizationIdOf, verificationHref } from './verification-href';
+import { stepCountOf } from './verification-steps';
 
 /**
  * Step one of `/verification`: the details of whoever the switcher has selected, the person's own or their
  * organization's. Editable only while that subject's verification can still start; after that they show as
- * they are, since Persona holds what was submitted. Continue saves what can be saved and moves on through
- * the URL. Who is being verified is never chosen here: that is the switcher's.
+ * they are, since Persona holds what was submitted. Continue saves what can be saved and moves on to the
+ * Agreements step through the URL. Who is being verified is never chosen here: that is the switcher's.
  */
 export function AccountDetailsStep({ subject, profile }: { subject: SubjectOption; profile: InvestorProfile }) {
   const router = useRouter();
   const [refusal, setRefusal] = useState<string | null>(null);
-  const proceed = () => router.push(verificationHref({ organizationId: organizationIdOf(subject), step: 'identity' }));
+  const proceed = () =>
+    router.push(verificationHref({ organizationId: organizationIdOf(subject), step: 'agreements' }));
 
   const update = useMutation({
     // Wrapped: a server action given React Query's second argument would send it to the server too.
@@ -61,7 +64,7 @@ export function AccountDetailsStep({ subject, profile }: { subject: SubjectOptio
             : "Confirm your details before verifying your identity. They can't be changed once verification starts."
         }
       >
-        <Auth.StepIndicator>Step 1 of 3</Auth.StepIndicator>
+        <Auth.StepIndicator>{stepCountOf('profile')}</Auth.StepIndicator>
       </Auth.Header>
 
       {refusal ? (

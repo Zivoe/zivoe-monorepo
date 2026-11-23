@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -9,8 +9,9 @@ import * as Sentry from '@sentry/nextjs';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
+import { Checkbox } from '@zivoe/ui/core/checkbox';
 import { toast } from '@zivoe/ui/core/sonner';
-import { CameraIcon, ClockIcon, DocumentIcon, Spinner, UserIcon } from '@zivoe/ui/icons';
+import { Spinner } from '@zivoe/ui/icons';
 
 import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
@@ -24,8 +25,11 @@ import { type StartVerificationErrorResponse, type StartVerificationResponse } f
 
 import { env } from '@/env';
 
+import { verificationHref } from './verification-href';
+import { type VerificationRequirement, verificationRequirements } from './verification-requirements';
 import { START_REFUSAL_COPY, presentVerificationStatus } from './verification-status-copy';
 import { VerificationStatusView } from './verification-status-view';
+import { stepCountOf } from './verification-steps';
 
 // Persona's SDK is only needed once a flow is mounted; keep it out of the
 // page's initial bundle (and off the server, where it has no business).
@@ -99,19 +103,24 @@ const START_IN_FLIGHT_COPY = 'A verification is already being started. Try again
 export default function PersonaFlow({
   subjectId,
   view,
+  countryCode,
   onBack,
   onStartingChange
 }: {
   /** Who is being verified: the person's own id, or the organization's. */
   subjectId: string;
   view: VerificationStatusViewModel;
-  /** Back to the Account details step; offered while nothing is in flight. */
+  /** The subject's country of residence or of incorporation: the checklist before Start turns on it. */
+  countryCode: string | null;
+  /** Back to the Agreements step; offered while nothing is in flight. */
   onBack?: () => void;
   /** Tells the shell a start is in flight, so nothing above navigates away before it lands. */
   onStartingChange?: (isStarting: boolean) => void;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
+  // The checklist's ticks: kept for this visit only, so a Continue days later asks again.
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   // Persona's SDK chunk and then Persona's own first paint take a few seconds;
   // the frame is blank until `onReady`, so the page shows the wait itself.
   const [frameReady, setFrameReady] = useState(false);
@@ -140,21 +149,31 @@ export default function PersonaFlow({
   const { action } = presentation;
   const beginAction = action.kind === 'start' || action.kind === 'resume' ? action : null;
 
-  // The step's header, above every phase. Back is withheld while a start is
-  // in flight, the frame is up, or a submission/refusal is being confirmed.
+  // The step's header, above every phase. Back is withheld while a start is in
+  // flight, the frame is up, or a submission/refusal is being confirmed.
   const canLeaveStep =
     phase.kind !== 'starting' && phase.kind !== 'inquiry' && phase.kind !== 'submitted' && phase.kind !== 'refused';
   const organization = view.path === 'organization';
+  const requirements = verificationRequirements({ path: view.path, countryCode });
+  const isReady = requirements.every((requirement) => ticked.has(requirement.id));
+  // Before Start or Continue, the step is the checklist; every other phase names the verification itself.
+  const isPreparing = !!beginAction && (phase.kind === 'idle' || phase.kind === 'cooldown' || phase.kind === 'error');
   const header = (
     <Auth.Header
-      title={organization ? 'Business verification' : 'Identity verification'}
+      title={isPreparing ? 'Prepare your documents' : organization ? 'Business verification' : 'Identity verification'}
       description={
-        organization
-          ? "Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents or your owners' details."
-          : 'Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents.'
+        isPreparing
+          ? organization
+            ? "Confirm you have everything ready. Business verification with Persona takes about fifteen minutes; Zivoe keeps only your verification status, never your documents or your owners' details."
+            : 'Confirm you have everything ready. Identity verification with Persona takes about five minutes; Zivoe keeps only your verification status, never your documents.'
+          : organization
+            ? "Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents or your owners' details."
+            : 'Vaults accept deposits from verified investors. Verification is handled securely by Persona; Zivoe keeps only your verification status, never your documents.'
       }
     >
-      <Auth.StepIndicator onBack={onBack && canLeaveStep ? onBack : undefined}>Step 2 of 3</Auth.StepIndicator>
+      <Auth.StepIndicator onBack={onBack && canLeaveStep ? onBack : undefined}>
+        {stepCountOf('identity')}
+      </Auth.StepIndicator>
     </Auth.Header>
   );
   const frameTitle = organization ? 'Verify your organization' : 'Verify your identity';
@@ -185,6 +204,11 @@ export default function PersonaFlow({
 
     if (err || !body) {
       setPhase({ kind: 'error', message: START_FAILED_COPY });
+    } else if ('code' in body && body.code === 'agreements_required') {
+      // Not accepted for this subject (only a hand-edited URL or a stale tab gets here): the step before this one.
+      setPhase({ kind: 'idle' });
+      toast({ type: 'warning', title: 'Accept the agreements before verifying.' });
+      router.push(verificationHref({ organizationId: organization ? subjectId : null, step: 'agreements' }));
     } else if ('code' in body && body.code === 'not_member') {
       // No longer a member (removed with the page open): the refresh takes them to their own page, the words with them.
       toast({ type: 'warning', title: ORGANIZATION_ERROR_COPY.not_member });
@@ -439,66 +463,87 @@ export default function PersonaFlow({
           </Callout>
         ) : null}
 
-        {/* One card when there is something to do — the state's title, what
-            the flow needs, and Start or Continue — so the state and the
-            checklist never say the same thing twice. Every other state is the
-            status card alone. */}
+        {/* When there is something to do: what the flow needs, each ticked off, then the state (Verify
+            becomes Continue after a start, so it is live, like the status card) and Start or Continue. Every
+            other state is the status card alone. */}
         {beginAction ? (
-          <div className="flex flex-col gap-6 rounded-2xl border border-default bg-surface-elevated p-6">
-            {/* The part that changes with the record (Verify becomes Continue after a start): live, like the status card. */}
-            <div role="status" className="flex flex-col gap-1">
-              <h2 className="font-paragraph! text-leading font-medium text-primary">{presentation.title}</h2>
-              <p className="text-small text-secondary">{presentation.body}</p>
+          <div className="flex flex-col gap-11">
+            <div role="group" aria-label="What you'll need" className="flex flex-col gap-4">
+              {requirements.map((requirement) => (
+                <RequirementCard
+                  key={requirement.id}
+                  requirement={requirement}
+                  isSelected={ticked.has(requirement.id)}
+                  isDisabled={phase.kind === 'starting'}
+                  onChange={(isSelected) =>
+                    setTicked((current) => {
+                      const next = new Set(current);
+                      if (isSelected) next.add(requirement.id);
+                      else next.delete(requirement.id);
+                      return next;
+                    })
+                  }
+                />
+              ))}
             </div>
 
-            {organization ? (
-              <ul aria-label="What you'll need" className="flex flex-col gap-3 text-regular text-primary">
-                <li className="flex items-start gap-3">
-                  <DocumentIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                  Your organization&apos;s registered address and tax or registration number
-                </li>
-                <li className="flex items-start gap-3">
-                  <UserIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                  The names and emails of a control person and of any owner of 25% or more (each will receive an email
-                  from Persona to verify their identity), and the names of any authorized persons
-                </li>
-                <li className="flex items-start gap-3">
-                  <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                  About fifteen minutes
-                </li>
-              </ul>
-            ) : (
-              <ul aria-label="What you'll need" className="flex flex-col gap-3 text-regular text-primary">
-                <li className="flex items-start gap-3">
-                  <DocumentIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A
-                  government-issued photo ID (passport, driver&apos;s license or national ID)
-                </li>
-                <li className="flex items-start gap-3">
-                  <CameraIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />A device with a
-                  camera, for a quick selfie
-                </li>
-                <li className="flex items-start gap-3">
-                  <ClockIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-icon-default" />
-                  About five minutes
-                </li>
-              </ul>
-            )}
-
-            <Button
-              variant="primary"
-              onPress={start}
-              isPending={phase.kind === 'starting'}
-              isDisabled={phase.kind === 'cooldown'}
-              pendingContent="Preparing…"
-              fullWidth
-            >
-              {beginAction.label}
-            </Button>
+            <div className="flex flex-col gap-4">
+              <p role="status" className="text-small text-secondary">
+                {presentation.body}
+              </p>
+              <Button
+                variant="primary"
+                onPress={start}
+                isPending={phase.kind === 'starting'}
+                isDisabled={phase.kind === 'cooldown' || !isReady}
+                pendingContent="Preparing…"
+                fullWidth
+              >
+                {beginAction.label}
+              </Button>
+            </div>
           </div>
         ) : (
           <VerificationStatusView view={view} />
         )}
       </div>
     </>
+  );
+}
+
+/** One thing to have ready, as a card the whole of which ticks it; the title names the checkbox, the rest describes it. */
+function RequirementCard({
+  requirement: { title, description, Icon },
+  isSelected,
+  isDisabled,
+  onChange
+}: {
+  requirement: VerificationRequirement;
+  isSelected: boolean;
+  isDisabled: boolean;
+  onChange: (isSelected: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <Checkbox
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      onChange={onChange}
+      aria-labelledby={`${id}-title`}
+      aria-describedby={`${id}-description`}
+      className="items-start gap-x-4 rounded-2xl border border-default bg-surface-elevated p-5 leading-normal font-normal break-normal transition-colors data-selected:border-primary-subtle sm:gap-x-5 sm:p-6"
+    >
+      <span className="flex min-w-0 flex-col gap-2">
+        <span className="flex items-center gap-3">
+          <Icon aria-hidden="true" className="size-5 shrink-0 text-icon-default" />
+          <span id={`${id}-title`} className="text-leading font-medium text-primary">
+            {title}
+          </span>
+        </span>
+        <span id={`${id}-description`} className="text-small text-secondary">
+          {description}
+        </span>
+      </span>
+    </Checkbox>
   );
 }

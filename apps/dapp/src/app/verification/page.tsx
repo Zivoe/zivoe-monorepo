@@ -5,6 +5,7 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
+import { getAgreementAcceptance } from '@/server/data/agreements';
 import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { organizations } from '@/server/organizations';
@@ -21,15 +22,16 @@ import { verificationReturnPath } from '@/lib/return-paths';
 
 import { type SubjectOption } from './account-switcher';
 import VerificationFlow from './verification-flow';
+import { currentStepFor } from './verification-steps';
 
 export const metadata: Metadata = { title: 'Verification | Zivoe' };
 
 /**
  * The verification destination, in a shell of its own (no dashboard
- * navigation): the selected account's details, the Persona flow, then Wallets.
+ * navigation): the selected account's details, the offering agreements, the Persona flow, then Wallets.
  * The URL holds the state: `subject` names who (the person themselves when
  * absent), read against the viewer's own list, so an id of anything else
- * goes back to the plain page; `step` asks for `details` or `identity`. A subject whose
+ * goes back to the plain page; `step` asks for `details`, `agreements` or `identity`. A subject whose
  * verification can still start opens on its details. Requires a session, the
  * current terms accepted and a completed onboarding profile: the existing
  * redirects, not a KYC guard. Behind the `kyc` flag: a 404 for anyone it is off for.
@@ -82,12 +84,18 @@ export default async function VerificationPage({
   // verification under someone else's id in the URL.
   if (subject !== undefined && !subjects.some((option) => option.id === subject)) redirect('/verification');
   const active = subjects.find((option) => option.id === subject) ?? subjects[0];
-  // An organization still missing a real country stays on its details: its first inquiry would lock the gap in.
-  const missingCountry =
-    !!active?.organization &&
-    active.view.canStart &&
-    !isSupportedCountryCode(active.organization.countryOfIncorporation ?? '');
-  const showDetails = step === 'details' || missingCountry || (step !== 'identity' && !!active?.view.canStart);
+  // The person themselves is always first: never empty.
+  if (!active) notFound();
+
+  const acceptance = await getAgreementAcceptance({ subjectId: active.id });
+  const country = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
+  const currentStep = currentStepFor({
+    requested: typeof step === 'string' ? step : undefined,
+    canStart: active.view.canStart,
+    hasCountry: isSupportedCountryCode(country ?? ''),
+    hasAccepted: !!acceptance,
+    isYesDecision: isYesDecision(active.view)
+  });
 
   // The subject's Linked addresses, read here into the cache the Wallets step
   // reads and writes: it renders without a loading state and needs no refresh
@@ -95,7 +103,7 @@ export default async function VerificationPage({
   // read are this page's error, not an empty step. Nothing can be linked before
   // a yes Decision, so nothing is read before one.
   const queryClient = getQueryClient();
-  if (!showDetails && active && isYesDecision(active.view)) {
+  if (currentStep === 'wallets') {
     await queryClient.fetchQuery({
       queryKey: queryKeys.app.walletLinks({ subjectId: active.id }),
       queryFn: async () => (await walletLink.listLinks({ subjectId: active.id })).map(toLinkedAddress)
@@ -106,8 +114,9 @@ export default async function VerificationPage({
     <HydrationBoundary state={dehydrate(queryClient)}>
       <VerificationFlow
         subjects={subjects}
-        activeId={active?.id ?? user.id}
-        showDetails={showDetails}
+        activeId={active.id}
+        step={currentStep}
+        agreementsAcceptedAt={acceptance?.acceptedAt ?? null}
         profile={profile}
       />
     </HydrationBoundary>

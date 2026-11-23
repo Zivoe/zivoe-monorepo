@@ -10,11 +10,13 @@ import { type VerificationStatusView } from '@/server/verification/verification-
 
 import { type SubjectOption } from './account-switcher';
 import VerificationFlow from './verification-flow';
+import { type VerificationStepId } from './verification-steps';
 
 const mocks = vi.hoisted(() => ({
   updateInvestorProfile: vi.fn(),
   createOrganization: vi.fn(),
   updateOrganization: vi.fn(),
+  acceptAgreements: vi.fn(),
   toast: vi.fn(),
   refresh: vi.fn(),
   push: vi.fn()
@@ -54,8 +56,10 @@ vi.mock('@zivoe/ui/core/button', () => ({
     </button>
   )
 }));
+// The checkbox styles itself with `labelVariants`; the class names are not under test.
 vi.mock('@zivoe/ui/core/field/label', () => ({
-  Label: ({ children }: { children: ReactNode }) => <span>{children}</span>
+  Label: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  labelVariants: () => ''
 }));
 vi.mock('@zivoe/ui/core/field/field-error', () => ({
   FieldError: ({ children }: { children?: ReactNode }) => (children ? <span>{children}</span> : null)
@@ -154,6 +158,7 @@ vi.mock('@/server/actions/organizations', () => ({
   createOrganization: mocks.createOrganization,
   updateOrganization: mocks.updateOrganization
 }));
+vi.mock('@/server/actions/agreements', () => ({ acceptAgreements: mocks.acceptAgreements }));
 // The Wallets step has its own suite; here it only has to be the step the flow lands on.
 vi.mock('./wallet-link-step', () => ({
   WalletLinkStep: ({ subjectId }: { subjectId: string }) => <div data-testid="wallets-step">{subjectId}</div>
@@ -197,12 +202,24 @@ const company = (overrides: Partial<VerificationStatusView> = {}): SubjectOption
 function renderFlow({
   subjects = [person()],
   activeId = USER_ID,
-  showDetails = true
-}: { subjects?: Array<SubjectOption>; activeId?: string; showDetails?: boolean } = {}) {
+  step = 'profile',
+  agreementsAcceptedAt = null
+}: {
+  subjects?: Array<SubjectOption>;
+  activeId?: string;
+  step?: VerificationStepId;
+  agreementsAcceptedAt?: Date | null;
+} = {}) {
   const client = new QueryClient();
   return render(
     <QueryClientProvider client={client}>
-      <VerificationFlow subjects={subjects} activeId={activeId} showDetails={showDetails} profile={profile} />
+      <VerificationFlow
+        subjects={subjects}
+        activeId={activeId}
+        step={step}
+        agreementsAcceptedAt={agreementsAcceptedAt}
+        profile={profile}
+      />
     </QueryClientProvider>
   );
 }
@@ -215,14 +232,19 @@ const pressContinue = () => fireEvent.click(screen.getByRole('button', { name: '
 /** The desktop rail's switcher; the mobile one repeats it. */
 const switcher = () => screen.getAllByRole('button', { name: /^Verifying as/ })[0]!;
 const menuItem = (name: string) => screen.getAllByRole('menuitem', { name })[0]!;
-const toIdentity = (subjectId: string) =>
-  subjectId === USER_ID ? '/verification?step=identity' : `/verification?subject=${subjectId}&step=identity`;
+const toStep = (subjectId: string, step: 'details' | 'agreements' | 'identity') =>
+  subjectId === USER_ID ? `/verification?step=${step}` : `/verification?subject=${subjectId}&step=${step}`;
+/** Ticks the checklist before the Persona flow: Start waits on all of it. */
+const tickAll = () => {
+  for (const box of screen.queryAllByRole<HTMLInputElement>('checkbox')) if (!box.checked) fireEvent.click(box);
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.updateInvestorProfile.mockResolvedValue({ success: true });
   mocks.updateOrganization.mockResolvedValue({ ok: true, value: undefined });
   mocks.createOrganization.mockResolvedValue({ ok: true, value: { organizationId: ORGANIZATION_ID } });
+  mocks.acceptAgreements.mockResolvedValue({ ok: true });
 });
 afterEach(cleanup);
 
@@ -237,7 +259,7 @@ describe('step one: account details', () => {
     fireEvent.change(field('First Name'), { target: { value: 'Ada' } });
     pressContinue();
 
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toIdentity(USER_ID)));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'agreements')));
     expect(mocks.updateInvestorProfile).toHaveBeenCalledWith({
       firstName: 'Ada',
       lastName: 'Agent',
@@ -271,7 +293,7 @@ describe('step one: account details', () => {
 
     expect(field('Legal Name').value).toBe('Acme Capital LLC');
     pressContinue();
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toIdentity(ORGANIZATION_ID)));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements')));
     expect(mocks.updateOrganization).not.toHaveBeenCalled();
 
     fireEvent.change(field('Legal Name'), { target: { value: 'Acme Capital Ltd' } });
@@ -293,14 +315,14 @@ describe('step one: account details', () => {
     expect(field('Legal Name').readOnly).toBe(true);
     pressContinue();
 
-    expect(mocks.push).toHaveBeenCalledWith(toIdentity(ORGANIZATION_ID));
+    expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements'));
     expect(mocks.updateOrganization).not.toHaveBeenCalled();
   });
 });
 
 describe('the account switcher', () => {
   it('names who is being verified, as an individual or an organization', () => {
-    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, showDetails: false });
+    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'identity' });
 
     expect(switcher().getAttribute('aria-label')).toBe(
       'Verifying as Acme Capital LLC, Organization · KYB. Switch account'
@@ -309,7 +331,7 @@ describe('the account switcher', () => {
   });
 
   it('switches to another account through the URL, and stays put on the current one', () => {
-    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, showDetails: false });
+    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'identity' });
 
     fireEvent.click(menuItem('Acme Capital LLC'));
     expect(mocks.push).not.toHaveBeenCalled();
@@ -324,9 +346,10 @@ describe('the account switcher', () => {
       'fetch',
       vi.fn(() => new Promise(() => undefined))
     );
-    renderFlow({ subjects: [person()], showDetails: false });
+    renderFlow({ subjects: [person()], step: 'identity' });
 
     expect(switcher().hasAttribute('disabled')).toBe(false);
+    tickAll();
     fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }));
 
     await waitFor(() => expect(switcher().hasAttribute('disabled')).toBe(true));
@@ -342,8 +365,9 @@ describe('the account switcher', () => {
         json: async () => ({ success: true, data: { inquiryId: 'inq_1', sessionToken: 'session_1' } })
       }))
     );
-    renderFlow({ subjects: [person(), company()], showDetails: false });
+    renderFlow({ subjects: [person(), company()], step: 'identity' });
 
+    tickAll();
     fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }));
     await screen.findByTestId('persona-frame');
 
@@ -363,7 +387,7 @@ describe('the account switcher', () => {
     fireEvent.change(within(dialog).getByLabelText('Your Job Title'), { target: { value: 'CFO' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create organization' }));
 
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toIdentity(ORGANIZATION_ID)));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements')));
     expect(mocks.createOrganization.mock.calls[0]![0]).toEqual({
       name: 'Newco Ltd',
       countryOfIncorporation: 'GB',
@@ -388,20 +412,30 @@ describe('the account switcher', () => {
 
 describe('the steps after it', () => {
   it('opens on the Persona step for the account picked', () => {
-    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, showDetails: false });
+    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'identity' });
 
     expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step');
   });
 
-  it('links back to the account details, read-only once verification has started', () => {
+  it('links back to the account details and the agreements, read-only once verification has started', () => {
     renderFlow({
       subjects: [person(), company({ status: 'pending_review', canStart: false })],
       activeId: ORGANIZATION_ID,
-      showDetails: false
+      step: 'identity'
     });
 
-    const back = within(stepItem('Account details')).getByRole('link', { name: 'Account details' });
-    expect(back.getAttribute('href')).toBe(`/verification?subject=${ORGANIZATION_ID}&step=details`);
+    const details = within(stepItem('Account details')).getByRole('link', { name: 'Account details' });
+    expect(details.getAttribute('href')).toBe(toStep(ORGANIZATION_ID, 'details'));
+    const agreements = within(stepItem('Agreements')).getByRole('link', { name: 'Agreements' });
+    expect(agreements.getAttribute('href')).toBe(toStep(ORGANIZATION_ID, 'agreements'));
+    expect(screen.getByText('Step 3 of 4')).toBeTruthy();
+  });
+
+  it('goes back from the Persona step to the agreements while it can still start', () => {
+    renderFlow({ step: 'identity' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'agreements'));
   });
 
   it('tells a member whose colleague is running the inquiry that it is theirs to finish', () => {
@@ -416,7 +450,7 @@ describe('the steps after it', () => {
         })
       ],
       activeId: ORGANIZATION_ID,
-      showDetails: false
+      step: 'identity'
     });
 
     expect(screen.getByText('Jane Doe started this on 3 Nov. Only Jane Doe can continue it.')).toBeTruthy();
@@ -427,33 +461,106 @@ describe('the steps after it', () => {
     renderFlow({
       subjects: [person(), company({ status: 'expired', canStart: false, canResume: true, inquiryId: null })],
       activeId: ORGANIZATION_ID,
-      showDetails: false
+      step: 'identity'
     });
 
     expect(screen.getByText(/Starting again begins a new verification/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Verify organization' })).toBeTruthy();
   });
 
-  it('lands a yes Decision on Wallets, for the subject picked', () => {
+  it('shows Wallets for the subject picked, with every step before it done', () => {
     renderFlow({
       subjects: [person(), company({ status: 'approved', canStart: false })],
       activeId: ORGANIZATION_ID,
-      showDetails: false
+      step: 'wallets'
     });
 
     expect(screen.getByTestId('wallets-step').textContent).toBe(ORGANIZATION_ID);
     expect(stepItem('Wallets').getAttribute('aria-current')).toBe('step');
+    for (const label of ['Account details', 'Agreements', 'Business verification']) {
+      expect(within(stepItem(label)).getByText(', completed')).toBeTruthy();
+    }
   });
 
   it("holds an organization's no on the business step, with step one done", () => {
     renderFlow({
       subjects: [person(), company({ status: 'declined', canStart: false })],
       activeId: ORGANIZATION_ID,
-      showDetails: false
+      step: 'identity'
     });
 
     expect(screen.getByRole('status').textContent).toMatch(/Verification declined/);
     expect(within(stepItem('Account details')).getByText(', completed')).toBeTruthy();
+    expect(within(stepItem('Agreements')).getByText(', completed')).toBeTruthy();
     expect(screen.queryByTestId('wallets-step')).toBeNull();
+  });
+});
+
+describe('step two: the agreements', () => {
+  const continueButton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Continue' });
+  const agreementBox = () => screen.getByRole<HTMLInputElement>('checkbox', { name: /I have read and agree/ });
+
+  it('links each agreement and holds Continue until the box is ticked, then records it and moves on', async () => {
+    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'agreements' });
+
+    expect(screen.getByText('Step 2 of 4')).toBeTruthy();
+    expect(stepItem('Agreements').getAttribute('aria-current')).toBe('step');
+    const links = within(screen.getByRole('list', { name: 'Agreements' })).getAllByRole('link');
+    expect(
+      links.map((link) => [link.textContent?.replace('(opens in a new tab)', ''), link.getAttribute('href')])
+    ).toEqual([
+      ['Master Lending Agreement', '/documents/master-lending-agreement.pdf'],
+      ['Confidential Offering Memorandum', '/documents/confidential-offering-memorandum.pdf'],
+      ['Offering Supplement', '/documents/offering-supplement.pdf']
+    ]);
+    expect(continueButton().disabled).toBe(true);
+
+    fireEvent.click(agreementBox());
+    fireEvent.click(continueButton());
+
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
+    expect(mocks.acceptAgreements).toHaveBeenCalledWith({ subjectId: ORGANIZATION_ID });
+  });
+
+  it('shows an earlier acceptance ticked and locked, and moves on without recording it again', () => {
+    renderFlow({ step: 'agreements', agreementsAcceptedAt: new Date('2026-11-18T01:30:00Z') });
+
+    expect(agreementBox().checked).toBe(true);
+    expect(agreementBox().disabled).toBe(true);
+    expect(screen.getByText('Accepted on November 18, 2026.')).toBeTruthy();
+
+    fireEvent.click(continueButton());
+    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'identity'));
+    expect(mocks.acceptAgreements).not.toHaveBeenCalled();
+  });
+
+  it('stays on the step with a message when the acceptance cannot be saved', async () => {
+    mocks.acceptAgreements.mockResolvedValue({ ok: false, code: 'failed' });
+    renderFlow({ step: 'agreements' });
+
+    fireEvent.click(agreementBox());
+    fireEvent.click(continueButton());
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Could not save your agreement. Please try again.');
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('tells someone removed from the organization so, and re-reads the page', async () => {
+    mocks.acceptAgreements.mockResolvedValue({ ok: false, code: 'not_member' });
+    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'agreements' });
+
+    fireEvent.click(agreementBox());
+    fireEvent.click(continueButton());
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
+    expect(mocks.refresh).toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('goes back to the account details', () => {
+    renderFlow({ step: 'agreements' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'details'));
   });
 });

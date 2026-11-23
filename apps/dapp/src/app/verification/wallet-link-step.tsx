@@ -40,6 +40,7 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { Auth } from '@/app/(auth)/_components/common';
 
 import { useAddressesMembership } from './use-address-membership';
+import { stepCountOf } from './verification-steps';
 import { LINK_REFUSAL_COPY, formatRelativeTime, presentWhitelist, shortAddress } from './wallet-link-copy';
 
 /**
@@ -116,7 +117,7 @@ export function WalletLinkStep({
         title="Wallets"
         description={`Connect the wallet you will invest from to see whether it is whitelisted for Zivoe's vaults. If it is not, sign to link it to ${owner} and request it.`}
       >
-        <Auth.StepIndicator>Step 3 of 3</Auth.StepIndicator>
+        <Auth.StepIndicator>{stepCountOf('wallets')}</Auth.StepIndicator>
       </Auth.Header>
 
       <ConnectedWalletCard
