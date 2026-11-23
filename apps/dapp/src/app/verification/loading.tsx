@@ -22,7 +22,7 @@ export default function VerificationLoading() {
     <VerificationShell
       rail={
         <div className="flex flex-col gap-6">
-          <Skeleton className="h-18 w-full rounded-lg bg-neutral-900/10" />
+          <Skeleton className="h-19.5 w-full rounded-lg bg-neutral-900/10" />
           <div className="flex flex-col">
             {VERIFICATION_STEPS.map((step, index) => (
               <div key={step.id} className="flex flex-col">
@@ -43,7 +43,7 @@ export default function VerificationLoading() {
       }
       mobileRail={
         <div className="flex flex-col gap-3">
-          <Skeleton className="h-18 w-full rounded-lg" />
+          <Skeleton className="h-19.5 w-full rounded-lg" />
           <div className="flex items-center gap-3">
             {VERIFICATION_STEPS.map((step, index) => (
               <div key={step.id} className="flex items-center gap-3">
