@@ -9,6 +9,7 @@ export type AnalyticsEvent =
   | 'onboarding:completed'
   | 'onboarding:started'
   | 'terms:accepted'
+  | 'agreements:accepted'
   | 'organization:created'
   | 'organization:members_invited'
   | 'organization:invitation_resent'

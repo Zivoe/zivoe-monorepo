@@ -2,57 +2,61 @@
 
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { after } from 'next/server';
 
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
 
 import { agreementAcceptance } from '@zivoe/database/schema';
 
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
-import { getRequiredStep } from '@/server/data/auth';
-import { organizations } from '@/server/organizations';
-import { isKycEnabled } from '@/server/verification/kyc-flag';
-import { whileNotStarting } from '@/server/verification/start-lock';
+import { getOnboardingStep } from '@/server/data/auth';
+import { captureServerEvent } from '@/server/utils/analytics';
 
-export type AcceptAgreementsResult = { ok: true } | { ok: false; code: 'unauthorized' | 'not_member' | 'failed' };
+import { LATEST_AGREEMENTS_VERSION } from '@/lib/agreements';
+
+export type AcceptAgreementsResult = { ok: true } | { ok: false; code: 'unauthorized' | 'outdated' | 'failed' };
 
 /**
- * The Agreements step's Continue: records that `subjectId` (the person themselves, or an organization they
- * belong to) accepted the agreements, and who accepted. Behind the same lines as the page: a session,
- * the `kyc` flag, onboarding and the current terms. The first acceptance stands; a repeat changes nothing.
+ * Records that the signed-in person accepted `version`, the agreements version the page showed them: for
+ * themselves, which covers every account they act for. Called by `/verification`'s Agreements step and by
+ * `/agreements`. Behind a session, the current terms and onboarding only: not the agreements gate, which this
+ * action is the way through, nor the `kyc` flag, so nobody the gate holds can be stuck there. Refused as `outdated`
+ * when a deploy moved `LATEST_AGREEMENTS_VERSION` on while the page was open, so a row never names a version other
+ * than the one shown. A repeat (a double click, a second tab) succeeds without a second row or analytics event.
  */
-export async function acceptAgreements(input: { subjectId: string }): Promise<AcceptAgreementsResult> {
-  const subjectId = z.string().uuid().safeParse(input.subjectId);
-  if (!subjectId.success) return { ok: false, code: 'failed' };
-
+export async function acceptAgreements({ version }: { version: string }): Promise<AcceptAgreementsResult> {
   const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
-  if (!user?.id) return { ok: false, code: 'unauthorized' };
-  if (!(await isKycEnabled({ user }))) return { ok: false, code: 'unauthorized' };
-  if (await getRequiredStep(user.id)) return { ok: false, code: 'unauthorized' };
-  // Under the subject's start lock, which leaving and removal take too: nobody leaves between the membership
-  // check and the row that names them. `null` while a start or a membership change holds it: try again.
-  const result = await whileNotStarting(subjectId.data, async () => {
-    if (!(await organizations.canActForSubject({ userId: user.id, subjectId: subjectId.data }))) {
-      return 'not_member' as const;
-    }
-    await db
+  const userId = session?.user?.id;
+  if (!userId) return { ok: false, code: 'unauthorized' };
+  if (await getOnboardingStep(userId)) return { ok: false, code: 'unauthorized' };
+  if (version !== LATEST_AGREEMENTS_VERSION) return { ok: false, code: 'outdated' };
+
+  try {
+    const inserted = await db
       .insert(agreementAcceptance)
-      .values({ subjectId: subjectId.data, acceptedByUserId: user.id })
-      .onConflictDoNothing({ target: agreementAcceptance.subjectId });
-    return 'accepted' as const;
-  }).catch((error: unknown) => {
+      .values({ userId, agreementsVersion: version })
+      .onConflictDoNothing()
+      .returning({ id: agreementAcceptance.id });
+    // Nothing returned: the row was already there.
+    if (inserted.length) {
+      after(() =>
+        captureServerEvent({
+          distinctId: userId,
+          event: 'agreements:accepted',
+          properties: { agreements_version: version }
+        })
+      );
+    }
+  } catch (error) {
     Sentry.captureException(error, {
       tags: { source: 'SERVER', flow: 'accept-agreements' },
-      extra: { subjectId: subjectId.data }
+      extra: { userId, version }
     });
-    return 'failed' as const;
-  });
-  if (result === 'not_member') return { ok: false, code: 'not_member' };
-  if (result !== 'accepted') return { ok: false, code: 'failed' };
+    return { ok: false, code: 'failed' };
+  }
 
-  // The next step reads the acceptance: the router's earlier copy of the page must not send them back here.
-  revalidatePath('/verification');
+  // Every page reads the acceptance (the gate, the Agreements step): the router's earlier copies must not send them back.
+  revalidatePath('/', 'layout');
   return { ok: true };
 }
