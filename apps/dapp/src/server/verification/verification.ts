@@ -1456,6 +1456,12 @@ export function createVerification({
         const latest = await store.get({ subjectId });
         const lateRefusal = latest && refusalFrom(latest.status, path);
         if (lateRefusal) return err({ code: lateRefusal });
+        // A sweep adopted this very inquiry in between, as nobody's: it is the actor's, who is about to fill
+        // it in. Its status and case stay the sweep's. Once only: a write landing meanwhile decides.
+        if (latest?.personaInquiryId === inquiry.id && latest.startedByUserId === null) {
+          const { version, subjectKind: _subjectKind, ...adopted } = latest;
+          await store.write({ ...adopted, startedByUserId: actorUserId }, { expectVersion: version });
+        }
       }
       await announceStart({ inquiryId: inquiry.id, statusChangedAt });
       return ok({ inquiryId: inquiry.id, sessionToken });

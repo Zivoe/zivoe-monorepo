@@ -2578,6 +2578,42 @@ describe('the organization flow', () => {
     });
   });
 
+  it('keeps the starter of an inquiry a sweep adopts between its create and the start writing it', async () => {
+    const { verification, store, persona, seedRecord } = setupOrganization();
+    // A stale record to restart. While Persona answers the create, the sweep lists the new inquiry and adopts it
+    // as nobody's, so the start's own write loses on version.
+    seedRecord({ status: 'expired' });
+    const create = persona.persona.createInquiry.bind(persona.persona);
+    persona.persona.createInquiry = async (input) => {
+      const created = await create(input);
+      if (!created.ok) return created;
+      const stale = await store.store.get({ subjectId: USER_ID });
+      if (!stale) throw new Error('seeded record missing');
+      const { version, subjectKind: _subjectKind, ...record } = stale;
+      await store.store.write(
+        { ...record, startedByUserId: null, status: 'in_progress', personaInquiryId: created.value.inquiry.id },
+        { expectVersion: version }
+      );
+      return created;
+    };
+
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toMatchObject({
+      ok: true,
+      value: { inquiryId: 'inq_1' }
+    });
+    expect(store.records.get(USER_ID)).toMatchObject({
+      personaInquiryId: 'inq_1',
+      status: 'in_progress',
+      startedByUserId: USER_ID
+    });
+    // Theirs to resume: a second start opens the same inquiry instead of creating another.
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toMatchObject({
+      ok: true,
+      value: { inquiryId: 'inq_1' }
+    });
+    expect(persona.calls.filter((call) => call.method === 'createInquiry')).toHaveLength(1);
+  });
+
   it("ignores an organization's inquiry on the individual template, and an individual's on the KYB template", async () => {
     const org = setupOrganization();
     org.seedRecord({ status: 'in_progress' });
