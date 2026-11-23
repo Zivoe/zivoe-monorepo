@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { type RefObject, useEffect, useId, useRef, useState } from 'react';
 
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -99,6 +99,8 @@ const isRefusal = (body: StartVerificationResponse): body is StartVerificationEr
 /** The page owns the words: a server's error text (a handler's generic message, a 404) never reaches the investor. */
 const START_FAILED_COPY = 'Could not start verification. Please try again.';
 const START_IN_FLIGHT_COPY = 'A verification is already being started. Try again in a moment.';
+const UNTICKED_COPY = 'Please confirm you have everything ready to continue.';
+const UNTICKED_ID = 'requirements-unticked';
 
 export default function PersonaFlow({
   subjectId,
@@ -121,6 +123,16 @@ export default function PersonaFlow({
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   // The checklist's ticks: kept for this visit only, so a Continue days later asks again.
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
+  // Start or Continue pressed with items unticked: those show as invalid, and focus goes to the first.
+  const [isUnticked, setIsUnticked] = useState(false);
+  const boxRefs = useRef(new Map<string, RefObject<HTMLInputElement | null>>());
+  const boxRefFor = (id: string) => {
+    const existing = boxRefs.current.get(id);
+    if (existing) return existing;
+    const ref: RefObject<HTMLInputElement | null> = { current: null };
+    boxRefs.current.set(id, ref);
+    return ref;
+  };
   // Persona's SDK chunk and then Persona's own first paint take a few seconds;
   // the frame is blank until `onReady`, so the page shows the wait itself.
   const [frameReady, setFrameReady] = useState(false);
@@ -156,6 +168,13 @@ export default function PersonaFlow({
   const organization = view.path === 'organization';
   const requirements = verificationRequirements({ path: view.path, countryCode });
   const isReady = requirements.every((requirement) => ticked.has(requirement.id));
+  const showUnticked = isUnticked && !isReady;
+  const pressBegin = () => {
+    const firstUnticked = requirements.find((requirement) => !ticked.has(requirement.id));
+    if (!firstUnticked) return void start();
+    setIsUnticked(true);
+    boxRefFor(firstUnticked.id).current?.focus();
+  };
   // Before Start or Continue, the step is the checklist; every other phase names the verification itself.
   const isPreparing =
     !!beginAction &&
@@ -475,8 +494,10 @@ export default function PersonaFlow({
                 <RequirementCard
                   key={requirement.id}
                   requirement={requirement}
+                  inputRef={boxRefFor(requirement.id)}
                   isSelected={ticked.has(requirement.id)}
                   isDisabled={phase.kind === 'starting'}
+                  errorId={showUnticked && !ticked.has(requirement.id) ? UNTICKED_ID : undefined}
                   onChange={(isSelected) =>
                     setTicked((current) => {
                       const next = new Set(current);
@@ -487,6 +508,12 @@ export default function PersonaFlow({
                   }
                 />
               ))}
+              {/* An alert: focus reaches the first unticked box before this renders, so its description alone goes unread. */}
+              {showUnticked ? (
+                <p id={UNTICKED_ID} role="alert" className="text-small text-alert">
+                  {UNTICKED_COPY}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-4">
@@ -495,9 +522,9 @@ export default function PersonaFlow({
               </p>
               <Button
                 variant="primary"
-                onPress={start}
+                onPress={pressBegin}
                 isPending={phase.kind === 'starting'}
-                isDisabled={phase.kind === 'cooldown' || !isReady}
+                isDisabled={phase.kind === 'cooldown'}
                 pendingContent="Preparing…"
                 fullWidth
               >
@@ -516,24 +543,31 @@ export default function PersonaFlow({
 /** One thing to have ready, as a card the whole of which ticks it; the title names the checkbox, the rest describes it. */
 function RequirementCard({
   requirement: { title, description, Icon },
+  inputRef,
   isSelected,
   isDisabled,
+  errorId,
   onChange
 }: {
   requirement: VerificationRequirement;
+  inputRef: RefObject<HTMLInputElement | null>;
   isSelected: boolean;
   isDisabled: boolean;
+  /** The checklist's error, while this item is one Start or Continue found unticked. */
+  errorId?: string;
   onChange: (isSelected: boolean) => void;
 }) {
   const id = useId();
   return (
     <Checkbox
+      inputRef={inputRef}
       isSelected={isSelected}
       isDisabled={isDisabled}
+      isInvalid={!!errorId}
       onChange={onChange}
       aria-labelledby={`${id}-title`}
-      aria-describedby={`${id}-description`}
-      className="items-start gap-x-4 rounded-2xl border border-default bg-surface-elevated p-5 leading-normal font-normal break-normal transition-colors data-selected:border-primary-subtle sm:gap-x-5 sm:p-6"
+      aria-describedby={errorId ? `${id}-description ${errorId}` : `${id}-description`}
+      className="items-start gap-x-4 rounded-2xl border border-default bg-surface-elevated p-5 leading-normal font-normal break-normal transition-colors data-invalid:border-alert data-selected:border-primary-subtle sm:gap-x-5 sm:p-6"
     >
       <span className="flex min-w-0 flex-col gap-2">
         <span className="flex items-center gap-3">

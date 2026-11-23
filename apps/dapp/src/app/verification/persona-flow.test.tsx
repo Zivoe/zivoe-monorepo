@@ -269,22 +269,28 @@ describe('PersonaFlow asks for the documents first', () => {
       .map((box) => document.getElementById(box.getAttribute('aria-labelledby')!)!.textContent);
   const button = (name: string) => screen.getByRole<HTMLButtonElement>('button', { name });
 
-  it('lists what a person needs under its own heading, and holds Start until every item is ticked', () => {
+  it('lists what a person needs under its own heading, and answers an early Start on the first unticked item', () => {
     render(<PersonaFlow countryCode="RO" subjectId="user_1" view={notStarted()} />);
 
     expect(screen.getByRole('heading', { name: 'Prepare your documents' })).toBeTruthy();
     expect(checklist()).toBeTruthy();
     expect(names()).toEqual(['Photo ID', 'Device with a camera']);
-    expect(button('Verify identity').disabled).toBe(true);
-
-    fireEvent.click(screen.getAllByRole('checkbox')[0]!);
-    expect(button('Verify identity').disabled).toBe(true);
-    fireEvent.click(screen.getAllByRole('checkbox')[1]!);
     expect(button('Verify identity').disabled).toBe(false);
 
-    // Unticking one holds it again.
-    fireEvent.click(screen.getAllByRole('checkbox')[0]!);
-    expect(button('Verify identity').disabled).toBe(true);
+    const [photoId, camera] = screen.getAllByRole<HTMLInputElement>('checkbox');
+    fireEvent.click(photoId!);
+    fireEvent.click(button('Verify identity'));
+
+    // Nothing starts: the unticked item is marked and focused, and the checklist says why.
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toBe('Please confirm you have everything ready to continue.');
+    expect(document.activeElement).toBe(camera);
+    expect(camera!.getAttribute('aria-describedby')).toContain('requirements-unticked');
+    expect(photoId!.getAttribute('aria-describedby')).not.toContain('requirements-unticked');
+
+    // Ticking the last one clears it.
+    fireEvent.click(camera!);
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('asks a U.S. person for an accreditation document too, linking the attestation letter only', () => {
@@ -308,7 +314,6 @@ describe('PersonaFlow asks for the documents first', () => {
       'Ultimate Beneficial Owners (UBOs)',
       'Formation Document'
     ]);
-    expect(button('Verify organization').disabled).toBe(true);
     unmount();
 
     render(<PersonaFlow countryCode="PR" subjectId="org_1" view={{ ...notStarted(), path: 'organization' }} />);
@@ -327,7 +332,7 @@ describe('PersonaFlow asks for the documents first', () => {
 
     expect(screen.getByRole('heading', { name: 'Prepare your documents' })).toBeTruthy();
     expect(screen.getByText(/Pick up where you left off/)).toBeTruthy();
-    expect(button('Continue verification').disabled).toBe(true);
+    expect(screen.getAllByRole<HTMLInputElement>('checkbox').every((box) => !box.checked)).toBe(true);
   });
 
   it('renders a state with nothing to do as the status card alone, under the verification heading', () => {
