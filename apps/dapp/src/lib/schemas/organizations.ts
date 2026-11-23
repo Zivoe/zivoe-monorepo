@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
-import { readsAsLink } from './reads-as-link';
+import { isOneLine, readsAsLink } from './reads-as-link';
 
 const MAX_ORGANIZATION_NAME_LENGTH = 150;
 const MAX_TITLE_LENGTH = 100;
@@ -36,6 +36,7 @@ export const organizationDetailsSchema = z.object({
     .trim()
     .min(1, 'Job title is required')
     .max(MAX_TITLE_LENGTH, 'Job title is too long')
+    .refine(isOneLine, "Job title can't contain line breaks")
 });
 export type OrganizationDetailsFormData = z.infer<typeof organizationDetailsSchema>;
 
