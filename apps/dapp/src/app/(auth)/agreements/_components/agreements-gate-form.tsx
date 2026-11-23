@@ -5,6 +5,7 @@ import { withNext } from '@/lib/lighthouse';
 import { AgreementsForm } from '@/app/verification/agreements-form';
 
 import { Auth } from '../../_components/common';
+import { SignOutButton } from '../../_components/sign-out-button';
 
 /** `isUpdate` tells someone who accepted an earlier version that the agreements changed, instead of asking afresh. */
 export default function AgreementsGateForm({ next, isUpdate }: { next?: string; isUpdate: boolean }) {
@@ -21,7 +22,11 @@ export default function AgreementsGateForm({ next, isUpdate }: { next?: string; 
         />
 
         {/* A full load: post-signin picks the page in `next` or the way back to Lighthouse, which can end cross-origin. */}
-        <AgreementsForm onAccepted={() => window.location.assign(withNext('/api/auth/post-signin', next))} />
+        <AgreementsForm
+          onAccepted={() => window.location.assign(withNext('/api/auth/post-signin', next))}
+          // Every other page sends them back here, so this is the one way to another account.
+          secondaryAction={<SignOutButton variant="ghost-light">Sign out</SignOutButton>}
+        />
       </Auth.Container>
 
       <Auth.CopyrightFooter />

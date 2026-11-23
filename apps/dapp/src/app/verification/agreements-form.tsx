@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -25,9 +25,15 @@ const UNTICKED_ID = 'agreements-unticked';
  * The agreements in force, each opening in a new tab, one checkbox and Continue: the body of `/verification`'s
  * Agreements step and of `/agreements`. Continue without the box ticked says so under it and moves focus there;
  * with it ticked, Continue records the person's acceptance of the version shown (`acceptAgreements`) and calls
- * `onAccepted`, staying pending until the page moves on.
+ * `onAccepted`, staying pending until the page moves on. `secondaryAction` sits under Continue.
  */
-export function AgreementsForm({ onAccepted }: { onAccepted: () => void }) {
+export function AgreementsForm({
+  onAccepted,
+  secondaryAction
+}: {
+  onAccepted: () => void;
+  secondaryAction?: ReactNode;
+}) {
   const router = useRouter();
   const [isTicked, setIsTicked] = useState(false);
   // Continue pressed with the box unticked: the box shows the error until it is ticked.
@@ -114,22 +120,26 @@ export function AgreementsForm({ onAccepted }: { onAccepted: () => void }) {
           </div>
         </div>
 
-        <Button
-          fullWidth
-          isPending={isSaving}
-          pendingContent="Saving..."
-          onPress={() => {
-            setRefusal(null);
-            if (!isTicked) {
-              setIsUnticked(true);
-              checkboxRef.current?.focus();
-              return;
-            }
-            accept.mutate();
-          }}
-        >
-          Continue
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            fullWidth
+            isPending={isSaving}
+            pendingContent="Saving..."
+            onPress={() => {
+              setRefusal(null);
+              if (!isTicked) {
+                setIsUnticked(true);
+                checkboxRef.current?.focus();
+                return;
+              }
+              accept.mutate();
+            }}
+          >
+            Continue
+          </Button>
+
+          {secondaryAction}
+        </div>
       </div>
     </>
   );

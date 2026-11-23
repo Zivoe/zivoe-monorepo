@@ -3,21 +3,19 @@
 import { useRouter } from 'next/navigation';
 
 import { useMutation } from '@tanstack/react-query';
-import posthog from 'posthog-js';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
 import { Link } from '@zivoe/ui/core/link';
 import { toast } from '@zivoe/ui/core/sonner';
 
-import { signOutAction } from '@/server/actions/auth';
 import { acceptInvitation, declineInvitation } from '@/server/actions/organizations';
 import { type InvitationView as View } from '@/server/organizations/organizations';
 
 import { ORGANIZATION_ERROR_COPY } from '@/lib/organization-copy';
-import { handlePromise } from '@/lib/utils';
 
 import { Auth } from '@/app/(auth)/_components/common';
+import { SignOutButton } from '@/app/(auth)/_components/sign-out-button';
 
 /** One card per state of the invitation (`viewForInvitee`); the page redirects `member` before rendering. */
 export function InvitationView({
@@ -214,25 +212,11 @@ function DashboardLink() {
 
 /** Signs out and comes back here on the sign-in page, to sign in with the invited address. */
 function SwitchAccount({ path }: { path: string }) {
-  const switchAccount = useMutation({
-    mutationFn: async () => {
-      const { res, err } = await handlePromise(signOutAction({ next: path }));
-      if (err instanceof Error && err.message.includes('NEXT_REDIRECT')) posthog.reset();
-      else if (err || res?.error) toast({ type: 'error', title: 'Error signing out' });
-    }
-  });
-
   return (
     <div className="flex flex-col gap-3">
-      <Button
-        variant="primary"
-        fullWidth
-        onPress={() => switchAccount.mutate()}
-        isPending={switchAccount.isPending}
-        pendingContent="Signing out..."
-      >
+      <SignOutButton variant="primary" next={path}>
         Sign out and switch account
-      </Button>
+      </SignOutButton>
       <DashboardLink />
     </div>
   );
