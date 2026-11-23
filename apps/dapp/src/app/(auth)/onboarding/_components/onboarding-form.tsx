@@ -30,7 +30,7 @@ type Step = 'invest' | 'profile' | 'organization' | 'invite';
 type Choice = 'me' | 'organization';
 
 /**
- * Onboarding, after the terms, as one multi-step form: how they will invest, the person's own answers and,
+ * Onboarding, after the terms, as one multi-step form: who the account is for, the person's own answers and,
  * through an organization, its details. Nothing is saved until the last of those: one write keeps the profile
  * and the organization together, and the server refuses either without the person's answers. The invite step
  * comes after that write, and is in the URL (`?step=invite`), so a reload or a re-render there shows it again
@@ -73,21 +73,22 @@ export default function OnboardingForm({
       <Auth.Container>
         {step === 'invest' ? (
           <>
-            <Auth.Header
-              title="How Will You Invest?"
-              description="You can invest yourself, through an organization, or both. You can add an organization at any time."
-            />
+            <Auth.Header title="Who Is This Account For?" description="Choose the account type that fits your needs." />
 
             <RadioGroup
-              aria-label="How you will invest"
+              aria-label="Who this account is for"
               value={choice}
               onChange={(value) => setChoice(value === 'organization' ? 'organization' : 'me')}
             >
-              <Radio variant="card" value="me">
-                Just me
+              {/* `h-auto`: the card's fixed height fits one line, and these have two. */}
+              <Radio variant="card" value="me" className="h-auto">
+                <AccountType title="Individual" description="A personal account for my own use" />
               </Radio>
-              <Radio variant="card" value="organization">
-                Through an organization
+              <Radio variant="card" value="organization" className="h-auto">
+                <AccountType
+                  title="Organization"
+                  description="An account for an organization, such as an LLC or corporation"
+                />
               </Radio>
             </RadioGroup>
 
@@ -170,8 +171,18 @@ export default function OnboardingForm({
   );
 }
 
+/** A choice on the first step: its name, and what it is for underneath. */
+function AccountType({ title, description }: { title: string; description: string }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span>{title}</span>
+      <span className="font-normal text-secondary">{description}</span>
+    </span>
+  );
+}
+
 /**
- * The person's own answers, asked of everyone: after "How will you invest?", or alone for an invitee.
+ * The person's own answers, asked of everyone: after "Who is this account for?", or alone for an invitee.
  * `onBack` hands up what was typed, valid or not, so it is there again on the way forward.
  */
 function ProfileStep({

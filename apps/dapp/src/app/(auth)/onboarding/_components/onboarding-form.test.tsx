@@ -122,7 +122,7 @@ function renderForm({ canInvestThroughOrganization = true } = {}) {
   );
 }
 
-const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+const press = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 const heading = () => screen.getByRole('heading').textContent;
 // The form validates before it moves on, so the next step shows a tick later.
 const findHeading = (name: string) => screen.findByRole('heading', { name });
@@ -139,11 +139,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('OnboardingForm', () => {
-  it('asks how they will invest first, and saves only their own answers for "Just me"', async () => {
+  it('asks who the account is for first, and saves only their own answers for an individual', async () => {
     renderForm();
-    expect(heading()).toBe('How Will You Invest?');
+    expect(heading()).toBe('Who Is This Account For?');
 
-    press('Just me');
+    press(/^Individual/);
     press('Continue');
     expect(heading()).toBe('Tell Us About Yourself');
     fill(PROFILE_FIELDS, PROFILE);
@@ -159,7 +159,7 @@ describe('OnboardingForm', () => {
     mocks.completeOnboarding.mockResolvedValue({ success: true, organizationId: ORGANIZATION_ID });
     renderForm();
 
-    press('Through an organization');
+    press(/^Organization/);
     press('Continue');
     fill(PROFILE_FIELDS, PROFILE);
     press('Continue');
@@ -175,7 +175,7 @@ describe('OnboardingForm', () => {
   it('keeps the choice and everything typed, valid or not, when they step back', async () => {
     renderForm();
 
-    press('Through an organization');
+    press(/^Organization/);
     press('Continue');
     fill(PROFILE_FIELDS, PROFILE);
     press('Continue');
@@ -185,7 +185,7 @@ describe('OnboardingForm', () => {
     fireEvent.change(screen.getByLabelText('First Name'), { target: { value: '' } });
     press('Back');
 
-    expect(heading()).toBe('How Will You Invest?');
+    expect(heading()).toBe('Who Is This Account For?');
     expect(screen.getByRole('button', { name: 'Continue' }).hasAttribute('disabled')).toBe(false);
     press('Continue');
     expect(valueOf('First Name')).toBe('');
@@ -196,10 +196,10 @@ describe('OnboardingForm', () => {
     expect(valueOf('Legal Name')).toBe('Acme');
   });
 
-  it('saves only their own answers when they switch from an organization to "Just me"', async () => {
+  it('saves only their own answers when they switch from an organization to an individual', async () => {
     renderForm();
 
-    press('Through an organization');
+    press(/^Organization/);
     press('Continue');
     fill(PROFILE_FIELDS, PROFILE);
     press('Continue');
@@ -207,7 +207,7 @@ describe('OnboardingForm', () => {
     fill(ORGANIZATION_FIELDS, ORGANIZATION);
     press('Back');
     press('Back');
-    press('Just me');
+    press(/^Individual/);
     press('Continue');
     press('Continue');
 
@@ -218,7 +218,7 @@ describe('OnboardingForm', () => {
     mocks.completeOnboarding.mockReturnValue(new Promise(() => undefined));
     renderForm();
 
-    press('Through an organization');
+    press(/^Organization/);
     press('Continue');
     fill(PROFILE_FIELDS, PROFILE);
     press('Continue');
