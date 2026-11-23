@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
-import { getRequiredStep } from '@/server/data/auth';
+import { getOnboardingStep } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
 import {
   type AcceptError,
@@ -174,7 +174,7 @@ async function sendWithinBudgets<R extends { ok: boolean }>(
 async function authorizedUserId() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) return null;
-  if (await getRequiredStep(session.user.id)) return null;
+  if (await getOnboardingStep(session.user.id)) return null;
   return session.user.id;
 }
 

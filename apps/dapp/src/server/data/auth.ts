@@ -13,6 +13,7 @@ import { LATEST_LEGAL_DOCS_VERSION } from '@zivoe/ui/lib/legal-docs';
 
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
+import { getAgreementsAccess } from '@/server/data/agreements';
 
 import { ApiError, AppError, handlePromise } from '@/lib/utils';
 
@@ -88,15 +89,32 @@ export const getTermsStatus = cache(async (userId: string): Promise<TermsStatus>
 });
 
 /**
- * The page a signed-in user has to finish before the dapp opens to them: the terms first, then onboarding, so
+ * What a signed-in user has to finish before anything is saved for them: the terms first, then onboarding, so
  * nothing onboarding saves (a profile, an organization, invitations to colleagues) happens before the terms are
- * accepted. Null once both are done. Never redirects, so route handlers can call it.
+ * accepted. Null once both are done. The gate of the server actions and API routes; pages use `getRequiredStep`.
+ * Never redirects, so route handlers can call it.
  */
-export const getRequiredStep = async (userId: string) => {
+export const getOnboardingStep = async (userId: string) => {
   const [termsStatus, isOnboarded] = await Promise.all([getTermsStatus(userId), isUserOnboarded(userId)]);
 
   if (termsStatus !== 'accepted') return '/terms';
   if (!isOnboarded) return '/onboarding';
+
+  return null;
+};
+
+/**
+ * The page a signed-in user has to finish before the dapp opens to them: the terms, then onboarding, then the
+ * current agreements for anyone who acts for an approved account (their own, or an organization's). Null once all
+ * are done. The agreements are left out of `getOnboardingStep`, so `/verification` and the actions it calls keep
+ * working for someone who has yet to accept, and `acceptAgreements` can save. All three reads run together.
+ * Never redirects, so route handlers can call it.
+ */
+export const getRequiredStep = async (userId: string) => {
+  const [onboardingStep, agreements] = await Promise.all([getOnboardingStep(userId), getAgreementsAccess(userId)]);
+
+  if (onboardingStep) return onboardingStep;
+  if (agreements.actsForApproved && agreements.status !== 'accepted') return '/agreements';
 
   return null;
 };
@@ -107,7 +125,7 @@ export const getAccessStatus = cache(async () => {
   return { requiredStep: await getRequiredStep(user.id), user };
 });
 
-/** The gate for dapp pages: sends the user to the terms or to onboarding while either is unfinished. */
+/** The gate for dapp pages: sends the user to the terms, onboarding or the agreements while one is unfinished. */
 export const verifyOnboarded = async () => {
   const { requiredStep, user } = await getAccessStatus();
   if (requiredStep) redirect(requiredStep);

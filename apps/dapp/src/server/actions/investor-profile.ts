@@ -10,7 +10,7 @@ import { profile } from '@zivoe/database/schema';
 
 import { auth } from '@/server/auth';
 import { db } from '@/server/clients/db';
-import { getRequiredStep } from '@/server/data/auth';
+import { getOnboardingStep } from '@/server/data/auth';
 import { verification } from '@/server/verification';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
 
@@ -35,7 +35,7 @@ export async function updateInvestorProfile(
   if (!(await isKycEnabled({ user: session.user }))) return { error: 'Unauthorized' };
   // Behind onboarding and the current terms, like the page: a `/verification` left open across a terms update
   // cannot save until the terms are accepted. The caller's refresh lets the page's own redirect take over.
-  if (await getRequiredStep(session.user.id)) return { error: 'Unauthorized' };
+  if (await getOnboardingStep(session.user.id)) return { error: 'Unauthorized' };
 
   // The page hides the step past this point; the action holds the same line.
   const view = await verification.getVerificationStatus({ subjectId: session.user.id, viewerUserId: session.user.id });

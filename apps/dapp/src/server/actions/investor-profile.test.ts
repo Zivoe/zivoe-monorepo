@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
   isKycEnabled: vi.fn(),
   getVerificationStatus: vi.fn(),
-  getRequiredStep: vi.fn()
+  getOnboardingStep: vi.fn()
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
@@ -19,7 +19,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
-vi.mock('@/server/data/auth', () => ({ getRequiredStep: mocks.getRequiredStep }));
+vi.mock('@/server/data/auth', () => ({ getOnboardingStep: mocks.getOnboardingStep }));
 vi.mock('@/server/verification', () => ({ verification: { getVerificationStatus: mocks.getVerificationStatus } }));
 // `update(profile).set(values).where(...).returning(...)`: `set` records the values, `returning` answers.
 vi.mock('@/server/clients/db', () => ({
@@ -40,7 +40,7 @@ beforeEach(() => {
   mocks.returning.mockResolvedValue([{ id: 'user_1' }]);
   mocks.isKycEnabled.mockResolvedValue(true);
   mocks.getVerificationStatus.mockResolvedValue({ canStart: true, path: 'individual' });
-  mocks.getRequiredStep.mockResolvedValue(null);
+  mocks.getOnboardingStep.mockResolvedValue(null);
 });
 
 describe('updateInvestorProfile', () => {
@@ -65,7 +65,7 @@ describe('updateInvestorProfile', () => {
   });
 
   it('refuses a user behind on the terms and touches nothing', async () => {
-    mocks.getRequiredStep.mockResolvedValue('/terms');
+    mocks.getOnboardingStep.mockResolvedValue('/terms');
 
     expect(await updateInvestorProfile(DETAILS)).toEqual({ error: 'Unauthorized' });
     expect(mocks.set).not.toHaveBeenCalled();

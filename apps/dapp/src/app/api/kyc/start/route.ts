@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
-import { getRequiredStep } from '@/server/data/auth';
+import { getOnboardingStep } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
 import { verification } from '@/server/verification';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
@@ -78,7 +78,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
   if (!(await isKycEnabled({ user }))) throw new ApiError({ message: 'Not found', status: 404, capture: false });
   // Behind onboarding and the current terms, like the page: a `/verification` left open across a terms update
   // cannot start an inquiry until the terms are accepted. The page refreshes on 403 and its own redirect takes over.
-  if (await getRequiredStep(user.id)) throw new ApiError({ message: 'Forbidden', status: 403, capture: false });
+  if (await getOnboardingStep(user.id)) throw new ApiError({ message: 'Forbidden', status: 403, capture: false });
 
   const body = bodySchema.safeParse(await req.json().catch(() => ({})));
   if (!body.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });

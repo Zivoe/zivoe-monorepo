@@ -35,7 +35,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException, cap
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('@/server/data/auth', () => ({ getRequiredStep: async () => null }));
+vi.mock('@/server/data/auth', () => ({ getOnboardingStep: async () => null }));
 vi.mock('@/server/clients/redis', () => ({ redis: {} }));
 vi.mock('@/server/organizations', () => ({
   organizations: {
