@@ -1,10 +1,17 @@
 import 'server-only';
 
 import * as Sentry from '@sentry/nextjs';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import { getShareClassIdentity } from '@zivoe/centrifuge-indexer';
-import { transactionEmailSent, user } from '@zivoe/database/schema';
+import {
+  organization,
+  organizationMember,
+  transactionEmailSent,
+  user,
+  walletConnection,
+  walletLink
+} from '@zivoe/database/schema';
 
 import { db } from '@/server/clients/db';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
@@ -29,7 +36,7 @@ import { type TransactionReceiptJob } from './centrifuge-tx-receipt-job';
 
 export type ReceiptMailerResult =
   | { outcome: 'sent' }
-  | { outcome: 'skipped'; reason: 'user_not_found' | 'preference_disabled' | 'already_sent' };
+  | { outcome: 'skipped'; reason: 'user_not_found' | 'no_longer_member' | 'preference_disabled' | 'already_sent' };
 
 export async function runReceiptMailer(job: TransactionReceiptJob): Promise<ReceiptMailerResult> {
   // A skip leaves no row behind, so the log line is its only trace — enough
@@ -44,6 +51,15 @@ export async function runReceiptMailer(job: TransactionReceiptJob): Promise<Rece
   // A deleted account between enqueue and delivery is a normal end state,
   // not an error — the wallet link died with the user row.
   if (!recipient) return skip('user_not_found');
+
+  // The organization version was decided when the job was queued. Someone who has left or been
+  // removed since, or whose organization is gone, must not hear of its activity; a wallet connection
+  // of their own still earns them the plain receipt.
+  let receipt = job;
+  if (job.organization && !(await isOwningMember({ job, organizationId: job.organization.id }))) {
+    if (!(await hasConnected({ userId: job.userId, address: job.event.account }))) return skip('no_longer_member');
+    receipt = { ...job, organization: null };
+  }
 
   const receiptsEnabled = await isEmailPreferenceEnabled({ userId: job.userId, bucket: 'transaction_receipts' });
   if (!receiptsEnabled) return skip('preference_disabled');
@@ -63,7 +79,7 @@ export async function runReceiptMailer(job: TransactionReceiptJob): Promise<Rece
   await sendTransactionReceiptEmail({
     to: recipient.email,
     userId: job.userId,
-    job,
+    job: receipt,
     symbol: identity.symbol,
     shareDecimals: identity.decimals,
     viewInAppUrl: `${BASE_URL}/vaults/${job.zivoeVaultSlug}`
@@ -81,4 +97,34 @@ export async function runReceiptMailer(job: TransactionReceiptJob): Promise<Rece
     .onConflictDoNothing();
 
   return { outcome: 'sent' };
+}
+
+/** Whether the recipient is still a member of the live organization that has the address linked. */
+async function isOwningMember({ job, organizationId }: { job: TransactionReceiptJob; organizationId: string }) {
+  const rows = await db
+    .select({ id: organizationMember.id })
+    .from(organizationMember)
+    .innerJoin(organization, eq(organization.id, organizationMember.organizationId))
+    .innerJoin(walletLink, eq(walletLink.subjectId, organizationMember.organizationId))
+    .where(
+      and(
+        eq(organizationMember.organizationId, organizationId),
+        eq(organizationMember.userId, job.userId),
+        isNull(organization.deletedAt),
+        eq(walletLink.address, job.event.account),
+        eq(walletLink.status, 'linked')
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+/** Whether the recipient connected the wallet themselves. Addresses are lowercase on both sides. */
+async function hasConnected({ userId, address }: { userId: string; address: string }) {
+  const rows = await db
+    .select({ userId: walletConnection.userId })
+    .from(walletConnection)
+    .where(and(eq(walletConnection.userId, userId), eq(walletConnection.address, address)))
+    .limit(1);
+  return rows.length > 0;
 }

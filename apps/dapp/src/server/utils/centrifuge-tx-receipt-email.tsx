@@ -16,7 +16,8 @@ import TransactionReceiptEmail from './emails/transaction-receipt-email';
  * mailer owns the trust boundary and the env-derived bases, this module owns
  * only what the email says. Copy stays wallet-scoped on purpose — the
  * wallet→account link is self-reported, so a receipt describes activity on
- * "a wallet linked to your account", never "your" transaction.
+ * "a wallet linked to ${linkedTo}", never "your" transaction. A member of the
+ * organization that linked the address reads "a wallet linked to <organization>".
  */
 
 /** Two-decimal amount with the token's symbol, dust shown as `<0.01`; an absent amount (or an unknown token) shows a dash. */
@@ -45,6 +46,7 @@ export function buildTransactionReceiptEmail({
   unsubscribeUrl: string;
 }): { subject: string; email: ReactElement } {
   const { event } = job;
+  const linkedTo = job.organization ? job.organization.name : 'your account';
 
   const chain = resolveChainDisplay(event);
   const common = {
@@ -82,7 +84,7 @@ export function buildTransactionReceiptEmail({
             {...common}
             preview={hasAssets ? `${assetsAmount} deposited into ${symbol}` : 'Your deposit receipt is ready'}
             heading="Deposit Receipt"
-            subtitle={`${symbol} has been transferred to a wallet linked to your account.`}
+            subtitle={`${symbol} has been transferred to a wallet linked to ${linkedTo}.`}
             statusLabel="Success"
             flow={
               asset
@@ -107,7 +109,7 @@ export function buildTransactionReceiptEmail({
             {...common}
             preview={hasShares ? `Request received to redeem ${sharesAmount}` : 'We received your redemption request'}
             heading="Redemption Request Received"
-            subtitle={`We received a request to redeem ${symbol} from a wallet linked to your account. We'll email you again when the funds are ready to claim.`}
+            subtitle={`We received a request to redeem ${symbol} from a wallet linked to ${linkedTo}. We'll email you again when the funds are ready to claim.`}
             statusLabel="Received"
             amountLabel="Amount Requested"
             amountValue={sharesAmount}
@@ -131,7 +133,7 @@ export function buildTransactionReceiptEmail({
             heading="Ready to Claim"
             // The claim is chain-scoped in the app, so the chain is named here
             // — the CTA lands on the vault page, not on a chain.
-            subtitle={`A redemption from a wallet linked to your account has been processed. ${asset ? `${asset.symbol} is` : 'Funds are'} ready to claim in the app on ${chain.label}.`}
+            subtitle={`A redemption from a wallet linked to ${linkedTo} has been processed. ${asset ? `${asset.symbol} is` : 'Funds are'} ready to claim in the app on ${chain.label}.`}
             statusLabel="Ready to claim"
             flow={sharesToAssets}
             // Shares the manager approved in this fill — nothing is redeemed
@@ -158,7 +160,7 @@ export function buildTransactionReceiptEmail({
                 : 'Your redemption receipt is ready'
             }
             heading="Redemption Receipt"
-            subtitle={`${asset ? `${asset.symbol} has` : 'Funds have'} been transferred to a wallet linked to your account.`}
+            subtitle={`${asset ? `${asset.symbol} has` : 'Funds have'} been transferred to a wallet linked to ${linkedTo}.`}
             statusLabel="Success"
             flow={sharesToAssets}
             amountLabel="Amount Redeemed"

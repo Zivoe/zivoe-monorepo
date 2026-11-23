@@ -1,7 +1,7 @@
 import 'server-only';
 
 import * as Sentry from '@sentry/nextjs';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import {
   type InvestorTransactionEvent,
@@ -9,7 +9,15 @@ import {
   fetchInvestorTransactionEventsSince,
   getShareClassIdentity
 } from '@zivoe/centrifuge-indexer';
-import { monitorCursor, transactionNotified, user, walletConnection } from '@zivoe/database/schema';
+import {
+  monitorCursor,
+  organization,
+  organizationMember,
+  transactionNotified,
+  user,
+  walletConnection,
+  walletLink
+} from '@zivoe/database/schema';
 
 import { type Db, db } from '@/server/clients/db';
 import { qstash } from '@/server/clients/qstash';
@@ -79,7 +87,7 @@ const QSTASH_BATCH_LIMIT = 100;
 /** Per-batch publish deadline — the Telegram send's bound, for the same lock-holding reason. */
 const QSTASH_PUBLISH_DEADLINE_MS = 15_000;
 
-/** Receipt emails per event. See the fan-out below for why this ceiling exists. */
+/** Receipt emails per event to people who connected the wallet themselves. See the fan-out below for why. */
 const MAX_RECIPIENTS_PER_EVENT = 10;
 
 export type CentrifugeTxMonitorResult = {
@@ -178,7 +186,8 @@ async function writeCursorMonotonic({
     });
 }
 
-type LinkedUser = { userId: string; email: string };
+/** `organization` is set for a member of the organization that linked the address, and only for them. */
+type LinkedUser = { userId: string; email: string; organization: { id: string; name: string } | null };
 
 async function readLinkedUsersByAccount({
   tx,
@@ -201,13 +210,63 @@ async function readLinkedUsersByAccount({
     // and the line stays stable across passes (heap order is arbitrary).
     .orderBy(walletConnection.createdAt);
 
-  for (const row of rows) {
-    const list = byAccount.get(row.address) ?? [];
-    list.push({ userId: row.userId, email: row.email });
-    byAccount.set(row.address, list);
+  // A wallet an organization owns reads as activity for all its current members, whoever connected it.
+  const memberRows = await tx
+    .select({
+      address: walletLink.address,
+      userId: organizationMember.userId,
+      email: user.email,
+      organizationId: organization.id,
+      organizationName: organization.name
+    })
+    .from(walletLink)
+    .innerJoin(organizationMember, eq(organizationMember.organizationId, walletLink.subjectId))
+    .innerJoin(organization, eq(organization.id, organizationMember.organizationId))
+    .innerJoin(user, eq(organizationMember.userId, user.id))
+    .where(and(inArray(walletLink.address, accounts), eq(walletLink.status, 'linked'), isNull(organization.deletedAt)))
+    .orderBy(organizationMember.joinedAt);
+
+  // Members first, so someone who is both a member and a connector hears it as the organization's;
+  // anyone else who connected the wallet reads it as their own and never learns who holds it.
+  const linkedRows: Array<{ address: string } & LinkedUser> = [
+    ...memberRows.map(({ organizationId, organizationName, ...row }) => ({
+      ...row,
+      organization: { id: organizationId, name: organizationName }
+    })),
+    ...rows.map((row) => ({ ...row, organization: null }))
+  ];
+  for (const { address, ...linkedUser } of linkedRows) {
+    const list = byAccount.get(address) ?? [];
+    if (!list.some((linked) => linked.userId === linkedUser.userId)) list.push(linkedUser);
+    byAccount.set(address, list);
   }
 
   return byAccount;
+}
+
+/**
+ * The organization that linked each address, deleted ones included: ops reads the alert, and a
+ * deleted organization's wallets stay linked to it (receipts, above, reach live ones only).
+ */
+async function readOwningOrganizations({
+  tx,
+  accounts
+}: {
+  tx: DbTx;
+  accounts: Array<string>;
+}): Promise<Map<string, { id: string; name: string; deleted: boolean }>> {
+  if (accounts.length === 0) return new Map();
+  const rows = await tx
+    .select({
+      address: walletLink.address,
+      id: organization.id,
+      name: organization.name,
+      deletedAt: organization.deletedAt
+    })
+    .from(walletLink)
+    .innerJoin(organization, eq(organization.id, walletLink.subjectId))
+    .where(and(inArray(walletLink.address, accounts), eq(walletLink.status, 'linked')));
+  return new Map(rows.map(({ address, deletedAt, ...owner }) => [address, { ...owner, deleted: deletedAt !== null }]));
 }
 
 /**
@@ -446,17 +505,19 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
         }
       );
 
-    const linkedUsersByAccount = await readLinkedUsersByAccount({
-      tx,
-      accounts: [...new Set(fresh.map((row) => row.event.account))]
-    });
+    const accounts = [...new Set(fresh.map((row) => row.event.account))];
+    const [linkedUsersByAccount, ownerByAccount] = await Promise.all([
+      readLinkedUsersByAccount({ tx, accounts }),
+      readOwningOrganizations({ tx, accounts })
+    ]);
     const items = fresh.map(({ event, symbol, shareDecimals, shareClassKey }) =>
       formatTelegramItem({
         event,
         symbol,
         shareDecimals,
         shareClassKey,
-        emailLine: formatEmailLine((linkedUsersByAccount.get(event.account) ?? []).map((linked) => linked.email))
+        emailLine: formatEmailLine((linkedUsersByAccount.get(event.account) ?? []).map((linked) => linked.email)),
+        organization: ownerByAccount.get(event.account) ?? null
       })
     );
 
@@ -479,19 +540,24 @@ export async function runCentrifugeTransactionMonitor(): Promise<CentrifugeTxMon
     const cappedAccounts = new Set<string>();
     const receiptJobs: Array<TransactionReceiptJobInput> = fresh.flatMap(
       ({ id, event, shareClassKey, zivoeVaultSlug }) => {
-        // Policy sends to every linked user, but the link is self-reported
+        // Policy sends to every linked user. An organization's members are
+        // bounded by its own member cap; a wallet connection is self-reported
         // and free to create — without a ceiling, one address claimed by N
-        // throwaway accounts turns every on-chain event into N emails. The
-        // join is oldest-claim-first, so the cap keeps the earliest linkers
-        // and stays stable across passes; hitting it is alarmed below.
+        // throwaway accounts turns every on-chain event into N emails. So the
+        // ceiling applies to connections only. The join is oldest-claim-first,
+        // so the cap keeps the earliest linkers and stays stable across
+        // passes; hitting it is alarmed below.
         const linked = linkedUsersByAccount.get(event.account) ?? [];
-        if (linked.length > MAX_RECIPIENTS_PER_EVENT) cappedAccounts.add(event.account);
+        const members = linked.filter((recipient) => recipient.organization !== null);
+        const connections = linked.filter((recipient) => recipient.organization === null);
+        if (connections.length > MAX_RECIPIENTS_PER_EVENT) cappedAccounts.add(event.account);
 
-        return linked.slice(0, MAX_RECIPIENTS_PER_EVENT).map(({ userId }) => ({
+        return [...members, ...connections.slice(0, MAX_RECIPIENTS_PER_EVENT)].map(({ userId, organization }) => ({
           eventId: id,
           userId,
           zivoeVaultSlug,
           shareClassKey,
+          organization,
           event: {
             type: event.type,
             account: event.account,

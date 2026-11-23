@@ -39,6 +39,7 @@ function job(overrides: Partial<TransactionReceiptJob['event']> = {}): Transacti
     userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
     zivoeVaultSlug: 'zivoe-smb-credit',
     shareClassKey: 'zsmb',
+    organization: null,
     event: {
       type: 'SYNC_DEPOSIT',
       account: '0xb8da328a4edb64af841c6bb72b55988e9abeb172',
@@ -91,6 +92,20 @@ describe('buildTransactionReceiptEmail', () => {
     // Receipts close with the transaction fine print, not the marketing one.
     expect(html).toContain('It is not an offer, solicitation, or investment recommendation.');
     expect(html).not.toContain('does not constitute an offer to sell');
+  });
+
+  it("names the organization for one of its members, in place of 'your account'", async () => {
+    const { email } = buildTransactionReceiptEmail({
+      job: { ...job(), organization: { id: '9b1c2d3e-4f50-4a61-8b72-1c2d3e4f5061', name: 'Acme & Co' } },
+      symbol: 'zSMB',
+      shareDecimals: 18,
+      viewInAppUrl: VIEW_IN_APP_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL
+    });
+    const html = await render(email);
+
+    expect(html).toContain('a wallet linked to Acme &amp; Co');
+    expect(html).not.toContain('your account');
   });
 
   it('deposit of another coin on the same chain: the receipt names it and carries its own icon', async () => {

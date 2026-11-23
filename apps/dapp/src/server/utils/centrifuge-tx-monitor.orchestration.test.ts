@@ -7,7 +7,13 @@ import {
   fetchInvestorTransactionEventsSince,
   getShareClassIdentity
 } from '@zivoe/centrifuge-indexer';
-import { monitorCursor, transactionNotified, walletConnection } from '@zivoe/database/schema';
+import {
+  monitorCursor,
+  organizationMember,
+  transactionNotified,
+  walletConnection,
+  walletLink
+} from '@zivoe/database/schema';
 
 import { sendBatchedTelegramMessages } from '@/server/utils/send-telegram';
 
@@ -52,7 +58,17 @@ const state = {
   lockAvailable: true,
   cursors: new Map<string, number>(),
   notified: new Set<string>(),
-  emails: [] as Array<{ address: string; userId: string; email: string; createdAt?: number }>
+  emails: [] as Array<{ address: string; userId: string; email: string; createdAt?: number }>,
+  /** The organization that linked each address, as the alert reads it. */
+  owners: [] as Array<{ address: string; id: string; name: string; deletedAt: Date | null }>,
+  /** Current members of a live organization that linked the address, oldest join first. */
+  members: [] as Array<{
+    address: string;
+    userId: string;
+    email: string;
+    organizationId: string;
+    organizationName: string;
+  }>
 };
 
 function stringParams(node: unknown, out: Array<string> = []): Array<string> {
@@ -83,7 +99,9 @@ function thenable(rowsFn: () => Array<Record<string, unknown>> | void) {
     // instead of echoing insertion order, so a test can prove the sort.
     orderBy: (column: unknown) =>
       thenable(() => {
-        if (column !== walletConnection.createdAt) throw new Error('unexpected orderBy column');
+        if (column !== walletConnection.createdAt && column !== organizationMember.joinedAt) {
+          throw new Error('unexpected orderBy column');
+        }
         return [...(rowsFn() ?? [])].sort((a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0));
       })
   };
@@ -106,7 +124,22 @@ const txFake = {
   select: () => ({
     from: (table: unknown) => ({
       where: (cond: unknown) => thenable(() => resolveSelect(table, cond)),
-      innerJoin: () => ({ where: (cond: unknown) => thenable(() => resolveSelect(walletConnection, cond)) })
+      innerJoin: () => ({
+        // From `wallet_link`, the alert's owning organization; from `wallet_connection`, who connected it.
+        where: (cond: unknown) =>
+          thenable(() =>
+            table === walletLink
+              ? state.owners.filter((row) => stringParams(cond).includes(row.address))
+              : resolveSelect(walletConnection, cond)
+          ),
+        // The members of an organization that owns the address.
+        innerJoin: () => ({
+          innerJoin: () => ({
+            where: (cond: unknown) =>
+              thenable(() => state.members.filter((row) => stringParams(cond).includes(row.address)))
+          })
+        })
+      })
     })
   }),
   insert: (table: unknown) => ({
@@ -178,6 +211,8 @@ beforeEach(() => {
   state.cursors.clear();
   state.notified.clear();
   state.emails = [];
+  state.members = [];
+  state.owners = [];
   vi.mocked(zivoeVaultChains).mockReturnValue(['sepolia']);
   vi.mocked(getShareClassIdentity).mockReturnValue(identity);
   vi.mocked(fetchIndexerChainStatuses).mockResolvedValue(freshStatuses());
@@ -480,6 +515,54 @@ describe('runCentrifugeTransactionMonitor', () => {
       .mocked(Sentry.captureException)
       .mock.calls.filter((call) => call[0] instanceof Error && call[0].message.includes('capped receipt recipients'));
     expect(capCaptures).toHaveLength(1);
+  });
+
+  it("sends an organization's members its version first and uncapped; a connector who isn't a member never sees the name", async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    const organization = { organizationId: '9b1c2d3e-4f50-4a61-8b72-1c2d3e4f5061', organizationName: 'Acme' };
+    // Twelve members, one of whom also connected the wallet, and twelve people who only connected it.
+    state.members = Array.from({ length: 12 }, (_, i) => ({
+      address: '0xabc',
+      userId: `member-${i}`,
+      email: `m${i}@x.y`,
+      ...organization
+    }));
+    state.emails = [
+      { address: '0xabc', userId: 'member-0', email: 'm0@x.y', createdAt: NOW - 60 * 60_000 },
+      ...Array.from({ length: 12 }, (_, i) => ({
+        address: '0xabc',
+        userId: `connector-${i}`,
+        email: `c${i}@x.y`,
+        createdAt: NOW - (12 - i) * 60_000
+      }))
+    ];
+    serveFeed([mkEvent(0)]);
+
+    await runCentrifugeTransactionMonitor();
+
+    const published = batchJSONMock.mock.calls[0]?.[0] as Array<{
+      body: { userId: string; organization: { id: string; name: string } | null };
+    }>;
+    const bodies = published.map((message) => message.body);
+    expect(bodies.slice(0, 12).map((body) => [body.userId, body.organization?.name])).toEqual(
+      Array.from({ length: 12 }, (_, i) => [`member-${i}`, 'Acme'])
+    );
+    expect(bodies.slice(12).map((body) => [body.userId, body.organization])).toEqual(
+      Array.from({ length: 10 }, (_, i) => [`connector-${i}`, null])
+    );
+  });
+
+  it('names the organization that linked the account on the alert, a deleted one too', async () => {
+    state.cursors.set(CENTRIFUGE_TX_MONITOR_KEY, NOW - 20 * 60_000);
+    state.owners = [
+      { address: '0xabc', id: '9b1c2d3e-4f50-4a61-8b72-1c2d3e4f5061', name: 'Acme', deletedAt: new Date(NOW) }
+    ];
+    serveFeed([mkEvent(0)]);
+
+    await runCentrifugeTransactionMonitor();
+
+    const sent = JSON.stringify(vi.mocked(sendBatchedTelegramMessages).mock.calls[0]);
+    expect(sent).toContain('Organization: Acme (9b1c2d3e-4f50-4a61-8b72-1c2d3e4f5061) (deleted)');
   });
 
   it('a pass with no linked users publishes no batch at all', async () => {
