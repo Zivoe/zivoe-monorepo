@@ -154,14 +154,19 @@ export function SettingsNavigation({
  */
 export function SettingsNavigationSkeleton() {
   const pathname = usePathname() ?? '';
+  // An organization's pages open for its members only: the picker row above the tabs is on its way.
+  const isOrganizationPage = pathname.startsWith('/settings/organizations/');
 
   return (
     <nav aria-label="Settings" className="w-full shrink-0 lg:w-60">
-      <div className="flex flex-wrap items-center gap-1 lg:hidden">
-        <NavigationLink href="/settings/notifications" pathname={pathname} isCompact>
-          Notifications
-        </NavigationLink>
-        <Skeleton className="h-10 w-44 rounded-sm" />
+      <div className="flex flex-col gap-3 lg:hidden">
+        {isOrganizationPage ? <Skeleton className="h-11 w-full rounded-lg" /> : null}
+        <div className="flex flex-wrap items-center gap-1">
+          <NavigationLink href="/settings/notifications" pathname={pathname} isCompact>
+            Notifications
+          </NavigationLink>
+          <Skeleton className={isOrganizationPage ? 'h-10 w-24 rounded-sm' : 'h-10 w-44 rounded-sm'} />
+        </div>
       </div>
 
       <div className="hidden flex-col gap-6 lg:flex">
