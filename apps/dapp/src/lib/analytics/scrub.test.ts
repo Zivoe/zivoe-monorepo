@@ -77,6 +77,10 @@ describe('scrubSecretUrl', () => {
   it('cleans a URL the way session replay needs, and leaves other strings as they are', () => {
     expect(scrubSecretUrl('https://app.zivoe.com/unsubscribe?token=abc.def')).toBe('https://app.zivoe.com/unsubscribe');
     expect(scrubSecretUrl('https://app.zivoe.com/portfolio')).toBe('https://app.zivoe.com/portfolio');
+    // The page-load timing entry of a sign-in opened from an invitation link.
+    expect(scrubSecretUrl('https://app.zivoe.com/sign-in?next=%2Finvitations%2Fx#email=a%40b.com')).toBe(
+      'https://app.zivoe.com/sign-in?next=%2Finvitations%2Fx'
+    );
     expect(scrubSecretUrl('')).toBe('');
   });
 });

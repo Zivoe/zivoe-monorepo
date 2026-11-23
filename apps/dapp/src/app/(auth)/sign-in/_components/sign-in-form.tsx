@@ -25,6 +25,7 @@ import { continueAfterSignInAction } from '@/server/actions/auth';
 
 import { useAnalytics } from '@/lib/analytics/use-analytics';
 import { authClient } from '@/lib/auth-client';
+import { readInvitedEmail } from '@/lib/invited-email';
 import { withNext } from '@/lib/lighthouse';
 import { isInvitationPath } from '@/lib/return-paths';
 import { handlePromise } from '@/lib/utils';
@@ -41,6 +42,9 @@ type Step = 'EMAIL' | 'OTP';
 /** `next` is the validated page to return to once signed in and onboarded: a Lighthouse page or a dapp page emails link to (lib/lighthouse.ts). */
 export default function SignInForm({ next }: { next?: string }) {
   const searchParams = useSearchParams();
+  // On an invitation's way in, the address its link carried (lib/invited-email.ts), read once mounted since the
+  // server never sees it: undefined until then, null when there is none.
+  const [invitedEmail, setInvitedEmail] = useState<string | null>();
 
   const [step, setStep] = useState<Step>('EMAIL');
   const [email, setEmail] = useState('');
@@ -50,6 +54,10 @@ export default function SignInForm({ next }: { next?: string }) {
     setEmail(data.email);
     setStep('OTP');
   };
+
+  useEffect(() => {
+    if (isInvitationPath(next)) setInvitedEmail(readInvitedEmail());
+  }, [next]);
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -74,12 +82,20 @@ export default function SignInForm({ next }: { next?: string }) {
               description="Enter your email to sign in to your account. If you don't have an account yet, one will be created for you."
             />
 
-            {/* The hint is about the link, not about any invitation: it says nothing of what exists. */}
-            {isInvitationPath(next) ? (
+            {/* An invitation sign-in without its address (a link without one, or a page load after "Sign out and
+                switch account"). The hint is about the link, not about any invitation: it says nothing of what exists. */}
+            {invitedEmail === null ? (
               <Callout variant="info">Sign in with the email address your invitation was sent to.</Callout>
             ) : null}
 
-            <EmailStepForm next={next} onSuccess={handleEmailSuccess} executeTurnstile={executeTurnstile} />
+            {/* Keyed by the address, so the form starts over with it once the fragment has been read. */}
+            <EmailStepForm
+              key={invitedEmail ?? ''}
+              next={next}
+              defaultEmail={invitedEmail ?? undefined}
+              onSuccess={handleEmailSuccess}
+              executeTurnstile={executeTurnstile}
+            />
           </>
         ) : (
           <>
@@ -130,10 +146,12 @@ type EmailFormData = z.infer<typeof emailSchema>;
 
 function EmailStepForm({
   next,
+  defaultEmail,
   onSuccess,
   executeTurnstile
 }: {
   next?: string;
+  defaultEmail?: string;
   onSuccess: (data: EmailFormData) => void;
   executeTurnstile: () => Promise<string>;
 }) {
@@ -167,7 +185,7 @@ function EmailStepForm({
 
   const form = useForm<EmailFormData>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: '' },
+    defaultValues: { email: defaultEmail ?? '' },
     mode: 'onSubmit'
   });
 

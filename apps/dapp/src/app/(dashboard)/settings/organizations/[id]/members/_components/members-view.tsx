@@ -38,6 +38,7 @@ import { type OrganizationPage } from '@/server/organizations/organizations';
 
 import { initialsOf } from '@/lib/initials';
 import { ORGANIZATION_ERROR_COPY } from '@/lib/organization-copy';
+import { invitationLinkPath } from '@/lib/return-paths';
 
 import { InviteTeamForm } from '@/components/invite-team-form';
 
@@ -362,11 +363,15 @@ function RowActions({
   });
 
   // Only the invited address's owner can use the link, so it can go out another way (a chat, when the
-  // email sits in spam) without letting anyone else in.
+  // email sits in spam) without letting anyone else in. It prefills their address on sign-in, as the email's does.
   const copyLink = () => {
     // Inside the promise: a page served without HTTPS has no clipboard, and that reads as a failure too.
     Promise.resolve()
-      .then(() => navigator.clipboard.writeText(`${window.location.origin}/invitations/${row.id}`))
+      .then(() =>
+        navigator.clipboard.writeText(
+          `${window.location.origin}${invitationLinkPath({ invitationId: row.id, email: row.email })}`
+        )
+      )
       .then(
         () => toast({ type: 'success', title: 'Invite link copied' }),
         () => toast({ type: 'error', title: "Couldn't copy the link. Please try again." })

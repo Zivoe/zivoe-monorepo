@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 
 import { type SubjectKind } from '@zivoe/database/organizations';
 
+import { invitationLinkPath } from '@/lib/return-paths';
 import { isOneLine, readsAsLink } from '@/lib/schemas/reads-as-link';
 import { EMAILS } from '@/lib/utils';
 
@@ -455,7 +456,7 @@ export async function sendOrganizationInvitationEmail({
     inviterName,
     inviterEmail,
     expiresAt,
-    invitationUrl: `${BASE_URL}/invitations/${invitationId}`
+    invitationUrl: `${BASE_URL}${invitationLinkPath({ invitationId, email: to })}`
   });
   const [html, text] = await Promise.all([render(email), renderText(email)]);
 

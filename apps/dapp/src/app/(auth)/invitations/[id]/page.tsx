@@ -13,9 +13,9 @@ export const metadata: Metadata = { title: 'Invitation | Zivoe' };
 
 /**
  * Where an invitation email leads. A visitor with no session signs in or signs
- * up first and lands back here, already onboarded, skipping "How will you
- * invest?": the link is the answer, and nothing about the invitation shows before
- * then. Signed in, the page reads `viewForInvitee`: an invitee who already joined goes to the organization's members.
+ * up first, with the address the link carries prefilled, and lands back here,
+ * already onboarded, skipping "How will you invest?": the link is the answer, and
+ * nothing about the invitation shows before then. Signed in, the page reads `viewForInvitee`: an invitee who already joined goes to the organization's members.
  */
 export default async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

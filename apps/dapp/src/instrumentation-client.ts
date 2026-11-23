@@ -3,8 +3,12 @@ import posthog from 'posthog-js';
 
 import { POSTHOG_ENABLED } from '@/lib/analytics/posthog-enabled';
 import { scrubSecretParams, scrubSecretUrl } from '@/lib/analytics/scrub';
+import { takeInvitedEmailFromUrl } from '@/lib/invited-email';
 
 import { env } from '@/env';
+
+// First, before either SDK records the page's URL: an invitation link's address leaves it.
+takeInvitedEmailFromUrl();
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -14,7 +18,30 @@ Sentry.init({
   tracesSampleRate: 0.5,
   replaysOnErrorSampleRate: 1,
 
-  integrations: [Sentry.replayIntegration({ blockAllMedia: true, maskAllText: true })],
+  // The page-load spans and the replay's navigation entry are named after the URL the page was opened with,
+  // which still holds an invitation link's `#email=` after the page took it off its own URL.
+  beforeSendSpan(span) {
+    if (span.description) span.description = scrubSecretUrl(span.description);
+    return span;
+  },
+  integrations: [
+    Sentry.replayIntegration({
+      blockAllMedia: true,
+      maskAllText: true,
+      beforeAddRecordingEvent(event) {
+        const payload: unknown = event.data.payload;
+        if (
+          payload &&
+          typeof payload === 'object' &&
+          'description' in payload &&
+          typeof payload.description === 'string'
+        ) {
+          payload.description = scrubSecretUrl(payload.description);
+        }
+        return event;
+      }
+    })
+  ],
   debug: false
 });
 
