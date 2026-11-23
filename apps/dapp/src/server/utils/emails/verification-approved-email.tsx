@@ -1,20 +1,23 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { VerificationEmailShell } from './components/verification-email-shell';
 
 export default function VerificationApprovedEmail({
   name,
   verificationUrl,
-  accountType
+  subjectKind,
+  organizationName
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization ? "Your organization's verification has been approved." : 'Your identity has been verified.'
       }

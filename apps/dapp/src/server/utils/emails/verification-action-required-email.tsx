@@ -1,4 +1,4 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { VerificationEmailShell } from './components/verification-email-shell';
 
@@ -11,16 +11,19 @@ import { VerificationEmailShell } from './components/verification-email-shell';
 export default function VerificationActionRequiredEmail({
   name,
   verificationUrl,
-  accountType
+  subjectKind,
+  organizationName
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization
           ? "Pick up your organization's verification where you left off."

@@ -20,7 +20,7 @@ const TEMPLATES = [
 
 describe('Verification status emails', () => {
   it.each(TEMPLATES)('%s renders and links to the verification page with no token', async (_label, Template) => {
-    const html = await render(Template({ name: 'Ada', verificationUrl: VERIFICATION_URL, accountType: 'individual' }));
+    const html = await render(Template({ name: 'Ada', verificationUrl: VERIFICATION_URL, subjectKind: 'individual' }));
 
     expect(html).toContain(`href="${VERIFICATION_URL}"`);
     // Transactional: no unsubscribe link and no marketing disclosure.
@@ -34,7 +34,7 @@ describe('Verification status emails', () => {
         VerificationReopenedEmail({
           name: 'Grace',
           verificationUrl: VERIFICATION_URL,
-          accountType: 'organization',
+          subjectKind: 'organization',
           previousDecision
         })
       );
@@ -56,7 +56,7 @@ describe('Verification status emails', () => {
         VerificationDeclinedEmail({
           name: 'Ada',
           verificationUrl: VERIFICATION_URL,
-          accountType: 'individual',
+          subjectKind: 'individual',
           previousDecision
         })
       );
@@ -67,7 +67,7 @@ describe('Verification status emails', () => {
 
   it('tells an approved investor the wallet step is what remains', async () => {
     const html = await render(
-      VerificationApprovedEmail({ name: 'Ada', verificationUrl: VERIFICATION_URL, accountType: 'individual' })
+      VerificationApprovedEmail({ name: 'Ada', verificationUrl: VERIFICATION_URL, subjectKind: 'individual' })
     );
 
     expect(html).toContain('Connect your wallet');
@@ -78,7 +78,7 @@ describe('Verification status emails', () => {
     '%s speaks of the organization, never of an identity, to an organization',
     async (_label, Template) => {
       const html = await render(
-        Template({ name: 'Grace', verificationUrl: VERIFICATION_URL, accountType: 'organization' })
+        Template({ name: 'Grace', verificationUrl: VERIFICATION_URL, subjectKind: 'organization' })
       );
 
       expect(html).toMatch(/your organization/i);
@@ -90,7 +90,7 @@ describe('Verification status emails', () => {
     const people = await render(
       VerificationUnderReviewEmail({
         verificationUrl: VERIFICATION_URL,
-        accountType: 'organization',
+        subjectKind: 'organization',
         caseWaitingOn: 'people'
       })
     );
@@ -101,7 +101,7 @@ describe('Verification status emails', () => {
     const team = await render(
       VerificationUnderReviewEmail({
         verificationUrl: VERIFICATION_URL,
-        accountType: 'organization',
+        subjectKind: 'organization',
         caseWaitingOn: 'team'
       })
     );
