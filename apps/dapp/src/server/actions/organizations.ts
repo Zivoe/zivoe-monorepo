@@ -36,9 +36,9 @@ import {
 
 // The Organizations writes, in the shape of `wallet-link.ts`: session, onboarding
 // and terms, zod, the limits, then the module. Not behind the `kyc` flag: only
-// verifying an organization is. Every answer is
-// plain data the client maps to copy (`lib/organization-copy.ts`); a thrown
-// failure is captured here and answered as `failed`.
+// verifying an organization is. Every answer is plain data the client maps to
+// copy (`lib/organization-copy.ts`); a thrown failure is captured here and
+// answered as `failed`.
 
 export type OrganizationActionCode =
   | 'unauthorized'

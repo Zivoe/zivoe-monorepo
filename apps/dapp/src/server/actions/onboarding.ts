@@ -28,9 +28,9 @@ class AlreadyOnboarded extends Error {}
 
 /**
  * Onboarding's one write, after the terms: the person's profile and their Verification subject, and the
- * organization they invest through when they named one, all or nothing. Answers
- * `organizationId` when an organization was created, so the invite step can follow. A profile that already
- * exists (a double submit, a second tab) answers `alreadyOnboarded`: it writes nothing and sends nothing.
+ * organization they invest through when they named one, all or nothing. Answers `organizationId` when an
+ * organization was created, so the invite step can follow. A profile that already exists (a double submit,
+ * a second tab) answers `alreadyOnboarded`: it writes nothing and sends nothing.
  */
 export async function completeOnboarding({
   profile: profileData,

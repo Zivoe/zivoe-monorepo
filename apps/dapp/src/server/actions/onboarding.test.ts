@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { completeOnboarding } from './onboarding';
 
-// The action's own rules: the terms first, one profile, an organization only with the profile. The organization's own write is the Organizations module's, tested on Postgres.
+// The action's own rules: the terms first, one profile, an organization only with the profile. The
+// organization's own write is the Organizations module's, tested on Postgres.
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
