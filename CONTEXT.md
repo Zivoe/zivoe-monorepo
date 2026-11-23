@@ -127,7 +127,7 @@ The second step on `/verification`: the agreements (Master Lending Agreement, Co
 _Avoid_: terms (the terms are accepted on `/terms`, per user and versioned)
 
 **Agreement acceptance**:
-An `agreement_acceptance` row: a Verification subject accepted the offering agreements, when, and which user accepted (for an organization, the member who did, for it). One per subject, the first one stands, and not versioned: a changed document replaces its file. Written under the subject's start lock, so nobody leaves an organization between the membership check and the row naming them. `/api/kyc/start` starts or resumes no inquiry for a subject without one (`agreements_required`); a Continue that reuses a Persona session the tab already holds does not ask, since that session was only handed out after an acceptance. `/verification` shows the Agreements step instead of the Persona flow or Wallets until there is one; the wallet-link actions do not check it themselves.
+An `agreement_acceptance` row: a Verification subject accepted the agreements, when, and which user accepted (for an organization, the member who did, for it). One per subject, the first one stands, and not versioned: a changed document replaces its file. Written under the subject's start lock, so nobody leaves an organization between the membership check and the row naming them. `/api/kyc/start` starts or resumes no inquiry for a subject without one (`agreements_required`); a Continue that reuses a Persona session the tab already holds does not ask, since that session was only handed out after an acceptance. `/verification` shows the Agreements step instead of the Persona flow or Wallets until there is one; the wallet-link actions do not check it themselves.
 
 ### Wallet link
 
