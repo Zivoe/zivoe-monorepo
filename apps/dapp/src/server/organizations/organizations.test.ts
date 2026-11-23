@@ -458,7 +458,10 @@ describe('inviting', () => {
       ok: false,
       error: { code: 'not_found' }
     });
-    expect((await organizations.cancel({ invitationId, userId: owner.id })).ok).toBe(true);
+    expect(await organizations.cancel({ invitationId, userId: owner.id })).toEqual({
+      ok: true,
+      value: { organizationId }
+    });
   });
 });
 
@@ -600,7 +603,10 @@ describe('declining', () => {
     const organizationId = await organizationOf(owner.id);
     const invitationId = await invited({ organizationId, inviterUserId: owner.id, email: invitee.email });
 
-    expect(await organizations.decline({ invitationId, userId: invitee.id })).toEqual({ ok: true, value: undefined });
+    expect(await organizations.decline({ invitationId, userId: invitee.id })).toEqual({
+      ok: true,
+      value: { organizationId }
+    });
 
     expect(await organizations.viewForInvitee({ invitationId, userId: invitee.id })).toEqual({ status: 'invalid' });
     expect((await organizations.invite({ organizationId, inviterUserId: owner.id, email: invitee.email })).ok).toBe(

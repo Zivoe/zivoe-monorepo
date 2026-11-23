@@ -767,7 +767,7 @@ export function createOrganizations({
     }: {
       invitationId: string;
       userId: string;
-    }): Promise<Result<void, { code: 'not_found' }>> {
+    }): Promise<Result<{ organizationId: string }, { code: 'not_found' }>> {
       const now = clock.now();
       const [invitation] = await db
         .select({ organizationId: organizationInvitation.organizationId })
@@ -785,7 +785,7 @@ export function createOrganizations({
           .set({ status: 'cancelled', cancelledAt: now, cancelledByUserId: userId, cancelReason: 'member' })
           .where(and(eq(organizationInvitation.id, invitationId), eq(organizationInvitation.status, 'pending')))
           .returning({ id: organizationInvitation.id });
-        return rows.length > 0 ? ok(undefined) : err({ code: 'not_found' as const });
+        return rows.length > 0 ? ok({ organizationId }) : err({ code: 'not_found' as const });
       });
     },
 
@@ -910,7 +910,7 @@ export function createOrganizations({
     }: {
       invitationId: string;
       userId: string;
-    }): Promise<Result<void, { code: 'not_found' }>> {
+    }): Promise<Result<{ organizationId: string }, { code: 'not_found' }>> {
       const email = await verifiedEmailOf(db, userId);
       if (!email) return err({ code: 'not_found' });
       const [found] = await db
@@ -935,7 +935,7 @@ export function createOrganizations({
             )
           )
           .returning({ id: organizationInvitation.id });
-        return rows.length > 0 ? ok(undefined) : err({ code: 'not_found' as const });
+        return rows.length > 0 ? ok({ organizationId: found.organizationId }) : err({ code: 'not_found' as const });
       });
     },
 

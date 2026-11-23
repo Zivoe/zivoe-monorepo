@@ -402,7 +402,10 @@ export async function cancelInvitation(input: { invitationId: string }): Promise
     if (!(await passes(writeLimit, userId))) return refused('rate_limited');
     const result = await organizations.cancel({ invitationId: invitationId.data, userId });
     if (!result.ok) return refused('not_found');
-    track(userId, 'organization:invitation_cancelled', { invitation_id: invitationId.data });
+    track(userId, 'organization:invitation_cancelled', {
+      organization_id: result.value.organizationId,
+      invitation_id: invitationId.data
+    });
     return { ok: true, value: undefined };
   });
 }
@@ -431,7 +434,10 @@ export async function declineInvitation(input: { invitationId: string }): Promis
     if (!(await passes(declineLimit, userId))) return refused('rate_limited');
     const result = await organizations.decline({ invitationId: invitationId.data, userId });
     if (!result.ok) return { ok: false, error: result.error };
-    track(userId, 'organization:invitation_declined', { invitation_id: invitationId.data });
+    track(userId, 'organization:invitation_declined', {
+      organization_id: result.value.organizationId,
+      invitation_id: invitationId.data
+    });
     return { ok: true, value: undefined };
   });
 }
