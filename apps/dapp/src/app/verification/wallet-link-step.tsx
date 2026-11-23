@@ -334,10 +334,10 @@ function ConnectedWalletCard({
   // -- The wallet SDK has not answered yet: neither "connect" nor "connected" is known.
   if (walletLoading) return placeholder;
 
-  // -- Nothing connected: the one task.
+  // -- Nothing connected: the one task. The button says it, so the heading is for screen readers and focus only.
   if (!address) {
     return (
-      <Card heading="Connect a wallet">
+      <Card heading="Connect a wallet" isHeadingHidden>
         <Button variant="primary" onPress={() => setShowAuthFlow(true)} fullWidth>
           Connect wallet
         </Button>
@@ -615,9 +615,18 @@ function ConnectedWalletCard({
 /**
  * The step's card. The heading is focusable (not tabbable) so the step can
  * move focus to it after a request or a disconnect. A null heading is the
- * card still loading: a placeholder, announced as such.
+ * card still loading: a placeholder, announced as such. A hidden heading is
+ * still read and still takes focus, where the card's one control already says it.
  */
-function Card({ heading, children }: { heading: string | null; children: ReactNode }) {
+function Card({
+  heading,
+  isHeadingHidden = false,
+  children
+}: {
+  heading: string | null;
+  isHeadingHidden?: boolean;
+  children: ReactNode;
+}) {
   return (
     <section
       aria-labelledby={heading === null ? undefined : CARD_HEADING_ID}
@@ -635,7 +644,10 @@ function Card({ heading, children }: { heading: string | null; children: ReactNo
         <h2
           id={CARD_HEADING_ID}
           tabIndex={-1}
-          className="font-paragraph! text-leading font-medium text-primary outline-none"
+          className={cn(
+            'font-paragraph! text-leading font-medium text-primary outline-none',
+            isHeadingHidden && 'sr-only'
+          )}
         >
           {heading}
         </h2>
