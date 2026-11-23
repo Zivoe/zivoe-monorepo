@@ -119,8 +119,15 @@ The "Verifying as" card at the top of `/verification`'s rail, on every step: who
 _Avoid_: picker, account selector, profile menu (the avatar menu is the dashboard's)
 
 **Account details step**:
-The first of the three steps on `/verification`, ahead of the Persona flow and Wallets: the details of whoever the Account switcher has selected. A person's are first name, last name and country of residence, with the email locked; an organization's are its legal name, country of incorporation and the member's job title. Editable only while that subject can still start (`canStart`) and read-only after, since Persona holds what was submitted. A subject that can still start opens here; Continue saves and moves on through the URL (`&step=identity`), and Back from the Persona step returns (`&step=details`). The page has a shell of its own, the step rail and Exit, and none of the dashboard's navigation.
+The first of the four steps on `/verification`, ahead of the Agreements step, the Persona flow and Wallets: the details of whoever the Account switcher has selected. A person's are first name, last name and country of residence, with the email locked; an organization's are its legal name, country of incorporation and the member's job title. Editable only while that subject can still start (`canStart`) and read-only after, since Persona holds what was submitted. A subject that can still start opens here, and stays here while it lacks a real country; Continue saves and moves on through the URL (`&step=agreements`), and Back from the Agreements step returns (`&step=details`). The page has a shell of its own, the step rail and Exit, and none of the dashboard's navigation.
 _Avoid_: KYC form, profile page (a step, not a destination), account settings, Investor Profile step (its old name)
+
+**Agreements step**:
+The second step on `/verification`: the offering agreements (Master Lending Agreement, Confidential Offering Memorandum, Offering Supplement, PDFs in the dapp's `public/documents/`, behind sign-in) and one checkbox that accepts them for the selected subject. Continue records an Agreement acceptance and moves on to the Persona flow (`&step=identity`); once accepted the box shows ticked and locked. The Persona step that follows opens on a "Prepare your documents" checklist whose items turn on a person or an organization and on U.S. (the United States and its territories) or not, by country of residence or of incorporation; Start and Continue wait until every item is ticked, and the ticks are not kept.
+_Avoid_: terms (the terms are accepted on `/terms`, per user and versioned)
+
+**Agreement acceptance**:
+An `agreement_acceptance` row: a Verification subject accepted the offering agreements, when, and which user accepted (for an organization, the member who did, for it). One per subject, the first one stands, and not versioned: a changed document replaces its file. `/api/kyc/start` starts or resumes no inquiry for a subject without one (`agreements_required`), and `/verification` shows the Agreements step instead of the Persona flow or Wallets until there is one.
 
 ### Wallet link
 
