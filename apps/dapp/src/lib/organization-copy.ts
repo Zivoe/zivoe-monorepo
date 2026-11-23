@@ -16,7 +16,6 @@ export const ORGANIZATION_ERROR_COPY: Record<OrganizationActionCode, string> = {
   not_last_member: 'Other members still belong to this organization.',
   unverified_email: 'Your sign-in address must be verified before you can invite anyone.',
   own_email: 'This is your email. Invite someone else.',
-  not_available: "Organizations aren't open to this address yet.",
   already_member: 'Already a member.',
   already_invited: 'Already invited.',
   too_many_pending: 'Too many invitations are waiting. Cancel some first.',

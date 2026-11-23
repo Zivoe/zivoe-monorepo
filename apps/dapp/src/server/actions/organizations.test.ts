@@ -35,10 +35,6 @@ vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException, cap
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('@/server/verification/kyc-flag', () => ({
-  isKycEnabled: async () => true,
-  isKycEnabledForAddress: async (email: string) => !email.startsWith('outside@')
-}));
 vi.mock('@/server/data/auth', () => ({ getRequiredStep: async () => null }));
 vi.mock('@/server/clients/redis', () => ({ redis: {} }));
 vi.mock('@/server/organizations', () => ({
@@ -218,14 +214,6 @@ describe('inviteMembers', () => {
     expect(mocks.used.get('organizations:invite:inviter-day:user_1')).toBe(0);
   });
 
-  it('refuses an address outside the kyc flag, spending nothing', async () => {
-    const result = await inviteMembers({ organizationId: ORGANIZATION_ID, emails: ['outside@acme.com'] });
-
-    expect(result).toEqual({ ok: true, value: { results: [{ email: 'outside@acme.com', error: 'not_available' }] } });
-    expect(mocks.invite).not.toHaveBeenCalled();
-    expect(sendBudgets()).toEqual([]);
-  });
-
   it('gives back what a refused invite charged, so only invitations that went out count', async () => {
     mocks.invite.mockResolvedValue({ ok: false, error: { code: 'already_member' } });
 
@@ -334,17 +322,6 @@ describe('resendInvitation', () => {
     });
     expect(mocks.resend).toHaveBeenCalledTimes(3);
     expect(mocks.captureServerEvent).toHaveBeenCalledTimes(3);
-  });
-
-  it('refuses to resend to an address outside the kyc flag, spending nothing', async () => {
-    mocks.recipientOf.mockResolvedValue({ organizationId: ORGANIZATION_ID, email: 'outside@acme.com' });
-
-    expect(await resendInvitation({ invitationId: INVITATION_ID })).toEqual({
-      ok: false,
-      error: { code: 'not_available' }
-    });
-    expect(mocks.resend).not.toHaveBeenCalled();
-    expect(sendBudgets()).toEqual([]);
   });
 
   it('answers not_found for an invitation the person may not resend, spending nothing', async () => {

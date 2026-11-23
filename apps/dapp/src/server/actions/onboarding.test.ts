@@ -2,14 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { completeOnboarding } from './onboarding';
 
-// The action's own rules: the terms first, one profile, an organization only behind the flag and only with the
-// profile. The organization's own write is the Organizations module's, tested on Postgres.
+// The action's own rules: the terms first, one profile, an organization only with the profile. The organization's own write is the Organizations module's, tested on Postgres.
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   getTermsStatus: vi.fn(),
   isUserOnboarded: vi.fn(),
-  isKycEnabled: vi.fn(),
   create: vi.fn(),
   after: vi.fn(),
   inserted: vi.fn()
@@ -24,7 +22,6 @@ vi.mock('@/server/data/auth', () => ({
   getTermsStatus: mocks.getTermsStatus,
   isUserOnboarded: mocks.isUserOnboarded
 }));
-vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 vi.mock('@/server/organizations', () => ({ organizations: { create: mocks.create } }));
 vi.mock('@/server/clients/qstash', () => ({ qstash: { publishJSON: vi.fn() } }));
 vi.mock('@/server/utils/analytics', () => ({ captureServerEvent: vi.fn() }));
@@ -61,7 +58,6 @@ beforeEach(() => {
   mocks.getSession.mockResolvedValue({ user: { id: USER_ID, email: 'ada@example.com' } });
   mocks.getTermsStatus.mockResolvedValue('accepted');
   mocks.isUserOnboarded.mockResolvedValue(false);
-  mocks.isKycEnabled.mockResolvedValue(true);
   // The module runs the caller's writes inside its transaction, as the real one does.
   mocks.create.mockImplementation(async ({ before }: { before: (tx: unknown) => Promise<void> }) => {
     await before(transaction(profileRows));
@@ -98,15 +94,6 @@ describe('completeOnboarding', () => {
       expect.objectContaining({ userId: USER_ID, details: ORGANIZATION, before: expect.any(Function) })
     );
     expect(mocks.inserted).toHaveBeenCalledWith(expect.objectContaining({ id: USER_ID }));
-  });
-
-  it('refuses an organization when the kyc flag is off', async () => {
-    mocks.isKycEnabled.mockResolvedValue(false);
-
-    expect(await completeOnboarding({ profile: PROFILE, organization: ORGANIZATION })).toEqual({
-      error: 'Unauthorized'
-    });
-    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it('says so, and writes nothing, for someone already onboarded', async () => {

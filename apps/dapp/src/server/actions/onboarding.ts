@@ -15,7 +15,6 @@ import { qstash } from '@/server/clients/qstash';
 import { getTermsStatus, isUserOnboarded } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
 import { captureServerEvent } from '@/server/utils/analytics';
-import { isKycEnabled } from '@/server/verification/kyc-flag';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { type OnboardingFormData, onboardingSchema } from '@/lib/schemas/onboarding';
@@ -29,7 +28,7 @@ class AlreadyOnboarded extends Error {}
 
 /**
  * Onboarding's one write, after the terms: the person's profile and their Verification subject, and the
- * organization they invest through when they named one (behind the `kyc` flag), all or nothing. Answers
+ * organization they invest through when they named one, all or nothing. Answers
  * `organizationId` when an organization was created, so the invite step can follow. A profile that already
  * exists (a double submit, a second tab) answers `alreadyOnboarded`: it writes nothing and sends nothing.
  */
@@ -58,8 +57,6 @@ export async function completeOnboarding({
   if ((await getTermsStatus(userId)) !== 'accepted') return { error: 'Unauthorized' };
   // A second tab, or a second submit: nothing to save, and the client says so instead of welcoming them again.
   if (await isUserOnboarded(userId)) return { success: true, alreadyOnboarded: true };
-  // Organizations come with verification, behind the same flag.
-  if (organizationDetails && !(await isKycEnabled({ user: session.user }))) return { error: 'Unauthorized' };
 
   // A profile and its Verification subject: every onboarded person is a subject. False when one already existed.
   const saveProfile = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {

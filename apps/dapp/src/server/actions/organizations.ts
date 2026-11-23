@@ -25,7 +25,6 @@ import {
   canonicalEmail
 } from '@/server/organizations/organizations';
 import { captureServerEvent } from '@/server/utils/analytics';
-import { isKycEnabled, isKycEnabledForAddress } from '@/server/verification/kyc-flag';
 import { whileNotStarting } from '@/server/verification/start-lock';
 
 import { type AnalyticsEvent, type AnalyticsProperties } from '@/lib/analytics/events';
@@ -35,8 +34,9 @@ import {
   organizationDetailsSchema
 } from '@/lib/schemas/organizations';
 
-// The Organizations writes, in the shape of `wallet-link.ts`: session, the `kyc`
-// flag, onboarding and terms, zod, the limits, then the module. Every answer is
+// The Organizations writes, in the shape of `wallet-link.ts`: session, onboarding
+// and terms, zod, the limits, then the module. Not behind the `kyc` flag: only
+// verifying an organization is. Every answer is
 // plain data the client maps to copy (`lib/organization-copy.ts`); a thrown
 // failure is captured here and answered as `failed`.
 
@@ -46,7 +46,6 @@ export type OrganizationActionCode =
   | 'rate_limited'
   | 'failed'
   | 'being_verified'
-  | 'not_available'
   | CreateOrganizationError['code']
   | UpdateDetailsError['code']
   | LeaveError['code']
@@ -171,11 +170,10 @@ async function sendWithinBudgets<R extends { ok: boolean }>(
   }
 }
 
-/** The person these actions may run for: signed in, the flag on, onboarded, on the current terms. */
+/** The person these actions may run for: signed in, onboarded, on the current terms. */
 async function authorizedUserId() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) return null;
-  if (!(await isKycEnabled({ user: session.user }))) return null;
   if (await getRequiredStep(session.user.id)) return null;
   return session.user.id;
 }
@@ -324,12 +322,6 @@ export async function inviteMembers(input: {
         // One address failing (a queue blip rolls its invitation back) answers for that address only: the
         // ones already sent stay reported as sent, so a retry doesn't read them as "Already invited".
         try {
-          // While organizations are behind the `kyc` flag, an address outside it would follow the email to a
-          // page it can't open. Matched on the address, as the flag's list is. Goes with the flag at launch.
-          if (!(await isKycEnabledForAddress(email))) {
-            results.push({ email, error: 'not_available' });
-            continue;
-          }
           const sent = await sendWithinBudgets({ userId, organizationId, email }, () =>
             organizations.invite({ organizationId, inviterUserId: userId, email })
           );
@@ -380,10 +372,6 @@ export async function resendInvitation(input: { invitationId: string }): Promise
     if (!(await passes(writeLimit, userId))) return refused('rate_limited');
     const recipient = await organizations.recipientOf({ invitationId: invitationId.data, userId });
     if (!recipient) return refused('not_found');
-    // As for a first send: no email to an address the `kyc` flag keeps out. Goes with the flag at launch.
-    if (!(await isKycEnabledForAddress(recipient.email))) {
-      return refused('not_available');
-    }
     const sent = await sendWithinBudgets({ userId, ...recipient }, () =>
       organizations.resend({ invitationId: invitationId.data, userId })
     );

@@ -34,7 +34,7 @@ type Choice = 'me' | 'organization';
  * through an organization, its details. Nothing is saved until the last of those: one write keeps the profile
  * and the organization together. The invite step comes after that write, and is in the URL (`?step=invite`),
  * so a reload or a re-render there shows it again for the organization just made, never a second one. Without `canInvestThroughOrganization`
- * (the `kyc` flag off, or an invitation waiting in `next`) onboarding is the first step alone.
+ * (an invitation waiting in `next`) onboarding is the first step alone.
  */
 export default function OnboardingForm({
   next,

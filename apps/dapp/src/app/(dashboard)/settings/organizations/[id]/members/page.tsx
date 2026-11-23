@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 
 import { verifyOnboarded } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
-import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { walletLink } from '@/server/wallet-link';
 
 import { MembersView } from './_components/members-view';
@@ -18,7 +17,6 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   if (!UUID.test(id)) notFound();
 
   const { user } = await verifyOnboarded();
-  if (!(await isKycEnabled({ user }))) notFound();
 
   const page = await organizations.getForMember({ organizationId: id, userId: user.id });
   if (!page) notFound();

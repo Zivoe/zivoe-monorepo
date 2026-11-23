@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 
 import { getRequiredStep, getUser } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
-import { isKycEnabled } from '@/server/verification/kyc-flag';
 
 import { withNext } from '@/lib/lighthouse';
 import { isInvitationPath } from '@/lib/return-paths';
@@ -25,7 +24,6 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
 
   const { user } = await getUser();
   if (!user) redirect(withNext('/sign-in', path));
-  if (!(await isKycEnabled({ user }))) notFound();
 
   const step = await getRequiredStep(user.id);
   if (step) redirect(withNext(step, path));

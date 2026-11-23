@@ -4,7 +4,6 @@ import { after } from 'next/server';
 import { getAccessStatus } from '@/server/data/auth';
 import { organizations } from '@/server/organizations';
 import { captureServerEvent, getBrowserSessionId } from '@/server/utils/analytics';
-import { isKycEnabled } from '@/server/verification/kyc-flag';
 
 import { onboardedDestination, signInReturnUrl, withNext } from '@/lib/lighthouse';
 import { isInvitationPath } from '@/lib/return-paths';
@@ -41,8 +40,7 @@ export default async function OnboardingPage({
   if (requiredStep !== '/onboarding')
     redirect(requiredStep ? withNext(requiredStep, next) : onboardedDestination(next));
 
-  // Organizations come with verification, behind the `kyc` flag.
-  const canInvestThroughOrganization = !isInvitationPath(next) && (await isKycEnabled({ user }));
+  const canInvestThroughOrganization = !isInvitationPath(next);
 
   // Read before after(), which cannot read headers here: see getBrowserSessionId.
   const sessionId = await getBrowserSessionId();

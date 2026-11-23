@@ -34,11 +34,9 @@ export const membersPath = (organizationId: string) => `/settings/organizations/
  * rows, the picker and then the pages as tabs, so the page itself starts on the first screen.
  */
 export function SettingsNavigation({
-  showOrganizations,
   organizations,
   invitations
 }: {
-  showOrganizations: boolean;
   organizations: Array<OrganizationEntry>;
   invitations: Array<InvitationEntry>;
 }) {
@@ -55,7 +53,7 @@ export function SettingsNavigation({
     <nav aria-label="Settings" className="w-full shrink-0 lg:w-60">
       {/* Phones and tablets: the picker, then the pages as a row of tabs. */}
       <div className="flex flex-col gap-3 lg:hidden">
-        {showOrganizations && organizations.length > 0 ? (
+        {organizations.length > 0 ? (
           <OrganizationPicker
             organizations={organizations}
             selected={selected}
@@ -72,8 +70,8 @@ export function SettingsNavigation({
               Members
             </NavigationLink>
           ) : null}
-          {showOrganizations && invitations.length > 0 ? <InvitationsMenu invitations={invitations} /> : null}
-          {showOrganizations && organizations.length === 0 ? (
+          {invitations.length > 0 ? <InvitationsMenu invitations={invitations} /> : null}
+          {organizations.length === 0 ? (
             <Button variant="border-light" size="m" onPress={() => setIsCreating(true)}>
               <span aria-hidden="true">+</span> Create organization
             </Button>
@@ -89,68 +87,62 @@ export function SettingsNavigation({
           </NavigationLink>
         </NavigationGroup>
 
-        {showOrganizations ? (
+        <div aria-hidden="true" className="h-px bg-element-neutral-subtle" />
+
+        <NavigationGroup title="Organizations">
+          {organizations.length > 0 ? (
+            <>
+              <OrganizationPicker
+                organizations={organizations}
+                selected={selected}
+                onOpen={open}
+                onCreate={() => setIsCreating(true)}
+                className="mb-2"
+              />
+
+              {selected ? (
+                <NavigationLink href={membersPath(selected.id)} pathname={pathname}>
+                  Members
+                </NavigationLink>
+              ) : null}
+            </>
+          ) : (
+            <Button variant="border-light" size="m" fullWidth onPress={() => setIsCreating(true)}>
+              <span aria-hidden="true">+</span> Create organization
+            </Button>
+          )}
+        </NavigationGroup>
+
+        {invitations.length > 0 ? (
           <>
             <div aria-hidden="true" className="h-px bg-element-neutral-subtle" />
 
-            <NavigationGroup title="Organizations">
-              {organizations.length > 0 ? (
-                <>
-                  <OrganizationPicker
-                    organizations={organizations}
-                    selected={selected}
-                    onOpen={open}
-                    onCreate={() => setIsCreating(true)}
-                    className="mb-2"
-                  />
-
-                  {selected ? (
-                    <NavigationLink href={membersPath(selected.id)} pathname={pathname}>
-                      Members
-                    </NavigationLink>
-                  ) : null}
-                </>
-              ) : (
-                <Button variant="border-light" size="m" fullWidth onPress={() => setIsCreating(true)}>
-                  <span aria-hidden="true">+</span> Create organization
-                </Button>
-              )}
+            <NavigationGroup title="Invitations">
+              <ul aria-label="Invitations waiting for you" className="flex flex-col gap-1">
+                {invitations.map((invitation) => (
+                  <li key={invitation.id}>
+                    <Link
+                      href={`/invitations/${invitation.id}`}
+                      variant="ghost"
+                      size="m"
+                      fullWidth
+                      className="justify-start gap-2 px-2 font-normal text-primary"
+                    >
+                      <Initials name={invitation.organizationName} />
+                      <span title={invitation.organizationName} className="min-w-0 flex-1 truncate text-left">
+                        {invitation.organizationName}
+                      </span>
+                      <Badge variant="neutral">Invited</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </NavigationGroup>
-
-            {invitations.length > 0 ? (
-              <>
-                <div aria-hidden="true" className="h-px bg-element-neutral-subtle" />
-
-                <NavigationGroup title="Invitations">
-                  <ul aria-label="Invitations waiting for you" className="flex flex-col gap-1">
-                    {invitations.map((invitation) => (
-                      <li key={invitation.id}>
-                        <Link
-                          href={`/invitations/${invitation.id}`}
-                          variant="ghost"
-                          size="m"
-                          fullWidth
-                          className="justify-start gap-2 px-2 font-normal text-primary"
-                        >
-                          <Initials name={invitation.organizationName} />
-                          <span title={invitation.organizationName} className="min-w-0 flex-1 truncate text-left">
-                            {invitation.organizationName}
-                          </span>
-                          <Badge variant="neutral">Invited</Badge>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationGroup>
-              </>
-            ) : null}
           </>
         ) : null}
       </div>
 
-      {showOrganizations ? (
-        <CreateOrganizationDialog isOpen={isCreating} onOpenChange={setIsCreating} onCreated={open} />
-      ) : null}
+      <CreateOrganizationDialog isOpen={isCreating} onOpenChange={setIsCreating} onCreated={open} />
     </nav>
   );
 }

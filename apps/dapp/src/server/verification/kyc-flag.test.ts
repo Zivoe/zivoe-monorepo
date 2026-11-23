@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   waitForLocalEvaluationReady: vi.fn(),
   isLocalEvaluationReady: vi.fn(),
   evaluateFlags: vi.fn(),
-  getFeatureFlag: vi.fn(),
   isEnabled: vi.fn(),
   captureException: vi.fn(),
   captureMessage: vi.fn()
@@ -19,8 +18,7 @@ vi.mock('@/server/clients/posthog', () => ({
   posthog: {
     waitForLocalEvaluationReady: mocks.waitForLocalEvaluationReady,
     isLocalEvaluationReady: mocks.isLocalEvaluationReady,
-    evaluateFlags: mocks.evaluateFlags,
-    getFeatureFlag: mocks.getFeatureFlag
+    evaluateFlags: mocks.evaluateFlags
   }
 }));
 
@@ -28,7 +26,6 @@ const USER = { id: 'user_1', email: 'alex@zivoe.com' };
 
 // A fresh module per test: the first-load wait is per instance.
 let isKycEnabled: typeof KycFlag.isKycEnabled;
-let isKycEnabledForAddress: typeof KycFlag.isKycEnabledForAddress;
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -38,7 +35,7 @@ beforeEach(async () => {
   mocks.isEnabled.mockReturnValue(true);
   mocks.evaluateFlags.mockResolvedValue({ isEnabled: mocks.isEnabled });
   vi.resetModules();
-  ({ isKycEnabled, isKycEnabledForAddress } = await import('./kyc-flag'));
+  ({ isKycEnabled } = await import('./kyc-flag'));
 });
 
 describe('isKycEnabled', () => {
@@ -89,28 +86,5 @@ describe('isKycEnabled', () => {
 
     expect(await isKycEnabled({ user: USER })).toBe(false);
     expect(mocks.captureException).toHaveBeenCalled();
-  });
-});
-
-describe('isKycEnabledForAddress', () => {
-  it('evaluates for an address without telling PostHog who asked', async () => {
-    mocks.getFeatureFlag.mockResolvedValue(true);
-
-    expect(await isKycEnabledForAddress('cfo@bank.com')).toBe(true);
-    const [flag, distinctId, options] = mocks.getFeatureFlag.mock.calls[0]!;
-    expect(flag).toBe('kyc');
-    expect(distinctId).not.toContain('cfo@bank.com');
-    expect(options).toEqual({
-      personProperties: { email: 'cfo@bank.com' },
-      onlyEvaluateLocally: true,
-      sendFeatureFlagEvents: false
-    });
-  });
-
-  it('is off when the flag is, or cannot be read', async () => {
-    mocks.getFeatureFlag.mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('no'));
-
-    expect(await isKycEnabledForAddress('cfo@bank.com')).toBe(false);
-    expect(await isKycEnabledForAddress('cfo@bank.com')).toBe(false);
   });
 });
