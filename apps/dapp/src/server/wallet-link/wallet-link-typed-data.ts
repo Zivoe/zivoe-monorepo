@@ -9,15 +9,15 @@ import { type SubjectKind } from '@zivoe/database/organizations';
 // ---------------------------------------------------------------------------
 
 export const WALLET_LINK_STATEMENT =
-  'I control this wallet and ask Zivoe to link it to my verified account. ' +
+  'I control this wallet and ask to link it to my verified account. ' +
   'Once linked, it stays linked to this account and cannot be linked to another. ' +
-  'Zivoe may whitelist it for Zivoe vaults. This signature is free and moves no funds.';
+  'It may then be whitelisted for investing. This signature is free and moves no funds.';
 
 /** The same promise when a member signs for their organization: the account named below is the organization's. */
 export const WALLET_LINK_ORGANIZATION_STATEMENT =
-  "I control this wallet and ask Zivoe to link it to my organization's verified account. " +
+  "I control this wallet and ask to link it to my organization's verified account. " +
   'Once linked, it stays linked to this account and cannot be linked to another. ' +
-  'Zivoe may whitelist it for Zivoe vaults. This signature is free and moves no funds.';
+  'It may then be whitelisted for investing. This signature is free and moves no funds.';
 
 export const WALLET_LINK_TYPES = {
   WalletLink: [
@@ -37,7 +37,7 @@ export const WALLET_LINK_TYPES = {
 
 export type WalletLinkTypedData = {
   /** No `verifyingContract`: the chain id is the connected chain, so wallets that bind a signature to a chain are satisfied. */
-  domain: { name: 'Zivoe Verification'; version: '1'; chainId: number };
+  domain: { name: 'Wallet Verification'; version: '1'; chainId: number };
   types: typeof WALLET_LINK_TYPES;
   primaryType: 'WalletLink';
   message: {
@@ -69,7 +69,7 @@ export function buildWalletLinkTypedData({
   expiresAt: Date;
 }): WalletLinkTypedData {
   return {
-    domain: { name: 'Zivoe Verification', version: '1', chainId },
+    domain: { name: 'Wallet Verification', version: '1', chainId },
     types: WALLET_LINK_TYPES,
     primaryType: 'WalletLink',
     message: {

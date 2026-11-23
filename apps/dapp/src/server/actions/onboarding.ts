@@ -147,7 +147,7 @@ export async function completeOnboarding({
         event: 'onboarding:completed',
         properties: {
           amount_of_interest: rest.amountOfInterest,
-          how_found_zivoe: rest.howFoundZivoe,
+          referral_source: rest.referralSource,
           country,
           country_name: getCountryLabel(country),
           $set: { ...rest, authId: session.user.id, name: `${firstName} ${lastName}` }

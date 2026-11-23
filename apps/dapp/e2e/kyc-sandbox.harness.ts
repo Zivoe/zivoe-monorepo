@@ -241,7 +241,7 @@ export async function createTestUser({
     firstName: 'Sandbox',
     lastName,
     amountOfInterest: '10k_100k',
-    howFoundZivoe: 'other',
+    referralSource: 'other',
     countryOfResidence: 'US'
   });
   await db.insert(verificationSubject).values({ id: created.id, kind: 'individual', userId: created.id });

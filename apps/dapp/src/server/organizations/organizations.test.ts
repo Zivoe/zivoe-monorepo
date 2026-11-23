@@ -74,7 +74,7 @@ async function person({ email, verified = true }: { email?: string; verified?: b
     lastName: String(sequence),
     countryOfResidence: 'GB',
     amountOfInterest: '10k_100k',
-    howFoundZivoe: 'other'
+    referralSource: 'other'
   });
   await db.insert(schema.verificationSubject).values({ id, kind: 'individual', userId: id });
   return { id, email: row!.email };

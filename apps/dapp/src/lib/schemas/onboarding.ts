@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { amountOfInterestOptionValues, howFoundZivoeValues } from '@zivoe/database/onboarding';
+import { amountOfInterestOptionValues, referralSourceValues } from '@zivoe/database/onboarding';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
@@ -40,6 +40,6 @@ export type InvestorProfileFormData = z.infer<typeof investorProfileSchema>;
 /** Onboarding's first step: everyone is a person first. A company follows when they invest through one. */
 export const onboardingSchema = investorProfileSchema.extend({
   amountOfInterest: z.enum(amountOfInterestOptionValues, { required_error: 'Please select an amount of interest' }),
-  howFoundZivoe: z.enum(howFoundZivoeValues, { required_error: 'Please select how you found Zivoe' })
+  referralSource: z.enum(referralSourceValues, { required_error: 'Please select how you found Zivoe' })
 });
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;

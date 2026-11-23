@@ -12,7 +12,7 @@ import { Input } from '@zivoe/ui/core/input';
 import { Radio, RadioGroup } from '@zivoe/ui/core/radio';
 import { Select, SelectItem, SelectListBox, SelectPopover, SelectValue } from '@zivoe/ui/core/select';
 
-import { AMOUNT_OF_INTEREST_OPTIONS, HOW_FOUND_ZIVOE_OPTIONS } from '@/lib/onboarding-options';
+import { AMOUNT_OF_INTEREST_OPTIONS, REFERRAL_SOURCE_OPTIONS } from '@/lib/onboarding-options';
 import { type OnboardingFormData, onboardingSchema } from '@/lib/schemas/onboarding';
 import { type OrganizationDetailsFormData } from '@/lib/schemas/organizations';
 
@@ -24,7 +24,7 @@ import { Auth } from '../../_components/common';
 import { useCompleteOnboarding, useLeaveOnboarding } from '../_hooks/useCompleteOnboarding';
 
 const amountOfInterestItems = Object.entries(AMOUNT_OF_INTEREST_OPTIONS).map(([value, label]) => ({ value, label }));
-const howFoundZivoeItems = Object.entries(HOW_FOUND_ZIVOE_OPTIONS).map(([value, label]) => ({ value, label }));
+const referralSourceItems = Object.entries(REFERRAL_SOURCE_OPTIONS).map(([value, label]) => ({ value, label }));
 
 type Step = 'profile' | 'invest' | 'organization' | 'invite';
 type Choice = 'me' | 'organization';
@@ -260,7 +260,7 @@ function ProfileStep({
 
           <Controller
             control={control}
-            name="howFoundZivoe"
+            name="referralSource"
             render={({ field, fieldState: { error, invalid } }) => (
               <div className="flex flex-col gap-3">
                 <Label>How&apos;d You Find Zivoe?</Label>
@@ -280,7 +280,7 @@ function ProfileStep({
                   <FieldError>{error?.message}</FieldError>
 
                   <SelectPopover matchTriggerWidth>
-                    <SelectListBox items={howFoundZivoeItems}>
+                    <SelectListBox items={referralSourceItems}>
                       {(item) => <SelectItem id={item.value}>{item.label}</SelectItem>}
                     </SelectListBox>
                   </SelectPopover>

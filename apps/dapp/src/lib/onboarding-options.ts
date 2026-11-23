@@ -1,4 +1,4 @@
-import type { AmountOfInterest, AmountOfInterestOption, HowFoundZivoe } from '@zivoe/database/onboarding';
+import type { AmountOfInterest, AmountOfInterestOption, ReferralSource } from '@zivoe/database/onboarding';
 
 /** What onboarding offers. */
 export const AMOUNT_OF_INTEREST_OPTIONS: Record<AmountOfInterestOption, string> = {
@@ -17,7 +17,7 @@ export const AMOUNT_OF_INTEREST_LABELS: Record<AmountOfInterest, string> = {
   over_1m: '>$1M'
 };
 
-export const HOW_FOUND_ZIVOE_OPTIONS: Record<HowFoundZivoe, string> = {
+export const REFERRAL_SOURCE_OPTIONS: Record<ReferralSource, string> = {
   x_twitter: 'X (Twitter)',
   linkedin: 'LinkedIn',
   google_search: 'Google Search',

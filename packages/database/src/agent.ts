@@ -7,4 +7,4 @@
  * hook keys off the email to cap agent sessions at one hour, and `db:seed` (./seed.ts)
  * creates or resets this account.
  */
-export const AGENT_ACCOUNT = { email: 'alex+agent@zivoe.com', name: 'Zivoe Agent' };
+export const AGENT_ACCOUNT = { email: 'alex+agent@zivoe.com', name: 'Agent' };

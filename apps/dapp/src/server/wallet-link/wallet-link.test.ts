@@ -122,7 +122,7 @@ describe('the challenge', () => {
     expect(issued.ok).toBe(true);
     if (!issued.ok) return;
     expect(issued.value.typedData).toMatchObject({
-      domain: { name: 'Zivoe Verification', version: '1', chainId: CHAIN_ID },
+      domain: { name: 'Wallet Verification', version: '1', chainId: CHAIN_ID },
       primaryType: 'WalletLink',
       message: {
         statement: WALLET_LINK_STATEMENT,

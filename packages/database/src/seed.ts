@@ -78,11 +78,11 @@ async function main() {
       .insert(profile)
       .values({
         id: agent.id,
-        firstName: 'Zivoe',
+        firstName: 'Agent',
         lastName: 'Agent',
         countryOfResidence: 'US',
         amountOfInterest: '10k_100k',
-        howFoundZivoe: 'other'
+        referralSource: 'other'
       })
       .onConflictDoNothing({ target: profile.id })
       .returning({ id: profile.id });

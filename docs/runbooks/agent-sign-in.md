@@ -6,7 +6,7 @@ the human setting that up. Code: `apps/dapp/src/app/api/agent-sign-in/`, identit
 
 ## The agent identity
 
-- `AGENT_ACCOUNT`: email `alex+agent@zivoe.com`, name "Zivoe Agent". The mailbox is Alex's inbox.
+- `AGENT_ACCOUNT`: email `alex+agent@zivoe.com`, name "Agent". The mailbox is Alex's inbox.
 - An ordinary user: no wallet, no KYC, no admin role. Nothing is skipped for it. The welcome
   email, the onboarding reminder and Telegram notifications fire exactly as for a customer, so a
   run through a flow can be verified from the mailbox and the notification chat. The newsletter

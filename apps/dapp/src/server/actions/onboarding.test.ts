@@ -49,7 +49,7 @@ const PROFILE = {
   lastName: 'Lovelace',
   countryOfResidence: 'GB',
   amountOfInterest: '10k_100k',
-  howFoundZivoe: 'other'
+  referralSource: 'other'
 } as const;
 const ORGANIZATION = { name: 'Acme Capital LLC', countryOfIncorporation: 'US', title: 'Partner' };
 

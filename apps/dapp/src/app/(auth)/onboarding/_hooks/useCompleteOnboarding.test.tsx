@@ -24,7 +24,7 @@ const PROFILE: OnboardingFormData = {
   lastName: 'Agent',
   countryOfResidence: 'US',
   amountOfInterest: '10k_100k',
-  howFoundZivoe: 'other'
+  referralSource: 'other'
 };
 const ORGANIZATION = { name: 'Acme Capital LLC', countryOfIncorporation: 'US', title: 'Partner' };
 

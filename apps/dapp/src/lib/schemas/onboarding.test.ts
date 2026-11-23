@@ -7,7 +7,7 @@ const ANSWERS = {
   lastName: 'Lovelace',
   countryOfResidence: 'GB',
   amountOfInterest: '10k_100k',
-  howFoundZivoe: 'other'
+  referralSource: 'other'
 };
 
 // The server action re-parses with this schema, so the dropdown is not the only gate.

@@ -22,7 +22,7 @@ export const amountOfInterestValues = [
 ] as const;
 export type AmountOfInterest = (typeof amountOfInterestValues)[number];
 
-export const howFoundZivoeValues = [
+export const referralSourceValues = [
   'x_twitter',
   'linkedin',
   'google_search',
@@ -31,4 +31,4 @@ export const howFoundZivoeValues = [
   'word_of_mouth',
   'other'
 ] as const;
-export type HowFoundZivoe = (typeof howFoundZivoeValues)[number];
+export type ReferralSource = (typeof referralSourceValues)[number];

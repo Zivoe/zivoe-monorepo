@@ -123,7 +123,7 @@ const linked = (overrides: Partial<LinkedAddress> = {}): LinkedAddress => ({
 });
 
 const typedData = {
-  domain: { name: 'Zivoe Verification', version: '1', chainId: 11155111 },
+  domain: { name: 'Wallet Verification', version: '1', chainId: 11155111 },
   types: { WalletLink: [] },
   primaryType: 'WalletLink',
   message: {
