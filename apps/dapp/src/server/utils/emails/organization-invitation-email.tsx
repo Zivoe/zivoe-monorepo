@@ -32,8 +32,8 @@ export default function OrganizationInvitationEmail({
       </Heading>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600" style={WRAP}>
-        {inviter} invited you to join {organizationName} on Zivoe. As a member you can manage the organization&apos;s
-        account and track its portfolio together.
+        {inviter} invited you to join {organizationName} on Zivoe. As a member, you&apos;ll share access to its account
+        with the other members.
       </Text>
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">

@@ -141,7 +141,7 @@ export default function OnboardingForm({
           <>
             <Auth.Header
               title="Will Anyone Else Be Joining You?"
-              description={`You can invite your team members to ${organization.name} to manage your team and track your portfolio together.`}
+              description={`Invite the colleagues who will act for ${organization.name} with you. You can also invite them later from Settings.`}
             />
 
             <InviteTeamForm organizationId={organization.id} submitLabel="Continue" onDone={leave}>

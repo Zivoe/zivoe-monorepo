@@ -9,7 +9,7 @@ export default function AuthNotFound() {
       <Auth.Container>
         <Auth.Header
           title="This page isn't available"
-          description="The link may be wrong. Check it, or ask for a new one."
+          description="The link may be wrong. Check it, or ask whoever invited you to send it again."
         />
         <Link variant="ghost-light" fullWidth href="/">
           Go to the dashboard

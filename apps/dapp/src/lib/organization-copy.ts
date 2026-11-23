@@ -6,7 +6,7 @@ export const ORGANIZATION_ERROR_COPY: Record<OrganizationActionCode, string> = {
   invalid_input: 'Please check the details and try again.',
   rate_limited: 'Too many attempts. Please try again later.',
   failed: 'Something went wrong. Please try again.',
-  being_verified: 'This organization is being changed or verified right now. Try again in a moment.',
+  being_verified: 'This organization is being changed right now. Try again in a moment.',
   too_many_organizations: 'You belong to the maximum number of organizations.',
   not_member: 'You are no longer a member of this organization.',
   locked: "These details can no longer be changed once the organization's verification has started.",
