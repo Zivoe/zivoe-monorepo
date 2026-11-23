@@ -16,7 +16,7 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
   }, [error]);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+    <div className="flex h-full flex-col items-center justify-center gap-4">
       <h2 className="text-h4 text-primary">Something went wrong</h2>
       <Button
         onPress={() =>

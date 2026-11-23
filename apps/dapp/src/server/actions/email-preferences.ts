@@ -1,5 +1,7 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -54,6 +56,9 @@ export async function saveEmailPreferencesAction(input: {
     tags: { source: 'SERVER' as const, flow: 'save-email-preferences' },
     extra: { actorSource: actor.source, userId: actor.userId }
   };
+
+  // Settings → Notifications reads these on the server: drop the router's copy, whatever this saves.
+  revalidatePath('/settings/notifications');
 
   const requestedChanges = {
     productTips: parsedInput.data.productTips,

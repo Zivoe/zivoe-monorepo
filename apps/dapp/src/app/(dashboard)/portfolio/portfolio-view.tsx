@@ -53,8 +53,9 @@ export default function PortfolioView({
 
   return (
     // The soft canvas the cards lift off; the hero and the preview bar paint their own.
-    // It grows to the footer, so a short page (the connect prompt) leaves no white band.
-    <div className="flex-1 bg-surface-elevated">
+    // It fills the space down to the footer, so a short page (the connect prompt) leaves no white band;
+    // `flow-root` keeps the page's margins inside it rather than letting them show white past its edges.
+    <div className="flow-root h-full bg-surface-elevated">
       {previewWallets.length > 0 && (
         <PreviewWallets wallets={previewWallets} selected={previewAddress} onSelect={setPreviewAddress} />
       )}

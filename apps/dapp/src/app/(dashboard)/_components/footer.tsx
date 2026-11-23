@@ -11,10 +11,10 @@ import { LINKS } from '@/types/constants';
 export default function Footer() {
   const pathname = usePathname();
   const isDepositPage = pathname === '/';
-  // The portfolio sits on the soft canvas, so its footer inverts (canvas
-  // gutter, white box) and reads as one more card instead of a grey box
+  // The portfolio and Settings sit on the soft canvas, so their footer inverts
+  // (canvas gutter, white box) and reads as one more card instead of a grey box
   // behind a white stripe. Every other page keeps the white page, grey box.
-  const isOnCanvas = pathname === '/portfolio';
+  const isOnCanvas = pathname === '/portfolio' || pathname.startsWith('/settings');
 
   return (
     <div
