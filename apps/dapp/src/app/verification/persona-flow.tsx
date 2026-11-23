@@ -9,11 +9,14 @@ import * as Sentry from '@sentry/nextjs';
 
 import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
+import { toast } from '@zivoe/ui/core/sonner';
 import { CameraIcon, ClockIcon, DocumentIcon, Spinner, UserIcon } from '@zivoe/ui/icons';
 
 import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
 import { withNext } from '@/lib/lighthouse';
+import { ORGANIZATION_ERROR_COPY } from '@/lib/organization-copy';
+import { verificationReturnPath } from '@/lib/return-paths';
 import { handlePromise } from '@/lib/utils';
 
 import { Auth } from '@/app/(auth)/_components/common';
@@ -94,12 +97,18 @@ const START_FAILED_COPY = 'Could not start verification. Please try again.';
 const START_IN_FLIGHT_COPY = 'A verification is already being started. Try again in a moment.';
 
 export default function PersonaFlow({
+  subjectId,
   view,
-  onBack
+  onBack,
+  onStartingChange
 }: {
+  /** Who is being verified: the person's own id, or the organization's. */
+  subjectId: string;
   view: VerificationStatusViewModel;
-  /** Back to the Investor Profile step; offered while nothing is in flight. */
+  /** Back to the Account details step; offered while nothing is in flight. */
   onBack?: () => void;
+  /** Tells the shell a start is in flight, so nothing above navigates away before it lands. */
+  onStartingChange?: (isStarting: boolean) => void;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
@@ -119,6 +128,12 @@ export default function PersonaFlow({
     document.body.classList.add('overflow-hidden');
     return () => document.body.classList.remove('overflow-hidden');
   }, [phase.kind]);
+
+  const isStarting = phase.kind === 'starting';
+  useEffect(() => {
+    onStartingChange?.(isStarting);
+    return () => onStartingChange?.(false);
+  }, [isStarting, onStartingChange]);
 
   const presentation = presentVerificationStatus(view);
   // Start / Continue, when the view allows either; the copy module derives it from the same domain facts.
@@ -159,11 +174,21 @@ export default function PersonaFlow({
     }
 
     setPhase({ kind: 'starting' });
-    const { res, err } = await handlePromise(fetch('/api/kyc/start', { method: 'POST' }));
+    const { res, err } = await handlePromise(
+      fetch('/api/kyc/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjectId })
+      })
+    );
     const body = res ? ((await handlePromise(res.json())).res as StartVerificationResponse | undefined) : undefined;
 
     if (err || !body) {
       setPhase({ kind: 'error', message: START_FAILED_COPY });
+    } else if ('code' in body && body.code === 'not_member') {
+      // No longer a member (removed with the page open): the refresh takes them to their own page, the words with them.
+      toast({ type: 'warning', title: ORGANIZATION_ERROR_COPY.not_member });
+      router.refresh();
     } else if (isRefusal(body) && (body.code === 'persona_unavailable' || body.code === 'queue_unavailable')) {
       // Not a state change: the server is already capturing it, and the page rests before the next try.
       setPhase({
@@ -185,7 +210,8 @@ export default function PersonaFlow({
     } else if (res?.status === 401) {
       // Signed out mid-visit: the sign-in page is the answer, not a retry loop
       // — and it brings them back here, like the page's own redirect does.
-      router.push(withNext('/sign-in', '/verification'));
+      // The person's own page is plain `/verification`; an organization's names it.
+      router.push(withNext('/sign-in', verificationReturnPath(organization ? subjectId : null)));
     } else if (res?.status === 403) {
       // Behind the terms (updated mid-visit): the page's own redirect sends them to accept, then back here.
       setPhase({ kind: 'error', message: START_FAILED_COPY });

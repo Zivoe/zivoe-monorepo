@@ -152,7 +152,7 @@ function renderStep(
   for (const address of [LOWER, OTHER]) client.setQueryData(['WALLET_OWNERSHIP', USER_ID, address], ownership);
   const tree = () => (
     <QueryClientProvider client={client}>
-      <WalletLinkStep userId={USER_ID} />
+      <WalletLinkStep subjectId={USER_ID} />
     </QueryClientProvider>
   );
   const view = render(tree());
@@ -301,7 +301,7 @@ describe('the connected wallet', () => {
 
     expect(screen.getByText('Whitelisted')).toBeTruthy();
     expect(screen.getByRole('button', { name: CLAIM })).toBeTruthy();
-    expect(screen.getByText(/stays linked to your Zivoe account and can’t be linked to another account/)).toBeTruthy();
+    expect(screen.getByText(/stays linked to your account and can’t be linked to another account/)).toBeTruthy();
   });
 
   it.each([
@@ -338,13 +338,13 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_LINKS', USER_ID], []);
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 
     expect(screen.getByText('Loading wallet…')).toBeTruthy();
     expect(await screen.findByText(/linked to another Zivoe account/)).toBeTruthy();
-    expect(mocks.ownership).toHaveBeenCalledWith({ address: LOWER });
+    expect(mocks.ownership).toHaveBeenCalledWith({ subjectId: USER_ID, address: LOWER });
     expect(mocks.ownership).toHaveBeenCalledTimes(1);
   });
 
@@ -356,7 +356,7 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'mine');
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 
@@ -475,8 +475,11 @@ describe('the connected wallet', () => {
     renderStep();
     fireEvent.click(screen.getByRole('button', { name: SIGN }));
 
-    await waitFor(() => expect(mocks.complete).toHaveBeenCalledWith({ address: ADDRESS, signature: '0xsig' }));
+    await waitFor(() =>
+      expect(mocks.complete).toHaveBeenCalledWith({ subjectId: USER_ID, address: ADDRESS, signature: '0xsig' })
+    );
     expect(mocks.issue).toHaveBeenCalledWith({
+      subjectId: USER_ID,
       address: ADDRESS,
       chainId: 11155111,
       walletType: 'metamask',
@@ -571,7 +574,7 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'none');
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 

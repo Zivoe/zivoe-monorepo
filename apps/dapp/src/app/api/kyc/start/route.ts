@@ -26,11 +26,17 @@ const bodySchema = z.object({ subjectId: z.string().uuid().optional() });
 /** The page's typed refusal: the code drives the copy (the page owns the words), never a redirect. */
 export type StartVerificationErrorResponse = { error: string; code: StartVerificationError['code'] };
 export type StartVerificationSuccessResponse = { success: true; data: { inquiryId: string; sessionToken: string } };
+/** Not in the organization asked for, or no longer: told apart from the flag's plain 404, so the page can say so. */
+export type StartVerificationNotMemberResponse = { error: string; code: 'not_member' };
 /** Everything the route can answer with, including `withErrorHandler`'s generic shape. */
 export type StartVerificationResponse =
   | StartVerificationSuccessResponse
   | StartVerificationErrorResponse
+  | StartVerificationNotMemberResponse
   | ApiResponseError;
+
+const notMember = () =>
+  NextResponse.json<StartVerificationResponse>({ error: 'Not found', code: 'not_member' }, { status: 404 });
 
 // Every inquiry costs money on the Persona bill and a user has one inquiry
 // at a time: a tight per-user limit (resumes share it), with a looser IP
@@ -78,9 +84,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
   if (!body.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
   const subjectId = body.data.subjectId ?? user.id;
   // Read fresh on every start: someone removed from an organization cannot start for it from an open tab.
-  if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) {
-    throw new ApiError({ message: 'Not found', status: 404, capture: false });
-  }
+  if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) return notMember();
 
   const ip = ipAddress(req) ?? '127.0.0.1';
   const [userLimitRes, ipLimitRes] = await Promise.all([
@@ -122,9 +126,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
 
   try {
     // Again, now the key is held: leaving takes it too, so whoever passes here stays a member until the record names them.
-    if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) {
-      throw new ApiError({ message: 'Not found', status: 404, capture: false });
-    }
+    if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) return notMember();
 
     const result = await verification.startVerification({ subjectId, actorUserId: user.id });
 

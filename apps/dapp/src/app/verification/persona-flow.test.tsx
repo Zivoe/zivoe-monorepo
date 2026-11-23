@@ -4,6 +4,8 @@ import { type ReactNode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { toast } from '@zivoe/ui/core/sonner';
+
 import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
 import PersonaFlow from './persona-flow';
@@ -56,6 +58,7 @@ const view = (overrides: Partial<VerificationStatusViewModel>): VerificationStat
   status: 'in_progress',
   path: 'individual',
   canStart: false,
+  startedBy: null,
   canResume: true,
   inquiryId: 'inq_1',
   caseWaitingOn: null,
@@ -97,7 +100,7 @@ afterEach(() => {
 describe('PersonaFlow reuses the session token its tab stored', () => {
   it('mounts a Continue with the stored token and never calls the server', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
 
     pressContinue();
 
@@ -108,7 +111,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
 
   it('keeps the session the server hands out for the next Continue', async () => {
     serverSession('tok_fresh');
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
 
     pressContinue();
 
@@ -123,7 +126,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
   it('forgets a stored session Persona refuses and asks the server once', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stale');
     serverSession('tok_fresh');
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -143,7 +146,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
 
   it('forgets a stored session on any hard error, so the next Continue reaches the server', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -158,7 +161,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
   });
 
   it('re-reads the view when the tab comes back into view, so a Continue acts on the present', () => {
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
 
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
@@ -171,7 +174,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
     vi.useFakeTimers();
     try {
       window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-      render(<PersonaFlow view={view({})} />);
+      render(<PersonaFlow subjectId="user_1" view={view({})} />);
       pressContinue();
       act(() => lastMount().onComplete());
       router.refresh.mockClear();
@@ -199,12 +202,14 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
     vi.useFakeTimers();
     try {
       window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-      const { rerender } = render(<PersonaFlow view={view({})} />);
+      const { rerender } = render(<PersonaFlow subjectId="user_1" view={view({})} />);
       pressContinue();
       act(() => lastMount().onComplete());
       router.refresh.mockClear();
 
-      rerender(<PersonaFlow view={view({ status: 'pending_review', canResume: false, inquiryId: null })} />);
+      rerender(
+        <PersonaFlow subjectId="user_1" view={view({ status: 'pending_review', canResume: false, inquiryId: null })} />
+      );
       act(() => {
         vi.advanceTimersByTime(30_000);
       });
@@ -221,7 +226,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
 
   it('forgets the session on completion', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
     pressContinue();
     await screen.findByTestId('persona-frame');
 
@@ -234,7 +239,7 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
   it('always resumes an expired inquiry through the server, whatever the tab stored', async () => {
     window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
     serverSession('tok_fresh');
-    render(<PersonaFlow view={view({ status: 'expired' })} />);
+    render(<PersonaFlow subjectId="user_1" view={view({ status: 'expired' })} />);
 
     pressContinue();
 
@@ -248,7 +253,7 @@ describe('PersonaFlow says each thing once', () => {
   const notStarted = () => view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null });
 
   it('renders a start as one card: the title, the checklist and the button, no status card', () => {
-    render(<PersonaFlow view={notStarted()} />);
+    render(<PersonaFlow subjectId="user_1" view={notStarted()} />);
 
     expect(screen.getByRole('heading', { name: 'Verify your identity' })).toBeTruthy();
     expect(screen.getByRole('list', { name: "What you'll need" })).toBeTruthy();
@@ -260,7 +265,7 @@ describe('PersonaFlow says each thing once', () => {
   });
 
   it("renders an organization's start under the business title with the business checklist", () => {
-    render(<PersonaFlow view={{ ...notStarted(), path: 'organization' }} />);
+    render(<PersonaFlow subjectId="user_1" view={{ ...notStarted(), path: 'organization' }} />);
 
     expect(screen.getByRole('heading', { name: 'Business verification' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Verify your organization' })).toBeTruthy();
@@ -269,8 +274,22 @@ describe('PersonaFlow says each thing once', () => {
     expect(screen.queryByText(/selfie/)).toBeNull();
   });
 
+  it('tells someone removed from the organization so, and re-reads the page, when a start finds them gone', async () => {
+    fetchMock.mockResolvedValueOnce({ status: 404, json: async () => ({ error: 'Not found', code: 'not_member' }) });
+    render(<PersonaFlow subjectId="org_1" view={{ ...notStarted(), path: 'organization' }} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verify organization' }));
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: expect.stringMatching(/no longer a member/) })
+      )
+    );
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a resume as the same card under the resume title', () => {
-    render(<PersonaFlow view={view({})} />);
+    render(<PersonaFlow subjectId="user_1" view={view({})} />);
 
     expect(screen.getByRole('heading', { name: 'Continue your verification' })).toBeTruthy();
     expect(screen.getByRole('list', { name: "What you'll need" })).toBeTruthy();
@@ -279,7 +298,12 @@ describe('PersonaFlow says each thing once', () => {
   });
 
   it('renders a state with nothing to do as the status card alone', () => {
-    render(<PersonaFlow view={view({ status: 'submitted', canStart: false, canResume: false, inquiryId: null })} />);
+    render(
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'submitted', canStart: false, canResume: false, inquiryId: null })}
+      />
+    );
 
     expect(screen.getByRole('heading', { name: 'Verification processing' })).toBeTruthy();
     expect(screen.queryByRole('list', { name: "What you'll need" })).toBeNull();
@@ -302,7 +326,12 @@ describe('PersonaFlow start answers another click cannot change yet', () => {
 
   it('rests the button, without a Retry, while Persona is unavailable', async () => {
     answer(503, { error: 'Identity verification is temporarily unavailable', code: 'persona_unavailable' });
-    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })}
+      />
+    );
 
     await pressStart();
 
@@ -319,7 +348,12 @@ describe('PersonaFlow start answers another click cannot change yet', () => {
 
   it('rests the button for the Retry-After of a rate-limited start', async () => {
     answer(429, { error: 'The request has been rate limited.' }, '120');
-    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })}
+      />
+    );
 
     await pressStart();
 
@@ -335,9 +369,14 @@ describe('PersonaFlow start answers another click cannot change yet', () => {
     expect(startButton().disabled).toBe(false);
   });
 
-  it('sends a start that finds the session gone to sign-in, with the way back here', async () => {
+  it('sends a start that finds the session gone to sign-in, with the way back to their own plain page', async () => {
     answer(401, { error: 'Unauthorized' });
-    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(
+      <PersonaFlow
+        subjectId="7b6f9a1e-0c1d-4e6f-9a2b-3c4d5e6f7a8b"
+        view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })}
+      />
+    );
 
     await pressStart();
 
@@ -346,7 +385,12 @@ describe('PersonaFlow start answers another click cannot change yet', () => {
 
   it("shows the page's own words for a server fault, never the server's", async () => {
     answer(500, { error: 'Error starting identity verification' });
-    render(<PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />);
+    render(
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })}
+      />
+    );
 
     await pressStart();
 
@@ -356,13 +400,21 @@ describe('PersonaFlow start answers another click cannot change yet', () => {
   it('drops the refusal callout once the refreshed card names the state', async () => {
     answer(409, { error: 'Identity verification cannot be started', code: 'already_verified' });
     const { rerender } = render(
-      <PersonaFlow view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })} />
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'not_started', canStart: true, canResume: false, inquiryId: null })}
+      />
     );
 
     await pressStart();
     expect(screen.getByText(/already verified/)).toBeTruthy();
 
-    rerender(<PersonaFlow view={view({ status: 'approved', canStart: false, canResume: false, inquiryId: null })} />);
+    rerender(
+      <PersonaFlow
+        subjectId="user_1"
+        view={view({ status: 'approved', canStart: false, canResume: false, inquiryId: null })}
+      />
+    );
     expect(screen.queryByText(/already verified/)).toBeNull();
     expect(screen.getByText('Your identity is verified.')).toBeTruthy();
   });

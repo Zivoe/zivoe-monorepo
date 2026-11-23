@@ -113,8 +113,9 @@ async function guarded<T>(
     if (!limit.success || limit.reason === 'timeout') return { ok: false, error: { code: 'rate_limited' } };
 
     // Read fresh on every call, so someone removed from an organization cannot act for it from an open tab.
+    // A person may always act for themselves, so a no is an organization they are not, or no longer, in.
     if (!(await organizations.canActForSubject({ userId, subjectId }))) {
-      return { ok: false, error: { code: 'unauthorized' } };
+      return { ok: false, error: { code: 'not_member' } };
     }
 
     return await run(userId);
@@ -139,7 +140,7 @@ export async function listWalletLinks(input: {
 
   try {
     if (!(await organizations.canActForSubject({ userId, subjectId: subjectId.data }))) {
-      return { ok: false, error: { code: 'unauthorized' } };
+      return { ok: false, error: { code: 'not_member' } };
     }
     return { ok: true, value: (await walletLink.listLinks({ subjectId: subjectId.data })).map(toLinkedAddress) };
   } catch (error) {

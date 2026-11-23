@@ -275,7 +275,7 @@ describe('who may act for a subject', () => {
   it('refuses someone who is not a member, on every action, and never reaches the module', async () => {
     mocks.canActForSubject.mockResolvedValue(false);
 
-    const refused = { ok: false, error: { code: 'unauthorized' } };
+    const refused = { ok: false, error: { code: 'not_member' } };
     expect(await listWalletLinks({ subjectId: SUBJECT_ID })).toEqual(refused);
     expect(await getWalletOwnership({ subjectId: SUBJECT_ID, address: ADDRESS })).toEqual(refused);
     expect(

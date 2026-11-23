@@ -1,3 +1,4 @@
+import { NextLink } from '@zivoe/ui/core/link';
 import { CheckIcon, DocumentIcon, UserIcon, WalletIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -12,7 +13,7 @@ const IDENTITY_STEP_LABEL: Record<InvestorPath, string> = {
 };
 
 export const VERIFICATION_STEPS = [
-  { id: 'profile', label: 'Investor profile', Icon: UserIcon },
+  { id: 'profile', label: 'Account details', Icon: UserIcon },
   { id: 'identity', label: IDENTITY_STEP_LABEL.individual, Icon: DocumentIcon },
   { id: 'wallets', label: 'Wallets', Icon: WalletIcon }
 ] as const satisfies ReadonlyArray<{ id: VerificationStepId; label: string; Icon: typeof UserIcon }>;
@@ -41,12 +42,15 @@ export function VerificationSteps({
   current,
   done,
   orientation,
-  path
+  path,
+  detailsHref
 }: {
   current: VerificationStepId;
   done: ReadonlyArray<VerificationStepId>;
   orientation: 'vertical' | 'horizontal';
   path: InvestorPath;
+  /** Where a done Account details step links back to; withheld while a start is in flight. */
+  detailsHref?: string;
 }) {
   const vertical = orientation === 'vertical';
   const labelOf = (step: (typeof VERIFICATION_STEPS)[number]) =>
@@ -85,7 +89,14 @@ export function VerificationSteps({
                   !vertical && !isLabelShown && 'sr-only sm:not-sr-only'
                 )}
               >
-                {labelOf(step)}
+                {/* The way back to the details once verification has started, when they show read-only. */}
+                {step.id === 'profile' && state === 'done' && detailsHref ? (
+                  <NextLink href={detailsHref} className="underline-offset-4 hover:underline">
+                    {labelOf(step)}
+                  </NextLink>
+                ) : (
+                  labelOf(step)
+                )}
               </span>
               {state === 'done' ? <span className="sr-only">, completed</span> : null}
             </div>
