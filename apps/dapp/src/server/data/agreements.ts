@@ -7,18 +7,14 @@ import { agreementAcceptance } from '@zivoe/database/schema';
 import { db } from '@/server/clients/db';
 
 /**
- * When a Verification subject accepted the offering agreements, or null if it has not. Read by `/verification`
- * to place the Agreements step, and by `/api/kyc/start`, which starts no inquiry without it.
+ * Whether a Verification subject has accepted the agreements. Read by `/verification` to place the Agreements
+ * step, and by `/api/kyc/start`, which starts no inquiry without it.
  */
-export async function getAgreementAcceptance({
-  subjectId
-}: {
-  subjectId: string;
-}): Promise<{ acceptedAt: Date } | null> {
+export async function hasAcceptedAgreements({ subjectId }: { subjectId: string }): Promise<boolean> {
   const [row] = await db
-    .select({ acceptedAt: agreementAcceptance.acceptedAt })
+    .select({ subjectId: agreementAcceptance.subjectId })
     .from(agreementAcceptance)
     .where(eq(agreementAcceptance.subjectId, subjectId))
     .limit(1);
-  return row ?? null;
+  return !!row;
 }

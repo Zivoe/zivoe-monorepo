@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({
   canActForSubject: vi.fn(),
   values: vi.fn(),
   onConflictDoNothing: vi.fn(),
-  captureException: vi.fn()
+  captureException: vi.fn(),
+  whileNotStarting: vi.fn()
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
@@ -19,6 +20,7 @@ vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } 
 vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 vi.mock('@/server/data/auth', () => ({ getRequiredStep: mocks.getRequiredStep }));
 vi.mock('@/server/organizations', () => ({ organizations: { canActForSubject: mocks.canActForSubject } }));
+vi.mock('@/server/verification/start-lock', () => ({ whileNotStarting: mocks.whileNotStarting }));
 // `insert(table).values(row).onConflictDoNothing(...)`: `values` records the row, the last call answers.
 vi.mock('@/server/clients/db', () => ({
   db: {
@@ -37,14 +39,26 @@ beforeEach(() => {
   mocks.getRequiredStep.mockResolvedValue(null);
   mocks.canActForSubject.mockResolvedValue(true);
   mocks.onConflictDoNothing.mockResolvedValue(undefined);
+  // The lock is free: the work runs.
+  mocks.whileNotStarting.mockImplementation((_subjectId: string, work: () => Promise<unknown>) => work());
 });
 
 describe('acceptAgreements', () => {
   it('records the subject and the member who accepted for it', async () => {
     expect(await acceptAgreements({ subjectId: ORGANIZATION_ID })).toEqual({ ok: true });
 
+    expect(mocks.whileNotStarting).toHaveBeenCalledWith(ORGANIZATION_ID, expect.any(Function));
     expect(mocks.canActForSubject).toHaveBeenCalledWith({ userId: 'user_1', subjectId: ORGANIZATION_ID });
     expect(mocks.values).toHaveBeenCalledWith({ subjectId: ORGANIZATION_ID, acceptedByUserId: 'user_1' });
+    // The first acceptance stands: a second member's, or a double click, is a no-op, not a failure.
+    expect(mocks.onConflictDoNothing).toHaveBeenCalledWith({ target: expect.anything() });
+  });
+
+  it('asks to try again while a start or a membership change holds the subject, writing nothing', async () => {
+    mocks.whileNotStarting.mockResolvedValue(null);
+
+    expect(await acceptAgreements({ subjectId: ORGANIZATION_ID })).toEqual({ ok: false, code: 'failed' });
+    expect(mocks.values).not.toHaveBeenCalled();
   });
 
   it('refuses a subject the person cannot act for, writing nothing', async () => {

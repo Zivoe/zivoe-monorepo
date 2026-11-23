@@ -4,7 +4,7 @@ import { user } from './auth';
 import { verificationSubject } from './organizations';
 
 /**
- * A Verification subject's acceptance of the offering agreements, on `/verification`'s Agreements step: one
+ * A Verification subject's acceptance of the agreements, on `/verification`'s Agreements step: one
  * row per subject, written the first time and never updated, so a repeat (a double click, a second member of
  * an organization) is a no-op. For an organization, `acceptedByUserId` is the member who accepted on its
  * behalf; null once they delete their account. A subject without a row cannot start its Persona inquiry.

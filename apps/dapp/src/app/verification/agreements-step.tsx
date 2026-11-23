@@ -27,12 +27,12 @@ import { stepCountOf } from './verification-steps';
 const FAILED_COPY = 'Could not save your agreement. Please try again.';
 
 /**
- * Step two of `/verification`: the offering agreements, each opening in a new tab, and one checkbox that
+ * Step two of `/verification`: the agreements, each opening in a new tab, and one checkbox that
  * accepts them all for the selected subject. Continue stays disabled until it is ticked, records the
  * acceptance (`acceptAgreements`), then moves on to the Persona flow. Once accepted, by this person or by
  * another member of the organization, the step shows the box ticked and locked, and Continue only moves on.
  */
-export function AgreementsStep({ subject, acceptedAt }: { subject: SubjectOption; acceptedAt: Date | null }) {
+export function AgreementsStep({ subject, isAccepted }: { subject: SubjectOption; isAccepted: boolean }) {
   const router = useRouter();
   const [isTicked, setIsTicked] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -41,23 +41,30 @@ export function AgreementsStep({ subject, acceptedAt }: { subject: SubjectOption
 
   const accept = useMutation({
     // Wrapped: a server action given React Query's second argument would send it to the server too.
-    mutationFn: (input: { subjectId: string }) => acceptAgreements(input),
-    onSuccess: (result) => {
-      if (result.ok) return proceed();
-      if (result.code === 'not_member') {
-        // Removed with the page open: the refresh takes them to their own page, so the words go in a toast.
-        toast({ type: 'warning', title: ORGANIZATION_ERROR_COPY.not_member });
-        router.refresh();
-        return;
-      }
-      // Signed out or behind the terms: the refresh lets the page's own redirect take over.
-      if (result.code === 'unauthorized') router.refresh();
-      setRefusal(FAILED_COPY);
-    },
-    onError: () => setRefusal(FAILED_COPY)
+    mutationFn: (input: { subjectId: string }) => acceptAgreements(input)
   });
+  // The answer is handled per call, not on the mutation: those callbacks stop once the step unmounts, so an
+  // acceptance that lands after a switch to another account does not pull the page back here.
+  const submit = () =>
+    accept.mutate(
+      { subjectId: subject.id },
+      {
+        onSuccess: (result) => {
+          if (result.ok) return proceed();
+          if (result.code === 'not_member') {
+            // Removed with the page open: the refresh takes them to their own page, so the words go in a toast.
+            toast({ type: 'warning', title: ORGANIZATION_ERROR_COPY.not_member });
+            router.refresh();
+            return;
+          }
+          // Signed out or behind the terms: the refresh lets the page's own redirect take over.
+          if (result.code === 'unauthorized') router.refresh();
+          setRefusal(FAILED_COPY);
+        },
+        onError: () => setRefusal(FAILED_COPY)
+      }
+    );
 
-  const isAccepted = acceptedAt !== null;
   // Pending, and once it has succeeded, until the next step replaces this one.
   const isSaving = accept.isPending || (accept.isSuccess && accept.data.ok);
 
@@ -109,22 +116,14 @@ export function AgreementsStep({ subject, acceptedAt }: { subject: SubjectOption
             ))}
           </ul>
 
-          <div className="flex flex-col gap-2">
-            <Checkbox
-              isSelected={isAccepted || isTicked}
-              onChange={setIsTicked}
-              isDisabled={isAccepted || isSaving}
-              className="items-start leading-normal break-normal"
-            >
-              I have read and agree to these documents.
-            </Checkbox>
-            {/* UTC: the server and the browser must print the same day. */}
-            {acceptedAt ? (
-              <p className="pl-7 text-small text-secondary">
-                Accepted on {acceptedAt.toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' })}.
-              </p>
-            ) : null}
-          </div>
+          <Checkbox
+            isSelected={isAccepted || isTicked}
+            onChange={setIsTicked}
+            isDisabled={isAccepted || isSaving}
+            className="items-start leading-normal break-normal"
+          >
+            I have read and agree to these documents.
+          </Checkbox>
         </div>
 
         <Button
@@ -135,7 +134,7 @@ export function AgreementsStep({ subject, acceptedAt }: { subject: SubjectOption
           onPress={() => {
             setRefusal(null);
             if (isAccepted) return proceed();
-            accept.mutate({ subjectId: subject.id });
+            submit();
           }}
         >
           Continue

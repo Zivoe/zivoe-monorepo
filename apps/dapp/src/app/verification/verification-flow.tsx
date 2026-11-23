@@ -19,7 +19,7 @@ import { WalletLinkStep } from './wallet-link-step';
  * The `/verification` flow inside `VerificationShell`: the account switcher
  * and step rail, and the four steps they move between. Step one confirms the
  * selected account's details (`AccountDetailsStep`), step two accepts the
- * offering agreements (`AgreementsStep`), step three is the Persona flow (a
+ * agreements (`AgreementsStep`), step three is the Persona flow (a
  * person's identity or an organization's business), step four Wallets.
  * A layout of its own, deliberately without the dashboard's navigation: the
  * ways out are Exit and finishing.
@@ -35,14 +35,14 @@ export default function VerificationFlow({
   subjects,
   activeId,
   step,
-  agreementsAcceptedAt,
+  hasAcceptedAgreements,
   profile
 }: {
   subjects: Array<SubjectOption>;
   activeId: string;
   step: VerificationStepId;
-  /** When the active subject accepted the offering agreements; null if it has not. */
-  agreementsAcceptedAt: Date | null;
+  /** Whether the active subject has accepted the agreements. */
+  hasAcceptedAgreements: boolean;
   profile: InvestorProfile;
 }) {
   const router = useRouter();
@@ -102,7 +102,7 @@ export default function VerificationFlow({
           {step === 'profile' ? (
             <AccountDetailsStep key={active.id} subject={active} profile={profile} />
           ) : step === 'agreements' ? (
-            <AgreementsStep key={active.id} subject={active} acceptedAt={agreementsAcceptedAt} />
+            <AgreementsStep key={active.id} subject={active} isAccepted={hasAcceptedAgreements} />
           ) : step === 'identity' ? (
             <PersonaFlow
               subjectId={active.id}

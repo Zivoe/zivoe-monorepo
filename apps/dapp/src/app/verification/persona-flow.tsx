@@ -157,7 +157,9 @@ export default function PersonaFlow({
   const requirements = verificationRequirements({ path: view.path, countryCode });
   const isReady = requirements.every((requirement) => ticked.has(requirement.id));
   // Before Start or Continue, the step is the checklist; every other phase names the verification itself.
-  const isPreparing = !!beginAction && (phase.kind === 'idle' || phase.kind === 'cooldown' || phase.kind === 'error');
+  const isPreparing =
+    !!beginAction &&
+    (phase.kind === 'idle' || phase.kind === 'starting' || phase.kind === 'cooldown' || phase.kind === 'error');
   const header = (
     <Auth.Header
       title={isPreparing ? 'Prepare your documents' : organization ? 'Business verification' : 'Identity verification'}

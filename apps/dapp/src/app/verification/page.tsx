@@ -5,7 +5,7 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
-import { getAgreementAcceptance } from '@/server/data/agreements';
+import { hasAcceptedAgreements } from '@/server/data/agreements';
 import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { organizations } from '@/server/organizations';
@@ -28,7 +28,7 @@ export const metadata: Metadata = { title: 'Verification | Zivoe' };
 
 /**
  * The verification destination, in a shell of its own (no dashboard
- * navigation): the selected account's details, the offering agreements, the Persona flow, then Wallets.
+ * navigation): the selected account's details, the agreements, the Persona flow, then Wallets.
  * The URL holds the state: `subject` names who (the person themselves when
  * absent), read against the viewer's own list, so an id of anything else
  * goes back to the plain page; `step` asks for `details`, `agreements` or `identity`. A subject whose
@@ -87,13 +87,13 @@ export default async function VerificationPage({
   // The person themselves is always first: never empty.
   if (!active) notFound();
 
-  const acceptance = await getAgreementAcceptance({ subjectId: active.id });
+  const hasAccepted = await hasAcceptedAgreements({ subjectId: active.id });
   const country = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
   const currentStep = currentStepFor({
     requested: typeof step === 'string' ? step : undefined,
     canStart: active.view.canStart,
     hasCountry: isSupportedCountryCode(country ?? ''),
-    hasAccepted: !!acceptance,
+    hasAccepted,
     isYesDecision: isYesDecision(active.view)
   });
 
@@ -116,7 +116,7 @@ export default async function VerificationPage({
         subjects={subjects}
         activeId={active.id}
         step={currentStep}
-        agreementsAcceptedAt={acceptance?.acceptedAt ?? null}
+        hasAcceptedAgreements={hasAccepted}
         profile={profile}
       />
     </HydrationBoundary>

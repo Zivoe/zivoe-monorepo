@@ -203,12 +203,12 @@ function renderFlow({
   subjects = [person()],
   activeId = USER_ID,
   step = 'profile',
-  agreementsAcceptedAt = null
+  hasAcceptedAgreements = false
 }: {
   subjects?: Array<SubjectOption>;
   activeId?: string;
   step?: VerificationStepId;
-  agreementsAcceptedAt?: Date | null;
+  hasAcceptedAgreements?: boolean;
 } = {}) {
   const client = new QueryClient();
   return render(
@@ -217,7 +217,7 @@ function renderFlow({
         subjects={subjects}
         activeId={activeId}
         step={step}
-        agreementsAcceptedAt={agreementsAcceptedAt}
+        hasAcceptedAgreements={hasAcceptedAgreements}
         profile={profile}
       />
     </QueryClientProvider>
@@ -523,11 +523,10 @@ describe('step two: the agreements', () => {
   });
 
   it('shows an earlier acceptance ticked and locked, and moves on without recording it again', () => {
-    renderFlow({ step: 'agreements', agreementsAcceptedAt: new Date('2026-11-18T01:30:00Z') });
+    renderFlow({ step: 'agreements', hasAcceptedAgreements: true });
 
     expect(agreementBox().checked).toBe(true);
     expect(agreementBox().disabled).toBe(true);
-    expect(screen.getByText('Accepted on November 18, 2026.')).toBeTruthy();
 
     fireEvent.click(continueButton());
     expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'identity'));
