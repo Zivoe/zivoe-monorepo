@@ -2,6 +2,8 @@ import 'server-only';
 
 import { type VerificationStatus } from '@zivoe/database/kyc';
 
+import { organizationLabel, statusLabel } from '@/server/utils/operator-labels';
+
 import { chainOfChainId } from '@/lib/chains';
 import { escapeHtml } from '@/lib/utils';
 
@@ -11,6 +13,7 @@ import {
   type ScreeningVerdict,
   type WalletLinkOperatorKind,
   type WalletLinkOperatorMessenger,
+  type WalletLinkOwningOrganization,
   type WalletLinkRecord
 } from './wallet-link';
 import { type AddressMembership, summarizeMembership } from './wallet-link-membership';
@@ -37,6 +40,9 @@ const SCREENING_LINES: Record<ScreeningVerdict, string> = {
   flagged: '⚠️ High or Severe risk; do not whitelist before a compliance review',
   unscreened: '⚠️ could not be screened (Chainalysis unavailable); screen the address before whitelisting'
 };
+
+/** A member this new is ops' cue to look twice: an insider could invite an accomplice to link a wallet. */
+const NEW_MEMBER_MS = 7 * 24 * 60 * 60_000;
 
 /** The chain the message was signed on, by display label; a chain the app does not know shows its id. */
 function chainLabel(chainId: number): string {
@@ -78,7 +84,10 @@ export function formatWalletLinkOperatorMessage({
   isSmartAccount,
   membership,
   endedBy,
-  screening
+  screening,
+  organization,
+  signerStatus,
+  now
 }: {
   kind: WalletLinkOperatorKind;
   record: WalletLinkRecord;
@@ -87,6 +96,9 @@ export function formatWalletLinkOperatorMessage({
   membership: AddressMembership | null;
   endedBy: VerificationStatus | null;
   screening: ScreeningVerdict | null;
+  organization: WalletLinkOwningOrganization | null;
+  signerStatus: VerificationStatus | null;
+  now: Date;
 }): string {
   // A Linked address is never unlinked: a revoke is a freeze, and the owner
   // approved again is a Whitelist request to lift it, with no new signature.
@@ -108,9 +120,11 @@ export function formatWalletLinkOperatorMessage({
           : (summary?.frozenOn ?? 0) > 0
             ? 'new link to an address already frozen; check why before unfreezing'
             : 'new link'
-      : endedBy === null
-        ? `no longer approved when asked, approved again since; ${revokeAction}; a restore request follows unless Chainalysis flags the address`
-        : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'}; ${revokeAction}`;
+      : organization?.deleted
+        ? `organization deleted; ${revokeAction}`
+        : endedBy === null
+          ? `no longer approved when asked, approved again since; ${revokeAction}; a restore request follows unless Chainalysis flags the address`
+          : `${REVOKE_REASONS[endedBy] ?? 'verification no longer approved'}; ${revokeAction}`;
   const lines = [
     `<b>${TITLES[kind]} #${record.opsRequestVersion}</b>`,
     '',
@@ -118,7 +132,9 @@ export function formatWalletLinkOperatorMessage({
     ...(record.opsRequestVersion > 1
       ? ['<b>Supersedes:</b> every lower-numbered request for this address; act on the highest number']
       : []),
-    `<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
+    ...(organization
+      ? organizationLines({ organization, organizationId: record.subjectId, email, signerStatus, now })
+      : [`<b>User:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`]),
     `<b>Address:</b> <code>${escapeHtml(record.address)}</code>`,
     `<b>Wallet:</b> ${escapeHtml(record.walletName ?? record.walletType ?? 'unknown')} · signed on ${escapeHtml(chainLabel(record.chainId))}`,
     // A contract is deployed per chain: the same address elsewhere may be
@@ -142,6 +158,31 @@ export function formatWalletLinkOperatorMessage({
   return lines.join('\n');
 }
 
+/** Who owns the address, and what ops should weigh about the member who signed for it. */
+function organizationLines({
+  organization,
+  organizationId,
+  email,
+  signerStatus,
+  now
+}: {
+  organization: WalletLinkOwningOrganization;
+  organizationId: string;
+  email: string | null;
+  signerStatus: VerificationStatus | null;
+  now: Date;
+}): Array<string> {
+  const { signerJoinedAt, signerTitle, signerInvitedBy } = organization;
+  const isNew = !!signerJoinedAt && now.getTime() - signerJoinedAt.getTime() < NEW_MEMBER_MS;
+  return [
+    `<b>Organization:</b> ${organizationLabel({ name: organization.name, id: organizationId, deleted: organization.deleted })}`,
+    `<b>Signed by:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}${signerTitle ? ` (${escapeHtml(signerTitle)})` : ''}${isNew ? ' · ⚠️ NEW MEMBER' : ''}`,
+    `<b>Member since:</b> ${signerJoinedAt ? signerJoinedAt.toISOString().slice(0, 10) : 'no longer a member'}`,
+    `<b>Invited by:</b> ${signerInvitedBy ? escapeHtml(signerInvitedBy) : 'nobody (created it, or the inviter is gone)'}`,
+    `<b>Signer's own verification:</b> ${statusLabel(signerStatus ?? 'not_started')}`
+  ];
+}
+
 /** The operator message port over the wallet-link Telegram channel. */
 export function createTelegramWalletLinkMessenger({
   sendTelegramMessage,
@@ -151,7 +192,7 @@ export function createTelegramWalletLinkMessenger({
   chatId: string;
 }): WalletLinkOperatorMessenger {
   return {
-    async send({ kind, record, email, isSmartAccount, membership, endedBy, screening }) {
+    async send({ kind, record, email, isSmartAccount, membership, endedBy, screening, organization, signerStatus }) {
       await sendTelegramMessage({
         chatId,
         text: formatWalletLinkOperatorMessage({
@@ -161,7 +202,10 @@ export function createTelegramWalletLinkMessenger({
           isSmartAccount,
           membership,
           endedBy,
-          screening
+          screening,
+          organization,
+          signerStatus,
+          now: new Date()
         })
       });
     }

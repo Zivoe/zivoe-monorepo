@@ -129,6 +129,8 @@ export type WalletLinkOwningOrganization = {
   deleted: boolean;
   /** Null when the signer has left since. */
   signerJoinedAt: Date | null;
+  /** Their job title there, as they gave it. */
+  signerTitle: string | null;
   /** The email of whoever invited the signer; null for the one who created it, or an inviter since deleted. */
   signerInvitedBy: string | null;
 };

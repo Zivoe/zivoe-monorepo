@@ -165,7 +165,7 @@ describe('creating', () => {
       organizationId,
       name: DETAILS.name,
       countryOfIncorporation: DETAILS.countryOfIncorporation,
-      createdBy: { name: expect.stringMatching(/^Person \d+$/), email: owner.email }
+      createdBy: { name: expect.stringMatching(/^Person \d+$/), email: owner.email, title: DETAILS.title }
     });
   });
 
@@ -178,7 +178,7 @@ describe('creating', () => {
     await organizations.deliver({ job: { kind: 'organization_created_ops', organizationId } });
 
     expect(operatorMessages.sendOrganizationCreated).toHaveBeenCalledWith(
-      expect.objectContaining({ createdBy: { name: owner.email, email: owner.email } })
+      expect.objectContaining({ createdBy: { name: owner.email, email: owner.email, title: DETAILS.title } })
     );
   });
 

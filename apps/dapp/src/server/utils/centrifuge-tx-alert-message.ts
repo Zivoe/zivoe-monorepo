@@ -6,6 +6,8 @@ import {
   listShareClassChainIdentities
 } from '@zivoe/centrifuge-indexer';
 
+import { organizationLabel } from '@/server/utils/operator-labels';
+
 import { chainOfChainId, getViemChain } from '@/lib/chains';
 import { escapeHtml, formatBigIntWithCommas } from '@/lib/utils';
 
@@ -133,13 +135,16 @@ export function formatTelegramItem({
   symbol,
   shareDecimals,
   shareClassKey,
-  emailLine
+  emailLine,
+  organization = null
 }: {
   event: InvestorTransactionEvent;
   symbol: string;
   shareDecimals: number;
   shareClassKey: string;
   emailLine: string;
+  /** The organization that linked the account, when one did. */
+  organization?: { id: string; name: string; deleted: boolean } | null;
 }): string {
   const shares =
     event.tokenAmount === null ? '?' : formatAmount({ value: event.tokenAmount, tokenDecimals: shareDecimals });
@@ -151,7 +156,11 @@ export function formatTelegramItem({
   const linkPart = txLink ? `<a href="${escapeHtml(txLink)}">tx</a>` : `Tx: <code>${escapeHtml(event.txHash)}</code>`;
   const chainLine = `Chain: ${escapeHtml(chain.label)} · ${linkPart}`;
 
-  const head = [`Account: <code>${escapeHtml(event.account)}</code>`, emailLine];
+  const head = [
+    `Account: <code>${escapeHtml(event.account)}</code>`,
+    ...(organization ? [`Organization: ${organizationLabel(organization)}`] : []),
+    emailLine
+  ];
 
   // Amount and symbol together: with no instance for the chain there is no
   // symbol to name either, so the whole side reads as unknown. A known asset

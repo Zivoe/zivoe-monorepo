@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { organizationLabel, statusLabel } from '@/server/utils/operator-labels';
+
 import { escapeHtml } from '@/lib/utils';
 
 import { type OperatorMessenger } from './verification';
@@ -21,12 +23,13 @@ const LABELS: Record<VerificationOperatorStatus, string> = {
 
 /** What a status line says: the move, with the moves that mean something else. */
 function statusLine(input: Parameters<OperatorMessenger['send']>[0]): string {
-  if (input.kind === 'case_status') return `Case moved to ${input.case.status} (verification ${input.status})`;
+  if (input.kind === 'case_status')
+    return `Case moved to ${input.case.status} (verification ${statusLabel(input.status)})`;
   // A reviewer, or a resync, reversed a Decision: ops may have whitelisted the addresses an approval let them link.
   if (input.status === 'declined' && input.previousDecision === 'approved')
     return 'Declined: the approval no longer stands';
   if (input.status === 'approved' && input.previousDecision === 'declined') return 'Approved after a decline';
-  if (input.accountType !== 'organization') return LABELS[input.status];
+  if (input.subjectKind !== 'organization') return LABELS[input.status];
   // A reviewer took a Decision back by reopening the case: a review, like the email's check.
   if (input.status === 'pending_review' && input.previousDecision === 'approved')
     return 'KYB case reopened: the approval no longer stands';
@@ -41,19 +44,24 @@ function statusLine(input: Parameters<OperatorMessenger['send']>[0]): string {
 }
 
 /**
- * Names the flow, the move, the user (id and email), the inquiry and, for an
+ * Names the flow, the move, the subject (id and email), the inquiry and, for an
  * organization, the KYB case and its raw status; the names and documents
  * stay in Persona. A raw case move that changed no status is its own line.
  */
 export function formatOperatorMessage(input: Parameters<OperatorMessenger['send']>[0]): string {
-  const { userId, email, inquiryId, accountType } = input;
+  const { subjectId, email, organizationName, organizationDeleted, inquiryId, subjectKind } = input;
 
   return [
-    `<b>${accountType === 'organization' ? 'KYB' : 'KYC'} Verification</b>`,
+    `<b>${subjectKind === 'organization' ? 'KYB' : 'KYC'} Verification</b>`,
     '',
     `<b>Status:</b> ${escapeHtml(statusLine(input))}`,
-    `<b>User:</b> ${escapeHtml(userId)}`,
-    `<b>Email:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
+    subjectKind === 'organization'
+      ? `<b>Organization:</b> ${organizationName ? organizationLabel({ name: organizationName, id: subjectId, deleted: organizationDeleted }) : escapeHtml(subjectId)}`
+      : `<b>User:</b> ${escapeHtml(subjectId)}`,
+    // An organization's email is its starter's: the member whose inquiry it is, and who gets its emails.
+    subjectKind === 'organization'
+      ? `<b>Started by:</b> ${email ? escapeHtml(email) : 'nobody (its starter left)'}`
+      : `<b>Email:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Inquiry:</b> ${escapeHtml(inquiryId)}`,
     ...(input.case ? [`<b>Case:</b> ${escapeHtml(input.case.id)} (${escapeHtml(input.case.status)})`] : [])
   ].join('\n');

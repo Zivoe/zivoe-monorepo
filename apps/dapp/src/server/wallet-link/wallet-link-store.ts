@@ -255,7 +255,11 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
 
       const [signer] = signedByUserId
         ? await db
-            .select({ joinedAt: organizationMember.joinedAt, invitedBy: inviter.email })
+            .select({
+              joinedAt: organizationMember.joinedAt,
+              title: organizationMember.title,
+              invitedBy: inviter.email
+            })
             .from(organizationMember)
             .leftJoin(organizationInvitation, eq(organizationInvitation.id, organizationMember.invitationId))
             .leftJoin(inviter, eq(inviter.id, organizationInvitation.invitedByUserId))
@@ -266,6 +270,7 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         name: owner.name,
         deleted: !!owner.deletedAt,
         signerJoinedAt: signer?.joinedAt ?? null,
+        signerTitle: signer?.title ?? null,
         signerInvitedBy: signer?.invitedBy ?? null
       };
     },

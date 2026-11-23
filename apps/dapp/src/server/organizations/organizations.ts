@@ -79,8 +79,8 @@ export type OrganizationOperatorMessages = {
     organizationId: string;
     name: string;
     countryOfIncorporation: string | null;
-    /** Null once the person who created it has deleted their account. */
-    createdBy: { name: string; email: string } | null;
+    /** Null once the person who created it has deleted their account. Their title is null once they have left. */
+    createdBy: { name: string; email: string; title: string | null } | null;
   }): Promise<void>;
 };
 
@@ -1043,21 +1043,26 @@ export function createOrganizations({
               email: user.email,
               userName: user.name,
               firstName: profile.firstName,
-              lastName: profile.lastName
+              lastName: profile.lastName,
+              title: organizationMember.title
             })
             .from(organization)
             .leftJoin(user, eq(user.id, organization.createdByUserId))
             .leftJoin(profile, eq(profile.id, user.id))
+            .leftJoin(
+              organizationMember,
+              and(eq(organizationMember.organizationId, organization.id), eq(organizationMember.userId, user.id))
+            )
             .where(eq(organization.id, job.organizationId))
             .limit(1);
           if (!row) return 'skipped';
-          const { email, userName, firstName, lastName, ...organizationRow } = row;
+          const { email, userName, firstName, lastName, title, ...organizationRow } = row;
           await operatorMessages.sendOrganizationCreated({
             organizationId: job.organizationId,
             ...organizationRow,
             // An email-code sign-up has an empty account name: the email stands in when no profile names them.
             createdBy: email
-              ? { name: displayName({ firstName, lastName, userName: userName ?? '' }) || email, email }
+              ? { name: displayName({ firstName, lastName, userName: userName ?? '' }) || email, email, title }
               : null
           });
           return 'sent';

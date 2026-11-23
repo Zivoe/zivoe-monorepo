@@ -66,7 +66,8 @@ export const organizations = createOrganizations({
           '',
           `<b>Organization:</b> ${organizationLabel({ name, id: organizationId })}`,
           `<b>Country:</b> ${countryOfIncorporation ? escapeHtml(getCountryLabel(countryOfIncorporation)) : 'unknown'}`,
-          `<b>Created by:</b> ${createdBy ? `${escapeHtml(createdBy.name)} (${escapeHtml(createdBy.email)})` : 'unknown'}`
+          `<b>Created by:</b> ${createdBy ? `${escapeHtml(createdBy.name)} (${escapeHtml(createdBy.email)})` : 'unknown'}`,
+          `<b>Job title:</b> ${createdBy?.title ? escapeHtml(createdBy.title) : 'unknown'}`
         ].join('\n')
       });
     }

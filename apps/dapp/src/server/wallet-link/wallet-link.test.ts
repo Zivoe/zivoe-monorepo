@@ -1098,7 +1098,13 @@ describe('deliverNotification', () => {
     chain.setMembership(SIGNER, 'member');
     await walletLink.reconcile({ now: clock.clock.now() });
     const whitelistedEmail = outbox.jobs.find((job) => job.kind === 'whitelisted_email')!;
-    store.owningOrganizations.set(ALICE, { name: 'Acme', deleted: false, signerJoinedAt: null, signerInvitedBy: null });
+    store.owningOrganizations.set(ALICE, {
+      name: 'Acme',
+      deleted: false,
+      signerJoinedAt: null,
+      signerTitle: null,
+      signerInvitedBy: null
+    });
 
     await expect(walletLink.deliverNotification({ job: whitelistedEmail })).resolves.toEqual({
       ok: true,
