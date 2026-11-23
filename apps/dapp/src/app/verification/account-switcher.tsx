@@ -131,7 +131,7 @@ export function AccountSwitcher({
         isOpen={isCreating}
         onOpenChange={setIsCreating}
         // Its details were just given: on to verifying it.
-        onCreated={(organizationId) => router.push(verificationHref({ organizationId, step: 'agreements' }))}
+        onCreated={(organizationId) => router.push(verificationHref({ organizationId, step: 'identity' }))}
       />
     </>
   );

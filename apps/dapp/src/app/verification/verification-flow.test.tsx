@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type InvestorProfile } from '@/server/data/investor-profile';
 import { type VerificationStatusView } from '@/server/verification/verification-status';
 
+import { LATEST_AGREEMENTS_VERSION } from '@/lib/agreements';
+
 import { type SubjectOption } from './account-switcher';
 import VerificationFlow from './verification-flow';
 import { type VerificationStepId } from './verification-steps';
@@ -202,24 +204,16 @@ const company = (overrides: Partial<VerificationStatusView> = {}): SubjectOption
 function renderFlow({
   subjects = [person()],
   activeId = USER_ID,
-  step = 'profile',
-  hasAcceptedAgreements = false
+  step = 'profile'
 }: {
   subjects?: Array<SubjectOption>;
   activeId?: string;
   step?: VerificationStepId;
-  hasAcceptedAgreements?: boolean;
 } = {}) {
   const client = new QueryClient();
   return render(
     <QueryClientProvider client={client}>
-      <VerificationFlow
-        subjects={subjects}
-        activeId={activeId}
-        step={step}
-        hasAcceptedAgreements={hasAcceptedAgreements}
-        profile={profile}
-      />
+      <VerificationFlow subjects={subjects} activeId={activeId} step={step} profile={profile} />
     </QueryClientProvider>
   );
 }
@@ -232,7 +226,7 @@ const pressContinue = () => fireEvent.click(screen.getByRole('button', { name: '
 /** The desktop rail's switcher; the mobile one repeats it. */
 const switcher = () => screen.getAllByRole('button', { name: /^Verifying as/ })[0]!;
 const menuItem = (name: string) => screen.getAllByRole('menuitem', { name })[0]!;
-const toStep = (subjectId: string, step: 'details' | 'agreements' | 'identity') =>
+const toStep = (subjectId: string, step: 'details' | 'identity') =>
   subjectId === USER_ID ? `/verification?step=${step}` : `/verification?subject=${subjectId}&step=${step}`;
 /** Ticks the checklist before the Persona flow: Start waits on all of it. */
 const tickAll = () => {
@@ -259,7 +253,7 @@ describe('step one: account details', () => {
     fireEvent.change(field('First Name'), { target: { value: 'Ada' } });
     pressContinue();
 
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'agreements')));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'identity')));
     expect(mocks.updateInvestorProfile).toHaveBeenCalledWith({
       firstName: 'Ada',
       lastName: 'Agent',
@@ -293,7 +287,7 @@ describe('step one: account details', () => {
 
     expect(field('Legal Name').value).toBe('Acme Capital LLC');
     pressContinue();
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements')));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
     expect(mocks.updateOrganization).not.toHaveBeenCalled();
 
     fireEvent.change(field('Legal Name'), { target: { value: 'Acme Capital Ltd' } });
@@ -315,7 +309,7 @@ describe('step one: account details', () => {
     expect(field('Legal Name').readOnly).toBe(true);
     pressContinue();
 
-    expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements'));
+    expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity'));
     expect(mocks.updateOrganization).not.toHaveBeenCalled();
   });
 });
@@ -387,7 +381,7 @@ describe('the account switcher', () => {
     fireEvent.change(within(dialog).getByLabelText('Your Job Title'), { target: { value: 'CFO' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create organization' }));
 
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'agreements')));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
     expect(mocks.createOrganization.mock.calls[0]![0]).toEqual({
       name: 'Newco Ltd',
       countryOfIncorporation: 'GB',
@@ -417,7 +411,7 @@ describe('the steps after it', () => {
     expect(stepItem('Business verification').getAttribute('aria-current')).toBe('step');
   });
 
-  it('links back to the account details and the agreements, read-only once verification has started', () => {
+  it('links back to the account details, read-only once verification has started', () => {
     renderFlow({
       subjects: [person(), company({ status: 'pending_review', canStart: false })],
       activeId: ORGANIZATION_ID,
@@ -426,16 +420,14 @@ describe('the steps after it', () => {
 
     const details = within(stepItem('Account details')).getByRole('link', { name: 'Account details' });
     expect(details.getAttribute('href')).toBe(toStep(ORGANIZATION_ID, 'details'));
-    const agreements = within(stepItem('Agreements')).getByRole('link', { name: 'Agreements' });
-    expect(agreements.getAttribute('href')).toBe(toStep(ORGANIZATION_ID, 'agreements'));
-    expect(screen.getByText('Step 3 of 4')).toBeTruthy();
+    expect(screen.getByText('Step 2 of 4')).toBeTruthy();
   });
 
-  it('goes back from the Persona step to the agreements while it can still start', () => {
+  it('goes back from the Persona step to the account details while it can still start', () => {
     renderFlow({ step: 'identity' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'agreements'));
+    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'details'));
   });
 
   it('tells a member whose colleague is running the inquiry that it is theirs to finish', () => {
@@ -468,7 +460,7 @@ describe('the steps after it', () => {
     expect(screen.getByRole('button', { name: 'Verify organization' })).toBeTruthy();
   });
 
-  it('shows Wallets for the subject picked, with every step before it done', () => {
+  it('shows Wallets for the subject picked, with every step before it done and none to go back to', () => {
     renderFlow({
       subjects: [person(), company({ status: 'approved', canStart: false })],
       activeId: ORGANIZATION_ID,
@@ -477,9 +469,10 @@ describe('the steps after it', () => {
 
     expect(screen.getByTestId('wallets-step').textContent).toBe(ORGANIZATION_ID);
     expect(stepItem('Wallets').getAttribute('aria-current')).toBe('step');
-    for (const label of ['Account details', 'Agreements', 'Business verification']) {
+    for (const label of ['Account details', 'Business verification', 'Agreements']) {
       expect(within(stepItem(label)).getByText(', completed')).toBeTruthy();
     }
+    expect(within(rail()).queryAllByRole('link')).toEqual([]);
   });
 
   it("holds an organization's no on the business step, with step one done", () => {
@@ -491,38 +484,53 @@ describe('the steps after it', () => {
 
     expect(screen.getByRole('status').textContent).toMatch(/Verification declined/);
     expect(within(stepItem('Account details')).getByText(', completed')).toBeTruthy();
-    expect(within(stepItem('Agreements')).getByText(', completed')).toBeTruthy();
+    expect(within(stepItem('Agreements')).queryByText(', completed')).toBeNull();
     expect(screen.queryByTestId('wallets-step')).toBeNull();
   });
 });
 
-describe('step two: the agreements', () => {
+describe('step three: the agreements', () => {
+  const approved = () => [person(), company({ status: 'approved', canStart: false })];
   const continueButton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Continue' });
   const agreementBox = () => screen.getByRole<HTMLInputElement>('checkbox', { name: /I have read and agree/ });
 
-  it('links each agreement and records the acceptance once the box is ticked, then moves on', async () => {
-    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'agreements' });
+  it('links each agreement of the version in force and records the acceptance once the box is ticked', async () => {
+    renderFlow({ subjects: approved(), activeId: ORGANIZATION_ID, step: 'agreements' });
 
-    expect(screen.getByText('Step 2 of 4')).toBeTruthy();
+    expect(screen.getByText('Step 3 of 4')).toBeTruthy();
     expect(stepItem('Agreements').getAttribute('aria-current')).toBe('step');
     const links = within(screen.getByRole('list', { name: 'Agreements' })).getAllByRole('link');
     expect(
       links.map((link) => [link.textContent?.replace('(opens in a new tab)', ''), link.getAttribute('href')])
     ).toEqual([
-      ['Master Lending Agreement', '/documents/master-lending-agreement.pdf'],
-      ['Confidential Offering Memorandum', '/documents/confidential-offering-memorandum.pdf'],
-      ['Offering Supplement', '/documents/offering-supplement.pdf']
+      ['Master Lending Agreement', `/documents/agreements/${LATEST_AGREEMENTS_VERSION}/master-lending-agreement.pdf`],
+      [
+        'Confidential Offering Memorandum',
+        `/documents/agreements/${LATEST_AGREEMENTS_VERSION}/confidential-offering-memorandum.pdf`
+      ],
+      ['Offering Supplement', `/documents/agreements/${LATEST_AGREEMENTS_VERSION}/offering-supplement.pdf`]
     ]);
 
     fireEvent.click(agreementBox());
     fireEvent.click(continueButton());
 
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
-    expect(mocks.acceptAgreements).toHaveBeenCalledWith({ subjectId: ORGANIZATION_ID });
+    // The refreshed page lands on Wallets.
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(mocks.acceptAgreements).toHaveBeenCalledWith({ version: LATEST_AGREEMENTS_VERSION });
+  });
+
+  it('offers no way back once approved: no Back, and no step links', () => {
+    renderFlow({ subjects: approved(), activeId: ORGANIZATION_ID, step: 'agreements' });
+
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(within(rail()).queryAllByRole('link')).toEqual([]);
+    for (const label of ['Account details', 'Business verification']) {
+      expect(within(stepItem(label)).getByText(', completed')).toBeTruthy();
+    }
   });
 
   it('answers Continue without the box ticked with an error on the box, focused, and records nothing', () => {
-    renderFlow({ step: 'agreements' });
+    renderFlow({ subjects: approved(), step: 'agreements' });
 
     expect(continueButton().disabled).toBe(false);
     fireEvent.click(continueButton());
@@ -531,51 +539,27 @@ describe('step two: the agreements', () => {
     expect(document.activeElement).toBe(agreementBox());
     expect(agreementBox().getAttribute('aria-describedby')).toBe('agreements-unticked');
     expect(mocks.acceptAgreements).not.toHaveBeenCalled();
-    expect(mocks.push).not.toHaveBeenCalled();
 
     // Ticking it clears the error.
     fireEvent.click(agreementBox());
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('shows an earlier acceptance ticked and locked, and moves on without recording it again', () => {
-    renderFlow({ step: 'agreements', hasAcceptedAgreements: true });
-
-    expect(agreementBox().checked).toBe(true);
-    expect(agreementBox().disabled).toBe(true);
-
-    fireEvent.click(continueButton());
-    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'identity'));
-    expect(mocks.acceptAgreements).not.toHaveBeenCalled();
-  });
-
-  it('stays on the step with a message when the acceptance cannot be saved', async () => {
-    mocks.acceptAgreements.mockResolvedValue({ ok: false, code: 'failed' });
-    renderFlow({ step: 'agreements' });
+  it.each([
+    ['cannot be saved', 'failed', 'Could not save your agreement. Please try again.'],
+    [
+      'was for a version a deploy replaced',
+      'outdated',
+      'The agreements were just updated. Reload the page to review them.'
+    ]
+  ] as const)('stays on the step with a message when the acceptance %s', async (_label, code, message) => {
+    mocks.acceptAgreements.mockResolvedValue({ ok: false, code });
+    renderFlow({ subjects: approved(), step: 'agreements' });
 
     fireEvent.click(agreementBox());
     fireEvent.click(continueButton());
 
-    expect((await screen.findByRole('alert')).textContent).toBe('Could not save your agreement. Please try again.');
-    expect(mocks.push).not.toHaveBeenCalled();
-  });
-
-  it('tells someone removed from the organization so, and re-reads the page', async () => {
-    mocks.acceptAgreements.mockResolvedValue({ ok: false, code: 'not_member' });
-    renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'agreements' });
-
-    fireEvent.click(agreementBox());
-    fireEvent.click(continueButton());
-
-    await waitFor(() => expect(mocks.toast).toHaveBeenCalled());
-    expect(mocks.refresh).toHaveBeenCalled();
-    expect(mocks.push).not.toHaveBeenCalled();
-  });
-
-  it('goes back to the account details', () => {
-    renderFlow({ step: 'agreements' });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'details'));
+    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });

@@ -18,31 +18,29 @@ import { WalletLinkStep } from './wallet-link-step';
 /**
  * The `/verification` flow inside `VerificationShell`: the account switcher
  * and step rail, and the four steps they move between. Step one confirms the
- * selected account's details (`AccountDetailsStep`), step two accepts the
- * agreements (`AgreementsStep`), step three is the Persona flow (a
- * person's identity or an organization's business), step four Wallets.
+ * selected account's details (`AccountDetailsStep`), step two is the Persona
+ * flow (a person's identity or an organization's business), step three
+ * accepts the agreements (`AgreementsStep`), step four Wallets.
  * A layout of its own, deliberately without the dashboard's navigation: the
  * ways out are Exit and finishing.
  *
  * Who is being verified is the switcher's call, at the top of the rail on every
  * step; which step shows is the URL's and the record's, read by the page. A yes
- * Decision ends the identity step for good: the page opens on Wallets with every
- * earlier step done, and that step is the completed state. The switcher and
- * the links back to earlier steps are disabled only while a start is in flight;
+ * Decision ends the first two steps for good: the page opens on the Agreements
+ * step until the viewer accepts the version in force, then on Wallets, which is
+ * the completed state, and nothing links back. Before one, the switcher and the
+ * link back to Account details are disabled only while a start is in flight;
  * leaving an open Persona form is like a refresh: Persona keeps the progress.
  */
 export default function VerificationFlow({
   subjects,
   activeId,
   step,
-  hasAcceptedAgreements,
   profile
 }: {
   subjects: Array<SubjectOption>;
   activeId: string;
   step: VerificationStepId;
-  /** Whether the active subject has accepted the agreements. */
-  hasAcceptedAgreements: boolean;
   profile: InvestorProfile;
 }) {
   const router = useRouter();
@@ -63,12 +61,11 @@ export default function VerificationFlow({
 
   const done = stepsBefore(step);
   const organizationId = organizationIdOf(active);
-  const hrefs = isStarting
-    ? undefined
-    : {
-        profile: verificationHref({ organizationId, step: 'details' }),
-        agreements: verificationHref({ organizationId, step: 'agreements' })
-      };
+  // Back to the details before a yes Decision only: after one, nothing earlier opens again.
+  const hrefs =
+    isStarting || step === 'agreements' || step === 'wallets'
+      ? undefined
+      : { profile: verificationHref({ organizationId, step: 'details' }) };
   // The checklist before the Persona flow turns on this: the country of residence, or of incorporation.
   const countryCode = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
   const switcher = <AccountSwitcher subjects={subjects} activeId={active.id} isDisabled={isStarting} />;
@@ -102,7 +99,7 @@ export default function VerificationFlow({
           {step === 'profile' ? (
             <AccountDetailsStep key={active.id} subject={active} profile={profile} />
           ) : step === 'agreements' ? (
-            <AgreementsStep key={active.id} subject={active} isAccepted={hasAcceptedAgreements} />
+            <AgreementsStep />
           ) : step === 'identity' ? (
             <PersonaFlow
               subjectId={active.id}
@@ -110,7 +107,7 @@ export default function VerificationFlow({
               countryCode={countryCode}
               onBack={
                 active.view.canStart
-                  ? () => router.push(verificationHref({ organizationId, step: 'agreements' }))
+                  ? () => router.push(verificationHref({ organizationId, step: 'details' }))
                   : undefined
               }
               onStartingChange={setIsStarting}

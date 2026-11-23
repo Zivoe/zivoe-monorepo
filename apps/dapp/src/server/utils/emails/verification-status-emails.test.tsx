@@ -65,12 +65,12 @@ describe('Verification status emails', () => {
     expect(await declined()).not.toContain('whitelist');
   });
 
-  it('tells an approved investor the wallet step is what remains', async () => {
+  it('tells an approved investor the agreements and the wallet are what remains', async () => {
     const html = await render(
       VerificationApprovedEmail({ name: 'Ada', verificationUrl: VERIFICATION_URL, subjectKind: 'individual' })
     );
 
-    expect(html).toContain('Connect your wallet');
+    expect(html).toContain('accept the agreements and connect the wallet');
     expect(html).toContain('request its whitelist');
   });
 

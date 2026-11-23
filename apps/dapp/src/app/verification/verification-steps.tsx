@@ -6,7 +6,7 @@ import { type InvestorPath } from '@/server/verification/verification-status';
 
 export type VerificationStepId = 'profile' | 'agreements' | 'identity' | 'wallets';
 
-/** The third step is the Persona flow: a person's identity, or a business. */
+/** The second step is the Persona flow: a person's identity, or a business. */
 const IDENTITY_STEP: Record<InvestorPath, { label: string; Icon: typeof UserIcon }> = {
   individual: { label: 'Identity verification', Icon: CameraIcon },
   organization: { label: 'Business verification', Icon: BankIcon }
@@ -15,8 +15,8 @@ const IDENTITY_STEP: Record<InvestorPath, { label: string; Icon: typeof UserIcon
 /** In order: a step is done once the flow has moved past it. */
 export const VERIFICATION_STEPS = [
   { id: 'profile', label: 'Account details', Icon: UserIcon },
-  { id: 'agreements', label: 'Agreements', Icon: DocumentIcon },
   { id: 'identity', ...IDENTITY_STEP.individual },
+  { id: 'agreements', label: 'Agreements', Icon: DocumentIcon },
   { id: 'wallets', label: 'Wallets', Icon: WalletIcon }
 ] as const satisfies ReadonlyArray<{ id: VerificationStepId; label: string; Icon: typeof UserIcon }>;
 
@@ -32,10 +32,11 @@ export const stepsBefore = (current: VerificationStepId): Array<VerificationStep
   ).map((step) => step.id);
 
 /**
- * The step `/verification` shows, from what the URL asks for (`?step=`) and what the record allows. A subject
- * whose verification can still start opens on its details, and stays there while it lacks a real country (its
- * first inquiry, and the checklist before it, turn on the country). Agreements come before the Persona flow,
- * and before Wallets for a subject that never accepted them; a yes Decision ends on Wallets.
+ * The step `/verification` shows, from what the URL asks for (`?step=`) and what the record allows. A yes
+ * Decision is final: the page shows the Agreements step until the viewer has accepted the version in force, then
+ * Wallets, and no earlier step opens again whatever the URL asks. Before one, a subject whose verification can
+ * still start opens on its details, and stays there while it lacks a real country (its first inquiry, and the
+ * checklist before it, turn on the country); `identity` moves it on to the Persona flow.
  */
 export function currentStepFor({
   requested,
@@ -47,13 +48,13 @@ export function currentStepFor({
   requested: string | undefined;
   canStart: boolean;
   hasCountry: boolean;
+  /** Whether the viewer has accepted the agreements in force: a person accepts for every account they act for. */
   hasAccepted: boolean;
   isYesDecision: boolean;
 }): VerificationStepId {
-  if (requested === 'details' || (canStart && !hasCountry)) return 'profile';
-  if (canStart && requested !== 'agreements' && requested !== 'identity') return 'profile';
-  if (requested === 'agreements' || !hasAccepted) return 'agreements';
-  return isYesDecision ? 'wallets' : 'identity';
+  if (isYesDecision) return hasAccepted ? 'wallets' : 'agreements';
+  if (requested === 'details' || (canStart && (!hasCountry || requested !== 'identity'))) return 'profile';
+  return 'identity';
 }
 
 type StepState = 'done' | 'current' | 'upcoming';
@@ -89,7 +90,7 @@ export function VerificationSteps({
   done: ReadonlyArray<VerificationStepId>;
   orientation: 'vertical' | 'horizontal';
   path: InvestorPath;
-  /** Where a done step links back to (Account details, Agreements); withheld while a start is in flight. */
+  /** Where a done step links back to (Account details, before a yes Decision); withheld while a start is in flight. */
   hrefs?: Partial<Record<VerificationStepId, string>>;
 }) {
   const vertical = orientation === 'vertical';

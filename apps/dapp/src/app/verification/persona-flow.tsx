@@ -25,7 +25,6 @@ import { type StartVerificationErrorResponse, type StartVerificationResponse } f
 
 import { env } from '@/env';
 
-import { verificationHref } from './verification-href';
 import { type VerificationRequirement, verificationRequirements } from './verification-requirements';
 import { START_REFUSAL_COPY, presentVerificationStatus } from './verification-status-copy';
 import { VerificationStatusView } from './verification-status-view';
@@ -114,7 +113,7 @@ export default function PersonaFlow({
   view: VerificationStatusViewModel;
   /** The subject's country of residence or of incorporation: the checklist before Start turns on it. */
   countryCode: string | null;
-  /** Back to the Agreements step; offered while nothing is in flight. */
+  /** Back to Account details; offered while nothing is in flight. */
   onBack?: () => void;
   /** Tells the shell a start is in flight, so nothing above navigates away before it lands. */
   onStartingChange?: (isStarting: boolean) => void;
@@ -225,11 +224,6 @@ export default function PersonaFlow({
 
     if (err || !body) {
       setPhase({ kind: 'error', message: START_FAILED_COPY });
-    } else if ('code' in body && body.code === 'agreements_required') {
-      // Not accepted for this subject (only a hand-edited URL or a stale tab gets here): the step before this one.
-      setPhase({ kind: 'idle' });
-      toast({ type: 'warning', title: 'Accept the agreements before verifying.' });
-      router.push(verificationHref({ organizationId: organization ? subjectId : null, step: 'agreements' }));
     } else if ('code' in body && body.code === 'not_member') {
       // No longer a member (removed with the page open): the refresh takes them to their own page, the words with them.
       toast({ type: 'warning', title: ORGANIZATION_ERROR_COPY.not_member });

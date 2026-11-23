@@ -364,20 +364,6 @@ describe('PersonaFlow asks for the documents first', () => {
     );
     expect(router.refresh).toHaveBeenCalledTimes(1);
   });
-
-  it('sends a start without accepted agreements back to that step', async () => {
-    fetchMock.mockResolvedValueOnce({
-      status: 409,
-      json: async () => ({ error: 'Agreements not accepted', code: 'agreements_required' })
-    });
-    render(<PersonaFlow countryCode="RO" subjectId="org_1" view={{ ...notStarted(), path: 'organization' }} />);
-
-    tickAll();
-    fireEvent.click(button('Verify organization'));
-
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/verification?subject=org_1&step=agreements'));
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/agreements/) }));
-  });
 });
 
 describe('PersonaFlow start answers another click cannot change yet', () => {

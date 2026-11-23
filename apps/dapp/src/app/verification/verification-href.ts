@@ -6,7 +6,7 @@ export const verificationHref = ({
   step
 }: {
   organizationId?: string | null;
-  step?: 'details' | 'agreements' | 'identity';
+  step?: 'details' | 'identity';
 }) => {
   const params = new URLSearchParams();
   if (organizationId) params.set('subject', organizationId);

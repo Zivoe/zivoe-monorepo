@@ -5,7 +5,7 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
-import { hasAcceptedAgreements } from '@/server/data/agreements';
+import { getAgreementsAccess } from '@/server/data/agreements';
 import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
 import { organizations } from '@/server/organizations';
@@ -28,13 +28,14 @@ export const metadata: Metadata = { title: 'Verification | Zivoe' };
 
 /**
  * The verification destination, in a shell of its own (no dashboard
- * navigation): the selected account's details, the agreements, the Persona flow, then Wallets.
+ * navigation): the selected account's details, the Persona flow, the agreements, then Wallets.
  * The URL holds the state: `subject` names who (the person themselves when
  * absent), read against the viewer's own list, so an id of anything else
- * goes back to the plain page; `step` asks for `details`, `agreements` or `identity`. A subject whose
+ * goes back to the plain page; `step` asks for `details` or `identity` before a yes Decision. A subject whose
  * verification can still start opens on its details. Requires a session, the
  * current terms accepted and a completed onboarding profile: the existing
- * redirects, not a KYC guard. Behind the `kyc` flag: a 404 for anyone it is off for.
+ * redirects, not a KYC guard. Not behind the agreements gate (`getRequiredStep`): this page asks for them itself,
+ * and someone yet to accept can still verify another account. Behind the `kyc` flag: a 404 for anyone it is off for.
  */
 export default async function VerificationPage({
   searchParams
@@ -51,10 +52,11 @@ export default async function VerificationPage({
 
   if (!(await isKycEnabled({ user }))) notFound();
 
-  const [profile, termsStatus, memberships] = await Promise.all([
+  const [profile, termsStatus, memberships, agreements] = await Promise.all([
     getInvestorProfile({ userId: user.id }),
     getTermsStatus(user.id),
-    organizations.listForUser({ userId: user.id })
+    organizations.listForUser({ userId: user.id }),
+    getAgreementsAccess(user.id)
   ]);
   // Behind on the terms: accept them first; the terms page hands the user back here.
   if (termsStatus !== 'accepted') redirect(withNext('/terms', returnTo));
@@ -87,13 +89,13 @@ export default async function VerificationPage({
   // The person themselves is always first: never empty.
   if (!active) notFound();
 
-  const hasAccepted = await hasAcceptedAgreements({ subjectId: active.id });
   const country = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
   const currentStep = currentStepFor({
     requested: typeof step === 'string' ? step : undefined,
     canStart: active.view.canStart,
     hasCountry: isSupportedCountryCode(country ?? ''),
-    hasAccepted,
+    // The viewer's own acceptance: it covers every account they act for.
+    hasAccepted: agreements.status === 'accepted',
     isYesDecision: isYesDecision(active.view)
   });
 
@@ -112,13 +114,7 @@ export default async function VerificationPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <VerificationFlow
-        subjects={subjects}
-        activeId={active.id}
-        step={currentStep}
-        hasAcceptedAgreements={hasAccepted}
-        profile={profile}
-      />
+      <VerificationFlow subjects={subjects} activeId={active.id} step={currentStep} profile={profile} />
     </HydrationBoundary>
   );
 }

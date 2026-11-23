@@ -30,13 +30,12 @@ import { stepCountOf } from './verification-steps';
  * Step one of `/verification`: the details of whoever the switcher has selected, the person's own or their
  * organization's. Editable only while that subject's verification can still start; after that they show as
  * they are, since Persona holds what was submitted. Continue saves what can be saved and moves on to the
- * Agreements step through the URL. Who is being verified is never chosen here: that is the switcher's.
+ * Persona flow through the URL. Who is being verified is never chosen here: that is the switcher's.
  */
 export function AccountDetailsStep({ subject, profile }: { subject: SubjectOption; profile: InvestorProfile }) {
   const router = useRouter();
   const [refusal, setRefusal] = useState<string | null>(null);
-  const proceed = () =>
-    router.push(verificationHref({ organizationId: organizationIdOf(subject), step: 'agreements' }));
+  const proceed = () => router.push(verificationHref({ organizationId: organizationIdOf(subject), step: 'identity' }));
 
   const update = useMutation({
     // Wrapped: a server action given React Query's second argument would send it to the server too.
