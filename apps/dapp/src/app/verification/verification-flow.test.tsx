@@ -562,4 +562,15 @@ describe('step three: the agreements', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(message);
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
+
+  it('refreshes into the page’s own redirect when the session ended, with nothing to retry', async () => {
+    mocks.acceptAgreements.mockResolvedValue({ ok: false, code: 'unauthorized' });
+    renderFlow({ subjects: approved(), step: 'agreements' });
+
+    fireEvent.click(agreementBox());
+    fireEvent.click(continueButton());
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

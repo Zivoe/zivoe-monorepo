@@ -42,8 +42,8 @@ export function AgreementsForm({ onAccepted }: { onAccepted: () => void }) {
       if (result.ok) return onAccepted();
       // A deploy published new agreements while the page was open: only a reload shows them.
       if (result.code === 'outdated') return setRefusal(OUTDATED_COPY);
-      // Signed out or behind the terms: the refresh lets the page's own redirect take over.
-      if (result.code === 'unauthorized') router.refresh();
+      // Signed out or behind the terms: the refresh lets the page's own redirect take over, with nothing to retry.
+      if (result.code === 'unauthorized') return router.refresh();
       setRefusal(FAILED_COPY);
     },
     onError: () => setRefusal(FAILED_COPY)

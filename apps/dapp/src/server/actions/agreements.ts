@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { after } from 'next/server';
 
@@ -56,7 +55,7 @@ export async function acceptAgreements({ version }: { version: string }): Promis
     return { ok: false, code: 'failed' };
   }
 
-  // Every page reads the acceptance (the gate, the Agreements step): the router's earlier copies must not send them back.
-  revalidatePath('/', 'layout');
+  // No revalidation: both callers move on themselves (the step refreshes, `/agreements` loads the next page in full),
+  // and a revalidated `/agreements` would redirect on its own as well.
   return { ok: true };
 }

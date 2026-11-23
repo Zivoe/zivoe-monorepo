@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/server', () => ({ after: (run: () => unknown) => run() }));
 vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));

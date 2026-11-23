@@ -16,7 +16,7 @@ export default function AgreementsGateForm({ next, isUpdate }: { next?: string; 
           description={
             isUpdate
               ? 'The agreements have changed since you last accepted them. Please review and accept the updated agreements to keep using Zivoe.'
-              : 'Open each document, then confirm your agreement to keep using Zivoe.'
+              : 'Open each document, then confirm your agreement to continue.'
           }
         />
 
