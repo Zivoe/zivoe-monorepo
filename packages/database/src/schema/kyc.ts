@@ -3,25 +3,32 @@ import { check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, u
 
 import { verificationStatusValues } from '../kyc';
 import { user } from './auth';
+import { verificationSubject } from './organizations';
 
 export * from '../kyc';
 
 export const kycStatusEnum = pgEnum('kyc_status', verificationStatusValues);
 
 /**
- * One Verification per user — the app's read model of a Persona inquiry and,
- * for an organization, of the KYB case that decides it: identifiers, a
- * Verification Status and timestamps. The profile's account type says which
- * flow the row is (an individual's KYC, an organization's KYB). No PII,
+ * One Verification per Verification subject — the app's read model of a
+ * Persona inquiry and, for an organization, of the KYB case that decides it:
+ * identifiers, a Verification Status and timestamps. The subject's kind says
+ * which flow the row is (an individual's KYC, an organization's KYB). No PII,
  * ever: names, documents and images stay in Persona. Rows are created lazily
  * on the first start (or the first webhook), so a missing row is `not_started`.
  */
 export const kycVerification = pgTable(
   'kyc_verification',
   {
-    userId: uuid('user_id')
+    subjectId: uuid('subject_id')
       .primaryKey()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => verificationSubject.id, { onDelete: 'cascade' }),
+    /**
+     * Who started the current inquiry: only they may continue an organization's
+     * while it is in flight, and they alone hear its status emails. Cleared when
+     * they leave the organization; null for a row a webhook created.
+     */
+    startedByUserId: uuid('started_by_user_id').references(() => user.id, { onDelete: 'set null' }),
     status: kycStatusEnum('status').notNull(),
     personaInquiryId: text('persona_inquiry_id'),
     personaAccountId: text('persona_account_id'),

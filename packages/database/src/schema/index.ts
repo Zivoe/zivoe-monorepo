@@ -2,6 +2,7 @@ export * from './auth';
 export * from './kyc';
 export * from './notifications';
 export * from './onboarding';
+export * from './organizations';
 export * from './safelist';
 export * from './terms';
 export * from './wallets';

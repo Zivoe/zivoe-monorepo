@@ -7,6 +7,7 @@
     "./onboarding": "./src/onboarding.ts",
     "./kyc": "./src/kyc.ts",
     "./wallet-link": "./src/wallet-link.ts",
+    "./organizations": "./src/organizations.ts",
     "./schema": "./src/schema/index.ts",
     "./agent": "./src/agent.ts"
   },

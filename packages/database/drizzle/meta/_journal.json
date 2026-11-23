@@ -148,6 +148,20 @@
       "when": 1793610577878,
       "tag": "0020_wallet_link_permanent_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793696977878,
+      "tag": "0021_organizations_and_subjects",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794179036449,
+      "tag": "0022_organization_member_removal",
+      "breakpoints": true
     }
   ]
 }
