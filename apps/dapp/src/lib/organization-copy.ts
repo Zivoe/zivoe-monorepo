@@ -2,14 +2,14 @@ import { type OrganizationActionCode } from '@/server/actions/organizations';
 
 /** What a refused organization action says. Every code the actions can answer, one sentence each. */
 export const ORGANIZATION_ERROR_COPY: Record<OrganizationActionCode, string> = {
-  unauthorized: 'Your session has changed. Reload the page and try again.',
+  unauthorized: 'Something changed since this page loaded. Reload the page and try again.',
   invalid_input: 'Please check the details and try again.',
   rate_limited: 'Too many attempts. Please try again later.',
   failed: 'Something went wrong. Please try again.',
   being_verified: 'This organization is being changed or verified right now. Try again in a moment.',
   too_many_organizations: 'You belong to the maximum number of organizations.',
   not_member: 'You are no longer a member of this organization.',
-  locked: 'These details can no longer be changed: the organization has a verification.',
+  locked: "These details can no longer be changed once the organization's verification has started.",
   last_member: 'You are the last member. Delete the organization instead.',
   already_removed: 'This person is no longer a member.',
   cannot_remove_self: 'To remove yourself, leave the organization instead.',

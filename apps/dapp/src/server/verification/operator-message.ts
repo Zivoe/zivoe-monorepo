@@ -58,9 +58,10 @@ export function formatOperatorMessage(input: Parameters<OperatorMessenger['send'
     subjectKind === 'organization'
       ? `<b>Organization:</b> ${organizationName ? organizationLabel({ name: organizationName, id: subjectId, deleted: organizationDeleted }) : escapeHtml(subjectId)}`
       : `<b>User:</b> ${escapeHtml(subjectId)}`,
-    // An organization's email is its starter's: the member whose inquiry it is, and who gets its emails.
+    // An organization's email is its starter's: the member whose inquiry it is, and who gets its emails. None
+    // when the starter left, or when the sweep adopted an inquiry it can't attribute to anyone.
     subjectKind === 'organization'
-      ? `<b>Started by:</b> ${email ? escapeHtml(email) : 'nobody (its starter left)'}`
+      ? `<b>Started by:</b> ${email ? escapeHtml(email) : 'nobody on record'}`
       : `<b>Email:</b> ${email ? escapeHtml(email) : 'unknown (profile gone)'}`,
     `<b>Inquiry:</b> ${escapeHtml(inquiryId)}`,
     ...(input.case ? [`<b>Case:</b> ${escapeHtml(input.case.id)} (${escapeHtml(input.case.status)})`] : [])

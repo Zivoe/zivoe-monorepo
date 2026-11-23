@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 
 import { type SubjectKind } from '@zivoe/database/organizations';
 
+import { isOneLine, readsAsLink } from '@/lib/schemas/reads-as-link';
 import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -294,9 +295,14 @@ export async function sendVerificationStatusEmail({
   const verificationUrl =
     subjectKind === 'organization' ? `${BASE_URL}/verification?subject=${subjectId}` : `${BASE_URL}/verification`;
   const reopen = status === 'pending_review' && previousDecision;
-  const subject = reopen
+  const baseSubject = reopen
     ? VERIFICATION_REOPENED_SUBJECTS[subjectKind]
     : VERIFICATION_EMAILS[status].subject[subjectKind];
+  // Someone can belong to several organizations: the inbox says which one, when the name is safe in a subject line.
+  const subject =
+    subjectKind === 'organization' && organizationName && isOneLine(organizationName) && !readsAsLink(organizationName)
+      ? `${baseSubject}: ${organizationName}`
+      : baseSubject;
   const html = await render(
     reopen
       ? VerificationReopenedEmail({ name, verificationUrl, subjectKind, organizationName, previousDecision })
