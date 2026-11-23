@@ -8,17 +8,24 @@
       "name": "agreement_acceptance",
       "schema": "",
       "columns": {
-        "subject_id": {
-          "name": "subject_id",
+        "id": {
+          "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "accepted_by_user_id": {
-          "name": "accepted_by_user_id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "agreements_version": {
+          "name": "agreements_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "accepted_at": {
           "name": "accepted_at",
@@ -28,32 +35,41 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "agreement_acceptance_user_version_idx": {
+          "name": "agreement_acceptance_user_version_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agreements_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "agreement_acceptance_subject_id_verification_subject_id_fk": {
-          "name": "agreement_acceptance_subject_id_verification_subject_id_fk",
+        "agreement_acceptance_user_id_user_id_fk": {
+          "name": "agreement_acceptance_user_id_user_id_fk",
           "tableFrom": "agreement_acceptance",
-          "tableTo": "verification_subject",
+          "tableTo": "user",
           "columnsFrom": [
-            "subject_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agreement_acceptance_accepted_by_user_id_user_id_fk": {
-          "name": "agreement_acceptance_accepted_by_user_id_user_id_fk",
-          "tableFrom": "agreement_acceptance",
-          "tableTo": "user",
-          "columnsFrom": [
-            "accepted_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1886,6 +1902,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "agreements_version": {
+          "name": "agreements_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "whitelist_requested_at": {
           "name": "whitelist_requested_at",
           "type": "timestamp with time zone",
@@ -2021,6 +2043,10 @@
         "wallet_link_linked_has_signature": {
           "name": "wallet_link_linked_has_signature",
           "value": "\"wallet_link\".\"status\" = 'pending' OR (\"wallet_link\".\"signature\" IS NOT NULL AND \"wallet_link\".\"signed_at\" IS NOT NULL AND \"wallet_link\".\"signed_by_user_id\" IS NOT NULL)"
+        },
+        "wallet_link_linked_has_agreements_version": {
+          "name": "wallet_link_linked_has_agreements_version",
+          "value": "\"wallet_link\".\"status\" = 'pending' OR \"wallet_link\".\"agreements_version\" IS NOT NULL"
         },
         "wallet_link_linked_has_ops_request": {
           "name": "wallet_link_linked_has_ops_request",

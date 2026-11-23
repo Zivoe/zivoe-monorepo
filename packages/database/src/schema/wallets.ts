@@ -57,11 +57,11 @@ export const walletLinkOpsRequestEnum = pgEnum('wallet_link_ops_request', wallet
  * whitelist timeline ops and the reconcile fill in. Whether the address is
  * whitelisted is the chain's to say. The address is stored lowercase. One
  * `linked` row per address across all subjects; one `pending` row per
- * (subject, address) so a re-issue upserts. A trigger (migrations 0020, 0021)
- * keeps a linked row from being deleted, moved out of `linked`, or rewritten
- * to another subject, signer, address or proof. A linked row's (signer, address)
- * also exists in `wallet_connection`, guaranteed by the write that flips a row
- * to `linked`, not by a constraint.
+ * (subject, address) so a re-issue upserts. A trigger (migrations 0020, 0021,
+ * 0023) keeps a linked row from being deleted, moved out of `linked`, or
+ * rewritten to another subject, signer, address, proof or agreements version.
+ * A linked row's (signer, address) also exists in `wallet_connection`,
+ * guaranteed by the write that flips a row to `linked`, not by a constraint.
  */
 export const walletLink = pgTable(
   'wallet_link',
@@ -88,6 +88,8 @@ export const walletLink = pgTable(
     typedData: jsonb('typed_data').notNull(),
     signature: text('signature'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    /** The agreements version the signer had accepted when the link completed; null on a challenge. */
+    agreementsVersion: text('agreements_version'),
     /** When the latest Whitelist request was queued for ops: the link, or an approval again since. */
     whitelistRequestedAt: timestamp('whitelist_requested_at', { withTimezone: true }),
     /**
@@ -124,6 +126,11 @@ export const walletLink = pgTable(
     check(
       'wallet_link_linked_has_signature',
       sql`${table.status} = 'pending' OR (${table.signature} IS NOT NULL AND ${table.signedAt} IS NOT NULL AND ${table.signedByUserId} IS NOT NULL)`
+    ),
+    // A link is made under the signer's acceptance of the agreements in force, and says which version.
+    check(
+      'wallet_link_linked_has_agreements_version',
+      sql`${table.status} = 'pending' OR ${table.agreementsVersion} IS NOT NULL`
     ),
     // A Linked address always says what ops was asked.
     check(
