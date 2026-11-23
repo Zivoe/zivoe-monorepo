@@ -94,8 +94,9 @@ export function AccountSwitcher({
                 router.push(verificationHref({ organizationId: organizationIdOf(picked) }));
             }}
           >
-            <MenuSection>
-              <Aria.Header className="pb-2 pl-3 text-small text-secondary">Switch account</Aria.Header>
+            {/* The menu's own `space-y-1` stops at the section, so its rows get their gap here. */}
+            <MenuSection className="flex flex-col gap-1">
+              <Aria.Header className="pb-1 pl-3 text-small text-secondary">Switch account</Aria.Header>
               {subjects.map((subject) => {
                 const isActive = subject.id === active.id;
                 return (
