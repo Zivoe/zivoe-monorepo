@@ -1,12 +1,18 @@
 import 'server-only';
 
 import * as Sentry from '@sentry/nextjs';
+import { createHash } from 'node:crypto';
 
 import { posthog } from '@/server/clients/posthog';
 
 import { env } from '@/env';
 
-/** The PostHog flag that reveals the KYC surfaces; its release condition lists the users by email. */
+/**
+ * The PostHog flag that reveals the KYC surfaces; its release condition lists the users by email.
+ * Invitations check it for an address before anyone has an account there (`isKycEnabledForAddress`): a
+ * condition that isn't by email (a percentage rollout hashes the id) would read differently for the
+ * invitee before and after sign-up. Change the release condition with that in mind.
+ */
 export const KYC_FLAG = 'kyc';
 
 /**
@@ -58,6 +64,34 @@ export async function isKycEnabled({ user }: { user: { id: string; email: string
     });
 
     return flags.isEnabled(KYC_FLAG);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'kyc-flag' } });
+    return false;
+  }
+}
+
+/**
+ * Whether the flag would be on for whoever signs up with this address: what an invitation checks before
+ * it is sent. Evaluated locally and without the usage event `isKycEnabled` sends, so the address of
+ * someone with no account never reaches PostHog. Off on any doubt, as above.
+ */
+export async function isKycEnabledForAddress(email: string): Promise<boolean> {
+  if (env.NEXT_PUBLIC_ENV !== 'production') return true;
+
+  try {
+    await definitionsLoaded();
+    if (!posthog.isLocalEvaluationReady()) return false;
+
+    const value = await posthog.getFeatureFlag(
+      KYC_FLAG,
+      `invitee:${createHash('sha256').update(email).digest('hex')}`,
+      {
+        personProperties: { email },
+        onlyEvaluateLocally: true,
+        sendFeatureFlagEvents: false
+      }
+    );
+    return value === true;
   } catch (err) {
     Sentry.captureException(err, { tags: { source: 'SERVER', flow: 'kyc-flag' } });
     return false;
