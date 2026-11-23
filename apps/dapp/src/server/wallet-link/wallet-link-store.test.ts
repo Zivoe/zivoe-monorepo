@@ -27,7 +27,8 @@ const T0 = new Date('2026-10-01T10:00:00.000Z');
 const at = (minutes: number) => new Date(T0.getTime() + minutes * 60_000);
 const address = (digit: string): Address => `0x${digit.repeat(40)}`;
 const SIGNATURE: Hex = `0x${'ab'.repeat(65)}`;
-const AGREEMENTS_VERSION = '2026-11-18';
+// Opaque to the module: any version the caller checked.
+const AGREEMENTS_VERSION = 'agreements-v1';
 
 const users: Record<'ada' | 'bob' | 'cy' | 'dee', string> = { ada: '', bob: '', cy: '', dee: '' };
 

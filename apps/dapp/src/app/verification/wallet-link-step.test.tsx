@@ -606,6 +606,22 @@ describe('the connected wallet', () => {
     expect(mocks.list).toHaveBeenCalledTimes(1);
   });
 
+  it('refreshes into the Agreements step when the address check answers that the agreements are not accepted', async () => {
+    connect();
+    mocks.ownership.mockResolvedValue({ ok: false, error: { code: 'agreements_required' } });
+    // No cached answer for the address: the step asks the server.
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    client.setQueryData(['WALLET_LINKS', USER_ID], []);
+    render(
+      <QueryClientProvider client={client}>
+        <WalletLinkStep subjectId={USER_ID} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
   it('refreshes into the Agreements step when the agreements in force are not accepted', async () => {
     connect();
     mocks.issue.mockResolvedValue({ ok: false, error: { code: 'agreements_required' } });

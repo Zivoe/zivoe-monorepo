@@ -30,7 +30,8 @@ const T0 = new Date('2026-10-03T10:00:00.000Z');
 const DAY = 24 * 60 * 60_000;
 const HOUR = 60 * 60_000;
 const CHAIN_ID = 11155111;
-const AGREEMENTS_VERSION = '2026-11-18';
+// Opaque to the module: any version the caller checked.
+const AGREEMENTS_VERSION = 'agreements-v1';
 
 // A throwaway key: the EOA whose signatures the fake chain recovers.
 const signer = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
