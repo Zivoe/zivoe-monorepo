@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   // Production never reads this.
   allowedDevOrigins: process.env.APP_URL ? [new URL(process.env.APP_URL).hostname] : [],
 
+  // The confidential PDFs `app/documents/[file]/route.ts` reads from disk, outside `public/`.
+  outputFileTracingIncludes: {
+    '/documents/[file]': ['./documents/*.pdf']
+  },
+
   experimental: {
     staleTimes: {
       dynamic: 30,

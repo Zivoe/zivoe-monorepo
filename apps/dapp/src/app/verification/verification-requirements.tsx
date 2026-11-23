@@ -5,7 +5,7 @@ import { BankIcon, CameraIcon, DocumentIcon, UserIcon } from '@zivoe/ui/icons';
 
 import { type InvestorPath } from '@/server/verification/verification-status';
 
-import { ATTESTATION_LETTER_HREF } from './offering-documents';
+import { ATTESTATION_LETTER_HREF } from './verification-documents';
 
 /** The United States and its territories: a subject resident or incorporated in any of them is a U.S. investor. */
 const US_JURISDICTIONS = new Set(['US', 'PR', 'VI', 'GU', 'AS', 'MP', 'UM']);

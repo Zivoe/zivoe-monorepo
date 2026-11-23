@@ -20,7 +20,7 @@ import { ORGANIZATION_ERROR_COPY } from '@/lib/organization-copy';
 import { Auth } from '@/app/(auth)/_components/common';
 
 import { type SubjectOption } from './account-switcher';
-import { OFFERING_AGREEMENTS } from './offering-documents';
+import { AGREEMENTS } from './verification-documents';
 import { organizationIdOf, verificationHref } from './verification-href';
 import { stepCountOf } from './verification-steps';
 
@@ -86,11 +86,13 @@ export function AgreementsStep({ subject, acceptedAt }: { subject: SubjectOption
             aria-label="Agreements"
             className="flex flex-col rounded-2xl border border-default bg-surface-elevated p-2"
           >
-            {OFFERING_AGREEMENTS.map(({ title, href }) => (
+            {AGREEMENTS.map(({ title, href }) => (
               <li key={href} className="border-default not-last:border-b">
                 <NextLink
                   href={href}
                   target="_blank"
+                  // A PDF, not a page: nothing to fetch before it is opened.
+                  prefetch={false}
                   className="group flex items-center justify-between gap-4 rounded-xl px-4 py-5 hover:bg-element-neutral-light focus-visible:bg-element-neutral-subtle focus-visible:outline-hidden sm:py-6"
                 >
                   <span className="flex min-w-0 items-center gap-3">
