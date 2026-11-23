@@ -2,9 +2,10 @@ import { isDappReturnPath } from './return-paths';
 
 /**
  * Lighthouse has no sign-in of its own. It lets a visitor in only with a pass, a signed cookie the
- * dapp issues to signed-in, onboarded users who accepted the current terms (server/utils/lighthouse-pass.ts).
- * Lighthouse sends everyone else to `/api/lighthouse/pass?next=<lighthouse url>`, and `next` rides along through
- * sign-in, the terms and onboarding until that route can issue the pass and return the visitor.
+ * dapp issues to signed-in, onboarded users who accepted the current terms and, if they act for an approved
+ * account, the current agreements (server/utils/lighthouse-pass.ts). Lighthouse sends everyone else to
+ * `/api/lighthouse/pass?next=<lighthouse url>`, and `next` rides along through sign-in, the terms, onboarding and
+ * the agreements until that route can issue the pass and return the visitor.
  * Every link out and every redirect goes to production Lighthouse, whatever environment the dapp runs in.
  */
 export const LIGHTHOUSE_URL = 'https://lighthouse.zivoe.com';

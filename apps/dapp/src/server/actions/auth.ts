@@ -14,7 +14,7 @@ import { isDappReturnPath } from '@/lib/return-paths';
 import { handlePromise } from '@/lib/utils';
 
 /**
- * Sends a freshly signed-in user to the dashboard, or to the terms or onboarding if either is unfinished.
+ * Sends a freshly signed-in user to the dashboard, or to the terms, onboarding or the agreements while one is unfinished.
  * Called once the OTP verifies, and once `/terms` is accepted without a `next`.
  * An action redirect carries its target's payload in the action response, so the browser makes one request.
  * A client push into `/api/auth/post-signin` cost three: Next discards a redirected RSC response and fetches

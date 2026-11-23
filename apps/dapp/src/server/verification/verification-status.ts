@@ -82,7 +82,7 @@ export const isDecision = isOneOf(DECISION_STATUSES);
 export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
 
 /**
- * A yes Decision — what lands `/verification` on the Wallets step and what
+ * A yes Decision — what lands `/verification` on the Agreements step, then Wallets, and what
  * its writes gate on: Persona's `approved` (an individual's inquiry, an
  * organization's KYB case) or the team's `manually_approved`.
  *

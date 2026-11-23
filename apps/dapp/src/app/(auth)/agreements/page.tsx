@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: 'Agreements | Zivoe' };
  * Where the dapp sends anyone who acts for an approved account (their own, or an organization's) without the
  * current agreements: a member of an approved organization who never accepted them, and everyone again each time
  * a deploy moves `LATEST_AGREEMENTS_VERSION` past their last acceptance. `/verification` asks for them in its own
- * step instead. `next` is the validated page that sent them here; they return to it once they accept.
+ * step instead. `next` is the validated page that sent them here, when there is one (sign-in, Lighthouse, an
+ * invitation, `/verification`); they return to it once they accept, or to the dashboard.
  */
 export default async function AgreementsPage({
   searchParams

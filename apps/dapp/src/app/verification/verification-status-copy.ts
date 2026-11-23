@@ -62,7 +62,7 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
         action: { kind: 'none' }
       };
     // Kept for the exhaustive switch only: a yes Decision lands on the
-    // Wallets step, so nothing renders this card for one any more.
+    // Agreements step, then Wallets, so nothing renders this card for one.
     case 'approved':
     case 'manually_approved':
       return {

@@ -91,7 +91,8 @@ export const getTermsStatus = cache(async (userId: string): Promise<TermsStatus>
 /**
  * What a signed-in user has to finish before anything is saved for them: the terms first, then onboarding, so
  * nothing onboarding saves (a profile, an organization, invitations to colleagues) happens before the terms are
- * accepted. Null once both are done. The gate of the server actions and API routes; pages use `getRequiredStep`.
+ * accepted. Null once both are done. What the server actions, `/api/kyc/start` and `/verification` ask; every other
+ * page, post-signin and the Lighthouse pass use `getRequiredStep`.
  * Never redirects, so route handlers can call it.
  */
 export const getOnboardingStep = async (userId: string) => {
