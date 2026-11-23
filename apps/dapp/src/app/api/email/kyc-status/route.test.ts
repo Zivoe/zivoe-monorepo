@@ -18,7 +18,7 @@ vi.mock('@sentry/nextjs', () => ({ setTag: vi.fn(), captureException: vi.fn() })
 
 const USER_ID = '7b6f9a1e-0c1d-4e6f-9a2b-3c4d5e6f7a8b';
 const CHANGED_AT = new Date('2026-09-06T10:00:00.000Z');
-const JOB = { userId: USER_ID, inquiryId: 'inq_new', status: 'approved', statusChangedAt: CHANGED_AT.toISOString() };
+const JOB = { subjectId: USER_ID, inquiryId: 'inq_new', status: 'approved', statusChangedAt: CHANGED_AT.toISOString() };
 
 function post(body: unknown) {
   return POST(
@@ -42,7 +42,7 @@ describe('POST /api/email/kyc-status — transport for deliverNotification', () 
     expect(deliverNotification).toHaveBeenCalledWith({
       notification: {
         kind: 'status_email',
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_new',
         status: 'approved',
         statusChangedAt: CHANGED_AT
@@ -67,7 +67,7 @@ describe('POST /api/email/kyc-status — transport for deliverNotification', () 
 
   it.each([
     ['a status the investor is not emailed about', { ...JOB, status: 'submitted' }],
-    ['a body this outbox never produced', { userId: USER_ID }]
+    ['a body this outbox never produced', { subjectId: USER_ID }]
   ])('refuses %s as non-retryable without consulting the module', async (_label, body) => {
     const response = await post(body);
 

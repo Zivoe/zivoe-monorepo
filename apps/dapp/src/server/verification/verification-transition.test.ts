@@ -11,7 +11,8 @@ const T0 = new Date('2026-10-30T10:00:00.000Z');
 const at = (minutes: number) => new Date(T0.getTime() + minutes * 60_000);
 
 const record = (overrides: Partial<StoredVerification> = {}): StoredVerification => ({
-  userId: 'u-1',
+  subjectId: 'u-1',
+  startedByUserId: 'u-1',
   status: 'pending_review',
   personaInquiryId: 'inq_1',
   personaAccountId: 'act_1',
@@ -20,7 +21,7 @@ const record = (overrides: Partial<StoredVerification> = {}): StoredVerification
   sourceAt: T0,
   statusChangedAt: T0,
   lastSyncedAt: T0,
-  accountType: 'organization',
+  subjectKind: 'organization',
   version: 3,
   ...overrides
 });
@@ -37,7 +38,7 @@ const caseSnapshot = (
 });
 
 const input = (overrides: Partial<SnapshotInput>): SnapshotInput => ({
-  userId: 'u-1',
+  subjectId: 'u-1',
   path: 'organization',
   snapshot: caseSnapshot('Approved', 'approved'),
   sourceAt: at(5),
@@ -66,8 +67,10 @@ describe('decide', () => {
   it('3. supersedes an event for an inquiry the record has replaced, where a read adopts the newest', () => {
     const replaced = { snapshot: { ...caseSnapshot('Approved', 'approved', 'case_2'), inquiryId: 'inq_0' } };
     expect(run(record(), replaced)).toMatchObject({ outcome: 'superseded', next: null });
+    // The adopted inquiry is not its predecessor's starter's to continue.
     expect(run(record({ status: 'submitted' }), { ...replaced, source: 'fetch' }).next).toMatchObject({
-      personaInquiryId: 'inq_0'
+      personaInquiryId: 'inq_0',
+      startedByUserId: null
     });
   });
 
@@ -119,7 +122,7 @@ describe('decide', () => {
     expect(run(declined, { snapshot: caseSnapshot('Declined', 'declined') }).next).toMatchObject({ sourceAt: at(5) });
 
     const individual = (status: 'submitted' | 'approved') =>
-      record({ status, personaCaseId: null, personaCaseStatus: null, accountType: 'individual' });
+      record({ status, personaCaseId: null, personaCaseStatus: null, subjectKind: 'individual' });
     const read = (status: 'submitted' | 'approved') =>
       ({ status, inquiryId: 'inq_1', accountId: null, case: null }) as const;
     expect(run(individual('submitted'), { snapshot: read('submitted'), source: 'fetch' })).toMatchObject({
@@ -139,7 +142,7 @@ describe('decide', () => {
     const inquiry = (status: 'approved' | 'declined') =>
       ({ status, inquiryId: 'inq_1', accountId: null, case: null }) as const;
     const from = (status: 'submitted' | 'approved' | 'declined', to: 'approved' | 'declined') =>
-      run(record({ status, personaCaseId: null, personaCaseStatus: null, accountType: 'individual' }), {
+      run(record({ status, personaCaseId: null, personaCaseStatus: null, subjectKind: 'individual' }), {
         ...individual,
         snapshot: inquiry(to)
       }).notifications;
@@ -154,7 +157,7 @@ describe('decide', () => {
     expect(from('submitted', 'declined').every((job) => !('previousDecision' in job))).toBe(true);
     // A resync handing an operator's approval to Persona's decline takes an approval back.
     const released = run(
-      record({ status: 'manually_approved', personaCaseId: null, personaCaseStatus: null, accountType: 'individual' }),
+      record({ status: 'manually_approved', personaCaseId: null, personaCaseStatus: null, subjectKind: 'individual' }),
       { ...individual, source: 'fetch', release: true, snapshot: inquiry('declined') }
     );
     expect(

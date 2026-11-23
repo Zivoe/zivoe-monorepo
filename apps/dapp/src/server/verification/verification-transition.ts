@@ -25,7 +25,7 @@ import {
 
 /** One Persona snapshot to apply: an event's, or a fresh read's. */
 export type SnapshotInput = {
-  userId: string;
+  subjectId: string;
   /** The user's flow, from the profile or the row: an organization with no row yet is still one. */
   path: InvestorPath;
   snapshot: VerificationSnapshot;
@@ -88,7 +88,7 @@ export function decide({
   /** The organization flow's case status sets; absent while KYB is not configured. */
   caseStatuses?: KybCaseStatusSets;
 }): Transition {
-  const { userId, path, snapshot, sourceAt, source, now } = input;
+  const { subjectId, path, snapshot, sourceAt, source, now } = input;
   const nothing = (outcome: 'unchanged' | 'superseded', confirm = source === 'fetch' && !!record): Transition => ({
     outcome,
     next: null,
@@ -172,7 +172,10 @@ export function decide({
     return nothing('unchanged');
 
   const next: VerificationRecord = {
-    userId,
+    subjectId,
+    // A starter started one inquiry: an adopted one is nobody's until a member starts it. Until then an
+    // organization's status emails have nobody to go to, which is better than the last inquiry's starter.
+    startedByUserId: sameInquiry ? (record?.startedByUserId ?? null) : null,
     status,
     personaInquiryId: snapshot.inquiryId,
     personaAccountId: snapshot.accountId ?? record?.personaAccountId ?? null,
@@ -197,7 +200,7 @@ export function decide({
         announced && snapshot.case
           ? {
               kind: 'case_status',
-              userId,
+              subjectId,
               inquiryId: snapshot.inquiryId,
               status,
               statusChangedAt,
@@ -209,7 +212,7 @@ export function decide({
   }
 
   const base = {
-    userId,
+    subjectId,
     inquiryId: snapshot.inquiryId,
     statusChangedAt,
     ...(previousDecision ? { previousDecision } : {})

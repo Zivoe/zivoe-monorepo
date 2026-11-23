@@ -3,12 +3,15 @@ import { type NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { Ratelimit } from '@upstash/ratelimit';
 import { ipAddress } from '@vercel/functions';
+import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
 import { getRequiredStep } from '@/server/data/auth';
+import { organizations } from '@/server/organizations';
 import { verification } from '@/server/verification';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
+import { takeStartLock } from '@/server/verification/start-lock';
 import { type StartVerificationError } from '@/server/verification/verification';
 
 import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
@@ -16,6 +19,9 @@ import { ApiError, handlePromise, withErrorHandler } from '@/lib/utils';
 import { type ApiResponseError } from '../../utils';
 
 const FLOW = 'kyc-start';
+
+/** No body starts the person's own verification; an organization's names itself. */
+const bodySchema = z.object({ subjectId: z.string().uuid().optional() });
 
 /** The page's typed refusal: the code drives the copy (the page owns the words), never a redirect. */
 export type StartVerificationErrorResponse = { error: string; code: StartVerificationError['code'] };
@@ -42,8 +48,8 @@ const ipRatelimit = new Ratelimit({
 });
 
 /**
- * One start per user at a time: two concurrent clicks must not create two
- * billable inquiries. The TTL covers the worst case inside the lock: three
+ * One start per subject at a time: two concurrent clicks, or two members of an
+ * organization, must not create two billable inquiries. The TTL covers the worst case inside the lock: three
  * Persona calls (a list, then a create retried once), each of which may
  * first wait out a 429 for up to 5 s and then time out at 15 s — 60 s — plus
  * a margin for Redis and the database. The route's own limit matches it.
@@ -67,6 +73,14 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
   // Behind onboarding and the current terms, like the page: a `/verification` left open across a terms update
   // cannot start an inquiry until the terms are accepted. The page refreshes on 403 and its own redirect takes over.
   if (await getRequiredStep(user.id)) throw new ApiError({ message: 'Forbidden', status: 403, capture: false });
+
+  const body = bodySchema.safeParse(await req.json().catch(() => ({})));
+  if (!body.success) throw new ApiError({ message: 'Invalid request payload', status: 400, capture: false });
+  const subjectId = body.data.subjectId ?? user.id;
+  // Read fresh on every start: someone removed from an organization cannot start for it from an open tab.
+  if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) {
+    throw new ApiError({ message: 'Not found', status: 404, capture: false });
+  }
 
   const ip = ipAddress(req) ?? '127.0.0.1';
   const [userLimitRes, ipLimitRes] = await Promise.all([
@@ -92,11 +106,11 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
     });
   }
 
-  const lockKey = `kyc-start:lock:${user.id}`;
-  const lockRes = await handlePromise(redis.set(lockKey, '1', { nx: true, ex: START_LOCK_TTL_SECONDS }));
+  const lockRes = await handlePromise(takeStartLock(subjectId, START_LOCK_TTL_SECONDS));
   if (lockRes.err) throw new ApiError({ message: 'Error acquiring start lock', status: 500, exception: lockRes.err });
-  if (lockRes.res === null) {
-    // Another request from this user is still inside the lock, or a release
+  const lock = lockRes.res;
+  if (!lock) {
+    // Another request for this subject is still inside the lock, or a release
     // failed and the key has its TTL left to expire. Neither is a fault, and
     // the page rests its buttons for a moment rather than offering a Retry.
     throw new ApiError({
@@ -107,7 +121,12 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
   }
 
   try {
-    const result = await verification.startVerification({ userId: user.id });
+    // Again, now the key is held: leaving takes it too, so whoever passes here stays a member until the record names them.
+    if (!(await organizations.canActForSubject({ userId: user.id, subjectId }))) {
+      throw new ApiError({ message: 'Not found', status: 404, capture: false });
+    }
+
+    const result = await verification.startVerification({ subjectId, actorUserId: user.id });
 
     if (result.ok) return NextResponse.json({ success: true, data: result.value });
 
@@ -116,7 +135,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
     if (error.code === 'persona_unavailable') {
       Sentry.captureException(new Error(`Persona unavailable: ${error.cause.message}`), {
         tags: { source: 'API', flow: FLOW, reason: error.cause.reason },
-        extra: { userId: user.id, httpStatus: error.cause.httpStatus }
+        extra: { subjectId, httpStatus: error.cause.httpStatus }
       });
       return NextResponse.json({ error: 'Verification is temporarily unavailable', code: error.code }, { status: 503 });
     }
@@ -127,7 +146,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
         new Error('KYC notifications could not be queued during a start', { cause: error.cause }),
         {
           tags: { source: 'API', flow: FLOW, reason: 'queue' },
-          extra: { userId: user.id }
+          extra: { subjectId }
         }
       );
       return NextResponse.json({ error: 'Verification is temporarily unavailable', code: error.code }, { status: 503 });
@@ -137,7 +156,7 @@ const handler = async (req: NextRequest): Promise<NextResponse<StartVerification
     // Policy refusals are the user's own state, not a fault: no capture.
     return NextResponse.json({ error: 'Verification cannot be started', code }, { status: 409 });
   } finally {
-    await handlePromise(redis.del(lockKey));
+    await handlePromise(lock.release());
   }
 };
 

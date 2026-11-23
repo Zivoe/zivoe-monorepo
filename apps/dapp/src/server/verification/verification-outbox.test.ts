@@ -27,7 +27,7 @@ function setup() {
   return { published, outbox: createQstashOutbox({ qstash, baseUrl: BASE_URL }) };
 }
 
-const base = { userId: USER_ID, inquiryId: 'inq_1', statusChangedAt: STATUS_CHANGED_AT };
+const base = { subjectId: USER_ID, inquiryId: 'inq_1', statusChangedAt: STATUS_CHANGED_AT };
 const emailJob = (status: VerificationEmailStatus): VerificationNotification => ({
   ...base,
   kind: 'status_email',
@@ -97,7 +97,7 @@ describe('createQstashOutbox', () => {
     await outbox.enqueue(emailJob('approved'));
 
     expect(published[0]?.body).toEqual({
-      userId: USER_ID,
+      subjectId: USER_ID,
       inquiryId: 'inq_1',
       status: 'approved',
       statusChangedAt: STATUS_CHANGED_AT.toISOString()
@@ -148,6 +148,6 @@ describe('the wire contract between the outbox and its receivers', () => {
     const body = { ...base, status: 'submitted', statusChangedAt: STATUS_CHANGED_AT.toISOString() };
 
     expect(parseVerificationNotificationJob({ kind: 'status_email', body })).toBeNull();
-    expect(parseVerificationNotificationJob({ kind: 'operator_message', body: { userId: USER_ID } })).toBeNull();
+    expect(parseVerificationNotificationJob({ kind: 'operator_message', body: { subjectId: USER_ID } })).toBeNull();
   });
 });

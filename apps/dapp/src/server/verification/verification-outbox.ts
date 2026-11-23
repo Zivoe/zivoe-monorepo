@@ -24,7 +24,7 @@ export const KYC_OPERATOR_MESSAGE_PATH = '/api/telegram/kyc';
  * travel — each channel has its own route, and the route names it.
  */
 const jobBodySchema = z.object({
-  userId: z.string().uuid(),
+  subjectId: z.string().uuid(),
   inquiryId: z.string().min(1),
   status: z.string(),
   /** The transition this job announces, on Persona's clock. */
@@ -52,22 +52,22 @@ export function parseVerificationNotificationJob({
   const parsed = jobBodySchema.safeParse(body);
   if (!parsed.success) return null;
 
-  const { userId, inquiryId, status, caseId, caseStatus, previousDecision } = parsed.data;
+  const { subjectId, inquiryId, status, caseId, caseStatus, previousDecision } = parsed.data;
   const statusChangedAt = new Date(parsed.data.statusChangedAt);
   const reopen = previousDecision ? { previousDecision } : {};
   if (kind === 'status_email') {
     return isVerificationEmailStatus(status)
-      ? { kind: 'status_email', userId, inquiryId, status, statusChangedAt, ...reopen }
+      ? { kind: 'status_email', subjectId, inquiryId, status, statusChangedAt, ...reopen }
       : null;
   }
   // The operator channel carries both a transition and a raw case move.
   if (caseId && caseStatus) {
     return isVerificationStatus(status)
-      ? { kind: 'case_status', userId, inquiryId, status, statusChangedAt, caseId, caseStatus }
+      ? { kind: 'case_status', subjectId, inquiryId, status, statusChangedAt, caseId, caseStatus }
       : null;
   }
   return isVerificationOperatorStatus(status)
-    ? { kind: 'operator_message', userId, inquiryId, status, statusChangedAt, ...reopen }
+    ? { kind: 'operator_message', subjectId, inquiryId, status, statusChangedAt, ...reopen }
     : null;
 }
 
@@ -108,7 +108,7 @@ export function createQstashOutbox({ qstash, baseUrl }: { qstash: Client; baseUr
         url: `${baseUrl}${isEmail ? KYC_STATUS_EMAIL_PATH : KYC_OPERATOR_MESSAGE_PATH}`,
         delay: isEmail && notification.status === 'pending_review' ? PENDING_REVIEW_EMAIL_DELAY : SETTLE_DELAY,
         body: {
-          userId: notification.userId,
+          subjectId: notification.subjectId,
           inquiryId: notification.inquiryId,
           status: notification.status,
           statusChangedAt: notification.statusChangedAt.toISOString(),

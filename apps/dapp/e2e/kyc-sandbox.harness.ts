@@ -14,7 +14,15 @@ import { and, asc, count, sql as drizzleSql, eq, gt, inArray, like, lt } from 'd
 import postgres from 'postgres';
 
 import { createDatabase } from '@zivoe/database';
-import { kycVerification, kycWebhookEvent, profile, user } from '@zivoe/database/schema';
+import {
+  kycVerification,
+  kycWebhookEvent,
+  organization,
+  organizationMember,
+  profile,
+  user,
+  verificationSubject
+} from '@zivoe/database/schema';
 
 import {
   PERSONA_API_BASE_URL,
@@ -97,19 +105,20 @@ const outbox = createQstashOutbox({ qstash: new Client({ token: qstashToken }), 
 const runUserIds = new Set<string>();
 
 /**
- * The module over a store that lists and counts only `userIds`: the sweep
+ * The module over a store that lists and counts only `subjectIds`: the sweep
  * re-reads every stale record it can see and notifies their owners, and a
  * shared dev database has records that are not this run's business. Recorded
  * events are left alone for the same reason.
  */
-export function createScopedVerification(userIds: ReadonlySet<string>) {
+export function createScopedVerification(subjectIds: ReadonlySet<string>) {
   const scoped: VerificationStore = {
     ...store,
-    async list({ statuses, accountType, syncedBefore, changedBefore, changedAfter, limit }) {
-      if (userIds.size === 0) return [];
+    async list({ statuses, subjectKind, syncedBefore, changedBefore, changedAfter, limit }) {
+      if (subjectIds.size === 0) return [];
       return db
         .select({
-          userId: kycVerification.userId,
+          subjectId: kycVerification.subjectId,
+          startedByUserId: kycVerification.startedByUserId,
           status: kycVerification.status,
           personaInquiryId: kycVerification.personaInquiryId,
           personaAccountId: kycVerification.personaAccountId,
@@ -119,15 +128,15 @@ export function createScopedVerification(userIds: ReadonlySet<string>) {
           statusChangedAt: kycVerification.statusChangedAt,
           lastSyncedAt: kycVerification.lastSyncedAt,
           version: kycVerification.version,
-          accountType: profile.accountType
+          subjectKind: verificationSubject.kind
         })
         .from(kycVerification)
-        .innerJoin(profile, eq(profile.id, kycVerification.userId))
+        .innerJoin(verificationSubject, eq(verificationSubject.id, kycVerification.subjectId))
         .where(
           and(
-            inArray(kycVerification.userId, [...userIds]),
+            inArray(kycVerification.subjectId, [...subjectIds]),
             inArray(kycVerification.status, [...statuses]),
-            accountType ? eq(profile.accountType, accountType) : undefined,
+            subjectKind ? eq(verificationSubject.kind, subjectKind) : undefined,
             syncedBefore ? lt(kycVerification.lastSyncedAt, syncedBefore) : undefined,
             changedBefore ? lt(kycVerification.statusChangedAt, changedBefore) : undefined,
             changedAfter ? gt(kycVerification.statusChangedAt, changedAfter) : undefined
@@ -136,17 +145,17 @@ export function createScopedVerification(userIds: ReadonlySet<string>) {
         .orderBy(asc(kycVerification.lastSyncedAt))
         .limit(limit);
     },
-    async count({ statuses, accountType, caseStatuses, changedBefore }) {
-      if (userIds.size === 0) return 0;
+    async count({ statuses, subjectKind, caseStatuses, changedBefore }) {
+      if (subjectIds.size === 0) return 0;
       const rows = await db
         .select({ total: count() })
         .from(kycVerification)
-        .innerJoin(profile, eq(profile.id, kycVerification.userId))
+        .innerJoin(verificationSubject, eq(verificationSubject.id, kycVerification.subjectId))
         .where(
           and(
-            inArray(kycVerification.userId, [...userIds]),
+            inArray(kycVerification.subjectId, [...subjectIds]),
             inArray(kycVerification.status, [...statuses]),
-            accountType ? eq(profile.accountType, accountType) : undefined,
+            subjectKind ? eq(verificationSubject.kind, subjectKind) : undefined,
             caseStatuses ? inArray(kycVerification.personaCaseStatus, [...caseStatuses]) : undefined,
             lt(kycVerification.statusChangedAt, changedBefore)
           )
@@ -201,16 +210,20 @@ export const E2E_EMAIL_PREFIX = 'delivered+kyc-e2e-';
 /** One run's users, telling them apart from the last run's in the database and in Persona. */
 export const runId = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
 
+/** Who starts for an organization's subject: its one member. A person starts for themselves. */
+const actors = new Map<string, string>();
+export const actorOf = (subjectId: string) => actors.get(subjectId) ?? subjectId;
+
 export type WorkflowMarker = 'E2E-APPROVE' | 'E2E-DECLINE' | 'E2E-REVIEW';
 
 export async function createTestUser({
   scenario,
   lastName,
-  accountType = 'individual'
+  subjectKind = 'individual'
 }: {
   scenario: string;
   lastName: WorkflowMarker;
-  accountType?: 'individual' | 'organization';
+  subjectKind?: 'individual' | 'organization';
 }) {
   const now = new Date();
   const email = `${E2E_EMAIL_PREFIX}${scenario}-${runId}@resend.dev`;
@@ -219,27 +232,32 @@ export async function createTestUser({
     .values({ name: `E2E ${scenario}`, email, emailVerified: true, createdAt: now, updatedAt: now })
     .returning({ id: user.id });
   if (!created) throw new Error('user insert returned no row');
-  // The profile is what `startVerification` prefills from, and what the webhook route
-  // requires before it applies an event for this reference id. An
-  // organization's answers prefill the business; no owner is listed, so the
-  // KYB Workflow opens no child inquiry and the case is the team's at once.
+  // The person, and their subject, are what `startVerification` prefills from and
+  // what the webhook route requires before it applies an event for this reference
+  // id. An organization's details prefill the business; no owner is listed, so
+  // the KYB Workflow opens no child inquiry and the case is the team's at once.
   await db.insert(profile).values({
     id: created.id,
-    accountType,
     firstName: 'Sandbox',
     lastName,
     amountOfInterest: '10k_100k',
     howFoundZivoe: 'other',
-    ...(accountType === 'organization'
-      ? {
-          jobTitle: 'Managing Partner',
-          entityName: `E2E ${scenario} LLC`,
-          countryOfIncorporation: 'US'
-        }
-      : { countryOfResidence: 'US' })
+    countryOfResidence: 'US'
   });
+  await db.insert(verificationSubject).values({ id: created.id, kind: 'individual', userId: created.id });
   runUserIds.add(created.id);
-  return { userId: created.id, email };
+  if (subjectKind === 'individual') return { subjectId: created.id, email };
+
+  const [company] = await db
+    .insert(organization)
+    .values({ name: `E2E ${scenario} LLC`, countryOfIncorporation: 'US', createdByUserId: created.id })
+    .returning({ id: organization.id });
+  if (!company) throw new Error('organization insert returned no row');
+  await db.insert(verificationSubject).values({ id: company.id, kind: 'organization', organizationId: company.id });
+  await db.insert(organizationMember).values({ organizationId: company.id, userId: created.id, title: 'CEO' });
+  runUserIds.add(company.id);
+  actors.set(company.id, created.id);
+  return { subjectId: company.id, email };
 }
 
 /**
@@ -263,7 +281,7 @@ export async function deleteStaleTestUsers() {
  * write path on purpose; nothing in the app can do this. The version still
  * moves, so a write that read the row before the rewind loses.
  */
-export async function rewindRecord({ userId, to }: { userId: string; to: VerificationRecord }) {
+export async function rewindRecord({ subjectId, to }: { subjectId: string; to: VerificationRecord }) {
   await db
     .update(kycVerification)
     .set({
@@ -275,7 +293,7 @@ export async function rewindRecord({ userId, to }: { userId: string; to: Verific
       lastSyncedAt: to.lastSyncedAt,
       version: drizzleSql`${kycVerification.version} + 1`
     })
-    .where(eq(kycVerification.userId, userId));
+    .where(eq(kycVerification.subjectId, subjectId));
 }
 
 // ---------------------------------------------------------------------------

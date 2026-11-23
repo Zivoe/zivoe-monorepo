@@ -13,9 +13,9 @@ import {
   type StatusEmailSender,
   type StoredVerification,
   type VerificationNotification,
-  type VerificationProfile,
   type VerificationRecord,
-  type VerificationStore
+  type VerificationStore,
+  type VerificationSubject
 } from './verification';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,9 @@ export function createInMemoryVerificationStore() {
   /** A seeded record without a version reads as version 0, as a freshly inserted row does. */
   const records = new Map<string, VerificationRecord & { version?: number }>();
   const events = new Map<string, Date>();
-  const profiles = new Map<string, VerificationProfile>();
+  const profiles = new Map<string, VerificationSubject>();
+  /** The people behind `getPerson`: a member acting for an organization. */
+  const people = new Map<string, { firstName: string; lastName: string; email: string; countryCode: string | null }>();
   /** Armed to make the next store call (or the next call of one method) reject, to exercise `store_failure`. */
   let nextFailure: { error: Error; method?: keyof VerificationStore } | null = null;
 
@@ -42,14 +44,14 @@ export function createInMemoryVerificationStore() {
   /** The join the Postgres store makes: a record reads with its profile's account type, an individual's without a profile. */
   const withFlow = (record: VerificationRecord & { version?: number }): StoredVerification => ({
     ...record,
-    accountType: profiles.get(record.userId)?.accountType ?? 'individual',
+    subjectKind: profiles.get(record.subjectId)?.subjectKind ?? 'individual',
     version: record.version ?? 0
   });
 
   const store: VerificationStore = {
-    async get({ userId }) {
+    async get({ subjectId }) {
       failIfArmed('get');
-      const record = records.get(userId);
+      const record = records.get(subjectId);
       return record ? withFlow(record) : null;
     },
     async getByInquiryIds({ inquiryIds }) {
@@ -60,14 +62,15 @@ export function createInMemoryVerificationStore() {
     },
     async write(record, { expectVersion }) {
       failIfArmed('write');
-      const stored = records.get(record.userId);
+      const stored = records.get(record.subjectId);
       if ((stored ? (stored.version ?? 0) : null) !== expectVersion) return null;
       const version = expectVersion === null ? 0 : expectVersion + 1;
       // Only the row's own columns, as the Postgres store writes them: a record read back carries its flow too.
-      const { userId, status, personaInquiryId, personaAccountId, personaCaseId, personaCaseStatus } = record;
-      const { sourceAt, statusChangedAt, lastSyncedAt } = record;
-      records.set(userId, {
-        userId,
+      const { subjectId, startedByUserId, status, personaInquiryId, personaAccountId } = record;
+      const { personaCaseId, personaCaseStatus, sourceAt, statusChangedAt, lastSyncedAt } = record;
+      records.set(subjectId, {
+        subjectId,
+        startedByUserId,
         status,
         personaInquiryId,
         personaAccountId,
@@ -80,10 +83,10 @@ export function createInMemoryVerificationStore() {
       });
       return version;
     },
-    async markSynced({ userId, syncedAt }) {
+    async markSynced({ subjectId, syncedAt }) {
       failIfArmed('markSynced');
-      const stored = records.get(userId);
-      if (stored) records.set(userId, { ...stored, lastSyncedAt: syncedAt });
+      const stored = records.get(subjectId);
+      if (stored) records.set(subjectId, { ...stored, lastSyncedAt: syncedAt });
     },
     async recordEventIfAbsent({ eventId, receivedAt }) {
       failIfArmed('recordEventIfAbsent');
@@ -102,15 +105,16 @@ export function createInMemoryVerificationStore() {
       }
       return deleted;
     },
-    async list({ statuses, accountType, userIds, syncedBefore, changedBefore, changedAfter, limit }) {
+    async list({ statuses, subjectKind, subjectIds, notDeleted, syncedBefore, changedBefore, changedAfter, limit }) {
       failIfArmed('list');
       return [...records.values()]
         .map(withFlow)
         .filter(
           (record) =>
             statuses.includes(record.status) &&
-            (!accountType || record.accountType === accountType) &&
-            (!userIds || userIds.includes(record.userId)) &&
+            (!subjectKind || record.subjectKind === subjectKind) &&
+            (!subjectIds || subjectIds.includes(record.subjectId)) &&
+            (!notDeleted || !profiles.get(record.subjectId)?.deleted) &&
             (!syncedBefore || record.lastSyncedAt < syncedBefore) &&
             (!changedBefore || record.statusChangedAt < changedBefore) &&
             (!changedAfter || record.statusChangedAt > changedAfter)
@@ -118,21 +122,37 @@ export function createInMemoryVerificationStore() {
         .sort((a, b) => a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime())
         .slice(0, limit);
     },
-    async count({ statuses, accountType, caseStatuses, changedBefore }) {
+    async count({ statuses, subjectKind, caseStatuses, changedBefore }) {
       failIfArmed('count');
       return [...records.values()]
         .map(withFlow)
         .filter(
           (record) =>
             statuses.includes(record.status) &&
-            (!accountType || record.accountType === accountType) &&
+            (!subjectKind || record.subjectKind === subjectKind) &&
             (!caseStatuses || (!!record.personaCaseStatus && caseStatuses.includes(record.personaCaseStatus))) &&
             record.statusChangedAt < changedBefore
         ).length;
     },
-    async getProfile({ userId }) {
-      failIfArmed('getProfile');
-      return profiles.get(userId) ?? null;
+    async getSubject({ subjectId }) {
+      failIfArmed('getSubject');
+      const subject = profiles.get(subjectId);
+      if (!subject) return null;
+      if (subject.subjectKind === 'individual') return subject;
+      // Who an organization's emails name is whoever started its current inquiry, read through the record.
+      const starterId = records.get(subjectId)?.startedByUserId;
+      const starter = starterId ? people.get(starterId) : null;
+      return {
+        ...subject,
+        firstName: starter?.firstName ?? null,
+        lastName: starter?.lastName ?? null,
+        email: starter?.email ?? null,
+        countryCode: starter?.countryCode ?? null
+      };
+    },
+    async getPerson({ userId }) {
+      failIfArmed('getPerson');
+      return people.get(userId) ?? null;
     }
   };
 
@@ -141,6 +161,7 @@ export function createInMemoryVerificationStore() {
     records,
     events,
     profiles,
+    people,
     failNextCall(error: Error, method?: keyof VerificationStore) {
       nextFailure = { error, method };
     }
