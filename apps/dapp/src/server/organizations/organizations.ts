@@ -96,7 +96,6 @@ export type UserOrganization = {
   id: string;
   name: string;
   countryOfIncorporation: string | null;
-  title: string | null;
   joinedAt: Date;
 };
 
@@ -303,7 +302,6 @@ export function createOrganizations({
           id: organization.id,
           name: organization.name,
           countryOfIncorporation: organization.countryOfIncorporation,
-          title: organizationMember.title,
           joinedAt: organizationMember.joinedAt
         })
         .from(organizationMember)
@@ -455,8 +453,9 @@ export function createOrganizations({
     },
 
     /**
-     * Corrects the name, country and title, only until the organization has an
+     * Corrects the name and country, only until the organization has an
      * inquiry: Persona verified that name, and ops and emails trust it from then on.
+     * The creator's job title is asked once, at creation, for ops; it is not corrected here.
      */
     async updateDetails({
       organizationId,
@@ -465,7 +464,7 @@ export function createOrganizations({
     }: {
       organizationId: string;
       userId: string;
-      details: OrganizationDetails;
+      details: Pick<OrganizationDetails, 'name' | 'countryOfIncorporation'>;
     }): Promise<Result<void, UpdateDetailsError>> {
       return db.transaction(async (tx) => {
         if (!(await lockOrganization(tx, organizationId))) return err({ code: 'not_member' as const });
@@ -485,10 +484,6 @@ export function createOrganizations({
             updatedAt: sql`now()`
           })
           .where(eq(organization.id, organizationId));
-        await tx
-          .update(organizationMember)
-          .set({ title: details.title })
-          .where(and(eq(organizationMember.organizationId, organizationId), eq(organizationMember.userId, userId)));
         return ok(undefined);
       });
     },

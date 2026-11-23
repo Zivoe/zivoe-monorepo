@@ -28,9 +28,15 @@ const countryCodeSchema = z
   .min(1, 'Please select a country')
   .refine(isSupportedCountryCode, 'Please select a valid country');
 
-export const organizationDetailsSchema = z.object({
+/** The organization's own facts: what `/verification`'s Account details can correct before an inquiry. */
+export const organizationFactsSchema = z.object({
   name: organizationNameSchema,
-  countryOfIncorporation: countryCodeSchema,
+  countryOfIncorporation: countryCodeSchema
+});
+export type OrganizationFactsFormData = z.infer<typeof organizationFactsSchema>;
+
+/** The facts and the creator's job title, asked where an organization is created; ops reads the title. */
+export const organizationDetailsSchema = organizationFactsSchema.extend({
   title: z
     .string({ required_error: 'Job title is required' })
     .trim()

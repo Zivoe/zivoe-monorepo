@@ -74,11 +74,7 @@ export default async function VerificationPage({
       id: membership.id,
       name: membership.name,
       view: organizationViews[index] ?? personalView,
-      organization: {
-        name: membership.name,
-        countryOfIncorporation: membership.countryOfIncorporation,
-        title: membership.title
-      }
+      organization: { name: membership.name, countryOfIncorporation: membership.countryOfIncorporation }
     }))
   ];
 

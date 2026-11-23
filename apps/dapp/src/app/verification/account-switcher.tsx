@@ -23,7 +23,7 @@ export type SubjectOption = {
   id: string;
   name: string;
   view: VerificationStatusView;
-  organization: { name: string; countryOfIncorporation: string | null; title: string | null } | null;
+  organization: { name: string; countryOfIncorporation: string | null } | null;
 };
 
 const CREATE = 'create';

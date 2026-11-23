@@ -30,8 +30,10 @@ import { whileNotStarting } from '@/server/verification/start-lock';
 import { type AnalyticsEvent, type AnalyticsProperties } from '@/lib/analytics/events';
 import {
   type OrganizationDetailsFormData,
+  type OrganizationFactsFormData,
   inviteMembersSchema,
-  organizationDetailsSchema
+  organizationDetailsSchema,
+  organizationFactsSchema
 } from '@/lib/schemas/organizations';
 
 // The Organizations writes, in the shape of `wallet-link.ts`: session, onboarding
@@ -225,10 +227,10 @@ export async function createOrganization(
  */
 export async function updateOrganization(input: {
   organizationId: string;
-  details: OrganizationDetailsFormData;
+  details: OrganizationFactsFormData;
 }): Promise<OrganizationActionResult> {
   const organizationId = idSchema.safeParse(input.organizationId);
-  const details = organizationDetailsSchema.safeParse(input.details);
+  const details = organizationFactsSchema.safeParse(input.details);
   if (!organizationId.success || !details.success) return refused('invalid_input');
 
   return guarded('organization-update', async (userId) => {

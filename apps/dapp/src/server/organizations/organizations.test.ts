@@ -246,7 +246,8 @@ describe('details', () => {
   it('can be corrected until there is an inquiry, then not', async () => {
     const owner = await person();
     const organizationId = await organizationOf(owner.id);
-    const details = { ...DETAILS, name: 'Acme Holdings Ltd' };
+    // A title sent along (an old client) must not land: the correction is the name and country only.
+    const details = { ...DETAILS, name: 'Acme Holdings Ltd', title: 'CEO' };
 
     expect(await organizations.updateDetails({ organizationId, userId: owner.id, details })).toEqual({
       ok: true,
@@ -268,6 +269,8 @@ describe('details', () => {
     });
     const page = await organizations.getForMember({ organizationId, userId: owner.id });
     expect(page?.name).toBe('Acme Holdings Ltd');
+    // The creator's job title, asked at creation, is not something a correction touches.
+    expect(await membersOf(organizationId)).toMatchObject([{ userId: owner.id, title: 'Partner' }]);
   });
 });
 

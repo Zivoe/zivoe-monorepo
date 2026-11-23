@@ -198,7 +198,7 @@ const company = (overrides: Partial<VerificationStatusView> = {}): SubjectOption
   id: ORGANIZATION_ID,
   name: 'Acme Capital LLC',
   view: view({ path: 'organization', ...overrides }),
-  organization: { name: 'Acme Capital LLC', countryOfIncorporation: 'US', title: 'Partner' }
+  organization: { name: 'Acme Capital LLC', countryOfIncorporation: 'US' }
 });
 
 function renderFlow({
@@ -286,6 +286,8 @@ describe('step one: account details', () => {
     renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID });
 
     expect(field('Legal Name').value).toBe('Acme Capital LLC');
+    // The job title is asked where an organization is created, not here.
+    expect(screen.queryByLabelText('Your Job Title')).toBeNull();
     pressContinue();
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
     expect(mocks.updateOrganization).not.toHaveBeenCalled();
@@ -295,7 +297,7 @@ describe('step one: account details', () => {
     await waitFor(() =>
       expect(mocks.updateOrganization).toHaveBeenCalledWith({
         organizationId: ORGANIZATION_ID,
-        details: { name: 'Acme Capital Ltd', countryOfIncorporation: 'US', title: 'Partner' }
+        details: { name: 'Acme Capital Ltd', countryOfIncorporation: 'US' }
       })
     );
   });

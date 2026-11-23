@@ -74,22 +74,23 @@ export function AccountDetailsStep({ subject, profile }: { subject: SubjectOptio
 
       {organization ? (
         canEdit ? (
+          // No job title here: it is asked where an organization is created, and Persona never sees it.
           <OrganizationDetailsForm
             key={subject.id}
+            withTitle={false}
             submitLabel="Continue"
             isPending={update.isPending}
             defaultValues={{
               name: organization.name,
-              countryOfIncorporation: organization.countryOfIncorporation ?? '',
-              title: organization.title ?? ''
+              countryOfIncorporation: organization.countryOfIncorporation ?? ''
             }}
-            onSubmit={(details) => {
+            onSubmit={({ name, countryOfIncorporation }) => {
+              const details = { name, countryOfIncorporation };
               setRefusal(null);
               // Nothing changed: on to the next step, without spending a write (it shares the organization's limit).
               const unchanged =
                 details.name === organization.name &&
-                details.countryOfIncorporation === (organization.countryOfIncorporation ?? '') &&
-                (details.title ?? '') === (organization.title ?? '');
+                details.countryOfIncorporation === (organization.countryOfIncorporation ?? '');
               if (unchanged) return proceed();
               update.mutate({ organizationId: subject.id, details });
             }}
