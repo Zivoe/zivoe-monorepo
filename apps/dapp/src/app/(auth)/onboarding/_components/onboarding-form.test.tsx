@@ -151,6 +151,8 @@ describe('OnboardingForm', () => {
 
     await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalledWith({ profile: PROFILE }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/'));
+    // Saved, while the dashboard loads: no way back into a second save.
+    expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('goes from their own answers to the organization, saves both at once, then asks who else joins', async () => {

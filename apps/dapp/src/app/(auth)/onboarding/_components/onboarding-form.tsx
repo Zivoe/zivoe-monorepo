@@ -34,8 +34,9 @@ type Choice = 'me' | 'organization';
  * through an organization, its details. Nothing is saved until the last of those: one write keeps the profile
  * and the organization together, and the server refuses either without the person's answers. The invite step
  * comes after that write, and is in the URL (`?step=invite`), so a reload or a re-render there shows it again
- * for the organization just made, never a second one. Without `canInvestThroughOrganization` (an invitation waiting in
- * `next`) onboarding is the person's answers alone. Answers typed on a step are kept when they step back from it.
+ * for the organization just made, never a second one. Without `canInvestThroughOrganization` (an invitation
+ * waiting in `next`) onboarding is the person's answers alone. Answers typed on a step are kept when they step
+ * back from it.
  */
 export default function OnboardingForm({
   next,
