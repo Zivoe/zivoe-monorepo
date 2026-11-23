@@ -500,7 +500,7 @@ describe('step two: the agreements', () => {
   const continueButton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Continue' });
   const agreementBox = () => screen.getByRole<HTMLInputElement>('checkbox', { name: /I have read and agree/ });
 
-  it('links each agreement and holds Continue until the box is ticked, then records it and moves on', async () => {
+  it('links each agreement and records the acceptance once the box is ticked, then moves on', async () => {
     renderFlow({ subjects: [person(), company()], activeId: ORGANIZATION_ID, step: 'agreements' });
 
     expect(screen.getByText('Step 2 of 4')).toBeTruthy();
@@ -513,13 +513,29 @@ describe('step two: the agreements', () => {
       ['Confidential Offering Memorandum', '/documents/confidential-offering-memorandum.pdf'],
       ['Offering Supplement', '/documents/offering-supplement.pdf']
     ]);
-    expect(continueButton().disabled).toBe(true);
 
     fireEvent.click(agreementBox());
     fireEvent.click(continueButton());
 
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(ORGANIZATION_ID, 'identity')));
     expect(mocks.acceptAgreements).toHaveBeenCalledWith({ subjectId: ORGANIZATION_ID });
+  });
+
+  it('answers Continue without the box ticked with an error on the box, focused, and records nothing', () => {
+    renderFlow({ step: 'agreements' });
+
+    expect(continueButton().disabled).toBe(false);
+    fireEvent.click(continueButton());
+
+    expect(screen.getByRole('alert').textContent).toBe('Please accept the agreements to continue.');
+    expect(document.activeElement).toBe(agreementBox());
+    expect(agreementBox().getAttribute('aria-describedby')).toBe('agreements-unticked');
+    expect(mocks.acceptAgreements).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+
+    // Ticking it clears the error.
+    fireEvent.click(agreementBox());
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('shows an earlier acceptance ticked and locked, and moves on without recording it again', () => {

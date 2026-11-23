@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -25,16 +25,21 @@ import { organizationIdOf, verificationHref } from './verification-href';
 import { stepCountOf } from './verification-steps';
 
 const FAILED_COPY = 'Could not save your agreement. Please try again.';
+const UNTICKED_COPY = 'Please accept the agreements to continue.';
+const UNTICKED_ID = 'agreements-unticked';
 
 /**
  * Step two of `/verification`: the agreements, each opening in a new tab, and one checkbox that
- * accepts them all for the selected subject. Continue stays disabled until it is ticked, records the
- * acceptance (`acceptAgreements`), then moves on to the Persona flow. Once accepted, by this person or by
+ * accepts them all for the selected subject. Continue without the box ticked says so under it and moves focus
+ * there; with it ticked, Continue records the acceptance (`acceptAgreements`), then moves on to the Persona flow. Once accepted, by this person or by
  * another member of the organization, the step shows the box ticked and locked, and Continue only moves on.
  */
 export function AgreementsStep({ subject, isAccepted }: { subject: SubjectOption; isAccepted: boolean }) {
   const router = useRouter();
   const [isTicked, setIsTicked] = useState(false);
+  // Continue pressed with the box unticked: the box shows the error until it is ticked.
+  const [isUnticked, setIsUnticked] = useState(false);
+  const checkboxRef = useRef<HTMLInputElement>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
   const organizationId = organizationIdOf(subject);
   const proceed = () => router.push(verificationHref({ organizationId, step: 'identity' }));
@@ -116,24 +121,43 @@ export function AgreementsStep({ subject, isAccepted }: { subject: SubjectOption
             ))}
           </ul>
 
-          <Checkbox
-            isSelected={isAccepted || isTicked}
-            onChange={setIsTicked}
-            isDisabled={isAccepted || isSaving}
-            className="items-start leading-normal break-normal"
-          >
-            I have read and agree to these documents.
-          </Checkbox>
+          <div className="flex flex-col gap-2">
+            <Checkbox
+              inputRef={checkboxRef}
+              isSelected={isAccepted || isTicked}
+              onChange={(isSelected) => {
+                setIsTicked(isSelected);
+                if (isSelected) setIsUnticked(false);
+              }}
+              isDisabled={isAccepted || isSaving}
+              isInvalid={isUnticked}
+              aria-describedby={isUnticked ? UNTICKED_ID : undefined}
+              className="items-start leading-normal break-normal"
+            >
+              I have read and agree to these documents.
+            </Checkbox>
+
+            {/* An alert: focus reaches the checkbox before this renders, so its description alone goes unread. */}
+            {isUnticked ? (
+              <p id={UNTICKED_ID} role="alert" className="text-small text-alert">
+                {UNTICKED_COPY}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <Button
           fullWidth
-          isDisabled={!isAccepted && !isTicked}
           isPending={isSaving}
           pendingContent="Saving..."
           onPress={() => {
             setRefusal(null);
             if (isAccepted) return proceed();
+            if (!isTicked) {
+              setIsUnticked(true);
+              checkboxRef.current?.focus();
+              return;
+            }
             submit();
           }}
         >
