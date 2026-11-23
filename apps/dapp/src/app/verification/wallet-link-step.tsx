@@ -2,6 +2,8 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { isEthereumWallet } from '@dynamic-labs/ethereum';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
@@ -207,6 +209,7 @@ function ConnectedWalletCard({
   onStale: () => void;
   onDisconnected: () => void;
 }) {
+  const router = useRouter();
   const { address, isPending: walletLoading } = useAccount();
   const { primaryWallet, setShowAuthFlow, handleLogOut } = useDynamicContext();
   const { chainId } = useConnection();
@@ -232,6 +235,12 @@ function ConnectedWalletCard({
     retry: false,
     meta: { skipErrorToast: true }
   });
+  // The agreements in force not accepted (a new version published while the step was open): the refreshed page
+  // shows the Agreements step instead of this one.
+  const needsAgreements = ownership.error instanceof LinkRefused && ownership.error.code === 'agreements_required';
+  useEffect(() => {
+    if (needsAgreements) router.refresh();
+  }, [needsAgreements, router]);
   const ownedHereUnseen = !linkedRow && ownership.data === 'mine';
   useEffect(() => {
     if (ownedHereUnseen) onStale();
@@ -291,6 +300,8 @@ function ConnectedWalletCard({
       if (error instanceof LinkRefused) {
         onRefused();
         toast({ type: error.code === 'failed' ? 'error' : 'warning', title: LINK_REFUSAL_COPY[error.code] });
+        // As for the address check above: the refreshed page shows the Agreements step.
+        if (error.code === 'agreements_required') router.refresh();
         return;
       }
       // A rejected or timed-out request leaves the challenge in place: the next click reuses it.
@@ -501,7 +512,9 @@ function ConnectedWalletCard({
         {addressLine}
         <Note tone="alert">
           {ownership.error instanceof LinkRefused &&
-          (ownership.error.code === 'rate_limited' || ownership.error.code === 'not_member')
+          (ownership.error.code === 'rate_limited' ||
+            ownership.error.code === 'not_member' ||
+            ownership.error.code === 'agreements_required')
             ? LINK_REFUSAL_COPY[ownership.error.code]
             : 'Couldn’t check this address. Reload the page to try again.'}
         </Note>

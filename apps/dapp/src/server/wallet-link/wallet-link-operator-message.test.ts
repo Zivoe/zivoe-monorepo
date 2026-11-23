@@ -37,6 +37,7 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   }),
   signature: null,
   signedAt: SIGNED_AT,
+  agreementsVersion: '2026-11-18',
   whitelistRequestedAt: SIGNED_AT,
   whitelistObservedAt: null,
   opsRequest: 'whitelist',
@@ -77,6 +78,7 @@ describe('the operator message', () => {
       '<b>User:</b> ada&lt;script&gt;@example.com',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
+      '<b>Agreements:</b> 2026-11-18',
       '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Chainalysis:</b> clear'
     ]);
@@ -160,6 +162,7 @@ describe('the operator message', () => {
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
+      '<b>Agreements:</b> 2026-11-18',
       '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Linked since:</b> 2026-10-01'
     ]);

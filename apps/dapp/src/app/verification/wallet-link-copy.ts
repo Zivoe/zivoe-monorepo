@@ -73,6 +73,7 @@ export const LINK_REFUSAL_COPY: Record<WalletLinkActionError['code'], string> = 
   failed: 'Could not request the whitelist. Please try again.',
   not_approved: 'Only a verified account can request a whitelist.',
   not_member: "You're no longer a member of this organization.",
+  agreements_required: 'Accept the agreements to continue.',
   flagged: "This address can't be whitelisted.",
   already_linked: 'This address is already linked to this account.',
   linked_elsewhere: 'This address is linked to another Zivoe account.',

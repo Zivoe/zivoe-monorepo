@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
+import { getAgreementsAccess } from '@/server/data/agreements';
 import { organizations } from '@/server/organizations';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { walletLink } from '@/server/wallet-link';
@@ -16,12 +17,14 @@ import { type CompleteLinkError, type IssueChallengeError } from '@/server/walle
 import { type WalletLinkTypedData } from '@/server/wallet-link/wallet-link-typed-data';
 import { type LinkedAddress, toLinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
+import { LATEST_AGREEMENTS_VERSION } from '@/lib/agreements';
 import { isActiveChainId } from '@/lib/chains';
 import { addressSchema } from '@/lib/schemas';
 
 // The Wallets step's two writes and its two reads, in the shape of
 // `investor-profile.ts`: session, the `kyc` flag, zod on the input, then whether
-// this person may act for the Verification subject, then the module. Every answer
+// this person may act for the Verification subject and, for all but the list,
+// has accepted the agreements in force, then the module. Every answer
 // is plain data the client maps to copy; a thrown failure is captured here
 // and answered as `failed`, so the page never shows a server's words.
 
@@ -31,6 +34,7 @@ export type WalletLinkActionError = {
     | 'invalid_input'
     | 'rate_limited'
     | 'failed'
+    | 'agreements_required'
     | IssueChallengeError['code']
     | CompleteLinkError['code'];
 };
@@ -116,6 +120,10 @@ async function guarded<T>(
     // A person may always act for themselves, so a no is an organization they are not, or no longer, in.
     if (!(await organizations.canActForSubject({ userId, subjectId }))) {
       return { ok: false, error: { code: 'not_member' } };
+    }
+    // A link is made under the signer's acceptance of the agreements in force, for whichever account they act.
+    if ((await getAgreementsAccess(userId)).status !== 'accepted') {
+      return { ok: false, error: { code: 'agreements_required' } };
     }
 
     return await run(userId);
@@ -223,6 +231,8 @@ export async function completeWalletLink(input: {
     const result = await walletLink.completeLink({
       subjectId,
       signedByUserId: userId,
+      // Checked by `guarded` just now: the signer has accepted the version in force.
+      agreementsVersion: LATEST_AGREEMENTS_VERSION,
       address,
       signature: parsed.data.signature as Hex
     });

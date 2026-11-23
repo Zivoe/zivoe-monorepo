@@ -27,6 +27,7 @@ const T0 = new Date('2026-10-01T10:00:00.000Z');
 const at = (minutes: number) => new Date(T0.getTime() + minutes * 60_000);
 const address = (digit: string): Address => `0x${digit.repeat(40)}`;
 const SIGNATURE: Hex = `0x${'ab'.repeat(65)}`;
+const AGREEMENTS_VERSION = '2026-11-18';
 
 const users: Record<'ada' | 'bob' | 'cy' | 'dee', string> = { ada: '', bob: '', cy: '', dee: '' };
 
@@ -46,6 +47,7 @@ const challenge = ({ subjectId, on }: { subjectId: string; on: Address }) =>
     typedData: {} as never,
     signature: null,
     signedAt: null,
+    agreementsVersion: null,
     whitelistRequestedAt: null,
     whitelistObservedAt: null,
     opsRequest: null,
@@ -60,7 +62,8 @@ async function linked({ subjectId, on, minutes }: { subjectId: string; on: Addre
     nonce: pending.nonce,
     signature: SIGNATURE,
     signedAt: at(minutes),
-    signedByUserId: subjectId
+    signedByUserId: subjectId,
+    agreementsVersion: AGREEMENTS_VERSION
   });
   if (result.outcome !== 'linked') throw new Error(`Could not link ${on}: ${result.outcome}`);
   return result.record;
@@ -100,7 +103,8 @@ describe('one owner per address', () => {
         nonce: pending.nonce,
         signature: SIGNATURE,
         signedAt: at(40),
-        signedByUserId: users.dee
+        signedByUserId: users.dee,
+        agreementsVersion: AGREEMENTS_VERSION
       })
     ).resolves.toEqual({ outcome: 'address_taken' });
     // Rolled back whole: no wallet connection was kept for the refused link.
@@ -142,7 +146,8 @@ describe('signing for an organization', () => {
         nonce: pending.nonce,
         signature: SIGNATURE,
         signedAt: at(60),
-        signedByUserId: signer
+        signedByUserId: signer,
+        agreementsVersion: AGREEMENTS_VERSION
       });
     };
 
@@ -198,6 +203,20 @@ describe('the guard on signed rows', () => {
     await refused(`UPDATE wallet_link SET subject_id = $2 WHERE id = $1`, [adaOnA.id, users.bob]);
     await refused(`UPDATE wallet_link SET address = $2 WHERE id = $1`, [adaOnA.id, address('e')]);
     await refused(`UPDATE wallet_link SET signature = '0x00' WHERE id = $1`, [adaOnA.id]);
+  });
+
+  it('keeps the agreements version a link was made under, and holds no linked row without one', async () => {
+    expect(adaOnA.agreementsVersion).toBe(AGREEMENTS_VERSION);
+    await refused(`UPDATE wallet_link SET agreements_version = '2000-01-01' WHERE id = $1`, [adaOnA.id]);
+
+    const pending = await challenge({ subjectId: users.bob, on: address('9') });
+    await expect(
+      client.query(
+        `UPDATE wallet_link SET status = 'linked', signature = '0x00', signed_at = now(), signed_by_user_id = $2,
+           ops_request = 'whitelist', ops_request_version = 1 WHERE id = $1`,
+        [pending.id, users.bob]
+      )
+    ).rejects.toThrow(/wallet_link_linked_has_agreements_version/);
   });
 
   it('lets a challenge be deleted', async () => {

@@ -18,6 +18,7 @@ const OTHER = '0x881500000000000000000000000000000000e9e6';
 /** What the hooks and actions answer; each test sets the fields it needs before rendering. */
 type Mocks = {
   toast: ReturnType<typeof vi.fn>;
+  refresh: ReturnType<typeof vi.fn>;
   list: ReturnType<typeof vi.fn>;
   setShowAuthFlow: ReturnType<typeof vi.fn>;
   handleLogOut: ReturnType<typeof vi.fn>;
@@ -34,6 +35,7 @@ type Mocks = {
 const mocks = vi.hoisted(
   (): Mocks => ({
     toast: vi.fn(),
+    refresh: vi.fn(),
     list: vi.fn(),
     setShowAuthFlow: vi.fn(),
     handleLogOut: vi.fn(async () => undefined),
@@ -85,6 +87,7 @@ vi.mock('@zivoe/ui/core/tooltip', () => ({
 }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: mocks.toast, Toaster: () => null }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock('@dynamic-labs/ethereum', () => ({ isEthereumWallet: () => true }));
 vi.mock('@dynamic-labs/wallet-book', () => ({ WalletIcon: () => null }));
 vi.mock('@dynamic-labs/sdk-react-core', () => ({
@@ -601,6 +604,18 @@ describe('the connected wallet', () => {
 
     expect(await screen.findByText('Whitelist pending')).toBeTruthy();
     expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes into the Agreements step when the agreements in force are not accepted', async () => {
+    connect();
+    mocks.issue.mockResolvedValue({ ok: false, error: { code: 'agreements_required' } });
+    mocks.list.mockResolvedValue({ ok: true, value: [] });
+
+    renderStep();
+    fireEvent.click(screen.getByRole('button', { name: SIGN }));
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Accept the agreements to continue.' }));
   });
 
   it("shows the wallet as another account's when that account linked it while this one was signing", async () => {

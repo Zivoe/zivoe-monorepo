@@ -30,6 +30,7 @@ const T0 = new Date('2026-10-03T10:00:00.000Z');
 const DAY = 24 * 60 * 60_000;
 const HOUR = 60 * 60_000;
 const CHAIN_ID = 11155111;
+const AGREEMENTS_VERSION = '2026-11-18';
 
 // A throwaway key: the EOA whose signatures the fake chain recovers.
 const signer = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
@@ -104,7 +105,13 @@ async function linkEoa(walletLink: WalletLink, subjectId = ALICE, address: Addre
   });
   if (!issued.ok) throw new Error(`issue refused: ${issued.error.code}`);
   const signature = await sign(issued.value.typedData);
-  return walletLink.completeLink({ subjectId, signedByUserId: subjectId, address, signature });
+  return walletLink.completeLink({
+    subjectId,
+    signedByUserId: subjectId,
+    agreementsVersion: AGREEMENTS_VERSION,
+    address,
+    signature
+  });
 }
 
 describe('the challenge', () => {
@@ -381,7 +388,13 @@ describe('completing a link', () => {
     const { walletLink, clock } = setup();
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature: '0x00' })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature: '0x00'
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'no_challenge' }
@@ -397,7 +410,13 @@ describe('completing a link', () => {
     const signature = await sign(issued.ok ? issued.value.typedData : ({} as WalletLinkTypedData));
     clock.advance(DAY);
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'expired' }
@@ -417,7 +436,13 @@ describe('completing a link', () => {
 
     const byStranger = await sign(issued.value.typedData, stranger);
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature: byStranger })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature: byStranger
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'bad_signature' }
@@ -431,6 +456,7 @@ describe('completing a link', () => {
       walletLink.completeLink({
         subjectId: ALICE,
         signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(otherNonce)
       })
@@ -452,7 +478,13 @@ describe('completing a link', () => {
     verification.set(ALICE, { status: 'revoked' });
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'not_approved' }
@@ -472,7 +504,13 @@ describe('completing a link', () => {
     screening.flagged.add(SIGNER);
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'flagged' }
@@ -497,6 +535,7 @@ describe('completing a link', () => {
       walletLink.completeLink({
         subjectId: BOB,
         signedByUserId: BOB,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(bobs.value.typedData)
       })
@@ -515,6 +554,7 @@ describe('completing a link', () => {
     await walletLink.completeLink({
       subjectId: ALICE,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: SIGNER,
       signature: await sign(alices.value.typedData)
     });
@@ -526,6 +566,7 @@ describe('completing a link', () => {
       walletLink.completeLink({
         subjectId: BOB,
         signedByUserId: BOB,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(bobs.value.typedData)
       })
@@ -546,6 +587,7 @@ describe('completing a link', () => {
     await walletLink.completeLink({
       subjectId: ALICE,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: SIGNER,
       signature: await sign(first.value.typedData)
     });
@@ -558,6 +600,7 @@ describe('completing a link', () => {
       walletLink.completeLink({
         subjectId: ALICE,
         signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(second.value.typedData)
       })
@@ -582,12 +625,24 @@ describe('completing a link', () => {
     const verify = chain.chain.verifyTypedData.bind(chain.chain);
     vi.spyOn(chain.chain, 'verifyTypedData').mockImplementationOnce(async (args) => {
       const valid = await verify(args);
-      await walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature });
+      await walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      });
       return valid;
     });
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'already_linked' }
@@ -596,7 +651,13 @@ describe('completing a link', () => {
 
     // A third tab, after both: no challenge left, and the answer is still that it is linked.
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'already_linked' }
@@ -627,6 +688,7 @@ describe('completing a link', () => {
       walletLink.completeLink({
         subjectId: ALICE,
         signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(issued.value.typedData)
       })
@@ -652,7 +714,13 @@ describe('completing a link', () => {
     });
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: safe, signature: '0xbadbad' })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: safe,
+        signature: '0xbadbad'
+      })
     ).resolves.toEqual({
       ok: false,
       error: { code: 'bad_signature' }
@@ -660,6 +728,7 @@ describe('completing a link', () => {
     const linked = await walletLink.completeLink({
       subjectId: ALICE,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: safe,
       signature: '0xdeadbeef'
     });
@@ -685,13 +754,20 @@ describe('completing a link', () => {
     outbox.failNextCall(new Error('queue down'));
 
     await expect(
-      walletLink.completeLink({ subjectId: ALICE, signedByUserId: ALICE, address: SIGNER, signature })
+      walletLink.completeLink({
+        subjectId: ALICE,
+        signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
+        address: SIGNER,
+        signature
+      })
     ).rejects.toThrow('queue down');
     expect([...store.records.values()][0]?.status).toBe('pending');
 
     const retried = await walletLink.completeLink({
       subjectId: ALICE,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: SIGNER,
       signature
     });
@@ -918,6 +994,7 @@ describe('reconcile', () => {
     const linked = await walletLink.completeLink({
       subjectId: BOB,
       signedByUserId: BOB,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: stranger.address,
       signature: await sign(issued.value.typedData, stranger)
     });
@@ -950,7 +1027,8 @@ describe('reconcile', () => {
       nonce: other.nonce,
       signature: row.signature!,
       signedAt: clock.clock.now(),
-      signedByUserId: BOB
+      signedByUserId: BOB,
+      agreementsVersion: AGREEMENTS_VERSION
     });
     if (written.outcome !== 'linked') throw new Error('link refused');
     await store.store.setOpsRequest({
@@ -1046,6 +1124,7 @@ describe('deliverNotification', () => {
     await walletLink.completeLink({
       subjectId: ALICE,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: SIGNER,
       signature: await sign(issued.value.typedData)
     });
@@ -1263,6 +1342,7 @@ describe('an organization owns what a member links', () => {
     const linked = await walletLink.completeLink({
       subjectId: ORGANIZATION,
       signedByUserId: ALICE,
+      agreementsVersion: AGREEMENTS_VERSION,
       address: SIGNER,
       signature: await sign(issued.value.typedData)
     });
@@ -1291,6 +1371,7 @@ describe('an organization owns what a member links', () => {
       walletLink.completeLink({
         subjectId: ORGANIZATION,
         signedByUserId: ALICE,
+        agreementsVersion: AGREEMENTS_VERSION,
         address: SIGNER,
         signature: await sign(issued.value.typedData)
       })

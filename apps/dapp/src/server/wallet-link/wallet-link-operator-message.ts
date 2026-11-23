@@ -147,6 +147,8 @@ export function formatWalletLinkOperatorMessage({
             `<b>Smart account:</b> could not be checked; if it is one, control is proven on ${escapeHtml(chainLabel(record.chainId))} only`
           ]
         : []),
+    // The version the signer had accepted when the link was made (the database requires one on a linked row).
+    `<b>Agreements:</b> ${escapeHtml(record.agreementsVersion ?? 'unknown')}`,
     `<b>Whitelist now:</b> ${membershipLine(membership)}`,
     ...(screening ? [`<b>Chainalysis:</b> ${SCREENING_LINES[screening]}`] : [])
   ];

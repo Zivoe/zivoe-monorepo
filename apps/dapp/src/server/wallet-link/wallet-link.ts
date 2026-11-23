@@ -54,6 +54,8 @@ export type WalletLinkRecord = {
   typedData: WalletLinkTypedData;
   signature: Hex | null;
   signedAt: Date | null;
+  /** The agreements version the signer had accepted when the link completed; null on a challenge. */
+  agreementsVersion: string | null;
   /** When the latest Whitelist request was queued for ops: the link, or a yes again since. */
   whitelistRequestedAt: Date | null;
   /** When the reconcile first saw the address admitted everywhere since that request — a record, not the truth; the chain is. */
@@ -90,6 +92,7 @@ export type WalletLinkStore = {
     signature: Hex;
     signedAt: Date;
     signedByUserId: string;
+    agreementsVersion: string;
   }): Promise<
     { outcome: 'linked'; record: WalletLinkRecord } | { outcome: 'address_taken' | 'not_pending' | 'not_member' }
   >;
@@ -305,6 +308,8 @@ export type WalletLink = {
     subjectId: string;
     /** The person signing: the subject itself, or a member the caller has checked. */
     signedByUserId: string;
+    /** The agreements version the signer has accepted, which the caller has checked is the one in force. */
+    agreementsVersion: string;
     address: Address;
     signature: Hex;
   }): Promise<Result<WalletLinkRecord, CompleteLinkError>>;
@@ -466,6 +471,7 @@ export function createWalletLink({
         typedData,
         signature: null,
         signedAt: null,
+        agreementsVersion: null,
         whitelistRequestedAt: null,
         whitelistObservedAt: null,
         opsRequest: null,
@@ -474,7 +480,7 @@ export function createWalletLink({
       return ok({ linkId: record.id, typedData: record.typedData });
     },
 
-    async completeLink({ subjectId, signedByUserId, address: rawAddress, signature }) {
+    async completeLink({ subjectId, signedByUserId, agreementsVersion, address: rawAddress, signature }) {
       const address = rawAddress.toLowerCase() as Address;
       if (!(await mayLink(subjectId))) return err({ code: 'not_approved' });
 
@@ -523,7 +529,14 @@ export function createWalletLink({
 
       // By the nonce that was verified: a challenge re-issued for another chain
       // meanwhile sits in the same row, and the signature is not for it.
-      const written = await store.link({ id: pending.id, nonce: pending.nonce, signature, signedAt, signedByUserId });
+      const written = await store.link({
+        id: pending.id,
+        nonce: pending.nonce,
+        signature,
+        signedAt,
+        signedByUserId,
+        agreementsVersion
+      });
       if (written.outcome === 'linked') return ok(written.record);
       // Linked by some account between the check above and the write: the
       // challenge is dropped, so the job queued above finds no row and skips.

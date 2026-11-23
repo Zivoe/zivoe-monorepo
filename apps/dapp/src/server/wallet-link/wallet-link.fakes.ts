@@ -62,7 +62,7 @@ export function createInMemoryWalletLinkStore() {
           records.delete(id);
       }
     },
-    async link({ id, nonce, signature, signedAt, signedByUserId }) {
+    async link({ id, nonce, signature, signedAt, signedByUserId, agreementsVersion }) {
       const record = records.get(id);
       if (record?.status !== 'pending' || record.nonce !== nonce) return { outcome: 'not_pending' };
       // The partial unique index: one `linked` row per address.
@@ -74,6 +74,7 @@ export function createInMemoryWalletLinkStore() {
         signedByUserId,
         signature,
         signedAt,
+        agreementsVersion,
         whitelistRequestedAt: signedAt,
         opsRequest: 'whitelist',
         opsRequestVersion: 1

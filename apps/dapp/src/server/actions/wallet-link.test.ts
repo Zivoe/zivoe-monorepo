@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LATEST_AGREEMENTS_VERSION } from '@/lib/agreements';
+
 import { completeWalletLink, getWalletOwnership, issueWalletLinkChallenge, listWalletLinks } from './wallet-link';
 
 const mocks = vi.hoisted(() => ({
@@ -13,7 +15,8 @@ const mocks = vi.hoisted(() => ({
   getOwnership: vi.fn(),
   listLinks: vi.fn(),
   canActForSubject: vi.fn(),
-  listForUser: vi.fn()
+  listForUser: vi.fn(),
+  getAgreementsAccess: vi.fn()
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
@@ -21,6 +24,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException, cap
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 vi.mock('@/server/clients/redis', () => ({ redis: {} }));
+vi.mock('@/server/data/agreements', () => ({ getAgreementsAccess: mocks.getAgreementsAccess }));
 vi.mock('@upstash/ratelimit', () => ({
   Ratelimit: Object.assign(
     class {
@@ -79,6 +83,7 @@ beforeEach(() => {
   mocks.getSession.mockResolvedValue({ user: { id: 'user_1', email: 'ada@example.com' } });
   mocks.isKycEnabled.mockResolvedValue(true);
   mocks.canActForSubject.mockResolvedValue(true);
+  mocks.getAgreementsAccess.mockResolvedValue({ status: 'accepted', actsForApproved: true });
   mocks.limit.mockResolvedValue({ success: true });
   mocks.issueChallenge.mockResolvedValue({ ok: true, value: { linkId: LINK_ID, typedData: {} } });
   mocks.completeLink.mockResolvedValue({ ok: true, value: record });
@@ -89,6 +94,11 @@ describe('the gate every action shares', () => {
     ['no session', () => mocks.getSession.mockResolvedValue(null), 'unauthorized'],
     ['the kyc flag off', () => mocks.isKycEnabled.mockResolvedValue(false), 'unauthorized'],
     ['the rate limit spent', () => mocks.limit.mockResolvedValue({ success: false }), 'rate_limited'],
+    [
+      'the agreements in force not accepted',
+      () => mocks.getAgreementsAccess.mockResolvedValue({ status: 'outdated', actsForApproved: true }),
+      'agreements_required'
+    ],
     // Upstash's timeout answer is a success with a reason; unmetered is not an option.
     [
       'the limiter timing out',
@@ -195,6 +205,7 @@ describe('completeWalletLink', () => {
     expect(mocks.completeLink).toHaveBeenCalledWith({
       subjectId: SUBJECT_ID,
       signedByUserId: 'user_1',
+      agreementsVersion: LATEST_AGREEMENTS_VERSION,
       address: ADDRESS,
       signature: SIGNATURE
     });
@@ -206,6 +217,7 @@ describe('completeWalletLink', () => {
     expect(mocks.completeLink).toHaveBeenCalledWith({
       subjectId: SUBJECT_ID,
       signedByUserId: 'user_1',
+      agreementsVersion: LATEST_AGREEMENTS_VERSION,
       address: ADDRESS,
       signature: '0x'
     });

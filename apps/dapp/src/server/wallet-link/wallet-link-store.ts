@@ -35,6 +35,7 @@ const columns = {
   typedData: walletLink.typedData,
   signature: walletLink.signature,
   signedAt: walletLink.signedAt,
+  agreementsVersion: walletLink.agreementsVersion,
   whitelistRequestedAt: walletLink.whitelistRequestedAt,
   whitelistObservedAt: walletLink.whitelistObservedAt,
   opsRequest: walletLink.opsRequest,
@@ -116,7 +117,7 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
         );
     },
 
-    async link({ id, nonce, signature, signedAt, signedByUserId }) {
+    async link({ id, nonce, signature, signedAt, signedByUserId, agreementsVersion }) {
       try {
         return await db.transaction(async (tx) => {
           const [pending] = await tx
@@ -163,6 +164,7 @@ export function createPostgresWalletLinkStore({ db }: { db: Db }): WalletLinkSto
               signedByUserId,
               signature,
               signedAt,
+              agreementsVersion,
               whitelistRequestedAt: signedAt,
               opsRequest: 'whitelist',
               opsRequestVersion: 1,
