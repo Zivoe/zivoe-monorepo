@@ -1,7 +1,8 @@
 -- Organizations, and the Verification subject: a Verification and a Wallet link now belong to a subject (a person or
 -- an organization), whose id Persona knows it by, instead of to a user. Written by hand around what drizzle-kit gives.
 -- It moves no `kyc_verification` or `wallet_link` row and stops rather than guesses if there is one: those tables start
--- clean with Persona's production environment. Clear both right before applying it (TRUNCATE kyc_verification, wallet_link).
+-- clean with Persona's production environment. When it stops, rows arrived: copy both tables out before clearing them
+-- (TRUNCATE kyc_verification, wallet_link, under one lock with the copy), never clear them unseen.
 -- Every onboarded person becomes a subject, and everyone who onboarded as an organization becomes the first member of one.
 -- Code from before it cannot read these tables: apply it and promote the code together.
 DO $$
