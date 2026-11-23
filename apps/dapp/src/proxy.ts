@@ -37,7 +37,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - static assets (.jpg, .png, .svg, .webp)
+     * - documents/ (the public PDFs `/verification` links to)
      */
-    '/((?!sign-in|unsubscribe|api|monitoring|vd3asd|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
+    '/((?!sign-in|unsubscribe|api|monitoring|vd3asd|documents/|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.jpg|.*\\.png|.*\\.svg|.*\\.webp).*)'
   ]
 };
