@@ -5,7 +5,7 @@ import { BankIcon, CameraIcon, DocumentIcon, UserIcon } from '@zivoe/ui/icons';
 
 import { type InvestorPath } from '@/server/verification/verification-status';
 
-import { ATTESTATION_LETTER_HREF } from './verification-documents';
+import { ACCREDITATION_DOCUMENTS_HREF, ATTESTATION_LETTER_HREF } from './verification-documents';
 
 /** The United States and its territories: a subject resident or incorporated in any of them is a U.S. investor. */
 const US_JURISDICTIONS = new Set(['US', 'PR', 'VI', 'GU', 'AS', 'MP', 'UM']);
@@ -90,22 +90,29 @@ function accreditation({ title, who }: { title: string; who: 'you are' | 'your e
     title,
     description: (
       <>
-        One of the following: (i) an{' '}
-        <Link
-          href={ATTESTATION_LETTER_HREF}
-          target="_blank"
-          hideExternalLinkIcon
-          variant="link-primary"
-          size="m"
-          // Underlined in the prose, close to its line: the variant's hover offset (8 px) lands under the next line.
-          className="inline text-small whitespace-normal underline underline-offset-4 hover:underline-offset-4"
-        >
-          Attestation Letter
-        </Link>{' '}
+        One of the following: (i) an <DocumentLink href={ATTESTATION_LETTER_HREF}>Attestation Letter</DocumentLink>{' '}
         signed by a licensed attorney, certified public accountant, registered broker-dealer or registered investment
-        adviser, or (ii) Other Documents proving {who} an Accredited Investor.
+        adviser, or (ii) <DocumentLink href={ACCREDITATION_DOCUMENTS_HREF}>Other Documents</DocumentLink> proving {who}{' '}
+        an Accredited Investor.
       </>
     ),
     Icon: DocumentIcon
   };
+}
+
+/** A PDF named in the item's prose, opened in a new tab. */
+function DocumentLink({ href, children }: { href: string; children: string }) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      hideExternalLinkIcon
+      variant="link-primary"
+      size="m"
+      // Underlined in the prose, close to its line: the variant's hover offset (8 px) lands under the next line.
+      className="inline text-small whitespace-normal underline underline-offset-4 hover:underline-offset-4"
+    >
+      {children}
+    </Link>
+  );
 }

@@ -293,14 +293,16 @@ describe('PersonaFlow asks for the documents first', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('asks a U.S. person for an accreditation document too, linking the attestation letter only', () => {
+  it('asks a U.S. person for an accreditation document too, linking the attestation letter and the other documents', () => {
     render(<PersonaFlow countryCode="US" subjectId="user_1" view={notStarted()} />);
 
     expect(names()).toEqual(['Photo ID', 'Device with a camera', 'Accreditation document']);
     expect(screen.getByRole('link', { name: 'Attestation Letter' }).getAttribute('href')).toBe(
       '/documents/accreditation-letter.pdf'
     );
-    expect(screen.queryByRole('link', { name: 'Other Documents' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Other Documents' }).getAttribute('href')).toBe(
+      '/documents/accreditation-documents.pdf'
+    );
     expect(screen.getByText(/proving you are an Accredited Investor/)).toBeTruthy();
   });
 
