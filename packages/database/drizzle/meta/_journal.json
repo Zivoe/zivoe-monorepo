@@ -162,6 +162,13 @@
       "when": 1794179036449,
       "tag": "0022_organization_member_removal",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794964282579,
+      "tag": "0023_agreement_acceptance",
+      "breakpoints": true
     }
   ]
 }

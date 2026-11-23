@@ -1,3 +1,4 @@
+export * from './agreements';
 export * from './auth';
 export * from './kyc';
 export * from './notifications';
