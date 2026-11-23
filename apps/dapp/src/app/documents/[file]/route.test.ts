@@ -6,6 +6,7 @@ import { GET } from './route';
 
 const mocks = vi.hoisted(() => ({ getSession: vi.fn(), isKycEnabled: vi.fn() }));
 
+vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
 

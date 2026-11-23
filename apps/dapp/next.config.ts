@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
 
   // The confidential PDFs `app/documents/[file]/route.ts` reads from disk, outside `public/`.
   outputFileTracingIncludes: {
-    '/documents/[file]': ['./documents/*.pdf']
+    '/documents/*': ['./documents/*.pdf']
   },
 
   experimental: {

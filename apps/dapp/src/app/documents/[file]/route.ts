@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+import * as Sentry from '@sentry/nextjs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -22,7 +23,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
   if (!session?.user) return NextResponse.redirect(new URL('/sign-in', req.url));
   if (!(await isKycEnabled({ user: session.user }))) return new NextResponse(null, { status: 404 });
 
-  const pdf = await readFile(path.join(process.cwd(), 'documents', file));
+  // A listed file that is not on disk is a deployment that did not trace the folder: say so, loudly.
+  const pdf = await readFile(path.join(process.cwd(), 'documents', file)).catch((error: unknown) => {
+    Sentry.captureException(error, { tags: { source: 'API', flow: 'verification-documents' }, extra: { file } });
+    return null;
+  });
+  if (!pdf) return new NextResponse(null, { status: 500 });
   return new NextResponse(new Uint8Array(pdf), {
     headers: {
       'Content-Type': 'application/pdf',
