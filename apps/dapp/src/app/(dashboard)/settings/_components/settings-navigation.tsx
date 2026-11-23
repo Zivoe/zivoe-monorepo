@@ -10,6 +10,7 @@ import { Badge } from '@zivoe/ui/core/badge';
 import { Button } from '@zivoe/ui/core/button';
 import { Link } from '@zivoe/ui/core/link';
 import { Menu, MenuItem, MenuPopover, MenuSeparator, MenuTrigger } from '@zivoe/ui/core/menu';
+import { Skeleton } from '@zivoe/ui/core/skeleton';
 import { CheckIcon, ChevronDownIcon } from '@zivoe/ui/icons';
 import { cn } from '@zivoe/ui/lib/tw-utils';
 
@@ -143,6 +144,39 @@ export function SettingsNavigation({
       </div>
 
       <CreateOrganizationDialog isOpen={isCreating} onOpenChange={setIsCreating} onCreated={open} />
+    </nav>
+  );
+}
+
+/**
+ * The column while the person's organizations and invitations are on their way: what everyone has
+ * (Notifications), and a block where the organization picker or Create organization goes.
+ */
+export function SettingsNavigationSkeleton() {
+  const pathname = usePathname() ?? '';
+
+  return (
+    <nav aria-label="Settings" className="w-full shrink-0 lg:w-60">
+      <div className="flex flex-wrap items-center gap-1 lg:hidden">
+        <NavigationLink href="/settings/notifications" pathname={pathname} isCompact>
+          Notifications
+        </NavigationLink>
+        <Skeleton className="h-10 w-44 rounded-sm" />
+      </div>
+
+      <div className="hidden flex-col gap-6 lg:flex">
+        <NavigationGroup title="Personal">
+          <NavigationLink href="/settings/notifications" pathname={pathname}>
+            Notifications
+          </NavigationLink>
+        </NavigationGroup>
+
+        <div aria-hidden="true" className="h-px bg-element-neutral-subtle" />
+
+        <NavigationGroup title="Organizations">
+          <Skeleton className="h-10 w-full rounded-sm" />
+        </NavigationGroup>
+      </div>
     </nav>
   );
 }
