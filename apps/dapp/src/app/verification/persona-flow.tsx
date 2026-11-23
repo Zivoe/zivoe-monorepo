@@ -11,7 +11,7 @@ import { Button } from '@zivoe/ui/core/button';
 import { Callout } from '@zivoe/ui/core/callout';
 import { Checkbox } from '@zivoe/ui/core/checkbox';
 import { toast } from '@zivoe/ui/core/sonner';
-import { Spinner } from '@zivoe/ui/icons';
+import { CloseIcon, Spinner } from '@zivoe/ui/icons';
 
 import { type VerificationStatusView as VerificationStatusViewModel } from '@/server/verification/verification-status';
 
@@ -52,7 +52,7 @@ const RATE_LIMIT_FALLBACK_MS = 60_000;
 
 /**
  * The session token Persona handed out for an inquiry, kept for this tab. A
- * Continue after "Finish later" (or a reload) mounts the flow with it instead
+ * Continue after closing the flow (or a reload) mounts the flow with it instead
  * of asking the server to resume: Persona reuses only a session the flow has
  * not loaded yet, caps the sessions an inquiry may have, and advises against
  * a resume per page load. One tab, one session — a new tab or device resumes
@@ -331,7 +331,9 @@ export default function PersonaFlow({
   }, [cooldownMs, router]);
 
   // Leaving is safe: the record stays resumable, the page shows Continue. The
-  // inline flow has no close of its own, so the page offers one.
+  // inline flow has no close of its own: on a phone, where the frame covers
+  // Exit and the step rail, the page's ✕ is the way out; on larger screens
+  // those stay on the page, outside the frame.
   const leave = () => {
     setPhase({ kind: 'idle' });
     router.refresh();
@@ -349,11 +351,11 @@ export default function PersonaFlow({
             maximum. persona-react renders a bare iframe whose frame props
             only set max-*, so the container sizes it and the iframe fills the
             container. */}
-        <div className="fixed inset-0 z-50 flex flex-col bg-surface-base sm:static sm:z-auto sm:gap-4 sm:bg-transparent">
+        <div className="fixed inset-0 z-50 flex flex-col bg-surface-base sm:static sm:z-auto sm:bg-transparent">
           <div className="flex items-center justify-between px-4 py-2 sm:hidden">
             <span className="text-small font-medium text-primary">{frameTitle}</span>
-            <Button variant="ghost-light" size="s" onPress={leave}>
-              Finish later
+            <Button variant="ghost-light" size="m" aria-label="Close" onPress={leave}>
+              <CloseIcon aria-hidden="true" />
             </Button>
           </div>
 
@@ -422,10 +424,6 @@ export default function PersonaFlow({
               }}
             />
           </div>
-
-          <Button variant="link-primary" size="s" onPress={leave} className="hidden self-start sm:inline-flex">
-            Finish later
-          </Button>
         </div>
       </>
     );

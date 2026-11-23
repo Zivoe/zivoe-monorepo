@@ -19,8 +19,18 @@ vi.mock('@zivoe/ui/core/link', () => {
   return { Link: Anchor, NextLink: Anchor };
 });
 vi.mock('@zivoe/ui/core/button', () => ({
-  Button: ({ children, onPress, isDisabled }: { children: ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
-    <button type="button" onClick={onPress} disabled={isDisabled}>
+  Button: ({
+    children,
+    onPress,
+    isDisabled,
+    'aria-label': ariaLabel
+  }: {
+    children: ReactNode;
+    onPress?: () => void;
+    isDisabled?: boolean;
+    'aria-label'?: string;
+  }) => (
+    <button type="button" onClick={onPress} disabled={isDisabled} aria-label={ariaLabel}>
       {children}
     </button>
   )
@@ -233,6 +243,19 @@ describe('PersonaFlow reuses the session token its tab stored', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('closes with the ✕ a phone shows, keeping the session for the next Continue', async () => {
+    window.sessionStorage.setItem(STORAGE_KEY, 'tok_stored');
+    render(<PersonaFlow countryCode="RO" subjectId="user_1" view={view({})} />);
+    pressContinue();
+    await screen.findByTestId('persona-frame');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.queryByTestId('persona-frame')).toBeNull();
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('tok_stored');
+    expect(router.refresh).toHaveBeenCalled();
   });
 
   it('forgets the session on completion', async () => {
