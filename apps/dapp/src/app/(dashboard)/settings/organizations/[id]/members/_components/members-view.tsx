@@ -63,6 +63,9 @@ type Row = {
   canResend: boolean;
 };
 
+/** The ⋯ menu's actions that take someone out of the organization, or end it: red, as Logout is. */
+const DESTRUCTIVE_ITEM = 'text-alert-contrast';
+
 const STATUS_BADGES = { Active: 'primary', Invited: 'neutral', Expired: 'warning' } as const;
 
 function toRows(page: OrganizationPage, viewerId: string): Array<Row> {
@@ -433,9 +436,21 @@ function RowActions({
             {row.kind === 'invitation' && row.canResend ? <MenuItem id="resend">Resend</MenuItem> : null}
             {row.status === 'Invited' ? <MenuItem id="copy">Copy invite link</MenuItem> : null}
             {row.kind === 'invitation' ? <MenuItem id="cancel">Cancel invitation</MenuItem> : null}
-            {row.isViewer && !isLastMember ? <MenuItem id="leave">Leave organization</MenuItem> : null}
-            {row.isViewer && isLastMember ? <MenuItem id="delete">Delete organization</MenuItem> : null}
-            {row.kind === 'member' && !row.isViewer ? <MenuItem id="remove">Remove from organization</MenuItem> : null}
+            {row.isViewer && !isLastMember ? (
+              <MenuItem id="leave" className={DESTRUCTIVE_ITEM}>
+                Leave organization
+              </MenuItem>
+            ) : null}
+            {row.isViewer && isLastMember ? (
+              <MenuItem id="delete" className={DESTRUCTIVE_ITEM}>
+                Delete organization
+              </MenuItem>
+            ) : null}
+            {row.kind === 'member' && !row.isViewer ? (
+              <MenuItem id="remove" className={DESTRUCTIVE_ITEM}>
+                Remove from organization
+              </MenuItem>
+            ) : null}
           </Menu>
         </MenuPopover>
       </MenuTrigger>
@@ -467,8 +482,9 @@ function RowActions({
             <Button autoFocus variant="ghost-light" onPress={() => setConfirming(null)} isDisabled={run.isPending}>
               {asked === 'cancel' ? 'Keep' : 'Cancel'}
             </Button>
+            {/* Canceling an invitation can be undone by inviting again; the rest can't. */}
             <Button
-              variant="primary"
+              variant={asked === 'cancel' ? 'primary' : 'alert'}
               onPress={() => confirming && run.mutate(confirming)}
               isPending={run.isPending}
               pendingContent={confirm.pending}
