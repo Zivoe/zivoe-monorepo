@@ -99,6 +99,9 @@ export default function TermsForm({ next, isUpdate }: { next?: string; isUpdate:
           )}
           className="flex flex-col gap-11"
         >
+          {/* Continue pressed before the page is interactive submits the form natively: this keeps `next` in the reloaded URL. */}
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+
           <Controller
             control={control}
             name="isAccepted"
