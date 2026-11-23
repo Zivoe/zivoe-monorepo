@@ -42,7 +42,11 @@ function MenuComponent<T extends { id: string; label: string }>(
 ) {
   return (
     <div className={className}>
-      <ScrollArea className={cn('-m-2', scrollAreaClassName)}>
+      {/* Radix wraps the content in a `display: table` box that grows with its widest row, so a long item
+          widened every row and the menu scrolled sideways; a block keeps rows to the menu's width. The
+          viewport takes the max height a caller gives `scrollAreaClassName`, so a long menu scrolls inside
+          it instead of being cut off. */}
+      <ScrollArea className={cn('-m-2', scrollAreaClassName)} viewportClassName="max-h-[inherit] [&>div]:block!">
         <Aria.Menu className="space-y-1 p-2 outline-hidden" ref={ref} items={items} {...props} />
         <ScrollBar orientation="vertical" />
       </ScrollArea>
@@ -54,7 +58,9 @@ const menuItemVariants = tv({
   base: [
     'relative flex cursor-default items-center rounded-sm px-3 py-2.5 text-small outline-hidden transition-colors select-none',
     'disabled:pointer-events-none disabled:opacity-60',
-    'focus:bg-element-neutral-light',
+    // Keyboard focus only: react-aria moves focus to the hovered item, and leaving the menu
+    // doesn't move it away, so a plain focus style kept the last item lit.
+    'data-focus-visible:bg-element-neutral-light',
     'hover:cursor-pointer hover:bg-element-neutral-light'
   ],
 
@@ -74,6 +80,12 @@ const MenuItem = ({ children, className, target = '_self', rel: providedRel, ...
   return (
     <Aria.MenuItem
       {...props}
+      // The menu scrolls inside Radix's viewport, which React Aria doesn't know to scroll: an item the keyboard
+      // moves to brings itself into view.
+      onFocus={(event) => {
+        if (event.target instanceof HTMLElement) event.target.scrollIntoView({ block: 'nearest' });
+        props.onFocus?.(event);
+      }}
       target={target}
       rel={rel}
       textValue={textValue}

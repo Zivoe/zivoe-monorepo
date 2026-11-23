@@ -62,7 +62,8 @@ function Toast(props: ToastProps) {
     >
       <div className={iconVariants({ variant: type })}>{TOAST_ICON[type]}</div>
 
-      <div className="flex flex-col gap-1">
+      {/* `min-w-0 break-words`: a long name in a toast wraps inside it instead of spilling out. */}
+      <div className="flex min-w-0 flex-col gap-1 break-words">
         <p className="text-leading text-primary">{title}</p>
         {description && <p className="text-small text-secondary">{description}</p>}
       </div>
