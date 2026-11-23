@@ -107,7 +107,7 @@ export function AccountDetailsStep({ subject, profile }: { subject: SubjectOptio
         <PersonalDetailsForm key={subject.id} profile={profile} onSaved={proceed} onRefused={() => router.refresh()} />
       ) : (
         <ReadOnlyDetails onContinue={proceed}>
-          <LockedField label="Name" value={`${profile.firstName} ${profile.lastName}`} />
+          <LockedField label="Legal Name" value={`${profile.firstName} ${profile.lastName}`} />
           <LockedField label="Email" value={profile.email} type="email" />
         </ReadOnlyDetails>
       )}

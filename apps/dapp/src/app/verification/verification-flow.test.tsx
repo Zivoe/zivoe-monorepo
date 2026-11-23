@@ -246,11 +246,11 @@ describe('step one: account details', () => {
   it('prefills the person, with the email locked, and saves before moving on through the URL', async () => {
     renderFlow();
 
-    expect(field('First Name').value).toBe('Zivoe');
+    expect(field('Legal First Name').value).toBe('Zivoe');
     expect(field('Email').readOnly).toBe(true);
     expect(stepItem('Account details').getAttribute('aria-current')).toBe('step');
 
-    fireEvent.change(field('First Name'), { target: { value: 'Ada' } });
+    fireEvent.change(field('Legal First Name'), { target: { value: 'Ada' } });
     pressContinue();
 
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(toStep(USER_ID, 'identity')));
@@ -264,7 +264,7 @@ describe('step one: account details', () => {
   it('refuses an empty first name before asking the server', async () => {
     renderFlow();
 
-    fireEvent.change(field('First Name'), { target: { value: ' ' } });
+    fireEvent.change(field('Legal First Name'), { target: { value: ' ' } });
     pressContinue();
 
     await screen.findByText('First name is required');

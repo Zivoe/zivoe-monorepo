@@ -18,7 +18,9 @@ import { CountryComboBox } from '@/components/country-combo-box';
 
 /**
  * A person's own details, prefilled, to confirm or correct before the Persona
- * flow. The email is shown locked: it is the sign-in identity. A refused save
+ * flow. The names are asked as legal names here (onboarding just asks for a name):
+ * they prefill Persona, which checks them against the ID. The email is shown
+ * locked: it is the sign-in identity. A refused save
  * calls `onRefused`, which re-reads the record: a verification begun elsewhere
  * moves the page on instead of leaving a form that can never save.
  */
@@ -66,7 +68,7 @@ export function PersonalDetailsForm({
             render={({ field, fieldState: { error, invalid } }) => (
               <Input
                 {...field}
-                label="First Name"
+                label="Legal First Name"
                 placeholder="Johnny"
                 autoComplete="given-name"
                 isInvalid={invalid}
@@ -81,7 +83,7 @@ export function PersonalDetailsForm({
             render={({ field, fieldState: { error, invalid } }) => (
               <Input
                 {...field}
-                label="Last Name"
+                label="Legal Last Name"
                 placeholder="Appleseed"
                 autoComplete="family-name"
                 isInvalid={invalid}
