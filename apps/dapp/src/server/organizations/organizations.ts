@@ -790,10 +790,10 @@ export function createOrganizations({
     },
 
     /**
-     * What the invitation page shows this signed-in person. A member of its organization is sent
-     * there; only the invited address's owner learns the organization's name; anyone else signed in
-     * sees the invited address masked, so they can tell which account to use. Unknown and ended
-     * invitations read the same.
+     * What the invitation page shows this signed-in person. The invitee, once a member, is sent to
+     * the organization; only the invited address's owner learns the organization's name; anyone else
+     * signed in, its members included, sees the invited address masked, so they can tell which
+     * account to use. Unknown and ended invitations read the same.
      */
     async viewForInvitee({ invitationId, userId }: { invitationId: string; userId: string }): Promise<InvitationView> {
       const [row] = await db
@@ -809,18 +809,19 @@ export function createOrganizations({
         .where(and(eq(organizationInvitation.id, invitationId), isNull(organization.deletedAt)))
         .limit(1);
       if (!row) return { status: 'invalid' };
-      if (await isMember(db, { organizationId: row.organizationId, userId })) {
-        return { status: 'member', organizationId: row.organizationId };
-      }
-      if (row.status !== 'pending') return { status: 'invalid' };
       const [account] = await db
         .select({ email: user.email, emailVerified: user.emailVerified })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);
-      if (row.email !== account?.email.toLowerCase()) {
-        return { status: 'other_account', maskedEmail: maskEmail(row.email) };
+      const isForThem = row.email === account?.email.toLowerCase();
+      // Only the invitee is sent into the organization they joined. A member who opens someone
+      // else's link (say, one they just sent) sees whose it is, as any other account does.
+      if (isForThem && (await isMember(db, { organizationId: row.organizationId, userId }))) {
+        return { status: 'member', organizationId: row.organizationId };
       }
+      if (row.status !== 'pending') return { status: 'invalid' };
+      if (!isForThem) return { status: 'other_account', maskedEmail: maskEmail(row.email) };
       // Their address, not yet proven (an X sign-in never is): a code sent to it does.
       if (!account.emailVerified) return { status: 'unverified' };
       if (row.expiresAt <= clock.now()) return { status: 'expired', organizationName: row.organizationName };

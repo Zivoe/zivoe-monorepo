@@ -567,8 +567,21 @@ describe('accepting', () => {
     expect(await organizations.viewForInvitee({ invitationId: forUnverified, userId: unverified.id })).toEqual({
       status: 'unverified'
     });
-    // Any member following any of its links goes to the organization.
-    expect(await organizations.viewForInvitee({ invitationId, userId: owner.id })).toEqual({
+    // A member opening a link they sent is not sent into the organization as if it had worked.
+    expect(await organizations.viewForInvitee({ invitationId, userId: owner.id })).toEqual(masked);
+    now = new Date(NOW.getTime() + 8 * DAY);
+    expect(await organizations.viewForInvitee({ invitationId, userId: owner.id })).toEqual(masked);
+  });
+
+  it('shows a member an answered invitation as ended, and sends only its invitee in', async () => {
+    const owner = await person();
+    const invitee = await person();
+    const organizationId = await organizationOf(owner.id);
+    const invitationId = await invited({ organizationId, inviterUserId: owner.id, email: invitee.email });
+    await organizations.accept({ invitationId, userId: invitee.id });
+
+    expect(await organizations.viewForInvitee({ invitationId, userId: owner.id })).toEqual({ status: 'invalid' });
+    expect(await organizations.viewForInvitee({ invitationId, userId: invitee.id })).toEqual({
       status: 'member',
       organizationId
     });

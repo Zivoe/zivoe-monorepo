@@ -19,7 +19,7 @@ import { handlePromise } from '@/lib/utils';
 
 import { Auth } from '@/app/(auth)/_components/common';
 
-/** One card per state of the invitation (`viewForInvitee`); a member never gets here. */
+/** One card per state of the invitation (`viewForInvitee`); the page redirects `member` before rendering. */
 export function InvitationView({
   invitationId,
   view,
