@@ -424,9 +424,7 @@ export function DepositFlow() {
       ) : null}
 
       {paysGasInAsset ? (
-        <Callout>
-          Maintain enough {asset.symbol} balance when depositing to cover gas fees.
-        </Callout>
+        <Callout>Maintain enough {asset.symbol} balance when depositing to cover gas fees.</Callout>
       ) : null}
 
       {/* TODO: restore the illustrative annualized return once we publish an
