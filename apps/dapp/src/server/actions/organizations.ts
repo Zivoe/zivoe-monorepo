@@ -191,7 +191,11 @@ async function guarded<T>(
     const result = await run(userId);
     // Organizations and invitations show in the Settings layout and `/verification`, which the router
     // keeps for a while: a change drops every copy, and the page the action ran on renders again with it.
-    if (result.ok && revalidate) revalidatePath('/', 'layout');
+    // Only those two: revalidating from the root would also drop the vault pages' cached data, for everyone.
+    if (result.ok && revalidate) {
+      revalidatePath('/settings', 'layout');
+      revalidatePath('/verification');
+    }
     return result;
   } catch (error) {
     Sentry.captureException(error, { tags: { source: 'SERVER', flow }, extra: { userId } });

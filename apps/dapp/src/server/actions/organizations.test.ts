@@ -324,6 +324,12 @@ describe('resendInvitation', () => {
     expect(mocks.captureServerEvent).toHaveBeenCalledTimes(3);
   });
 
+  it('drops the cached Settings and Verification pages, never the whole app with its vault data', async () => {
+    await resendInvitation({ invitationId: INVITATION_ID });
+
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([['/settings', 'layout'], ['/verification']]);
+  });
+
   it('answers not_found for an invitation the person may not resend, spending nothing', async () => {
     mocks.recipientOf.mockResolvedValue(null);
 
