@@ -29,8 +29,8 @@ export const membersPath = (organizationId: string) => `/settings/organizations/
  * for which one, its Members page, and Create organization, then Invitations, when
  * any are waiting for this person, each a link to its own page (accept, decline,
  * or why it is gone). The picker shows the organization in the URL; on a personal page
- * it shows none, so nothing reads as being in an organization's settings, and
- * choosing one opens its Members page. Below `lg` the same places fit in two short
+ * it shows the first one (joined earliest), so its Members page is a click away
+ * there too, and choosing one opens its Members page. Below `lg` the same places fit in two short
  * rows, the picker and then the pages as tabs, so the page itself starts on the first screen.
  */
 export function SettingsNavigation({
@@ -45,7 +45,7 @@ export function SettingsNavigation({
   const [isCreating, setIsCreating] = useState(false);
 
   const inUrl = /^\/settings\/organizations\/([^/]+)/.exec(pathname)?.[1];
-  const selected = organizations.find((organization) => organization.id === inUrl);
+  const selected = organizations.find((organization) => organization.id === inUrl) ?? organizations[0];
 
   const open = (organizationId: string) => router.push(membersPath(organizationId));
 
