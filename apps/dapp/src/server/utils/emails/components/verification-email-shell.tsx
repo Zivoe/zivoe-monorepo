@@ -1,5 +1,6 @@
-import { Heading, Link, Section, Text } from '@react-email/components';
+import { Heading, Text } from '@react-email/components';
 
+import { EmailButton } from './email-button';
 import { EmailLayout, WRAP } from './email-layout';
 
 /**
@@ -46,15 +47,7 @@ export function VerificationEmailShell({
         </Text>
       ))}
 
-      <Section className="my-8 text-center">
-        <Link
-          href={cta.href}
-          className="rounded-lg bg-primary-600 px-6 py-3 font-medium text-neutral-0"
-          style={{ display: 'inline-block' }}
-        >
-          {cta.label}
-        </Link>
-      </Section>
+      <EmailButton href={cta.href} label={cta.label} />
 
       {footnote ? <Text className="text-sm m-0 text-center leading-5 text-neutral-500">{footnote}</Text> : null}
     </EmailLayout>

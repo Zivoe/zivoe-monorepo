@@ -1,7 +1,8 @@
-import { Img, Link, Section, Text } from '@react-email/components';
+import { Img, Section, Text } from '@react-email/components';
 
 import { BASE_URL } from '../../base-url';
 import { THOR_AVATAR_URL } from '../config';
+import { EmailButton } from './email-button';
 
 export function ContactCtaSection({
   ctaText = 'Book a Call',
@@ -12,15 +13,7 @@ export function ContactCtaSection({
 }) {
   return (
     <>
-      <Section className="my-8 text-center">
-        <Link
-          href={ctaHref}
-          className="rounded-lg bg-primary-600 px-6 py-3 font-medium text-neutral-0"
-          style={{ display: 'inline-block' }}
-        >
-          {ctaText}
-        </Link>
-      </Section>
+      <EmailButton href={ctaHref} label={ctaText} />
 
       <Section className="mt-6">
         <table>

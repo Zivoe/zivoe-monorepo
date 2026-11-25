@@ -1,5 +1,6 @@
-import { Heading, Link, Section, Text } from '@react-email/components';
+import { Heading, Link, Text } from '@react-email/components';
 
+import { EmailButton } from './components/email-button';
 import { EmailLayout, WRAP } from './components/email-layout';
 
 const EXPIRY_DATE = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' });
@@ -41,16 +42,7 @@ export default function OrganizationInvitationEmail({
         {EXPIRY_DATE.format(expiresAt)}.
       </Text>
 
-      <Section className="my-8 text-center">
-        {/* Left out of the plain-text part, which keeps the link written out below instead. */}
-        <Link
-          href={invitationUrl}
-          data-skip-in-text="true"
-          className="text-white rounded-lg bg-neutral-950 px-6 py-3 text-center font-medium no-underline"
-        >
-          View invitation
-        </Link>
-      </Section>
+      <EmailButton href={invitationUrl} label="View invitation" skipInText />
 
       <Text className="text-sm m-0 mb-4 leading-5 break-all text-neutral-500">
         Or open this link:{' '}
