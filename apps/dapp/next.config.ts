@@ -5,6 +5,11 @@ import { withSentryConfig } from '@sentry/nextjs/config';
 import './src/env';
 
 const nextConfig: NextConfig = {
+  // Local dev behind a tunnel (`APP_URL`, see src/server/utils/base-url.ts): `next dev` serves its own
+  // resources — hot reload, fonts, the client's hydration — to localhost only, unless the host is listed.
+  // Production never reads this.
+  allowedDevOrigins: process.env.APP_URL ? [new URL(process.env.APP_URL).hostname] : [],
+
   experimental: {
     staleTimes: {
       dynamic: 30,

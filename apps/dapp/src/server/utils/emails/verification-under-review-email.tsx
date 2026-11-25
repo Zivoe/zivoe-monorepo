@@ -1,4 +1,4 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { VerificationEmailShell } from './components/verification-email-shell';
 
@@ -11,16 +11,18 @@ import { VerificationEmailShell } from './components/verification-email-shell';
 export default function VerificationUnderReviewEmail({
   name,
   verificationUrl,
-  accountType,
+  subjectKind,
+  organizationName,
   caseWaitingOn = null
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
   /** For an organization: whether its KYB case waits on the people it listed, or on the team. */
   caseWaitingOn?: 'people' | 'team' | null;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
   const paragraphs = organization
     ? [
         "Thanks for completing your organization's verification.",
@@ -36,6 +38,7 @@ export default function VerificationUnderReviewEmail({
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization
           ? "Your organization's verification is being reviewed."

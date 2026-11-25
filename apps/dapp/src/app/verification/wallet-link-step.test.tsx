@@ -18,6 +18,7 @@ const OTHER = '0x881500000000000000000000000000000000e9e6';
 /** What the hooks and actions answer; each test sets the fields it needs before rendering. */
 type Mocks = {
   toast: ReturnType<typeof vi.fn>;
+  refresh: ReturnType<typeof vi.fn>;
   list: ReturnType<typeof vi.fn>;
   setShowAuthFlow: ReturnType<typeof vi.fn>;
   handleLogOut: ReturnType<typeof vi.fn>;
@@ -34,6 +35,7 @@ type Mocks = {
 const mocks = vi.hoisted(
   (): Mocks => ({
     toast: vi.fn(),
+    refresh: vi.fn(),
     list: vi.fn(),
     setShowAuthFlow: vi.fn(),
     handleLogOut: vi.fn(async () => undefined),
@@ -85,6 +87,7 @@ vi.mock('@zivoe/ui/core/tooltip', () => ({
 }));
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: mocks.toast, Toaster: () => null }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock('@dynamic-labs/ethereum', () => ({ isEthereumWallet: () => true }));
 vi.mock('@dynamic-labs/wallet-book', () => ({ WalletIcon: () => null }));
 vi.mock('@dynamic-labs/sdk-react-core', () => ({
@@ -123,7 +126,7 @@ const linked = (overrides: Partial<LinkedAddress> = {}): LinkedAddress => ({
 });
 
 const typedData = {
-  domain: { name: 'Zivoe Verification', version: '1', chainId: 11155111 },
+  domain: { name: 'Wallet Verification', version: '1', chainId: 11155111 },
   types: { WalletLink: [] },
   primaryType: 'WalletLink',
   message: {
@@ -143,13 +146,16 @@ const USER_ID = 'user_1';
  * re-read on mount. Both test addresses are nobody's unless the test says
  * otherwise, as if the ownership read had answered.
  */
-function renderStep(links: Array<LinkedAddress> = [], ownership: 'none' | 'elsewhere' = 'none') {
+function renderStep(
+  links: Array<LinkedAddress> = [],
+  ownership: 'none' | 'elsewhere' | { yours: string | null } = 'none'
+) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   client.setQueryData(['WALLET_LINKS', USER_ID], links);
   for (const address of [LOWER, OTHER]) client.setQueryData(['WALLET_OWNERSHIP', USER_ID, address], ownership);
   const tree = () => (
     <QueryClientProvider client={client}>
-      <WalletLinkStep userId={USER_ID} />
+      <WalletLinkStep subjectId={USER_ID} />
     </QueryClientProvider>
   );
   const view = render(tree());
@@ -298,7 +304,7 @@ describe('the connected wallet', () => {
 
     expect(screen.getByText('Whitelisted')).toBeTruthy();
     expect(screen.getByRole('button', { name: CLAIM })).toBeTruthy();
-    expect(screen.getByText(/stays linked to your Zivoe account and can’t be linked to another account/)).toBeTruthy();
+    expect(screen.getByText(/stays linked to your account and can’t be linked to another account/)).toBeTruthy();
   });
 
   it.each([
@@ -315,6 +321,19 @@ describe('the connected wallet', () => {
     expect(screen.getByRole('link', { name: /@/ })).toBeTruthy();
   });
 
+  it.each([
+    [{ yours: null }, /linked to your personal account/],
+    [{ yours: 'Acme Ltd' }, /linked to Acme Ltd/]
+  ])("names the person's own other account that owns the wallet, and asks for a different one", (ownership, words) => {
+    connect(ADDRESS, NOT_MEMBER);
+
+    renderStep([], ownership);
+
+    expect(screen.getByText(words)).toBeTruthy();
+    expect(screen.queryByText(/another Zivoe account/)).toBeNull();
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
   it('asks whose the wallet is before offering a signature, once per address', async () => {
     connect();
     mocks.ownership.mockResolvedValue({ ok: true, value: 'elsewhere' });
@@ -322,13 +341,13 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_LINKS', USER_ID], []);
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 
     expect(screen.getByText('Loading wallet…')).toBeTruthy();
     expect(await screen.findByText(/linked to another Zivoe account/)).toBeTruthy();
-    expect(mocks.ownership).toHaveBeenCalledWith({ address: LOWER });
+    expect(mocks.ownership).toHaveBeenCalledWith({ subjectId: USER_ID, address: LOWER });
     expect(mocks.ownership).toHaveBeenCalledTimes(1);
   });
 
@@ -340,7 +359,7 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'mine');
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 
@@ -459,8 +478,11 @@ describe('the connected wallet', () => {
     renderStep();
     fireEvent.click(screen.getByRole('button', { name: SIGN }));
 
-    await waitFor(() => expect(mocks.complete).toHaveBeenCalledWith({ address: ADDRESS, signature: '0xsig' }));
+    await waitFor(() =>
+      expect(mocks.complete).toHaveBeenCalledWith({ subjectId: USER_ID, address: ADDRESS, signature: '0xsig' })
+    );
     expect(mocks.issue).toHaveBeenCalledWith({
+      subjectId: USER_ID,
       address: ADDRESS,
       chainId: 11155111,
       walletType: 'metamask',
@@ -555,7 +577,7 @@ describe('the connected wallet', () => {
     client.setQueryData(['WALLET_OWNERSHIP', USER_ID, LOWER], 'none');
     render(
       <QueryClientProvider client={client}>
-        <WalletLinkStep userId={USER_ID} />
+        <WalletLinkStep subjectId={USER_ID} />
       </QueryClientProvider>
     );
 
@@ -582,6 +604,34 @@ describe('the connected wallet', () => {
 
     expect(await screen.findByText('Whitelist pending')).toBeTruthy();
     expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes into the Agreements step when the address check answers that the agreements are not accepted', async () => {
+    connect();
+    mocks.ownership.mockResolvedValue({ ok: false, error: { code: 'agreements_required' } });
+    // No cached answer for the address: the step asks the server.
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    client.setQueryData(['WALLET_LINKS', USER_ID], []);
+    render(
+      <QueryClientProvider client={client}>
+        <WalletLinkStep subjectId={USER_ID} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: SIGN })).toBeNull();
+  });
+
+  it('refreshes into the Agreements step when the agreements in force are not accepted', async () => {
+    connect();
+    mocks.issue.mockResolvedValue({ ok: false, error: { code: 'agreements_required' } });
+    mocks.list.mockResolvedValue({ ok: true, value: [] });
+
+    renderStep();
+    fireEvent.click(screen.getByRole('button', { name: SIGN }));
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Accept the agreements to continue.' }));
   });
 
   it("shows the wallet as another account's when that account linked it while this one was signing", async () => {

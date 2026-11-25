@@ -95,7 +95,8 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
           aria-describedby={ariaDescribedBy}
-          className={cn('flex flex-col items-center gap-4 outline-hidden', isFullScreen && 'h-full')}
+          // `break-words`: a long name in a title or body wraps instead of widening the dialog.
+          className={cn('flex flex-col items-center gap-4 break-words outline-hidden', isFullScreen && 'h-full')}
           ref={ref}
         >
           {composeRenderProps(children, (children, { close }) => (

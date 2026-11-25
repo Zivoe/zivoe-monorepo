@@ -70,7 +70,8 @@ export const QSTASH_JOB_LABELS = {
   telegramWalletLink: 'telegram.wallet-link',
   emailWalletLink: 'email.wallet-link',
   walletLinkReconcile: 'wallet-link.reconcile',
-  walletFetchHoldings: 'wallet.fetch-holdings'
+  walletFetchHoldings: 'wallet.fetch-holdings',
+  organizationJob: 'organization.job'
 } as const;
 
 export function getQstashFailureCallback(baseUrl: string): string {

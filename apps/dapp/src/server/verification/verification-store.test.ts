@@ -4,7 +4,7 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { kycVerification, user } from '@zivoe/database/schema';
+import { kycVerification, user, verificationSubject } from '@zivoe/database/schema';
 import * as schema from '@zivoe/database/schema';
 
 import { type Db } from '@/server/clients/db';
@@ -22,7 +22,7 @@ const T0 = new Date('2026-10-30T10:00:00.000Z');
 const MINUTE = 60_000;
 const at = (minutes: number) => new Date(T0.getTime() + minutes * MINUTE);
 
-let userId: string;
+let subjectId: string;
 
 beforeAll(async () => {
   await migrate(db, {
@@ -32,7 +32,8 @@ beforeAll(async () => {
     .insert(user)
     .values({ name: 'Acme', email: 'ops@acme.example', createdAt: T0, updatedAt: T0 })
     .returning({ id: user.id });
-  userId = row!.id;
+  subjectId = row!.id;
+  await db.insert(verificationSubject).values({ id: subjectId, kind: 'individual', userId: subjectId });
 });
 
 beforeEach(async () => {
@@ -41,7 +42,8 @@ beforeEach(async () => {
 
 /** An organization approved by its KYB case at T0. */
 const approved = (): VerificationRecord => ({
-  userId,
+  subjectId,
+  startedByUserId: null,
   status: 'approved',
   personaInquiryId: 'inq_1',
   personaAccountId: 'act_1',
@@ -66,11 +68,11 @@ describe('write', () => {
   it('inserts a row at version 0, and refuses a second insert for the same user', async () => {
     await expect(store.write(approved(), { expectVersion: null })).resolves.toBe(0);
     await expect(store.write(inReview(), { expectVersion: null })).resolves.toBeNull();
-    await expect(store.get({ userId })).resolves.toMatchObject({
+    await expect(store.get({ subjectId })).resolves.toMatchObject({
       status: 'approved',
       sourceAt: T0,
       version: 0,
-      accountType: 'individual'
+      subjectKind: 'individual'
     });
   });
 
@@ -80,13 +82,13 @@ describe('write', () => {
     await expect(store.write(inReview(), { expectVersion: 0 })).resolves.toBe(1);
     // A writer that read version 0 lost to the one above, whatever its record says.
     await expect(store.write(approved(), { expectVersion: 0 })).resolves.toBeNull();
-    await expect(store.get({ userId })).resolves.toMatchObject({ status: 'pending_review', version: 1 });
+    await expect(store.get({ subjectId })).resolves.toMatchObject({ status: 'pending_review', version: 1 });
   });
 
   it('confirms a record without moving its version, so a confirmation never fails a write', async () => {
     await store.write(approved(), { expectVersion: null });
 
-    await store.markSynced({ userId, syncedAt: at(10) });
+    await store.markSynced({ subjectId, syncedAt: at(10) });
     await expect(store.write(inReview(), { expectVersion: 0 })).resolves.toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { type DecisionStatus } from '../../verification/verification-status';
 import { VerificationEmailShell } from './components/verification-email-shell';
@@ -11,19 +11,22 @@ import { VerificationEmailShell } from './components/verification-email-shell';
 export default function VerificationReopenedEmail({
   name,
   verificationUrl,
-  accountType,
+  subjectKind,
+  organizationName,
   previousDecision
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
   previousDecision: DecisionStatus;
 }) {
-  const what = accountType === 'organization' ? "your organization's verification" : 'your identity verification';
+  const what = subjectKind === 'organization' ? "your organization's verification" : 'your identity verification';
   const wasApproved = previousDecision === 'approved';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={`We're taking another look at ${what}.`}
       heading={`We're taking another look at ${what}`}
       name={name}

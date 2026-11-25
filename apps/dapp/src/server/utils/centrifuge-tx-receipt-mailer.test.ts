@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nextjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getShareClassIdentity } from '@zivoe/centrifuge-indexer';
-import { transactionEmailSent, user } from '@zivoe/database/schema';
+import { transactionEmailSent, user, walletConnection } from '@zivoe/database/schema';
 
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
 import { sendTransactionReceiptEmail } from '@/server/utils/send-email';
@@ -24,6 +24,10 @@ vi.mock('@sentry/nextjs', () => ({ logger: { info: vi.fn() } }));
 const state = {
   userEmail: null as string | null,
   alreadySent: false,
+  /** Still a member of the live organization that has the address linked. */
+  isMember: true,
+  /** Connected the wallet themselves. */
+  hasConnected: false,
   inserted: [] as Array<Record<string, unknown>>
 };
 
@@ -35,8 +39,13 @@ vi.mock('@/server/clients/db', () => ({
           limit: async () => {
             if (table === user) return state.userEmail === null ? [] : [{ email: state.userEmail }];
             if (table === transactionEmailSent) return state.alreadySent ? [{ id: 'row' }] : [];
+            if (table === walletConnection) return state.hasConnected ? [{ userId: 'u' }] : [];
             throw new Error('unexpected table in select');
           }
+        }),
+        // The membership check: member → organization → wallet link.
+        innerJoin: () => ({
+          innerJoin: () => ({ where: () => ({ limit: async () => (state.isMember ? [{ id: 'member' }] : []) }) })
         })
       })
     }),
@@ -56,6 +65,7 @@ const JOB: TransactionReceiptJob = {
   userId: '3f1f9a5e-53a5-4bb5-9129-c1c1f6a4a111',
   zivoeVaultSlug: 'zivoe-smb-credit',
   shareClassKey: 'zsmb',
+  organization: null,
   event: {
     type: 'SYNC_DEPOSIT',
     account: '0xabc',
@@ -75,6 +85,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   state.userEmail = 'a@b.c';
   state.alreadySent = false;
+  state.isMember = true;
+  state.hasConnected = false;
   state.inserted = [];
   vi.mocked(isEmailPreferenceEnabled).mockResolvedValue(true);
   vi.mocked(getShareClassIdentity).mockReturnValue({
@@ -126,6 +138,37 @@ describe('runReceiptMailer', () => {
       'transaction-receipt-email skipped',
       expect.objectContaining({ eventId: JOB.eventId, userId: JOB.userId, reason: 'preference_disabled' })
     );
+  });
+
+  describe("an organization's receipt", () => {
+    const ORGANIZATION_JOB: TransactionReceiptJob = {
+      ...JOB,
+      organization: { id: '9b1c2d3e-4f50-4a61-8b72-1c2d3e4f5061', name: 'Acme' }
+    };
+
+    it('names the organization for someone still a member', async () => {
+      expect(await runReceiptMailer(ORGANIZATION_JOB)).toEqual({ outcome: 'sent' });
+      expect(sendTransactionReceiptEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ job: expect.objectContaining({ organization: ORGANIZATION_JOB.organization }) })
+      );
+    });
+
+    it('goes to nobody who has left since it was queued and never connected the wallet', async () => {
+      state.isMember = false;
+
+      expect(await runReceiptMailer(ORGANIZATION_JOB)).toEqual({ outcome: 'skipped', reason: 'no_longer_member' });
+      expect(sendTransactionReceiptEmail).not.toHaveBeenCalled();
+    });
+
+    it('becomes the plain receipt for someone who has left but connected the wallet themselves', async () => {
+      state.isMember = false;
+      state.hasConnected = true;
+
+      expect(await runReceiptMailer(ORGANIZATION_JOB)).toEqual({ outcome: 'sent' });
+      expect(sendTransactionReceiptEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ job: expect.objectContaining({ organization: null }) })
+      );
+    });
   });
 
   it('an already-recorded (event, user) pair never mails twice', async () => {

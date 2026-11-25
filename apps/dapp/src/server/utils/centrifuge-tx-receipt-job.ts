@@ -33,6 +33,15 @@ export const transactionReceiptJobSchema = z.object({
   // `/`, `?` or encoded character.
   zivoeVaultSlug: z.string().regex(/^[a-z0-9-]+$/),
   shareClassKey: z.string().min(1),
+  /**
+   * Set when the recipient is a member of the organization that linked the address: the receipt
+   * then names it. Never set for someone who only connected the wallet, so it can't tell them
+   * which organization holds it. Defaulted for jobs queued before the field existed.
+   */
+  organization: z
+    .object({ id: z.string().uuid(), name: z.string().min(1) })
+    .nullable()
+    .default(null),
   event: z.object({
     type: z.enum(INVESTOR_TRANSACTION_EVENT_TYPES),
     account: z.string().min(1),

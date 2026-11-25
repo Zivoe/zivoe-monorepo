@@ -140,8 +140,11 @@ const avatarButtonStyles = tv({
   }
 });
 
+/** The avatar menu: who is signed in, Verification (behind the `kyc` flag), Settings and Logout. */
 export function UserMenu({ user, showVerification }: { user: User; showVerification: boolean }) {
   const [isPending, setIsPending] = React.useState(false);
+  // Settings stays inside this layout, so the menu has to close itself when a link in it is followed.
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const hasImage = !!user.image;
 
@@ -169,7 +172,7 @@ export function UserMenu({ user, showVerification }: { user: User; showVerificat
   };
 
   return (
-    <PopoverTrigger>
+    <PopoverTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
       <Aria.Button aria-label="User menu" className={avatarButtonStyles({ hasImage })}>
         <UserAvatar user={user} />
       </Aria.Button>
@@ -182,8 +185,12 @@ export function UserMenu({ user, showVerification }: { user: User; showVerificat
             </div>
 
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-regular font-medium text-primary">{user.name}</span>
-              <span className="truncate text-small text-secondary">{user.email}</span>
+              <span title={user.name} className="truncate text-regular font-medium text-primary">
+                {user.name}
+              </span>
+              <span title={user.email} className="truncate text-small text-secondary">
+                {user.email}
+              </span>
             </div>
           </div>
 
@@ -195,7 +202,13 @@ export function UserMenu({ user, showVerification }: { user: User; showVerificat
             </Link>
           )}
 
-          <Link variant="ghost-light" fullWidth className="justify-start" href="/unsubscribe">
+          <Link
+            variant="ghost-light"
+            fullWidth
+            className="justify-start"
+            href="/settings/notifications"
+            onPress={() => setIsOpen(false)}
+          >
             Settings
           </Link>
 

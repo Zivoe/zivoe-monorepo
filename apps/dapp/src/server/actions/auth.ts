@@ -9,10 +9,12 @@ import { auth } from '@/server/auth';
 import { getAccessStatus } from '@/server/data/auth';
 import { lighthousePassCookie } from '@/server/utils/lighthouse-pass';
 
+import { withNext } from '@/lib/lighthouse';
+import { isDappReturnPath } from '@/lib/return-paths';
 import { handlePromise } from '@/lib/utils';
 
 /**
- * Sends a freshly signed-in user to the dashboard, or to onboarding or the terms if either is unfinished.
+ * Sends a freshly signed-in user to the dashboard, or to the terms, onboarding or the agreements while one is unfinished.
  * Called once the OTP verifies, and once `/terms` is accepted without a `next`.
  * An action redirect carries its target's payload in the action response, so the browser makes one request.
  * A client push into `/api/auth/post-signin` cost three: Next discards a redirected RSC response and fetches
@@ -23,7 +25,8 @@ export async function continueAfterSignInAction() {
   redirect(requiredStep ?? '/');
 }
 
-export async function signOutAction() {
+/** `next` keeps the way back through the next sign-in, for "Sign out and switch account" on an invitation. */
+export async function signOutAction({ next }: { next?: string } = {}) {
   const { err } = await handlePromise(
     auth.api.signOut({
       headers: await headers()
@@ -38,5 +41,5 @@ export async function signOutAction() {
   // Signing out of the dapp revokes Lighthouse at once instead of when the pass expires.
   (await cookies()).delete(lighthousePassCookie());
 
-  redirect('/sign-in');
+  redirect(withNext('/sign-in', isDappReturnPath(next) ? next : undefined));
 }

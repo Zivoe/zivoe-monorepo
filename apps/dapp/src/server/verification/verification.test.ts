@@ -26,13 +26,14 @@ const WEBHOOK_SECRET = 'test-secret';
 const MINUTE = 60_000;
 
 const INDIVIDUAL_PROFILE = {
-  accountType: 'individual',
+  subjectKind: 'individual',
   firstName: 'Ada',
   lastName: 'Lovelace',
   email: 'ada@example.com',
   countryCode: 'GB',
   entityName: null,
-  countryOfIncorporationCode: null
+  countryOfIncorporationCode: null,
+  deleted: false
 } as const;
 
 /** The flows as the tests configure them; the organization one only when a test asks for it. */
@@ -68,9 +69,9 @@ function setup() {
     statusEmails: memoryEmails.sender,
     operatorMessages: memoryOperator.messenger,
     approvalChanged: {
-      async notify({ userId }) {
+      async notify({ subjectId }) {
         if (failApprovalChanged) throw new Error('QStash is down');
-        approvalsChanged.push(userId);
+        approvalsChanged.push(subjectId);
       }
     },
     clock: manualClock.clock,
@@ -82,10 +83,17 @@ function setup() {
   });
 
   memoryStore.profiles.set(USER_ID, INDIVIDUAL_PROFILE);
+  memoryStore.people.set(USER_ID, {
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    email: 'ada@example.com',
+    countryCode: 'GB'
+  });
 
   const seedRecord = (overrides: Partial<VerificationRecord> & { status: VerificationStatus }) => {
     const record: VerificationRecord = {
-      userId: USER_ID,
+      subjectId: USER_ID,
+      startedByUserId: USER_ID,
       personaInquiryId: 'inq_seeded',
       personaAccountId: 'act_seeded',
       personaCaseId: null,
@@ -96,7 +104,7 @@ function setup() {
       // The newest snapshot a seeded row has taken is its last status change, unless the test says otherwise.
       sourceAt: overrides.sourceAt ?? overrides.statusChangedAt ?? T0
     };
-    memoryStore.records.set(record.userId, record);
+    memoryStore.records.set(record.subjectId, record);
     return record;
   };
 
@@ -120,13 +128,14 @@ describe('getVerificationStatus', () => {
   it('answers not_started for a user without a record', async () => {
     const { verification, persona } = setup();
 
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toEqual({
       status: 'not_started',
       path: 'individual',
       canStart: true,
       canResume: false,
       inquiryId: null,
-      caseWaitingOn: null
+      caseWaitingOn: null,
+      startedBy: null
     });
     expect(persona.calls).toHaveLength(0);
   });
@@ -149,30 +158,32 @@ describe('getVerificationStatus', () => {
     const { verification, seedRecord, persona } = setup();
     seedRecord({ status });
 
-    const view = await verification.getVerificationStatus({ userId: USER_ID });
+    const view = await verification.getVerificationStatus({ subjectId: USER_ID });
 
     expect(view).toEqual({
       status,
       path: 'individual',
       ...EXPECTED_FLAGS[status],
       inquiryId: EXPECTED_FLAGS[status].canResume ? 'inq_seeded' : null,
-      caseWaitingOn: null
+      caseWaitingOn: null,
+      startedBy: null
     });
     expect(persona.calls).toHaveLength(0);
   });
 
   it('puts organization accounts on the team path regardless of the stored status', async () => {
     const { verification, store, seedRecord } = setup();
-    store.profiles.set(USER_ID, { ...INDIVIDUAL_PROFILE, accountType: 'organization' });
+    store.profiles.set(USER_ID, { ...INDIVIDUAL_PROFILE, subjectKind: 'organization' });
     seedRecord({ status: 'manually_approved' });
 
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toEqual({
       status: 'manually_approved',
       path: 'organization',
       canStart: false,
       canResume: false,
       inquiryId: null,
-      caseWaitingOn: null
+      caseWaitingOn: null,
+      startedBy: { name: 'Ada Lovelace', isViewer: false, at: expect.any(Date) as Date }
     });
   });
 });
@@ -180,16 +191,16 @@ describe('getVerificationStatus', () => {
 describe('listApproved', () => {
   it('answers which of the given users hold a yes Decision, in one read', async () => {
     const { verification, seedRecord, store } = setup();
-    seedRecord({ userId: 'declined', status: 'declined' });
-    seedRecord({ userId: 'revoked', status: 'revoked' });
-    seedRecord({ userId: 'approved', status: 'approved' });
-    seedRecord({ userId: 'manual', status: 'manually_approved' });
-    seedRecord({ userId: 'reopened', status: 'pending_review' });
-    seedRecord({ userId: 'unlisted', status: 'revoked' });
+    seedRecord({ subjectId: 'declined', status: 'declined' });
+    seedRecord({ subjectId: 'revoked', status: 'revoked' });
+    seedRecord({ subjectId: 'approved', status: 'approved' });
+    seedRecord({ subjectId: 'manual', status: 'manually_approved' });
+    seedRecord({ subjectId: 'reopened', status: 'pending_review' });
+    seedRecord({ subjectId: 'unlisted', status: 'revoked' });
     const list = vi.spyOn(store.store, 'list');
 
     const approved = await verification.listApproved({
-      userIds: ['declined', 'revoked', 'approved', 'manual', 'reopened', 'no-record']
+      subjectIds: ['declined', 'revoked', 'approved', 'manual', 'reopened', 'no-record']
     });
 
     expect(approved).toEqual(new Set(['approved', 'manual']));
@@ -559,7 +570,7 @@ describe('receiveWebhook — the Status Write Path', () => {
         outcome: 'ignored',
         reason: 'unadopted_inquiry',
         eventName: 'inquiry.approved',
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_follow_up'
       }
     });
@@ -717,14 +728,14 @@ describe('startVerification — a queue that refuses', () => {
     });
     outbox.failNextCall(new Error('QStash 400'));
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'queue_unavailable', cause: new Error('QStash 400') }
     });
     expect(store.records.get(USER_ID)?.status).toBe('in_progress');
 
     // The queue is back: the completion is applied and the policy answers.
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -751,7 +762,7 @@ describe('receiveWebhook — notifications', () => {
     expect(byKind(outbox.notifications)).toEqual(expected);
     for (const notification of outbox.notifications) {
       expect(notification).toMatchObject({
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_seeded',
         statusChangedAt: new Date(T0.getTime() + MINUTE)
       });
@@ -783,7 +794,7 @@ describe('startVerification', () => {
   it('creates a prefilled inquiry for a user without a record', async () => {
     const { verification, store, persona } = setup();
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toEqual({ ok: true, value: { inquiryId: 'inq_1', sessionToken: 'session_inq_1_1' } });
     expect(persona.calls).toEqual([
@@ -804,7 +815,8 @@ describe('startVerification', () => {
       }
     ]);
     expect(store.records.get(USER_ID)).toEqual({
-      userId: USER_ID,
+      subjectId: USER_ID,
+      startedByUserId: USER_ID,
       status: 'in_progress',
       personaInquiryId: 'inq_1',
       personaAccountId: `act_${USER_ID}`,
@@ -826,9 +838,9 @@ describe('startVerification', () => {
     // answers a known key with what it answered the first time, failures included.
     // The adapter's own retry of one dropped connection is what reuses a key.
     const first = setup();
-    await first.verification.startVerification({ userId: USER_ID });
+    await first.verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
     const second = setup();
-    await second.verification.startVerification({ userId: USER_ID });
+    await second.verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(keyOf(first.persona.calls)).toMatch(/^[0-9a-f-]{36}$/);
     expect(keyOf(second.persona.calls)).toMatch(/^[0-9a-f-]{36}$/);
@@ -838,12 +850,12 @@ describe('startVerification', () => {
   it('announces a handed-out session to operators, on create and on resume', async () => {
     const { verification, seedRecord, persona, outbox } = setup();
 
-    await verification.startVerification({ userId: USER_ID });
+    await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
     expect(outbox.notifications).toEqual([
       {
         kind: 'operator_message',
         status: 'in_progress',
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_1',
         statusChangedAt: T0
       }
@@ -861,7 +873,7 @@ describe('startVerification', () => {
       createdAt: new Date(T0.getTime() + MINUTE),
       updatedAt: new Date(T0.getTime() + MINUTE)
     });
-    await verification.startVerification({ userId: USER_ID });
+    await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
     expect(outbox.notifications.map((n) => `${n.kind}:${n.status}:${n.inquiryId}`)).toEqual([
       'operator_message:in_progress:inq_seeded'
     ]);
@@ -871,7 +883,7 @@ describe('startVerification', () => {
     const { verification, store, outbox } = setup();
     outbox.failNextCall(new Error('qstash down'));
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(store.records.get(USER_ID)?.status).toBe('in_progress');
@@ -893,7 +905,7 @@ describe('startVerification', () => {
 
     vi.useFakeTimers();
     try {
-      const started = verification.startVerification({ userId: USER_ID });
+      const started = verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
       await vi.advanceTimersByTimeAsync(5_000);
 
       expect(await started).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
@@ -915,7 +927,7 @@ describe('startVerification', () => {
       updatedAt: T0
     });
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_orphan' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'resumeInquiry']);
@@ -928,7 +940,7 @@ describe('startVerification', () => {
     const { verification, store, persona, seedRecord } = setup();
     seedRecord({ status: 'in_progress', personaInquiryId: 'inq_retained_away' });
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
@@ -949,7 +961,7 @@ describe('startVerification', () => {
       updatedAt: T0
     });
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
@@ -968,7 +980,7 @@ describe('startVerification', () => {
       updatedAt: T0
     });
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -990,7 +1002,7 @@ describe('startVerification', () => {
     });
     seedRecord({ status: 'in_progress' });
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toEqual({ ok: true, value: { inquiryId: 'inq_seeded', sessionToken: 'session_inq_seeded_1' } });
     // Always a fresh read first: a start never trusts the staleness gate.
@@ -1011,7 +1023,7 @@ describe('startVerification', () => {
     });
     seedRecord({ status: 'in_progress' });
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls.map((call) => call.method)).toEqual(['listInquiries', 'createInquiry']);
@@ -1033,7 +1045,7 @@ describe('startVerification', () => {
     seedRecord({ status: 'in_progress', statusChangedAt: T0, lastSyncedAt: T0 });
     clock.advance(5 * MINUTE);
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -1055,7 +1067,7 @@ describe('startVerification', () => {
     seedRecord({ status: 'expired' });
     clock.advance(60 * MINUTE);
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_seeded' } });
     expect(store.records.get(USER_ID)).toMatchObject({
@@ -1098,7 +1110,7 @@ describe('startVerification', () => {
     s.seedRecord({ status: 'expired', statusChangedAt: expiredAt, lastSyncedAt: expiredAt });
     s.clock.set(new Date(T0.getTime() + 10_900));
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_seeded' } });
     expect(s.store.records.get(USER_ID)).toMatchObject({
@@ -1116,7 +1128,10 @@ describe('startVerification', () => {
     const { verification, store, persona, seedRecord } = setup();
     const seeded = seedRecord({ status });
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({ ok: false, error: { code } });
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
+      ok: false,
+      error: { code }
+    });
     expect(persona.calls).toHaveLength(0);
     expect(store.records.get(USER_ID)).toEqual(seeded);
   });
@@ -1138,7 +1153,7 @@ describe('startVerification', () => {
     });
     const seeded = seedRecord({ status });
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -1161,7 +1176,7 @@ describe('startVerification', () => {
     });
     seedRecord({ status: 'failed' });
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -1173,9 +1188,9 @@ describe('startVerification', () => {
     const { verification, store } = setup();
     store.profiles.delete(USER_ID);
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
-      error: { code: 'profile_missing' }
+      error: { code: 'subject_missing' }
     });
   });
 
@@ -1183,7 +1198,7 @@ describe('startVerification', () => {
     const { verification, store, persona } = setup();
     persona.failNextCall({ reason: 'http', message: 'Bad Gateway', httpStatus: 502 });
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'persona_unavailable', cause: { reason: 'http', message: 'Bad Gateway', httpStatus: 502 } }
     });
@@ -1197,35 +1212,36 @@ describe('reconcile', () => {
   /** A record whose inquiry the fake Persona knows about, last synced `staleMinutes` ago. */
   function seedSynced({
     setup: s,
-    userId,
+    subjectId,
     status,
     personaStatus,
     staleMinutes,
     changedHoursAgo = 0
   }: {
     setup: ReturnType<typeof setup>;
-    userId: string;
+    subjectId: string;
     status: VerificationStatus;
     personaStatus: Parameters<typeof s.persona.setInquiryStatus>[0]['status'];
     staleMinutes: number;
     changedHoursAgo?: number;
   }) {
     const now = s.clock.clock.now();
-    const inquiryId = `inq_${userId}`;
+    const inquiryId = `inq_${subjectId}`;
     s.persona.inquiries.set(inquiryId, {
       id: inquiryId,
       status: personaStatus,
-      referenceId: userId,
-      accountId: `act_${userId}`,
+      referenceId: subjectId,
+      accountId: `act_${subjectId}`,
       templateVersionId: FAKE_TEMPLATE_VERSION_ID,
       createdAt: new Date(now.getTime() - 2 * HOUR),
       updatedAt: new Date(now.getTime() - MINUTE)
     });
-    s.store.records.set(userId, {
-      userId,
+    s.store.records.set(subjectId, {
+      subjectId,
+      startedByUserId: null,
       status,
       personaInquiryId: inquiryId,
-      personaAccountId: `act_${userId}`,
+      personaAccountId: `act_${subjectId}`,
       personaCaseId: null,
       personaCaseStatus: null,
       sourceAt: new Date(now.getTime() - changedHoursAgo * HOUR - 2 * MINUTE),
@@ -1238,7 +1254,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: 'u-lost-webhook',
+      subjectId: 'u-lost-webhook',
       status: 'submitted',
       personaStatus: 'approved',
       staleMinutes: 45
@@ -1259,14 +1275,14 @@ describe('reconcile', () => {
     expect(s.outbox.notifications).toEqual([
       {
         kind: 'status_email',
-        userId: 'u-lost-webhook',
+        subjectId: 'u-lost-webhook',
         inquiryId: 'inq_u-lost-webhook',
         status: 'approved',
         statusChangedAt: new Date(T0.getTime() - MINUTE)
       },
       {
         kind: 'operator_message',
-        userId: 'u-lost-webhook',
+        subjectId: 'u-lost-webhook',
         inquiryId: 'inq_u-lost-webhook',
         status: 'approved',
         statusChangedAt: new Date(T0.getTime() - MINUTE)
@@ -1278,7 +1294,7 @@ describe('reconcile', () => {
     const s = setup();
     // The user's inquiry sits on an older template version, so their next
     // start creates a fresh one instead of resuming it.
-    seedSynced({ setup: s, userId: USER_ID, status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
+    seedSynced({ setup: s, subjectId: USER_ID, status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
     s.persona.inquiries.get(`inq_${USER_ID}`)!.templateVersionId = 'itmplv_previous';
 
     const gate = () => {
@@ -1315,7 +1331,7 @@ describe('reconcile', () => {
 
     const sweep = verification.reconcile({ now: T0 });
     await sweepRead.opened;
-    const started = await verification.startVerification({ userId: USER_ID });
+    const started = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
     expect(started).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     startLanded.open();
     const report = await sweep;
@@ -1338,7 +1354,7 @@ describe('reconcile', () => {
   it("refuses an old inquiry's event that read the record before a concurrent start replaced it", async () => {
     const s = setup();
     // Same footing as above: the next start creates instead of resuming.
-    seedSynced({ setup: s, userId: USER_ID, status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
+    seedSynced({ setup: s, subjectId: USER_ID, status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
     const oldInquiryId = `inq_${USER_ID}`;
     s.persona.inquiries.get(oldInquiryId)!.templateVersionId = 'itmplv_previous';
 
@@ -1383,7 +1399,7 @@ describe('reconcile', () => {
       config: { webhookSecret: WEBHOOK_SECRET, flows: { individual: INDIVIDUAL_FLOW, organization: ORGANIZATION_FLOW } }
     });
 
-    const start = verification.startVerification({ userId: USER_ID });
+    const start = verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
     await created.opened;
     const lateApproval = delivery({
       verification,
@@ -1421,7 +1437,7 @@ describe('reconcile', () => {
 
   it('re-reads a stale failed record and applies the Workflow decision whose webhook was lost', async () => {
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-failed', status: 'failed', personaStatus: 'needs_review', staleMinutes: 45 });
+    seedSynced({ setup: s, subjectId: 'u-failed', status: 'failed', personaStatus: 'needs_review', staleMinutes: 45 });
 
     const report = await s.verification.reconcile({ now: T0 });
 
@@ -1445,7 +1461,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: USER_ID,
+      subjectId: USER_ID,
       status: 'pending_review',
       personaStatus: 'needs_review',
       staleMinutes: 7 * 60
@@ -1481,7 +1497,7 @@ describe('reconcile', () => {
 
   it('adopts a newer inquiry Persona holds for the user and confirms the record either way', async () => {
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-retried', status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
+    seedSynced({ setup: s, subjectId: 'u-retried', status: 'in_progress', personaStatus: 'pending', staleMinutes: 45 });
     s.persona.inquiries.set('inq_newer', {
       id: 'inq_newer',
       status: 'approved',
@@ -1525,7 +1541,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: 'u-manual',
+      subjectId: 'u-manual',
       status: 'manually_approved',
       personaStatus: 'declined',
       staleMinutes: 600
@@ -1554,8 +1570,8 @@ describe('reconcile', () => {
         reconcileBudgetMs: 0
       }
     });
-    for (const userId of ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6']) {
-      seedSynced({ setup: s, userId, status: 'submitted', personaStatus: 'approved', staleMinutes: 45 });
+    for (const subjectId of ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6']) {
+      seedSynced({ setup: s, subjectId, status: 'submitted', personaStatus: 'approved', staleMinutes: 45 });
     }
     s.clock.advance(1);
 
@@ -1578,7 +1594,7 @@ describe('reconcile', () => {
     // Same age, same staleness — only who they are waiting on differs.
     seedSynced({
       setup: s,
-      userId: 'u-walked-away',
+      subjectId: 'u-walked-away',
       status: 'expired',
       personaStatus: 'expired',
       staleMinutes: 45,
@@ -1586,7 +1602,7 @@ describe('reconcile', () => {
     });
     seedSynced({
       setup: s,
-      userId: 'u-awaiting-decision',
+      subjectId: 'u-awaiting-decision',
       status: 'submitted',
       personaStatus: 'approved',
       staleMinutes: 45,
@@ -1605,9 +1621,9 @@ describe('reconcile', () => {
   it('re-reads a review every hour for 90 days, not every sweep for seven', async () => {
     const s = setup();
     const review = { status: 'pending_review', personaStatus: 'needs_review' } as const;
-    seedSynced({ setup: s, userId: 'u-read-recently', ...review, staleMinutes: 45, changedHoursAgo: 24 * 20 });
-    seedSynced({ setup: s, userId: 'u-due', ...review, staleMinutes: 61, changedHoursAgo: 24 * 80 });
-    seedSynced({ setup: s, userId: 'u-forgotten', ...review, staleMinutes: 61, changedHoursAgo: 24 * 100 });
+    seedSynced({ setup: s, subjectId: 'u-read-recently', ...review, staleMinutes: 45, changedHoursAgo: 24 * 20 });
+    seedSynced({ setup: s, subjectId: 'u-due', ...review, staleMinutes: 61, changedHoursAgo: 24 * 80 });
+    seedSynced({ setup: s, subjectId: 'u-forgotten', ...review, staleMinutes: 61, changedHoursAgo: 24 * 100 });
 
     const report = await s.verification.reconcile({ now: T0 });
 
@@ -1619,7 +1635,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: 'u-old',
+      subjectId: 'u-old',
       status: 'expired',
       personaStatus: 'expired',
       staleMinutes: 45,
@@ -1646,7 +1662,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: 'u-still-pending',
+      subjectId: 'u-still-pending',
       status: 'submitted',
       personaStatus: 'completed',
       staleMinutes: 45
@@ -1683,16 +1699,16 @@ describe('reconcile', () => {
 
   it('never fetches Human-owned or freshly synced records, and a Decision only on its cadence', async () => {
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-approved', status: 'approved', personaStatus: 'approved', staleMinutes: 300 });
-    seedSynced({ setup: s, userId: 'u-declined', status: 'declined', personaStatus: 'declined', staleMinutes: 600 });
+    seedSynced({ setup: s, subjectId: 'u-approved', status: 'approved', personaStatus: 'approved', staleMinutes: 300 });
+    seedSynced({ setup: s, subjectId: 'u-declined', status: 'declined', personaStatus: 'declined', staleMinutes: 600 });
     seedSynced({
       setup: s,
-      userId: 'u-manual',
+      subjectId: 'u-manual',
       status: 'manually_approved',
       personaStatus: 'declined',
       staleMinutes: 600
     });
-    seedSynced({ setup: s, userId: 'u-fresh', status: 'in_progress', personaStatus: 'approved', staleMinutes: 5 });
+    seedSynced({ setup: s, subjectId: 'u-fresh', status: 'in_progress', personaStatus: 'approved', staleMinutes: 5 });
 
     const report = await s.verification.reconcile({ now: T0 });
 
@@ -1804,7 +1820,7 @@ describe('reconcile', () => {
       for (let index = 0; index < 60; index += 1) {
         seedSynced({
           setup: s,
-          userId: `u-decided-${index}`,
+          subjectId: `u-decided-${index}`,
           status: 'approved',
           personaStatus: 'approved',
           staleMinutes: 24 * 60
@@ -1812,7 +1828,7 @@ describe('reconcile', () => {
       }
       seedSynced({
         setup: s,
-        userId: 'u-submitted',
+        subjectId: 'u-submitted',
         status: 'submitted',
         personaStatus: 'completed',
         staleMinutes: 45
@@ -1829,7 +1845,7 @@ describe('reconcile', () => {
     const s = setup();
     seedSynced({
       setup: s,
-      userId: 'u-no-workflow',
+      subjectId: 'u-no-workflow',
       status: 'submitted',
       personaStatus: 'completed',
       staleMinutes: 45,
@@ -1837,7 +1853,7 @@ describe('reconcile', () => {
     });
     seedSynced({
       setup: s,
-      userId: 'u-slow-review',
+      subjectId: 'u-slow-review',
       status: 'pending_review',
       personaStatus: 'needs_review',
       staleMinutes: 5,
@@ -1845,7 +1861,7 @@ describe('reconcile', () => {
     });
     seedSynced({
       setup: s,
-      userId: 'u-abandoned',
+      subjectId: 'u-abandoned',
       status: 'expired',
       personaStatus: 'expired',
       staleMinutes: 45,
@@ -1853,7 +1869,7 @@ describe('reconcile', () => {
     });
     seedSynced({
       setup: s,
-      userId: 'u-recent',
+      subjectId: 'u-recent',
       status: 'submitted',
       personaStatus: 'completed',
       staleMinutes: 45,
@@ -1862,7 +1878,7 @@ describe('reconcile', () => {
     // A failure the Inquiry Failed Workflow never decided: undecided, like a submission.
     seedSynced({
       setup: s,
-      userId: 'u-no-failed-workflow',
+      subjectId: 'u-no-failed-workflow',
       status: 'failed',
       personaStatus: 'failed',
       staleMinutes: 45,
@@ -1944,7 +1960,13 @@ describe('reconcile', () => {
     // Adopting the previous (readable) inquiry instead would re-point the
     // record backwards for a status Persona just added.
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-new-status', status: 'submitted', personaStatus: 'completed', staleMinutes: 45 });
+    seedSynced({
+      setup: s,
+      subjectId: 'u-new-status',
+      status: 'submitted',
+      personaStatus: 'completed',
+      staleMinutes: 45
+    });
     s.persona.inquiries.set('inq_unknown', {
       id: 'inq_unknown',
       status: null,
@@ -1965,7 +1987,7 @@ describe('reconcile', () => {
 
   it('leaves a record alone when Persona is unavailable and retries it next sweep', async () => {
     const s = setup();
-    seedSynced({ setup: s, userId: 'u-outage', status: 'submitted', personaStatus: 'approved', staleMinutes: 45 });
+    seedSynced({ setup: s, subjectId: 'u-outage', status: 'submitted', personaStatus: 'approved', staleMinutes: 45 });
     const before = s.store.records.get('u-outage');
     s.persona.failNextCall({ reason: 'network', message: 'ECONNRESET' });
 
@@ -2000,21 +2022,21 @@ describe('reconcile — one record failing on this side', () => {
   it('counts the record as errored and still re-reads the rest of the batch', async () => {
     const s = setup();
     const stale = new Date(T0.getTime() - 45 * MINUTE);
-    for (const userId of ['u-first', 'u-second']) {
-      s.store.profiles.set(userId, INDIVIDUAL_PROFILE);
-      s.persona.inquiries.set(`inq_${userId}`, {
-        id: `inq_${userId}`,
+    for (const subjectId of ['u-first', 'u-second']) {
+      s.store.profiles.set(subjectId, INDIVIDUAL_PROFILE);
+      s.persona.inquiries.set(`inq_${subjectId}`, {
+        id: `inq_${subjectId}`,
         status: 'approved',
-        referenceId: userId,
-        accountId: `act_${userId}`,
+        referenceId: subjectId,
+        accountId: `act_${subjectId}`,
         templateVersionId: FAKE_TEMPLATE_VERSION_ID,
         createdAt: stale,
         updatedAt: new Date(T0.getTime() - MINUTE)
       });
       s.seedRecord({
-        userId,
+        subjectId,
         status: 'submitted',
-        personaInquiryId: `inq_${userId}`,
+        personaInquiryId: `inq_${subjectId}`,
         statusChangedAt: stale,
         lastSyncedAt: stale
       });
@@ -2025,7 +2047,7 @@ describe('reconcile — one record failing on this side', () => {
 
     expect(report).toMatchObject({ checked: 2, changed: 1, errored: 1, unavailable: 0 });
     expect(report.erroredCause).toEqual(new Error('connection reset'));
-    const statuses = ['u-first', 'u-second'].map((userId) => s.store.records.get(userId)?.status).sort();
+    const statuses = ['u-first', 'u-second'].map((subjectId) => s.store.records.get(subjectId)?.status).sort();
     expect(statuses).toEqual(['approved', 'submitted']);
   });
 });
@@ -2034,7 +2056,7 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
   const LATER = new Date(T0.getTime() + 10 * MINUTE);
   const approvalOfNew: VerificationNotification = {
     kind: 'status_email',
-    userId: USER_ID,
+    subjectId: USER_ID,
     inquiryId: 'inq_new',
     status: 'approved',
     statusChangedAt: LATER
@@ -2099,7 +2121,9 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
         to: 'ada@example.com',
         name: 'Ada',
         status: 'approved',
-        accountType: 'individual',
+        subjectId: USER_ID,
+        subjectKind: 'individual',
+        organizationName: null,
         caseWaitingOn: null,
         inquiryId: 'inq_new',
         statusChangedAt: LATER
@@ -2121,10 +2145,11 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
       {
         kind: 'status',
         status: 'pending_review',
-        userId: USER_ID,
+        subjectId: USER_ID,
         email: 'ada@example.com',
         inquiryId: 'inq_new',
-        accountType: 'individual',
+        subjectKind: 'individual',
+        organizationName: null,
         case: null
       }
     ]);
@@ -2156,10 +2181,11 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
       {
         kind: 'status',
         status: 'approved',
-        userId: USER_ID,
+        subjectId: USER_ID,
         email: null,
         inquiryId: 'inq_new',
-        accountType: null,
+        subjectKind: null,
+        organizationName: null,
         case: null
       }
     ]);
@@ -2193,10 +2219,11 @@ describe('deliverNotification — the receiving half of the Outbox', () => {
       {
         kind: 'status',
         status: 'approved',
-        userId: USER_ID,
+        subjectId: USER_ID,
         email: 'ada@example.com',
         inquiryId: 'inq_seeded',
-        accountType: 'individual',
+        subjectKind: 'individual',
+        organizationName: null,
         case: null
       }
     ]);
@@ -2214,7 +2241,7 @@ describe('reads are local; the start is where Persona is consulted', () => {
     seedRecord({ status, lastSyncedAt: T0 });
     clock.advance(minutesOld * MINUTE);
 
-    const view = await verification.getVerificationStatus({ userId: USER_ID });
+    const view = await verification.getVerificationStatus({ subjectId: USER_ID });
 
     expect(view.status).toBe(status);
     expect(persona.calls).toHaveLength(0);
@@ -2248,7 +2275,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     // Persona's clock ran ahead of ours: the approval is stamped later than "now".
     seedRecord({ status: 'approved', statusChangedAt: new Date(T0.getTime() + MINUTE) });
 
-    await expect(verification.revoke({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.revoke({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'approved', to: 'revoked', inquiryId: 'inq_seeded', path: 'individual', case: null }
     });
@@ -2264,25 +2291,25 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
   it('tells the Wallet link at once when a revocation takes a yes back, and not when there was none', async () => {
     const approved = setup();
     approved.seedRecord({ status: 'manually_approved' });
-    await approved.verification.revoke({ userId: USER_ID });
+    await approved.verification.revoke({ subjectId: USER_ID });
     expect(approved.approvalsChanged).toEqual([USER_ID]);
 
     const declined = setup();
     declined.seedRecord({ status: 'declined' });
-    await declined.verification.revoke({ userId: USER_ID });
+    await declined.verification.revoke({ subjectId: USER_ID });
     expect(declined.approvalsChanged).toEqual([]);
   });
 
   it('revokes a user who never started, which also refuses a start', async () => {
     const { verification, store, persona } = setup();
 
-    await expect(verification.revoke({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.revoke({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'not_started', to: 'revoked', inquiryId: null, path: 'individual', case: null }
     });
 
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'revoked', personaInquiryId: null });
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'revoked' }
     });
@@ -2292,17 +2319,17 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
   it('refuses a user id that is no onboarded user', async () => {
     const { verification, store } = setup();
 
-    await expect(verification.revoke({ userId: 'nobody' })).resolves.toEqual({
+    await expect(verification.revoke({ subjectId: 'nobody' })).resolves.toEqual({
       ok: false,
-      error: { code: 'profile_missing' }
+      error: { code: 'subject_missing' }
     });
-    await expect(verification.approveManually({ userId: 'nobody' })).resolves.toEqual({
+    await expect(verification.approveManually({ subjectId: 'nobody' })).resolves.toEqual({
       ok: false,
-      error: { code: 'profile_missing' }
+      error: { code: 'subject_missing' }
     });
-    await expect(verification.resyncFromPersona({ userId: 'nobody' })).resolves.toEqual({
+    await expect(verification.resyncFromPersona({ subjectId: 'nobody' })).resolves.toEqual({
       ok: false,
-      error: { code: 'profile_missing' }
+      error: { code: 'subject_missing' }
     });
     expect(store.records.size).toBe(0);
   });
@@ -2311,14 +2338,14 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     const s = setup();
     s.seedRecord({ status: 'approved' });
     s.clock.advance(60 * MINUTE);
-    await s.verification.revoke({ userId: USER_ID });
+    await s.verification.revoke({ subjectId: USER_ID });
     // Persona declined the Inquiry while the record was revoked; the event was dropped: Persona never moves a Human-owned status.
     await delivery({ verification: s.verification, name: 'inquiry.declined', status: 'declined', minutesAfterT0: 90 });
     expect(s.store.records.get(USER_ID)?.status).toBe('revoked');
     personaHolds({ s, status: 'declined', minutesAfterT0: 90 });
     s.clock.advance(60 * MINUTE);
 
-    await expect(s.verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(s.verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'revoked', to: 'declined', inquiryId: 'inq_seeded', path: 'individual', case: null }
     });
@@ -2335,10 +2362,10 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     s.seedRecord({ status: 'approved' });
     personaHolds({ s, status: 'approved', minutesAfterT0: 0 });
     s.clock.advance(60 * MINUTE);
-    await s.verification.revoke({ userId: USER_ID });
+    await s.verification.revoke({ subjectId: USER_ID });
     const revokedAt = s.store.records.get(USER_ID)!.statusChangedAt;
 
-    const result = await s.verification.resyncFromPersona({ userId: USER_ID });
+    const result = await s.verification.resyncFromPersona({ subjectId: USER_ID });
 
     expect(result).toEqual({
       ok: true,
@@ -2352,7 +2379,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     s.seedRecord({ status: 'approved' });
     personaHolds({ s, status: 'declined', minutesAfterT0: 30 });
 
-    await expect(s.verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(s.verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'approved', to: 'declined', inquiryId: 'inq_seeded', path: 'individual', case: null }
     });
@@ -2365,12 +2392,12 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     // Human-owned check at the store can keep it from landing.
     const create = s.persona.persona.createInquiry.bind(s.persona.persona);
     s.persona.persona.createInquiry = async (input) => {
-      await s.verification.revoke({ userId: USER_ID });
+      await s.verification.revoke({ subjectId: USER_ID });
       s.clock.advance(1_000);
       return create(input);
     };
 
-    await expect(s.verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(s.verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'revoked' }
     });
@@ -2383,13 +2410,13 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     personaHolds({ s, status: 'declined', minutesAfterT0: 30 });
     s.clock.advance(60 * MINUTE);
 
-    await expect(s.verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(s.verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'manually_approved', to: 'declined', inquiryId: 'inq_seeded', path: 'individual', case: null }
     });
 
     s.seedRecord({ status: 'manually_approved' });
-    await expect(s.verification.revoke({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(s.verification.revoke({ subjectId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { from: 'manually_approved', to: 'revoked' }
     });
@@ -2399,7 +2426,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     const reviewing = setup();
     reviewing.seedRecord({ status: 'manually_approved' });
     personaHolds({ s: reviewing, status: 'needs_review', minutesAfterT0: 30 });
-    await expect(reviewing.verification.resyncFromPersona({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(reviewing.verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { from: 'manually_approved', to: 'pending_review' }
     });
@@ -2412,7 +2439,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     const approved = setup();
     approved.seedRecord({ status: 'manually_approved' });
     personaHolds({ s: approved, status: 'approved', minutesAfterT0: 30 });
-    await expect(approved.verification.resyncFromPersona({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(approved.verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { from: 'manually_approved', to: 'approved' }
     });
@@ -2422,18 +2449,18 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
   it('approves a user Persona never decides, and the approval is deaf to Persona and to a resync', async () => {
     const { verification, store, outbox } = setup();
 
-    await expect(verification.approveManually({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.approveManually({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'not_started', to: 'manually_approved', inquiryId: null, path: 'individual', case: null }
     });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'manually_approved', personaInquiryId: null });
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'already_verified' }
     });
 
     // No Inquiry to go back to: a resync leaves the approval standing.
-    await expect(verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'manually_approved', to: 'manually_approved', inquiryId: null, path: 'individual', case: null }
     });
@@ -2445,13 +2472,13 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     seedRecord({ status: 'revoked' });
     const revokedAt = store.records.get(USER_ID)!.statusChangedAt;
 
-    await expect(verification.approveManually({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.approveManually({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'revoked', to: 'manually_approved', inquiryId: 'inq_seeded', path: 'individual', case: null }
     });
     expect(store.records.get(USER_ID)!.statusChangedAt.getTime()).toBeGreaterThan(revokedAt.getTime());
 
-    await expect(verification.revoke({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.revoke({ subjectId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { from: 'manually_approved', to: 'revoked' }
     });
@@ -2461,7 +2488,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     const { verification, seedRecord, store } = setup();
     seedRecord({ status: 'revoked' });
 
-    await expect(verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: { from: 'revoked', to: 'revoked', inquiryId: null, path: 'individual', case: null }
     });
@@ -2473,7 +2500,7 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
     seedRecord({ status: 'revoked' });
     persona.failNextCall({ reason: 'network', message: 'timeout' });
 
-    await expect(verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'persona_unavailable', cause: { reason: 'network', message: 'timeout' } }
     });
@@ -2487,38 +2514,46 @@ describe('operator actions — revoke, approveManually and resyncFromPersona', (
 // ---------------------------------------------------------------------------
 
 const ORGANIZATION_PROFILE = {
-  accountType: 'organization',
+  subjectKind: 'organization',
   firstName: 'Grace',
   lastName: 'Hopper',
   email: 'grace@acme.example',
   countryCode: null,
   entityName: 'Acme Capital LLC',
-  countryOfIncorporationCode: 'US'
+  countryOfIncorporationCode: 'US',
+  deleted: false
 } as const;
 
 function setupOrganization() {
   const s = setup();
   s.store.profiles.set(USER_ID, ORGANIZATION_PROFILE);
+  s.store.people.set(USER_ID, {
+    firstName: 'Grace',
+    lastName: 'Hopper',
+    email: 'grace@acme.example',
+    countryCode: null
+  });
   return s;
 }
 
 describe('the organization flow', () => {
   it('lets an organization start', async () => {
     const { verification } = setupOrganization();
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toEqual({
       status: 'not_started',
       path: 'organization',
       canStart: true,
       canResume: false,
       inquiryId: null,
-      caseWaitingOn: null
+      caseWaitingOn: null,
+      startedBy: null
     });
   });
 
   it("creates an organization's inquiry on the KYB template, on a Business account, prefilled with the business", async () => {
     const { verification, store, persona } = setupOrganization();
 
-    const result = await verification.startVerification({ userId: USER_ID });
+    const result = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
 
     expect(result).toMatchObject({ ok: true, value: { inquiryId: 'inq_1' } });
     expect(persona.calls[1]).toEqual({
@@ -2537,10 +2572,46 @@ describe('the organization flow', () => {
     expect(persona.inquiries.get('inq_1')).toMatchObject({ templateId: FAKE_KYB_TEMPLATE_ID });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'in_progress', personaInquiryId: 'inq_1' });
     // The business inquiry is the organization's own: a second start resumes it.
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toMatchObject({
       ok: true,
       value: { inquiryId: 'inq_1' }
     });
+  });
+
+  it('keeps the starter of an inquiry a sweep adopts between its create and the start writing it', async () => {
+    const { verification, store, persona, seedRecord } = setupOrganization();
+    // A stale record to restart. While Persona answers the create, the sweep lists the new inquiry and adopts it
+    // as nobody's, so the start's own write loses on version.
+    seedRecord({ status: 'expired' });
+    const create = persona.persona.createInquiry.bind(persona.persona);
+    persona.persona.createInquiry = async (input) => {
+      const created = await create(input);
+      if (!created.ok) return created;
+      const stale = await store.store.get({ subjectId: USER_ID });
+      if (!stale) throw new Error('seeded record missing');
+      const { version, subjectKind: _subjectKind, ...record } = stale;
+      await store.store.write(
+        { ...record, startedByUserId: null, status: 'in_progress', personaInquiryId: created.value.inquiry.id },
+        { expectVersion: version }
+      );
+      return created;
+    };
+
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toMatchObject({
+      ok: true,
+      value: { inquiryId: 'inq_1' }
+    });
+    expect(store.records.get(USER_ID)).toMatchObject({
+      personaInquiryId: 'inq_1',
+      status: 'in_progress',
+      startedByUserId: USER_ID
+    });
+    // Theirs to resume: a second start opens the same inquiry instead of creating another.
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toMatchObject({
+      ok: true,
+      value: { inquiryId: 'inq_1' }
+    });
+    expect(persona.calls.filter((call) => call.method === 'createInquiry')).toHaveLength(1);
   });
 
   it("ignores an organization's inquiry on the individual template, and an individual's on the KYB template", async () => {
@@ -2590,12 +2661,12 @@ describe('the organization flow', () => {
       ['Needs more information', 'team']
     ] as const) {
       seedRecord({ status: 'pending_review', personaCaseId: 'case_1', personaCaseStatus: caseStatus });
-      await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+      await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
         caseWaitingOn: waitingOn
       });
     }
     seedRecord({ status: 'approved', personaCaseId: 'case_1', personaCaseStatus: 'Approved' });
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       caseWaitingOn: null
     });
   });
@@ -2605,7 +2676,7 @@ describe('the organization flow', () => {
     const twoHoursAgo = new Date(T0.getTime() - 2 * 60 * MINUTE);
     seedRecord({ status: 'failed', statusChangedAt: twoHoursAgo, lastSyncedAt: twoHoursAgo });
 
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       canStart: false,
       canResume: false
     });
@@ -2615,7 +2686,7 @@ describe('the organization flow', () => {
     expect(report).toMatchObject({ checked: 0, undecided: 0 });
     expect(persona.calls).toHaveLength(0);
 
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'failed' }
     });
@@ -2699,7 +2770,7 @@ describe('the organization flow', () => {
       'status_email:approved',
       'operator_message:approved'
     ]);
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       status: 'approved',
       canStart: false
     });
@@ -2714,7 +2785,7 @@ describe('the organization flow', () => {
       value: { outcome: 'applied' }
     });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'declined', personaCaseStatus: 'Declined' });
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'declined' }
     });
@@ -2731,7 +2802,7 @@ describe('the organization flow', () => {
     });
     expect(store.records.get(USER_ID)).toMatchObject({ personaCaseStatus: 'Waiting on UBOs' });
     expect(outbox.notifications).toHaveLength(0);
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       caseWaitingOn: 'people'
     });
 
@@ -2748,7 +2819,7 @@ describe('the organization flow', () => {
     expect(outbox.notifications).toEqual([
       {
         kind: 'case_status',
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_seeded',
         status: 'pending_review',
         statusChangedAt: seeded.statusChangedAt,
@@ -2756,7 +2827,7 @@ describe('the organization flow', () => {
         caseStatus: 'Ready for Review'
       }
     ]);
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       caseWaitingOn: 'team'
     });
 
@@ -2773,7 +2844,7 @@ describe('the organization flow', () => {
     seedRecord({ status: 'pending_review', personaCaseId: 'case_1', personaCaseStatus: 'Ready for Review' });
     const job = {
       kind: 'case_status',
-      userId: USER_ID,
+      subjectId: USER_ID,
       inquiryId: 'inq_seeded',
       status: 'pending_review',
       statusChangedAt: T0,
@@ -2785,10 +2856,11 @@ describe('the organization flow', () => {
     expect(operator.sent).toEqual([
       {
         kind: 'case_status',
-        userId: USER_ID,
+        subjectId: USER_ID,
         email: 'grace@acme.example',
         inquiryId: 'inq_seeded',
-        accountType: 'organization',
+        subjectKind: 'organization',
+        organizationName: 'Acme Capital LLC',
         status: 'pending_review',
         case: { id: 'case_1', status: 'Ready for Review' }
       }
@@ -2846,7 +2918,7 @@ describe('the organization flow', () => {
       ok: true,
       value: { outcome: 'applied' }
     });
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       status: 'pending_review',
       caseWaitingOn: 'team'
     });
@@ -3194,7 +3266,13 @@ describe('the organization flow', () => {
         delivery({ verification, name, status, templateId: FAKE_KYB_TEMPLATE_ID, minutesAfterT0: 2 })
       ).resolves.toEqual({
         ok: true,
-        value: { outcome: 'ignored', reason: 'case_decides', eventName: name, userId: USER_ID, inquiryId: 'inq_seeded' }
+        value: {
+          outcome: 'ignored',
+          reason: 'case_decides',
+          eventName: name,
+          subjectId: USER_ID,
+          inquiryId: 'inq_seeded'
+        }
       });
     }
     expect(store.records.get(USER_ID)).toMatchObject({
@@ -3222,7 +3300,7 @@ describe('the organization flow', () => {
     // Approved by hand, no case: confirmed, still submitted, and a start still waits on the decision.
     expect(await verification.reconcile({ now: T0 })).toMatchObject({ checked: 1, changed: 0 });
     expect(store.records.get(USER_ID)).toMatchObject({ status: 'submitted', lastSyncedAt: T0 });
-    await expect(verification.startVerification({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
       ok: false,
       error: { code: 'awaiting_decision' }
     });
@@ -3513,7 +3591,7 @@ describe('the organization flow', () => {
       personaCaseStatus: 'Waiting on UBOs',
       statusChangedAt: new Date(T0.getTime() + 10 * MINUTE)
     });
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       caseWaitingOn: 'people'
     });
 
@@ -3527,7 +3605,7 @@ describe('the organization flow', () => {
       personaCaseStatus: 'Ready for Review',
       statusChangedAt: inReview?.statusChangedAt
     });
-    await expect(verification.getVerificationStatus({ userId: USER_ID })).resolves.toMatchObject({
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
       caseWaitingOn: 'team'
     });
 
@@ -3582,7 +3660,7 @@ describe('the organization flow', () => {
     });
     seedCompletedBusinessInquiry({ persona, at: T0, caseStatus: 'Approved' });
 
-    await expect(verification.resyncFromPersona({ userId: USER_ID })).resolves.toEqual({
+    await expect(verification.resyncFromPersona({ subjectId: USER_ID })).resolves.toEqual({
       ok: true,
       value: {
         from: 'revoked',
@@ -3659,7 +3737,7 @@ describe('the organization flow', () => {
     const { verification, store, seedRecord } = setupOrganization();
     seedRecord({ status: 'submitted' });
     store.profiles.set('u-other', ORGANIZATION_PROFILE);
-    seedRecord({ userId: 'u-other', status: 'submitted', personaInquiryId: 'inq_owner' });
+    seedRecord({ subjectId: 'u-other', status: 'submitted', personaInquiryId: 'inq_owner' });
 
     await expect(caseDelivery({ verification, status: 'Waiting on UBOs' })).resolves.toMatchObject({
       ok: true,
@@ -3683,11 +3761,16 @@ describe('the organization flow', () => {
     const { verification, clock, store, seedRecord } = setupOrganization();
     const twoDaysAgo = new Date(T0.getTime() - 2 * 24 * 60 * MINUTE);
     const inReview = { status: 'pending_review', statusChangedAt: twoDaysAgo, lastSyncedAt: T0 } as const;
-    seedRecord({ userId: USER_ID, ...inReview, personaCaseId: 'case_1', personaCaseStatus: 'Waiting on UBOs' });
+    seedRecord({ subjectId: USER_ID, ...inReview, personaCaseId: 'case_1', personaCaseStatus: 'Waiting on UBOs' });
     store.profiles.set('u-org-team', ORGANIZATION_PROFILE);
-    seedRecord({ userId: 'u-org-team', ...inReview, personaCaseId: 'case_2', personaCaseStatus: 'Ready for Review' });
+    seedRecord({
+      subjectId: 'u-org-team',
+      ...inReview,
+      personaCaseId: 'case_2',
+      personaCaseStatus: 'Ready for Review'
+    });
     store.profiles.set('u-person', INDIVIDUAL_PROFILE);
-    seedRecord({ userId: 'u-person', ...inReview });
+    seedRecord({ subjectId: 'u-person', ...inReview });
 
     const report = await verification.reconcile({ now: clock.clock.now() });
 
@@ -3740,7 +3823,7 @@ describe('the organization flow', () => {
     await verification.deliverNotification({
       notification: {
         kind: 'status_email',
-        userId: USER_ID,
+        subjectId: USER_ID,
         inquiryId: 'inq_seeded',
         status: 'pending_review',
         statusChangedAt: seeded.statusChangedAt
@@ -3748,7 +3831,7 @@ describe('the organization flow', () => {
     });
 
     expect(emails.sent).toEqual([
-      expect.objectContaining({ status: 'pending_review', accountType: 'organization', caseWaitingOn: 'people' })
+      expect.objectContaining({ status: 'pending_review', subjectKind: 'organization', caseWaitingOn: 'people' })
     ]);
   });
 
@@ -3760,5 +3843,112 @@ describe('the organization flow', () => {
     const report = await verification.reconcile({ now: clock.clock.now() });
 
     expect(report).toMatchObject({ checked: 1, undecided: 1 });
+  });
+});
+
+describe('who may start and continue for an organization', () => {
+  const LATER = new Date(T0.getTime() + 10 * MINUTE);
+  const MEMBER_ID = '2f3e4d5c-6b7a-4899-a0b1-c2d3e4f5a6b7';
+  const JANE = { firstName: 'Jane', lastName: 'Doe', email: 'jane@acme.example', countryCode: null };
+
+  function setupMembers() {
+    const s = setupOrganization();
+    s.store.people.set(MEMBER_ID, JANE);
+    return s;
+  }
+
+  it('remembers who started, and prefills the person acting, not the first one who joined', async () => {
+    const { verification, store } = setupMembers();
+
+    const started = await verification.startVerification({ subjectId: USER_ID, actorUserId: MEMBER_ID });
+
+    expect(started.ok).toBe(true);
+    expect(store.records.get(USER_ID)?.startedByUserId).toBe(MEMBER_ID);
+  });
+
+  it('shows an in-flight inquiry read-only to everyone but its starter, and refuses them a resume', async () => {
+    const { verification, seedRecord, persona } = setupMembers();
+    seedRecord({ status: 'in_progress', startedByUserId: MEMBER_ID });
+
+    await expect(
+      verification.getVerificationStatus({ subjectId: USER_ID, viewerUserId: USER_ID })
+    ).resolves.toMatchObject({
+      canResume: false,
+      inquiryId: null,
+      startedBy: { name: 'Jane Doe', isViewer: false }
+    });
+    await expect(
+      verification.getVerificationStatus({ subjectId: USER_ID, viewerUserId: MEMBER_ID })
+    ).resolves.toMatchObject({
+      canResume: true,
+      inquiryId: 'inq_seeded',
+      startedBy: { name: 'Jane Doe', isViewer: true }
+    });
+
+    await expect(verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID })).resolves.toEqual({
+      ok: false,
+      error: { code: 'started_by_other' }
+    });
+    expect(persona.calls.filter((call) => call.method === 'createInquiry')).toHaveLength(0);
+  });
+
+  it('lets any member start fresh once the inquiry expired on someone else, and they become its starter', async () => {
+    const { verification, seedRecord, store, persona } = setupMembers();
+    seedRecord({ status: 'expired', startedByUserId: MEMBER_ID });
+
+    const view = await verification.getVerificationStatus({ subjectId: USER_ID, viewerUserId: USER_ID });
+    expect(view).toMatchObject({ canResume: true, inquiryId: null });
+
+    const started = await verification.startVerification({ subjectId: USER_ID, actorUserId: USER_ID });
+
+    expect(started.ok).toBe(true);
+    expect(persona.calls.filter((call) => call.method === 'createInquiry')).toHaveLength(1);
+    expect(store.records.get(USER_ID)?.startedByUserId).toBe(USER_ID);
+  });
+
+  it('lets any member start fresh when whoever started it has left', async () => {
+    const { verification, seedRecord, store } = setupMembers();
+    seedRecord({ status: 'in_progress', startedByUserId: null });
+
+    const view = await verification.getVerificationStatus({ subjectId: USER_ID, viewerUserId: MEMBER_ID });
+    expect(view).toMatchObject({ canResume: true, inquiryId: null, startedBy: null });
+
+    expect((await verification.startVerification({ subjectId: USER_ID, actorUserId: MEMBER_ID })).ok).toBe(true);
+    expect(store.records.get(USER_ID)?.startedByUserId).toBe(MEMBER_ID);
+  });
+
+  it('emails the starter about the organization, and nobody once the starter has gone', async () => {
+    const { verification, seedRecord, emails } = setupMembers();
+    seedRecord({ status: 'approved', startedByUserId: MEMBER_ID, statusChangedAt: LATER });
+    const notification = {
+      kind: 'status_email',
+      subjectId: USER_ID,
+      inquiryId: 'inq_seeded',
+      status: 'approved',
+      statusChangedAt: LATER
+    } as const;
+
+    await expect(verification.deliverNotification({ notification })).resolves.toEqual({ ok: true, value: 'sent' });
+    // The subject rides along, so the email's link opens the organization, not Jane.
+    expect(emails.sent).toMatchObject([
+      { to: JANE.email, name: 'Jane', organizationName: 'Acme Capital LLC', subjectId: USER_ID }
+    ]);
+
+    seedRecord({ status: 'approved', startedByUserId: null, statusChangedAt: LATER });
+    await verification.deliverNotification({ notification });
+    expect(emails.sent).toHaveLength(1);
+  });
+
+  it('reads a deleted organization as no yes, whatever Persona decided', async () => {
+    const { verification, seedRecord, store } = setupMembers();
+    seedRecord({ status: 'approved' });
+    store.profiles.set(USER_ID, { ...ORGANIZATION_PROFILE, deleted: true });
+
+    await expect(verification.getVerificationStatus({ subjectId: USER_ID })).resolves.toMatchObject({
+      status: 'revoked',
+      canStart: false,
+      canResume: false
+    });
+    await expect(verification.listApproved({ subjectIds: [USER_ID] })).resolves.toEqual(new Set());
   });
 });

@@ -75,17 +75,17 @@ export const verification = createVerification({
   // everyone's and asks ops to revoke or restore them. Published by URL, so
   // this module never imports the Wallet link (which imports it).
   approvalChanged: {
-    async notify({ userId }) {
+    async notify({ subjectId }) {
       try {
         await outboxQstash.publishJSON({
           url: `${BASE_URL}${WALLET_LINK_RECONCILE_PATH}?${WALLET_LINK_RECONCILE_TRIGGER_PARAM}=approval-changed`,
-          body: { userId },
+          body: { subjectId },
           retries: 3,
           failureCallback: getQstashFailureCallback(BASE_URL),
           label: QSTASH_JOB_LABELS.walletLinkReconcile
         });
       } catch (error) {
-        Sentry.captureException(error, { tags: { source: 'API', flow: 'wallet-link-trigger' }, extra: { userId } });
+        Sentry.captureException(error, { tags: { source: 'API', flow: 'wallet-link-trigger' }, extra: { subjectId } });
       }
     }
   },

@@ -258,7 +258,7 @@ function ActivityRow({
         {amountParts.map((part, index) => (
           <Fragment key={index}>
             {index > 0 && ' → '}
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap align-bottom">
+            <span className="inline-flex items-center gap-1.5 align-bottom whitespace-nowrap">
               <span className="[&_svg]:size-4">{getTokenInfo(part.symbol)?.icon}</span>
               {part.text}
             </span>

@@ -24,7 +24,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <Header />
 
       <div className="flex h-full flex-col justify-between bg-surface-base">
-        {children}
+        <div className="flex-1">{children}</div>
         <Footer />
       </div>
 
@@ -64,6 +64,7 @@ function Header() {
 async function UserMenuWrapper() {
   const { user: sessionUser } = await verifySession();
   const [user, showVerification] = await Promise.all([getUserMenuData(), isKycEnabled({ user: sessionUser })]);
+
   return <UserMenu user={user} showVerification={showVerification} />;
 }
 

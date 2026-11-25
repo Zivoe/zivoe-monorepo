@@ -1,4 +1,4 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { EMAILS } from '@/lib/emails';
 
@@ -13,18 +13,21 @@ import { VerificationEmailShell } from './components/verification-email-shell';
 export default function VerificationDeclinedEmail({
   name,
   verificationUrl,
-  accountType,
+  subjectKind,
+  organizationName,
   previousDecision
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
   previousDecision?: DecisionStatus;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization ? "An update on your organization's verification." : 'An update on your identity verification.'
       }

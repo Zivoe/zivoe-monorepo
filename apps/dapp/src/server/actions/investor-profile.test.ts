@@ -9,16 +9,17 @@ const mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
   isKycEnabled: vi.fn(),
   getVerificationStatus: vi.fn(),
-  getRequiredStep: vi.fn()
+  getOnboardingStep: vi.fn()
 }));
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@sentry/nextjs', () => ({ captureException: mocks.captureException }));
 // The module reaches @/lib/utils, whose toast import drags in the React runtime.
 vi.mock('@zivoe/ui/core/sonner', () => ({ toast: vi.fn() }));
 vi.mock('@/server/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('@/server/verification/kyc-flag', () => ({ isKycEnabled: mocks.isKycEnabled }));
-vi.mock('@/server/data/auth', () => ({ getRequiredStep: mocks.getRequiredStep }));
+vi.mock('@/server/data/auth', () => ({ getOnboardingStep: mocks.getOnboardingStep }));
 vi.mock('@/server/verification', () => ({ verification: { getVerificationStatus: mocks.getVerificationStatus } }));
 // `update(profile).set(values).where(...).returning(...)`: `set` records the values, `returning` answers.
 vi.mock('@/server/clients/db', () => ({
@@ -39,16 +40,8 @@ beforeEach(() => {
   mocks.returning.mockResolvedValue([{ id: 'user_1' }]);
   mocks.isKycEnabled.mockResolvedValue(true);
   mocks.getVerificationStatus.mockResolvedValue({ canStart: true, path: 'individual' });
-  mocks.getRequiredStep.mockResolvedValue(null);
+  mocks.getOnboardingStep.mockResolvedValue(null);
 });
-
-const ORGANIZATION_DETAILS = {
-  firstName: 'Grace',
-  lastName: 'Hopper',
-  jobTitle: 'Managing Partner',
-  entityName: 'Acme Capital LLC',
-  countryOfIncorporation: 'US'
-};
 
 describe('updateInvestorProfile', () => {
   it('writes the confirmed details to the profile', async () => {
@@ -72,7 +65,7 @@ describe('updateInvestorProfile', () => {
   });
 
   it('refuses a user behind on the terms and touches nothing', async () => {
-    mocks.getRequiredStep.mockResolvedValue('/terms');
+    mocks.getOnboardingStep.mockResolvedValue('/terms');
 
     expect(await updateInvestorProfile(DETAILS)).toEqual({ error: 'Unauthorized' });
     expect(mocks.set).not.toHaveBeenCalled();
@@ -113,23 +106,6 @@ describe('updateInvestorProfile', () => {
     expect(result.success).toBeUndefined();
     expect(result.error).toMatch(/no profile/i);
     expect(mocks.captureException).not.toHaveBeenCalled();
-  });
-
-  it("writes an organization's entity and its own details, keyed on the stored account type", async () => {
-    mocks.getVerificationStatus.mockResolvedValue({ canStart: true, path: 'organization' });
-
-    expect(await updateInvestorProfile(ORGANIZATION_DETAILS)).toEqual({ success: true });
-
-    expect(mocks.set).toHaveBeenCalledWith(expect.objectContaining(ORGANIZATION_DETAILS));
-  });
-
-  it("refuses an individual's answers for an organization, and the other way round", async () => {
-    mocks.getVerificationStatus.mockResolvedValue({ canStart: true, path: 'organization' });
-    expect(await updateInvestorProfile(DETAILS)).toEqual({ error: 'Invalid form data' });
-
-    mocks.getVerificationStatus.mockResolvedValue({ canStart: true, path: 'individual' });
-    expect(await updateInvestorProfile(ORGANIZATION_DETAILS)).toEqual({ error: 'Invalid form data' });
-    expect(mocks.set).not.toHaveBeenCalled();
   });
 
   it('captures a database failure and answers with a retryable error', async () => {

@@ -35,7 +35,8 @@ const isEmailPreferenceEnabled = vi.hoisted(() => vi.fn());
 vi.mock('@/server/data/email-preferences', () => ({ isEmailPreferenceEnabled }));
 
 const getWalletAddressesForUser = vi.hoisted(() => vi.fn());
-vi.mock('@/server/data/wallets', () => ({ getWalletAddressesForUser }));
+const getOrganizationWalletAddressesForUser = vi.hoisted(() => vi.fn());
+vi.mock('@/server/data/wallets', () => ({ getWalletAddressesForUser, getOrganizationWalletAddressesForUser }));
 
 const sendFirstDepositReminderEmail = vi.hoisted(() => vi.fn());
 const sendSecondDepositReminderEmail = vi.hoisted(() => vi.fn());
@@ -64,6 +65,7 @@ beforeEach(() => {
   });
   isEmailPreferenceEnabled.mockResolvedValue(true);
   getWalletAddressesForUser.mockResolvedValue([WALLET_A.toLowerCase()]);
+  getOrganizationWalletAddressesForUser.mockResolvedValue([]);
   sendFirstDepositReminderEmail.mockResolvedValue(undefined);
   sendSecondDepositReminderEmail.mockResolvedValue(undefined);
 
@@ -109,6 +111,15 @@ describe('POST /api/email/deposit-reminder', () => {
 
   it('checks all of the user’s connected wallets in one query', async () => {
     getWalletAddressesForUser.mockResolvedValue([WALLET_A.toLowerCase(), WALLET_B.toLowerCase()]);
+    investorTransactionCount = 1;
+
+    await POST(reminderRequest());
+
+    expect(indexerAccountsSeen).toEqual([WALLET_A.toLowerCase(), WALLET_B.toLowerCase()]);
+  });
+
+  it("counts the wallets of the person's organizations, once each", async () => {
+    getOrganizationWalletAddressesForUser.mockResolvedValue([WALLET_B.toLowerCase(), WALLET_A.toLowerCase()]);
     investorTransactionCount = 1;
 
     await POST(reminderRequest());

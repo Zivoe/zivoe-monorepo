@@ -15,8 +15,9 @@ import { type AddressMembership, summarizeMembership } from './wallet-link-membe
 import { type WalletLinkTypedData, buildWalletLinkTypedData } from './wallet-link-typed-data';
 
 // ---------------------------------------------------------------------------
-// Wallet link — one account's signed proof that it controls one address,
-// which makes it the address's owner for good, and the whitelist that follows
+// Wallet link — a signed proof that one Verification subject (a person, or an
+// organization through a member) controls one address, which makes it the
+// address's owner for good, and the whitelist that follows
 // the owner's Decision: a yes asks ops to whitelist, anything else to revoke
 // (a freeze), a yes again to restore — never a new signature. One module, six
 // operations, over injected ports: the store, the Decision (the Verification
@@ -35,7 +36,10 @@ import { type WalletLinkTypedData, buildWalletLinkTypedData } from './wallet-lin
  */
 export type WalletLinkRecord = {
   id: string;
-  userId: string;
+  /** The owner: a person or an organization. */
+  subjectId: string;
+  /** Who signed: the person, or the member who did it for the organization. Null on a challenge. */
+  signedByUserId: string | null;
   address: Address;
   walletType: string | null;
   /** The wallet's display name at link time, from the client like `walletType`: shown, never trusted. */
@@ -50,6 +54,8 @@ export type WalletLinkRecord = {
   typedData: WalletLinkTypedData;
   signature: Hex | null;
   signedAt: Date | null;
+  /** The agreements version the signer had accepted when the link completed; null on a challenge. */
+  agreementsVersion: string | null;
   /** When the latest Whitelist request was queued for ops: the link, or a yes again since. */
   whitelistRequestedAt: Date | null;
   /** When the reconcile first saw the address admitted everywhere since that request — a record, not the truth; the chain is. */
@@ -63,27 +69,33 @@ export type WalletLinkRecord = {
 /** Store port — the app database. Rejects on infrastructure failure. */
 export type WalletLinkStore = {
   get(input: { id: string }): Promise<WalletLinkRecord | null>;
-  getPending(input: { userId: string; address: Address }): Promise<WalletLinkRecord | null>;
+  getPending(input: { subjectId: string; address: Address }): Promise<WalletLinkRecord | null>;
   /** The address's `linked` row, whichever account owns it. */
   getOwner(input: { address: Address }): Promise<WalletLinkRecord | null>;
   /** Writes a pending challenge, replacing the user's existing pending one for the address. */
   putPending(record: Omit<WalletLinkRecord, 'id'>): Promise<WalletLinkRecord>;
-  deletePending(input: { userId: string; address: Address }): Promise<void>;
+  deletePending(input: { subjectId: string; address: Address }): Promise<void>;
   /**
-   * In one transaction: ensures `wallet_connection` holds (user, address) —
+   * In one transaction: ensures `wallet_connection` holds (signer, address) —
    * a no-op when the tracker already recorded it — and flips the pending row
    * to `linked` with its Whitelist request (version 1). `address_taken` when
    * the unique index refuses (some account, this one included, linked the
    * address meanwhile); `not_pending` when the row is no longer the pending
    * challenge `nonce` names — linked, gone, or re-issued (a re-issue keeps
-   * the row and replaces what it asks to sign).
+   * the row and replaces what it asks to sign); `not_member` when the subject
+   * is an organization the signer no longer belongs to (or that was deleted),
+   * read under the organization's lock.
    */
   link(input: {
     id: string;
     nonce: Hex;
     signature: Hex;
     signedAt: Date;
-  }): Promise<{ outcome: 'linked'; record: WalletLinkRecord } | { outcome: 'address_taken' | 'not_pending' }>;
+    signedByUserId: string;
+    agreementsVersion: string;
+  }): Promise<
+    { outcome: 'linked'; record: WalletLinkRecord } | { outcome: 'address_taken' | 'not_pending' | 'not_member' }
+  >;
   /**
    * Records a new ask of ops on a `linked` row still at `from`, bumping the
    * version. A Whitelist request also restarts the whitelist cycle: it is
@@ -100,13 +112,30 @@ export type WalletLinkStore = {
   /** Sets `whitelistObservedAt` on a `linked` row still asking to whitelist at `version`, with none yet; false otherwise. */
   markWhitelistObserved(input: { id: string; version: number; whitelistObservedAt: Date }): Promise<boolean>;
   /** The user's `linked` rows, newest signature first. */
-  listLinked(input: { userId: string }): Promise<Array<WalletLinkRecord>>;
+  listLinked(input: { subjectId: string }): Promise<Array<WalletLinkRecord>>;
   /** Every `linked` row, oldest signature first: what the reconcile holds against the Decisions and the chain. */
   listAllLinked(): Promise<Array<WalletLinkRecord>>;
   /** Drops `pending` challenges that expired before the cut-off; resolves how many. */
   deleteExpiredPending(input: { expiredBefore: Date }): Promise<number>;
   /** The sign-in email and the profile's first name; null when the user is gone. */
   getAccount(input: { userId: string }): Promise<{ email: string; name: string | null } | null>;
+  /** For a Linked address an organization owns, what ops weighs before acting on a member's signature; null for a person's. */
+  getOwningOrganization(input: {
+    subjectId: string;
+    signedByUserId: string | null;
+  }): Promise<WalletLinkOwningOrganization | null>;
+};
+
+/** An organization that owns a Linked address, and how long the member who signed for it has been there. */
+export type WalletLinkOwningOrganization = {
+  name: string;
+  deleted: boolean;
+  /** Null when the signer has left since. */
+  signerJoinedAt: Date | null;
+  /** Their job title there, as they gave it. */
+  signerTitle: string | null;
+  /** The email of whoever invited the signer; null for the one who created it, or an inviter since deleted. */
+  signerInvitedBy: string | null;
 };
 
 /**
@@ -185,6 +214,10 @@ export type WalletLinkOperatorMessenger = {
      * hand. Null on a Revoke request, which is not asked.
      */
     screening: ScreeningVerdict | null;
+    /** The owning organization and the signer's place in it; null for a person's. */
+    organization: WalletLinkOwningOrganization | null;
+    /** For an organization's link, the signer's own Verification Status, read at delivery. */
+    signerStatus: VerificationStatus | null;
   }): Promise<void>;
 };
 
@@ -216,11 +249,13 @@ export type CompleteLinkError = {
     | 'expired'
     | 'bad_signature'
     | 'already_linked'
-    | 'linked_elsewhere';
+    | 'linked_elsewhere'
+    | 'not_member';
 };
 
 /** Who owns an address, as the account asking may know it: itself, another account, or nobody yet. */
-export type WalletOwnership = 'mine' | 'elsewhere' | 'none';
+/** `elsewhere` carries the owning subject, for the caller to tell one of the person's own accounts from a stranger's. */
+export type WalletOwnership = 'mine' | 'none' | { elsewhere: string };
 
 /** The same answers the verification receivers map to status codes: retry (early or channel down) or 200 (sent, skipped). */
 export type { DeliveryError, DeliveryOutcome } from '@/server/verification/verification';
@@ -262,7 +297,7 @@ export type WalletLink = {
    * wallet is never asked to sign for an address that could not be linked.
    */
   issueChallenge(input: {
-    userId: string;
+    subjectId: string;
     address: Address;
     chainId: number;
     walletType: string | null;
@@ -270,18 +305,25 @@ export type WalletLink = {
   }): Promise<Result<{ linkId: string; typedData: WalletLinkTypedData }, IssueChallengeError>>;
   /** Verifies the signature against the stored challenge and links the address, telling ops through the Outbox. */
   completeLink(input: {
-    userId: string;
+    subjectId: string;
+    /** The person signing: the subject itself, or a member the caller has checked. */
+    signedByUserId: string;
+    /** The agreements version the signer has accepted, which the caller has checked is the one in force. */
+    agreementsVersion: string;
     address: Address;
     signature: Hex;
   }): Promise<Result<WalletLinkRecord, CompleteLinkError>>;
   /**
    * Who owns the address, for a yes Decision only — the same answer
-   * `issueChallenge` would give, without a challenge. Never who the other
-   * account is.
+   * `issueChallenge` would give, without a challenge. The owner it names is
+   * for the caller, never for the page.
    */
-  getOwnership(input: { userId: string; address: Address }): Promise<Result<WalletOwnership, { code: 'not_approved' }>>;
+  getOwnership(input: {
+    subjectId: string;
+    address: Address;
+  }): Promise<Result<WalletOwnership, { code: 'not_approved' }>>;
   /** The user's own Linked addresses, newest first. Membership is the chain's to answer, not this read's. */
-  listLinks(input: { userId: string }): Promise<Array<WalletLinkRecord>>;
+  listLinks(input: { subjectId: string }): Promise<Array<WalletLinkRecord>>;
   /**
    * The scheduled sweep: asks ops to revoke the Linked addresses of an owner
    * whose yes no longer stands and to restore those of an owner who is a yes
@@ -335,8 +377,8 @@ export function createWalletLink({
   whitelistedEmails: WhitelistedEmailSender;
   clock: Clock;
 }): WalletLink {
-  /** Only a yes Decision can link: Persona's for an individual, the team's for an organization. */
-  const mayLink = async (userId: string) => isYesDecision(await verification.getVerificationStatus({ userId }));
+  /** Only a yes Decision can link: Persona's for an individual, its KYB case's or the team's for an organization. */
+  const mayLink = async (subjectId: string) => isYesDecision(await verification.getVerificationStatus({ subjectId }));
 
   /** Fails open: a screen that cannot be made is `unscreened`, never a refusal. */
   const screen = (address: Address): Promise<ScreeningVerdict> =>
@@ -367,20 +409,21 @@ export function createWalletLink({
       .catch(() => null);
 
   return {
-    async issueChallenge({ userId, address: rawAddress, chainId, walletType, walletName }) {
+    async issueChallenge({ subjectId, address: rawAddress, chainId, walletType, walletName }) {
       const address = rawAddress.toLowerCase() as Address;
-      if (!(await mayLink(userId))) return err({ code: 'not_approved' });
+      const decision = await verification.getVerificationStatus({ subjectId });
+      if (!isYesDecision(decision)) return err({ code: 'not_approved' });
 
       // An address has one owner for good: nothing to sign for when it has
       // one. Whose it is stays unsaid — only that it is not this account's.
       const owner = await store.getOwner({ address });
-      if (owner) return err({ code: owner.userId === userId ? 'already_linked' : 'linked_elsewhere' });
+      if (owner) return err({ code: owner.subjectId === subjectId ? 'already_linked' : 'linked_elsewhere' });
 
       // Chainalysis before any signature. A flagged address leaves no row
       // behind; one Chainalysis could not answer for goes on, and is screened
       // again on completion and at delivery.
       if ((await screen(address)) === 'flagged') {
-        await store.deletePending({ userId, address });
+        await store.deletePending({ subjectId, address });
         return err({ code: 'flagged' });
       }
 
@@ -390,7 +433,7 @@ export function createWalletLink({
       // domain — wallets refuse a chain id that is not the active one — so
       // that re-issues.
       const now = clock.now();
-      const pending = await store.getPending({ userId, address });
+      const pending = await store.getPending({ subjectId, address });
       if (pending && pending.expiresAt > now && pending.chainId === chainId) {
         // The same payload, from whichever wallet holds the address now: a
         // first click through MetaMask and a second through WalletConnect
@@ -407,14 +450,16 @@ export function createWalletLink({
       const nonce: Hex = `0x${randomBytes(32).toString('hex')}`;
       const typedData = buildWalletLinkTypedData({
         chainId,
-        userId,
+        subjectId,
+        subjectKind: decision.path,
         address,
         nonce,
         issuedAt,
         expiresAt
       });
       const record = await store.putPending({
-        userId,
+        subjectId,
+        signedByUserId: null,
         address,
         walletType,
         walletName,
@@ -426,6 +471,7 @@ export function createWalletLink({
         typedData,
         signature: null,
         signedAt: null,
+        agreementsVersion: null,
         whitelistRequestedAt: null,
         whitelistObservedAt: null,
         opsRequest: null,
@@ -434,21 +480,23 @@ export function createWalletLink({
       return ok({ linkId: record.id, typedData: record.typedData });
     },
 
-    async completeLink({ userId, address: rawAddress, signature }) {
+    async completeLink({ subjectId, signedByUserId, agreementsVersion, address: rawAddress, signature }) {
       const address = rawAddress.toLowerCase() as Address;
-      if (!(await mayLink(userId))) return err({ code: 'not_approved' });
+      if (!(await mayLink(subjectId))) return err({ code: 'not_approved' });
 
       // Linked meanwhile — by this account from another tab, or by another
       // account: the challenge is dead. The unique index refuses it anyway;
       // this spares the screen and the signature check.
       const ownedBy = async () => {
-        await store.deletePending({ userId, address });
+        await store.deletePending({ subjectId, address });
         const owner = await store.getOwner({ address });
-        return err({ code: owner?.userId === userId ? ('already_linked' as const) : ('linked_elsewhere' as const) });
+        return err({
+          code: owner?.subjectId === subjectId ? ('already_linked' as const) : ('linked_elsewhere' as const)
+        });
       };
 
       const now = clock.now();
-      const pending = await store.getPending({ userId, address });
+      const pending = await store.getPending({ subjectId, address });
       // No challenge left, perhaps because another tab completed it: then the answer is who owns it.
       if (!pending) return (await store.getOwner({ address })) ? ownedBy() : err({ code: 'no_challenge' });
       if (pending.expiresAt <= now) return err({ code: 'expired' });
@@ -458,7 +506,7 @@ export function createWalletLink({
       // signature still refuses. Unanswered, it links: the Whitelist request
       // re-screens at delivery and tells ops when it still cannot.
       if ((await screen(address)) === 'flagged') {
-        await store.deletePending({ userId, address });
+        await store.deletePending({ subjectId, address });
         return err({ code: 'flagged' });
       }
 
@@ -481,11 +529,24 @@ export function createWalletLink({
 
       // By the nonce that was verified: a challenge re-issued for another chain
       // meanwhile sits in the same row, and the signature is not for it.
-      const written = await store.link({ id: pending.id, nonce: pending.nonce, signature, signedAt });
+      const written = await store.link({
+        id: pending.id,
+        nonce: pending.nonce,
+        signature,
+        signedAt,
+        signedByUserId,
+        agreementsVersion
+      });
       if (written.outcome === 'linked') return ok(written.record);
       // Linked by some account between the check above and the write: the
       // challenge is dropped, so the job queued above finds no row and skips.
       if (written.outcome === 'address_taken') return ownedBy();
+      // Taken out of the organization while this was being checked: nothing links, and the job queued above
+      // finds no row and skips.
+      if (written.outcome === 'not_member') {
+        await store.deletePending({ subjectId, address });
+        return err({ code: 'not_member' });
+      }
       // Completed twice (two tabs, one challenge): the other completion linked
       // it, so the answer is that it is linked, not that the request is dead.
       // Both queued a version 1 job and both match, so ops can see the line twice.
@@ -497,17 +558,17 @@ export function createWalletLink({
       return err({ code: 'no_challenge' });
     },
 
-    async getOwnership({ userId, address: rawAddress }) {
+    async getOwnership({ subjectId, address: rawAddress }) {
       const address = rawAddress.toLowerCase() as Address;
       // Approved investors only, as `issueChallenge`: whether an address is a
       // Zivoe customer's is not an anonymous lookup.
-      if (!(await mayLink(userId))) return err({ code: 'not_approved' });
+      if (!(await mayLink(subjectId))) return err({ code: 'not_approved' });
       const owner = await store.getOwner({ address });
-      return ok(!owner ? 'none' : owner.userId === userId ? 'mine' : 'elsewhere');
+      return ok(!owner ? 'none' : owner.subjectId === subjectId ? 'mine' : { elsewhere: owner.subjectId });
     },
 
-    async listLinks({ userId }) {
-      return store.listLinked({ userId });
+    async listLinks({ subjectId }) {
+      return store.listLinked({ subjectId });
     },
 
     async reconcile({ now }) {
@@ -541,7 +602,7 @@ export function createWalletLink({
       // KYB case and an approval again are covered alike; a change is asked
       // once, since the row remembers what was asked. One read for every owner.
       const approved = await verification.listApproved({
-        userIds: [...new Set(owned.map((record) => record.userId))]
+        subjectIds: [...new Set(owned.map((record) => record.subjectId))]
       });
       const current: Array<WalletLinkRecord> = [];
       // A yes again is screened again before ops is asked to restore, as a new
@@ -550,12 +611,14 @@ export function createWalletLink({
       // not a yes go first below, so it never holds up a freeze.
       const screens = new Map(
         owned
-          .filter((record) => record.opsRequest === 'revoke' && approved.has(record.userId))
+          .filter((record) => record.opsRequest === 'revoke' && approved.has(record.subjectId))
           .map((record) => [record.id, screen(record.address)])
       );
-      const revokesFirst = [...owned].sort((a, b) => Number(approved.has(a.userId)) - Number(approved.has(b.userId)));
+      const revokesFirst = [...owned].sort(
+        (a, b) => Number(approved.has(a.subjectId)) - Number(approved.has(b.subjectId))
+      );
       for (const record of revokesFirst) {
-        const wanted: WalletLinkOpsRequest = approved.has(record.userId) ? 'whitelist' : 'revoke';
+        const wanted: WalletLinkOpsRequest = approved.has(record.subjectId) ? 'whitelist' : 'revoke';
         if (record.opsRequest === null || record.opsRequest === wanted) {
           current.push(record);
           continue;
@@ -659,10 +722,12 @@ export function createWalletLink({
             // on yet, and only this message cancels it.
             // Read together: run one after another, slow chains could use up
             // the receiver's time before Telegram is called.
-            const [decision, membership, account, isSmartAccount, screening] = await Promise.all([
-              verification.getVerificationStatus({ userId: record.userId }),
+            const signer = record.signedByUserId;
+            const [decision, membership, account, organization, isSmartAccount, screening] = await Promise.all([
+              verification.getVerificationStatus({ subjectId: record.subjectId }),
               readOneMembership(record.address),
-              store.getAccount({ userId: record.userId }),
+              signer ? store.getAccount({ userId: signer }) : null,
+              store.getOwningOrganization({ subjectId: record.subjectId, signedByUserId: signer }),
               // A linked row always carries its signature (the database checks
               // it); the fallback only types the field. Best effort, like membership.
               record.signature
@@ -690,6 +755,9 @@ export function createWalletLink({
             // as cancelling it.
             const latest = await store.get({ id: record.id });
             if (latest?.opsRequestVersion !== job.version) return ok('skipped');
+            // A member's own Decision is not the organization's, and ops weighs it: no code gates on it.
+            const signerStatus =
+              organization && signer ? (await verification.getVerificationStatus({ subjectId: signer })).status : null;
             await operatorMessages.send({
               kind: job.kind,
               record,
@@ -697,7 +765,9 @@ export function createWalletLink({
               isSmartAccount,
               membership,
               endedBy: isYes ? null : decision.status,
-              screening
+              screening,
+              organization,
+              signerStatus
             });
             return ok('sent');
           }
@@ -706,9 +776,13 @@ export function createWalletLink({
             if (record.status !== 'linked' || record.opsRequest !== 'whitelist') return ok('skipped');
             if (!record.whitelistObservedAt) return err({ code: 'not_caught_up' });
             if (record.whitelistObservedAt.getTime() !== job.at.getTime()) return ok('skipped');
-            if (!(await mayLink(record.userId))) return ok('skipped');
-            const account = await store.getAccount({ userId: record.userId });
-            if (!account) return ok('skipped');
+            if (!(await mayLink(record.subjectId))) return ok('skipped');
+            // The member who signed hears it; the address is theirs to use. One who has left since does not.
+            const [account, organization] = await Promise.all([
+              record.signedByUserId ? store.getAccount({ userId: record.signedByUserId }) : null,
+              store.getOwningOrganization({ subjectId: record.subjectId, signedByUserId: record.signedByUserId })
+            ]);
+            if (!account || (organization && !organization.signerJoinedAt)) return ok('skipped');
             await whitelistedEmails.send({
               to: account.email,
               name: account.name,

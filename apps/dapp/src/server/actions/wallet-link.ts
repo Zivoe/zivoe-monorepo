@@ -9,21 +9,22 @@ import { z } from 'zod';
 
 import { auth } from '@/server/auth';
 import { redis } from '@/server/clients/redis';
+import { getAgreementsAccess } from '@/server/data/agreements';
+import { organizations } from '@/server/organizations';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { walletLink } from '@/server/wallet-link';
-import {
-  type CompleteLinkError,
-  type IssueChallengeError,
-  type WalletOwnership
-} from '@/server/wallet-link/wallet-link';
+import { type CompleteLinkError, type IssueChallengeError } from '@/server/wallet-link/wallet-link';
 import { type WalletLinkTypedData } from '@/server/wallet-link/wallet-link-typed-data';
 import { type LinkedAddress, toLinkedAddress } from '@/server/wallet-link/wallet-link-view';
 
+import { LATEST_AGREEMENTS_VERSION } from '@/lib/agreements';
 import { isActiveChainId } from '@/lib/chains';
 import { addressSchema } from '@/lib/schemas';
 
 // The Wallets step's two writes and its two reads, in the shape of
-// `investor-profile.ts`: session, the `kyc` flag, zod on the input, then the module. Every answer
+// `investor-profile.ts`: session, the `kyc` flag, zod on the input, then whether
+// this person may act for the Verification subject and, for all but the list,
+// has accepted the agreements in force, then the module. Every answer
 // is plain data the client maps to copy; a thrown failure is captured here
 // and answered as `failed`, so the page never shows a server's words.
 
@@ -33,6 +34,7 @@ export type WalletLinkActionError = {
     | 'invalid_input'
     | 'rate_limited'
     | 'failed'
+    | 'agreements_required'
     | IssueChallengeError['code']
     | CompleteLinkError['code'];
 };
@@ -47,6 +49,7 @@ const displayString = z
   .transform((value) => value.trim() || null);
 
 const issueSchema = z.object({
+  subjectId: z.string().uuid(),
   address: addressSchema,
   // The domain names the chain; a chain this deployment does not serve has nothing to link for.
   chainId: z.number().int().refine(isActiveChainId),
@@ -61,9 +64,10 @@ const issueSchema = z.object({
 // and a Sentry warning. No floor: a Safe that signed on-chain hands the dapp
 // `0x`, and its contract answers for it. ERC-6492 wraps a counterfactual
 // wallet's signature with its deploy data (a few KB); past 20 000 it is not a signature.
-const ownershipSchema = z.object({ address: addressSchema });
+const ownershipSchema = z.object({ subjectId: z.string().uuid(), address: addressSchema });
 
 const completeSchema = z.object({
+  subjectId: z.string().uuid(),
   address: addressSchema,
   signature: z
     .string()
@@ -99,6 +103,7 @@ async function authorizedUserId(): Promise<string | null> {
 
 async function guarded<T>(
   flow: string,
+  subjectId: string,
   run: (userId: string) => Promise<WalletLinkActionResult<T>>,
   limiter: Ratelimit = ratelimit
 ): Promise<WalletLinkActionResult<T>> {
@@ -111,52 +116,85 @@ async function guarded<T>(
     const limit = await limiter.limit(`wallet-link:${userId}`);
     if (!limit.success || limit.reason === 'timeout') return { ok: false, error: { code: 'rate_limited' } };
 
+    // Read fresh on every call, so someone removed from an organization cannot act for it from an open tab.
+    // A person may always act for themselves, so a no is an organization they are not, or no longer, in.
+    if (!(await organizations.canActForSubject({ userId, subjectId }))) {
+      return { ok: false, error: { code: 'not_member' } };
+    }
+    // A link is made under the signer's acceptance of the agreements in force, for whichever account they act.
+    if ((await getAgreementsAccess(userId)).status !== 'accepted') {
+      return { ok: false, error: { code: 'agreements_required' } };
+    }
+
     return await run(userId);
   } catch (error) {
-    Sentry.captureException(error, { tags: { source: 'SERVER', flow }, extra: { userId } });
+    Sentry.captureException(error, { tags: { source: 'SERVER', flow }, extra: { userId, subjectId } });
     return { ok: false, error: { code: 'failed' } };
   }
 }
 
 /**
- * The step's read: the session's Linked addresses, for the client cache the
- * page seeded. Outside the limiter on purpose — one indexed select, and a
+ * The step's read: this subject's Linked addresses, for the client cache the
+ * page seeded. Outside the limiter on purpose: one indexed select, and a
  * refetch must not spend the budget the writes are metered by.
  */
-export async function listWalletLinks(): Promise<WalletLinkActionResult<Array<LinkedAddress>>> {
+export async function listWalletLinks(input: {
+  subjectId: string;
+}): Promise<WalletLinkActionResult<Array<LinkedAddress>>> {
   const userId = await authorizedUserId();
   if (!userId) return { ok: false, error: { code: 'unauthorized' } };
+  const subjectId = z.string().uuid().safeParse(input.subjectId);
+  if (!subjectId.success) return { ok: false, error: { code: 'invalid_input' } };
 
   try {
-    return { ok: true, value: (await walletLink.listLinks({ userId })).map(toLinkedAddress) };
+    if (!(await organizations.canActForSubject({ userId, subjectId: subjectId.data }))) {
+      return { ok: false, error: { code: 'not_member' } };
+    }
+    return { ok: true, value: (await walletLink.listLinks({ subjectId: subjectId.data })).map(toLinkedAddress) };
   } catch (error) {
     Sentry.captureException(error, { tags: { source: 'SERVER', flow: 'wallet-link-list' }, extra: { userId } });
     return { ok: false, error: { code: 'failed' } };
   }
 }
 
+/** `yours`: another account of the person's own, by its name; null for their personal one. */
+export type WalletOwnershipAnswer = 'mine' | 'none' | 'elsewhere' | { yours: string | null };
+
 /**
- * Whether the connected address is this account's, another account's, or
- * nobody's yet — before anything is signed, so a wallet another account owns
- * is never asked to sign. Approved investors only (`not_approved` otherwise);
- * never who the other account is.
+ * Whether the connected address is this subject's, another account's, or
+ * nobody's yet: before anything is signed, so a wallet another account owns
+ * is never asked to sign. Approved subjects only (`not_approved` otherwise).
+ * Another account is named only when it is the person's own: theirs, or an
+ * organization they belong to.
  */
-export async function getWalletOwnership(input: { address: string }): Promise<WalletLinkActionResult<WalletOwnership>> {
+export async function getWalletOwnership(input: {
+  subjectId: string;
+  address: string;
+}): Promise<WalletLinkActionResult<WalletOwnershipAnswer>> {
   const parsed = ownershipSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: 'invalid_input' } };
+  const { subjectId } = parsed.data;
 
-  return guarded(
+  return guarded<WalletOwnershipAnswer>(
     'wallet-link-ownership',
+    subjectId,
     async (userId) => {
-      const result = await walletLink.getOwnership({ userId, address: parsed.data.address as Address });
-      return result.ok ? { ok: true, value: result.value } : { ok: false, error: result.error };
+      const result = await walletLink.getOwnership({ subjectId, address: parsed.data.address as Address });
+      if (!result.ok) return { ok: false, error: result.error };
+      if (typeof result.value === 'string') return { ok: true, value: result.value };
+
+      const owner = result.value.elsewhere;
+      if (owner === userId) return { ok: true, value: { yours: null } };
+      const organization = (await organizations.listForUser({ userId })).find(({ id }) => id === owner);
+      return { ok: true, value: organization ? { yours: organization.name } : 'elsewhere' };
     },
     ownershipRatelimit
   );
 }
 
-/** Step one of a link: the challenge the wallet signs — the same one again while it is unexpired. */
+/** Step one of a link: the challenge the wallet signs, the same one again while it is unexpired. */
 export async function issueWalletLinkChallenge(input: {
+  subjectId: string;
   address: string;
   chainId: number;
   walletType: string | null;
@@ -164,10 +202,11 @@ export async function issueWalletLinkChallenge(input: {
 }): Promise<WalletLinkActionResult<{ linkId: string; typedData: WalletLinkTypedData }>> {
   const parsed = issueSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: 'invalid_input' } };
+  const { subjectId } = parsed.data;
 
-  return guarded('wallet-link-issue', async (userId) => {
+  return guarded('wallet-link-issue', subjectId, async () => {
     const result = await walletLink.issueChallenge({
-      userId,
+      subjectId,
       address: parsed.data.address as Address,
       chainId: parsed.data.chainId,
       walletType: parsed.data.walletType,
@@ -177,17 +216,26 @@ export async function issueWalletLinkChallenge(input: {
   });
 }
 
-/** Step two: the signature, verified on chain against the stored challenge. */
+/** Step two: the signature, verified on chain against the stored challenge. The session's user is the signer of record. */
 export async function completeWalletLink(input: {
+  subjectId: string;
   address: string;
   signature: string;
 }): Promise<WalletLinkActionResult<LinkedAddress>> {
   const parsed = completeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: 'invalid_input' } };
+  const { subjectId } = parsed.data;
 
-  return guarded('wallet-link-complete', async (userId) => {
+  return guarded('wallet-link-complete', subjectId, async (userId) => {
     const address = parsed.data.address as Address;
-    const result = await walletLink.completeLink({ userId, address, signature: parsed.data.signature as Hex });
+    const result = await walletLink.completeLink({
+      subjectId,
+      signedByUserId: userId,
+      // Checked by `guarded` just now: the signer has accepted the version in force.
+      agreementsVersion: LATEST_AGREEMENTS_VERSION,
+      address,
+      signature: parsed.data.signature as Hex
+    });
     if (result.ok) return { ok: true, value: toLinkedAddress(result.value) };
     // The two refusals worth a signal; every other one is the step working. A
     // signature that does not verify is also all a smart wallet hears when
@@ -200,7 +248,11 @@ export async function completeWalletLink(input: {
         result.error.code === 'bad_signature'
           ? 'Wallet link refused: signature did not verify'
           : 'Wallet link refused: another account linked the address first',
-        { level: 'warning', tags: { source: 'SERVER', flow: 'wallet-link-complete' }, extra: { userId, address } }
+        {
+          level: 'warning',
+          tags: { source: 'SERVER', flow: 'wallet-link-complete' },
+          extra: { userId, subjectId, address }
+        }
       );
     }
     return { ok: false, error: result.error };

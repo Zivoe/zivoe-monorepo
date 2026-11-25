@@ -25,9 +25,9 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
   if (view.path === 'organization') return presentOrganizationStatus(view);
 
   switch (view.status) {
-    // Start and Continue are the page's action card: the title and body sit
-    // above its checklist and button, so neither repeats what the checklist
-    // says (the ID, the camera, the minutes) or what the page header says (why).
+    // Start and Continue are the page's "Prepare your documents" checklist:
+    // only the body shows there, above the button, so it never repeats what
+    // the checklist says (the ID, the camera) or the header (the minutes).
     case 'not_started':
       return {
         tone: 'neutral',
@@ -62,7 +62,7 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
         action: { kind: 'none' }
       };
     // Kept for the exhaustive switch only: a yes Decision lands on the
-    // Wallets step, so nothing renders this card for one any more.
+    // Agreements step, then Wallets, so nothing renders this card for one.
     case 'approved':
     case 'manually_approved':
       return {
@@ -94,6 +94,13 @@ export function presentVerificationStatus(view: VerificationStatusView): Verific
  * listed, the card says so, since that wait is theirs to shorten.
  */
 function presentOrganizationStatus(view: VerificationStatusView): VerificationStatusPresentation {
+  // Only the member who started it hears by email; everyone else sees it here.
+  const whenThereIsNews = view.startedBy
+    ? view.startedBy.isViewer
+      ? 'We will email you as soon as there is news.'
+      : `We will email ${view.startedBy.name} as soon as there is news.`
+    : 'Check back here for the result.';
+
   switch (view.status) {
     case 'not_started':
       return {
@@ -104,6 +111,24 @@ function presentOrganizationStatus(view: VerificationStatusView): VerificationSt
       };
     case 'in_progress':
     case 'expired':
+      // Another member's, still running: theirs to finish, and nothing of it is shown here.
+      if (!view.canResume && view.startedBy) {
+        return {
+          tone: 'progress',
+          title: 'Verification in progress',
+          body: `${view.startedBy.name} started this on ${formatDay(view.startedBy.at)}. Only ${view.startedBy.name} can continue it.`,
+          action: { kind: 'none' }
+        };
+      }
+      // Nothing to go back to: it expired on another member, or whoever started it left.
+      if (view.canResume && !view.inquiryId) {
+        return {
+          tone: 'neutral',
+          title: 'Verify your organization',
+          body: 'An earlier attempt was left unfinished. Starting again begins a new verification.',
+          action: { kind: 'start', label: 'Verify organization' }
+        };
+      }
       return {
         tone: 'progress',
         title: 'Continue your verification',
@@ -114,7 +139,7 @@ function presentOrganizationStatus(view: VerificationStatusView): VerificationSt
       return {
         tone: 'progress',
         title: 'Verification processing',
-        body: "We have received your organization's details and are opening the review. We will email you as soon as there is news.",
+        body: `We have received your organization's details and are opening the review. ${whenThereIsNews}`,
         action: { kind: 'none' }
       };
     case 'pending_review':
@@ -123,8 +148,8 @@ function presentOrganizationStatus(view: VerificationStatusView): VerificationSt
         title: 'Verification under review',
         body:
           view.caseWaitingOn === 'people'
-            ? 'The owners and control person you listed each need to verify their identity with Persona before our review can finish. We will email you when a decision is made.'
-            : "A member of our team is reviewing your organization's verification. We will email you when a decision is made.",
+            ? `The owners and control person listed each need to verify their identity with Persona before our review can finish. ${whenThereIsNews}`
+            : `A member of our team is reviewing your organization's verification. ${whenThereIsNews}`,
         action: { kind: 'none' }
       };
     // No Workflow decides a failed business inquiry: the team takes it from here.
@@ -160,9 +185,12 @@ function presentOrganizationStatus(view: VerificationStatusView): VerificationSt
   }
 }
 
+const formatDay = (date: Date) =>
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(date));
+
 /** What the page says when a start is refused — one sentence per `StartVerificationError` code. */
 export const START_REFUSAL_COPY: Record<
-  StartRefusal | 'profile_missing' | 'persona_unavailable' | 'queue_unavailable',
+  StartRefusal | 'subject_missing' | 'started_by_other' | 'persona_unavailable' | 'queue_unavailable',
   string
 > = {
   awaiting_decision: 'Your verification has been received and is awaiting a decision. We will email you when it is in.',
@@ -170,7 +198,8 @@ export const START_REFUSAL_COPY: Record<
   declined: 'Your verification was declined. If you believe this is a mistake, contact support and the team will help.',
   revoked: 'Your verification is no longer active. Contact support to find out what happens next.',
   failed: "Your organization's verification could not be completed. Contact the team to find out what happens next.",
-  profile_missing: 'Complete onboarding before verifying.',
+  subject_missing: 'Complete onboarding before verifying.',
+  started_by_other: 'Another member of your organization started this verification. Only they can continue it.',
   persona_unavailable: 'Verification is temporarily unavailable. Please try again in a few minutes.',
   queue_unavailable: 'Verification is temporarily unavailable. Please try again in a few minutes.'
 };

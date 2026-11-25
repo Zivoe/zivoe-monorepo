@@ -40,7 +40,8 @@ export default function VerificationShell({
         </p>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      {/* `min-w-0`: a long name in a step can wrap within the column instead of widening the page. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex min-h-25 items-center justify-between px-6 lg:min-h-20 lg:px-10">
           <ZivoeLogo aria-hidden="true" className="w-[5.3rem] lg:hidden" />
 

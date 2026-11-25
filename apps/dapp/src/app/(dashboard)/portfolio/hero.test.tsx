@@ -33,14 +33,7 @@ describe('PortfolioHero', () => {
   it('pulses while chains are still answering, and names them only once the settle window has run out', () => {
     const pending = portfolioOf({ totalD18: null, pendingChains: ['base-sepolia'] });
     const { rerender } = render(
-      <PortfolioHero
-        address={ADDRESS}
-        isPreview
-        isHolding
-        portfolio={pending}
-        refetch={vi.fn()}
-        isRefetching={false}
-      />
+      <PortfolioHero address={ADDRESS} isPreview isHolding portfolio={pending} refetch={vi.fn()} isRefetching={false} />
     );
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Portfolio preview');

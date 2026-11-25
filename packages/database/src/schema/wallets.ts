@@ -16,6 +16,7 @@ import {
 
 import { WALLET_LINK_LINKED_ADDRESS_INDEX, walletLinkOpsRequestValues, walletLinkStatusValues } from '../wallet-link';
 import { user } from './auth';
+import { verificationSubject } from './organizations';
 
 export * from '../wallet-link';
 
@@ -49,25 +50,28 @@ export const walletLinkStatusEnum = pgEnum('wallet_link_status', walletLinkStatu
 export const walletLinkOpsRequestEnum = pgEnum('wallet_link_ops_request', walletLinkOpsRequestValues);
 
 /**
- * A Wallet link — the Ownership proof that makes one account the owner of one
- * address, for good — and what was asked of ops since: the EIP-712 payload
- * handed to the wallet (kept verbatim for audit), the signature that proved
- * control of the address, and the whitelist timeline ops and the reconcile
- * fill in. Whether the address is whitelisted is the chain's to say. The
- * address is stored lowercase. One `linked` row per address across all
- * accounts; one `pending` row per (user, address) so a re-issue upserts.
- * A trigger (migration 0020) keeps a linked row from being deleted, moved out
- * of `linked`, or rewritten to another user, address or proof. Every
- * `wallet_link` row's (user, address) also exists in `wallet_connection`,
+ * A Wallet link — the Ownership proof that makes one Verification subject (a
+ * person or an organization) the owner of one address, for good — and what was
+ * asked of ops since: the EIP-712 payload handed to the wallet (kept verbatim
+ * for audit), the signature that proved control of the address, and the
+ * whitelist timeline ops and the reconcile fill in. Whether the address is
+ * whitelisted is the chain's to say. The address is stored lowercase. One
+ * `linked` row per address across all subjects; one `pending` row per
+ * (subject, address) so a re-issue upserts. A trigger (migrations 0020, 0021,
+ * 0023) keeps a linked row from being deleted, moved out of `linked`, or
+ * rewritten to another subject, signer, address, proof or agreements version.
+ * A linked row's (signer, address) also exists in `wallet_connection`,
  * guaranteed by the write that flips a row to `linked`, not by a constraint.
  */
 export const walletLink = pgTable(
   'wallet_link',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    subjectId: uuid('subject_id')
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => verificationSubject.id, { onDelete: 'cascade' }),
+    /** The member who signed; null on a challenge. Deleting them is refused like deleting an owner: the trigger guards it. */
+    signedByUserId: uuid('signed_by_user_id').references(() => user.id, { onDelete: 'set null' }),
     address: text('address').notNull(),
     /** Dynamic's `primaryWallet.key`, the same source as `wallet_connection.wallet_type`. */
     walletType: text('wallet_type'),
@@ -84,6 +88,8 @@ export const walletLink = pgTable(
     typedData: jsonb('typed_data').notNull(),
     signature: text('signature'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    /** The agreements version the signer had accepted when the link completed; null on a challenge. */
+    agreementsVersion: text('agreements_version'),
     /** When the latest Whitelist request was queued for ops: the link, or an approval again since. */
     whitelistRequestedAt: timestamp('whitelist_requested_at', { withTimezone: true }),
     /**
@@ -106,20 +112,25 @@ export const walletLink = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },
   (table) => [
-    index('wallet_link_user_id_idx').on(table.userId),
+    index('wallet_link_subject_id_idx').on(table.subjectId),
     // One owner per address, across every account.
     uniqueIndex(WALLET_LINK_LINKED_ADDRESS_INDEX)
       .on(table.address)
       .where(sql`${table.status} = 'linked'`),
     // A re-issued challenge replaces the pending one instead of piling up.
-    uniqueIndex('wallet_link_pending_user_address_uidx')
-      .on(table.userId, table.address)
+    uniqueIndex('wallet_link_pending_subject_address_uidx')
+      .on(table.subjectId, table.address)
       .where(sql`${table.status} = 'pending'`),
     check('wallet_link_address_lowercase_check', sql`${table.address} = lower(${table.address})`),
     // Only a challenge is unsigned: a linked row is an Ownership proof, signature and time included.
     check(
       'wallet_link_linked_has_signature',
-      sql`${table.status} = 'pending' OR (${table.signature} IS NOT NULL AND ${table.signedAt} IS NOT NULL)`
+      sql`${table.status} = 'pending' OR (${table.signature} IS NOT NULL AND ${table.signedAt} IS NOT NULL AND ${table.signedByUserId} IS NOT NULL)`
+    ),
+    // A link is made under the signer's acceptance of the agreements in force, and says which version.
+    check(
+      'wallet_link_linked_has_agreements_version',
+      sql`${table.status} = 'pending' OR ${table.agreementsVersion} IS NOT NULL`
     ),
     // A Linked address always says what ops was asked.
     check(

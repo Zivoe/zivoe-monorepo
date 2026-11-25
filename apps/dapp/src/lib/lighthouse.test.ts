@@ -35,7 +35,11 @@ describe('lighthouseReturnUrl', () => {
 
     // callbackURL for returning users, newUserCallbackURL for new ones.
     expect(withNext('/api/auth/post-signin', next)).toMatch(relativeCallbackURL);
-    expect(withNext('/onboarding', next)).toMatch(relativeCallbackURL);
+    expect(withNext('/terms', next)).toMatch(relativeCallbackURL);
+    // And an organization's verification email, which names its subject.
+    expect(withNext('/api/auth/post-signin', '/verification?subject=0600cf8f-f4a7-4b91-a9c8-ea55919f48e2')).toMatch(
+      relativeCallbackURL
+    );
   });
 });
 

@@ -2,6 +2,8 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { isEthereumWallet } from '@dynamic-labs/ethereum';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { WalletIcon } from '@dynamic-labs/wallet-book';
@@ -40,6 +42,7 @@ import { useChainalysis } from '@/hooks/useChainalysis';
 import { Auth } from '@/app/(auth)/_components/common';
 
 import { useAddressesMembership } from './use-address-membership';
+import { stepCountOf } from './verification-steps';
 import { LINK_REFUSAL_COPY, formatRelativeTime, presentWhitelist, shortAddress } from './wallet-link-copy';
 
 /**
@@ -53,9 +56,17 @@ import { LINK_REFUSAL_COPY, formatRelativeTime, presentWhitelist, shortAddress }
  * account owns it before offering a signature. An address is looked at one at
  * a time; no list of past links is shown.
  */
-export function WalletLinkStep({ userId }: { userId: string }) {
+export function WalletLinkStep({
+  subjectId,
+  organizationName
+}: {
+  subjectId: string;
+  /** Who the wallet is linked to when it is not the person themselves. */
+  organizationName?: string;
+}) {
+  const owner = organizationName ?? 'your account';
   const queryClient = useQueryClient();
-  const queryKey = queryKeys.app.walletLinks({ userId });
+  const queryKey = queryKeys.app.walletLinks({ subjectId });
   const {
     data: links = [],
     isError: linksError,
@@ -63,7 +74,7 @@ export function WalletLinkStep({ userId }: { userId: string }) {
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      const result = await listWalletLinks();
+      const result = await listWalletLinks({ subjectId });
       if (!result.ok) throw new Error(`Could not read the whitelist requests: ${result.error.code}`);
       return result.value;
     },
@@ -89,8 +100,8 @@ export function WalletLinkStep({ userId }: { userId: string }) {
 
   // Stable, since the card re-reads only when its owned-but-unseen state turns on.
   const refreshLinks = useCallback(
-    () => void queryClient.invalidateQueries({ queryKey: queryKeys.app.walletLinks({ userId }) }),
-    [queryClient, userId]
+    () => void queryClient.invalidateQueries({ queryKey: queryKeys.app.walletLinks({ subjectId }) }),
+    [queryClient, subjectId]
   );
 
   // A request or a disconnect unmounts the control that had focus (the sign
@@ -106,13 +117,14 @@ export function WalletLinkStep({ userId }: { userId: string }) {
     <>
       <Auth.Header
         title="Wallets"
-        description="Connect the wallet you will invest from to see whether it is whitelisted for Zivoe's vaults. If it is not, sign to link it to your account and request it."
+        description={`Connect the wallet you will invest from to see whether it is whitelisted for Zivoe's vaults. If it is not, sign to link it to ${owner} and request it.`}
       >
-        <Auth.StepIndicator>Step 3 of 3</Auth.StepIndicator>
+        <Auth.StepIndicator>{stepCountOf('wallets')}</Auth.StepIndicator>
       </Auth.Header>
 
       <ConnectedWalletCard
-        userId={userId}
+        subjectId={subjectId}
+        owner={owner}
         links={links}
         linksFailed={linksError && !linksFetching}
         onStale={refreshLinks}
@@ -121,7 +133,7 @@ export function WalletLinkStep({ userId }: { userId: string }) {
         // the action's own answer is already in the cache.
         onRefused={() => {
           void queryClient.invalidateQueries({ queryKey });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.app.walletOwnerships({ userId }) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.app.walletOwnerships({ subjectId }) });
           focusCard();
         }}
         onDisconnected={focusCard}
@@ -140,8 +152,8 @@ const SIGN_HELPER =
   'Your wallet will ask for a free signature. If your wallet needs several approvers, have them ready now.';
 
 /** Said before every signature: a link cannot be undone or moved to another account. */
-const PERMANENCE_NOTE =
-  'Once linked, this address stays linked to your Zivoe account and can’t be linked to another account.';
+const permanenceNote = (owner: string) =>
+  `Once linked, this address stays linked to ${owner} and can’t be linked to another account.`;
 
 const SWITCH_HINT = 'To check another address, disconnect and connect another wallet.';
 
@@ -174,7 +186,8 @@ const isWalletRejection = (error: unknown) => {
 // ---------------------------------------------------------------------------
 
 function ConnectedWalletCard({
-  userId,
+  subjectId,
+  owner,
   links,
   linksFailed,
   onLinked,
@@ -182,8 +195,10 @@ function ConnectedWalletCard({
   onStale,
   onDisconnected
 }: {
-  userId: string;
-  /** This account's Linked addresses: the ones it owns. */
+  subjectId: string;
+  /** "your account" or the organization's name, as the sentences below say it. */
+  owner: string;
+  /** This subject's Linked addresses: the ones it owns. */
   links: Array<LinkedAddress>;
   /** The latest read of `links` failed and none is under way. */
   linksFailed: boolean;
@@ -194,6 +209,7 @@ function ConnectedWalletCard({
   onStale: () => void;
   onDisconnected: () => void;
 }) {
+  const router = useRouter();
   const { address, isPending: walletLoading } = useAccount();
   const { primaryWallet, setShowAuthFlow, handleLogOut } = useDynamicContext();
   const { chainId } = useConnection();
@@ -206,9 +222,9 @@ function ConnectedWalletCard({
   // the step here. Asked once per address for the life of the tab — an
   // address's owner never changes, only a first link can set one.
   const ownership = useQuery({
-    queryKey: queryKeys.app.walletOwnership({ userId, address: lowercase ?? '' }),
+    queryKey: queryKeys.app.walletOwnership({ subjectId, address: lowercase ?? '' }),
     queryFn: async () => {
-      const result = await getWalletOwnership({ address: lowercase ?? '' });
+      const result = await getWalletOwnership({ subjectId, address: lowercase ?? '' });
       if (result.ok) return result.value;
       // Not a yes: nothing can be linked, and the signature path says so itself.
       if (result.error.code === 'not_approved') return 'none' as const;
@@ -219,6 +235,12 @@ function ConnectedWalletCard({
     retry: false,
     meta: { skipErrorToast: true }
   });
+  // The agreements in force not accepted (a new version published while the step was open): the refreshed page
+  // shows the Agreements step instead of this one.
+  const needsAgreements = ownership.error instanceof LinkRefused && ownership.error.code === 'agreements_required';
+  useEffect(() => {
+    if (needsAgreements) router.refresh();
+  }, [needsAgreements, router]);
   const ownedHereUnseen = !linkedRow && ownership.data === 'mine';
   useEffect(() => {
     if (ownedHereUnseen) onStale();
@@ -242,6 +264,7 @@ function ConnectedWalletCard({
     mutationFn: async ({ address, chainId }: { address: Address; chainId: number; isWhitelisted: boolean }) => {
       if (!primaryWallet || !isEthereumWallet(primaryWallet)) throw new LinkRefused('invalid_input');
       const issued = await issueWalletLinkChallenge({
+        subjectId,
         address,
         chainId,
         walletType: primaryWallet.key ?? null,
@@ -257,7 +280,7 @@ function ConnectedWalletCard({
         ...toSignableTypedData(issued.value.typedData)
       });
 
-      const completed = await completeWalletLink({ address, signature });
+      const completed = await completeWalletLink({ subjectId, address, signature });
       if (!completed.ok) throw new LinkRefused(completed.error.code);
       return completed.value;
     },
@@ -268,7 +291,7 @@ function ConnectedWalletCard({
         type: 'success',
         title: 'Address linked',
         description: isWhitelisted
-          ? `${short} is now linked to your account.`
+          ? `${short} is now linked to ${owner}.`
           : `We usually whitelist new addresses like ${short} within one business day.`
       });
       onLinked(linked);
@@ -277,6 +300,8 @@ function ConnectedWalletCard({
       if (error instanceof LinkRefused) {
         onRefused();
         toast({ type: error.code === 'failed' ? 'error' : 'warning', title: LINK_REFUSAL_COPY[error.code] });
+        // As for the address check above: the refreshed page shows the Agreements step.
+        if (error.code === 'agreements_required') router.refresh();
         return;
       }
       // A rejected or timed-out request leaves the challenge in place: the next click reuses it.
@@ -321,10 +346,10 @@ function ConnectedWalletCard({
   // -- The wallet SDK has not answered yet: neither "connect" nor "connected" is known.
   if (walletLoading) return placeholder;
 
-  // -- Nothing connected: the one task.
+  // -- Nothing connected: the one task. The button says it, so the heading is for screen readers and focus only.
   if (!address) {
     return (
-      <Card heading="Connect a wallet">
+      <Card heading="Connect a wallet" isHeadingHidden>
         <Button variant="primary" onPress={() => setShowAuthFlow(true)} fullWidth>
           Connect wallet
         </Button>
@@ -368,7 +393,7 @@ function ConnectedWalletCard({
         <WhitelistBadge summary={summary} isRequested={!!linkedRow} />
         {linkedRow ? (
           <p className="text-small text-secondary" suppressHydrationWarning>
-            Linked to your account {formatRelativeTime(linkedRow.signedAt, new Date())}.
+            Linked to {owner} {formatRelativeTime(linkedRow.signedAt, new Date())}.
           </p>
         ) : null}
         <Note tone="alert">
@@ -411,7 +436,7 @@ function ConnectedWalletCard({
           <div className="flex flex-col gap-2">
             <WhitelistBadge summary={summary} isRequested={false} />
             <p className="text-small text-secondary">
-              This address stays linked to your account, and its whitelist is on hold. If your verification was approved
+              This address stays linked to {owner}, and its whitelist is on hold. If your verification was approved
               recently, we restore it shortly, with no new signature needed. If it stays on hold, email{' '}
               <Link href={`mailto:${EMAILS.INQUIRE}`} variant="link-neutral-dark" size="s">
                 {EMAILS.INQUIRE}
@@ -486,11 +511,31 @@ function ConnectedWalletCard({
       <Card heading="Connected wallet">
         {addressLine}
         <Note tone="alert">
-          {ownership.error instanceof LinkRefused && ownership.error.code === 'rate_limited'
-            ? LINK_REFUSAL_COPY.rate_limited
+          {ownership.error instanceof LinkRefused &&
+          (ownership.error.code === 'rate_limited' ||
+            ownership.error.code === 'not_member' ||
+            ownership.error.code === 'agreements_required')
+            ? LINK_REFUSAL_COPY[ownership.error.code]
             : 'Couldn’t check this address. Reload the page to try again.'}
         </Note>
         {disconnectButton}
+      </Card>
+    );
+  }
+
+  // -- Another of the person's own accounts: an address has one owner, so this one needs a different address.
+  if (typeof ownership.data === 'object') {
+    return (
+      <Card heading="Connected wallet">
+        {addressLine}
+        <p className="text-small text-secondary">
+          This address is already linked to {ownership.data.yours ?? 'your personal account'}. An address can be linked
+          to one account only, so connect a different one to link it to {owner}.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {disconnectButton}
+          {switchHint}
+        </div>
       </Card>
     );
   }
@@ -563,12 +608,14 @@ function ConnectedWalletCard({
             pendingContent="Waiting for your wallet…"
             className="w-full sm:w-fit"
           >
-            {isWhitelisted ? 'Link to your account' : 'Sign to request whitelist'}
+            {isWhitelisted
+              ? `Link to ${owner === 'your account' ? owner : 'this organization'}`
+              : 'Sign to request whitelist'}
           </Button>
           {disconnectButton}
         </div>
         <p className="text-small text-secondary">
-          {PERMANENCE_NOTE} {SIGN_HELPER}
+          {permanenceNote(owner)} {SIGN_HELPER}
         </p>
       </div>
     </Card>
@@ -582,9 +629,18 @@ function ConnectedWalletCard({
 /**
  * The step's card. The heading is focusable (not tabbable) so the step can
  * move focus to it after a request or a disconnect. A null heading is the
- * card still loading: a placeholder, announced as such.
+ * card still loading: a placeholder, announced as such. A hidden heading is
+ * still read and still takes focus, where the card's one control already says it.
  */
-function Card({ heading, children }: { heading: string | null; children: ReactNode }) {
+function Card({
+  heading,
+  isHeadingHidden = false,
+  children
+}: {
+  heading: string | null;
+  isHeadingHidden?: boolean;
+  children: ReactNode;
+}) {
   return (
     <section
       aria-labelledby={heading === null ? undefined : CARD_HEADING_ID}
@@ -602,7 +658,10 @@ function Card({ heading, children }: { heading: string | null; children: ReactNo
         <h2
           id={CARD_HEADING_ID}
           tabIndex={-1}
-          className="font-paragraph! text-leading font-medium text-primary outline-none"
+          className={cn(
+            'font-paragraph! text-leading font-medium text-primary outline-none',
+            isHeadingHidden && 'sr-only'
+          )}
         >
           {heading}
         </h2>

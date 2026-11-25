@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { type VerificationStatus, verificationStatusValues } from '@zivoe/database/kyc';
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { type Result, err, ok } from '@/lib/result';
 
@@ -45,9 +45,15 @@ import { type SnapshotInput, decide } from './verification-transition';
 // lives in verification-status.ts so renderers share it without this file.
 // ---------------------------------------------------------------------------
 
-/** The app's read model of one user's verification. No PII, by construction. */
+/** The app's read model of one Verification subject's verification. No PII, by construction. */
 export type VerificationRecord = {
-  userId: string;
+  subjectId: string;
+  /**
+   * Who started the current inquiry. An organization's in-flight inquiry is
+   * theirs alone to continue, and its status emails theirs alone to hear. Null
+   * for a row a webhook or a read created, and once they left the organization.
+   */
+  startedByUserId: string | null;
   status: VerificationStatus;
   personaInquiryId: string | null;
   personaAccountId: string | null;
@@ -72,25 +78,32 @@ export type VerificationRecord = {
   lastSyncedAt: Date;
 };
 
-/** What a read returns: the record, the flow it belongs to (from the profile in the same query) and its version. */
+/** What a read returns: the record, the flow it belongs to (from the subject in the same query) and its version. */
 export type StoredVerification = VerificationRecord & {
-  accountType: AccountType;
+  subjectKind: SubjectKind;
   /** Bumped by every `write`; a writer passes the one it read. */
   version: number;
 };
 
-/** What the module needs from the onboarding profile: the investor path and the prefill. */
-export type VerificationProfile = {
-  accountType: AccountType;
-  firstName: string;
-  lastName: string;
-  email: string;
-  /** ISO 3166-1 alpha-2; null when the profile's country cannot be resolved to a code. */
+/**
+ * What the module needs to know of a Verification subject: its flow, the
+ * prefill, and who its emails and operator lines name. That is the person
+ * themselves, or for an organization whoever started its current inquiry.
+ */
+export type VerificationSubject = {
+  subjectKind: SubjectKind;
+  /** The person, or the organization's starter; all null for an organization with no starter. */
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  /** ISO 3166-1 alpha-2; null when the person's country cannot be resolved to a code. */
   countryCode: string | null;
-  /** The organization's legal name, for the business prefill; null for an individual. */
+  /** The organization's legal name, for the business prefill and its emails; null for an individual. */
   entityName: string | null;
   /** ISO 3166-1 alpha-2 of the country of incorporation; null for an individual or an unresolvable name. */
   countryOfIncorporationCode: string | null;
+  /** A soft-deleted organization. Its record stays, and reads as no yes Decision. */
+  deleted: boolean;
 };
 
 /**
@@ -100,7 +113,7 @@ export type VerificationProfile = {
  * propagates.
  */
 export type VerificationStore = {
-  get(input: { userId: string }): Promise<StoredVerification | null>;
+  get(input: { subjectId: string }): Promise<StoredVerification | null>;
   /**
    * The records whose current inquiry is one of `inquiryIds` — how a case
    * event, which names no user, finds its row. A case lists the business
@@ -121,21 +134,22 @@ export type VerificationStore = {
    * and not a version: a confirmation can never carry a stale snapshot over
    * a concurrent write, nor fail one. A no-op for a user without a record.
    */
-  markSynced(input: { userId: string; syncedAt: Date }): Promise<void>;
+  markSynced(input: { subjectId: string; syncedAt: Date }): Promise<void>;
   /** Insert-if-absent. Resolves true when this call inserted the id, false when it was already recorded. */
   recordEventIfAbsent(input: { eventId: string; receivedAt: Date }): Promise<boolean>;
   /** Forgets recorded events received before the cut-off; resolves how many. */
   deleteEventsBefore(input: { receivedBefore: Date }): Promise<number>;
   /**
-   * Records in one of `statuses`, optionally of one flow (`accountType`) or
-   * only those of `userIds`, last synced before `syncedBefore` and/or whose
+   * Records in one of `statuses`, optionally of one flow (`subjectKind`), only
+   * those of `subjectIds`, only those of a subject not deleted, last synced before `syncedBefore` and/or whose
    * status last changed inside (`changedAfter`, `changedBefore`); oldest
    * sync first, at most `limit`.
    */
   list(input: {
     statuses: ReadonlyArray<VerificationStatus>;
-    accountType?: AccountType;
-    userIds?: ReadonlyArray<string>;
+    subjectKind?: SubjectKind;
+    subjectIds?: ReadonlyArray<string>;
+    notDeleted?: boolean;
     syncedBefore?: Date;
     changedBefore?: Date;
     changedAfter?: Date;
@@ -148,19 +162,23 @@ export type VerificationStore = {
    */
   count(input: {
     statuses: ReadonlyArray<VerificationStatus>;
-    accountType?: AccountType;
+    subjectKind?: SubjectKind;
     caseStatuses?: ReadonlyArray<string>;
     changedBefore: Date;
   }): Promise<number>;
-  /** Null when the user has not completed onboarding. */
-  getProfile(input: { userId: string }): Promise<VerificationProfile | null>;
+  /** Null when no subject has this id: not an onboarded person, nor an organization. */
+  getSubject(input: { subjectId: string }): Promise<VerificationSubject | null>;
+  /** The person whose id this is, whatever record they hold: who a start's prefill names. */
+  getPerson(input: {
+    userId: string;
+  }): Promise<{ firstName: string; lastName: string; email: string; countryCode: string | null } | null>;
 };
 
 /** The slice of a Persona inquiry the module reads. Never its contents. */
 export type PersonaInquiry = {
   id: string;
   status: PersonaInquiryStatus;
-  /** The app's user id, set at creation; null for inquiries created outside the app. */
+  /** The Verification subject's id, set at creation; null for inquiries created outside the app. */
   referenceId: string | null;
   accountId: string | null;
   /** The template the inquiry runs (`itmpl_…`); absent or null when Persona did not say. */
@@ -264,7 +282,7 @@ export type PersonaApi = {
  * keyed on the same three.
  */
 export type VerificationNotification = {
-  userId: string;
+  subjectId: string;
   inquiryId: string;
   statusChangedAt: Date;
 } &
@@ -303,8 +321,12 @@ export type StatusEmailSender = {
     to: string;
     name?: string;
     status: VerificationEmailStatus;
+    /** Whose verification it is: the email's link opens `/verification` on that subject, not on the reader. */
+    subjectId: string;
     /** Which flow the email is about: an individual's identity, or an organization. */
-    accountType: AccountType;
+    subjectKind: SubjectKind;
+    /** The organization the email is about; null for an individual. */
+    organizationName: string | null;
     /** For an organization's review email: who the KYB case waits on at the time of sending. */
     caseWaitingOn: 'people' | 'team' | null;
     /** The Decision a reopen or a reversal took back, when the transition was one. */
@@ -316,18 +338,23 @@ export type StatusEmailSender = {
 
 /**
  * Operator message port — the Persona Telegram channel in production. Rejects on
- * failure. `email`, the flow and the case are read from the profile and the
- * record at delivery, never carried in the job; `email` is null when the
- * profile is gone, and the line still goes.
+ * failure. `email`, the flow and the case are read from the subject and the
+ * record at delivery, never carried in the job; `email` is null when there is
+ * nobody to name (a person gone, an organization whose starter left), and the
+ * line still goes.
  */
 export type OperatorMessenger = {
   send(
     input: {
-      userId: string;
+      subjectId: string;
       email: string | null;
+      /** The organization the line is about; null for an individual. */
+      organizationName: string | null;
+      /** Set when that organization has been deleted since: ops must not act on it as a live one. */
+      organizationDeleted?: boolean;
       inquiryId: string;
-      /** Which flow the line is about; null when the profile is gone. */
-      accountType: AccountType | null;
+      /** Which flow the line is about; null when the subject is gone. */
+      subjectKind: SubjectKind | null;
     } & (
       | {
           kind: 'status';
@@ -351,7 +378,7 @@ export type OperatorMessenger = {
  * Optional; nothing is notified without it.
  */
 export type ApprovalChangedNotifier = {
-  notify(input: { userId: string }): Promise<void>;
+  notify(input: { subjectId: string }): Promise<void>;
 };
 
 export type Clock = { now(): Date };
@@ -361,7 +388,7 @@ export type Clock = { now(): Date };
 // ---------------------------------------------------------------------------
 
 export type StartVerificationError =
-  | { code: StartRefusal | 'profile_missing' }
+  | { code: StartRefusal | 'subject_missing' | 'started_by_other' }
   | { code: 'persona_unavailable'; cause: PersonaApiError }
   /** The re-read before the start applied a transition whose notifications could not be queued; nothing was persisted. */
   | { code: 'queue_unavailable'; cause: unknown };
@@ -435,7 +462,7 @@ export type WebhookOutcome =
       eventName: string;
     }
   /** Names the user and the inquiry: a resync adopts the one, a case decision settles the other. */
-  | { outcome: 'ignored'; reason: InquiryAlertReason; eventName: string; userId: string; inquiryId: string }
+  | { outcome: 'ignored'; reason: InquiryAlertReason; eventName: string; subjectId: string; inquiryId: string }
   /** Names the case, which is all the route has to point an operator at. */
   | { outcome: 'ignored'; reason: CaseAlertReason; eventName: string; caseId: string }
   /** An operations event: no status touched; the route alerts with the resource id and the Workflow it ran. */
@@ -492,21 +519,33 @@ export type OperatorChange = {
 };
 
 /** `conflict`: a concurrent write landed a later stamp between the read and the write — the caller's "retry". */
-export type HumanOwnedWriteError = { code: 'profile_missing' | 'conflict' };
+export type HumanOwnedWriteError = { code: 'subject_missing' | 'conflict' };
 
-export type ResyncError = { code: 'profile_missing' } | { code: 'persona_unavailable'; cause: PersonaApiError };
+export type ResyncError = { code: 'subject_missing' } | { code: 'persona_unavailable'; cause: PersonaApiError };
 
 export type Verification = {
   /** Local read; never calls Persona. */
-  getVerificationStatus(input: { userId: string }): Promise<VerificationStatusView>;
+  getVerificationStatus(input: {
+    subjectId: string;
+    /** Who is looking, for an organization's starter rule; absent for a read about the subject alone. */
+    viewerUserId?: string;
+  }): Promise<VerificationStatusView>;
   /**
-   * Local read, one query for all of them: which of `userIds` hold a yes
-   * Decision (`isYesDecision`). A user with no record is not among them.
+   * Local read, one query for all of them: which of `subjectIds` hold a yes
+   * Decision (`isYesDecision`). A subject with no record, or a deleted
+   * organization, is not among them.
    */
-  listApproved(input: { userIds: ReadonlyArray<string> }): Promise<Set<string>>;
-  /** Applies the access policy, then creates or resumes the user's inquiry. */
+  listApproved(input: { subjectIds: ReadonlyArray<string> }): Promise<Set<string>>;
+  /**
+   * Applies the access policy, then creates or resumes the subject's inquiry
+   * for `actorUserId`, whom the caller has already checked may act for it. An
+   * organization's inquiry in flight is its starter's: anyone else is refused
+   * `started_by_other`, until it expires or the starter leaves, when a member
+   * starts a fresh one.
+   */
   startVerification(input: {
-    userId: string;
+    subjectId: string;
+    actorUserId: string;
   }): Promise<Result<{ inquiryId: string; sessionToken: string }, StartVerificationError>>;
   /** Verifies, applies (through the Status Write Path) and records one Persona event. */
   receiveWebhook(input: {
@@ -530,7 +569,7 @@ export type Verification = {
    * `resyncFromPersona` releases it. A user without a record gets one, which
    * also keeps them from starting.
    */
-  revoke(input: { userId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
+  revoke(input: { subjectId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
   /**
    * An operator's approval — the one producer of the Human-owned
    * `manually_approved`, for a user Persona never decides: an organization, or
@@ -539,7 +578,7 @@ export type Verification = {
    * undoes it; it is also how a revoked organization is restored, which a
    * resync cannot do with no Inquiry to go back to.
    */
-  approveManually(input: { userId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
+  approveManually(input: { subjectId: string }): Promise<Result<OperatorChange, HumanOwnedWriteError>>;
   /**
    * An operator's re-read of one user, whatever the record says: the one way a
    * Human-owned status is cleared, and the way a record adopts an inquiry
@@ -548,7 +587,7 @@ export type Verification = {
    * becomes what Persona holds now — never a status typed by hand, because
    * everything Persona sent while the record was Human-owned was dropped.
    */
-  resyncFromPersona(input: { userId: string }): Promise<Result<OperatorChange, ResyncError>>;
+  resyncFromPersona(input: { subjectId: string }): Promise<Result<OperatorChange, ResyncError>>;
 };
 
 /**
@@ -716,6 +755,33 @@ class OutboxFailure extends Error {
   }
 }
 
+/** A live inquiry another member started. A resume is refused, and a page shows it read-only. */
+const isStartedByOther = ({
+  record,
+  path,
+  actorUserId
+}: {
+  record: Pick<VerificationRecord, 'status' | 'startedByUserId'> | null;
+  path: InvestorPath;
+  actorUserId: string | undefined;
+}) =>
+  path === 'organization' &&
+  record?.status === 'in_progress' &&
+  !!record.startedByUserId &&
+  record.startedByUserId !== actorUserId;
+
+/** An organization's inquiry whose starter is someone else or gone, which is resumable only by replacing it. */
+const isTakeover = ({
+  record,
+  path,
+  actorUserId
+}: {
+  record: Pick<VerificationRecord, 'status' | 'startedByUserId'> | null;
+  path: InvestorPath;
+  actorUserId: string | undefined;
+}) =>
+  path === 'organization' && canResumeFrom(record?.status ?? 'not_started') && record?.startedByUserId !== actorUserId;
+
 const isYes = isOneOf(YES_DECISION_STATUSES);
 /** The yes Decisions, for `listApproved`'s one query. */
 const APPROVED_STATUSES = verificationStatusValues.filter((status) => isYes(status));
@@ -741,17 +807,17 @@ export function createVerification({
 }): Verification {
   /** A yes that a landed write took away or gave: the Wallet link hears now, not on its next run. */
   async function announceApprovalChanged({
-    userId,
+    subjectId,
     from,
     to
   }: {
-    userId: string;
+    subjectId: string;
     from: VerificationStatus | undefined;
     to: VerificationStatus;
   }) {
     if (!approvalChanged || isYes(from ?? 'not_started') === isYes(to)) return;
     try {
-      await approvalChanged.notify({ userId });
+      await approvalChanged.notify({ subjectId });
     } catch {
       // The Wallet link's scheduled sweep reads the same records and catches up.
     }
@@ -770,14 +836,14 @@ export function createVerification({
     outcome: 'changed' | 'unchanged' | 'superseded';
     record: StoredVerification | null;
   }> {
-    const { userId, now } = input;
+    const { subjectId, now } = input;
     // Read, decide, write against the version read. A write that lost to
     // another one decides again on the present; the store holds no rules.
     for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt += 1) {
-      const record = await store.get({ userId });
+      const record = await store.get({ subjectId });
       const transition = decide({ record, input, caseStatuses: config.flows.organization.caseStatuses });
       if (!transition.next) {
-        if (transition.confirm) await store.markSynced({ userId, syncedAt: now });
+        if (transition.confirm) await store.markSynced({ subjectId, syncedAt: now });
         return { outcome: transition.outcome, record };
       }
 
@@ -800,13 +866,13 @@ export function createVerification({
       // change and would not re-enqueue, so a failed enqueue is dropped
       // rather than failing the write; the digest still counts the row.
       if (transition.caseMove) await outbox.enqueue(transition.caseMove).catch(() => undefined);
-      await announceApprovalChanged({ userId, from: record?.status, to: transition.next.status });
+      await announceApprovalChanged({ subjectId, from: record?.status, to: transition.next.status });
       return {
         outcome: transition.outcome,
-        record: { ...transition.next, accountType: record?.accountType ?? input.path, version }
+        record: { ...transition.next, subjectKind: record?.subjectKind ?? input.path, version }
       };
     }
-    throw new Error(`The verification record of ${userId} kept changing under the write`);
+    throw new Error(`The verification record of ${subjectId} kept changing under the write`);
   }
 
   /**
@@ -841,7 +907,7 @@ export function createVerification({
     }
     if (records.length === 0) return alert('unmatched_case');
     const [record] = records;
-    if (records.length > 1 || !record?.personaInquiryId || record.accountType !== 'organization') {
+    if (records.length > 1 || !record?.personaInquiryId || record.subjectKind !== 'organization') {
       return alert('conflicting_case');
     }
     if (record.personaCaseId && record.personaCaseId !== kybCase.id) return alert('conflicting_case');
@@ -856,7 +922,7 @@ export function createVerification({
 
     try {
       const applied = await applySnapshot({
-        userId: record.userId,
+        subjectId: record.subjectId,
         path: 'organization',
         snapshot,
         sourceAt: event.createdAt,
@@ -946,13 +1012,13 @@ export function createVerification({
    * from the local record and the next read or sweep tries again.
    */
   async function refreshFromPersona({
-    userId,
+    subjectId,
     flow,
     record,
     release,
     now
   }: {
-    userId: string;
+    subjectId: string;
     flow: KycFlowConfig | KybFlowConfig;
     record: StoredVerification | null;
     release?: boolean;
@@ -966,7 +1032,7 @@ export function createVerification({
       }
     | { outcome: 'unavailable'; record: StoredVerification | null; error: PersonaApiError }
   > {
-    const listed = await persona.listInquiries({ referenceId: userId });
+    const listed = await persona.listInquiries({ referenceId: subjectId });
     if (!listed.ok) return { outcome: 'unavailable', record, error: listed.error };
 
     // Two records are read through their own inquiry whatever is newer. An
@@ -987,7 +1053,7 @@ export function createVerification({
     if (!newest) {
       // Nothing under this reference any more (retention deleted it): confirmed,
       // nothing to apply — and no `inquiry`, which a start reads as "gone".
-      if (record) await store.markSynced({ userId, syncedAt: now });
+      if (record) await store.markSynced({ subjectId, syncedAt: now });
       return { outcome: 'unchanged', record };
     }
     // A status the mapping does not cover on the newest inquiry is not ours
@@ -995,7 +1061,7 @@ export function createVerification({
     // inquiry. The webhook for the same inquiry raises `unmapped_status`,
     // which is where the drift shows.
     if (!newest.status) {
-      if (record) await store.markSynced({ userId, syncedAt: now });
+      if (record) await store.markSynced({ subjectId, syncedAt: now });
       const error: PersonaApiError = { reason: 'invalid_response', message: `unknown inquiry status on ${newest.id}` };
       return { outcome: 'unavailable', record, error };
     }
@@ -1037,12 +1103,12 @@ export function createVerification({
           : fromCase({ kybCase, inquiryId: inquiry.id, accountId: inquiry.accountId, sets });
         sourceAt = kybCase.updatedAt;
       } else if (bound || !inquiryDecides(flow, snapshot.status)) {
-        if (record) await store.markSynced({ userId, syncedAt: now });
+        if (record) await store.markSynced({ subjectId, syncedAt: now });
         return { outcome: 'unchanged', record, inquiry };
       }
     }
     const applied = await applySnapshot({
-      userId,
+      subjectId,
       path: flow.path,
       snapshot,
       sourceAt,
@@ -1060,17 +1126,17 @@ export function createVerification({
    * nobody: the operator route reports the change.
    */
   async function setHumanOwned({
-    userId,
+    subjectId,
     status
   }: {
-    userId: string;
+    subjectId: string;
     status: HumanOwnedStatus;
   }): Promise<Result<OperatorChange, HumanOwnedWriteError>> {
     const now = clock.now();
-    const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
-    if (!profile) return err({ code: 'profile_missing' });
+    const [record, subject] = await Promise.all([store.get({ subjectId }), store.getSubject({ subjectId })]);
+    if (!subject) return err({ code: 'subject_missing' });
     const inquiryId = record?.personaInquiryId ?? null;
-    const change = { inquiryId, path: profile.accountType, case: caseOf(record) };
+    const change = { inquiryId, path: subject.subjectKind, case: caseOf(record) };
     if (record?.status === status) return ok({ from: status, to: status, ...change });
 
     // Strictly after the last transition, like every other stamp: Persona's
@@ -1078,7 +1144,8 @@ export function createVerification({
     const statusChangedAt = new Date(Math.max(now.getTime(), (record?.statusChangedAt.getTime() ?? 0) + 1));
     const written = await store.write(
       {
-        userId,
+        subjectId,
+        startedByUserId: record?.startedByUserId ?? null,
         status,
         personaInquiryId: inquiryId,
         personaAccountId: record?.personaAccountId ?? null,
@@ -1093,7 +1160,7 @@ export function createVerification({
       { expectVersion: record?.version ?? null }
     );
     if (written === null) return err({ code: 'conflict' });
-    await announceApprovalChanged({ userId, from: record?.status, to: status });
+    await announceApprovalChanged({ subjectId, from: record?.status, to: status });
     return ok({ from: record?.status ?? 'not_started', to: status, ...change });
   }
 
@@ -1109,33 +1176,65 @@ export function createVerification({
     // record honest (Persona's own guidance — webhooks plus your own store),
     // and a start re-reads Persona before it acts. A page render is neither
     // the place to spend a rate-limited call nor to wait out a Persona outage.
-    async getVerificationStatus({ userId }) {
-      const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
+    async getVerificationStatus({ subjectId, viewerUserId }) {
+      const [record, subject] = await Promise.all([store.get({ subjectId }), store.getSubject({ subjectId })]);
+
+      const path: InvestorPath = subject?.subjectKind ?? 'individual';
+      // A deleted organization has no yes left, whatever Persona decided: its addresses are asked to revoke.
+      if (subject?.deleted) {
+        return {
+          status: 'revoked',
+          path,
+          canStart: false,
+          canResume: false,
+          inquiryId: null,
+          caseWaitingOn: null,
+          startedBy: null
+        };
+      }
 
       const status = record?.status ?? 'not_started';
-      const path: InvestorPath = profile?.accountType ?? 'individual';
-
-      const canResume = canResumeFrom(status);
+      // In flight and someone else's: read-only for this viewer, and nothing of the session is shown them.
+      const startedByOther = isStartedByOther({ record, path, actorUserId: viewerUserId });
+      const canResume = canResumeFrom(status) && !startedByOther;
+      const hasStarter = path === 'organization' && !!record?.startedByUserId && !!subject?.firstName;
 
       return {
         status,
         path,
         canStart: canStartFrom(status, path),
         canResume,
-        inquiryId: canResume ? (record?.personaInquiryId ?? null) : null,
-        caseWaitingOn: caseWaitingOnFor(record, path)
+        // A fresh inquiry replaces another member's expired one, so there is no session of theirs to go back to.
+        inquiryId:
+          canResume && !isTakeover({ record, path, actorUserId: viewerUserId })
+            ? (record?.personaInquiryId ?? null)
+            : null,
+        caseWaitingOn: caseWaitingOnFor(record, path),
+        startedBy:
+          hasStarter && record
+            ? {
+                name: `${subject.firstName} ${subject.lastName}`.trim(),
+                isViewer: record.startedByUserId === viewerUserId,
+                at: record.statusChangedAt
+              }
+            : null
       };
     },
 
-    // The status alone decides a no, for an individual and an organization
-    // alike, so the profile `getVerificationStatus` reads is not needed here.
-    async listApproved({ userIds }) {
-      if (userIds.length === 0) return new Set();
-      const records = await store.list({ statuses: APPROVED_STATUSES, userIds, limit: userIds.length });
-      return new Set(records.map((record) => record.userId));
+    // The status decides a no, for an individual and an organization alike,
+    // and a deleted organization has none to give.
+    async listApproved({ subjectIds }) {
+      if (subjectIds.length === 0) return new Set();
+      const records = await store.list({
+        statuses: APPROVED_STATUSES,
+        subjectIds,
+        notDeleted: true,
+        limit: subjectIds.length
+      });
+      return new Set(records.map((record) => record.subjectId));
     },
 
-    async startVerification({ userId }) {
+    async startVerification({ subjectId, actorUserId }) {
       const now = clock.now();
 
       // Best-effort operator ping for a session actually handed out. The ping
@@ -1146,7 +1245,7 @@ export function createVerification({
         try {
           await Promise.race([
             outbox.enqueue({
-              userId,
+              subjectId,
               inquiryId: input.inquiryId,
               statusChangedAt: input.statusChangedAt,
               kind: 'operator_message',
@@ -1162,10 +1261,14 @@ export function createVerification({
           clearTimeout(timer);
         }
       };
-      const [stored, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
+      const [stored, subject, actor] = await Promise.all([
+        store.get({ subjectId }),
+        store.getSubject({ subjectId }),
+        store.getPerson({ userId: actorUserId })
+      ]);
 
-      if (!profile) return err({ code: 'profile_missing' });
-      const path = profile.accountType;
+      if (!subject || subject.deleted || !actor) return err({ code: 'subject_missing' });
+      const path = subject.subjectKind;
       const flow = flowFor(path);
 
       // The policy must see the present, so this is the one read that never
@@ -1192,7 +1295,7 @@ export function createVerification({
         }
       };
       if (!record || isNonTerminal(record.status)) {
-        const refreshing = await queued(() => refreshFromPersona({ userId, flow, record, now }));
+        const refreshing = await queued(() => refreshFromPersona({ subjectId, flow, record, now }));
         if (!refreshing.ok) return refreshing;
         const refreshed = refreshing.value;
         if (refreshed.outcome === 'unavailable') return err({ code: 'persona_unavailable', cause: refreshed.error });
@@ -1206,13 +1309,18 @@ export function createVerification({
       // -- The access policy (one exhaustive table in verification-status.ts).
       const refusal = refusalFrom(record?.status ?? 'not_started', path);
       if (refusal) return err({ code: refusal });
+      // An organization's inquiry in flight is its starter's alone to continue.
+      if (isStartedByOther({ record, path, actorUserId })) return err({ code: 'started_by_other' });
 
-      // Two reasons not to resume the record's inquiry even though the policy
+      // Three reasons not to resume the record's inquiry even though the policy
       // allows it: an inquiry is locked to the template version it was created
       // on, and once the app's pin has moved past it Persona's guidance is to
       // create a fresh one rather than resume the old configuration; and an
       // inquiry Persona no longer lists, or has redacted (retention, a deletion
-      // request), cannot be resumed at all — Persona errors on every try.
+      // request), cannot be resumed at all — Persona errors on every try; and
+      // another member's expired or abandoned inquiry holds what they typed,
+      // so whoever takes over an organization's verification starts afresh.
+      const takeover = isTakeover({ record, path, actorUserId });
       const outdated = !!liveInquiry?.templateVersionId && liveInquiry.templateVersionId !== flow.templateVersionId;
       const vanished = listed && !!record?.personaInquiryId && (!liveInquiry || !!liveInquiry.redacted);
 
@@ -1221,7 +1329,7 @@ export function createVerification({
       // a never-started (`created`) inquiry as well — probed in the sandbox on
       // 2026-09-04: 200, status unchanged, a session token returned — so
       // `in_progress` covers `created` and `pending` alike here.
-      if (record?.personaInquiryId && canResumeFrom(record.status) && !outdated && !vanished) {
+      if (record?.personaInquiryId && canResumeFrom(record.status) && !outdated && !vanished && !takeover) {
         const resumed = await persona.resumeInquiry({ inquiryId: record.personaInquiryId });
         if (!resumed.ok) return err({ code: 'persona_unavailable', cause: resumed.error });
 
@@ -1237,7 +1345,7 @@ export function createVerification({
           const current = record;
           const applying = await queued(() =>
             applySnapshot({
-              userId,
+              subjectId,
               path,
               snapshot: fromInquiry(resumed.value.inquiry),
               sourceAt: resumed.value.inquiry.updatedAt,
@@ -1262,12 +1370,19 @@ export function createVerification({
               : record.statusChangedAt;
           const sourceAt = new Date(Math.max(record.sourceAt.getTime(), statusChangedAt.getTime()));
           const written = await store.write(
-            { ...record, status: 'in_progress', sourceAt, statusChangedAt, lastSyncedAt: now },
+            {
+              ...record,
+              startedByUserId: actorUserId,
+              status: 'in_progress',
+              sourceAt,
+              statusChangedAt,
+              lastSyncedAt: now
+            },
             { expectVersion: record.version }
           );
           // A newer write landed meanwhile (a webhook between the read and here): it decides, not this session.
           if (written === null) {
-            const latest = await store.get({ userId });
+            const latest = await store.get({ subjectId });
             const lateRefusal = latest && refusalFrom(latest.status, path);
             if (lateRefusal) return err({ code: lateRefusal });
           }
@@ -1295,21 +1410,21 @@ export function createVerification({
       const fields: Record<string, string> =
         flow.path === 'organization'
           ? {
-              ...(profile.entityName ? { 'business-name': profile.entityName } : {}),
-              ...(profile.countryOfIncorporationCode
-                ? { 'business-country-of-incorporation-code': profile.countryOfIncorporationCode }
+              ...(subject.entityName ? { 'business-name': subject.entityName } : {}),
+              ...(subject.countryOfIncorporationCode
+                ? { 'business-country-of-incorporation-code': subject.countryOfIncorporationCode }
                 : {})
             }
           : {
-              'name-first': profile.firstName,
-              'name-last': profile.lastName,
-              'email-address': profile.email,
-              ...(profile.countryCode ? { 'address-country-code': profile.countryCode } : {})
+              'name-first': actor.firstName,
+              'name-last': actor.lastName,
+              'email-address': actor.email,
+              ...(actor.countryCode ? { 'address-country-code': actor.countryCode } : {})
             };
       const created = await persona.createInquiry({
         templateVersionId: flow.templateVersionId,
         fields,
-        referenceId: userId,
+        referenceId: subjectId,
         ...(flow.path === 'organization' ? { accountTypeId: flow.accountTypeId } : {}),
         idempotencyKey
       });
@@ -1323,7 +1438,8 @@ export function createVerification({
       );
       const written = await store.write(
         {
-          userId,
+          subjectId,
+          startedByUserId: actorUserId,
           status: 'in_progress',
           personaInquiryId: inquiry.id,
           personaAccountId: inquiry.accountId,
@@ -1337,9 +1453,15 @@ export function createVerification({
       );
       // Same race as on resume; the created inquiry is adopted by the next refresh if it is still the newest.
       if (written === null) {
-        const latest = await store.get({ userId });
+        const latest = await store.get({ subjectId });
         const lateRefusal = latest && refusalFrom(latest.status, path);
         if (lateRefusal) return err({ code: lateRefusal });
+        // A sweep adopted this very inquiry in between, as nobody's: it is the actor's, who is about to fill
+        // it in. Its status and case stay the sweep's. Once only: a write landing meanwhile decides.
+        if (latest?.personaInquiryId === inquiry.id && latest.startedByUserId === null) {
+          const { version, subjectKind: _subjectKind, ...adopted } = latest;
+          await store.write({ ...adopted, startedByUserId: actorUserId }, { expectVersion: version });
+        }
       }
       await announceStart({ inquiryId: inquiry.id, statusChangedAt });
       return ok({ inquiryId: inquiry.id, sessionToken });
@@ -1408,8 +1530,8 @@ export function createVerification({
       // template is not its verification, nor the other way round.
       let flow: KycFlowConfig | KybFlowConfig | undefined;
       try {
-        const profile = await store.getProfile({ userId: referenceId });
-        flow = profile ? flowFor(profile.accountType) : undefined;
+        const subject = await store.getSubject({ subjectId: referenceId });
+        flow = subject ? flowFor(subject.subjectKind) : undefined;
       } catch (cause) {
         return err({ code: 'store_failure', cause });
       }
@@ -1421,7 +1543,7 @@ export function createVerification({
           outcome: 'ignored',
           reason: 'case_decides',
           eventName: event.name,
-          userId: referenceId,
+          subjectId: referenceId,
           inquiryId: event.inquiry.id
         });
       }
@@ -1431,7 +1553,7 @@ export function createVerification({
         // unrecorded, so Persona's retry can still apply it. A genuine replay
         // is a no-op in the write path (`decide`, step 4) and answers `duplicate` here.
         const { outcome, record } = await applySnapshot({
-          userId: referenceId,
+          subjectId: referenceId,
           path: flow.path,
           snapshot: fromInquiry({ ...event.inquiry, status: event.inquiry.status }),
           sourceAt: event.createdAt,
@@ -1447,7 +1569,7 @@ export function createVerification({
           outcome: 'ignored',
           reason: 'unadopted_inquiry',
           eventName: event.name,
-          userId: referenceId,
+          subjectId: referenceId,
           inquiryId: event.inquiry.id
         });
       } catch (cause) {
@@ -1470,7 +1592,7 @@ export function createVerification({
       // long as it stands: a reviewer can still reverse one, or reopen an
       // organization's KYB case.
       const syncedBefore = new Date(now.getTime() - staleAfterMs);
-      const undecidedFor = (path: InvestorPath) => ({ statuses: undecidedStatusesFor(path), accountType: path });
+      const undecidedFor = (path: InvestorPath) => ({ statuses: undecidedStatusesFor(path), subjectKind: path });
       const [waiting, decided] = await Promise.all([
         Promise.all([
           // Undecided differs per flow: an organization's `failed` is terminal, nobody decides it.
@@ -1537,7 +1659,7 @@ export function createVerification({
           stale
             .slice(index, index + RECONCILE_CONCURRENCY)
             .map((record) =>
-              refreshFromPersona({ userId: record.userId, flow: flowFor(record.accountType), record, now })
+              refreshFromPersona({ subjectId: record.subjectId, flow: flowFor(record.subjectKind), record, now })
             )
         );
         for (const settled of outcomes) {
@@ -1572,7 +1694,7 @@ export function createVerification({
         // An organization whose case waits on its own owners is not the team's to act on.
         store.count({
           statuses: IN_REVIEW_STATUSES,
-          accountType: 'organization',
+          subjectKind: 'organization',
           caseStatuses: config.flows.organization.caseStatuses.people,
           changedBefore: reviewBefore
         })
@@ -1588,7 +1710,7 @@ export function createVerification({
     },
 
     async deliverNotification({ notification }) {
-      const { userId, inquiryId, status, statusChangedAt } = notification;
+      const { subjectId, inquiryId, status, statusChangedAt } = notification;
 
       // Only the record's current transition is worth announcing — the same
       // inquiry, status AND stamp, so the job for an earlier visit to the same
@@ -1605,7 +1727,7 @@ export function createVerification({
       // has nothing left to wait for: another write announced the same status
       // (the sweep re-applying what a webhook's failed persist left behind,
       // with Persona's whole-second stamp) or a later visit to it did.
-      const record = await store.get({ userId });
+      const record = await store.get({ subjectId });
       const dispatched = (sending: Promise<void>): Promise<Result<DeliveryOutcome, DeliveryError>> =>
         sending.then(
           () => ok<DeliveryOutcome>('sent'),
@@ -1613,14 +1735,16 @@ export function createVerification({
         );
       // The address is read fresh, never carried in the job: the queue's stored
       // payloads hold no email. A user gone since the enqueue has no record
-      // either (the row cascades), so a missing profile is the rarer case of
+      // either (the row cascades), so a missing subject is the rarer case of
       // one removed from under a record.
-      const profile = await store.getProfile({ userId });
+      const subject = await store.getSubject({ subjectId });
       const operatorLine = {
-        userId,
-        email: profile?.email ?? null,
+        subjectId,
+        email: subject?.email ?? null,
+        organizationName: subject?.entityName ?? null,
+        ...(subject?.deleted ? { organizationDeleted: true } : {}),
         inquiryId,
-        accountType: profile?.accountType ?? null
+        subjectKind: subject?.subjectKind ?? null
       };
       const recordCase =
         record?.personaCaseId && record.personaCaseStatus
@@ -1652,7 +1776,7 @@ export function createVerification({
       }
 
       // The operator line still goes without an address — a record whose
-      // profile vanished is exactly what a person should look at.
+      // subject vanished is exactly what a person should look at.
       if (notification.kind === 'operator_message') {
         return dispatched(
           operatorMessages.send({
@@ -1665,16 +1789,22 @@ export function createVerification({
         );
       }
 
+      // An organization's status email goes to whoever started the inquiry;
+      // once they have left there is nobody to tell, and members read it in the app.
+      // A deleted organization reads as revoked whatever a late job says, so it tells nobody.
+      if (subject?.subjectKind === 'organization' && (!subject.email || subject.deleted)) return ok('skipped');
       // An email with nobody to address it to; the retries end in the callback.
-      if (!profile)
+      if (!subject?.email)
         return err({ code: 'send_failed', cause: new Error('No onboarding profile to address the email to') });
       return dispatched(
         statusEmails.send({
-          to: profile.email,
-          name: profile.firstName || undefined,
+          to: subject.email,
+          name: subject.firstName ?? undefined,
           status: notification.status,
-          accountType: profile.accountType,
-          caseWaitingOn: caseWaitingOnFor(record, profile.accountType),
+          subjectId,
+          subjectKind: subject.subjectKind,
+          organizationName: subject.entityName,
+          caseWaitingOn: caseWaitingOnFor(record, subject.subjectKind),
           ...(notification.previousDecision ? { previousDecision: notification.previousDecision } : {}),
           inquiryId,
           statusChangedAt
@@ -1682,18 +1812,18 @@ export function createVerification({
       );
     },
 
-    revoke: ({ userId }) => setHumanOwned({ userId, status: 'revoked' }),
+    revoke: ({ subjectId }) => setHumanOwned({ subjectId, status: 'revoked' }),
 
-    approveManually: ({ userId }) => setHumanOwned({ userId, status: 'manually_approved' }),
+    approveManually: ({ subjectId }) => setHumanOwned({ subjectId, status: 'manually_approved' }),
 
-    async resyncFromPersona({ userId }) {
+    async resyncFromPersona({ subjectId }) {
       const now = clock.now();
-      const [record, profile] = await Promise.all([store.get({ userId }), store.getProfile({ userId })]);
-      if (!profile) return err({ code: 'profile_missing' });
+      const [record, subject] = await Promise.all([store.get({ subjectId }), store.getSubject({ subjectId })]);
+      if (!subject) return err({ code: 'subject_missing' });
       const status = record?.status ?? 'not_started';
-      const path = profile.accountType;
+      const path = subject.subjectKind;
 
-      const refreshed = await refreshFromPersona({ userId, flow: flowFor(path), record, release: true, now });
+      const refreshed = await refreshFromPersona({ subjectId, flow: flowFor(path), record, release: true, now });
       if (refreshed.outcome === 'unavailable') return err({ code: 'persona_unavailable', cause: refreshed.error });
       return ok({
         from: status,

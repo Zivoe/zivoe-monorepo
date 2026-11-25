@@ -3,8 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
+import { isSupportedCountryCode } from '@/types/countries';
+
+import { getAgreementsAccess } from '@/server/data/agreements';
 import { getTermsStatus, getUser } from '@/server/data/auth';
 import { getInvestorProfile } from '@/server/data/investor-profile';
+import { organizations } from '@/server/organizations';
 import { verification } from '@/server/verification';
 import { isKycEnabled } from '@/server/verification/kyc-flag';
 import { isYesDecision } from '@/server/verification/verification-status';
@@ -14,54 +18,99 @@ import { toLinkedAddress } from '@/server/wallet-link/wallet-link-view';
 import { getQueryClient } from '@/lib/get-query-client';
 import { withNext } from '@/lib/lighthouse';
 import { queryKeys } from '@/lib/query-keys';
+import { verificationReturnPath } from '@/lib/return-paths';
 
+import { type SubjectOption } from './account-switcher';
 import VerificationFlow from './verification-flow';
+import { currentStepFor } from './verification-steps';
 
 export const metadata: Metadata = { title: 'Verification | Zivoe' };
 
 /**
  * The verification destination, in a shell of its own (no dashboard
- * navigation): the Investor Profile step, the Persona flow, then Wallets.
- * Requires a session, a completed onboarding profile and the current terms
- * accepted — the existing redirects, not a KYC guard: nothing here ever
- * redirects for KYC reasons, and no wallet is needed. The profile read
- * doubles as the onboarding check (a profile row is what "onboarded" means),
- * so the page waits on one round of parallel reads after the session instead
- * of two. Behind the `kyc` flag: a 404 for anyone it is off for.
+ * navigation): the selected account's details, the Persona flow, the agreements, then Wallets.
+ * The URL holds the state: `subject` names who (the person themselves when
+ * absent), read against the viewer's own list, so an id of anything else
+ * goes back to the plain page; `step` asks for `details` or `identity` before a yes Decision. A subject whose
+ * verification can still start opens on its details. Requires a session, the
+ * current terms accepted and a completed onboarding profile: the existing
+ * redirects, not a KYC guard. Not behind the agreements gate (`getRequiredStep`): this page asks for them itself,
+ * and someone yet to accept can still verify another account. Behind the `kyc` flag: a 404 for anyone it is off for.
  */
-export default async function VerificationPage() {
+export default async function VerificationPage({
+  searchParams
+}: {
+  searchParams: Promise<{ subject?: string | Array<string>; step?: string | Array<string> }>;
+}) {
+  const { subject, step } = await searchParams;
+  // Where sign-in, the terms and onboarding hand the user back to: this subject, when the URL named one.
+  const returnTo = verificationReturnPath(subject);
+
   // Signed out (the proxy catches a missing cookie; this, an expired session): back here after sign-in.
   const { user } = await getUser();
-  if (!user) redirect(withNext('/sign-in', '/verification'));
+  if (!user) redirect(withNext('/sign-in', returnTo));
 
   if (!(await isKycEnabled({ user }))) notFound();
 
-  const [view, profile, termsStatus] = await Promise.all([
-    verification.getVerificationStatus({ userId: user.id }),
+  const [profile, termsStatus, memberships, agreements] = await Promise.all([
     getInvestorProfile({ userId: user.id }),
-    getTermsStatus(user.id)
+    getTermsStatus(user.id),
+    organizations.listForUser({ userId: user.id }),
+    getAgreementsAccess(user.id)
   ]);
-  // No profile row means onboarding isn't finished; it hands the user back here.
-  if (!profile) redirect(withNext('/onboarding', '/verification'));
   // Behind on the terms: accept them first; the terms page hands the user back here.
-  if (termsStatus !== 'accepted') redirect(withNext('/terms', '/verification'));
+  if (termsStatus !== 'accepted') redirect(withNext('/terms', returnTo));
+  // No profile row means onboarding isn't finished; it hands the user back here.
+  if (!profile) redirect(withNext('/onboarding', returnTo));
 
-  // The account's own Linked addresses, read here into the cache the
-  // Wallets step reads and writes: it renders without a loading state and
-  // needs no refresh after a request. `fetchQuery`, not `prefetchQuery`:
-  // requests that cannot be read are this page's error, not an empty step.
-  // Nothing can be linked before a yes Decision, so nothing is read before one.
+  const viewOf = (subjectId: string) => verification.getVerificationStatus({ subjectId, viewerUserId: user.id });
+  const [personalView, ...organizationViews] = await Promise.all([
+    viewOf(user.id),
+    ...memberships.map((membership) => viewOf(membership.id))
+  ]);
+  const subjects: Array<SubjectOption> = [
+    { id: user.id, name: `${profile.firstName} ${profile.lastName}`, view: personalView, organization: null },
+    ...memberships.map((membership, index) => ({
+      id: membership.id,
+      name: membership.name,
+      view: organizationViews[index] ?? personalView,
+      organization: { name: membership.name, countryOfIncorporation: membership.countryOfIncorporation }
+    }))
+  ];
+
+  // A subject that isn't one of theirs (left, deleted, mistyped): the plain page, rather than their own
+  // verification under someone else's id in the URL.
+  if (subject !== undefined && !subjects.some((option) => option.id === subject)) redirect('/verification');
+  const active = subjects.find((option) => option.id === subject) ?? subjects[0];
+  // The person themselves is always first: never empty.
+  if (!active) notFound();
+
+  const country = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
+  const currentStep = currentStepFor({
+    requested: typeof step === 'string' ? step : undefined,
+    canStart: active.view.canStart,
+    hasCountry: isSupportedCountryCode(country ?? ''),
+    // The viewer's own acceptance: it covers every account they act for.
+    hasAccepted: agreements.status === 'accepted',
+    isYesDecision: isYesDecision(active.view)
+  });
+
+  // The subject's Linked addresses, read here into the cache the Wallets step
+  // reads and writes: it renders without a loading state and needs no refresh
+  // after a request. `fetchQuery`, not `prefetchQuery`: requests that cannot be
+  // read are this page's error, not an empty step. Nothing can be linked before
+  // a yes Decision, so nothing is read before one.
   const queryClient = getQueryClient();
-  if (isYesDecision(view)) {
+  if (currentStep === 'wallets') {
     await queryClient.fetchQuery({
-      queryKey: queryKeys.app.walletLinks({ userId: user.id }),
-      queryFn: async () => (await walletLink.listLinks({ userId: user.id })).map(toLinkedAddress)
+      queryKey: queryKeys.app.walletLinks({ subjectId: active.id }),
+      queryFn: async () => (await walletLink.listLinks({ subjectId: active.id })).map(toLinkedAddress)
     });
   }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <VerificationFlow view={view} profile={profile} userId={user.id} />
+      <VerificationFlow subjects={subjects} activeId={active.id} step={currentStep} profile={profile} />
     </HydrationBoundary>
   );
 }

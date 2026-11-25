@@ -16,7 +16,8 @@ const NONCE = `0x${'ab'.repeat(32)}` as const;
 
 const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => ({
   id: 'link_1',
-  userId: 'user-1',
+  subjectId: 'user-1',
+  signedByUserId: 'user-1',
   address: ADDRESS,
   walletType: 'WalletConnect',
   walletName: null,
@@ -27,7 +28,8 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   expiresAt: EXPIRES_AT,
   typedData: buildWalletLinkTypedData({
     chainId: 1,
-    userId: 'user_1',
+    subjectId: 'user_1',
+    subjectKind: 'individual',
     address: ADDRESS,
     nonce: NONCE,
     issuedAt: SIGNED_AT,
@@ -35,6 +37,7 @@ const record = (overrides: Partial<WalletLinkRecord> = {}): WalletLinkRecord => 
   }),
   signature: null,
   signedAt: SIGNED_AT,
+  agreementsVersion: 'agreements-v1',
   whitelistRequestedAt: SIGNED_AT,
   whitelistObservedAt: null,
   opsRequest: 'whitelist',
@@ -62,7 +65,10 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       endedBy: null,
-      screening: 'clear'
+      screening: 'clear',
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n')).toEqual([
@@ -72,9 +78,35 @@ describe('the operator message', () => {
       '<b>User:</b> ada&lt;script&gt;@example.com',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> WalletConnect · signed on Ethereum',
+      '<b>Agreements:</b> agreements-v1',
       '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Chainalysis:</b> clear'
     ]);
+  });
+
+  it('names the owning organization by name and id, and the member who signed for it', () => {
+    const text = formatWalletLinkOperatorMessage({
+      kind: 'revoke_request',
+      record: record({ subjectId: 'org-1', opsRequest: 'revoke' }),
+      email: 'jane@acme.com',
+      isSmartAccount: false,
+      membership: NOWHERE,
+      endedBy: 'revoked',
+      screening: null,
+      organization: {
+        name: 'Acme & Co',
+        deleted: true,
+        signerJoinedAt: SIGNED_AT,
+        signerTitle: 'CFO',
+        signerInvitedBy: null
+      },
+      signerStatus: 'approved',
+      now: SIGNED_AT
+    });
+
+    expect(text).toContain('<b>Reason:</b> organization deleted;');
+    expect(text).toContain('<b>Organization:</b> Acme &amp; Co (org-1) (deleted)');
+    expect(text).toContain('<b>Signed by:</b> jane@acme.com (CFO) · ⚠️ NEW MEMBER');
   });
 
   it('tells ops to screen an address Chainalysis could not answer for, and not to admit one it flags', () => {
@@ -86,7 +118,10 @@ describe('the operator message', () => {
         isSmartAccount: false,
         membership: NOWHERE,
         endedBy: null,
-        screening
+        screening,
+        organization: null,
+        signerStatus: null,
+        now: SIGNED_AT
       })
         .split('\n')
         .at(-1);
@@ -113,7 +148,10 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n')).toEqual([
@@ -124,6 +162,7 @@ describe('the operator message', () => {
       '<b>User:</b> unknown (profile gone)',
       '<b>Address:</b> <code>0x881500000000000000000000000000000000e9e6</code>',
       '<b>Wallet:</b> unknown · signed on 999999',
+      '<b>Agreements:</b> agreements-v1',
       '<b>Whitelist now:</b> a member on none of 2 chains',
       '<b>Linked since:</b> 2026-10-01'
     ]);
@@ -138,7 +177,10 @@ describe('the operator message', () => {
         isSmartAccount: false,
         membership: membership(['member', 'not-member']),
         endedBy,
-        screening: null
+        screening: null,
+        organization: null,
+        signerStatus: null,
+        now: SIGNED_AT
       }).split('\n')[2];
 
     expect(reasonFor('revoked')).toBe('<b>Reason:</b> verification revoked; freeze on every chain');
@@ -155,7 +197,10 @@ describe('the operator message', () => {
         isSmartAccount: false,
         membership: read,
         endedBy: 'declined',
-        screening: null
+        screening: null,
+        organization: null,
+        signerStatus: null,
+        now: SIGNED_AT
       }).split('\n')[2];
 
     expect(reasonWith(NOWHERE)).toBe(
@@ -175,7 +220,10 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: membership(['member', 'member'], ['base']),
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n').slice(0, 4)).toEqual([
@@ -195,7 +243,10 @@ describe('the operator message', () => {
         isSmartAccount: false,
         membership: read,
         endedBy: null,
-        screening: null
+        screening: null,
+        organization: null,
+        signerStatus: null,
+        now: SIGNED_AT
       }).split('\n')[2];
     const reason = '<b>Reason:</b> new link to an address already frozen; check why before unfreezing';
 
@@ -211,7 +262,10 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: membership(['member', 'member']),
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n')[2]).toBe(
@@ -235,7 +289,10 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: current,
       endedBy: 'revoked',
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text).toContain(`<b>Whitelist now:</b> ${expected}`);
@@ -249,7 +306,10 @@ describe('the operator message', () => {
       isSmartAccount: true,
       membership: NOWHERE,
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n').slice(5, 7)).toEqual([
@@ -266,7 +326,10 @@ describe('the operator message', () => {
       isSmartAccount: null,
       membership: NOWHERE,
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null,
+      now: SIGNED_AT
     });
 
     expect(text.split('\n')[6]).toBe(
@@ -284,7 +347,9 @@ describe('the operator message', () => {
       isSmartAccount: false,
       membership: NOWHERE,
       endedBy: null,
-      screening: null
+      screening: null,
+      organization: null,
+      signerStatus: null
     });
 
     expect(sendTelegramMessage).toHaveBeenCalledWith({

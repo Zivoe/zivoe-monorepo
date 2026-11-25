@@ -1,20 +1,23 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { VerificationEmailShell } from './components/verification-email-shell';
 
 export default function VerificationApprovedEmail({
   name,
   verificationUrl,
-  accountType
+  subjectKind,
+  organizationName
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization ? "Your organization's verification has been approved." : 'Your identity has been verified.'
       }
@@ -24,9 +27,9 @@ export default function VerificationApprovedEmail({
         organization
           ? "Your organization's verification is complete and has been approved."
           : 'Your identity verification is complete and has been approved.',
-        "Before you can deposit, connect the wallet you will invest from. We'll show you what's needed next, typically a free signature to request its whitelist. We usually whitelist new addresses within one business day."
+        "Before you can deposit, accept the agreements and connect the wallet you will deposit from. We'll show you what's needed next, typically a free signature to request its whitelist. We usually whitelist new addresses within one business day."
       ]}
-      cta={{ label: 'Connect your wallet', href: verificationUrl }}
+      cta={{ label: 'Continue', href: verificationUrl }}
     />
   );
 }

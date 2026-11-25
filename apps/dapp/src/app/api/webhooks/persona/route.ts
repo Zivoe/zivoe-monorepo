@@ -126,12 +126,16 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
     }
 
     // A newer inquiry than the user's Decision will never be read on its own:
-    // someone has to look, and `pnpm kyc:operator resync <userId>` adopts it.
+    // someone has to look, and `pnpm kyc:operator resync <subjectId>` adopts it.
     if (result.value.outcome === 'ignored' && result.value.reason === 'unadopted_inquiry') {
       Sentry.captureException(new Error('Persona decided an inquiry newer than the recorded decision'), {
         level: 'warning',
         tags: { source: 'API', flow: FLOW },
-        extra: { eventName: result.value.eventName, userId: result.value.userId, inquiryId: result.value.inquiryId }
+        extra: {
+          eventName: result.value.eventName,
+          subjectId: result.value.subjectId,
+          inquiryId: result.value.inquiryId
+        }
       });
     }
 
@@ -148,7 +152,11 @@ const handler = async (req: NextRequest): ApiResponse<WebhookOutcome | { outcome
         {
           level: 'warning',
           tags: { source: 'API', flow: FLOW },
-          extra: { eventName: result.value.eventName, userId: result.value.userId, inquiryId: result.value.inquiryId }
+          extra: {
+            eventName: result.value.eventName,
+            subjectId: result.value.subjectId,
+            inquiryId: result.value.inquiryId
+          }
         }
       );
     }

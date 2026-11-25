@@ -2,7 +2,10 @@ import type { BeforeSendFn, Properties } from 'posthog-js';
 
 /**
  * The `token` an unsubscribe link carries changes the holder's email preferences, so it
- * never reaches PostHog. `scrubSecretParams` is the `before_send` hook: it strips the token
+ * never reaches PostHog, nor does an invitation link's `#email=` fragment. The page takes the
+ * fragment off its URL as it loads (lib/invited-email.ts), but the browser's page-load timing
+ * entry keeps the URL the page was opened with, and replays and Sentry spans read it.
+ * `scrubSecretParams` is the `before_send` hook: it strips the token and the fragment
  * from every URL in an event's properties, at any depth and in object keys too, since
  * `$web_vitals` nests a copy of the page URL and `$$heatmap` keys its data by URL.
  * Session replay keeps the page URL and every request URL inside its own snapshots; the
@@ -28,15 +31,17 @@ function scrubDeep(value: unknown): unknown {
   return value;
 }
 
-/** The URL without its `token` parameter; anything that is not a URL comes back as it is. */
+/** The URL without its `token` parameter or an `email` fragment; anything that is not a URL comes back as it is. */
 export function scrubSecretUrl(value: string) {
   if (!value.includes('://')) return value;
 
   try {
     const url = new URL(value);
     // Parsed, so a percent-encoded name (`%74oken`) is caught as well.
-    if (!url.searchParams.has('token')) return value;
+    const hasEmailFragment = url.hash.includes('email=');
+    if (!url.searchParams.has('token') && !hasEmailFragment) return value;
     url.searchParams.delete('token');
+    if (hasEmailFragment) url.hash = '';
     return url.toString();
   } catch {
     return value;

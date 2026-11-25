@@ -35,7 +35,8 @@ function Header({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-col gap-10">
+    // `break-words`: a long organization or person name in the title or description wraps on the page.
+    <div className="flex w-full flex-col gap-10 break-words">
       {children}
 
       <div className="flex flex-col gap-4">
@@ -48,17 +49,26 @@ function Header({
 
 Header.displayName = 'Auth.Header';
 
-function StepIndicator({ onBack, children }: { onBack?: () => void; children: React.ReactNode }) {
+/** Back, and where the step sits ("Step 1 of 3") when the flow has a fixed length. */
+function StepIndicator({
+  onBack,
+  isBackDisabled,
+  children
+}: {
+  onBack?: () => void;
+  isBackDisabled?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-4">
       {onBack && (
-        <Button variant="link-primary" onPress={onBack} className="font-medium">
+        <Button variant="link-primary" onPress={onBack} isDisabled={isBackDisabled} className="font-medium">
           <ArrowLeftIcon className="size-4" />
           <span className="text-leading font-medium">Back</span>
         </Button>
       )}
 
-      <span className="text-leading text-secondary">{children}</span>
+      {children ? <span className="text-leading text-secondary">{children}</span> : null}
     </div>
   );
 }

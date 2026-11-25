@@ -82,7 +82,7 @@ export const isDecision = isOneOf(DECISION_STATUSES);
 export const isNonTerminal = isOneOf(NON_TERMINAL_STATUSES);
 
 /**
- * A yes Decision — what lands `/verification` on the Wallets step and what
+ * A yes Decision — what lands `/verification` on the Agreements step, then Wallets, and what
  * its writes gate on: Persona's `approved` (an individual's inquiry, an
  * organization's KYB case) or the team's `manually_approved`.
  *
@@ -164,7 +164,7 @@ export type StartRefusal = 'awaiting_decision' | 'already_verified' | 'declined'
 
 /**
  * Which flow a user verifies through: the individual KYC inquiry, or the
- * organization's KYB inquiry and case. Follows the profile's account type.
+ * organization's KYB inquiry and case. Follows the subject's kind.
  */
 export type InvestorPath = 'individual' | 'organization';
 
@@ -272,4 +272,6 @@ export type VerificationStatusView = {
    * (owners verifying) or the team. Null otherwise, and for every individual.
    */
   caseWaitingOn: 'people' | 'team' | null;
+  /** For an organization, the member who started its current inquiry and when; null for an individual or with no starter. */
+  startedBy: { name: string; isViewer: boolean; at: Date } | null;
 };

@@ -3,7 +3,7 @@ import postgres from 'postgres';
 
 import { AGENT_ACCOUNT } from './agent';
 import { createDatabase } from './client';
-import { profile, termsAcceptance, user, walletLink } from './schema/index';
+import { profile, termsAcceptance, user, verificationSubject, walletLink } from './schema/index';
 
 // A copy of LATEST_LEGAL_DOCS_VERSION (@zivoe/ui/lib/legal-docs), which this package does not depend on. A stale
 // copy only means the seeded agent accepts the terms on /terms once.
@@ -14,7 +14,7 @@ const LATEST_LEGAL_DOCS_VERSION = '2026-10-19';
 //   pnpm --filter @zivoe/database db:seed            create or refresh the agent, terms accepted and onboarded
 //   pnpm --filter @zivoe/database db:seed -- --fresh  delete the agent (cascades: profile, terms
 //                                                     acceptances, sessions, wallets) so the next
-//                                                     sign-in runs onboarding and the terms from the start;
+//                                                     sign-in runs the terms and onboarding from the start;
 //                                                     refused once the agent owns a Linked address, which
 //                                                     is never deleted (and neither is its owner)
 //
@@ -39,7 +39,7 @@ async function main() {
       const [owned] = await db
         .select({ id: walletLink.id })
         .from(walletLink)
-        .innerJoin(user, eq(user.id, walletLink.userId))
+        .innerJoin(user, eq(user.id, walletLink.subjectId))
         .where(and(eq(user.email, AGENT_ACCOUNT.email), ne(walletLink.status, 'pending')))
         .limit(1);
       if (owned) {
@@ -50,7 +50,7 @@ async function main() {
       const deleted = await db.delete(user).where(eq(user.email, AGENT_ACCOUNT.email)).returning({ id: user.id });
       console.log(
         deleted.length
-          ? 'Agent deleted; the next sign-in creates it again and lands on onboarding, then the terms.'
+          ? 'Agent deleted; the next sign-in creates it again and lands on the terms, then onboarding.'
           : 'No agent to delete.'
       );
       return;
@@ -78,15 +78,19 @@ async function main() {
       .insert(profile)
       .values({
         id: agent.id,
-        accountType: 'individual',
-        firstName: 'Zivoe',
+        firstName: 'Agent',
         lastName: 'Agent',
         countryOfResidence: 'US',
         amountOfInterest: '10k_100k',
-        howFoundZivoe: 'other'
+        referralSource: 'other'
       })
       .onConflictDoNothing({ target: profile.id })
       .returning({ id: profile.id });
+    // Every onboarded person is a Verification subject, written with the profile.
+    await db
+      .insert(verificationSubject)
+      .values({ id: agent.id, kind: 'individual', userId: agent.id })
+      .onConflictDoNothing({ target: verificationSubject.id });
     console.log(onboarded.length ? 'Agent created and onboarded.' : 'Agent already onboarded; user row refreshed.');
   } finally {
     await connection.end();

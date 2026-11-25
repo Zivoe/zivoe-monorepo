@@ -1,4 +1,4 @@
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
 import { EMAILS } from '@/lib/emails';
 
@@ -12,16 +12,19 @@ import { VerificationEmailShell } from './components/verification-email-shell';
 export default function VerificationFailedEmail({
   name,
   verificationUrl,
-  accountType
+  subjectKind,
+  organizationName
 }: {
   name?: string;
   verificationUrl: string;
-  accountType: AccountType;
+  subjectKind: SubjectKind;
+  organizationName?: string | null;
 }) {
-  const organization = accountType === 'organization';
+  const organization = subjectKind === 'organization';
 
   return (
     <VerificationEmailShell
+      organizationName={organizationName}
       preview={
         organization
           ? "Your organization's verification could not be completed."

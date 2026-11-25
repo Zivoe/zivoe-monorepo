@@ -1,6 +1,7 @@
-import { Heading, Link, Section, Text } from '@react-email/components';
+import { Heading, Text } from '@react-email/components';
 
-import { EmailLayout } from './email-layout';
+import { EmailButton } from './email-button';
+import { EmailLayout, WRAP } from './email-layout';
 
 /**
  * The shape every verification status email shares: a heading, a greeting, body
@@ -14,7 +15,8 @@ export function VerificationEmailShell({
   name,
   paragraphs,
   cta,
-  footnote
+  footnote,
+  organizationName
 }: {
   preview: string;
   heading: string;
@@ -22,6 +24,8 @@ export function VerificationEmailShell({
   paragraphs: Array<string>;
   cta: { label: string; href: string };
   footnote?: string;
+  /** Which organization this is about: someone can belong to several. */
+  organizationName?: string | null;
 }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,';
 
@@ -31,21 +35,19 @@ export function VerificationEmailShell({
 
       <Text className="m-0 mb-4 leading-6 text-neutral-600">{greeting}</Text>
 
+      {organizationName ? (
+        <Text className="m-0 mb-4 leading-6 font-semibold text-neutral-950" style={WRAP}>
+          Organization: {organizationName}
+        </Text>
+      ) : null}
+
       {paragraphs.map((paragraph) => (
         <Text key={paragraph.slice(0, 32)} className="m-0 mb-4 leading-6 text-neutral-600">
           {paragraph}
         </Text>
       ))}
 
-      <Section className="my-8 text-center">
-        <Link
-          href={cta.href}
-          className="rounded-lg bg-primary-600 px-6 py-3 font-medium text-neutral-0"
-          style={{ display: 'inline-block' }}
-        >
-          {cta.label}
-        </Link>
-      </Section>
+      <EmailButton href={cta.href} label={cta.label} />
 
       {footnote ? <Text className="text-sm m-0 text-center leading-5 text-neutral-500">{footnote}</Text> : null}
     </EmailLayout>

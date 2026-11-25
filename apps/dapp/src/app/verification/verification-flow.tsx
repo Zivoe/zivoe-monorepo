@@ -2,105 +2,118 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { type InvestorProfile } from '@/server/data/investor-profile';
-import { type VerificationStatusView, isYesDecision } from '@/server/verification/verification-status';
+import { useRouter } from 'next/navigation';
 
-import { InvestorProfileStep } from './investor-profile-step';
+import { type InvestorProfile } from '@/server/data/investor-profile';
+
+import { AccountDetailsStep } from './account-details-step';
+import { AccountSwitcher, type SubjectOption } from './account-switcher';
+import { AgreementsStep } from './agreements-step';
 import PersonaFlow from './persona-flow';
+import { organizationIdOf, verificationHref } from './verification-href';
 import VerificationShell from './verification-shell';
-import { type VerificationStepId, VerificationSteps } from './verification-steps';
+import { type VerificationStepId, VerificationSteps, stepsBefore } from './verification-steps';
 import { WalletLinkStep } from './wallet-link-step';
 
 /**
- * The `/verification` flow inside `VerificationShell`: the step rail and the
- * three steps it moves between — the Investor Profile (the onboarding answers,
- * confirmed and saved), the Persona flow (`PersonaFlow`: a person's identity or
- * an organization's business), and Wallets (`WalletLinkStep`). A layout of
- * its own, deliberately without the dashboard's navigation: the ways out
- * are Exit and finishing.
+ * The `/verification` flow inside `VerificationShell`: the account switcher
+ * and step rail, and the four steps they move between. Step one confirms the
+ * selected account's details (`AccountDetailsStep`), step two is the Persona
+ * flow (a person's identity or an organization's business), step three
+ * accepts the agreements (`AgreementsStep`), step four Wallets.
+ * A layout of its own, deliberately without the dashboard's navigation: the
+ * ways out are Exit and finishing.
  *
- * Which step shows is the record's call. The profile step exists for one
- * moment: before any inquiry, since what is saved there prefills the inquiry
- * created next and a resume carries no prefill at all. So it is offered only
- * while the investor can still start; from the first inquiry on — in
- * progress, expired, submitted or decided — the page holds the identity
- * step, with the profile step marked done, whatever a stale render may have
- * shown a moment earlier. A yes Decision ends the identity step for good:
- * the page opens on Wallets with both earlier steps done, and that step is
- * the completed state. The one way back to the
- * profile step is Back on the identity step, and `PersonaFlow` withholds it
- * while a start is in flight or a Persona frame is up: no shell-level
- * control can unmount a live inquiry.
+ * Who is being verified is the switcher's call, at the top of the rail on every
+ * step; which step shows is the URL's and the record's, read by the page. A yes
+ * Decision ends the first two steps for good: the page opens on the Agreements
+ * step until the viewer accepts the version in force, then on Wallets, which is
+ * the completed state, and nothing links back. Before one, the switcher and the
+ * link back to Account details are disabled only while a start is in flight;
+ * leaving an open Persona form is like a refresh: Persona keeps the progress.
  */
 export default function VerificationFlow({
-  view,
-  profile,
-  userId
+  subjects,
+  activeId,
+  step,
+  profile
 }: {
-  view: VerificationStatusView;
+  subjects: Array<SubjectOption>;
+  activeId: string;
+  step: VerificationStepId;
   profile: InvestorProfile;
-  /** Whose Linked addresses the Wallets step reads from the cache the page seeded. */
-  userId: string;
 }) {
-  const canEditProfile = view.canStart;
-  const isVerified = isYesDecision(view);
+  const router = useRouter();
+  const active = subjects.find((subject) => subject.id === activeId) ?? subjects[0];
+  const [isStarting, setIsStarting] = useState(false);
 
-  // `count` is bumped on every move: the step subtree's key, so Back lands on
-  // a form rebuilt from the saved values, and the trigger that moves focus to
-  // the new step's content.
-  const [nav, setNav] = useState<{ step: VerificationStepId; count: number }>({ step: 'profile', count: 0 });
-  const go = (step: VerificationStepId) => setNav((current) => ({ step, count: current.count + 1 }));
-  // The record outranks the navigation: once an inquiry exists the profile step is over, and once it is decided yes so is the identity step.
-  const step: VerificationStepId = isVerified ? 'wallets' : canEditProfile ? nav.step : 'identity';
-
-  // The values the server last accepted, so Back shows what is saved, not what the page first loaded.
-  const [savedProfile, setSavedProfile] = useState(profile);
-
-  // A move unmounts the control that had focus; the new step's content takes it, where the flow continues.
+  // The steps are one page with different URLs: a move unmounts the control
+  // that had focus, and the new step's content takes it.
+  const moveKey = `${activeId}:${step}`;
   const contentRef = useRef<HTMLDivElement>(null);
+  const firstKey = useRef(moveKey);
   useEffect(() => {
-    if (nav.count > 0) contentRef.current?.focus();
-  }, [nav]);
+    if (firstKey.current !== moveKey) contentRef.current?.focus();
+    firstKey.current = moveKey;
+  }, [moveKey]);
 
-  const done: Array<VerificationStepId> = [];
-  if (step !== 'profile') done.push('profile');
-  if (step === 'wallets') done.push('identity');
+  if (!active) return null;
+
+  const done = stepsBefore(step);
+  const organizationId = organizationIdOf(active);
+  // Back to the details before a yes Decision only: after one, nothing earlier opens again.
+  const hrefs =
+    isStarting || step === 'agreements' || step === 'wallets'
+      ? undefined
+      : { profile: verificationHref({ organizationId, step: 'details' }) };
+  // The checklist before the Persona flow turns on this: the country of residence, or of incorporation.
+  const countryCode = active.organization ? active.organization.countryOfIncorporation : profile.countryOfResidence;
+  const switcher = <AccountSwitcher subjects={subjects} activeId={active.id} isDisabled={isStarting} />;
 
   return (
     <VerificationShell
       rail={
-        <nav>
-          <VerificationSteps current={step} done={done} orientation="vertical" path={view.path} />
+        <nav className="flex flex-col gap-6">
+          {switcher}
+          <VerificationSteps current={step} done={done} orientation="vertical" path={active.view.path} hrefs={hrefs} />
         </nav>
       }
       mobileRail={
-        <nav>
-          <VerificationSteps current={step} done={done} orientation="horizontal" path={view.path} />
+        <nav className="flex flex-col gap-3">
+          {switcher}
+          <VerificationSteps
+            current={step}
+            done={done}
+            orientation="horizontal"
+            path={active.view.path}
+            hrefs={hrefs}
+          />
         </nav>
       }
     >
-      <div
-        key={nav.count}
-        ref={contentRef}
-        tabIndex={-1}
-        className="flex w-full max-w-2xl flex-1 flex-col outline-none"
-      >
+      <div key={moveKey} ref={contentRef} tabIndex={-1} className="flex w-full max-w-2xl flex-1 flex-col outline-none">
         {/* Spacers, as in the auth container: centred in a tall viewport, scrolling in a short one. */}
         <div className="min-h-11 flex-1" />
 
-        <div className="flex w-full animate-in flex-col gap-11 duration-300 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
+        <div className="flex w-full animate-in flex-col gap-11 break-words duration-300 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
           {step === 'profile' ? (
-            <InvestorProfileStep
-              profile={savedProfile}
-              onSaved={(saved) => {
-                setSavedProfile(saved);
-                go('identity');
-              }}
-            />
+            <AccountDetailsStep key={active.id} subject={active} profile={profile} />
+          ) : step === 'agreements' ? (
+            <AgreementsStep />
           ) : step === 'identity' ? (
-            <PersonaFlow view={view} onBack={canEditProfile ? () => go('profile') : undefined} />
+            <PersonaFlow
+              subjectId={active.id}
+              view={active.view}
+              countryCode={countryCode}
+              onBack={
+                active.view.canStart
+                  ? () => router.push(verificationHref({ organizationId, step: 'details' }))
+                  : undefined
+              }
+              onStartingChange={setIsStarting}
+            />
           ) : (
-            <WalletLinkStep userId={userId} />
+            <WalletLinkStep subjectId={active.id} organizationName={active.organization?.name} />
           )}
         </div>
 

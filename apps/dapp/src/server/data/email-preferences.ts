@@ -1,10 +1,12 @@
 import 'server-only';
 
+import * as Sentry from '@sentry/nextjs';
 import { eq, sql } from 'drizzle-orm';
 
 import { user, userEmailPreferences } from '@zivoe/database/schema';
 
 import { db } from '@/server/clients/db';
+import { getBeehiivNewsletterPreference } from '@/server/utils/beehiiv';
 import {
   type UnsubscribeBucket,
   doesUnsubscribeTokenMatchEmail,
@@ -94,6 +96,22 @@ export async function getAppEmailPreferences({ userId }: { userId: string }): Pr
     .limit(1);
 
   return result[0] ?? DEFAULT_APP_EMAIL_PREFERENCES;
+}
+
+/**
+ * Everything the preferences form shows: the app's own toggles, and the newsletter as Beehiiv has it. Beehiiv
+ * being down does not take the page with it: the newsletter reads null, which the form shows as unavailable.
+ * Throws when the app's own toggles cannot be read.
+ */
+export async function getEmailPreferences({ userId, email }: { userId: string; email: string }) {
+  const [appPreferences, newsletter] = await Promise.all([
+    getAppEmailPreferences({ userId }),
+    getBeehiivNewsletterPreference(email).catch((error: unknown) => {
+      Sentry.captureException(error, { tags: { source: 'SERVER', flow: 'newsletter-preference' } });
+      return null;
+    })
+  ]);
+  return { ...appPreferences, newsletter } satisfies EmailPreferences;
 }
 
 export async function saveAppEmailPreferences({

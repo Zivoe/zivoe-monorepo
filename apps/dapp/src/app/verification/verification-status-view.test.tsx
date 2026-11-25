@@ -24,6 +24,7 @@ const view = (overrides: Partial<VerificationStatusViewModel>): VerificationStat
   path: 'individual',
   canStart: true,
   canResume: false,
+  startedBy: null,
   inquiryId: null,
   caseWaitingOn: null,
   ...overrides
@@ -73,7 +74,7 @@ describe('VerificationStatusView', () => {
     [
       'waiting on its owners',
       view({ path: 'organization', status: 'pending_review', canStart: false, caseWaitingOn: 'people' }),
-      /owners and control person you listed/
+      /owners and control person listed/
     ],
     [
       'waiting on the team',

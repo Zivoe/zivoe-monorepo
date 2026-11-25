@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentProps, type ReactNode, useContext, useMemo, useState } from 'react';
+import { type CSSProperties, type ComponentProps, type ReactNode, useContext, useMemo, useState } from 'react';
 
 import {
   Button as AriaButton,
@@ -10,7 +10,9 @@ import {
   type InputProps as AriaInputProps,
   type ListBoxProps as AriaListBoxProps,
   ComboBoxStateContext,
-  composeRenderProps
+  PopoverContext,
+  composeRenderProps,
+  useSlottedContext
 } from 'react-aria-components';
 
 import { ChevronDownIcon, SearchIcon } from '../../icons';
@@ -79,8 +81,25 @@ const ComboBoxInput = ({ className, startContent, ...props }: ComboBoxInputProps
   </div>
 );
 
-/** The list's popover, as wide as the field. */
-const ComboBoxPopover = (props: ComponentProps<typeof SelectPopover>) => <SelectPopover matchTriggerWidth {...props} />;
+/**
+ * The list's popover, as wide as the field. react-aria measures the field with
+ * `getBoundingClientRect`, which counts a parent's transform: in a Dialog still zooming in
+ * from 75%, the list came out at 75% of the field and stayed there. `offsetWidth` ignores
+ * transforms, so the width is read from it when the list opens.
+ */
+const ComboBoxPopover = (props: ComponentProps<typeof SelectPopover>) => {
+  const triggerRef = useSlottedContext(PopoverContext)?.triggerRef;
+  return (
+    <SelectPopover
+      matchTriggerWidth
+      style={() => {
+        const width = triggerRef?.current instanceof HTMLElement ? triggerRef.current.offsetWidth : 0;
+        return width > 0 ? ({ '--trigger-width': `${width}px` } as CSSProperties) : {};
+      }}
+      {...props}
+    />
+  );
+};
 
 const ComboBoxListBox = <T extends object>({
   renderEmptyState = () => <p className="px-3 py-2.5 text-small text-tertiary">No results</p>,

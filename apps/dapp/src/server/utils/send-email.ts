@@ -5,8 +5,10 @@ import { type ReactElement } from 'react';
 import { render } from '@react-email/components';
 import { Resend } from 'resend';
 
-import { type AccountType } from '@zivoe/database/onboarding';
+import { type SubjectKind } from '@zivoe/database/organizations';
 
+import { invitationLinkPath } from '@/lib/return-paths';
+import { isOneLine, readsAsLink } from '@/lib/schemas/reads-as-link';
 import { EMAILS } from '@/lib/utils';
 
 import { env } from '@/env';
@@ -18,6 +20,8 @@ import { type TransactionReceiptJob, buildReceiptJobKey } from './centrifuge-tx-
 import AddressWhitelistedEmail from './emails/address-whitelisted-email';
 import FirstDepositReminderEmail from './emails/first-deposit-reminder-email';
 import OnboardingReminderEmail from './emails/onboarding-reminder-email';
+import OrganizationInvitationEmail from './emails/organization-invitation-email';
+import OrganizationMemberRemovedEmail from './emails/organization-member-removed-email';
 import OTPEmail from './emails/otp-email';
 import SecondDepositReminderEmail from './emails/second-deposit-reminder-email';
 import VerificationActionRequiredEmail from './emails/verification-action-required-email';
@@ -93,16 +97,14 @@ export async function sendWelcomeEmail({ to, name, userId }: { to: string; name?
 export async function sendFirstDepositReminderEmail({
   to,
   name,
-  accountType,
   userId
 }: {
   to: string;
   name?: string;
-  accountType: 'individual' | 'organization';
   userId: string;
 }) {
   const { footerUnsubscribeUrl, oneClickHeaders } = getProductTipsUnsubscribeMetadata({ userId, email: to });
-  const html = await render(FirstDepositReminderEmail({ name, accountType, unsubscribeUrl: footerUnsubscribeUrl }));
+  const html = await render(FirstDepositReminderEmail({ name, unsubscribeUrl: footerUnsubscribeUrl }));
 
   return handleIdempotentResult(
     await resend.emails.send(
@@ -124,16 +126,14 @@ export async function sendFirstDepositReminderEmail({
 export async function sendSecondDepositReminderEmail({
   to,
   name,
-  accountType,
   userId
 }: {
   to: string;
   name?: string;
-  accountType: 'individual' | 'organization';
   userId: string;
 }) {
   const { footerUnsubscribeUrl, oneClickHeaders } = getProductTipsUnsubscribeMetadata({ userId, email: to });
-  const html = await render(SecondDepositReminderEmail({ name, accountType, unsubscribeUrl: footerUnsubscribeUrl }));
+  const html = await render(SecondDepositReminderEmail({ name, unsubscribeUrl: footerUnsubscribeUrl }));
 
   return handleIdempotentResult(
     await resend.emails.send(
@@ -210,11 +210,12 @@ export async function sendTransactionReceiptEmail({
 const VERIFICATION_EMAILS: Record<
   VerificationEmailStatus,
   {
-    subject: Record<AccountType, string>;
+    subject: Record<SubjectKind, string>;
     render: (props: {
       name?: string;
       verificationUrl: string;
-      accountType: AccountType;
+      subjectKind: SubjectKind;
+      organizationName: string | null;
       caseWaitingOn: 'people' | 'team' | null;
       /** The Decision a reversal took back, when the email announces one. */
       previousDecision?: DecisionStatus;
@@ -256,7 +257,7 @@ const VERIFICATION_EMAILS: Record<
 };
 
 /** A review that is a reopen reads differently: a Decision was taken back, nothing was just completed. */
-const VERIFICATION_REOPENED_SUBJECTS: Record<AccountType, string> = {
+const VERIFICATION_REOPENED_SUBJECTS: Record<SubjectKind, string> = {
   individual: "We're taking another look at your identity verification",
   organization: "We're taking another look at your organization's verification"
 };
@@ -271,7 +272,9 @@ export async function sendVerificationStatusEmail({
   to,
   name,
   status,
-  accountType,
+  subjectId,
+  subjectKind,
+  organizationName,
   caseWaitingOn,
   previousDecision,
   inquiryId,
@@ -280,21 +283,38 @@ export async function sendVerificationStatusEmail({
   to: string;
   name?: string;
   status: VerificationEmailStatus;
-  accountType: AccountType;
+  subjectId: string;
+  subjectKind: SubjectKind;
+  organizationName: string | null;
   caseWaitingOn: 'people' | 'team' | null;
   previousDecision?: DecisionStatus;
   inquiryId: string;
   statusChangedAt: Date;
 }) {
-  const verificationUrl = `${BASE_URL}/verification`;
+  // `/verification` alone opens on the reader; an organization's email names the organization, so a member
+  // never acts (or links a wallet) for themselves while reading about it.
+  const verificationUrl =
+    subjectKind === 'organization' ? `${BASE_URL}/verification?subject=${subjectId}` : `${BASE_URL}/verification`;
   const reopen = status === 'pending_review' && previousDecision;
-  const subject = reopen
-    ? VERIFICATION_REOPENED_SUBJECTS[accountType]
-    : VERIFICATION_EMAILS[status].subject[accountType];
+  const baseSubject = reopen
+    ? VERIFICATION_REOPENED_SUBJECTS[subjectKind]
+    : VERIFICATION_EMAILS[status].subject[subjectKind];
+  // Someone can belong to several organizations: the inbox says which one, when the name is safe in a subject line.
+  const subject =
+    subjectKind === 'organization' && organizationName && isOneLine(organizationName) && !readsAsLink(organizationName)
+      ? `${baseSubject}: ${organizationName}`
+      : baseSubject;
   const html = await render(
     reopen
-      ? VerificationReopenedEmail({ name, verificationUrl, accountType, previousDecision })
-      : VERIFICATION_EMAILS[status].render({ name, verificationUrl, accountType, caseWaitingOn, previousDecision })
+      ? VerificationReopenedEmail({ name, verificationUrl, subjectKind, organizationName, previousDecision })
+      : VERIFICATION_EMAILS[status].render({
+          name,
+          verificationUrl,
+          subjectKind,
+          organizationName,
+          caseWaitingOn,
+          previousDecision
+        })
   );
 
   return handleIdempotentResult(
@@ -385,4 +405,106 @@ function getProductTipsUnsubscribeMetadata({ userId, email }: { userId: string; 
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
     }
   };
+}
+
+/** An email's plain-text part. Headings keep their case: they carry names, which are not ours to change. */
+const renderText = (email: ReactElement) =>
+  render(email, {
+    plainText: true,
+    htmlToTextOptions: {
+      selectors: ['h1', 'h2', 'h3'].map((selector) => ({ selector, options: { uppercase: false } }))
+    }
+  });
+
+/** At most `length` characters a reader sees (emoji and accents whole), with an ellipsis when cut. */
+const clip = (text: string, length = 60) => {
+  const characters = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text)].map(
+    ({ segment }) => segment
+  );
+  return characters.length > length
+    ? `${characters
+        .slice(0, length - 1)
+        .join('')
+        .trimEnd()}…`
+    : text;
+};
+
+/**
+ * An invitation to join an organization, one per send, with a plain-text part. No unsubscribe
+ * metadata: it is one message someone asked to send, the invitation ends on its own, and no
+ * reminders ever follow it. The subject names who asked, clipped: names can be long.
+ */
+export async function sendOrganizationInvitationEmail({
+  to,
+  invitationId,
+  sendCount,
+  organizationName,
+  inviterName,
+  inviterEmail,
+  expiresAt
+}: {
+  to: string;
+  invitationId: string;
+  sendCount: number;
+  organizationName: string;
+  inviterName: string;
+  inviterEmail: string | null;
+  expiresAt: Date;
+}) {
+  const email = OrganizationInvitationEmail({
+    organizationName,
+    inviterName,
+    inviterEmail,
+    expiresAt,
+    invitationUrl: `${BASE_URL}${invitationLinkPath({ invitationId, email: to })}`
+  });
+  const [html, text] = await Promise.all([render(email), renderText(email)]);
+
+  return handleIdempotentResult(
+    await resend.emails.send(
+      {
+        from: 'Zivoe <verify@auth.zivoe.com>',
+        replyTo: EMAILS.INQUIRE,
+        to,
+        subject: `${clip(inviterName)} invited you to join ${clip(organizationName)} on Zivoe`,
+        html,
+        text,
+        tags: [{ name: 'category', value: 'organization_invitation' }]
+      },
+      { idempotencyKey: `organization-invitation/${invitationId}/${sendCount}` }
+    )
+  );
+}
+
+/** Tells someone another member took them out of an organization: how a removal they did not expect gets noticed. */
+export async function sendOrganizationMemberRemovedEmail({
+  to,
+  name,
+  organizationName,
+  removedByName,
+  removalKey
+}: {
+  to: string;
+  name: string | null;
+  organizationName: string;
+  removedByName: string;
+  removalKey: string;
+}) {
+  const email = OrganizationMemberRemovedEmail({ name, organizationName, removedByName, supportEmail: EMAILS.INQUIRE });
+  const [html, text] = await Promise.all([render(email), renderText(email)]);
+
+  return handleIdempotentResult(
+    await resend.emails.send(
+      {
+        from: 'Zivoe <verify@auth.zivoe.com>',
+        replyTo: EMAILS.INQUIRE,
+        to,
+        subject: `You were removed from ${clip(organizationName)} on Zivoe`,
+        html,
+        text,
+        tags: [{ name: 'category', value: 'organization_member_removed' }]
+      },
+      { idempotencyKey: `organization-member-removed/${removalKey}` }
+    )
+  );
 }

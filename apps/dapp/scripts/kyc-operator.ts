@@ -4,24 +4,26 @@
  * outcome is posted to the Persona Telegram channel; QStash carries no
  * response back.
  *
- *   pnpm kyc:operator revoke <user-id>    set the Human-owned `revoked`
- *   pnpm kyc:operator approve <user-id>   set the Human-owned `manually_approved`
- *   pnpm kyc:operator resync <user-id>    re-read the user from Persona; lifts either
+ *   pnpm kyc:operator revoke <subject-id>    set the Human-owned `revoked`
+ *   pnpm kyc:operator approve <subject-id>   set the Human-owned `manually_approved`
+ *   pnpm kyc:operator resync <subject-id>    re-read the subject from Persona; lifts either
+ *
+ * A subject id is a person's user id, or an organization's id.
  */
 import { Client } from '@upstash/qstash';
 
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '../src/lib/qstash';
 
-const [action, userId] = process.argv.slice(2);
+const [action, subjectId] = process.argv.slice(2);
 const token = process.env.QSTASH_TOKEN;
 const baseUrl = process.env.APP_URL?.replace(/\/+$/, '');
 
-if (!action || !['revoke', 'approve', 'resync'].includes(action) || !userId || !token || !baseUrl) {
+if (!action || !['revoke', 'approve', 'resync'].includes(action) || !subjectId || !token || !baseUrl) {
   console.error(`
 Usage:
-  pnpm kyc:operator revoke <user-id>
-  pnpm kyc:operator approve <user-id>
-  pnpm kyc:operator resync <user-id>
+  pnpm kyc:operator revoke <subject-id>
+  pnpm kyc:operator approve <subject-id>
+  pnpm kyc:operator resync <subject-id>
 
 Environment variables:
   QSTASH_TOKEN   Required
@@ -33,13 +35,13 @@ Environment variables:
 new Client({ token })
   .publishJSON({
     url: `${baseUrl}/api/kyc/operator`,
-    body: { action, userId },
+    body: { action, subjectId },
     retries: 1,
     failureCallback: getQstashFailureCallback(baseUrl),
     label: QSTASH_JOB_LABELS.kycOperator
   })
   .then(({ messageId }) => {
-    console.log(`Published ${action} for ${userId} to ${baseUrl} (QStash message ${messageId}).`);
+    console.log(`Published ${action} for ${subjectId} to ${baseUrl} (QStash message ${messageId}).`);
     console.log('The outcome arrives in the Persona Telegram channel.');
   })
   .catch((err: Error) => {

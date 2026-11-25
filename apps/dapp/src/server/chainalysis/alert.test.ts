@@ -72,12 +72,9 @@ describe('formatChainalysisAlert', () => {
   const person = {
     email: 'investor@example.com',
     name: 'Google Name',
-    accountType: 'individual' as const,
     firstName: 'Ada',
     lastName: 'Lovelace',
-    entityName: null,
     countryOfResidence: 'PH',
-    countryOfIncorporation: null,
     amountOfInterest: '100k_250k' as const
   };
 
@@ -87,24 +84,17 @@ describe('formatChainalysisAlert', () => {
         '🚩 <b>Chainalysis: High risk</b>',
         '<b>Reason:</b> 38% indirect exposure to Gambling',
         '<b>Who:</b> Ada Lovelace · investor@example.com',
-        '<b>Profile:</b> Individual · Philippines · $100k - $250k',
+        '<b>Profile:</b> Philippines · $100k - $250k',
         `<b>Wallet:</b> <code>${ADDRESS}</code>`,
         '<b>Other wallets:</b> <code>0xaa65</code>'
       ].join('\n')
     );
   });
 
-  it('describes an organization by its entity and country of incorporation', () => {
-    const organization = {
-      ...person,
-      accountType: 'organization' as const,
-      entityName: 'Acme & Co',
-      countryOfResidence: null,
-      countryOfIncorporation: 'SG'
-    };
-
-    expect(formatChainalysisAlert({ job: JOB, person: organization, otherWallets: [] })).toContain(
-      '<b>Profile:</b> Organization · Acme &amp; Co · Singapore · $100k - $250k'
+  it('names the organization that owns the address, escaped, and says when it is deleted', () => {
+    const ownerOrganization = { name: 'Acme & Co', id: 'org_1', deleted: true };
+    expect(formatChainalysisAlert({ job: JOB, person, otherWallets: [], ownerOrganization })).toContain(
+      '<b>Owned by organization:</b> Acme &amp; Co (org_1) (deleted)'
     );
   });
 

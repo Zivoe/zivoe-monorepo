@@ -1,11 +1,11 @@
 import 'server-only';
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getAddress, isAddress } from 'viem';
 import { z } from 'zod';
 
-import { type AccountType, type AmountOfInterest } from '@zivoe/database/onboarding';
-import { profile, user } from '@zivoe/database/schema';
+import { type AmountOfInterest } from '@zivoe/database/onboarding';
+import { organization, profile, user, walletLink } from '@zivoe/database/schema';
 
 import { getCountryLabel } from '@/types/countries';
 
@@ -14,9 +14,10 @@ import { qstash } from '@/server/clients/qstash';
 import { redis } from '@/server/clients/redis';
 import { getWalletAddressesForUser } from '@/server/data/wallets';
 import { BASE_URL } from '@/server/utils/base-url';
+import { organizationLabel } from '@/server/utils/operator-labels';
 import { sendTelegramMessage } from '@/server/utils/send-telegram';
 
-import { INDIVIDUAL_AMOUNT_OPTIONS, ORG_AMOUNT_OPTIONS } from '@/lib/onboarding-options';
+import { AMOUNT_OF_INTEREST_LABELS } from '@/lib/onboarding-options';
 import { QSTASH_JOB_LABELS, getQstashFailureCallback } from '@/lib/qstash';
 import { addressSchema } from '@/lib/schemas';
 import { escapeHtml } from '@/lib/utils';
@@ -74,12 +75,9 @@ export async function deliverChainalysisAlert(job: ChainalysisAlertJob) {
     .select({
       email: user.email,
       name: user.name,
-      accountType: profile.accountType,
       firstName: profile.firstName,
       lastName: profile.lastName,
-      entityName: profile.entityName,
       countryOfResidence: profile.countryOfResidence,
-      countryOfIncorporation: profile.countryOfIncorporation,
       amountOfInterest: profile.amountOfInterest
     })
     .from(user)
@@ -93,35 +91,46 @@ export async function deliverChainalysisAlert(job: ChainalysisAlertJob) {
     // Checksummed like the flagged one; a malformed row is shown as stored rather than failing the alert.
     .map((wallet) => (isAddress(wallet) ? getAddress(wallet) : wallet));
 
+  // The address may be owned by an organization rather than by whoever connected it.
+  const [owner] = await db
+    .select({ name: organization.name, id: organization.id, deletedAt: organization.deletedAt })
+    .from(walletLink)
+    .innerJoin(organization, eq(organization.id, walletLink.subjectId))
+    .where(and(eq(walletLink.address, job.address.toLowerCase()), eq(walletLink.status, 'linked')))
+    .limit(1);
+
   await sendTelegramMessage({
     chatId: env.TELEGRAM_CHAINALYSIS_CHAT_ID,
-    text: formatChainalysisAlert({ job, person: person ?? null, otherWallets })
+    text: formatChainalysisAlert({
+      job,
+      person: person ?? null,
+      otherWallets,
+      ownerOrganization: owner ? { name: owner.name, id: owner.id, deleted: owner.deletedAt !== null } : null
+    })
   });
 }
 
 type AlertPerson = {
   email: string;
   name: string;
-  accountType: AccountType | null;
   firstName: string | null;
   lastName: string | null;
-  entityName: string | null;
   countryOfResidence: string | null;
-  countryOfIncorporation: string | null;
   amountOfInterest: AmountOfInterest | null;
 };
-
-const AMOUNT_LABELS: Record<AmountOfInterest, string> = { ...INDIVIDUAL_AMOUNT_OPTIONS, ...ORG_AMOUNT_OPTIONS };
 
 /** The message ops reads: risk, who connected the wallet, and their other wallets. */
 export function formatChainalysisAlert({
   job,
   person,
-  otherWallets
+  otherWallets,
+  ownerOrganization = null
 }: {
   job: ChainalysisAlertJob;
   person: AlertPerson | null;
   otherWallets: Array<string>;
+  /** The organization that owns the address, when one does. */
+  ownerOrganization?: { name: string; id: string; deleted: boolean } | null;
 }): string {
   const lines = [
     `🚩 <b>Chainalysis: ${escapeHtml(job.risk)} risk</b>`,
@@ -132,14 +141,8 @@ export function formatChainalysisAlert({
     const name = [person.firstName, person.lastName].filter(Boolean).join(' ') || person.name;
     lines.push(`<b>Who:</b> ${escapeHtml(name)} · ${escapeHtml(person.email)}`);
 
-    const countryName = (code: string | null) => code && getCountryLabel(code);
-    const details =
-      person.accountType === 'organization'
-        ? ['Organization', person.entityName, countryName(person.countryOfIncorporation)]
-        : person.accountType === 'individual'
-          ? ['Individual', countryName(person.countryOfResidence)]
-          : [];
-    if (person.amountOfInterest) details.push(AMOUNT_LABELS[person.amountOfInterest]);
+    const details = [person.countryOfResidence && getCountryLabel(person.countryOfResidence)];
+    if (person.amountOfInterest) details.push(AMOUNT_OF_INTEREST_LABELS[person.amountOfInterest]);
 
     const profileLine = details.filter(Boolean).join(' · ');
     if (profileLine) lines.push(`<b>Profile:</b> ${escapeHtml(profileLine)}`);
@@ -147,6 +150,7 @@ export function formatChainalysisAlert({
     lines.push('<b>Who:</b> Account not found');
   }
 
+  if (ownerOrganization) lines.push(`<b>Owned by organization:</b> ${organizationLabel(ownerOrganization)}`);
   lines.push(`<b>Wallet:</b> <code>${escapeHtml(job.address)}</code>`);
 
   if (otherWallets.length > 0) {

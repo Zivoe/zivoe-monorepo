@@ -21,29 +21,37 @@ export default function VerificationLoading() {
   return (
     <VerificationShell
       rail={
-        <div className="flex flex-col">
-          {VERIFICATION_STEPS.map((step, index) => (
-            <div key={step.id} className="flex flex-col">
-              <div className="flex items-center gap-3">
-                <Skeleton className="size-8 shrink-0 rounded-md bg-neutral-900/10" />
-                <span className="text-regular">
-                  <TextSkeleton className="w-32 bg-neutral-900/10" />
-                </span>
-              </div>
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-19.5 w-full rounded-lg bg-neutral-900/10" />
+          <div className="flex flex-col">
+            {VERIFICATION_STEPS.map((step, index) => (
+              <div key={step.id} className="flex flex-col">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="size-8 shrink-0 rounded-md bg-neutral-900/10" />
+                  <span className="text-regular">
+                    <TextSkeleton className="w-32 bg-neutral-900/10" />
+                  </span>
+                </div>
 
-              {index < VERIFICATION_STEPS.length - 1 ? <span className="my-1.5 ml-4 h-6 w-px bg-tertiary-600" /> : null}
-            </div>
-          ))}
+                {index < VERIFICATION_STEPS.length - 1 ? (
+                  <span className="my-1.5 ml-4 h-6 w-px bg-tertiary-600" />
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
       }
       mobileRail={
-        <div className="flex items-center gap-3">
-          {VERIFICATION_STEPS.map((step, index) => (
-            <div key={step.id} className="flex items-center gap-3">
-              <Skeleton className="size-7 shrink-0 rounded-md" />
-              {index < VERIFICATION_STEPS.length - 1 ? <span className="h-px w-4 bg-tertiary-600" /> : null}
-            </div>
-          ))}
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-19.5 w-full rounded-lg" />
+          <div className="flex items-center gap-3">
+            {VERIFICATION_STEPS.map((step, index) => (
+              <div key={step.id} className="flex items-center gap-3">
+                <Skeleton className="size-7 shrink-0 rounded-md" />
+                {index < VERIFICATION_STEPS.length - 1 ? <span className="h-px w-4 bg-tertiary-600" /> : null}
+              </div>
+            ))}
+          </div>
         </div>
       }
     >

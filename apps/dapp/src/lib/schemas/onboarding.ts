@@ -1,26 +1,10 @@
 import { z } from 'zod';
 
-import {
-  accountTypeValues,
-  howFoundZivoeValues,
-  individualAmountValues,
-  orgAmountValues
-} from '@zivoe/database/onboarding';
+import { amountOfInterestOptionValues, referralSourceValues } from '@zivoe/database/onboarding';
 
 import { isSupportedCountryCode } from '@/types/countries';
 
-export { accountTypeValues } from '@zivoe/database/onboarding';
-
-const individualAmountEnum = z.enum(individualAmountValues, {
-  required_error: 'Please select an amount of interest'
-});
-
-const orgAmountEnum = z.enum(orgAmountValues, {
-  required_error: 'Please select an amount of interest'
-});
-const howFoundZivoeEnum = z.enum(howFoundZivoeValues, {
-  required_error: 'Please select how you found Zivoe'
-});
+import { isOneLine, readsAsLink } from './reads-as-link';
 
 // ISO 3166-1 alpha-2 code, restricted to the supported (non-sanctioned) list.
 // Validated server-side too, since the server actions re-parse with these schemas.
@@ -29,94 +13,33 @@ const countryCodeSchema = z
   .min(1, 'Please select a country')
   .refine(isSupportedCountryCode, 'Please select a valid country');
 
-export type AccountType = (typeof accountTypeValues)[number];
-
-// Account type form schema
-export const accountTypeSchema = z.object({
-  accountType: z.enum(accountTypeValues, {
-    required_error: 'Please select an account type'
-  })
-});
-export type AccountTypeFormData = z.infer<typeof accountTypeSchema>;
-
-export const individualSchema = z.object({
-  firstName: z.string({ required_error: 'First name is required' }).min(1, 'First name is required'),
-  lastName: z.string({ required_error: 'Last name is required' }).min(1, 'Last name is required'),
-  countryOfResidence: countryCodeSchema,
-  amountOfInterest: individualAmountEnum,
-  howFoundZivoe: howFoundZivoeEnum
-});
-export type IndividualFormData = z.infer<typeof individualSchema>;
-
-// Organization Step 1: Personal Information
-export const orgPersonalInfoSchema = z.object({
-  firstName: z.string({ required_error: 'First name is required' }).min(1, 'First name is required'),
-  lastName: z.string({ required_error: 'Last name is required' }).min(1, 'Last name is required'),
-  jobTitle: z.string({ required_error: 'Job title is required' }).min(1, 'Job title is required'),
-  howFoundZivoe: howFoundZivoeEnum
-});
-export type OrgPersonalInfoFormData = z.infer<typeof orgPersonalInfoSchema>;
-
-// Organization Step 2: Entity Information
-export const orgEntityInfoSchema = z.object({
-  entityName: z.string({ required_error: 'Entity name is required' }).min(1, 'Entity name is required'),
-  countryOfIncorporation: countryCodeSchema,
-  amountOfInterest: orgAmountEnum
-});
-export type OrgEntityInfoFormData = z.infer<typeof orgEntityInfoSchema>;
-
-// Combined organization schema (for server-side validation)
-export const organizationSchema = orgPersonalInfoSchema.merge(orgEntityInfoSchema);
-export type OrganizationFormData = z.infer<typeof organizationSchema>;
-
-// Discriminated union for server action
-export const onboardingSchema = z.discriminatedUnion('accountType', [
-  z.object({ accountType: z.literal(accountTypeValues[0]) }).merge(individualSchema),
-  z.object({ accountType: z.literal(accountTypeValues[1]) }).merge(organizationSchema)
-]);
-export type OnboardingFormData = z.infer<typeof onboardingSchema>;
-
-/** Persona prefills the inquiry from these, so a name is trimmed and bounded. */
+/** Persona prefills the inquiry from these and invitation emails print them, so a name is trimmed, bounded and no link. */
 const MAX_NAME_LENGTH = 100;
-/** Persona's `business-name` field takes up to 255 characters; a legal name is often longer than a person's. */
-const MAX_ENTITY_NAME_LENGTH = 255;
-const boundedName = (label: string, max = MAX_NAME_LENGTH) =>
+const boundedName = (label: string) =>
   z
     .string({ required_error: `${label} is required` })
     .trim()
     .min(1, `${label} is required`)
-    .max(max, `${label} is too long`);
+    .max(MAX_NAME_LENGTH, `${label} is too long`)
+    .refine(isOneLine, `${label} can't contain line breaks`)
+    .refine((name) => !readsAsLink(name), `${label} can't look like a web address`);
 
 /**
- * The Investor Profile step of `/verification`: the onboarding answers an
- * individual confirms or corrects before the Persona flow. The email is not
- * here on purpose — it is the sign-in identity and stays locked.
+ * The Account details step of `/verification`: the person's answers, confirmed
+ * or corrected before the Persona flow. The email is not here on purpose: it is
+ * the sign-in identity and stays locked.
  */
 export const investorProfileSchema = z.object({
-  firstName: z
-    .string({ required_error: 'First name is required' })
-    .trim()
-    .min(1, 'First name is required')
-    .max(MAX_NAME_LENGTH, 'First name is too long'),
-  lastName: z
-    .string({ required_error: 'Last name is required' })
-    .trim()
-    .min(1, 'Last name is required')
-    .max(MAX_NAME_LENGTH, 'Last name is too long'),
+  firstName: boundedName('First name'),
+  lastName: boundedName('Last name'),
   // Persona prefills the inquiry's address country from this code.
   countryOfResidence: countryCodeSchema
 });
 export type InvestorProfileFormData = z.infer<typeof investorProfileSchema>;
 
-/**
- * The same step for an organization: the entity Persona verifies and the
- * person filling the form in, as the business inquiry is prefilled from both.
- */
-export const organizationProfileSchema = z.object({
-  firstName: boundedName('First name'),
-  lastName: boundedName('Last name'),
-  jobTitle: boundedName('Job title'),
-  entityName: boundedName('Entity name', MAX_ENTITY_NAME_LENGTH),
-  countryOfIncorporation: countryCodeSchema
+/** Onboarding's "Tell us about yourself": asked of everyone, a company's details follow when they invest through one. */
+export const onboardingSchema = investorProfileSchema.extend({
+  amountOfInterest: z.enum(amountOfInterestOptionValues, { required_error: 'Please select an amount of interest' }),
+  referralSource: z.enum(referralSourceValues, { required_error: 'Please select how you found Zivoe' })
 });
-export type OrganizationProfileFormData = z.infer<typeof organizationProfileSchema>;
+export type OnboardingFormData = z.infer<typeof onboardingSchema>;

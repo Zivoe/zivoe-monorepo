@@ -11,9 +11,10 @@ const noStore = { 'Cache-Control': 'private, no-store' };
 
 /**
  * Where Lighthouse sends every visitor without a valid pass, and the only place a pass is issued:
- * a signed-in, onboarded user who accepted the current terms gets one and returns to the Lighthouse
- * page in `next`. A signed-out visitor goes to sign-in first, one who has not onboarded to onboarding
- * and one behind on the terms to the terms; all lead back here.
+ * a signed-in, onboarded user who accepted the current terms (and, if they act for an approved account,
+ * the current agreements) gets one and returns to the Lighthouse page in `next`. A signed-out visitor goes
+ * to sign-in first, one who has not onboarded to onboarding, one behind on the terms to the terms and one
+ * behind on the agreements to the agreements; all lead back here.
  * `/api/*` is outside the proxy matcher, so signed-out visitors reach this route and it has to
  * handle them itself.
  */

@@ -186,6 +186,18 @@ describe('formatTelegramItem', () => {
     );
   });
 
+  it('names the organization that linked the account, between the account and its emails', () => {
+    const item = formatTelegramItem({
+      event: event(),
+      ...shared,
+      organization: { id: 'org-1', name: 'Acme & Co', deleted: true }
+    });
+
+    expect(item).toContain(
+      'Account: <code>0xb8da328a4edb64af841c6bb72b55988e9abeb172</code>\nOrganization: Acme &amp; Co (org-1) (deleted)\nLinked email: a@b.c'
+    );
+  });
+
   it("scales the asset amount by the event chain's USDC — 5 USDC on an 18-decimal chain is 5e18 base units", () => {
     mocks.eighteenDecimalUsdcChain = 'ethereum';
     const item = formatTelegramItem({ event: event({ currencyAmount: 5_000_000_000_000_000_000n }), ...shared });

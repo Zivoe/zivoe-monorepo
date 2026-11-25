@@ -3,6 +3,13 @@ import { Body, Container, Head, Hr, Html, Img, Preview, Section, Tailwind, Text 
 import { ZIVOE_LOGO_URL, emailTailwindConfig } from '../config';
 import { EmailFooterRow } from './email-footer-row';
 
+/**
+ * For text that carries a name: one with no spaces must wrap inside the 480px card. `overflow-wrap:
+ * break-word` can't narrow the card's table cell, so the email would grow sideways; `word-break:
+ * break-word` can, and email clients honour it.
+ */
+export const WRAP = { wordBreak: 'break-word' } as const;
+
 /** Both disclosures carry the same risk language verbatim — one string, so it cannot drift. */
 const RISK_PARAGRAPH =
   'Participation involves risk, including credit and default risk, limited liquidity, technology and operational risk, regulatory risk, and the possible loss of some or all of your capital. Returns are not guaranteed. Review the applicable vault terms and disclosures before participating.';

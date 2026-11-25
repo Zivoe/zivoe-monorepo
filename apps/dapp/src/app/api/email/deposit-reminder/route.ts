@@ -9,7 +9,7 @@ import { qstash } from '@/server/clients/qstash';
 import { getUserEmailProfile } from '@/server/data/auth';
 import { hasAnyInvestorTransaction } from '@/server/data/centrifuge-investor';
 import { isEmailPreferenceEnabled } from '@/server/data/email-preferences';
-import { getWalletAddressesForUser } from '@/server/data/wallets';
+import { getOrganizationWalletAddressesForUser, getWalletAddressesForUser } from '@/server/data/wallets';
 import { BASE_URL } from '@/server/utils/base-url';
 import { sendFirstDepositReminderEmail, sendSecondDepositReminderEmail } from '@/server/utils/send-email';
 
@@ -59,7 +59,7 @@ const handler = async (req: NextRequest) => {
 
   const profile = await getUserEmailProfile(userId);
 
-  if (!profile?.createdAt || !profile.accountType) {
+  if (!profile?.createdAt) {
     Sentry.captureException(new Error('Deposit reminder email skipped: user/profile not found'), {
       tags: { source: 'API', flow: 'deposit-reminder-email' },
       extra: { userId, reminderNumber }
@@ -68,7 +68,12 @@ const handler = async (req: NextRequest) => {
     return NextResponse.json({ success: true, data: 'User or profile not found, skipping reminder' });
   }
 
-  const wallets = await getWalletAddressesForUser(userId);
+  // A member of an organization that has invested has invested: its wallets count, whoever connected them.
+  const [ownWallets, organizationWallets] = await Promise.all([
+    getWalletAddressesForUser(userId),
+    getOrganizationWalletAddressesForUser(userId)
+  ]);
+  const wallets = [...new Set([...ownWallets, ...organizationWallets])];
   const hasInvestorActivity = await hasAnyInvestorTransaction({
     shareClassKeys: liveShareClassKeys,
     addresses: wallets
@@ -91,7 +96,6 @@ const handler = async (req: NextRequest) => {
     sendEmail({
       to: profile.email,
       name: profile.firstName ?? profile.lastName ?? undefined,
-      accountType: profile.accountType,
       userId
     })
   );
